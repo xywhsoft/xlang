@@ -13,10 +13,18 @@ func main(...) as int
     assert(keys.length == 2 and keys[0] == "a" and keys[1] == "b")
     println("avl=ok")
 
+    SpscQueue<int> spsc = SpscQueue::<int>(4)
+    assert(spsc.tryPush(1) and spsc.tryPopInto(value) and value == 1)
+    println("spsc=ok")
+
+    MpscQueue<int> mpsc = MpscQueue::<int>(4)
+    assert(mpsc.tryPush(2) and mpsc.tryPopInto(value) and value == 2)
+    println("mpsc=ok")
+
     MpmcQueue<string> queue = MpmcQueue::<string>(8)
     string text = ""
     assert(queue.tryPush("hello") and queue.tryPopInto(text) and text == "hello")
-    println("queue=ok")
+    println("mpmc=ok")
 
     WaitQueue<int> waits = WaitQueue::<int>(4)
     assert(not waits.popTimeoutInto(value, 1))

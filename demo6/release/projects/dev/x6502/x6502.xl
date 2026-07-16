@@ -35,7 +35,7 @@
 //   * file.readBytes / file.writeBytes / file.readText / file.exists (binary I/O)
 //   * Buffer: Buffer() / appendByte / len / byteAt
 //   * array<int> 64KiB memory + string.split/splitLines/trim/upper/lower/
-//     startsWith/endsWith/indexOf/replace/slice/repeat/formatInt/len/byteAt
+//     startsWith/endsWith/indexOf/replace/slice/repeat/int.format/len/byteAt
 //   * dict<int> label table, bitwise &,|,^,~,<<,>>, 8/16-bit masking, signed
 //     branch offsets, two-pass label resolution.
 
@@ -923,11 +923,11 @@ func dumpFlags() as string
 end
 
 func hex2(int b) as string
-    return string.formatInt(b & 0xFF, "x2")
+    return int.format(b & 0xFF, "x2")
 end
 
 func hex4(int w) as string
-    return string.formatInt(w & 0xFFFF, "X4")
+    return int.format(w & 0xFFFF, "X4")
 end
 
 func dumpState()
@@ -1378,17 +1378,17 @@ end
 
 // Split a comma-separated operand list, trimming each item.
 func splitItems(string s) as array<string>
-    array<string> out = array[]
+    array<string> outputValue = array[]
     array parts = string.split(s, ",")
     int i = 0
     while i < parts.length do
         string t = string.trim(string(parts[i]))
         if t != "" then
-            out.push(t)
+            outputValue.push(t)
         end
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // Size (in bytes) of the current parsed line at assembly time. Used in pass 1

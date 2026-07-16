@@ -1,4 +1,4 @@
-﻿// fileserver - HTTP server 深度验证工具
+// fileserver - HTTP server 深度验证工具
 //
 // 用法：
 //   fileserver                -> self-test：启动 server、自发自收跑测试用例、报告后退出
@@ -80,16 +80,25 @@ func route(point reqHandle, point respHandle) as bool
     // GET /api/items/{id} -> JSON 单项（路径参数）
     if method == "GET" and string.startsWith(path, "/api/items/") then
         string id = req.param("id")
-        string body = "{\"id\":" + id + ",\"name\":\"item-" + id + "\"}"
-        return resp.jsonText(body)
+        var item = {}
+        item["id"] = int(id)
+        item["name"] = "item-" + id
+        return resp.jsonText(json.stringify(item))
     end
 
     // POST /api/items -> 读取 body，返回 echo
     if method == "POST" and path == "/api/items" then
         string ct = req.contentType()
         string body = req.body()
-        string out = "{\"echo\":" + body + ",\"method\":\"" + method + "\",\"ct\":\"" + ct + "\"}"
-        return resp.jsonText(out)
+        var result = {}
+        if json.valid(body) then
+            result["echo"] = json.parse(body)
+        else
+            result["echo"] = body
+        end
+        result["method"] = method
+        result["ct"] = ct
+        return resp.jsonText(json.stringify(result))
     end
 
     // GET /redirect -> 跳转 /
@@ -124,7 +133,11 @@ func route(point reqHandle, point respHandle) as bool
         if sid == "" then
             return resp.jsonText("{\"hasSid\":false}")
         end
-        return resp.jsonText("{\"hasSid\":true,\"sid\":\"" + sid + "\",\"pref\":\"" + pref + "\"}")
+        var result = {}
+        result["hasSid"] = true
+        result["sid"] = sid
+        result["pref"] = pref
+        return resp.jsonText(json.stringify(result))
     end
 
     // GET /headers -> 反射请求头（取若干常见头）
@@ -132,8 +145,12 @@ func route(point reqHandle, point respHandle) as bool
         string host = req.header("Host")
         string ua = req.header("User-Agent")
         string xTest = req.header("X-Test")
-        string body = "{\"host\":\"" + host + "\",\"ua\":\"" + ua + "\",\"x-test\":\"" + xTest + "\",\"headerCount\":" + req.headerCount().toString() + "}"
-        return resp.jsonText(body)
+        var result = {}
+        result["host"] = host
+        result["ua"] = ua
+        result["x-test"] = xTest
+        result["headerCount"] = req.headerCount()
+        return resp.jsonText(json.stringify(result))
     end
 
     // GET /query -> 反射 query 参数
@@ -141,8 +158,12 @@ func route(point reqHandle, point respHandle) as bool
         string q = req.query()
         string foo = req.queryValue("foo")
         string baz = req.queryValue("baz")
-        string body = "{\"raw\":\"" + q + "\",\"foo\":\"" + foo + "\",\"baz\":\"" + baz + "\",\"count\":" + req.queryCount().toString() + "}"
-        return resp.jsonText(body)
+        var result = {}
+        result["raw"] = q
+        result["foo"] = foo
+        result["baz"] = baz
+        result["count"] = req.queryCount()
+        return resp.jsonText(json.stringify(result))
     end
 
     // POST /echo-bytes -> 二进制 body 回显（用 bodyData/bodySize）
@@ -198,8 +219,11 @@ func errorPage(int status, string message, point reqHandle, point respHandle) as
     HttpResponse resp = HttpResponse(respHandle)
     resp.status(status)
     resp.header("X-Error-Path", req.path())
-    string body = "{\"status\":" + status.toString() + ",\"message\":\"" + message + "\",\"path\":\"" + req.path() + "\"}"
-    return resp.jsonText(body)
+    var result = {}
+    result["status"] = status
+    result["message"] = message
+    result["path"] = req.path()
+    return resp.jsonText(json.stringify(result))
 end
 
 func(int, string, point, point) as bool errorHandler = errorPage

@@ -17,7 +17,7 @@
 //   GET  /api/health             健康检查（metric 数 / 数据点总数）
 //   POST /api/ingest             写入一个数据点 {metric,value,labels}
 //
-// 设计要点（结合 dev/README.md 与 dev/BUGS.md）：
+// 设计要点：
 //   * 时序存储：metric(name) → 时间戳+值序列，用全局并行数组 array<int64>(时间戳) +
 //     array<float>(值) + array<string>(打包标签)。采用 flat 环形缓冲：每个 metric
 //     在扁平数组里占 CAP_PER 个槽位，写头 gHead + 有效数 gCnt 实现定长环形覆盖。
@@ -182,34 +182,28 @@ func fmtNum(float v) as string
     if v == math.floor(v) and fabsF(v) < 1.0e15 then
         return string(int(v))
     end
-    return string.formatFloat(v, ".3")
+    return float.format(v, ".3")
 end
 
 func clampF(float v, float lo, float hi) as float
-    if v < lo then return lo end
-    if v > hi then return hi end
-    return v
+    return math.clamp(v, lo, hi)
 end
 
-// 浮点绝对值（本地实现，见文件头说明）。
 func fabsF(float v) as float
-    if v < 0.0 then
-        return -v
-    end
-    return v
+    return math.abs(v)
 end
 
 func joinStrings(array<string> parts, string sep) as string
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < parts.length do
         if i > 0 then
-            out = out + sep
+            outputValue = outputValue + sep
         end
-        out = out + parts[i]
+        outputValue = outputValue + parts[i]
         i += 1
     end
-    return out
+    return outputValue
 end
 
 func opSymbol(int op) as string
@@ -276,7 +270,7 @@ func jF(float v) as string
     if v == math.floor(v) and fabsF(v) < 1.0e15 then
         return string(int(v))
     end
-    return string.formatFloat(v, ".3")
+    return float.format(v, ".3")
 end
 
 func jI64(int64 v) as string
@@ -341,16 +335,16 @@ func labelDisplay(string packed) as string
         return ""
     end
     array parts = string.split(packed, ";")
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < parts.length do
         if i > 0 then
-            out = out + ", "
+            outputValue = outputValue + ", "
         end
-        out = out + parts[i]
+        outputValue = outputValue + parts[i]
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -579,14 +573,14 @@ end
 
 // 拷贝并排序。
 func copySortAsc(array<float> src) as array<float>
-    array<float> out
+    array<float> outputValue
     int i = 0
     while i < src.length do
-        out.append(src[i])
+        outputValue.append(src[i])
         i += 1
     end
-    sortAscInPlace(out)
-    return out
+    sortAscInPlace(outputValue)
+    return outputValue
 end
 
 // 已排序数组的 p 分位（nearest-rank：rank=ceil(p/100*n)，idx=rank-1，p∈[0,100]）。
@@ -822,7 +816,7 @@ func sparkline(array<float> vals, int width) as string
     if range == 0.0 then
         range = 1.0
     end
-    string out = ""
+    string outputValue = ""
     int idx = 0
     while idx < w do
         int s0 = int(float(idx) * float(n) / float(w))
@@ -849,10 +843,10 @@ func sparkline(array<float> vals, int width) as string
         if lvl > 7 then
             lvl = 7
         end
-        out = out + gBlocks[lvl]
+        outputValue = outputValue + gBlocks[lvl]
         idx += 1
     end
-    return out
+    return outputValue
 end
 
 // 横向 bar：name [████·····] value
@@ -1520,7 +1514,7 @@ func route(point reqHandle, point respHandle) as bool
 
     // 未匹配
     resp.status(404)
-    return resp.jsonText("{\"error\":\"not found\",\"path\":\"" + path + "\"}")
+        return resp.jsonText("{\"error\":\"not found\",\"path\":" + jStr(path) + "}")
 end
 
 func(point, point) as bool requestHandler = route
@@ -1530,7 +1524,7 @@ func errorHandler(int status, string message, point reqHandle, point respHandle)
     HttpResponse resp = HttpResponse(respHandle)
     resp.status(status)
     resp.header("X-Error-Path", req.path())
-    string body = "{\"status\":" + status.toString() + ",\"error\":\"" + jEsc(message) + "\",\"path\":\"" + req.path() + "\"}"
+    string body = "{\"status\":" + status.toString() + ",\"error\":" + jStr(message) + ",\"path\":" + jStr(req.path()) + "}"
     return resp.jsonText(body)
 end
 

@@ -1,4 +1,4 @@
-﻿// cpusched - CPU 调度器模拟器
+// cpusched - CPU 调度器模拟器
 //
 // 用法:
 //   cpusched test                 内置 5 进程测试集, 依次运行全部 5 种算法
@@ -98,13 +98,13 @@ func cloneProcess(Process src) as Process
 end
 
 func cloneAll(array<Process> src) as array<Process>
-    array<Process> out = array[]
+    array<Process> outputValue = array[]
     int i = 0
     while i < src.length do
-        out.append(cloneProcess(src[i]))
+        outputValue.append(cloneProcess(src[i]))
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -420,7 +420,7 @@ func renderGantt(array<int> gantt) as string
 end
 
 func fmt2(float v) as string
-    return string.formatFloat(v, ".2")
+    return float.format(v, ".2")
 end
 
 // 打印进程明细表.

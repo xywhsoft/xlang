@@ -4,6 +4,14 @@
 #include "include/xl.h"
 #include "lib/xrt/xrt.h"
 
+extern bool xrtConstTimeEqual(const void* pLeft, const void* pRight, size_t iLen);
+extern bool xrtPBKDF2_SHA256(const uint8* pPassword, size_t iPasswordLen,
+                             const uint8* pSalt, size_t iSaltLen, uint32 iIterations,
+                             uint8* pOut, size_t iOutLen);
+extern ptr xrtThreadLocalGet(const char* sKey, size_t* pSize);
+extern ptr xrtThreadLocalGetOrCreate(const char* sKey, size_t iSize);
+extern bool xrtThreadLocalRemove(const char* sKey);
+
 #if defined(CONFIG_TCC_STATIC) && !defined(XL_STATIC_TCC)
 #define XL_STATIC_TCC 1
 #endif
@@ -88,6 +96,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
          !xlApiAddTccSymbol(s, "xlAddIncludePath", (const void*)xlAddIncludePath) ||
          !xlApiAddTccSymbol(s, "xlAddLibraryPath", (const void*)xlAddLibraryPath) ||
          !xlApiAddTccSymbol(s, "xlAddLinkLibrary", (const void*)xlAddLinkLibrary) ||
+         !xlApiAddTccSymbol(s, "xlAddResourceFile", (const void*)xlAddResourceFile) ||
          !xlApiAddTccSymbol(s, "xlLoadDependencyLibrary", (const void*)xlLoadDependencyLibrary) ||
          !xlApiAddTccSymbol(s, "xlRegisterCFunction", (const void*)xlRegisterCFunction) ||
          !xlApiAddTccSymbol(s, "xlRunScriptString", (const void*)xlRunScriptString) ||
@@ -102,6 +111,8 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
          !xlApiAddTccSymbol(s, "xlRunCSourceString", (const void*)xlRunCSourceString) ||
          !xlApiAddTccSymbol(s, "xlRunCSourceFile", (const void*)xlRunCSourceFile) ||
          !xlApiAddTccSymbol(s, "xlRunCSourceFiles", (const void*)xlRunCSourceFiles) ||
+         !xlApiAddTccSymbol(s, "xlActivateModule", (const void*)xlActivateModule) ||
+         !xlApiAddTccSymbol(s, "xlDeactivateModule", (const void*)xlDeactivateModule) ||
          !xlApiAddTccSymbol(s, "xlRunModuleMain", (const void*)xlRunModuleMain) ||
          !xlApiAddTccSymbol(s, "xlModuleGetSymbol", (const void*)xlModuleGetSymbol) ||
          !xlApiAddTccSymbol(s, "xlDestroyModule", (const void*)xlDestroyModule) ||
@@ -129,6 +140,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
          !xlApiAddTccSymbol(s, "xlcAddIncludePath", (const void*)xlcAddIncludePath) ||
          !xlApiAddTccSymbol(s, "xlcAddLibraryPath", (const void*)xlcAddLibraryPath) ||
          !xlApiAddTccSymbol(s, "xlcAddLinkLibrary", (const void*)xlcAddLinkLibrary) ||
+         !xlApiAddTccSymbol(s, "xlcAddResourceFile", (const void*)xlcAddResourceFile) ||
          !xlApiAddTccSymbol(s, "xlcAddCSourceFile", (const void*)xlcAddCSourceFile) ||
          !xlApiAddTccSymbol(s, "xlcLoadDependencyLibrary", (const void*)xlcLoadDependencyLibrary) ||
          !xlApiAddTccSymbol(s, "xlcRegisterCFunction", (const void*)xlcRegisterCFunction) ||
@@ -179,6 +191,40 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
         return 0;
     }
     XL_ADD_XRT_SYMBOL(s, xrtUnit);
+    XL_ADD_XRT_SYMBOL(s, xrtSetError);
+    XL_ADD_XRT_SYMBOL(s, xrtResourceLimitsInit);
+    XL_ADD_XRT_SYMBOL(s, xrtFileReadRaw);
+    XL_ADD_XRT_SYMBOL(s, xrtFileWriteRaw);
+    XL_ADD_XRT_SYMBOL(s, xrtFileSeekRaw);
+    XL_ADD_XRT_SYMBOL(s, xrtFileTellRaw);
+    XL_ADD_XRT_SYMBOL(s, xrtFileSizeRaw);
+    XL_ADD_XRT_SYMBOL(s, xrtFileFlush);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtWriterCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderFromFile);
+    XL_ADD_XRT_SYMBOL(s, xrtWriterFromFile);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderFromBuffer);
+    XL_ADD_XRT_SYMBOL(s, xrtWriterFromBuffer);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderFromMemory);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderOpen);
+    XL_ADD_XRT_SYMBOL(s, xrtWriterOpen);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderRead);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderReadExact);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderReadAll);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderSeek);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderTell);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderSize);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderCanSeek);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderEOF);
+    XL_ADD_XRT_SYMBOL(s, xrtReaderDestroy);
+    XL_ADD_XRT_SYMBOL(s, xrtWriterWrite);
+    XL_ADD_XRT_SYMBOL(s, xrtWriterWriteAll);
+    XL_ADD_XRT_SYMBOL(s, xrtWriterWriteBuffer);
+    XL_ADD_XRT_SYMBOL(s, xrtWriterSeek);
+    XL_ADD_XRT_SYMBOL(s, xrtWriterTell);
+    XL_ADD_XRT_SYMBOL(s, xrtWriterCanSeek);
+    XL_ADD_XRT_SYMBOL(s, xrtWriterFlush);
+    XL_ADD_XRT_SYMBOL(s, xrtWriterDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtMalloc);
     XL_ADD_XRT_SYMBOL(s, xrtCalloc);
     XL_ADD_XRT_SYMBOL(s, xrtRealloc);
@@ -298,6 +344,7 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTimeSerial);
     XL_ADD_XRT_SYMBOL(s, xrtDateSerial);
     XL_ADD_XRT_SYMBOL(s, xrtDateTimeSerial);
+    XL_ADD_XRT_SYMBOL(s, xrtDecodeSerial);
     XL_ADD_XRT_SYMBOL(s, xrtStrToTime);
     XL_ADD_XRT_SYMBOL(s, xrtTryStrToTime);
     XL_ADD_XRT_SYMBOL(s, xrtTimeFormat);
@@ -382,6 +429,7 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xlogFlush);
     XL_ADD_XRT_SYMBOL(s, xrtPathExists);
     XL_ADD_XRT_SYMBOL(s, xrtPathIsAbs);
+    XL_ADD_XRT_SYMBOL(s, xrtPathIsSafeArchiveEntry);
     XL_ADD_XRT_SYMBOL(s, xrtPathGetNameExt);
     XL_ADD_XRT_SYMBOL(s, xrtPathGetName);
     XL_ADD_XRT_SYMBOL(s, xrtPathGetExt);
@@ -399,6 +447,10 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtPathAppDir);
     XL_ADD_XRT_SYMBOL(s, xrtPathWithExt);
     XL_ADD_XRT_SYMBOL(s, xrtPathWithName);
+    XL_ADD_XRT_SYMBOL(s, xrtEnvGet);
+    XL_ADD_XRT_SYMBOL(s, xrtRun);
+    XL_ADD_XRT_SYMBOL(s, xrtStart);
+    XL_ADD_XRT_SYMBOL(s, xrtChain);
     XL_ADD_XRT_SYMBOL(s, xrtFileExists);
     XL_ADD_XRT_SYMBOL(s, xrtFileGetSize);
     XL_ADD_XRT_SYMBOL(s, xrtFileSetSize);
@@ -422,6 +474,9 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtGet);
     XL_ADD_XRT_SYMBOL(s, xrtWrite);
     XL_ADD_XRT_SYMBOL(s, xrtFileDelete);
+    XL_ADD_XRT_SYMBOL(s, xrtFileCreateSymbolicLink);
+    XL_ADD_XRT_SYMBOL(s, xrtFileCreateHardLink);
+    XL_ADD_XRT_SYMBOL(s, xrtFileCreateFifo);
     XL_ADD_XRT_SYMBOL(s, xrtFileCopy);
     XL_ADD_XRT_SYMBOL(s, xrtFileMove);
     XL_ADD_XRT_SYMBOL(s, xrtFileRename);
@@ -503,6 +558,50 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtParseXSONFileWithOptions);
     XL_ADD_XRT_SYMBOL(s, xrtStringifyXSONWithOptions);
     XL_ADD_XRT_SYMBOL(s, xrtStringifyXSONFileWithOptions);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonVisitValue);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonVisitWithOptions);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonVisit);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterCreateWithOptions);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterDestroy);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBeginArray);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBeginArrayKey);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBeginArrayIndex);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterEndArray);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBeginList);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBeginListKey);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBeginListIndex);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterEndList);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBeginDict);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBeginDictKey);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBeginDictIndex);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterEndDict);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBeginSet);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBeginSetKey);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBeginSetIndex);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterEndSet);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterNull);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterNullKey);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterNullIndex);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBool);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBoolKey);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterBoolIndex);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterInt);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterIntKey);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterIntIndex);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterFloat);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterFloatKey);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterFloatIndex);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterString);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterStringKey);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterStringIndex);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterTime);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterTimeKey);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterTimeIndex);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterValue);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterValueKey);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterValueIndex);
+    XL_ADD_XRT_SYMBOL(s, xrtXsonWriterFinish);
     XL_ADD_XRT_SYMBOL(s, xrtHexEncode);
     XL_ADD_XRT_SYMBOL(s, xrtHexDecode);
     XL_ADD_XRT_SYMBOL(s, xrtBase64Encode);
@@ -531,6 +630,8 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtHMAC_SHA256);
     XL_ADD_XRT_SYMBOL(s, xrtHMAC_SHA384);
     XL_ADD_XRT_SYMBOL(s, xrtHMAC_SHA512);
+    XL_ADD_XRT_SYMBOL(s, xrtPBKDF2_SHA256);
+    XL_ADD_XRT_SYMBOL(s, xrtConstTimeEqual);
     XL_ADD_XRT_SYMBOL(s, xrtChaCha20);
     XL_ADD_XRT_SYMBOL(s, xrtChaCha20Poly1305Encrypt);
     XL_ADD_XRT_SYMBOL(s, xrtChaCha20Poly1305Decrypt);
@@ -940,6 +1041,7 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtChannelDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtChannelSend);
     XL_ADD_XRT_SYMBOL(s, xrtChannelRecv);
+    XL_ADD_XRT_SYMBOL(s, xrtChannelRecvTimeout);
     XL_ADD_XRT_SYMBOL(s, xrtChannelTryRecv);
     XL_ADD_XRT_SYMBOL(s, xrtChannelClose);
     XL_ADD_XRT_SYMBOL(s, xrtChannelCount);
@@ -972,6 +1074,24 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtRWLockWriteUnlock);
     XL_ADD_XRT_SYMBOL(s, xrtRWLockDowngrade);
     XL_ADD_XRT_SYMBOL(s, xrtRWLockUpgrade);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalInit);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalUnit);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalSupported);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalName);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalOnEx);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalOn);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalOnce);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalOff);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalHandleRelease);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalHandleActive);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalHandleCode);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalRestore);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalRestoreAll);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalIgnore);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalRaise);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalCount);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalReceived);
+    XL_ADD_XRT_SYMBOL(s, xrtSignalClear);
     XL_ADD_XRT_SYMBOL(s, xrtThreadCreate);
     XL_ADD_XRT_SYMBOL(s, xrtThreadDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtThreadWait);
@@ -979,7 +1099,16 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtThreadStop);
     XL_ADD_XRT_SYMBOL(s, xrtThreadGetState);
     XL_ADD_XRT_SYMBOL(s, xrtThreadGetExitCode);
+    XL_ADD_XRT_SYMBOL(s, xrtThreadGetCurrent);
+    XL_ADD_XRT_SYMBOL(s, xrtThreadIsAttached);
+    XL_ADD_XRT_SYMBOL(s, xrtThreadAttachCurrent);
+    XL_ADD_XRT_SYMBOL(s, xrtThreadDetachCurrent);
     XL_ADD_XRT_SYMBOL(s, xrtThreadGetCurrentId);
+    XL_ADD_XRT_SYMBOL(s, xrtThreadPushCleanup);
+    XL_ADD_XRT_SYMBOL(s, xrtThreadPopCleanup);
+    XL_ADD_XRT_SYMBOL(s, xrtThreadLocalGet);
+    XL_ADD_XRT_SYMBOL(s, xrtThreadLocalGetOrCreate);
+    XL_ADD_XRT_SYMBOL(s, xrtThreadLocalRemove);
     XL_ADD_XRT_SYMBOL(s, xrtCoCreate);
     XL_ADD_XRT_SYMBOL(s, xrtCoDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtCoCancel);
@@ -990,6 +1119,8 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtClearError);
     XL_ADD_XRT_SYMBOL(s, xrtGetError);
     XL_ADD_XRT_SYMBOL(s, xrtRandomBytes);
+    XL_ADD_XRT_SYMBOL(s, xrtNetErrorClear);
+    XL_ADD_XRT_SYMBOL(s, xrtNetErrorGet);
     XL_ADD_XRT_SYMBOL(s, xrtNetEngineConfigInit);
     XL_ADD_XRT_SYMBOL(s, xrtNetEngineCreate);
     XL_ADD_XRT_SYMBOL(s, xrtNetEngineDestroy);
@@ -1064,6 +1195,7 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtNetUdpRecv);
     XL_ADD_XRT_SYMBOL(s, xrtNetUdpRecvAsync);
     XL_ADD_XRT_SYMBOL(s, xrtNetDgramPacketDestroy);
+    XL_ADD_XRT_SYMBOL(s, xrtNetDgramPacketBytes);
     XL_ADD_XRT_SYMBOL(s, xrtNetDgramPacketBytesCopy);
     XL_ADD_XRT_SYMBOL(s, xrtNetDgramPacketText);
     XL_ADD_XRT_SYMBOL(s, xrtNetDgramPacketFromText);
@@ -1084,6 +1216,9 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtNetTlsResumeDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionWasResumed);
     XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionGetSNI);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionGetALPN);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionPeerCertDer);
+    XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionPeerCertSize);
     XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionSetCert);
     XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionSetCertData);
     XL_ADD_XRT_SYMBOL(s, xrtNetTlsSessionSetAllowTLS12Ed25519);
@@ -1171,6 +1306,8 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtWebServerCreate);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerCreateHostEx);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerCreateHostTlsEx);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerCreateHostFullEx);
+    XL_ADD_XRT_SYMBOL(s, xrtWebServerCreateHostTlsFullEx);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerDestroy);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerStart);
     XL_ADD_XRT_SYMBOL(s, xrtWebServerStartOk);
@@ -1345,9 +1482,25 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xvoCopyEx);
     XL_ADD_XRT_SYMBOL(s, xvoDeepCopyEx);
     XL_ADD_XRT_SYMBOL(s, xvoType);
+    XL_ADD_XRT_SYMBOL(s, xvoTypeName);
     XL_ADD_XRT_SYMBOL(s, xvoTypeDesc);
     XL_ADD_XRT_SYMBOL(s, xvoIsNull);
+    XL_ADD_XRT_SYMBOL(s, xvoIsBool);
+    XL_ADD_XRT_SYMBOL(s, xvoIsInt);
+    XL_ADD_XRT_SYMBOL(s, xvoIsFloat);
+    XL_ADD_XRT_SYMBOL(s, xvoIsText);
+    XL_ADD_XRT_SYMBOL(s, xvoIsTime);
+    XL_ADD_XRT_SYMBOL(s, xvoIsPoint);
+    XL_ADD_XRT_SYMBOL(s, xvoIsFunc);
     XL_ADD_XRT_SYMBOL(s, xvoIsArray);
+    XL_ADD_XRT_SYMBOL(s, xvoIsList);
+    XL_ADD_XRT_SYMBOL(s, xvoIsColl);
+    XL_ADD_XRT_SYMBOL(s, xvoIsTable);
+    XL_ADD_XRT_SYMBOL(s, xvoIsClass);
+    XL_ADD_XRT_SYMBOL(s, xvoIsCustom);
+    XL_ADD_XRT_SYMBOL(s, xvoIsNumber);
+    XL_ADD_XRT_SYMBOL(s, xvoIsBasic);
+    XL_ADD_XRT_SYMBOL(s, xvoIsContainer);
     XL_ADD_XRT_SYMBOL(s, xvoGetBool);
     XL_ADD_XRT_SYMBOL(s, xvoGetInt);
     XL_ADD_XRT_SYMBOL(s, xvoGetFloat);

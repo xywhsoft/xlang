@@ -19,20 +19,13 @@
 //   * time windows    - hourly buckets for chart, per-minute buckets for alerting
 //   * HTTP API        - http.server full route table + JSON responses
 //
-// Design notes (BUG-aware):
-//   * Globals reachable from HTTP callbacks are kept as `string` only. Per a
-//     file-scope `var` container loses its elements when read inside a native C
-//     callback, while string/int globals stay intact. So analyzeDir() renders every
-//     aggregate into owned JSON/text strings and writes them into string globals;
-//     the route handler just forwards those strings. /api/refresh re-runs analyzeDir
-//     (local var dicts never cross the callback boundary as containers, only the
-//     resulting strings do).
-//   * No var/string `+` pitfall: every value concatenated into a report is
-//     first forced to a static `string` (via string(...) or .toString()).
+// Design notes:
+//   * analyzeDir() 在局部变量中完成聚合，再把 JSON/文本快照整体发布给 HTTP 回调。
+//     回调只发送预渲染字符串，不重复排序和格式化大型字典。
+//   * rwlock 保证刷新与读取看到同一版本的全部快照字段。
 //   * No recursion on var dict: all counting is plain linear loops.
 //   * No local name clashes with stdlib namespaces: locals use logDir /
 //     logPath / tsText / hourKey etc., never bare `dir`/`path`/`time`/`file`/`json`.
-//   * `array xs = dir.glob(...)` untyped initializer (BUG-XL5), iterated by index.
 //   * JSON built by hand to preserve key order; pretty mode is not used.
 
 
@@ -50,6 +43,7 @@ string gTimelineText = "(no data)"
 string gSummary = ""
 int gFileCount = 0
 int gTotalLines = 0
+rwlock gSnapshotLock = rwlock()
 
 // ---- self-test counters (module-level; nested funcs not supported) ----
 int gPassed = 0
@@ -96,7 +90,7 @@ func renderTimeline(var hourly, list<string> sortedKeys, int keyCount) as string
         i = i + 1
     end
 
-    string out = "Hourly volume (bar = #" + CHART_WIDTH.toString() + " max):\n"
+    string outputValue = "Hourly volume (bar = #" + CHART_WIDTH.toString() + " max):\n"
     i = 0
     while i < keyCount do
         string hk = sortedKeys[i]
@@ -114,10 +108,10 @@ func renderTimeline(var hourly, list<string> sortedKeys, int keyCount) as string
             bar = bar + "#"
             j = j + 1
         end
-        out = out + "  " + hk + "  " + string.padLeft(bar, CHART_WIDTH) + "  " + string(c) + "\n"
+        outputValue = outputValue + "  " + hk + "  " + string.padLeft(bar, CHART_WIDTH) + "  " + string(c) + "\n"
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -125,10 +119,7 @@ end
 // results into the string globals (gStatsJson / gErrorsJson / gTimelineText /
 // gSummary). Returns total parsed line count.
 //
-// All var-dict increments and dict->list sorts are INLINED here (not factored
-// into helpers) because var/typed containers passed to functions are copied by
-// value so writes would be lost, and repeated var-dict param calls
-// were observed to hard-crash the process (EXIT=3).
+// 聚合热路径集中在一个函数中，减少小函数调用并让统计阶段的读写顺序一目了然。
 func analyzeDir(string logDir) as int
     var levelCounts = {}
     var hourly = {}
@@ -144,12 +135,12 @@ func analyzeDir(string logDir) as int
     Regex tsRegex = regex.compile("[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}")
     Regex lvlRegex = regex.compile("(INFO|DEBUG|WARN|ERROR|FATAL|TRACE)")
 
-    array logFiles = dir.glob(logDir, "*.log", true)
+    array<string> logFiles = dir.glob(logDir, "*.log", true)
     int fileCount = logFiles.length
 
     int fi = 0
     while fi < fileCount do
-        string logPath = string(logFiles[fi])
+        string logPath = logFiles[fi]
         fi = fi + 1
 
         string content = ""
@@ -242,9 +233,6 @@ func analyzeDir(string logDir) as int
             end
         end
     end
-
-    gFileCount = fileCount
-    gTotalLines = totalLines
 
     // ---- copy var dicts into local typed lists + sort (inlined; no helper) ----
     // hourly, by key ascending (lexicographic == chronological)
@@ -402,8 +390,6 @@ func analyzeDir(string logDir) as int
     end
     sj = sj + "\"timeRange\":\"" + jsonEscape(timeRange) + "\""
     sj = sj + "}"
-    gStatsJson = sj
-
     // ---- gErrorsJson (top N) ----
     string ej = "["
     int topMax = TOP_N
@@ -420,10 +406,8 @@ func analyzeDir(string logDir) as int
         ei = ei + 1
     end
     ej = ej + "]"
-    gErrorsJson = ej
-
     // ---- timeline ----
-    gTimelineText = renderTimeline(hourly, hourKeys, hourCount)
+    string timeline = renderTimeline(hourly, hourKeys, hourCount)
 
     // ---- human-readable summary ----
     string rep = "=== logagg analysis: " + logDir + " ===\n"
@@ -466,8 +450,17 @@ func analyzeDir(string logDir) as int
         end
     end
 
-    rep = rep + "\n" + gTimelineText
+    rep = rep + "\n" + timeline
+
+    // 所有公开快照在一个写锁临界区内切换到新版本。
+    gSnapshotLock.writeLock()
+    gStatsJson = sj
+    gErrorsJson = ej
+    gTimelineText = timeline
     gSummary = rep
+    gFileCount = fileCount
+    gTotalLines = totalLines
+    gSnapshotLock.writeUnlock()
 
     return totalLines
 end
@@ -499,21 +492,34 @@ func route(point reqHandle, point respHandle) as bool
     end
 
     if method == "GET" and p == "/api/stats" then
-        return resp.jsonText(gStatsJson)
+        gSnapshotLock.readLock()
+        string body = gStatsJson
+        gSnapshotLock.readUnlock()
+        return resp.jsonText(body)
     end
 
     if method == "GET" and p == "/api/errors" then
-        return resp.jsonText(gErrorsJson)
+        gSnapshotLock.readLock()
+        string body = gErrorsJson
+        gSnapshotLock.readUnlock()
+        return resp.jsonText(body)
     end
 
     if method == "GET" and p == "/api/timeline" then
-        return resp.text(gTimelineText, "text/plain; charset=utf-8")
+        gSnapshotLock.readLock()
+        string body = gTimelineText
+        gSnapshotLock.readUnlock()
+        return resp.text(body, "text/plain; charset=utf-8")
     end
 
     if method == "GET" and p == "/api/refresh" then
         analyzeDir(gWatchDir)
-        string msg = "{\"refreshed\":true,\"files\":" + gFileCount.toString()
-        msg = msg + ",\"totalLines\":" + gTotalLines.toString() + "}"
+        gSnapshotLock.readLock()
+        int fileCount = gFileCount
+        int totalLines = gTotalLines
+        gSnapshotLock.readUnlock()
+        string msg = "{\"refreshed\":true,\"files\":" + fileCount.toString()
+        msg = msg + ",\"totalLines\":" + totalLines.toString() + "}"
         return resp.jsonText(msg)
     end
 
@@ -549,18 +555,18 @@ func runSelfTest() as int
     string app1 = ""
     int i = 0
     while i < 20 do
-        app1 = app1 + "2026-07-10 09:00:" + string.formatInt(i % 60, "02") + " INFO request served ok\n"
+        app1 = app1 + "2026-07-10 09:00:" + int.format(i % 60, "02") + " INFO request served ok\n"
         i = i + 1
     end
     i = 0
     while i < 5 do
-        app1 = app1 + "2026-07-10 09:01:" + string.formatInt(i, "02") + " WARN slow query " + i.toString() + "ms\n"
+        app1 = app1 + "2026-07-10 09:01:" + int.format(i, "02") + " WARN slow query " + i.toString() + "ms\n"
         i = i + 1
     end
     // 12 errors in minute 09:05 -> alert (threshold 10)
     i = 0
     while i < 12 do
-        app1 = app1 + "2026-07-10 09:05:" + string.formatInt(i, "02") + " ERROR db connection failed: timeout\n"
+        app1 = app1 + "2026-07-10 09:05:" + int.format(i, "02") + " ERROR db connection failed: timeout\n"
         i = i + 1
     end
     app1 = app1 + "2026-07-10 09:05:30 ERROR auth token expired: user42\n"

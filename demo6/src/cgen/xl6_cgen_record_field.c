@@ -157,7 +157,12 @@ static void xl6CgenRecordFieldProtocolGetCase(
     xl6CgenRecordFieldSelfBaseAddressExpr(ctx, basePath);
     xl6OutputPuts(", key);\n", ctx->out);
     xl6OutputPuts("        result = ", ctx->out);
-    xl6CgenRecordFieldValueExpr(ctx, returnType, valueName);
+    if ( xl6CgenIsXValueType(returnType) || xl6CgenClassHandleTargetType(ctx, returnType) != NULL ) {
+        /* 协议函数返回的 xvalue 已转移所有权，桥接层直接接管，不能再次 retain。 */
+        xl6OutputPuts(valueName, ctx->out);
+    } else {
+        xl6CgenRecordFieldValueExpr(ctx, returnType, valueName);
+    }
     xl6OutputPuts(";\n", ctx->out);
     xl6OutputPuts("        goto done;\n", ctx->out);
 }
@@ -184,7 +189,8 @@ static void xl6CgenRecordFieldProtocolSetCase(
     xl6CgenClassCallableSymbol(ctx, ownerClass, method);
     xl6OutputPuts("(", ctx->out);
     xl6CgenRecordFieldSelfBaseAddressExpr(ctx, basePath);
-    xl6OutputPuts(", key, value);\n", ctx->out);
+    /* __setField__ 的 var 参数按值接管一个引用，借用桥接必须先 retain。 */
+    xl6OutputPuts(", key, xl6_xrt_retain(value));\n", ctx->out);
     xl6OutputPuts("        return true;\n", ctx->out);
 }
 

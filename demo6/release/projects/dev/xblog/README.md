@@ -99,9 +99,9 @@ passed: 68 / 68
 failed: 0
 ```
 
-## 设计约束与发现的 BUG
+## 状态与持久化
 
-详见 `dev/BUGS.md` 中的 **BUG-XB1**：文件作用域的 `var gPosts = []` 在被 `push`
-填充后，从 `main` 直接访问 `gPosts[0]` 完全正常；但 HTTP 回调 `route` handler 里
-`gPosts.length` 返回正确值、`gPosts[i]` 却返回空。本工具的绕过是**每次请求重新
-`loadPosts()` 拿到一个局部 var**，局部 var 在回调里访问完全正常。
+- `gPosts` 在启动时从磁盘加载一次，不在每个请求中重复读取和解析文件。
+- `rwlock` 保护文章缓存；读请求创建浅快照后释放读锁，模板渲染和搜索在锁外完成。
+- 新建、编辑和删除在写锁内同步更新缓存与 `posts.json`，避免多个 worker 互相覆盖。
+- 持久化 JSON 使用统一转义函数，API 错误响应也会正确转义 slug、路径和错误文本。

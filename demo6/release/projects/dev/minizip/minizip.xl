@@ -29,9 +29,7 @@
 //   method: 0=stored(uncompressed), 1=LZSS compressed
 //
 // Implementation notes:
-//   * Buffer (native-backed class) cannot be returned from user functions
-//     . All Buffer usage is inlined in the calling function scope;
-//     functions that need Buffer receive it as a parameter.
+//   * Buffer 是受管理的 native-backed class，函数参数只保留同一对象引用。
 //   * Compressed data is stored/transferred in array<int> (basic type, safe
 //     to return/pass). Each element is a byte value 0..255.
 //   * LZ77 uses hash-chain match finding for practical speed (zlib-style).
@@ -112,9 +110,9 @@ end
 // Compress Buffer -> array<int> (each int is one byte of compressed stream)
 func lz77Compress(Buffer input) as array<int>
     int n = input.len()
-    array<int> out = array[]
+    array<int> outputValue = array[]
     if n == 0 then
-        return out
+        return outputValue
     end
 
     // Hash chain arrays for fast match finding
@@ -134,8 +132,8 @@ func lz77Compress(Buffer input) as array<int>
     int pos = 0
     while pos < n do
         // Reserve flag byte slot; fill after block completes
-        int flagPos = out.length
-        out.push(0)
+        int flagPos = outputValue.length
+        outputValue.push(0)
         int flagByte = 0
         int bits = 0
 
@@ -193,8 +191,8 @@ func lz77Compress(Buffer input) as array<int>
                 bits += 1
                 int offEnc = bestOff - 1
                 int lenEnc = bestLen - MIN_MATCH
-                out.push((offEnc >> 4) & 0xFF)
-                out.push(((offEnc & 0x0F) << 4) | (lenEnc & 0x0F))
+                outputValue.push((offEnc >> 4) & 0xFF)
+                outputValue.push(((offEnc & 0x0F) << 4) | (lenEnc & 0x0F))
 
                 // Insert hash entries for all matched positions
                 int ip = pos
@@ -212,7 +210,7 @@ func lz77Compress(Buffer input) as array<int>
                 // Literal token
                 flagByte = flagByte << 1
                 bits += 1
-                out.push(input.byteAt(pos))
+                outputValue.push(input.byteAt(pos))
 
                 if pos + MIN_MATCH <= n then
                     int h = hash3(input.byteAt(pos), input.byteAt(pos + 1), input.byteAt(pos + 2))
@@ -228,10 +226,10 @@ func lz77Compress(Buffer input) as array<int>
         if bits < 8 then
             flagByte = flagByte << (8 - bits)
         end
-        out[flagPos] = flagByte
+        outputValue[flagPos] = flagByte
     end
 
-    return out
+    return outputValue
 end
 
 // ===========================================================================
@@ -239,16 +237,16 @@ end
 // ===========================================================================
 
 func lz77Decompress(array<int> compressed, int originalSize) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int ci = 0
     int cn = compressed.length
 
-    while ci < cn and out.length < originalSize do
+    while ci < cn and outputValue.length < originalSize do
         int flag = compressed[ci]
         ci += 1
         int bit = 7
 
-        while bit >= 0 and ci < cn and out.length < originalSize do
+        while bit >= 0 and ci < cn and outputValue.length < originalSize do
             if ((flag >> bit) & 1) != 0 then
                 // Match token (2 bytes)
                 int b0 = compressed[ci]
@@ -259,22 +257,22 @@ func lz77Decompress(array<int> compressed, int originalSize) as array<int>
                 int offset = offEnc + 1
                 int length = lenEnc + MIN_MATCH
 
-                int srcPos = out.length - offset
+                int srcPos = outputValue.length - offset
                 int k = 0
-                while k < length and out.length < originalSize do
-                    out.push(out[srcPos + k])
+                while k < length and outputValue.length < originalSize do
+                    outputValue.push(outputValue[srcPos + k])
                     k += 1
                 end
             else
                 // Literal token (1 byte)
-                out.push(compressed[ci])
+                outputValue.push(compressed[ci])
                 ci += 1
             end
             bit -= 1
         end
     end
 
-    return out
+    return outputValue
 end
 
 // ===========================================================================
@@ -324,9 +322,9 @@ func formatSize(int bytes) as string
     if bytes < 1024 then
         return string(bytes) + " B"
     elseif bytes < 1048576 then
-        return string.formatFloat(float(bytes) / 1024.0, ".2") + " KB"
+        return float.format(float(bytes) / 1024.0, ".2") + " KB"
     end
-    return string.formatFloat(float(bytes) / 1048576.0, ".2") + " MB"
+    return float.format(float(bytes) / 1048576.0, ".2") + " MB"
 end
 
 func formatRatio(int orig, int stored) as string
@@ -334,7 +332,7 @@ func formatRatio(int orig, int stored) as string
         return "---"
     end
     float r = float(orig) / float(stored)
-    return string.formatFloat(r, ".2") + ":1"
+    return float.format(r, ".2") + ":1"
 end
 
 func formatPct(int orig, int stored) as string
@@ -342,11 +340,11 @@ func formatPct(int orig, int stored) as string
         return "---"
     end
     float p = float(stored) * 100.0 / float(orig)
-    return string.formatFloat(p, ".1") + "%"
+    return float.format(p, ".1") + "%"
 end
 
 func formatHex32(int val) as string
-    return string.formatInt(val, "x8")
+    return int.format(val, "x8")
 end
 
 // ===========================================================================
@@ -354,18 +352,18 @@ end
 // ===========================================================================
 
 func buildArchive(array<string> files) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
 
     // Header
-    out.push(77)   // 'M'
-    out.push(88)   // 'X'
-    out.push(65)   // 'A'
-    out.push(ARCHIVE_VERSION)
+    outputValue.push(77)   // 'M'
+    outputValue.push(88)   // 'X'
+    outputValue.push(65)   // 'A'
+    outputValue.push(ARCHIVE_VERSION)
     int fileCount = files.length
-    out.push(fileCount & 0xFF)
-    out.push((fileCount >> 8) & 0xFF)
-    out.push(0)    // reserved
-    out.push(0)
+    outputValue.push(fileCount & 0xFF)
+    outputValue.push((fileCount >> 8) & 0xFF)
+    outputValue.push(0)    // reserved
+    outputValue.push(0)
 
     int fi = 0
     while fi < fileCount do
@@ -391,49 +389,49 @@ func buildArchive(array<string> files) as array<int>
         int nameLen = string.byteLen(name)
 
         // Name length (uint16 LE)
-        out.push(nameLen & 0xFF)
-        out.push((nameLen >> 8) & 0xFF)
+        outputValue.push(nameLen & 0xFF)
+        outputValue.push((nameLen >> 8) & 0xFF)
 
         // Name bytes
         int ni = 0
         while ni < nameLen do
-            out.push(string.byteAt(name, ni))
+            outputValue.push(string.byteAt(name, ni))
             ni += 1
         end
 
         // Method
-        out.push(method)
+        outputValue.push(method)
 
         // Original size (uint32 LE)
-        out.push(origSize & 0xFF)
-        out.push((origSize >> 8) & 0xFF)
-        out.push((origSize >> 16) & 0xFF)
-        out.push((origSize >> 24) & 0xFF)
+        outputValue.push(origSize & 0xFF)
+        outputValue.push((origSize >> 8) & 0xFF)
+        outputValue.push((origSize >> 16) & 0xFF)
+        outputValue.push((origSize >> 24) & 0xFF)
 
         // Stored size (uint32 LE)
-        out.push(storedSize & 0xFF)
-        out.push((storedSize >> 8) & 0xFF)
-        out.push((storedSize >> 16) & 0xFF)
-        out.push((storedSize >> 24) & 0xFF)
+        outputValue.push(storedSize & 0xFF)
+        outputValue.push((storedSize >> 8) & 0xFF)
+        outputValue.push((storedSize >> 16) & 0xFF)
+        outputValue.push((storedSize >> 24) & 0xFF)
 
         // CRC32 (uint32 LE)
-        out.push(crc & 0xFF)
-        out.push((crc >> 8) & 0xFF)
-        out.push((crc >> 16) & 0xFF)
-        out.push((crc >> 24) & 0xFF)
+        outputValue.push(crc & 0xFF)
+        outputValue.push((crc >> 8) & 0xFF)
+        outputValue.push((crc >> 16) & 0xFF)
+        outputValue.push((crc >> 24) & 0xFF)
 
         // Data bytes
         if method == METHOD_LZSS then
             int ci = 0
             while ci < compSize do
-                out.push(compressed[ci])
+                outputValue.push(compressed[ci])
                 ci += 1
             end
         else
             // Stored: raw original bytes
             int bi = 0
             while bi < origSize do
-                out.push(data.byteAt(bi))
+                outputValue.push(data.byteAt(bi))
                 bi += 1
             end
         end
@@ -441,7 +439,7 @@ func buildArchive(array<string> files) as array<int>
         fi += 1
     end
 
-    return out
+    return outputValue
 end
 
 // ===========================================================================
@@ -817,17 +815,11 @@ end
 // Command: test <input_file>  (compress + decompress roundtrip)
 // ===========================================================================
 
-func cmdTest(string inputPath) as int
-    if not file.exists(inputPath) then
-        println("minizip: file not found: " + inputPath)
-        return 1
-    end
-
-    Buffer data = file.readBytes(inputPath)
+func verifyRoundtrip(Buffer data, string label) as int
     int origSize = data.len()
     int origCrc = crc32Buf(data, origSize)
 
-    println("minizip: roundtrip test on " + inputPath)
+    println("minizip: roundtrip test on " + label)
     println("  file:       " + formatSize(origSize) + " (" + string(origSize) + " bytes)")
 
     // Compress
@@ -838,14 +830,14 @@ func cmdTest(string inputPath) as int
 
     println("  compressed: " + formatSize(compSize) + " (" + string(compSize) + " bytes)")
     println("  ratio:      " + formatRatio(origSize, compSize) + " (" + formatPct(origSize, compSize) + ")")
-    println("  compress:   " + string.formatFloat((t1 - t0) * 1000.0, ".3") + " ms")
+    println("  compress:   " + float.format((t1 - t0) * 1000.0, ".3") + " ms")
 
     // Decompress
     float t2 = time.timer()
     array<int> decompressed = lz77Decompress(compressed, origSize)
     float t3 = time.timer()
 
-    println("  decompress: " + string.formatFloat((t3 - t2) * 1000.0, ".3") + " ms")
+    println("  decompress: " + float.format((t3 - t2) * 1000.0, ".3") + " ms")
 
     // Verify roundtrip: byte-by-byte comparison
     bool match = true
@@ -870,13 +862,30 @@ func cmdTest(string inputPath) as int
     println("  roundtrip:  " + (match ? "PASS" : "FAIL"))
 
     // File-name fingerprint using hash standard library
-    string baseName = path.nameExt(inputPath)
-    println("  hash.u64(name): " + string.formatUInt(hash.u64(baseName), "x16"))
+    println("  hash.u64(name): " + int.format(hash.u64(label), "x16"))
 
     if not match then
         return 1
     end
     return 0
+end
+
+func cmdTest(string inputPath) as int
+    if not file.exists(inputPath) then
+        println("minizip: file not found: " + inputPath)
+        return 1
+    end
+    return verifyRoundtrip(file.readBytes(inputPath), path.nameExt(inputPath))
+end
+
+func cmdSelfTest() as int
+    Buffer fixture = Buffer()
+    int i = 0
+    while i < 64 do
+        fixture.append("xlang LZSS roundtrip: 你好, compression!\n")
+        i += 1
+    end
+    return verifyRoundtrip(fixture, "built-in UTF-8 fixture")
 end
 
 // ===========================================================================
@@ -934,8 +943,8 @@ func cmdBench(string inputPath, int iterations) as int
         decMBps = float(origSize) / (decPerCall * 1048576.0)
     end
 
-    println("  compress:   " + string.formatFloat(compPerCall * 1000.0, ".3") + " ms/call  (" + string.formatFloat(compMBps, ".2") + " MB/s)")
-    println("  decompress: " + string.formatFloat(decPerCall * 1000.0, ".3") + " ms/call  (" + string.formatFloat(decMBps, ".2") + " MB/s)")
+    println("  compress:   " + float.format(compPerCall * 1000.0, ".3") + " ms/call  (" + float.format(compMBps, ".2") + " MB/s)")
+    println("  decompress: " + float.format(decPerCall * 1000.0, ".3") + " ms/call  (" + float.format(decMBps, ".2") + " MB/s)")
     return 0
 end
 
@@ -952,7 +961,7 @@ func printUsage()
     println("  minizip archive create <archive.mxz> <files...>  create multi-file archive")
     println("  minizip archive list <archive.mxz>               list archive contents")
     println("  minizip archive extract <archive.mxz>            extract all files")
-    println("  minizip test <input_file>                        compress+decompress roundtrip")
+    println("  minizip test [input_file]                       compress+decompress roundtrip")
     println("  minizip bench <input_file> [iterations=10]       performance benchmark")
     println("  minizip --help | -h                              show this help")
     println("")
@@ -1036,8 +1045,7 @@ func main(...) as int
         end
     elseif cmd == "test" then
         if arg.length < 3 then
-            println("minizip test: requires <input_file>")
-            return 1
+            return cmdSelfTest()
         end
         return cmdTest(string(arg[2]))
     elseif cmd == "bench" then

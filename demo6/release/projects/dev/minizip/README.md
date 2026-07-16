@@ -11,7 +11,7 @@ minizip decompress <input.mxz> <output_file>     decompress single file
 minizip archive create <archive.mxz> <files...>  create multi-file archive
 minizip archive list <archive.mxz>               list archive contents
 minizip archive extract <archive.mxz>            extract all files
-minizip test <input_file>                        compress+decompress roundtrip
+minizip test [input_file]                       compress+decompress roundtrip
 minizip bench <input_file> [iterations=10]       performance benchmark
 minizip --help | -h                              show help
 ```
@@ -48,6 +48,7 @@ method: 0=stored (incompressible fallback), 1=LZSS
 
 ```bat
 cd /d D:\GIT\x-lang\demo6\release
+xl run  projects\dev\minizip\minizip.xl -- test
 xl run  projects\dev\minizip\minizip.xl -- test <some_file>
 xl build projects\dev\minizip\minizip.xl -o projects\dev\minizip\minizip.exe
 ```
@@ -57,12 +58,9 @@ byte-by-byte comparison and CRC32.
 
 ## implementation notes
 
-- **BUG-HD1 workaround**: Buffer (native-backed class) cannot be returned from
-  user functions. All Buffer operations are inlined in the calling function;
-  functions needing Buffer receive it as a parameter.
+- `Buffer` 是受管理的 native-backed class，可直接作为参数和返回值使用。
 - **Compressed data** stored/transferred in `array<int>` (each element is a
   byte 0..255). Basic type, freely returnable/passable.
-- **BUG-XL1 workaround**: typed containers copied by value when passed to
-  functions. CRC table is global; array-building functions return new arrays.
+- typed 容器和 class 使用受管理引用语义；独立副本必须显式 `copy` 或 `clone`。
 - **CRC32** implemented manually because `hash.*` stdlib functions only accept
   strings, not binary data. `hash.u64` used for file-name fingerprinting.

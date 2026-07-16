@@ -94,13 +94,7 @@ end
 
 // clamp a float to [lo,hi]
 func clampF(float v, float lo, float hi) as float
-    if v < lo then
-        return lo
-    end
-    if v > hi then
-        return hi
-    end
-    return v
+    return math.clamp(v, lo, hi)
 end
 
 // linear interpolation
@@ -570,17 +564,17 @@ array<int> PENTATONIC_SCALE = array[0, 2, 4, 7, 9, 12]
 // build a scale starting at a root MIDI note, for `octaves` octaves, using a
 // scale-interval table. returns the list of MIDI notes.
 func buildScale(int rootMidi, array<int> intervals, int octaves) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int o = 0
     while o < octaves do
         int k = 0
         while k < intervals.length do
-            out.push(rootMidi + o * 12 + intervals[k])
+            outputValue.push(rootMidi + o * 12 + intervals[k])
             k += 1
         end
         o += 1
     end
-    return out
+    return outputValue
 end
 
 // ============================ note & track classes ========================
@@ -655,7 +649,7 @@ end
 
 // render one drum hit into `out` at sample `offset`. `outLen` is the total
 // buffer length (for bounds safety).
-func renderDrum(int drumType, int vel, int offset, array<float> out, int outLen) as int
+func renderDrum(int drumType, int vel, int offset, array<float> outputValue, int outLen) as int
     float amp = velocityToAmp(vel)
     if drumType == DRUM_KICK then
         // sine with a fast pitch drop from ~140 Hz to ~50 Hz
@@ -669,7 +663,7 @@ func renderDrum(int drumType, int vel, int offset, array<float> out, int outLen)
             float f = lerp(140.0, 50.0, clampF(t / 0.08, 0.0, 1.0))
             float phase = f * t * TWO_PI
             float env = math.exp(-t * 18.0)
-            out[offset + i] += amp * env * math.sin(phase)
+            outputValue[offset + i] += amp * env * math.sin(phase)
             i += 1
         end
         return n
@@ -685,7 +679,7 @@ func renderDrum(int drumType, int vel, int offset, array<float> out, int outLen)
             float envN = math.exp(-t * 30.0)
             float envT = math.exp(-t * 45.0)
             float tone = math.sin(180.0 * t * TWO_PI)
-            out[offset + i] += amp * (0.7 * envN * oscNoise() + 0.3 * envT * tone)
+            outputValue[offset + i] += amp * (0.7 * envN * oscNoise() + 0.3 * envT * tone)
             i += 1
         end
         return n
@@ -699,7 +693,7 @@ func renderDrum(int drumType, int vel, int offset, array<float> out, int outLen)
             end
             float t = float(i) / float(SAMPLE_RATE)
             float env = math.exp(-t * 120.0)
-            out[offset + i] += amp * env * oscNoise() * 0.6
+            outputValue[offset + i] += amp * env * oscNoise() * 0.6
             i += 1
         end
         return n
@@ -712,7 +706,7 @@ func renderDrum(int drumType, int vel, int offset, array<float> out, int outLen)
             end
             float t = float(i) / float(SAMPLE_RATE)
             float env = math.exp(-t * 12.0)
-            out[offset + i] += amp * env * math.sin(100.0 * t * TWO_PI)
+            outputValue[offset + i] += amp * env * math.sin(100.0 * t * TWO_PI)
             i += 1
         end
         return n
@@ -725,7 +719,7 @@ func renderDrum(int drumType, int vel, int offset, array<float> out, int outLen)
             end
             float t = float(i) / float(SAMPLE_RATE)
             float env = math.exp(-t * 4.0)
-            out[offset + i] += amp * env * oscNoise() * 0.5
+            outputValue[offset + i] += amp * env * oscNoise() * 0.5
             i += 1
         end
         return n
@@ -738,7 +732,7 @@ func renderDrum(int drumType, int vel, int offset, array<float> out, int outLen)
             end
             float t = float(i) / float(SAMPLE_RATE)
             float env = math.exp(-t * 35.0)
-            out[offset + i] += amp * env * oscNoise() * 0.55
+            outputValue[offset + i] += amp * env * oscNoise() * 0.55
             i += 1
         end
         return n
@@ -759,7 +753,7 @@ end
 // render a pitched note into `out` (length outLen), starting at `startSample`.
 // Envelope and oscillator are inlined to avoid per-sample function-call overhead
 // in the interpreter; phase is advanced incrementally to avoid math.floor.
-func renderPitchedNote(Note nt, Track tr, int startSample, array<float> out, int outLen) as int
+func renderPitchedNote(Note nt, Track tr, int startSample, array<float> outputValue, int outLen) as int
     if nt.freq <= 0.0 then
         return 0
     end
@@ -858,7 +852,7 @@ func renderPitchedNote(Note nt, Track tr, int startSample, array<float> out, int
             end
         end
 
-        out[idx] = out[idx] + amp * env * s
+        outputValue[idx] = outputValue[idx] + amp * env * s
 
         // advance phase incrementally
         p = p + phaseInc
@@ -871,13 +865,13 @@ func renderPitchedNote(Note nt, Track tr, int startSample, array<float> out, int
 end
 
 // render a single note (pitched or drum) into `out`.
-func renderNote(Note nt, Track tr, int startSample, array<float> out, int outLen) as int
+func renderNote(Note nt, Track tr, int startSample, array<float> outputValue, int outLen) as int
     if nt.drumType != DRUM_NONE then
         float rel = velocityToAmp(nt.velocity) * tr.gain
-        int n = renderDrum(nt.drumType, int(rel * 127.0), startSample, out, outLen)
+        int n = renderDrum(nt.drumType, int(rel * 127.0), startSample, outputValue, outLen)
         return n
     end
-    return renderPitchedNote(nt, tr, startSample, out, outLen)
+    return renderPitchedNote(nt, tr, startSample, outputValue, outLen)
 end
 
 // render a whole track into a freshly allocated buffer sized to `totalSamples`.
@@ -1286,8 +1280,9 @@ end
 //   env <a> <d> <s> <r>               current track ADSR (seconds, seconds, 0..1, seconds)
 //   gain <v>                          current track gain (0..2)
 //   filter none|lowpass|highpass <cutoffHz>
-//   note <start> <dur> <pitch> [<vel>]   schedule a note on the current track
-//   rest <dur>                        (ignored placeholder; affects cursor only)
+//   note <start> <dur> <pitch> [<vel>]   schedule at an absolute track time
+//   play <dur> <pitch> [<vel>]           schedule at the current track cursor
+//   rest <dur>                           advance the current track cursor
 //
 // `start` and `dur` are in the active timing unit. If `unit beats`, a value v
 // maps to seconds as v * 60 / tempo. `pitch` is a note name / m<N> / f<N> /
@@ -1303,6 +1298,12 @@ func toSeconds(float v, Score sc) as float
         return v * 60.0 / sc.tempo
     end
     return v
+end
+
+func ensureTrackCursor(array<float> cursors, int trackIndex)
+    while cursors.length <= trackIndex do
+        cursors.append(0.0)
+    end
 end
 
 // a tiny float-string validator (allows optional sign, digits, one dot)
@@ -1356,6 +1357,8 @@ end
 func parseScore(string text) as Score
     Score sc = Score()
     int currentTrackIdx = 0
+    array<float> cursors = array[]
+    ensureTrackCursor(cursors, 0)
     array lines = string.splitLines(text)
     int li = 0
     while li < lines.length do
@@ -1392,7 +1395,8 @@ func parseScore(string text) as Score
         elseif cmd == "track" then
             if tok.length >= 2 and looksFloat(tok[1]) then
                 currentTrackIdx = int(float(tok[1]))
-                getOrAddTrackIndex(sc.tracks, currentTrackIdx)
+                int trackArrayIndex = getOrAddTrackIndex(sc.tracks, currentTrackIdx)
+                ensureTrackCursor(cursors, trackArrayIndex)
             end
         elseif cmd == "wave" or cmd == "waveform" then
             int ti = getOrAddTrackIndex(sc.tracks, currentTrackIdx)
@@ -1429,22 +1433,62 @@ func parseScore(string text) as Score
             end
         elseif cmd == "note" then
             int ti = getOrAddTrackIndex(sc.tracks, currentTrackIdx)
-            if tok.length >= 4 then
-                Note nt = Note()
-                nt.startTime = toSeconds(float(tok[1]), sc)
-                nt.gateDur   = toSeconds(float(tok[2]), sc)
-                float f
-                int dr
-                f, dr = resolvePitch(tok[3])
-                nt.freq = f
-                nt.drumType = dr
-                if tok.length >= 5 and looksFloat(tok[4]) then
-                    nt.velocity = int(float(tok[4]))
-                end
-                sc.tracks[ti].notes.push(nt)
+            ensureTrackCursor(cursors, ti)
+            if tok.length < 4 or not looksFloat(tok[1]) or not looksFloat(tok[2]) then
+                throw "note requires <start> <dur> <pitch> [velocity]"
             end
+            Note nt = Note()
+            nt.startTime = toSeconds(float(tok[1]), sc)
+            nt.gateDur   = toSeconds(float(tok[2]), sc)
+            if nt.startTime < 0.0 or nt.gateDur < 0.0 then
+                throw "note start and duration must be non-negative"
+            end
+            float f
+            int dr
+            f, dr = resolvePitch(tok[3])
+            nt.freq = f
+            nt.drumType = dr
+            if tok.length >= 5 and looksFloat(tok[4]) then
+                nt.velocity = int(float(tok[4]))
+            end
+            sc.tracks[ti].notes.push(nt)
+            float noteEnd = nt.startTime + nt.gateDur
+            if noteEnd > cursors[ti] then
+                cursors[ti] = noteEnd
+            end
+        elseif cmd == "play" then
+            int ti = getOrAddTrackIndex(sc.tracks, currentTrackIdx)
+            ensureTrackCursor(cursors, ti)
+            if tok.length < 3 or not looksFloat(tok[1]) then
+                throw "play requires <dur> <pitch> [velocity]"
+            end
+            Note nt = Note()
+            nt.startTime = cursors[ti]
+            nt.gateDur = toSeconds(float(tok[1]), sc)
+            if nt.gateDur < 0.0 then
+                throw "play duration must be non-negative"
+            end
+            float f
+            int dr
+            f, dr = resolvePitch(tok[2])
+            nt.freq = f
+            nt.drumType = dr
+            if tok.length >= 4 and looksFloat(tok[3]) then
+                nt.velocity = int(float(tok[3]))
+            end
+            sc.tracks[ti].notes.push(nt)
+            cursors[ti] += nt.gateDur
         elseif cmd == "rest" then
-            // no-op placeholder (start/dur encoded purely for readability)
+            int ti = getOrAddTrackIndex(sc.tracks, currentTrackIdx)
+            ensureTrackCursor(cursors, ti)
+            if tok.length < 2 or not looksFloat(tok[1]) then
+                throw "rest requires <dur>"
+            end
+            float restDuration = toSeconds(float(tok[1]), sc)
+            if restDuration < 0.0 then
+                throw "rest duration must be non-negative"
+            end
+            cursors[ti] += restDuration
         else
             throw "unknown score directive: " + cmd
         end
@@ -1737,13 +1781,13 @@ func describeScore(Score sc) as string
     end
     lines.push("duration: " + string(scoreDuration(sc)) + " s")
     // join
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < lines.length do
-        out = out + lines[i] + "\n"
+        outputValue = outputValue + lines[i] + "\n"
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // ============================ commands ====================================
@@ -2023,7 +2067,8 @@ func cmdTest() as int
     // ---- [6] render a short tone & write+read a WAV file ----
     println("[6] render -> file round-trip")
     string tmpDir = path.temp()
-    string tonePath = path.join(tmpDir, "xaudio_test_tone.wav")
+    string runName = path.random("xaudio_", "")
+    string tonePath = path.join(tmpDir, runName + "_tone.wav")
     Score sc = Score()
     int ti6 = getOrAddTrackIndex(sc.tracks, 0)
     sc.tracks[ti6].waveType = WAVE_SINE
@@ -2132,6 +2177,11 @@ func cmdTest() as int
     check(approxEq(beatScore.tracks[0].notes[0].startTime, 0.0, 1e-6), "beat start 0 == 0s")
     check(approxEq(beatScore.tracks[0].notes[0].gateDur, 4.0, 1e-6), "4 beats @60BPM == 4s")
 
+    Score sequence = parseScore("tempo 120\nunit beats\nplay 1 C4 100\nrest 2\nplay 1 E4 100\n")
+    check(sequence.tracks[0].notes.length == 2, "play/rest sequence creates two notes")
+    check(approxEq(sequence.tracks[0].notes[0].startTime, 0.0, 1e-6), "first play starts at cursor 0")
+    check(approxEq(sequence.tracks[0].notes[1].startTime, 1.5, 1e-6), "rest advances track cursor")
+
     // ---- [9] MIDI event parser ----
     println("[9] MIDI event parser")
     // PPQ=480, tempo=500000 (120 BPM): 480 ticks = 1 quarter = 0.5s
@@ -2194,7 +2244,7 @@ func cmdTest() as int
 
     // ---- [12] full demo render to temp (twinkle) ----
     println("[12] full demo render")
-    string twPath = path.join(tmpDir, "xaudio_test_twinkle.wav")
+    string twPath = path.join(tmpDir, runName + "_twinkle.wav")
     bool twOk
     int twN
     float twPeak

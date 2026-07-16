@@ -238,6 +238,32 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("static int xl6_error_line(XL6_Error* error) { return error != 0 ? error->line : 0; }\n", out);
     xl6OutputPuts("static int xl6_error_column(XL6_Error* error) { return error != 0 ? error->column : 0; }\n\n", out);
 
+    xl6OutputPuts("static const char* xl6_error_parent_kind(const char* kind)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( kind == 0 || kind[0] == 0 || strcmp(kind, \"Error\") == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    if ( strcmp(kind, \"AssertionError\") == 0 || strcmp(kind, \"NullReferenceError\") == 0 || strcmp(kind, \"NotImplementedError\") == 0 || strcmp(kind, \"NativeError\") == 0 ) { return \"RuntimeError\"; }\n", out);
+    xl6OutputPuts("    if ( strcmp(kind, \"RangeError\") == 0 ) { return \"ValueError\"; }\n", out);
+    xl6OutputPuts("    if ( strcmp(kind, \"IndexError\") == 0 || strcmp(kind, \"KeyError\") == 0 || strcmp(kind, \"AttributeError\") == 0 || strcmp(kind, \"NameError\") == 0 ) { return \"LookupError\"; }\n", out);
+    xl6OutputPuts("    if ( strcmp(kind, \"FileError\") == 0 || strcmp(kind, \"EncodingError\") == 0 || strcmp(kind, \"NetworkError\") == 0 || strcmp(kind, \"TimeoutError\") == 0 ) { return \"IOError\"; }\n", out);
+    xl6OutputPuts("    if ( strcmp(kind, \"CompressionError\") == 0 || strcmp(kind, \"ArchiveError\") == 0 ) { return \"IOError\"; }\n", out);
+    xl6OutputPuts("    if ( strcmp(kind, \"ModuleNotFoundError\") == 0 ) { return \"ImportError\"; }\n", out);
+    xl6OutputPuts("    if ( strcmp(kind, \"FutureError\") == 0 || strcmp(kind, \"TaskError\") == 0 || strcmp(kind, \"CancelledError\") == 0 || strcmp(kind, \"GeneratorError\") == 0 ) { return \"AsyncError\"; }\n", out);
+    xl6OutputPuts("    if ( strcmp(kind, \"SyntaxError\") == 0 ) { return \"ParseError\"; }\n", out);
+    xl6OutputPuts("    if ( strcmp(kind, \"CsvError\") == 0 || strcmp(kind, \"ConfigError\") == 0 || strcmp(kind, \"TomlError\") == 0 || strcmp(kind, \"PlistError\") == 0 || strcmp(kind, \"XmlError\") == 0 ) { return \"ParseError\"; }\n", out);
+    xl6OutputPuts("    return \"Error\";\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static int xl6_error_is(XL6_Error* error, const char* target)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    const char* kind = error != 0 ? error->kind : 0;\n", out);
+    xl6OutputPuts("    if ( target == 0 || target[0] == 0 ) { return 1; }\n", out);
+    xl6OutputPuts("    while ( kind != 0 && kind[0] != 0 ) {\n", out);
+    xl6OutputPuts("        if ( strcmp(kind, target) == 0 ) { return 1; }\n", out);
+    xl6OutputPuts("        kind = xl6_error_parent_kind(kind);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("static void xl6_error_print_uncaught(void)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_Error* error = xl6_error_active_get();\n", out);
@@ -379,11 +405,13 @@ static void xl6CgenEmitGotoIfError(XL6_CgenContext* ctx, const char* label)
 
 static void xl6CgenThrowStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
+    const XL6_AstNode* kindNode;
     const XL6_AstNode* expr;
     XL6_CgenTaskSpawnArgTempScope taskScope;
     int hasTaskScope;
 
-    expr = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+    kindNode = node != NULL && node->childCount == 2 ? node->children[0] : NULL;
+    expr = node != NULL && node->childCount > 0 ? node->children[node->childCount == 2 ? 1 : 0] : NULL;
     hasTaskScope = expr != NULL && xl6CgenTaskSpawnArgTempScopeBegin(ctx, expr, &taskScope);
     xl6CgenIndent(ctx);
     if ( expr == NULL ) {
@@ -393,7 +421,7 @@ static void xl6CgenThrowStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6OutputPuts("xl6_error_raise(\"Error\", \"rethrow without active catch\", \"\", 0, 0);\n", ctx->out);
         }
     } else {
-        xl6OutputPuts("xl6_error_raise(\"Error\", ", ctx->out);
+        xl6OutputPrintf(ctx->out, "xl6_error_raise(\"%s\", ", kindNode != NULL && kindNode->text != NULL ? kindNode->text : "Error");
         xl6CgenExpr(ctx, expr);
         xl6OutputPrintf(ctx->out, ", \"\", %d, %d);\n", node != NULL ? node->line : 0, node != NULL ? node->column : 0);
     }
@@ -441,7 +469,7 @@ static void xl6CgenAssertStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         hasMessageTaskScope = xl6CgenTaskSpawnArgTempScopeBegin(ctx, message, &messageTaskScope);
     }
     xl6CgenIndent(ctx);
-    xl6OutputPuts("xl6_error_raise(\"AssertError\", ", ctx->out);
+    xl6OutputPuts("xl6_error_raise(\"AssertionError\", ", ctx->out);
     if ( message != NULL ) {
         xl6CgenExpr(ctx, message);
     } else {
@@ -459,8 +487,8 @@ static void xl6CgenAssertStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
 static int xl6CgenTryHasCatch(const XL6_AstNode* node)
 {
-    const XL6_AstNode* catchNode = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
-    return catchNode != NULL && catchNode->kind == XL6_AST_CATCH;
+    const XL6_AstNode* catchList = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
+    return catchList != NULL && catchList->kind == XL6_AST_LIST && catchList->childCount > 0;
 }
 
 static int xl6CgenTryHasFinally(const XL6_AstNode* node)
@@ -707,13 +735,9 @@ static void xl6CgenEmitPendingFinallyLoopDispatch(
 static void xl6CgenTryStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* tryBlock;
-    const XL6_AstNode* catchNode;
-    const XL6_AstNode* catchName;
-    const XL6_AstNode* catchBlock;
+    const XL6_AstNode* catchList;
     const XL6_AstNode* finallyBlock;
-    const XL6_AstNode* errorType;
-    const char* prevCatchErrorName;
-    char catchCName[512];
+    char caughtName[64];
     char catchLabel[64];
     char finallyLabel[64];
     char endLabel[64];
@@ -723,11 +747,9 @@ static void xl6CgenTryStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     int hasFinallyTarget;
     XL6_CgenFinallyTarget finallyTarget;
     size_t tryCleanupMark;
-    size_t catchCleanupMark;
-    size_t catchVarMark;
 
     tryBlock = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
-    catchNode = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
+    catchList = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
     finallyBlock = node != NULL && node->childCount > 2 ? node->children[2] : NULL;
     hasCatch = xl6CgenTryHasCatch(node);
     hasFinally = xl6CgenTryHasFinally(node);
@@ -736,6 +758,7 @@ static void xl6CgenTryStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     snprintf(catchLabel, sizeof(catchLabel), "__xl6_try_catch_%d", id);
     snprintf(finallyLabel, sizeof(finallyLabel), "__xl6_try_finally_%d", id);
     snprintf(endLabel, sizeof(endLabel), "__xl6_try_end_%d", id);
+    snprintf(caughtName, sizeof(caughtName), "__xl6_caught_error_%d", id);
 
     xl6CgenIndent(ctx);
     xl6OutputPuts("{\n", ctx->out);
@@ -756,35 +779,91 @@ static void xl6CgenTryStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     xl6OutputPrintf(ctx->out, "goto %s;\n", hasFinally ? finallyLabel : endLabel);
 
     if ( hasCatch ) {
-        catchName = catchNode->childCount > 0 ? catchNode->children[0] : NULL;
-        catchBlock = catchNode->childCount > 1 ? catchNode->children[1] : NULL;
-        xl6CgenCIdentText(catchCName, sizeof(catchCName), catchName != NULL ? catchName->text : "__xl6_error");
-        catchVarMark = ctx->varCount;
-        catchCleanupMark = ctx->cleanupCount;
+        size_t catchIndex;
 
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s:\n", catchLabel);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "XL6_Error* %s = xl6_error_take();\n", catchCName);
-        errorType = xl6CgenOwnSimpleType(ctx, "error", catchName != NULL ? catchName : catchNode);
-        xl6CgenAddVarType(ctx, catchName != NULL ? catchName->text : "__xl6_error", errorType);
-        xl6CgenAddErrorCleanup(ctx, catchName != NULL ? catchName->text : "__xl6_error", errorType);
+        xl6OutputPrintf(ctx->out, "XL6_Error* %s = xl6_error_take();\n", caughtName);
 
-        prevCatchErrorName = ctx->currentCatchErrorName;
-        ctx->currentCatchErrorName = catchCName;
-        if ( hasFinally ) {
-            xl6CgenPushTryTarget(ctx, catchCleanupMark, id, 1);
+        for ( catchIndex = 0; catchList != NULL && catchIndex < catchList->childCount; ++catchIndex ) {
+            const XL6_AstNode* catchNode = catchList->children[catchIndex];
+            const XL6_AstNode* catchKind = NULL;
+            const XL6_AstNode* catchName = NULL;
+            const XL6_AstNode* catchBlock = NULL;
+            const XL6_AstNode* errorType;
+            const char* prevCatchErrorName;
+            char catchCName[512];
+            size_t catchCleanupMark;
+            size_t catchVarMark;
+
+            if ( catchNode == NULL || catchNode->kind != XL6_AST_CATCH ) {
+                continue;
+            }
+            if ( catchNode->childCount == 3 ) {
+                catchKind = catchNode->children[0];
+                catchName = catchNode->children[1];
+                catchBlock = catchNode->children[2];
+            } else {
+                catchName = catchNode->childCount > 0 ? catchNode->children[0] : NULL;
+                catchBlock = catchNode->childCount > 1 ? catchNode->children[1] : NULL;
+            }
+            xl6CgenIndent(ctx);
+            if ( catchKind != NULL && catchKind->text != NULL ) {
+                xl6OutputPrintf(ctx->out, "if (%s != 0 && xl6_error_is(%s, \"%s\")) {\n", caughtName, caughtName, catchKind->text);
+            } else {
+                xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", caughtName);
+            }
+            ctx->indent += 1;
+            xl6CgenCIdentText(catchCName, sizeof(catchCName), catchName != NULL ? catchName->text : "__xl6_error");
+            catchVarMark = ctx->varCount;
+            catchCleanupMark = ctx->cleanupCount;
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "XL6_Error* %s = %s;\n", catchCName, caughtName);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = 0;\n", caughtName);
+            errorType = xl6CgenOwnSimpleType(ctx, "error", catchName != NULL ? catchName : catchNode);
+            xl6CgenAddVarType(ctx, catchName != NULL ? catchName->text : "__xl6_error", errorType);
+            xl6CgenAddErrorCleanup(ctx, catchName != NULL ? catchName->text : "__xl6_error", errorType);
+
+            prevCatchErrorName = ctx->currentCatchErrorName;
+            ctx->currentCatchErrorName = catchCName;
+            if ( hasFinally ) {
+                xl6CgenPushTryTarget(ctx, catchCleanupMark, id, 1);
+            }
+            xl6CgenBlock(ctx, catchBlock);
+            if ( hasFinally ) {
+                xl6CgenPopTryTarget(ctx);
+            }
+            ctx->currentCatchErrorName = prevCatchErrorName;
+            xl6CgenCloseScope(ctx, catchCleanupMark);
+            xl6CgenFreeVarsSince(ctx, catchVarMark);
+            xl6CgenEmitGotoIfError(ctx, hasFinally ? finallyLabel : endLabel);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "goto %s;\n", hasFinally ? finallyLabel : endLabel);
+            ctx->indent -= 1;
+            xl6CgenIndent(ctx);
+            xl6OutputPuts("}\n", ctx->out);
         }
-        xl6CgenBlock(ctx, catchBlock);
+
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", caughtName);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xl6_error_set_active(%s);\n", caughtName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = 0;\n", caughtName);
         if ( hasFinally ) {
-            xl6CgenPopTryTarget(ctx);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "goto %s;\n", finallyLabel);
+        } else {
+            xl6CgenEmitExceptionPropagate(ctx, node);
         }
-        ctx->currentCatchErrorName = prevCatchErrorName;
-        xl6CgenCloseScope(ctx, catchCleanupMark);
-        xl6CgenFreeVarsSince(ctx, catchVarMark);
-        xl6CgenEmitGotoIfError(ctx, hasFinally ? finallyLabel : endLabel);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "goto %s;\n", hasFinally ? finallyLabel : endLabel);
     }

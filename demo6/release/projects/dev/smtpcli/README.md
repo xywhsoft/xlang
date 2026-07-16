@@ -42,20 +42,10 @@ xl build projects\dev\smtpcli\smtpcli.xl -o projects\dev\smtpcli\smtpcli.exe
 - **Dot-stuffing**：DATA payload 中以 `.` 开头的行前补 `.`，保证 SMTP 透明性。
 - **Date 头**：RFC 2822 格式 `Thu, 10 Jul 2026 12:00:00 +0800`，用 `time.*` 部件手拼。
 
-## 设计约束绕过
+## 运行时边界
 
-见 `dev/README.md`「当前限制」与 `dev/BUGS.md`：
-
-- **BUG-FTP1**（accept 后服务端首次 send 丢失）：内置 test server 的所有回复走
-  `sendRetry` 重试循环（~5ms 间隔、最多 40 次）。
-- **BUG-FTP2**（`close()` abortive 丢未 ACK 缓冲）：QUIT/221 交换后
-  `time.sleep(QUIT_CLOSE_DELAY)` 再 close。
-- **BUG-FTP3**（同 point 二次包装 TcpStream 堆破坏）：每个 accept/connect point
-  只 `TcpStream(p)` 一次，全生命周期复用；`TcpStream` 仅作函数参数按值传入（安全）。
-- **BUG-CE1**（`var + string` 乱码）：所有拼接用 `string` 类型变量 + `string(v)` 强转。
-- **BUG-RT4**（class 构造嵌套需 statement-level lowering）：不内联 `Buffer()`，
-  先声明再传入。
-- **native-backed class 不可被闭包按值捕获**：test server 的 `TcpServer` 留在 main
-  中 accept，仅 client（捕获一个 `int port`）跑在 worker thread（ftpserver 模式）。
-- **BUG-SM1**（新发现）：`time.timezoneOffset()` 返回秒而非文档所称分钟，
-  按 `/3600` 取小时绕过。
+- 内置测试服务器用 `sendRetry` 处理有界发送队列暂时繁忙的情况，重试有次数和间隔上限。
+- QUIT/221 完成后短暂等待发送队列排空，再关闭连接，避免截断最后一条回复。
+- 每个 native handle 只构造一个 `TcpStream` owner，并按 class 默认引用语义传给辅助函数。
+- 测试附件使用随机临时文件名，结束后删除，允许多个测试进程并行运行。
+- `time.timezoneOffset()` 返回秒，Date 头通过秒数计算 `+HHMM` / `-HHMM`。

@@ -248,3 +248,8 @@ XMD4C_EXPORT int xmd4c_verbatim_entities_flag(void)
 {
 	return (int)MD_HTML_FLAG_VERBATIM_ENTITIES;
 }
+
+XMD4C_EXPORT int xmd4c_no_html_flag(void)
+{
+	return (int)MD_FLAG_NOHTML;
+}

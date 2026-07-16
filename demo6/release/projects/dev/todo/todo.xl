@@ -14,7 +14,7 @@
 //   - 集合直接用 array<TodoItem> + json.stringify(items, pretty=true) 整体落盘。
 //   - 读回时用 json.parse 解析成 var 数组，逐项 json.parse::<TodoItem> 还原。
 //   - array<TodoItem> 作为函数参数与返回值正常传递；.append / .remove(idx) 正常。
-//   - json pretty 默认用 TAB 缩进（B10 未修复），统一替换成 2 空格更美观。
+//   - json pretty 默认用 TAB 缩进，保存时统一替换成 2 空格。
 
 class TodoItem
     derive value
@@ -62,7 +62,7 @@ end
 // 把 array<TodoItem> 整体序列化落盘。
 func saveItems(string path_, array<TodoItem> items)
     string jsonText = json.stringify(items, pretty = true)
-    // json pretty 默认用 TAB 缩进（B10 未修复），统一替换成 2 空格更美观。
+    // json pretty 默认用 TAB 缩进，统一替换成 2 空格。
     jsonText = string.replace(jsonText, "\t", "  ")
     bool ok = file.writeText(path_, jsonText)
     if not ok then
@@ -107,7 +107,7 @@ func cmdAdd(string scriptPath, string text)
     array<TodoItem> items = loadItems(path_)
     int newId = nextId(items)
 
-    TodoItem item
+    TodoItem item = TodoItem()
     item.id = newId
     item.text = text
     item.done = false
@@ -152,10 +152,58 @@ func cmdDone(string scriptPath, int id)
 
     TodoItem item = items[idx]
     item.done = true
-    items[idx] = item
-
     saveItems(path_, items)
     println("Marked #" + string(id) + " done.")
+end
+
+
+// 使用独立临时目录验证新增、完成、清理和持久化，不触碰用户数据。
+func runSelftest() as int
+    string root = path.join(path.temp(), path.random("todo_", ""))
+    string scriptPath = path.join(root, "todo.xl")
+    string storePath = dataPath(scriptPath)
+    int failed = 0
+    dir.createAll(root)
+
+    cmdAdd(scriptPath, "write examples")
+    cmdAdd(scriptPath, "run tests")
+    array<TodoItem> items = loadItems(storePath)
+    if items.length != 2 or items[0].id != 1 or items[1].text != "run tests" then
+        println("FAIL add/load roundtrip")
+        failed += 1
+    end
+
+    cmdDone(scriptPath, 1)
+    items = loadItems(storePath)
+    if not items[0].done then
+        println("FAIL done persistence")
+        failed += 1
+    end
+
+    cmdClear(scriptPath)
+    items = loadItems(storePath)
+    if items.length != 1 or items[0].id != 2 then
+        println("FAIL clear completed")
+        failed += 1
+    end
+
+    cmdRemove(scriptPath, 2)
+    items = loadItems(storePath)
+    if items.length != 0 then
+        println("FAIL remove persistence")
+        failed += 1
+    end
+
+    if file.exists(storePath) then
+        file.delete(storePath)
+    end
+    dir.delete(root)
+    if failed == 0 then
+        println("todo self-test: PASS")
+        return 0
+    end
+    println("todo self-test: FAIL (" + string(failed) + ")")
+    return 1
 end
 
 
@@ -205,6 +253,7 @@ func printUsage()
     println("  todo done <id>       mark todo <id> as done")
     println("  todo remove <id>     remove todo <id>")
     println("  todo clear           remove all completed todos")
+    println("  todo test            run isolated self-test")
 end
 
 
@@ -216,6 +265,10 @@ func main(...) as int
 
     string scriptPath = string(arg[0])
     string command = string(arg[1])
+
+    if command == "test" then
+        return runSelftest()
+    end
 
     if command == "add" then
         if arg.length < 3 then

@@ -21,17 +21,15 @@
 //   6. LCS          最长公共子序列 DP        O(nm), 回溯重建
 //   7. Suffix Array 朴素排序构造            插入排序 + 后缀逐字节比较
 //
-// 设计要点 (与 xlang 当前语义/限制对齐):
+// 设计要点：
 //   - 字节载体: 全程用 string.bytes(s) 取 UTF-8 字节为 array<int>,
 //     所有算法工作在字节序列上; 对 ASCII 文本字节偏移 == 字符偏移。
-//   - 全局函数 (非 class 方法): 规避 class 方法不能安全接收 array<int> 的问题。
-//   - array<int> 实参按值拷贝: 本库所有算法对输入 array<int> 仅读
-//     不写, 返回新数组, 值拷贝不影响正确性。
+//   - 算法使用静态 array<int> 参数；输入只读，结果通过新数组返回。
 //   - DP 用 array<int>: 一维展开 dp[i*cols+j], 仿 diff.xl / life.xl 模式。
 //   - Rabin-Karp: int64 乘法不会溢出 (byte*prime^... 每步取模); 负数取模后 +prime 修正。
 //   - Z 搜索: 拼接 pat + [-1] + text, 哨兵 -1 不等于任何 0..255 字节, 正确终止。
 //   - 后缀数组: g_suf 全局持有当前字节串, suffixCompare 仅读全局, 避免每次比较拷贝整串。
-//   - 串重建: string.formatInt(byte, "c") 逐字节转 UTF-8 字符 (ASCII 正确)。
+//   - 串重建: int.format(byte, "c") 逐字节转 UTF-8 字符 (ASCII 正确)。
 
 // ---- 全局状态 (后缀数组比较用) ----
 array<int> g_suf
@@ -43,25 +41,25 @@ array<int> g_suf
 func toBytes(string s) as array<int>
     // string.bytes 返回无类型 array；经 array<int> 返回类型直通会变空，需逐元素拷贝。
     array raw = string.bytes(s)
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int i = 0
     while i < raw.length do
-        out.push(int(raw[i]))
+        outputValue.push(int(raw[i]))
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
-// 从字节偏移 start 起取 count 个字节, 还原为字符串 (逐字节 formatInt "c")
+// 从字节偏移 start 起取 count 个字节, 还原为字符串 (逐字节 int.format "c")
 func bytesToText(array<int> b, int start, int count) as string
-    string out = ""
+    string outputValue = ""
     int i = start
     int endd = start + count
     while i < endd and i < b.length do
-        out = out + string.formatInt(b[i], "c")
+        outputValue = outputValue + int.format(b[i], "c")
         i += 1
     end
-    return out
+    return outputValue
 end
 
 func bytesToString(array<int> b) as string

@@ -39,17 +39,17 @@ bytes.appendByte(255)
 assert await file.writeBytesAsync(binaryPath, bytes)
 assert await file.readBytesAsync(binaryPath) == bytes
 
-// openAsync 适合需要偏移读写、刷新和截断的文件。
+// openAsync 适合需要偏移 readAt/writeAt、刷新和截断的文件。
 AsyncFile asyncFile = file.openAsync(
     handlePath,
     file.asyncRead + file.asyncWrite + file.asyncCreate + file.asyncTruncate,
     file.shareRead + file.shareWrite + file.shareDelete
 )
-assert await asyncFile.write(0, bytes) == bytes.len()
+assert await asyncFile.writeAt(0, bytes) == bytes.len()
 assert await asyncFile.flush()
-Buffer handleRead = Buffer(await asyncFile.read(0, bytes.len()))
+Buffer handleRead = Buffer(await asyncFile.readAt(0, bytes.len()))
 assert handleRead == bytes
-assert await asyncFile.resize(2)
+assert await asyncFile.setSize(2)
 assert await asyncFile.size() == 2
 assert asyncFile.close()
 

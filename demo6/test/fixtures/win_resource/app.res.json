@@ -1,0 +1,20 @@
+{
+  "format": "xlang-windows-resource-1",
+  "language": 1033,
+  "codepage": 1200,
+  "version": {
+    "fileVersion": "1.2.3.4",
+    "productVersion": "1.2.3.4",
+    "fileDescription": "xlang resource smoke",
+    "productName": "xlang resource smoke",
+    "companyName": "xlang",
+    "internalName": "win_resource_smoke",
+    "originalFilename": "win_resource_smoke.exe"
+  },
+  "icon": {
+    "base64": "AAABAAEAAQEAAAEAIAAwAAAAFgAAACgAAAABAAAAAgAAAAEAIAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAP//AAAAAA=="
+  },
+  "manifest": {
+    "text": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><assembly xmlns=\"urn:schemas-microsoft-com:asm.v1\" manifestVersion=\"1.0\"><assemblyIdentity version=\"1.0.0.0\" processorArchitecture=\"*\" name=\"xlang.resource.smoke\" type=\"win32\"/><description>xlang resource smoke</description></assembly>"
+  }
+}

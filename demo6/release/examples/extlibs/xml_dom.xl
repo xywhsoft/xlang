@@ -1,0 +1,15 @@
+import xml.dom
+
+
+
+func main(...) as int
+    auto document = xml.dom.createDocument()
+    auto catalog = document.createElement("catalog")
+    auto book = document.createElement("book")
+    book.setAttribute("id", "xlang")
+    book.appendChild(document.createText("XLang DOM"))
+    document.appendChild(catalog)
+    catalog.appendChild(book)
+    println(document.stringify(true, 2, true))
+    return 0
+end

@@ -124,6 +124,39 @@ static int run_module_step(XL_Context* ctx, const char* name, const char* source
     return ok;
 }
 
+static int run_resident_module_step(XL_Context* ctx)
+{
+    const char* source;
+    XL_Module* module;
+    int (*read_value)(void);
+    int ok;
+
+    source =
+        "const string moduleName = \"resident-module\"\n"
+        "int requestCount = 40\n"
+        "export \"xl_dll_resident_read\" func read() as c_int\n"
+        "    requestCount += 1\n"
+        "    if moduleName != \"resident-module\" then return c_int(-1) end\n"
+        "    return c_int(requestCount)\n"
+        "end\n";
+    module = xlCompileScriptStringToModule(ctx, source);
+    if ( module == NULL ) {
+        fprintf(stderr, "resident module compile failed: %s\n", xlGetLastError(ctx));
+        return 0;
+    }
+    ok = xlActivateModule(ctx, module, NULL);
+    read_value = (int (*)(void))xlModuleGetSymbol(module, "xl_dll_resident_read");
+    ok = ok && read_value != NULL && read_value() == 41 && read_value() == 42;
+    ok = ok && xlDeactivateModule(ctx, module) && xlDeactivateModule(ctx, module);
+    ok = ok && xlActivateModule(ctx, module, NULL) && read_value() == 41;
+    ok = ok && xlDeactivateModule(ctx, module);
+    if ( !ok ) {
+        fprintf(stderr, "resident module lifecycle failed: %s\n", xlGetLastError(ctx));
+    }
+    xlDestroyModule(module);
+    return ok;
+}
+
 static int run_c_source_step(XL_Context* ctx)
 {
     char* argv[2];
@@ -242,6 +275,7 @@ int main(void)
          !expect_api_failure(ctx, "xlAddIncludePath empty", xlAddIncludePath(ctx, ""), "cannot add include path") ||
          !expect_api_failure(ctx, "xlAddLibraryPath empty", xlAddLibraryPath(ctx, ""), "cannot add library path") ||
          !expect_api_failure(ctx, "xlAddLinkLibrary empty", xlAddLinkLibrary(ctx, ""), "cannot add link library") ||
+         !expect_api_failure(ctx, "xlAddResourceFile empty", xlAddResourceFile(ctx, ""), "resource config path is empty") ||
          !expect_api_failure(ctx, "xlLoadDependencyLibrary empty", xlLoadDependencyLibrary(ctx, ""), "dependency library path is empty") ) {
         xlDestroyContext(ctx);
         return 1;
@@ -316,6 +350,7 @@ int main(void)
          !run_script_step(ctx, "loadlib script", loadlibScript) ||
          !run_script_step(ctx, "stdlib script", stdlibScript) ||
          !run_module_step(ctx, "module script", "int value = 40 + 2\nassert value == 42, \"module run failed\"\n") ||
+         !run_resident_module_step(ctx) ||
          !run_c_source_step(ctx) ) {
         cleanup_dynamic_vfs_probe();
         xlDestroyContext(ctx);

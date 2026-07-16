@@ -7,7 +7,7 @@ static int xl6CgenIsBuiltinTypeName(const char* name)
         "c_char", "c_schar", "c_uchar", "c_short", "c_ushort", "c_int", "c_uint",
         "c_long", "c_ulong", "c_longlong", "c_ulonglong",
         "c_size", "c_ssize", "c_ptrdiff", "c_intptr", "c_uintptr", "c_bool",
-        "c_float", "c_double", "c_wchar",
+        "c_float", "c_double", "c_wchar", "c_vararg",
         "string", "time", "point", "error", "function", "var", "type",
         "array", "list", "set", "dict", "__class_handle",
         "future", "task", "channel", "generator",

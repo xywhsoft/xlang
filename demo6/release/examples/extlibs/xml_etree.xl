@@ -1,0 +1,16 @@
+import xml.etree
+
+
+
+func main(...) as int
+    auto catalog = xml.etree.create("catalog")
+    auto first = catalog.append("book")
+    first.set("id", "xlang")
+    first.text = "XLang 编译器"
+    auto second = catalog.append("book")
+    second.set("id", "xrt")
+    second.text = "XRT 运行库"
+    println(catalog.stringify(true, 2, true))
+    println("xml.etree example: PASS")
+    return 0
+end

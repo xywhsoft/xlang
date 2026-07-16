@@ -30,3 +30,7 @@ assert memberText == text, "toString member sugar should use derived string prot
 assert left == same, "derive equals should compare non-skipped fields"
 assert !(left != same), "derive equals should generate matching __ne__"
 assert left != other, "derive equals should detect changed compared field"
+
+set<DeriveRecord> records = set{left, same, other}
+assert records.length == 2, "typed set should combine derive hash and equals"
+assert same in records, "typed set lookup should use derived value semantics"

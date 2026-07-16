@@ -134,17 +134,17 @@ end
 
 // 去重, 保留首次出现顺序. 用 array.contains 做线性查重.
 func dedupe(array<string> a) as array<string>
-    array<string> out = array[""]
-    out.remove(0)
+    array<string> outputValue = array[""]
+    outputValue.remove(0)
     int n = a.length
     int i = 0
     while i < n do
-        if not out.contains(a[i]) then
-            out.push(a[i])
+        if not outputValue.contains(a[i]) then
+            outputValue.push(a[i])
         end
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // 把数组逐行打印到 stdout.

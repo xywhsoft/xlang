@@ -1,0 +1,20 @@
+import plist
+
+
+
+func main(...) as int
+    Buffer icon = Buffer()
+    icon.appendByte(0)
+    icon.append("XL")
+    var settings = {
+        "application": "xlang",
+        "version": 6,
+        "enabled": true,
+        "icon": icon,
+        "tags": ["compiler", "script"]
+    }
+    println(plist.stringify(settings, true, true))
+    Buffer binary = plist.dumps(settings, "binary")
+    println("binary bytes: " + string(binary.len()))
+    return 0
+end

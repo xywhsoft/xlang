@@ -1,4 +1,4 @@
-﻿// ringbuf - 环形缓冲区 + 并发生产者/消费者队列
+// ringbuf - 环形缓冲区 + 并发生产者/消费者队列
 //
 // 用法:
 //   ringbuf                  显示帮助
@@ -148,7 +148,7 @@ class RingBuffer
 
     // 批量出队至多 n 个，返回新数组 (FIFO 顺序)。
     func popBatch(int n) as var
-        var out = array[]
+        var outputValue = array[]
         int want = n
         if want > self._count then
             want = self._count
@@ -162,22 +162,22 @@ class RingBuffer
             var v = self.zero
             ok, v = self.pop()
             if ok then
-                out.append(v)
+                outputValue.append(v)
             end
             i = i + 1
         end
-        return out
+        return outputValue
     end
 
     // 排空所有元素追加到 out (引用语义，修改调用方数组)，返回排空数。
-    func drainTo(var out) as int
+    func drainTo(var outputValue) as int
         int drained = 0
         while self._count > 0 do
             bool ok = false
             var v = self.zero
             ok, v = self.pop()
             if ok then
-                out.append(v)
+                outputValue.append(v)
                 drained = drained + 1
             end
         end
@@ -639,7 +639,7 @@ func testPushTimeout() as int
     bool to1 = cqPushTimeout(99, 60)
     float dt1 = (time.timer() - t0) * 1000.0
     check(not to1, "满队列 pushTimeout(99, 60ms) 返回 false")
-    check(dt1 >= 40.0, "pushTimeout 确实阻塞等待 (>=40ms, 实测=" + string.formatFloat(dt1, ".1") + "ms)")
+    check(dt1 >= 40.0, "pushTimeout 确实阻塞等待 (>=40ms, 实测=" + float.format(dt1, ".1") + "ms)")
     check(g_cq.count() == 4, "超时未入队 count 仍=4")
 
     // 启一个延迟消费者: 30ms 后取走 1 个腾出空位
@@ -648,7 +648,7 @@ func testPushTimeout() as int
     bool to2 = cqPushTimeout(88, 2000)
     float dt2 = (time.timer() - t1) * 1000.0
     check(to2, "消费者腾位后 pushTimeout(88, 2000ms) 返回 true")
-    check(dt2 < 1500.0, "在超时前完成 (<1500ms, 实测=" + string.formatFloat(dt2, ".1") + "ms)")
+    check(dt2 < 1500.0, "在超时前完成 (<1500ms, 实测=" + float.format(dt2, ".1") + "ms)")
     check(cons.wait(), "延迟消费者 wait ok")
     check(g_cq.count() == 4, "一进一出 count 仍=4 (含新 88)")
     return 0
@@ -666,7 +666,7 @@ func testPopTimeout() as int
     pok, pv = cqPopTimeout(60)
     float dt1 = (time.timer() - t0) * 1000.0
     check(not pok, "空队列 popTimeout(60ms) 返回 false")
-    check(dt1 >= 40.0, "popTimeout 确实阻塞等待 (>=40ms, 实测=" + string.formatFloat(dt1, ".1") + "ms)")
+    check(dt1 >= 40.0, "popTimeout 确实阻塞等待 (>=40ms, 实测=" + float.format(dt1, ".1") + "ms)")
 
     // 启延迟生产者: 30ms 后放入 77
     thread prod = thread(makeDelayedPusher(30, 77))
@@ -676,7 +676,7 @@ func testPopTimeout() as int
     pok2, pv2 = cqPopTimeout(2000)
     float dt2 = (time.timer() - t1) * 1000.0
     check(pok2 and pv2 == 77, "生产者投递后 popTimeout 得 77")
-    check(dt2 < 1500.0, "在超时前完成 (<1500ms, 实测=" + string.formatFloat(dt2, ".1") + "ms)")
+    check(dt2 < 1500.0, "在超时前完成 (<1500ms, 实测=" + float.format(dt2, ".1") + "ms)")
     check(prod.wait(), "延迟生产者 wait ok")
     check(g_cq.isEmpty(), "取出后 isEmpty=true")
     return 0
@@ -760,10 +760,10 @@ func report(string name, int n, float elapsed)
     end
     string line = "  "
     line = line + string.padRight(name, 10)
-    line = line + "n=" + string.formatInt(n, ",")
-    line = line + "  time=" + string.formatFloat(ms, ".3") + " ms"
-    line = line + "  " + string.formatFloat(usPerOp, ".4") + " us/op"
-    line = line + "  " + string.formatInt(int(opsPerSec), ",") + " ops/sec"
+    line = line + "n=" + int.format(n, ",")
+    line = line + "  time=" + float.format(ms, ".3") + " ms"
+    line = line + "  " + float.format(usPerOp, ".4") + " us/op"
+    line = line + "  " + int.format(int(opsPerSec), ",") + " ops/sec"
     println(line)
 end
 
@@ -853,14 +853,14 @@ func benchBatch(int n) as float
 end
 
 func runBench(int n) as int
-    println("ringbuf 单线程吞吐基准  (n=" + string.formatInt(n, ",") + ")")
+    println("ringbuf 单线程吞吐基准  (n=" + int.format(n, ",") + ")")
     println("================================================================")
     report("push", n, benchPush(n))
     report("pop", n, benchPop(n))
     report("roundtrip", n, benchRoundtrip(n))
     report("batch", n, benchBatch(n))
     println("================================================================")
-    println("checksum " + string.formatFloat(g_sink, ".3") + " (防优化累计值)")
+    println("checksum " + float.format(g_sink, ".3") + " (防优化累计值)")
     return 0
 end
 

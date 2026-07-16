@@ -67,7 +67,7 @@ func fmtNum(float v) as string
     if isWhole(v) then
         return string(int(v))
     end
-    return string.formatFloat(v, ".4")
+    return float.format(v, ".4")
 end
 
 // 带符号格式化：正数前补 '+'，便于拼接复数实/虚部。
@@ -227,7 +227,7 @@ func statePrint(array<float> re, array<float> im, int n)
         float prob = r * r + c * c
         if prob > EPS then
             println("  |" + binString(i, n) + ">  amp=" + fmtComplex(r, c) +
-                    "  p=" + string.formatFloat(prob, ".4"))
+                    "  p=" + float.format(prob, ".4"))
         end
         i += 1
     end
@@ -901,7 +901,7 @@ func printHistogram(array<float> re, array<float> im, int n, int width)
             bar = bar + "#"
             b += 1
         end
-        println("  " + label + " " + string.formatFloat(p, ".4") + " |" + bar)
+        println("  " + label + " " + float.format(p, ".4") + " |" + bar)
         i += 1
     end
 end
@@ -926,7 +926,7 @@ func printCounts(dict<int> counts, int n, int shots, int width)
             b += 1
         end
         println("  " + label + " " + string(cnt) + "/" + string(shots) +
-                " " + string.formatFloat(frac, ".3") + " |" + bar)
+                " " + float.format(frac, ".3") + " |" + bar)
         i += 1
     end
 end
@@ -1099,7 +1099,7 @@ func algoBell(int shots) as int
     re, im = c.run()
     statePrint(re, im, 2)
     float norm = stateNorm(re, im)
-    println("Total probability: " + string.formatFloat(norm, ".6"))
+    println("Total probability: " + float.format(norm, ".6"))
     println()
     println("Measurement samples: " + string(shots))
     dict<int> counts = sampleMany(re, im, shots)
@@ -1136,8 +1136,8 @@ func deutschOracle(string fType) as (array<float>, array<float>)
         else
             throw "deutschOracle: unknown fType " + fType
         end
-        int out = s ^ fval
-        re[out * 4 + s] = 1.0
+        int outputValue = s ^ fval
+        re[outputValue * 4 + s] = 1.0
         s += 1
     end
     return re, im
@@ -1269,7 +1269,7 @@ func algoGrover(int n, int marked) as int
     end
     float pHitA = reA[marked] * reA[marked] + imA[marked] * imA[marked]
     println("[Path A: direct state ops]")
-    println("  Success probability of target: " + string.formatFloat(pHitA, ".4"))
+    println("  Success probability of target: " + float.format(pHitA, ".4"))
     // 多次采样。
     int shots = 2000
     random.seed(uint64(12345), uint64(67890))
@@ -1279,7 +1279,7 @@ func algoGrover(int n, int marked) as int
         hitA = countsA[string(marked)]
     end
     println("  Samples: " + string(shots) + ", hits: " + string(hitA) +
-            " (" + string.formatFloat(float(hitA) / float(shots), ".3") + ")")
+            " (" + float.format(float(hitA) / float(shots), ".3") + ")")
     println()
 
     // ---- 路径 B：矩阵对角预言机 ----
@@ -1336,7 +1336,7 @@ func algoGrover(int n, int marked) as int
     end
     float pHitB = reB[marked] * reB[marked] + imB[marked] * imB[marked]
     println("[Path B: full-space diagonal matrices via applyGate]")
-    println("  Success probability of target: " + string.formatFloat(pHitB, ".4"))
+    println("  Success probability of target: " + float.format(pHitB, ".4"))
     random.seed(uint64(12345), uint64(67890))
     dict<int> countsB = sampleMany(reB, imB, shots)
     int hitB = 0
@@ -1344,7 +1344,7 @@ func algoGrover(int n, int marked) as int
         hitB = countsB[string(marked)]
     end
     println("  Samples: " + string(shots) + ", hits: " + string(hitB) +
-            " (" + string.formatFloat(float(hitB) / float(shots), ".3") + ")")
+            " (" + float.format(float(hitB) / float(shots), ".3") + ")")
     println()
 
     // 交叉验证：两路终态应几乎相同（最大振幅差 < EPS）。
@@ -1360,7 +1360,7 @@ func algoGrover(int n, int marked) as int
         i += 1
     end
     println("Cross-check: max amplitude diff (Path A vs B) = " +
-            string.formatFloat(maxDiff, ".2e"))
+            float.format(maxDiff, ".2e"))
     if maxDiff < 1e-6 then
         println("  => two implementations agree.")
     else
@@ -1369,7 +1369,7 @@ func algoGrover(int n, int marked) as int
     println()
     println("Classical: ~N/2 = " + string(dim / 2) +
             " queries; Grover: ~sqrt(N) = " +
-            string.formatFloat(math.sqrt(float(dim)), ".2") + " queries.")
+            float.format(math.sqrt(float(dim)), ".2") + " queries.")
     return 0
 end
 
@@ -1466,7 +1466,7 @@ func algoQFT(int n) as int
     end
     println()
     println("Cross-check vs uniform superposition: max diff = " +
-            string.formatFloat(maxDiff, ".2e"))
+            float.format(maxDiff, ".2e"))
     if maxDiff < 1e-6 then
         println("  => QFT circuit matches reference QFT|0>.")
     else

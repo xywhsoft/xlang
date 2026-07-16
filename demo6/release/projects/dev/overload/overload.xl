@@ -1,14 +1,8 @@
 // overload - 方法重载验证工具
 //
 // 全面验证 xlang 的函数重载、方法重载、构造重载和协议方法重载能力。
-// 每条断言输出 [PASS]/[FAIL]，主程序始终返回 0（即使发现 BUG 也只记录不中断），
-// 保证 xl run / xl build 双路径 EXIT=0。
-//
-// 设计说明（重要）：
-//   本工具只执行「编译且运行都正确」的重载路径。以下三类重载有编译器 BUG，
-//   本工具不执行（执行会导致编译失败或运行期硬崩溃），仅在结尾以 NOTE 形式报告，
-//   完整复现记录在同目录 BUGS.md：
-//   另有限制 LIMIT-O1: f(T) + f(T, U=默认) 因「必选参数数相同」被判歧义，见 BUGS.md。
+// 每条断言输出 [PASS]/[FAIL]；任一断言失败时，主程序返回非零退出码。
+// 重载按静态类型解析。var 实参应先使用 checked `as` 明确目标类型。
 //
 // 用法：
 //   xl run projects\dev\overload\overload.xl
@@ -41,7 +35,7 @@ func expectF(float got, float want, string label)
     if math.abs(got - want) < 0.0001 then
         ok(label)
     else
-        bad(label, "got " + string.formatFloat(got, ".4") + " want " + string.formatFloat(want, ".4"))
+        bad(label, "got " + float.format(got, ".4") + " want " + float.format(want, ".4"))
     end
 end
 
@@ -91,6 +85,8 @@ func testFuncOverload()
         float b = 3.0
         expectI(area(a), 49, "area(int-var)      // static int dispatch")
         expectF(area(b), 28.27431, "area(float-var)    // static float dispatch")
+        var dynamicSide = 6
+        expectI(area(dynamicSide as int), 36, "area(var as int)   // explicit checked dispatch")
     catch e
         bad("area(static-var)", e.message)
     end
@@ -337,7 +333,7 @@ func kind(int64 n) as string
 end
 
 func kind(float f) as string
-    return "float:" + string.formatFloat(f, ".1")
+    return "float:" + float.format(f, ".1")
 end
 
 func testResolution()
@@ -456,7 +452,67 @@ func testComposite()
 end
 
 // ============================================================
-// 入口：运行全部测试，报告已知 BUG，统计结果。
+// 9. 管理值返回：__item__ 重载返回 array<int>
+// ============================================================
+class RowLookup
+    func __item__(int row) as array<int>
+        return array<int>[row * 10, row * 10 + 1]
+    end
+
+    func __item__(string name) as array<int>
+        if name == "first" then
+            return array<int>[1, 2]
+        end
+        return array<int>[]
+    end
+end
+
+func testManagedProtocolReturn()
+    println("[managed return]     __item__(int|string) as array<int>")
+    try
+        RowLookup rows = RowLookup()
+        array<int> byIndex = rows[3]
+        array<int> byName = rows["first"]
+        expectI(byIndex.length, 2, "rows[3].length     // typed array return")
+        expectI(byIndex[0], 30, "rows[3][0]         // int overload")
+        expectI(byName[1], 2, "rows[first][1]     // string overload")
+    catch e
+        bad("managed __item__ return", e.message)
+    end
+end
+
+// ============================================================
+// 10. 属性重载：零维属性与一维属性使用相同名称
+// ============================================================
+class Meter
+    int base = 0
+
+    create(int base)
+        self.base = base
+    end
+
+    get value() as int
+        return self.base
+    end
+
+    get value(int offset) as int
+        return self.base + offset
+    end
+end
+
+func testPropertyOverload()
+    println("[property overload]  value / value[int]")
+    try
+        Meter meter = Meter(40)
+        expectI(meter.value, 40, "meter.value         // zero dimension")
+        expectI(meter.value[2], 42, "meter.value[2]      // one dimension")
+    catch e
+        bad("property overload", e.message)
+    end
+end
+
+// ============================================================
+// 入口：运行全部测试并统计结果。
 // ============================================================
 func main(...) as int
     println("=== overload: method overload verification suite ===")
@@ -471,14 +527,10 @@ func main(...) as int
     testProtocolCall()
     testResolution()
     testComposite()
+    testManagedProtocolReturn()
+    testPropertyOverload()
 
     println("")
-    println("--- known overload bugs (not executed; see BUGS.md) ---")
-    println("NOTE BUG-O1: var 实参无法分派到重载函数  -> [sem] 没有匹配的函数重载")
-    println("NOTE BUG-O2: __item__ as array<int> 重载 -> 运行期 0xC0000005 硬崩溃")
-    println("NOTE BUG-O3: get 属性 0 维 + 1 维重载    -> [checked] 找不到 class 方法")
-    println("NOTE LIMIT-O1: f(T) + f(T, U=默认) 同必选参数数 -> 判为歧义重载")
-    println("")
     println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
-    return 0
+    return g_fail
 end

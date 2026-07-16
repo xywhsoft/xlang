@@ -151,14 +151,14 @@ end
 func colToLetter(int col) as string
     if col < 1 then return "" end
     string ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    string out = ""
+    string outputValue = ""
     int n = col
     while n > 0 do
         int rem = (n - 1) % 26
-        out = string.charAt(ALPHABET, rem) + out
+        outputValue = string.charAt(ALPHABET, rem) + outputValue
         n = (n - 1) / 26
     end
-    return out
+    return outputValue
 end
 
 
@@ -276,17 +276,17 @@ func expandRange(string firstRaw, string lastRaw) as var
         rowA = rowB
         rowB = t
     end
-    var out = []
+    var outputValue = []
     int r = rowA
     while r <= rowB do
         int c = colA
         while c <= colB do
-            out.push(makeRef(c, r))
+            outputValue.push(makeRef(c, r))
             c += 1
         end
         r += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -387,7 +387,7 @@ func formatNum(var v) as string
     if f == math.floor(f) and math.abs(f) < 1e15 then
         return string(int(f))
     end
-    string s = string.formatFloat(f, ".6")
+    string s = float.format(f, ".6")
     // 截掉尾部多余的 0 与可能的小数点
     int n = string.len(s)
     int last = n
@@ -507,13 +507,13 @@ class Lexer
     // 读取一个 "..." 字符串字面量（调用者已定位到起始引号）。
     func readString() as Token
         self.pos += 1
-        string out = ""
+        string outputValue = ""
         while self.pos < self.len do
             string c = string.charAt(self.src, self.pos)
             if c == "\"" then
                 self.pos += 1
                 Token t = Token("str")
-                t.text = out
+                t.text = outputValue
                 return t
             end
             if c == "\\" then
@@ -521,21 +521,21 @@ class Lexer
                 if self.pos >= self.len then throw "#ERR: 未终止的字符串" end
                 string e = string.charAt(self.src, self.pos)
                 if e == "n" then
-                    out = out + "\n"
+                    outputValue = outputValue + "\n"
                 elseif e == "t" then
-                    out = out + "\t"
+                    outputValue = outputValue + "\t"
                 elseif e == "r" then
-                    out = out + "\r"
+                    outputValue = outputValue + "\r"
                 elseif e == "\"" then
-                    out = out + "\""
+                    outputValue = outputValue + "\""
                 elseif e == "\\" then
-                    out = out + "\\"
+                    outputValue = outputValue + "\\"
                 else
-                    out = out + e
+                    outputValue = outputValue + e
                 end
                 self.pos += 1
             else
-                out = out + c
+                outputValue = outputValue + c
                 self.pos += 1
             end
         end
@@ -868,7 +868,7 @@ end
 // ============================================================================
 
 // 递归遍历 AST，收集所有被引用的单元格（ref 与 range 展开）到 set out。
-func collectDeps(var nVar, var out)
+func collectDeps(var nVar, var outputValue)
     if nVar == null then return end
     Node n = nVar as Node
     if n.kind == "num" then return end
@@ -876,7 +876,7 @@ func collectDeps(var nVar, var out)
     if n.kind == "bool" then return end
     if n.kind == "ref" then
         string r = n.text
-        if not (r in out) then out[r] = true end
+        if not (r in outputValue) then outputValue[r] = true end
         return
     end
     if n.kind == "range" then
@@ -886,24 +886,24 @@ func collectDeps(var nVar, var out)
         int i = 0
         while i < refs.length do
             string r = string(refs[i])
-            if not (r in out) then out[r] = true end
+            if not (r in outputValue) then outputValue[r] = true end
             i += 1
         end
         return
     end
     if n.kind == "unary" then
-        collectDeps(n.left as Node, out)
+        collectDeps(n.left as Node, outputValue)
         return
     end
     if n.kind == "binop" then
-        collectDeps(n.left as Node, out)
-        collectDeps(n.right as Node, out)
+        collectDeps(n.left as Node, outputValue)
+        collectDeps(n.right as Node, outputValue)
         return
     end
     if n.kind == "call" then
         int i = 0
         while i < n.args.length do
-            collectDeps(n.args[i] as Node, out)
+            collectDeps(n.args[i] as Node, outputValue)
             i += 1
         end
         return
@@ -1087,7 +1087,7 @@ end
 // 把一个参数节点求值为「数值数组」。
 // 范围节点会被展开；标量节点被求值后若为数值则加入。
 func flattenNumArgs(var args) as var
-    var out = []
+    var outputValue = []
     int i = 0
     while i < args.length do
         Node a = args[i] as Node
@@ -1099,23 +1099,23 @@ func flattenNumArgs(var args) as var
             while j < refs.length do
                 Cell c = cellAt(string(refs[j]))
                 if not c.isNull and not c.isError and isNum(c.value) then
-                    out.push(c.value)
+                    outputValue.push(c.value)
                 end
                 j += 1
             end
         else
             var v = evalNode(a)
-            if isNum(v) then out.push(v) end
+            if isNum(v) then outputValue.push(v) end
         end
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
 // 把参数节点求值为「文本数组」（COUNT 计数所有非空）。
 func flattenAllArgs(var args) as var
-    var out = []
+    var outputValue = []
     int i = 0
     while i < args.length do
         Node a = args[i] as Node
@@ -1127,17 +1127,17 @@ func flattenAllArgs(var args) as var
             while j < refs.length do
                 Cell c = cellAt(string(refs[j]))
                 if not c.isNull and not c.isError and c.value != null then
-                    out.push(c.value)
+                    outputValue.push(c.value)
                 end
                 j += 1
             end
         else
             var v = evalNode(a)
-            out.push(v)
+            outputValue.push(v)
         end
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1532,24 +1532,24 @@ func renderShow() as string
     end
 
     // 顶部表头分隔线
-    string out = ""
+    string outputValue = ""
     string sep = ""
-    out = out + padRight("", labelW) + " |"
+    outputValue = outputValue + padRight("", labelW) + " |"
     ci = 1
     while ci <= maxCol do
         int w = int(colW[string(ci)])
         sep = sep + string.repeat("-", w) + "+"
-        out = out + " " + padLeft(colToLetter(ci), w)
-        if ci < maxCol then out = out + " " end
-        if ci == maxCol then out = out + " |" end
+        outputValue = outputValue + " " + padLeft(colToLetter(ci), w)
+        if ci < maxCol then outputValue = outputValue + " " end
+        if ci == maxCol then outputValue = outputValue + " |" end
         ci += 1
     end
-    out = out + "\n"
-    out = out + string.repeat("-", labelW) + "-+" + sep + "\n"
+    outputValue = outputValue + "\n"
+    outputValue = outputValue + string.repeat("-", labelW) + "-+" + sep + "\n"
 
     int r = 1
     while r <= maxRow do
-        out = out + padLeft(string(r), labelW) + " |"
+        outputValue = outputValue + padLeft(string(r), labelW) + " |"
         ci = 1
         while ci <= maxCol do
             string key = makeRef(ci, r)
@@ -1565,15 +1565,15 @@ func renderShow() as string
             else
                 cell1 = padRight(t, w)
             end
-            out = out + " " + cell1
-            if ci < maxCol then out = out + " " end
-            if ci == maxCol then out = out + " |" end
+            outputValue = outputValue + " " + cell1
+            if ci < maxCol then outputValue = outputValue + " " end
+            if ci == maxCol then outputValue = outputValue + " |" end
             ci += 1
         end
-        out = out + "\n"
+        outputValue = outputValue + "\n"
         r += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1588,12 +1588,12 @@ func renderDump() as string
     end
     if refs.length == 0 then return "(empty sheet)" end
     sortRefs(refs)
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < refs.length do
         string r = string(refs[i])
         Cell c = cellAt(r)
-        if i > 0 then out = out + "\n" end
+        if i > 0 then outputValue = outputValue + "\n" end
         string dv = cellDisplay(r)
         string depsStr = ""
         if c.deps != null then
@@ -1607,11 +1607,11 @@ func renderDump() as string
         string tag = "lit"
         if c.ast != null then tag = "fx" end
         if c.isError then tag = "err" end
-        out = out + r + "  [" + tag + "]  raw='" + c.raw + "'  value='" + dv + "'"
-        if depsStr != "" then out = out + "  deps=" + depsStr end
+        outputValue = outputValue + r + "  [" + tag + "]  raw='" + c.raw + "'  value='" + dv + "'"
+        if depsStr != "" then outputValue = outputValue + "  deps=" + depsStr end
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1622,25 +1622,25 @@ end
 func renderRefs() as string
     var refs = formulaRefs()
     if refs.length == 0 then return "(no formula cells)" end
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < refs.length do
         string r = string(refs[i])
         Cell c = cellAt(r)
-        if i > 0 then out = out + "\n" end
-        out = out + r + " -> ["
+        if i > 0 then outputValue = outputValue + "\n" end
+        outputValue = outputValue + r + " -> ["
         if c.deps != null then
             int j = 0
             while j < c.deps.length do
-                if j > 0 then out = out + ", " end
-                out = out + string(c.deps[j])
+                if j > 0 then outputValue = outputValue + ", " end
+                outputValue = outputValue + string(c.deps[j])
                 j += 1
             end
         end
-        out = out + "]"
+        outputValue = outputValue + "]"
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1656,8 +1656,8 @@ func csvQuote(string s) as string
     if string.contains(s, "\n") then need = true end
     if string.contains(s, "\r") then need = true end
     if not need then return s end
-    string out = string.replace(s, "\"", "\"\"")
-    return "\"" + out + "\""
+    string outputValue = string.replace(s, "\"", "\"\"")
+    return "\"" + outputValue + "\""
 end
 
 
@@ -1667,7 +1667,7 @@ func exportCsv() as string
     int maxRow = 0
     maxCol, maxRow = gridBounds()
     if maxCol == 0 then return "" end
-    string out = ""
+    string outputValue = ""
     int r = 1
     while r <= maxRow do
         string line = ""
@@ -1677,10 +1677,10 @@ func exportCsv() as string
             line = line + csvQuote(cellDisplay(makeRef(c, r)))
             c += 1
         end
-        out = out + line + "\n"
+        outputValue = outputValue + line + "\n"
         r += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1908,22 +1908,22 @@ end
 
 
 func helpText() as string
-    string out = ""
-    out = out + "xsheet 命令:\n"
-    out = out + "  set <ref> <value...>       设置单元格（=开头为公式）\n"
-    out = out + "  get <ref>                  读取单元格值\n"
-    out = out + "  show                       渲染整张表\n"
-    out = out + "  dump                       列出所有非空单元格\n"
-    out = out + "  refs                       打印依赖图\n"
-    out = out + "  clear  /  clear <ref>      清空表 / 单个单元格\n"
-    out = out + "  import csv <file>          从 CSV 导入\n"
-    out = out + "  export csv <file>          导出为 CSV\n"
-    out = out + "  test                       运行自检测试\n"
-    out = out + "  help                       显示本帮助\n"
-    out = out + "\n"
-    out = out + "公式: + - * / ^ & 以及 = <> < > <= >= ；函数 SUM/AVG/MIN/MAX/COUNT/IF/ABS\n"
-    out = out + "示例: =A1*2   =SUM(A1:B3)   =IF(A1>10, A1, 0)   =ABS(A1-B1)"
-    return out
+    string outputValue = ""
+    outputValue = outputValue + "xsheet 命令:\n"
+    outputValue = outputValue + "  set <ref> <value...>       设置单元格（=开头为公式）\n"
+    outputValue = outputValue + "  get <ref>                  读取单元格值\n"
+    outputValue = outputValue + "  show                       渲染整张表\n"
+    outputValue = outputValue + "  dump                       列出所有非空单元格\n"
+    outputValue = outputValue + "  refs                       打印依赖图\n"
+    outputValue = outputValue + "  clear  /  clear <ref>      清空表 / 单个单元格\n"
+    outputValue = outputValue + "  import csv <file>          从 CSV 导入\n"
+    outputValue = outputValue + "  export csv <file>          导出为 CSV\n"
+    outputValue = outputValue + "  test                       运行自检测试\n"
+    outputValue = outputValue + "  help                       显示本帮助\n"
+    outputValue = outputValue + "\n"
+    outputValue = outputValue + "公式: + - * / ^ & 以及 = <> < > <= >= ；函数 SUM/AVG/MIN/MAX/COUNT/IF/ABS\n"
+    outputValue = outputValue + "示例: =A1*2   =SUM(A1:B3)   =IF(A1>10, A1, 0)   =ABS(A1-B1)"
+    return outputValue
 end
 
 
@@ -1942,9 +1942,9 @@ func runScript(string path) as int
     int i = 0
     while i < lines.length do
         string line = string(lines[i])
-        string out = executeCommand(line)
-        if out != "" then
-            println(out)
+        string outputValue = executeCommand(line)
+        if outputValue != "" then
+            println(outputValue)
         end
         i += 1
     end
@@ -1956,9 +1956,9 @@ end
 func runArgs(var cmds) as int
     int i = 0
     while i < cmds.length do
-        string out = executeCommand(string(cmds[i]))
-        if out != "" then
-            println(out)
+        string outputValue = executeCommand(string(cmds[i]))
+        if outputValue != "" then
+            println(outputValue)
         end
         i += 1
     end
@@ -1994,9 +1994,9 @@ func runDemo() as int
     while i < demo.length do
         string line = string(demo[i])
         println("> " + line)
-        string out = executeCommand(line)
-        if out != "" then
-            println(out)
+        string outputValue = executeCommand(line)
+        if outputValue != "" then
+            println(outputValue)
         end
         println("")
         i += 1

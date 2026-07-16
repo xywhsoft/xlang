@@ -22,14 +22,14 @@ func formatSize(int64 bytes) as string
     end
     float kb = float(bytes) / 1024.0
     if kb < 1024.0 then
-        return string.formatFloat(kb, ".1") + " KB"
+        return float.format(kb, ".1") + " KB"
     end
     float mb = kb / 1024.0
     if mb < 1024.0 then
-        return string.formatFloat(mb, ".1") + " MB"
+        return float.format(mb, ".1") + " MB"
     end
     float gb = mb / 1024.0
-    return string.formatFloat(gb, ".1") + " GB"
+    return float.format(gb, ".1") + " GB"
 end
 
 // 判断字符串是否全为数字 (用于区分位置参数是 N 还是 path).

@@ -28,6 +28,7 @@ XLC_API int xlcSetSaveTemps(XLC_Context* ctx, int enabled);
 XLC_API int xlcAddIncludePath(XLC_Context* ctx, const char* path);
 XLC_API int xlcAddLibraryPath(XLC_Context* ctx, const char* path);
 XLC_API int xlcAddLinkLibrary(XLC_Context* ctx, const char* nameOrPath);
+XLC_API int xlcAddResourceFile(XLC_Context* ctx, const char* path);
 XLC_API int xlcAddCSourceFile(XLC_Context* ctx, const char* path);
 XLC_API int xlcLoadDependencyLibrary(XLC_Context* ctx, const char* path);
 XLC_API int xlcRegisterCFunction(XLC_Context* ctx, const char* symbolName, void* fn);

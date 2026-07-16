@@ -11,7 +11,8 @@ portscan <host> [start=1] [end=1024] [timeout=200] [options]
 | 选项 | 说明 |
 |---|---|
 | `-v`, `--verbose` | 打印每个端口（OPEN 和 CLOSED）；默认只打印 OPEN |
-| `--async` | 并发扫描（每批 8 个端口，`task.all` 聚合） |
+| `--async` | 并发扫描（默认并发数为 8，使用 `task.all` 聚合） |
+| `-c`, `--concurrency` | 设置并发探针数（1-256，同时启用并发模式） |
 | `--allow-remote` | 允许非本地主机（默认拒绝，安全护栏） |
 | `-h`, `--help` | 显示帮助 |
 
@@ -20,7 +21,7 @@ portscan <host> [start=1] [end=1024] [timeout=200] [options]
 ```
 xl run projects\dev\portscan\portscan.xl -- 127.0.0.1 1 100 200
 xl run projects\dev\portscan\portscan.xl -- 127.0.0.1 80 90 150 -v
-xl run projects\dev\portscan\portscan.xl -- 127.0.0.1 1 1024 200 --async
+xl run projects\dev\portscan\portscan.xl -- 127.0.0.1 1 1024 200 -c 32
 xl build projects\dev\portscan\portscan.xl -o projects\dev\portscan\portscan.exe
 portscan.exe 127.0.0.1 1 200 150 --async
 ```
@@ -50,18 +51,22 @@ if p == ZERO then       // CLOSED（失败）
 else                    // OPEN（成功）
 ```
 
-**陷阱**：`p is null` **恒为 false**（即便零句柄也报 "not null"），绝不能用 `is null` 判定连接成败。详见 `BUGS.md` BUG-22。
+`point` 是不透明句柄值，不是 `null` 引用。连接失败必须与默认初始化的零句柄比较。
 
 `TcpStream(p).send("")` 也能当探针（失败句柄返回 false），但 point 直接比较更干净、无副作用。
 
 ### 2. 并发扫描：async + task.all
 
-`async func probe(host, port, timeout) as int` 返回 `future<int>`（1=OPEN, 0=CLOSED）。并发模式按 BATCH=8 一批发射 8 个 probe，用 `task.all` 聚合：
+`async func probe(host, port, timeout) as int` 返回 `future<int>`（1=OPEN, 0=CLOSED）。扫描器按运行期并发数构造 `array<future<int>>`，每批用 `task.all` 聚合：
 
 ```xlang
-future<int> f0 = probe(host, p0, timeout)
-... f1..f7
-array<future<int> > jobs = array[f0, f1, f2, f3, f4, f5, f6, f7]
+array<int> ports = array<int>[]
+array<future<int>> jobs = array<future<int>>[]
+while port <= endPort and jobs.length < concurrency do
+    ports.push(port)
+    jobs.push(probe(host, port, timeout))
+    port += 1
+end
 array<int> results = await task.all(jobs)
 ```
 
@@ -78,17 +83,17 @@ end
 
 func main(...) as int
     // 解析 arg、校验
-    future<int> done = scanAll(host, startPort, endPort, timeout, useAsync)
+    future<int> done = scanAll(host, startPort, endPort, timeout, useAsync, concurrency)
     done.wait()      // 阻塞到 async 扫描完成，无死锁
     return 0
 end
 ```
 
-`future.wait()` 跨函数阻塞可用且不死锁（详见 `BUGS.md` BUG-24 / NOTE-22）。
+`future.wait()` 在同步入口等待异步任务完成；异步实现内部仍使用 `await`，两层职责保持清晰。
 
-### 4. 为什么 BATCH 是编译期常量
+### 4. 运行期控制并发度
 
-`future<T>` **无法存入 `list<T>`**（codegen 报 `当前 C 生成暂不支持将该表达式打包为 var`），而定长 `array` 无法运行期改变大小。因此并发批只能用**定长 array 字面量** `array[f0,...,f7]`，BATCH 固定为 8。末批不足 8 个时，越界 slot 探测 port 1（无害），统计时按 `basePort+s <= endPort` 跳过。详见 `BUGS.md` BUG-23。
+`array<future<int>>` 可以动态追加任务，因此并发度无需写死。`-c` 会同时启用并发模式，范围限制为 1-256，避免一次创建过多套接字和任务。末批只包含真实端口，不会发出填充探针。
 
 ### 5. 计时用 `time.timer()`（float 秒，不是 int 毫秒）
 
@@ -105,7 +110,5 @@ XRT 解析 `localhost` 时在本机解析到 IPv6 `::1`。若服务只绑了 IPv
 ## 验证状态
 
 - `xl check`：通过。
-- `xl run`：sync + async + verbose + 边界（单端口、整 8 倍数、非整批、越界端口、非本地拒绝、start>end）全部正确。
+- `xl run`：sync + async + 自定义并发度 + verbose + 边界（单端口、非整批、越界端口、非本地拒绝、start>end）全部正确。
 - `xl build` + exe：通过，输出与 `xl run` 一致。
-
-> 注：开发期间曾因环境里残留的外部头 `release\include\xl_runtime.h`（外部文件系统优先于静态 VFS）同时阻断 `xl run`（`redefinition of ...`）与 `xl build`（`unresolved xl6_command_argv_to_arg`）。删除该残留头后两条路径均恢复。详见 `BUGS.md` NOTE-22 对 BUG-19 的细化。

@@ -1,0 +1,37 @@
+import ini
+
+
+
+func main(...) as int
+    string source = "# application\nroot = /srv/app\n\n[server]\nhost = localhost\nport = 8080\nenabled = yes\nratio = 1.25\nurl = http://${host}:${server.port}/api\n"
+    auto config = ini.parse(source, true, true, true)
+    assert config.get("root") == "/srv/app", "INI global value"
+    assert config.get("server", "host") == "localhost", "INI section value"
+    assert config.getInt("server", "port") == 8080, "INI int value"
+    assert config.getBool("server", "enabled"), "INI bool value"
+    assert config.getFloat("server", "ratio") == 1.25, "INI float value"
+    assert config.get("server", "url") == "http://localhost:8080/api", "INI interpolation"
+
+    array<string> sections = config.sectionNames()
+    assert sections.length == 2 and sections[0] == "" and sections[1] == "server", "INI section order"
+    array<string> keys = config.keys("server")
+    assert keys.length == 5 and keys[0] == "host", "INI key order"
+
+    config.set("server", "port", "9090")
+    config.set("client", "name", "测试")
+    assert config.getInt("server", "port") == 9090, "INI update"
+    assert config.remove("server", "enabled"), "INI remove"
+    assert not config.has("server", "enabled"), "INI remove state"
+    string encoded = config.stringify()
+    assert string.contains(encoded, "# application\n"), "INI comment preservation"
+    assert string.contains(encoded, "[client]\nname = 测试\n"), "INI deterministic writer"
+
+    bool duplicate = false
+    try
+        ini.parse("[x]\na=1\na=2\n")
+    catch ConfigError e
+        duplicate = true
+    end
+    assert duplicate, "INI duplicate key must throw ConfigError"
+    return 0
+end

@@ -4617,7 +4617,7 @@ func testSaveLoad() as int
     println("")
     println("--- [14] SAVE / LOAD 持久化 ---")
     resetState()
-    string tmpPath = "xsql2_test_data.json"
+    string tmpPath = path.join(path.temp(), path.random("xsql2_", ".json"))
     runSilent("CREATE TABLE x (id INT, name TEXT)")
     runSilent("INSERT INTO x VALUES (1,'Alice'),(2,'Bob')")
     runSilent("CREATE INDEX ix_x ON x(id)")
@@ -4645,11 +4645,8 @@ func testSaveLoad() as int
     var tree = idx["tree"]
     expectI(bplusSize(tree), 2, "LOAD 后索引 size=2")
 
-    // 清理临时文件（写入空内容覆盖；xlang 无 file.delete API）
-    try
-        file.writeText(tmpPath, "")
-    catch e
-        // 忽略
+    if file.exists(tmpPath) then
+        file.delete(tmpPath)
     end
     return 0
 end
@@ -4908,7 +4905,7 @@ func testSaveLoadCycle() as int
     println("")
     println("--- [25] SAVE/LOAD 完整往返 ---")
     resetState()
-    string tmpPath = "xsql2_cycle_test.json"
+    string tmpPath = path.join(path.temp(), path.random("xsql2_cycle_", ".json"))
     runSilent("CREATE TABLE items (id INT PRIMARY KEY, name TEXT, qty INT)")
     runSilent("INSERT INTO items VALUES (1,'apple',10),(2,'banana',20),(3,'cherry',30)")
     runSilent("CREATE UNIQUE INDEX idx_name ON items(name)")
@@ -4940,11 +4937,8 @@ func testSaveLoadCycle() as int
     var tree = idx["tree"]
     expectI(bplusSize(tree), 3, "LOAD 后索引 size=3")
 
-    // 清理
-    try
-        file.writeText(tmpPath, "")
-    catch e
-        // 忽略
+    if file.exists(tmpPath) then
+        file.delete(tmpPath)
     end
     return 0
 end

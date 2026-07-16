@@ -15,7 +15,8 @@ static int xl6CgenParamIsVararg(const XL6_AstNode* param)
     return param != NULL && param->childCount > 0 &&
            param->children[0] != NULL &&
            (xl6CTextEquals(param->children[0]->text, "array<var>") ||
-            xl6CTextEquals(param->children[0]->text, "dict<var>"));
+            xl6CTextEquals(param->children[0]->text, "dict<var>") ||
+            xl6CTextEquals(param->children[0]->text, "c_vararg"));
 }
 
 static int xl6CgenParamIsArrayVararg(const XL6_AstNode* param)
@@ -30,6 +31,13 @@ static int xl6CgenParamIsDictVararg(const XL6_AstNode* param)
     return param != NULL && param->childCount > 0 &&
            param->children[0] != NULL &&
            xl6CTextEquals(param->children[0]->text, "dict<var>");
+}
+
+static int xl6CgenParamIsCVararg(const XL6_AstNode* param)
+{
+    return param != NULL && param->childCount > 0 &&
+           param->children[0] != NULL &&
+           xl6CTextEquals(param->children[0]->text, "c_vararg");
 }
 
 static int xl6CgenFixedParamCount(const XL6_AstNode* params)
@@ -406,6 +414,15 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         return;
     }
 
+    /*
+        var 参与的算术表达式本身已经生成 xvalue。
+        其语言级推断结果可能因另一侧为 string 而收窄，不能再次按静态值装箱。
+    */
+    if ( xl6CgenBinaryArithmeticIsXValue(ctx, expr) ) {
+        xl6CgenExpr(ctx, expr);
+        return;
+    }
+
     rawTypeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
     typeNode = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, rawTypeNode));
     if ( typeNode != NULL && xl6CgenIsXValueType(typeNode) ) {
@@ -466,9 +483,9 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts("})", ctx->out);
     } else if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "error") ) {
-        xl6OutputPuts("xvoCreateText((void*)xl6_error_message(", ctx->out);
+        xl6OutputPuts("xvoCreateHandle(xrtTypeHandle(), (void*)(", ctx->out);
         xl6CgenExpr(ctx, expr);
-        xl6OutputPuts("), 0, false)", ctx->out);
+        xl6OutputPuts("), 0x00000002u | 0x00000004u)", ctx->out);
     } else if ( typeNode != NULL && xl6CgenIsClassType(ctx, typeNode) ) {
         XL6_AstNode* ctorClass = NULL;
         int isCtor;
@@ -1137,52 +1154,4 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
     }
 
     xl6AstFree(sourceType);
-}
-
-static void xl6CgenNullCoalesceExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* left;
-    const XL6_AstNode* right;
-    XL6_AstNode* leftType;
-    XL6_AstNode* rightType;
-    int isXValue;
-
-    left = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
-    right = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
-
-    if ( left != NULL && left->kind == XL6_AST_NULL ) {
-        xl6CgenExpr(ctx, right);
-        return;
-    }
-
-    leftType = xl6CgenCloneExprTypeForInference(ctx, left);
-    rightType = xl6CgenCloneExprTypeForInference(ctx, right);
-    isXValue = xl6CgenIsXValueType(leftType) || xl6CgenIsXValueType(rightType);
-
-    if ( isXValue ) {
-        if ( left == NULL || !xl6CgenIsXValueType(leftType) ) {
-            xl6CgenError(ctx, node, "null coalesce with var result requires the left operand to be var or null");
-            xl6OutputPuts("xvoCreateNull()", ctx->out);
-        } else {
-            xl6CgenError(ctx, node, "dynamic var null coalesce requires statement-level lowering");
-            xl6OutputPuts("xvoCreateNull()", ctx->out);
-        }
-        xl6AstFree(leftType);
-        xl6AstFree(rightType);
-        return;
-    }
-
-    if ( leftType == NULL || rightType == NULL || !xl6CgenTypeNodeEqual(leftType, rightType) ) {
-        xl6CgenError(ctx, node, "当前 C 生成 ?? 两侧必须是同一静态类型，或左侧为 null/var");
-        xl6OutputPuts("0", ctx->out);
-        xl6AstFree(leftType);
-        xl6AstFree(rightType);
-        return;
-    }
-
-    xl6CgenError(ctx, node, "static null coalesce requires statement-level lowering");
-    xl6OutputPuts("0", ctx->out);
-
-    xl6AstFree(leftType);
-    xl6AstFree(rightType);
 }

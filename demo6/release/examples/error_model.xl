@@ -1,0 +1,58 @@
+// 错误模型示例：普通错误、分类错误、父类匹配、断言和 future.catch。
+
+func loadConfig(string path) as string
+    if path == "" then
+        throw ValueError "path is empty"
+    end
+    throw FileError "config file not found"
+end
+
+func asyncJob() as int
+    throw "async job failed"
+    return 0
+end
+
+func recoverAsync(error e) as int
+    assert e.kind == "AsyncError", e.kind
+    assert e.message == "async job failed", e.message
+    return 42
+end
+
+int valueErrorCaught = 0
+try
+    string ignored = loadConfig("")
+catch FileError e
+    valueErrorCaught = -1
+catch ValueError e
+    assert e.kind == "ValueError"
+    assert e.message == "path is empty"
+    valueErrorCaught = 1
+end
+assert valueErrorCaught == 1
+
+int ioErrorCaught = 0
+try
+    string ignored = loadConfig("app.conf")
+catch ValueError e
+    ioErrorCaught = -1
+catch IOError e
+    // FileError 是 IOError 的子分类。
+    assert e.kind == "FileError"
+    ioErrorCaught = 1
+end
+assert ioErrorCaught == 1
+
+int assertCaught = 0
+try
+    assert false, "example assertion failed"
+catch AssertionError e
+    assert e.message == "example assertion failed"
+    assertCaught = 1
+end
+assert assertCaught == 1
+
+func() as int worker = asyncJob
+future<int> recovered = task.spawn(worker).catch(recoverAsync)
+assert await recovered == 42
+
+println("error model example ok")

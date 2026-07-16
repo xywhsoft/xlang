@@ -35,6 +35,19 @@ assert boolCh.recvInto(boolValue), "bool channel recv failed"
 assert boolValue, "bool channel value mismatch"
 assert not boolCh.tryRecvInto(boolValue), "empty bool channel should not receive"
 
+channel<var> varCh = channel::<var>(2)
+assert varCh.send(123), "var channel int send failed"
+assert varCh.send("abc"), "var channel string send failed"
+
+var varValue = null
+assert varCh.recvInto(varValue), "var channel int recv failed"
+assert int(varValue) == 123, "var channel int value mismatch"
+assert varCh.recvInto(varValue), "var channel string recv failed"
+assert string(varValue) == "abc", "var channel string value mismatch"
+assert not varCh.tryRecvInto(varValue), "empty var channel should not receive"
+varCh.close()
+assert varCh.isClosed(), "var channel close failed"
+
 channel<float> floatCh = channel::<float>(1)
 float floatValue = 0.0
 
@@ -164,6 +177,16 @@ assert nonblockingTryThreadCh.recvInto(nonblockingTryLater), "nonblocking tryRec
 assert nonblockingTryLater == 42, "nonblocking tryRecv later value mismatch"
 nonblockingTryThreadCh.close()
 assert nonblockingTryThreadCh.isClosed(), "nonblocking tryRecv channel close failed"
+
+channel<int> timeoutCh = channel::<int>(1)
+int timeoutValue = 0
+assert not timeoutCh.recvTimeoutInto(timeoutValue, 10), "empty recvTimeoutInto should time out"
+assert timeoutValue == 0, "recvTimeoutInto timeout should not modify target"
+assert timeoutCh.send(808), "recvTimeoutInto send setup failed"
+assert timeoutCh.recvTimeoutInto(timeoutValue, 100), "recvTimeoutInto should receive buffered value"
+assert timeoutValue == 808, "recvTimeoutInto value mismatch"
+timeoutCh.close()
+assert not timeoutCh.recvTimeoutInto(timeoutValue, 0), "closed recvTimeoutInto should fail"
 
 channel<int> closeWakeCh = channel::<int>(1)
 auto closeWakeConsumer = func() as int

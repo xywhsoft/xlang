@@ -341,15 +341,74 @@ static XL6_AstNode* xl6PDetachParsedFStringExpr(XL6_ParseResult* result)
     return expr;
 }
 
-static XL6_AstNode* xl6PParseFStringExpr(XL6_ParseContext* ctx, const XL6_Token* token, const char* text, size_t len)
+static void xl6PFStringAdvancePosition(const char* text, size_t len, int* line, int* column)
+{
+    size_t i;
+
+    if ( text == NULL || line == NULL || column == NULL ) {
+        return;
+    }
+    for ( i = 0; i < len; ++i ) {
+        unsigned char ch = (unsigned char)text[i];
+
+        if ( ch == '\r' ) {
+            if ( i + 1 < len && text[i + 1] == '\n' ) {
+                ++i;
+            }
+            *line += 1;
+            *column = 1;
+        } else if ( ch == '\n' ) {
+            *line += 1;
+            *column = 1;
+        } else if ( (ch & 0xC0u) != 0x80u ) {
+            *column += 1;
+        }
+    }
+}
+
+static void xl6PRebaseFStringExprPosition(
+    XL6_AstNode* node,
+    int exprLine,
+    int exprColumn,
+    int syntheticPrefixColumns)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return;
+    }
+    if ( node->line > 0 ) {
+        if ( node->line == 1 ) {
+            node->line = exprLine;
+            node->column = exprColumn + node->column - syntheticPrefixColumns - 1;
+        } else {
+            node->line = exprLine + node->line - 1;
+        }
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        xl6PRebaseFStringExprPosition(node->children[i], exprLine, exprColumn, syntheticPrefixColumns);
+    }
+}
+
+static XL6_AstNode* xl6PParseFStringExpr(
+    XL6_ParseContext* ctx,
+    const XL6_Token* token,
+    const char* tokenText,
+    size_t exprOffset,
+    size_t len)
 {
     static const char prefix[] = "auto __xl6_fstr_expr = (";
     static const char suffix[] = ")\n";
     XL6_ParseResult result;
     XL6_AstNode* expr;
+    const char* text;
     char* source;
     size_t sourceLen;
+    int exprLine;
+    int exprColumn;
     int ok;
+
+    text = tokenText != NULL ? tokenText + exprOffset : NULL;
 
     if ( xl6PFStringExprIsEmpty(text, len) ) {
         xl6PDiag(ctx, token, "f-string 插值表达式不能为空");
@@ -381,6 +440,10 @@ static XL6_AstNode* xl6PParseFStringExpr(XL6_ParseContext* ctx, const XL6_Token*
         xl6PDiag(ctx, token, "invalid f-string interpolation expression");
         return xl6AstNewText(XL6_AST_STRING, "", 0, token);
     }
+    exprLine = token != NULL ? token->startLine : 0;
+    exprColumn = token != NULL ? token->startColumn : 0;
+    xl6PFStringAdvancePosition(tokenText, exprOffset, &exprLine, &exprColumn);
+    xl6PRebaseFStringExprPosition(expr, exprLine, exprColumn, (int)(sizeof(prefix) - 1));
     return expr;
 }
 
@@ -440,7 +503,7 @@ static XL6_AstNode* xl6PParseFString(XL6_ParseContext* ctx, const XL6_Token* tok
                 xl6PDiag(ctx, token, "未闭合的 f-string 插值表达式");
                 break;
             }
-            xl6AstAddChild(node, xl6PParseFStringExpr(ctx, token, text + i + 1, exprEnd - i - 1));
+            xl6AstAddChild(node, xl6PParseFStringExpr(ctx, token, text, i + 1, exprEnd - i - 1));
             i = exprEnd;
             continue;
         }
@@ -1132,6 +1195,10 @@ param(A) ::= param_mode(M) param_type_ref(T) name_tok(N) ASSIGN expr(E). {
     xl6AstAddChild(A, T);
     xl6AstAddChild(A, E);
 }
+param(A) ::= KW_C_VARARG(T). {
+    A = xl6AstNewText(XL6_AST_PARAM, "arg", 3, &T);
+    xl6AstAddChild(A, xl6AstNewText(XL6_AST_TYPE, "c_vararg", 8, &T));
+}
 param(A) ::= ELLIPSIS(T). {
     A = xl6AstNewText(XL6_AST_PARAM, "arg", 3, &T);
     xl6AstAddChild(A, xl6AstNewText(XL6_AST_TYPE, "array<var>", 10, &T));
@@ -1352,6 +1419,11 @@ throw_stmt(A) ::= KW_THROW(T) expr(E). {
     A = xl6AstNew(XL6_AST_THROW, &T);
     xl6AstAddChild(A, E);
 }
+throw_stmt(A) ::= KW_THROW(T) name_tok(K) expr(E). {
+    A = xl6AstNew(XL6_AST_THROW, &T);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &K));
+    xl6AstAddChild(A, E);
+}
 
 assert_stmt(A) ::= KW_ASSERT(T) expr(C). {
     A = xl6AstNew(XL6_AST_ASSERT, &T);
@@ -1470,8 +1542,25 @@ try_stmt(A) ::= KW_TRY(T) need_sep block(B) catch_opt(C) finally_opt(F) KW_END. 
 }
 
 catch_opt(A) ::= . { A = NULL; }
-catch_opt(A) ::= KW_CATCH(C) name_tok(N) need_sep block(B). {
+catch_opt(A) ::= catch_list(L). { A = L; }
+
+catch_list(A) ::= catch_clause(C). {
+    A = xl6PList();
+    xl6AstAddChild(A, C);
+}
+catch_list(A) ::= catch_list(L) catch_clause(C). {
+    A = L;
+    xl6AstAddChild(A, C);
+}
+
+catch_clause(A) ::= KW_CATCH(C) name_tok(N) need_sep block(B). {
     A = xl6AstNew(XL6_AST_CATCH, &C);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, B);
+}
+catch_clause(A) ::= KW_CATCH(C) name_tok(K) name_tok(N) need_sep block(B). {
+    A = xl6AstNew(XL6_AST_CATCH, &C);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &K));
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
     xl6AstAddChild(A, B);
 }

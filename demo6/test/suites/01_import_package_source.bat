@@ -93,9 +93,9 @@ if not errorlevel 1 (
     echo import_source_no_global_pollution.xl should fail.
     exit /b 1
 )
-findstr /C:"[checked]" build\test\import_source_no_global_pollution.err.txt >nul
+findstr /C:"undeclared identifier 'add'" build\test\import_source_no_global_pollution.err.txt >nul
 if errorlevel 1 (
-    echo import_source_no_global_pollution.err.txt missing unresolved symbol diagnostic.
+    echo import_source_no_global_pollution.err.txt missing undeclared import symbol diagnostic.
     exit /b 1
 )
 
@@ -157,8 +157,16 @@ if errorlevel 1 (
     echo import_native_singleton_conflict.err.txt missing native singleton diagnostic.
     exit /b 1
 )
-release\xl.exe check test\cases\import_no_global_pollution.xl
-if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\import_no_global_pollution.xl >nul 2> build\test\import_no_global_pollution.err.txt
+if not errorlevel 1 (
+    echo import_no_global_pollution.xl should fail.
+    exit /b 1
+)
+findstr /C:"undeclared identifier 'counterAdd'" build\test\import_no_global_pollution.err.txt >nul
+if errorlevel 1 (
+    echo import_no_global_pollution.err.txt missing undeclared package symbol diagnostic.
+    exit /b 1
+)
 release\xl.exe check test\cases\import_path_no_ext.xl
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\import_relative_scope\root\source\import_relative_scope.xl

@@ -11,10 +11,9 @@
 //
 //   __field__/__setField__ 与一元/比较协议可在同一 class 上稳定共存。
 //
-//   另：复合赋值 a += b / a -= b 不分派到 __add__/__sub__（编译期 [sem] 直接拒绝），
-//   见 BUGS.md。
+//   复合赋值 a += b / a -= b 也会分派到 __add__/__sub__。
 //
-// 程序始终返回 0（即使发现 BUG 也只记录不中断），保证 xl run / xl build 双路径 EXIT=0。
+// 程序发现失败时返回非 0，便于直接作为回归测试运行。
 
 // ===== 迭代器（须先于 Vector2 定义，供 __iter__ 返回类型引用）=====
 class Vector2Iter
@@ -242,7 +241,7 @@ func fmt(float v) as string
     if v == math.floor(v) and math.abs(v) < 1e15 then
         return string(int(v))
     end
-    return string.formatFloat(v, ".4")
+    return float.format(v, ".4")
 end
 
 func fmtV(Vector2 v) as string
@@ -587,6 +586,20 @@ func testCopyClone()
     end
 end
 
+func testCompound()
+    println("[compound assignment]")
+    Vector2 value = Vector2(3.0, 4.0)
+    Vector2 delta = Vector2(2.0, 1.0)
+
+    value += delta
+    expectF(value.x, 5.0, "value += delta, x")
+    expectF(value.y, 5.0, "value += delta, y")
+
+    value -= delta
+    expectF(value.x, 3.0, "value -= delta, x")
+    expectF(value.y, 4.0, "value -= delta, y")
+end
+
 func main(...) as int
     println("=== vops: operator protocol suite ===")
 
@@ -600,9 +613,9 @@ func main(...) as int
     testIter()
     testField()
     testCopyClone()
+    testCompound()
 
     println("---")
-    println("NOTE: a += b / a -= b 未测试 -> BUG-V1 (编译期拒绝分派到 __add__/__sub__)")
     println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
-    return 0
+    return g_fail
 end

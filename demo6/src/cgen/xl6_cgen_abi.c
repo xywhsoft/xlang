@@ -434,6 +434,8 @@ static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* t
         xl6OutputPuts("xrtTypeSet()", ctx->out);
     } else if ( xl6CTextEquals(name, "dict") || xl6CTextEquals(name, "dict<var>") ) {
         xl6OutputPuts("xrtTypeDict()", ctx->out);
+    } else if ( xl6CTextEquals(name, "error") ) {
+        xl6OutputPuts("xrtTypeHandle()", ctx->out);
     } else if ( xl6CTextEquals(name, "__class_handle") ) {
         xl6OutputPuts("xrtTypeValue()", ctx->out);
     } else if ( xl6CTextEquals(name, "type") ) {
@@ -875,19 +877,49 @@ static void xl6CgenEmitRuntimeXValueTypeOps(XL6_CgenContext* ctx)
     xl6OutputPuts("    if ( value != 0 ) { xvoAddRef(value); }\n", out);
     xl6OutputPuts("    if ( pDst != 0 ) { *(xvalue*)pDst = value; }\n", out);
     xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("#ifndef XL6_CLASS_TYPE_EXTRA_DEFINED\n", out);
+    xl6OutputPuts("#define XL6_CLASS_TYPE_EXTRA_DEFINED\n", out);
+    xl6OutputPuts("#define XL6_CLASS_TYPE_FLAG_VALUE_EQUALITY 0x00000001u\n", out);
+    xl6OutputPuts("#define XL6_CLASS_TYPE_EXTRA_MAGIC 0x584C3643u\n", out);
+    xl6OutputPuts("typedef struct xl6_class_type_extra { unsigned int magic; unsigned int flags; } xl6_class_type_extra;\n", out);
+    xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("static const xl6_class_type_extra* xl6_runtime_class_extra(const xrt_type_desc* type)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    const xl6_class_type_extra* extra = type != 0 ? (const xl6_class_type_extra*)type->Extra : 0;\n", out);
+    xl6OutputPuts("    return extra != 0 && extra->magic == XL6_CLASS_TYPE_EXTRA_MAGIC ? extra : 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("static int xl6_runtime_class_compare(const void* pA, const void* pB)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xvalue left = pA != 0 ? *(xvalue const*)pA : 0;\n", out);
     xl6OutputPuts("    xvalue right = pB != 0 ? *(xvalue const*)pB : 0;\n", out);
     xl6OutputPuts("    bool leftNull = left == 0 || xvoIsNull(left);\n", out);
     xl6OutputPuts("    bool rightNull = right == 0 || xvoIsNull(right);\n", out);
+    xl6OutputPuts("    const xrt_type_desc* leftType;\n", out);
+    xl6OutputPuts("    const xrt_type_desc* rightType;\n", out);
+    xl6OutputPuts("    const xl6_class_type_extra* extra;\n", out);
     xl6OutputPuts("    if ( leftNull || rightNull ) { return leftNull == rightNull ? 0 : (leftNull ? -1 : 1); }\n", out);
+    xl6OutputPuts("    leftType = xvoTypeDesc(left);\n", out);
+    xl6OutputPuts("    rightType = xvoTypeDesc(right);\n", out);
+    xl6OutputPuts("    extra = leftType != 0 && xrtTypeSame(leftType, rightType) ? xl6_runtime_class_extra(leftType) : 0;\n", out);
+    xl6OutputPuts("    if ( extra != 0 && (extra->flags & XL6_CLASS_TYPE_FLAG_VALUE_EQUALITY) != 0 &&\n", out);
+    xl6OutputPuts("         leftType->Ops != 0 && leftType->Ops->compare != 0 ) {\n", out);
+    xl6OutputPuts("        return leftType->Ops->compare(xvoGetRecordData(left), xvoGetRecordData(right));\n", out);
+    xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return left == right ? 0 : ((uintptr_t)left < (uintptr_t)right ? -1 : 1);\n", out);
     xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("static uint64 xl6_runtime_class_hash(const void* pObj)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xvalue value = pObj != 0 ? *(xvalue const*)pObj : 0;\n", out);
-    xl6OutputPuts("    return value == 0 || xvoIsNull(value) ? 0 : xrtHash64(&value, sizeof(value));\n", out);
+    xl6OutputPuts("    const xrt_type_desc* type;\n", out);
+    xl6OutputPuts("    const xl6_class_type_extra* extra;\n", out);
+    xl6OutputPuts("    if ( value == 0 || xvoIsNull(value) ) { return 0; }\n", out);
+    xl6OutputPuts("    type = xvoTypeDesc(value);\n", out);
+    xl6OutputPuts("    extra = xl6_runtime_class_extra(type);\n", out);
+    xl6OutputPuts("    if ( extra != 0 && (extra->flags & XL6_CLASS_TYPE_FLAG_VALUE_EQUALITY) != 0 &&\n", out);
+    xl6OutputPuts("         type->Ops != 0 && type->Ops->hash != 0 ) {\n", out);
+    xl6OutputPuts("        return type->Ops->hash(xvoGetRecordData(value));\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return xrtHash64(&value, sizeof(value));\n", out);
     xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("static xvalue xl6_runtime_class_box(const void* pObj, const xrt_type_desc* pType)\n", out);
     xl6OutputPuts("{\n", out);

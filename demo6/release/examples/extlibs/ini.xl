@@ -1,0 +1,12 @@
+import ini
+
+
+
+func main(...) as int
+    auto config = ini.parse("[server]\nhost = localhost\nport = 8080\nurl = http://${host}:${port}/api\n", true, true, true)
+    println(config.get("server", "url"))
+    config.set("server", "port", "9090")
+    println(config.stringify())
+    println("ini example: PASS")
+    return 0
+end

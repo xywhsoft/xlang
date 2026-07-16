@@ -2,14 +2,14 @@
 //
 // 用 xlang 编写的泛型能力综合验证器：覆盖泛型函数声明/实例化、
 // 泛型约束（comparable / cloneable / 组合约束 / class 继承约束）、
-// 泛型函数形参为 array<T>（GS1 已修复）、泛型 class（Stack<T>，含 array<T>
-// 字段与 push/pop/top/size/clear）、泛型 class 迭代协议（Range<T> + RangeIter<T>，
+// 泛型函数形参为 array<T>、泛型 class（GenericStack<T>，含 array<T>
+// 字段与 push/pop/top/size/clear）、泛型 class 迭代协议（PairSequence<T>，
 // __iter__ / __next__ as (bool, T)），以及对 int / string / float 多种类型的实例化。
 //
 // 用法：
 //   gstack                 运行全部自检（等同 selftest）
 //   gstack selftest        运行全部泛型能力断言，全部通过则 EXIT=0
-//   gstack demo            演示 Stack<int>/Stack<string>/Stack<float> 与 Range 迭代
+//   gstack demo            演示 GenericStack<int/string/float> 与泛型迭代
 //   gstack help            显示本帮助
 //
 // 已知限制（不在此工具内触发，记录于 README/BUGS）：
@@ -67,6 +67,8 @@ class Entity
 end
 
 class Player extends Entity
+    derive clone
+
     int score = 0
 end
 
@@ -75,7 +77,7 @@ func keepEntity<T is Entity>(T obj) as T
 end
 
 // ====================================================================
-// 2b. 泛型函数 + array<T> 形参（GS1 已修复，可直接接受 array<T> 实参）
+// 2b. 泛型函数 + array<T> 形参
 // ====================================================================
 
 // 原地冒泡排序：array 为引用语义，函数内对元素交换会反映到调用方。
@@ -110,10 +112,10 @@ func arrayMax<T is comparable>(array<T> arr) as T
 end
 
 // ====================================================================
-// 3. 泛型 class Stack<T>（array<T> 字段 + push/pop/top/size/isEmpty/clear）
+// 3. 泛型 class GenericStack<T>（array<T> 字段 + push/pop/top/size/isEmpty/clear）
 // ====================================================================
 
-class Stack<T>
+class GenericStack<T>
     array<T> data = array<T>[]
 
     func push(T value)
@@ -145,7 +147,7 @@ class Stack<T>
 end
 
 // 带泛型约束的 class：<T is comparable>，内部对 array<T> 字段做冒泡排序。
-// （独立的 array<T> 泛型函数见上方 sortArray<T> / arrayMax<T>，GS1 已修复。）
+// （独立的 array<T> 泛型函数见上方 sortArray<T> / arrayMax<T>。）
 class SortedStack<T is comparable>
     array<T> data = array<T>[]
 
@@ -184,41 +186,45 @@ class SortedStack<T is comparable>
 end
 
 // ====================================================================
-// 4. 泛型 class 迭代协议：Range<T> + RangeIter<T>
-//    __iter__() as RangeIter<T>；__next__() as (bool, T)
+// 4. 泛型 class 迭代协议：PairSequence<T> + PairSequenceIter<T>
+//    迭代只依赖存储能力，不假设任意 T 都支持加法或步进。
 // ====================================================================
 
-class Range<T>
-    T lo
-    T hi
+class PairSequence<T>
+    T first
+    T second
 
-    create(T lo, T hi)
-        self.lo = lo
-        self.hi = hi
+    create(T first, T second)
+        self.first = first
+        self.second = second
     end
 
-    func __iter__() as RangeIter<T>
-        RangeIter<T> iter = RangeIter::<T>(self.lo, self.hi)
+    func __iter__() as PairSequenceIter<T>
+        PairSequenceIter<T> iter = PairSequenceIter::<T>(self.first, self.second)
         return iter
     end
 end
 
-class RangeIter<T>
-    T current
-    T limit
+class PairSequenceIter<T>
+    T first
+    T second
+    int index = 0
 
-    create(T start, T limit)
-        self.current = start
-        self.limit = limit
+    create(T first, T second)
+        self.first = first
+        self.second = second
+        self.index = 0
     end
 
     func __next__() as (bool, T)
-        if self.current < self.limit then
-            T v = self.current
-            self.current = self.current + 1
-            return true, v
+        if self.index == 0 then
+            self.index = 1
+            return true, self.first
+        elseif self.index == 1 then
+            self.index = 2
+            return true, self.second
         end
-        return false, self.limit
+        return false, self.second
     end
 end
 
@@ -286,7 +292,7 @@ func testConstraints() as int
     fails = fails + expect(maxValue(2, 9), 9, "maxValue<T is comparable>(2,9)")
     fails = fails + expect(maxValue::<int>(20, 5), 20, "maxValue::<int>(20,5)")
 
-    Player src
+    Player src = Player()
     src.id = 10
     src.score = 5
     Player cp = cloneValue::<Player>(src)
@@ -302,9 +308,9 @@ func testConstraints() as int
 end
 
 func testStackInt() as int
-    println("[3a] Stack<int> 多类型实例化")
+    println("[3a] GenericStack<int> 多类型实例化")
     int fails = 0
-    Stack<int> st
+    GenericStack<int> st = GenericStack::<int>()
     fails = fails + expect(st.isEmpty(), true, "新栈 isEmpty=true")
     st.push(1)
     st.push(2)
@@ -321,9 +327,9 @@ func testStackInt() as int
 end
 
 func testStackString() as int
-    println("[3b] Stack<string> 多类型实例化")
+    println("[3b] GenericStack<string> 多类型实例化")
     int fails = 0
-    Stack<string> st
+    GenericStack<string> st = GenericStack::<string>()
     st.push("alpha")
     st.push("beta")
     st.push("gamma")
@@ -335,9 +341,9 @@ func testStackString() as int
 end
 
 func testStackFloat() as int
-    println("[3c] Stack<float> 多类型实例化")
+    println("[3c] GenericStack<float> 多类型实例化")
     int fails = 0
-    Stack<float> st
+    GenericStack<float> st = GenericStack::<float>()
     st.push(1.5)
     st.push(2.5)
     st.push(3.5)
@@ -351,7 +357,7 @@ end
 func testSortedStack() as int
     println("[3d] SortedStack<T is comparable> 泛型 class 约束 + array<T> 排序")
     int fails = 0
-    SortedStack<int> ss
+    SortedStack<int> ss = SortedStack::<int>()
     ss.push(5)
     ss.push(2)
     ss.push(8)
@@ -371,7 +377,7 @@ func testSortedStack() as int
 end
 
 func testGenericArrayFunc() as int
-    println("[3e] 泛型函数 array<T> 形参（GS1 已修复）: sortArray<T> / arrayMax<T>")
+    println("[3e] 泛型函数 array<T> 形参: sortArray<T> / arrayMax<T>")
     int fails = 0
     array<int> ai = array<int>[]
     ai.append(5)
@@ -396,25 +402,24 @@ func testGenericArrayFunc() as int
     return fails
 end
 
-func testRangeIter() as int
-    println("[4] 泛型 class 迭代协议 Range<T> + RangeIter<T>")
+func testGenericIter() as int
+    println("[4] 泛型 class 迭代协议 PairSequence<T>")
     int fails = 0
-    Range<int> r = Range::<int>(1, 5)
+    PairSequence<int> numbers = PairSequence::<int>(10, 20)
     int sum = 0
     int seen = 0
-    for value in r
+    for value in numbers
         sum = sum + value
         seen = seen + 1
     end
-    fails = fails + expect(sum, 10, "for value in Range(1,5) sum=10")
-    fails = fails + expect(seen, 4, "迭代 4 个元素 (1,2,3,4)")
+    fails = fails + expect(sum, 30, "for value in PairSequence(10,20) sum=30")
+    fails = fails + expect(seen, 2, "PairSequence 迭代两个元素")
 
     int weighted = 0
-    Range<int> r2 = Range::<int>(1, 4)
-    for index, value in r2
+    for index, value in numbers
         weighted = weighted + index * 10 + value
     end
-    fails = fails + expect(weighted, 36, "for index,value in Range(1,4) weighted=36")
+    fails = fails + expect(weighted, 40, "for index,value in PairSequence(10,20) weighted=40")
     return fails
 end
 
@@ -430,7 +435,7 @@ func runSelftest() as int
     total = total + testStackFloat()
     total = total + testSortedStack()
     total = total + testGenericArrayFunc()
-    total = total + testRangeIter()
+    total = total + testGenericIter()
     println("----------------------------------------")
     if total == 0 then
         println("结果: 全部通过 (FAILURES=", total, ")")
@@ -445,8 +450,8 @@ end
 // ====================================================================
 
 func runDemo() as int
-    println("=== demo: Stack<int> ===")
-    Stack<int> si
+    println("=== demo: GenericStack<int> ===")
+    GenericStack<int> si = GenericStack::<int>()
     si.push(10)
     si.push(20)
     si.push(30)
@@ -462,8 +467,8 @@ func runDemo() as int
     end
     println("")
 
-    println("=== demo: Stack<string> ===")
-    Stack<string> ss
+    println("=== demo: GenericStack<string> ===")
+    GenericStack<string> ss = GenericStack::<string>()
     ss.push("world")
     ss.push("hello")
     print("  pop 全部: ")
@@ -476,14 +481,14 @@ func runDemo() as int
     end
     println(acc)
 
-    println("=== demo: Stack<float> ===")
-    Stack<float> sf
+    println("=== demo: GenericStack<float> ===")
+    GenericStack<float> sf = GenericStack::<float>()
     sf.push(1.25)
     sf.push(2.5)
     println("  top=", sf.top(), " pop=", sf.pop())
 
     println("=== demo: SortedStack<int> 排序 ===")
-    SortedStack<int> sorted
+    SortedStack<int> sorted = SortedStack::<int>()
     sorted.push(7)
     sorted.push(1)
     sorted.push(4)
@@ -521,10 +526,10 @@ func runDemo() as int
     int am = arrayMax(arr)
     println("  arrayMax(array<int>) = " + string(am))
 
-    println("=== demo: Range<int> 迭代 ===")
-    Range<int> r = Range::<int>(1, 6)
-    print("  for value in Range(1,6): ")
-    for v in r
+    println("=== demo: PairSequence<string> 泛型迭代 ===")
+    PairSequence<string> pair = PairSequence::<string>("alpha", "beta")
+    print("  for value in PairSequence(alpha,beta): ")
+    for v in pair
         print(v)
         print(" ")
     end
@@ -537,14 +542,14 @@ func showHelp() as int
     println("用法:")
     println("  gstack               运行全部自检 (等同 selftest)")
     println("  gstack selftest      运行全部泛型能力断言")
-    println("  gstack demo          演示 Stack/SortedStack/Range")
+    println("  gstack demo          演示 GenericStack/SortedStack/PairSequence")
     println("  gstack help          显示本帮助")
     println("覆盖:")
     println("  [1] 泛型函数 max/min/identity (::<T> 实例化 + 推断)")
     println("  [2] 约束 comparable / cloneable / cloneable and json / class 继承")
-    println("  [3] 泛型 class Stack<T> (int/string/float) + SortedStack<T is comparable>")
-    println("      + 泛型函数 array<T> 形参 sortArray<T>/arrayMax<T> (GS1 已修复)")
-    println("  [4] 泛型 class 迭代协议 Range<T> + RangeIter<T>")
+    println("  [3] 泛型 class GenericStack<T> (int/string/float) + SortedStack<T is comparable>")
+    println("      + 泛型函数 array<T> 形参 sortArray<T>/arrayMax<T>")
+    println("  [4] 泛型 class 迭代协议 PairSequence<T> + PairSequenceIter<T>")
     return 0
 end
 

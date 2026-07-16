@@ -102,7 +102,7 @@ end
 
 // 把网格渲染为多行字符串：'#' 活，'.' 死。
 func render(array<int> g, int width, int height) as string
-    string out = ""
+    string outputValue = ""
     int row = 0
     while row < height do
         string line = ""
@@ -115,13 +115,13 @@ func render(array<int> g, int width, int height) as string
             end
             col += 1
         end
-        out = out + line
+        outputValue = outputValue + line
         if row + 1 < height then
-            out = out + "\n"
+            outputValue = outputValue + "\n"
         end
         row += 1
     end
-    return out
+    return outputValue
 end
 
 // 在网格 (originRow, originCol) 处放置图案。coords 为相对坐标对，按行展开：

@@ -5,129 +5,30 @@
 //   crawl -f <urls.txt>                  从文件读取 URL 列表（每行一个）
 //   crawl demo                           内置示例（启动本地 server 再爬取）
 //   crawl -t <ms> <url1> [url2] ...      设置单请求超时（默认 8000ms）
+//   crawl -c <n> <url1> [url2] ...       设置最大并发数（默认 16）
 //
 // 输出：每个 URL 一行（序号、状态码、响应字节、耗时ms、URL），末尾汇总。
 //
-// 设计要点（xlang 约束绕过，见 projects/dev/README.md）：
+// 设计要点：
 //   - `await` 不能出现在 `func main` 里，所以并发编排放进 `async func runUrls`，
 //     main 解析完 argv 后 `runUrls(...).wait()` 阻塞等待。
-//   - `task.all` 要求 typed `array<future<T>>`（定长 array 字面量），`future<T>`
-//     不能存进 `list<T>`，所以并发上限是编译期常量 MAX_URLS=16；URL 列表存进
-//     g_url0..g_url15 这组全局标量（参考 psearch）。
-//   - HttpClientResponse 是 native-backed class，不能按值传给函数，所以每个请求
-//     的 status/bodySize/elapsed 读取全部内联在 async func fetchOne 内，只把
-//     status code 作为 int 返回。
+//   - URL 和 future 都使用静态泛型数组；任务按批次聚合，URL 数量不受固定槽位限制。
+//   - HttpClientResponse 的所有权限制在 fetchOne 内，完成值只返回 HTTP 状态码。
 //   - http.get 当前是同步阻塞 client；放进 async 函数 + task.all 聚合后，async
 //     运行时把多个阻塞请求丢到不同 worker 线程，实现真并发（参考 portscan 的
 //     tcp.connect 并发验证）。
 //   - 网络层失败时 resp.status()==0（resp 仍是一个空 handle 对象）。
 
-const int MAX_URLS = 16
 const int DEFAULT_TIMEOUT = 8000
+const int DEFAULT_CONCURRENCY = 16
+const int MAX_CONCURRENCY = 256
 
-// argv -> async 任务桥接全局（参考 psearch：future 不能存进 list，标量全局可行）
-int g_count
-string g_url0
-string g_url1
-string g_url2
-string g_url3
-string g_url4
-string g_url5
-string g_url6
-string g_url7
-string g_url8
-string g_url9
-string g_url10
-string g_url11
-string g_url12
-string g_url13
-string g_url14
-string g_url15
-int g_timeout = DEFAULT_TIMEOUT
-// async 任务回传给 main 的退出码（main 不能 await future，只能 .wait()，
-// 而 future<int> 的结果值只能通过 await 取出，所以用全局侧信道）。
+// main 目前只能等待 future，不能直接读取完成值，因此保留一个整型退出码桥接。
 int g_rc = 0
 
-// 填充未用 task.all slot。
-async func noop() as int
-    return 0
-end
-
-func setUrl(int idx, string value)
-    if idx == 0 then
-        g_url0 = value
-    elseif idx == 1 then
-        g_url1 = value
-    elseif idx == 2 then
-        g_url2 = value
-    elseif idx == 3 then
-        g_url3 = value
-    elseif idx == 4 then
-        g_url4 = value
-    elseif idx == 5 then
-        g_url5 = value
-    elseif idx == 6 then
-        g_url6 = value
-    elseif idx == 7 then
-        g_url7 = value
-    elseif idx == 8 then
-        g_url8 = value
-    elseif idx == 9 then
-        g_url9 = value
-    elseif idx == 10 then
-        g_url10 = value
-    elseif idx == 11 then
-        g_url11 = value
-    elseif idx == 12 then
-        g_url12 = value
-    elseif idx == 13 then
-        g_url13 = value
-    elseif idx == 14 then
-        g_url14 = value
-    else
-        g_url15 = value
-    end
-end
-
-func getUrl(int idx) as string
-    if idx == 0 then
-        return g_url0
-    elseif idx == 1 then
-        return g_url1
-    elseif idx == 2 then
-        return g_url2
-    elseif idx == 3 then
-        return g_url3
-    elseif idx == 4 then
-        return g_url4
-    elseif idx == 5 then
-        return g_url5
-    elseif idx == 6 then
-        return g_url6
-    elseif idx == 7 then
-        return g_url7
-    elseif idx == 8 then
-        return g_url8
-    elseif idx == 9 then
-        return g_url9
-    elseif idx == 10 then
-        return g_url10
-    elseif idx == 11 then
-        return g_url11
-    elseif idx == 12 then
-        return g_url12
-    elseif idx == 13 then
-        return g_url13
-    elseif idx == 14 then
-        return g_url14
-    else
-        return g_url15
-    end
-end
-
-// 抓一个 URL，内联处理 HttpClientResponse（native-backed class 不能跨函数传参）。
+// 抓取一个 URL。
 // 打印该 URL 的结果行，返回 HTTP status（0 表示网络层失败）。
-async func fetchOne(int slot, string url, int timeout) as int
+async func fetchOne(int slot, int total, string url, int timeout) as int
     float t0 = time.timer()
     HttpClientResponse resp = http.get(url, timeout)
     float elapsed = time.timer() - t0
@@ -145,7 +46,7 @@ async func fetchOne(int slot, string url, int timeout) as int
         end
     end
 
-    string tag = "[" + string(slot + 1) + "/" + string(g_count) + "]"
+    string tag = "[" + string(slot + 1) + "/" + string(total) + "]"
     if code == 0 then
         println(tag + " FAIL    " + string.padLeft(string(elapsedMs), 6) + "ms   (no response) " + url)
     else
@@ -154,43 +55,40 @@ async func fetchOne(int slot, string url, int timeout) as int
     return code
 end
 
-// 并发抓取 g_url0..g_url{g_count-1}，task.all 聚合，打印汇总。
-async func runUrls(float startSec) as int
-    int c = g_count
-    array<future<int> > jobs = array[
-        c > 0  ? fetchOne(0,  g_url0,  g_timeout) : noop(),
-        c > 1  ? fetchOne(1,  g_url1,  g_timeout) : noop(),
-        c > 2  ? fetchOne(2,  g_url2,  g_timeout) : noop(),
-        c > 3  ? fetchOne(3,  g_url3,  g_timeout) : noop(),
-        c > 4  ? fetchOne(4,  g_url4,  g_timeout) : noop(),
-        c > 5  ? fetchOne(5,  g_url5,  g_timeout) : noop(),
-        c > 6  ? fetchOne(6,  g_url6,  g_timeout) : noop(),
-        c > 7  ? fetchOne(7,  g_url7,  g_timeout) : noop(),
-        c > 8  ? fetchOne(8,  g_url8,  g_timeout) : noop(),
-        c > 9  ? fetchOne(9,  g_url9,  g_timeout) : noop(),
-        c > 10 ? fetchOne(10, g_url10, g_timeout) : noop(),
-        c > 11 ? fetchOne(11, g_url11, g_timeout) : noop(),
-        c > 12 ? fetchOne(12, g_url12, g_timeout) : noop(),
-        c > 13 ? fetchOne(13, g_url13, g_timeout) : noop(),
-        c > 14 ? fetchOne(14, g_url14, g_timeout) : noop(),
-        c > 15 ? fetchOne(15, g_url15, g_timeout) : noop()
-    ]
-    array<int> codes = await task.all(jobs)
-
+// 按 concurrency 分批并发抓取。分批可限制线程和连接数量，同时支持任意长度 URL 列表。
+async func runUrls(array<string> urls, int timeout, int concurrency, float startSec) as int
+    int c = urls.length
     int ok = 0
     int errors = 0
     int failed = 0
-    int i = 0
-    while i < c do
-        int code = codes[i]
-        if code == 0 then
-            failed += 1
-        elseif code >= 200 and code < 400 then
-            ok += 1
-        else
-            errors += 1
+    int offset = 0
+    while offset < c do
+        int stop = offset + concurrency
+        if stop > c then
+            stop = c
         end
-        i += 1
+
+        array<future<int>> jobs = []
+        int i = offset
+        while i < stop do
+            jobs.push(fetchOne(i, c, urls[i], timeout))
+            i += 1
+        end
+
+        array<int> codes = await task.all(jobs)
+        int j = 0
+        while j < codes.length do
+            int code = codes[j]
+            if code == 0 then
+                failed += 1
+            elseif code >= 200 and code < 400 then
+                ok += 1
+            else
+                errors += 1
+            end
+            j += 1
+        end
+        offset = stop
     end
 
     float wall = time.timer() - startSec
@@ -201,7 +99,7 @@ async func runUrls(float startSec) as int
     println("------------------------------------------------------------")
     println("urls:      " + string(c))
     println("ok(2xx/3xx): " + string(ok) + "   http-error(4xx/5xx): " + string(errors) + "   failed(net): " + string(failed))
-    println("wall time: " + string(wallMs) + " ms (concurrent via task.all, max " + string(MAX_URLS) + ")")
+    println("wall time: " + string(wallMs) + " ms (task.all, concurrency " + string(concurrency) + ")")
     if failed > 0 then
         g_rc = 1
         return 1
@@ -237,7 +135,7 @@ func demoRoute(point reqHandle, point respHandle) as bool
     return resp.text("not found")
 end
 
-// 启动本地 server，注册 demo 路由，填充 g_url*，调用 runUrls，最后关闭 server。
+// 启动本地 server，抓取多种响应，再关闭 server。
 async func runDemo() as int
     point server = http.server.create(0, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 4)
     if server == null then
@@ -259,20 +157,21 @@ async func runDemo() as int
     println("demo: crawling 6 endpoints concurrently...")
     println("------------------------------------------------------------")
 
-    g_count = 6
-    g_url0 = base + "/hello"
-    g_url1 = base + "/big"
-    g_url2 = base + "/slow"
-    g_url3 = base + "/json"
-    g_url4 = base + "/error"
-    g_url5 = base + "/missing"
+    array<string> urls = [
+        base + "/hello",
+        base + "/big",
+        base + "/slow",
+        base + "/json",
+        base + "/error",
+        base + "/missing"
+    ]
 
     float startSec = time.timer()
-    await runUrls(startSec)
+    int rc = await runUrls(urls, DEFAULT_TIMEOUT, urls.length, startSec)
 
     http.server.stop(server)
     http.server.destroy(server)
-    return g_rc
+    return rc
 end
 
 func printUsage()
@@ -283,19 +182,18 @@ func printUsage()
     println("  crawl demo                             run built-in demo against a local server")
     println("Options:")
     println("  -t <ms>    per-request timeout (default " + string(DEFAULT_TIMEOUT) + "ms)")
+    println("  -c <n>     maximum concurrent requests (default " + string(DEFAULT_CONCURRENCY) + ")")
     println("  -h, --help show this help")
-    println("Limit: up to " + string(MAX_URLS) + " URLs (async task.all array cap).")
     println("Examples:")
     println("  crawl http://127.0.0.1:8080/a http://127.0.0.1:8080/b")
     println("  crawl -f urls.txt")
     println("  crawl demo")
 end
 
-// 从文件读 URL 列表，每行一个。返回装入 g_url* 的数量；
-// 返回 -1 表示文件不存在；-2 表示读文件失败；-3 表示文件存在但无有效 URL。
-func loadUrlsFromFile(string path) as int
+// 从文件读取 URL 列表。状态 0 表示成功，负值表示错误。
+func loadUrlsFromFile(string path) as (int, array<string>)
     if not file.exists(path) then
-        return -1
+        return -1, []
     end
     string text
     bool readOk = true
@@ -305,13 +203,13 @@ func loadUrlsFromFile(string path) as int
         readOk = false
     end
     if not readOk then
-        return -2
+        return -2, []
     end
     if text == "" then
-        return -3
+        return -3, []
     end
     array lines = string.splitLines(text)
-    int loaded = 0
+    array<string> urls = array<string>[]
     int i = 0
     while i < lines.length do
         string line = string.trim(string(lines[i]))
@@ -324,33 +222,30 @@ func loadUrlsFromFile(string path) as int
             i += 1
             continue
         end
-        if loaded >= MAX_URLS then
-            println("crawl: too many URLs in file (max " + string(MAX_URLS) + "), truncating.")
-            break
-        end
-        setUrl(loaded, line)
-        loaded += 1
+        urls.push(line)
         i += 1
     end
-    return loaded
+    if urls.length == 0 then
+        return -3, []
+    end
+    return 0, urls
 end
 
 func main(...) as int
-    g_count = 0
-    g_timeout = DEFAULT_TIMEOUT
+    array<string> urls = array<string>[]
+    int timeout = DEFAULT_TIMEOUT
+    int concurrency = DEFAULT_CONCURRENCY
 
     string filePath = ""
     bool useFile = false
     bool useDemo = false
-    int pending = 0
-
     int i = 1
     while i < arg.length do
         string a = string(arg[i])
         if a == "-h" or a == "--help" then
             printUsage()
             return 0
-        elseif a == "demo" and g_count == 0 and not useFile then
+        elseif a == "demo" and urls.length == 0 and not useFile then
             useDemo = true
             i += 1
         elseif a == "-f" or a == "--file" then
@@ -371,15 +266,22 @@ func main(...) as int
                 println("Error: timeout must be positive (got '" + arg[i + 1] + "')")
                 return 1
             end
-            g_timeout = parsed
+            timeout = parsed
+            i += 2
+        elseif a == "-c" or a == "--concurrency" then
+            if i + 1 >= arg.length then
+                println("Error: " + a + " requires <n>")
+                return 1
+            end
+            int parsed = int(arg[i + 1])
+            if parsed <= 0 or parsed > MAX_CONCURRENCY then
+                println("Error: concurrency must be 1.." + string(MAX_CONCURRENCY))
+                return 1
+            end
+            concurrency = parsed
             i += 2
         elseif string.startsWith(a, "http://") or string.startsWith(a, "https://") then
-            if g_count >= MAX_URLS then
-                println("crawl: too many URLs (max " + string(MAX_URLS) + "), ignoring: " + a)
-            else
-                setUrl(g_count, a)
-                g_count += 1
-            end
+            urls.push(a)
             i += 1
         else
             println("Error: unexpected argument '" + a + "' (urls must start with http:// or https://)")
@@ -398,29 +300,34 @@ func main(...) as int
     end
 
     if useFile then
-        int n = loadUrlsFromFile(filePath)
-        if n == -1 then
+        int status
+        array<string> loaded
+        status, loaded = loadUrlsFromFile(filePath)
+        if status == -1 then
             println("Error: file not found '" + filePath + "'")
             return 1
-        elseif n == -2 then
+        elseif status == -2 then
             println("Error: cannot read file '" + filePath + "'")
             return 1
-        elseif n == -3 then
+        elseif status == -3 then
             println("Error: no URLs found in '" + filePath + "'")
             return 1
         end
-        g_count = n
+        urls = loaded
     end
 
-    if g_count == 0 then
+    if urls.length == 0 then
         printUsage()
         return 1
     end
 
-    println("crawling " + string(g_count) + " URL(s) concurrently (timeout " + string(g_timeout) + "ms)...")
+    if concurrency > urls.length then
+        concurrency = urls.length
+    end
+    println("crawling " + string(urls.length) + " URL(s) (timeout " + string(timeout) + "ms, concurrency " + string(concurrency) + ")...")
     println("------------------------------------------------------------")
     float startSec = time.timer()
-    future<int> f = runUrls(startSec)
+    future<int> f = runUrls(urls, timeout, concurrency, startSec)
     bool ok = f.wait()
     if not ok then
         println("crawl: error:", f.error())

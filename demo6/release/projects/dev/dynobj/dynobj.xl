@@ -1,8 +1,7 @@
 // dynobj - extends object 动态字段验证工具
 //
 // 系统验证 xlang 的 `class X extends object` 动态字段能力，每条断言输出
-// [PASS]/[FAIL]，主程序始终返回 0（即使发现 BUG 也只记录不中断），
-// 保证 xl run / xl build 双路径 EXIT=0。
+// [PASS]/[FAIL]；任一断言失败时，主程序返回非零退出码。
 //
 // 覆盖能力：
 //   1. class X extends object 继承标准库 object 基类
@@ -10,8 +9,7 @@
 //   3. 动态字段索引赋值：a["level"] = 5
 //   4. 混合静态 + 动态字段共存
 //   5. __field__(string name) / __setField__(string name, var val) 协议
-//      - 普通 class 实现该协议
-//      - extends object 子类覆盖该协议
+//      - 普通 class 实现自定义字段协议
 //   6. 动态字段遍历（经 derive value + json roundtrip 转 dict 迭代）
 //   7. 动态字段在 var 中的行为（装箱 / 读写 / 索引）
 //
@@ -94,13 +92,8 @@ end
 // 测试目标 4：FieldHostTyped（普通 class，含静态类型字段 + 自定义协议）
 //   验证普通 class 上「静态类型字段」与 __field__/__setField__ 协议共存。
 //
-// 重要发现（见同目录 BUGS.md BUG-D1）：
-//   在 `class X extends object` 子类中再定义 __field__/__setField__ 当前无法编译：
-//     - 不写 override -> [sem] overriding a base member requires explicit override
-//     - 写 override   -> [sem] override target must be virtual
-//   即 object 基类的字段协议方法不是 virtual，子类既不能静默覆盖也不能显式 override。
-//   因此「extends object + 自定义字段协议」这一组合在本工具中不可执行，
-//   自定义协议改由本普通类 FieldHostTyped 与 FieldHost 共同验证。
+// object 基类负责标准动态字典；需要完全自定义字段行为时，普通 class
+// 可直接实现 __field__ / __setField__，无需额外继承 object。
 // ====================================================================
 class FieldHostTyped
     int core = 0
@@ -202,7 +195,7 @@ func expectVarF(var got, float want, string label)
         if math.abs(g - want) < 0.0001 then
             ok(label)
         else
-            bad(label, "got " + string.formatFloat(g, ".4") + " want " + string.formatFloat(want, ".4"))
+            bad(label, "got " + float.format(g, ".4") + " want " + float.format(want, ".4"))
         end
     catch e
         bad(label, "float(var) failed: " + e.message)
@@ -568,10 +561,70 @@ end
 // ====================================================================
 // 入口
 // ====================================================================
+func runSelected(string name) as bool
+    if name == "basic" then
+        testBasicObjectInherit()
+        return true
+    end
+    if name == "dot" then
+        testDynamicFieldDot()
+        return true
+    end
+    if name == "index" then
+        testDynamicFieldIndex()
+        return true
+    end
+    if name == "mixed" then
+        testMixedStaticDynamic()
+        return true
+    end
+    if name == "protocol" then
+        testFieldProtocolPlain()
+        return true
+    end
+    if name == "protocol-typed" then
+        testFieldProtocolTyped()
+        return true
+    end
+    if name == "traverse" then
+        testDynamicFieldTraversal()
+        return true
+    end
+    if name == "var" then
+        testVarBoxing()
+        return true
+    end
+    if name == "types" then
+        testDynamicFieldTypes()
+        return true
+    end
+    if name == "precedence" then
+        testStaticFieldPrecedence()
+        return true
+    end
+    if name == "json" then
+        testJsonRoundtripRestore()
+        return true
+    end
+    return false
+end
+
 func main(...) as int
     println("=== dynobj: extends object dynamic field suite ===")
     println("(inherit / dot / index / mixed / protocol / traversal / var)")
     println("")
+
+    if arg.length > 1 then
+        string selected = string(arg[1])
+        if not runSelected(selected) then
+            println("unknown test: " + selected)
+            println("tests: basic dot index mixed protocol protocol-typed traverse var types precedence json")
+            return 2
+        end
+        println("")
+        println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
+        return g_fail
+    end
 
     testBasicObjectInherit()
     testDynamicFieldDot()
@@ -587,13 +640,5 @@ func main(...) as int
 
     println("")
     println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
-    println("")
-    println("--- dynobj notes ---")
-    println("NOTE BUG-D1: extends object 子类无法覆盖 __field__/__setField__")
-    println("             (无 override -> requires explicit override;")
-    println("              有 override -> override target must be virtual)")
-    println("FIXED: var 装箱的 extends object 静态/动态字段读写已通过回归验证")
-    println("NOTE LIMIT-D1: 复合 var 比较 k != \"a\" and k != \"b\" 无法 lowering")
-    println("               (dynamic var comparison requires statement-level lowering)")
-    return 0
+    return g_fail
 end

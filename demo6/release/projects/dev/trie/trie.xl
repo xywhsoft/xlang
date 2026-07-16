@@ -9,27 +9,19 @@
 //   trie test                         内置自测
 //   trie help                         显示帮助
 //
-// 设计要点（结合 dev/README.md 与 BUGS.md）：
-//   - 节点池模式（参考 btree）：Trie.nodes 为 var 数组（index = node id），
-//     TrieNode 之间用整数 id 引用，而非嵌套指针。
-//     原因：BUG-RT1/RT2 使「dict<string, TrieNode> 直接嵌套类实例」
-//     （typed 容器装 class、class 字段递归引用同类）脆弱；节点池 + id 是
-//     dev 工具群已验证的安全写法（var 数组承载 class 实例 + as 还原）。
-//     children 仍是 dict<string, ...>，只是值为 node id（int）。
+// 设计要点：
+//   - 节点池模式（参考 btree）：Trie.nodes 为 array<TrieNode>，
+//     TrieNode 之间用稳定整数 id 引用，children 的值也是 node id。
 //   - TrieNode.children 为 var dict（char 字符串 -> 子节点 id）。
 //     derive value 已验证可与 var 字段共存（参考 graphalg.Graph / UnionFind）。
-//   - 值语义 write-back：getNode 取副本，改标量后 setNode 写回
-//     （class 标量字段修改不自动回传；容器字段虽因引用共享，
-//      但统一 setNode 保证两种语义下都正确）。
+//   - class 使用受管理引用；getNode 返回同一节点对象，不需要额外写回。
 //   - 递归安全：autocomplete / count / fuzzy / remove 的递归只
 //     「读」已有 children dict、仅分配 var 数组（结果集 / DP 行），不在递归帧
 //     里新建 dict —— 规避 var dict 递归分配的二次方 GC 劣化。
-//   - 字符串拼接：来自 var dict 的 key/value 先 string / int
-//     显式转换再拼接，避免 var + string 乱码。
+//   - 来自动态 children 字典的 key/value 在进入静态 API 前显式转换类型。
 //   - UTF-8：字符遍历统一用 string.chars（按字符，非字节）；string.mid 是
 //     字节偏移故不用于取字符。
-//   - class 方法形参：不把 array / array<T> 作 class 方法形参；
-//     fuzzy/remove 在方法内用局部 array = string.chars(word) 取字符。
+//   - UTF-8 字符数组在方法内部按需建立，避免无意义的重复转换。
 
 
 // ============================================================================
@@ -58,26 +50,20 @@ end
 class Trie
     derive value
 
-    var nodes = []            // 节点池：nodes[0] = 根节点
+    array<TrieNode> nodes = array<TrieNode>[] // 节点池：nodes[0] = 根节点
     int wordCount = 0         // 当前不同单词数
 
     create()
-        self.nodes = []
+        self.nodes = array<TrieNode>[]
         TrieNode root = TrieNode()
         self.nodes.push(root)
         self.wordCount = 0
     end
 
-    // ---- 节点池访问（值语义 write-back）----
+    // ---- 节点池访问 ----
 
     func getNode(int id) as TrieNode
-        var v = self.nodes[id]
-        TrieNode n = v as TrieNode
-        return n
-    end
-
-    func setNode(int id, TrieNode n)
-        self.nodes[id] = n
+        return self.nodes[id]
     end
 
     func allocNode() as int
@@ -134,7 +120,6 @@ class Trie
             if not has then
                 int newId = self.allocNode()
                 cur.children[ch] = newId
-                self.setNode(curId, cur)
                 curId = newId
             else
                 var cv = cur.children[ch]
@@ -145,12 +130,10 @@ class Trie
         TrieNode ending = self.getNode(curId)
         if ending.isWord then
             ending.frequency = ending.frequency + 1
-            self.setNode(curId, ending)
             return ending.frequency
         end
         ending.isWord = true
         ending.frequency = 1
-        self.setNode(curId, ending)
         self.wordCount = self.wordCount + 1
         return 1
     end
@@ -284,7 +267,6 @@ class Trie
         end
         n.isWord = false
         n.frequency = 0
-        self.setNode(id, n)
         self.wordCount = self.wordCount - 1
         // 从根开始沿 word 路径自顶向下递归剪枝（根自身永不摘除）
         self.pruneAlong(0, word, 0)
@@ -307,7 +289,6 @@ class Trie
                 if childGone then
                     var kids = n.children
                     kids.remove(ch)
-                    self.setNode(id, n)
                 end
             end
         end
@@ -415,8 +396,8 @@ class Trie
 
     // ---- 序列化到 JSON（手动遍历节点池，compact 保序）----
     func serialize() as string
-        var out = {}
-        out["wordCount"] = self.wordCount
+        var outputValue = {}
+        outputValue["wordCount"] = self.wordCount
         var ns = []
         int total = self.nodes.length
         int i = 0
@@ -433,8 +414,8 @@ class Trie
             ns.push(nd)
             i = i + 1
         end
-        out["nodes"] = ns
-        return json.stringify(out)
+        outputValue["nodes"] = ns
+        return json.stringify(outputValue)
     end
 
     // ---- 从 JSON 文本重建（替换当前内容）----
@@ -780,8 +761,8 @@ func cmdTest() as int
     expectI(restored.getFrequency("careful"), 1, "restored frequency preserved")
 
     // ---- T7: 从文件加载 ----
-    string dictPath = "trie_load_test.txt"
-    file.delete(dictPath)
+    // 每次自测使用独立临时文件，避免并行运行时互相覆盖。
+    string dictPath = path.join(path.temp(), path.random("trie_load_", ".txt"))
     string dictText = "hello\nworld\nhappy\nhappen\nhelicopter\nhelp\n\nhand\n"
     bool wok = file.writeText(dictPath, dictText)
     expectTrue(wok, "write sample dict file")

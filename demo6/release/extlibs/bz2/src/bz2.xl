@@ -1,0 +1,182 @@
+// bz2 的压缩结果和输入统一使用 Buffer，避免二进制数据经过字符串转换。
+extern "xrtGetError" func __bz2_error() as string
+extern "xbz2_compress" func __bz2_compress(point data, c_size size, c_int level,
+    c_ulonglong maxInput, c_ulonglong maxOutput) as point
+extern "xbz2_decompress" func __bz2_decompress(point data, c_size size, c_bool smallMemory,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xbz2_compress_file" func __bz2_compress_file(string source, string destination,
+    c_int level, c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput) as bool
+extern "xbz2_decompress_file" func __bz2_decompress_file(string source, string destination,
+    c_bool smallMemory, c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput,
+    c_uint maxRatio) as bool
+
+
+
+func __bz2_check_level(int level)
+    if level < 1 or level > 9 then
+        throw ValueError "bz2 level must be 1..9"
+    end
+end
+
+func __bz2_check_limit(int value, string name)
+    if value <= 0 then
+        throw ValueError name + " must be greater than zero"
+    end
+end
+
+
+
+export func compress(Buffer data, int level = 9,
+    int maxInput = 268435456, int maxOutput = 536870912) as Buffer
+    __bz2_check_level(level)
+    __bz2_check_limit(maxInput, "maxInput")
+    __bz2_check_limit(maxOutput, "maxOutput")
+    point result = __bz2_compress(data.data(), c_size(data.len()), c_int(level),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if result == null then
+        throw CompressionError __bz2_error()
+    end
+    return Buffer(result)
+end
+
+export func compress(string text, int level = 9,
+    int maxInput = 268435456, int maxOutput = 536870912) as Buffer
+    Buffer data = Buffer()
+    data.append(text)
+    return compress(data, level, maxInput, maxOutput)
+end
+
+export func decompress(Buffer data, bool smallMemory = false,
+    int maxInput = 268435456, int maxOutput = 536870912, int maxRatio = 1000) as Buffer
+    __bz2_check_limit(maxInput, "maxInput")
+    __bz2_check_limit(maxOutput, "maxOutput")
+    __bz2_check_limit(maxRatio, "maxRatio")
+    point result = __bz2_decompress(data.data(), c_size(data.len()), c_bool(smallMemory),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
+    if result == null then
+        throw CompressionError __bz2_error()
+    end
+    return Buffer(result)
+end
+
+export func decompressText(Buffer data, bool smallMemory = false,
+    int maxInput = 268435456, int maxOutput = 536870912, int maxRatio = 1000) as string
+    return decompress(data, smallMemory, maxInput, maxOutput, maxRatio).text()
+end
+
+export func compressFile(string source, string destination, int level = 9,
+    bool overwrite = true, int maxInput = 268435456, int maxOutput = 536870912)
+    __bz2_check_level(level)
+    __bz2_check_limit(maxInput, "maxInput")
+    __bz2_check_limit(maxOutput, "maxOutput")
+    if not __bz2_compress_file(source, destination, c_int(level), c_bool(overwrite),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput)) then
+        throw CompressionError __bz2_error()
+    end
+end
+
+export func decompressFile(string source, string destination, bool smallMemory = false,
+    bool overwrite = true, int maxInput = 268435456, int maxOutput = 536870912,
+    int maxRatio = 1000)
+    __bz2_check_limit(maxInput, "maxInput")
+    __bz2_check_limit(maxOutput, "maxOutput")
+    __bz2_check_limit(maxRatio, "maxRatio")
+    if not __bz2_decompress_file(source, destination, c_bool(smallMemory),
+        c_bool(overwrite), c_ulonglong(maxInput), c_ulonglong(maxOutput),
+        c_uint(maxRatio)) then
+        throw CompressionError __bz2_error()
+    end
+end
+
+
+
+class Bz2Compressor
+    native point handle
+    extern "xbz2_compressor_create" create(c_int level,
+        c_ulonglong maxInput, c_ulonglong maxOutput)
+    extern "xbz2_compressor_destroy" destroy()
+    extern "xbz2_compressor_update" func updateNative(point data, c_size size) as bool
+    extern "xbz2_compressor_finish" func finishNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw CompressionError __bz2_error()
+        end
+    end
+
+    func update(string text)
+        Buffer data = Buffer()
+        data.append(text)
+        self.update(data)
+    end
+
+    func finish() as Buffer
+        point result = self.finishNative()
+        if result == null then
+            throw CompressionError __bz2_error()
+        end
+        return Buffer(result)
+    end
+end
+
+
+
+class Bz2Decompressor
+    native point handle
+    extern "xbz2_decompressor_create" create(c_bool smallMemory,
+        c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio)
+    extern "xbz2_decompressor_destroy" destroy()
+    extern "xbz2_decompressor_update" func updateNative(point data, c_size size) as bool
+    extern "xbz2_decompressor_finish" func finishNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw CompressionError __bz2_error()
+        end
+    end
+
+    func finish() as Buffer
+        point result = self.finishNative()
+        if result == null then
+            throw CompressionError __bz2_error()
+        end
+        return Buffer(result)
+    end
+end
+
+
+
+export func compressor(int level = 9,
+    int maxInput = 268435456, int maxOutput = 536870912) as Bz2Compressor
+    __bz2_check_level(level)
+    __bz2_check_limit(maxInput, "maxInput")
+    __bz2_check_limit(maxOutput, "maxOutput")
+    Bz2Compressor result = Bz2Compressor(c_int(level),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if not result.valid then
+        throw CompressionError __bz2_error()
+    end
+    return result
+end
+
+export func decompressor(bool smallMemory = false,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxRatio = 1000) as Bz2Decompressor
+    __bz2_check_limit(maxInput, "maxInput")
+    __bz2_check_limit(maxOutput, "maxOutput")
+    __bz2_check_limit(maxRatio, "maxRatio")
+    Bz2Decompressor result = Bz2Decompressor(c_bool(smallMemory),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
+    if not result.valid then
+        throw CompressionError __bz2_error()
+    end
+    return result
+end

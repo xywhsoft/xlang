@@ -263,18 +263,18 @@ func jsonFromVar(var v) as string
     end
     // 兜底：尝试按 array 迭代，失败则按 dict
     if isArray then
-        string out = "["
+        string outputValue = "["
         int i = 0
         int n = v.length
         while i < n do
             if i > 0 then
-                out = out + ","
+                outputValue = outputValue + ","
             end
-            out = out + jsonFromVar(v[i])
+            outputValue = outputValue + jsonFromVar(v[i])
             i += 1
         end
-        out = out + "]"
-        return out
+        outputValue = outputValue + "]"
+        return outputValue
     end
     if isDict then
         string out2 = "{"
@@ -585,15 +585,15 @@ end
 
 // 打印当前路由表（调试 / serve 启动横幅用）。
 func routerDump() as string
-    string out = ""
+    string outputValue = ""
     int i = 0
     int n = gRoutes.length
     while i < n do
         var r = gRoutes[i]
-        out = out + r["method"] + " " + r["pattern"] + " -> " + r["handler"] + "\n"
+        outputValue = outputValue + r["method"] + " " + r["pattern"] + " -> " + r["handler"] + "\n"
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -887,29 +887,29 @@ class Query
     // 终结：返回匹配 + 排序 + 分页后的 var 数组
     func find() as var
         var records = dbLoad(self.coll)
-        var out = []
+        var outputValue = []
         int i = 0
         int n = records.length
         while i < n do
             var rec = records[i]
             if matchAll(self.conditions, rec) then
-                out.push(rec)
+                outputValue.push(rec)
             end
             i += 1
         end
         string ordF = string(self.state["ordField"])
         if not string.isEmpty(ordF) then
-            sortRecords(out, ordF, int(self.state["ordDesc"]) == 0)
+            sortRecords(outputValue, ordF, int(self.state["ordDesc"]) == 0)
         end
         int offVal = int(self.state["off"])
         if offVal > 0 then
-            out = sliceArray(out, offVal, out.length)
+            outputValue = sliceArray(outputValue, offVal, outputValue.length)
         end
         int limVal = int(self.state["lim"])
-        if limVal >= 0 and out.length > limVal then
-            out = sliceArray(out, 0, limVal)
+        if limVal >= 0 and outputValue.length > limVal then
+            outputValue = sliceArray(outputValue, 0, limVal)
         end
-        return out
+        return outputValue
     end
 
     // 终结：返回第一条或 null
@@ -943,7 +943,7 @@ end
 
 // 数组切片 [start, end)
 func sliceArray(var arr, int start, int endIdx) as var
-    var out = []
+    var outputValue = []
     int n = arr.length
     if start < 0 then
         start = 0
@@ -953,10 +953,10 @@ func sliceArray(var arr, int start, int endIdx) as var
     end
     int i = start
     while i < endIdx do
-        out.push(arr[i])
+        outputValue.push(arr[i])
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1277,24 +1277,24 @@ end
 
 // 渲染：节点数组 + 作用域 -> 字符串。
 func tplRender(var nodes, var scope) as string
-    string out = ""
+    string outputValue = ""
     int i = 0
     int n = nodes.length
     while i < n do
         var nd = nodes[i]
         string ty = string(nd["type"])
         if ty == "text" then
-            out = out + nd["text"]
+            outputValue = outputValue + nd["text"]
         elseif ty == "var" then
-            out = out + htmlEscape(stringify(tplLookup(scope, string(nd["inner"]))))
+            outputValue = outputValue + htmlEscape(stringify(tplLookup(scope, string(nd["inner"]))))
         elseif ty == "if" then
-            out = out + tplRenderIf(nd, scope)
+            outputValue = outputValue + tplRenderIf(nd, scope)
         elseif ty == "foreach" then
-            out = out + tplRenderForeach(nd, scope)
+            outputValue = outputValue + tplRenderForeach(nd, scope)
         end
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1328,7 +1328,7 @@ func tplRenderForeach(var nd, var scope) as string
     end
     string itemVar = string(nd["item"])
     string indexVar = string(nd["index"])
-    string out = ""
+    string outputValue = ""
     if isArr then
         int i = 0
         int n = lst.length
@@ -1338,10 +1338,10 @@ func tplRenderForeach(var nd, var scope) as string
             if not string.isEmpty(indexVar) then
                 child[indexVar] = i
             end
-            out = out + tplRender(nd["nodes"], child)
+            outputValue = outputValue + tplRender(nd["nodes"], child)
             i += 1
         end
-        return out
+        return outputValue
     end
     // dict 迭代：item 取 value，index 取 key
     int seq = 0
@@ -1351,10 +1351,10 @@ func tplRenderForeach(var nd, var scope) as string
         if not string.isEmpty(indexVar) then
             child[indexVar] = k
         end
-        out = out + tplRender(nd["nodes"], child)
+        outputValue = outputValue + tplRender(nd["nodes"], child)
         seq += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -2072,10 +2072,10 @@ func frameworkRoute(point reqHandle, point respHandle) as bool
             resp.status(404)
             return resp.jsonText("{\"error\":\"no such user\"}")
         end
-        var out = {}
-        out["id"] = u["id"]
-        out["username"] = u["username"]
-        return resp.jsonText(jsonFromVar(out))
+        var outputValue = {}
+        outputValue["id"] = u["id"]
+        outputValue["username"] = u["username"]
+        return resp.jsonText(jsonFromVar(outputValue))
     end
 
     if handler == "users_create" then
@@ -2155,7 +2155,7 @@ func frameworkRoute(point reqHandle, point respHandle) as bool
         return resp.text(rendered, "text/html; charset=utf-8")
     end
 
-    // 未实现的 handler
+    // 注册表中不存在该 handler 时返回明确的服务端错误。
     resp.status(501)
     return resp.jsonText("{\"error\":\"handler not implemented: " + jsonEscape(handler) + "\"}")
 end
@@ -2252,19 +2252,22 @@ func expectContains(string hay, string needle, string name)
 end
 
 
-// 准备一个干净的数据目录，便于重复跑自测。
-// 用 dir.create 建目录，用 file.writeText 写入空内容来「清空」各集合文件
-// （避免使用未确认的 remove 接口；dbLoad 对空文件返回空数组）。
-func prepareDataDir(string scriptPath) as string
-    string dataDir = path.join(path.dir(scriptPath), "webfw_data")
-    if not dir.exists(dataDir) then
-        dir.create(dataDir)
-    end
+// 每次自测创建独立数据目录，既能并行运行，也不会覆盖示例数据。
+func prepareTestDataDir() as string
+    string dataDir = path.join(path.temp(), path.random("webfw_", ""))
+    dir.createAll(dataDir)
     file.writeText(path.join(dataDir, "users.json"), "[]")
     file.writeText(path.join(dataDir, "sessions.json"), "{}")
     file.writeText(path.join(dataDir, "products.json"), "[]")
     file.writeText(path.join(dataDir, "articles.json"), "[]")
     return dataDir
+end
+
+func cleanupTestDataDir()
+    if dir.exists(gDataDir) then
+        dir.clean(gDataDir)
+        dir.delete(gDataDir)
+    end
 end
 
 
@@ -2987,7 +2990,7 @@ func cmdTest(string scriptPath) as int
     println("============================================================")
 
     // 准备独立数据目录
-    gDataDir = prepareDataDir(scriptPath)
+    gDataDir = prepareTestDataDir()
     println("data dir: " + gDataDir)
 
     // 单元测试（纯数据模块，不依赖 HTTP）
@@ -3005,11 +3008,13 @@ func cmdTest(string scriptPath) as int
     point server = buildServer(0)
     if server == null then
         println("FATAL: http.server.create returned null")
+        cleanupTestDataDir()
         return 1
     end
     if not http.server.start(server) then
         println("FATAL: http.server.start failed")
         http.server.destroy(server)
+        cleanupTestDataDir()
         return 1
     end
     int boundPort = http.server.port(server)
@@ -3030,6 +3035,7 @@ func cmdTest(string scriptPath) as int
             "  passed: " + string(gPassed) +
             "  failed: " + string(gFailed))
     println("------------------------------------------------------------")
+    cleanupTestDataDir()
     if gFailed > 0 then
         return 1
     end

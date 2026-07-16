@@ -1,0 +1,13 @@
+import toml
+
+
+
+func main(...) as int
+    var value = toml.load("tmp/python_interop.toml")
+    assert value["title"] == "python", "Python TOML title"
+    assert value["count"] == 7, "Python TOML integer"
+    assert value["owner"]["name"] == "tester", "Python TOML table"
+    assert toml.isLocalDate(value["date"]), "Python TOML local date"
+    println("toml_verify: PASS")
+    return 0
+end

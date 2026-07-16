@@ -14,10 +14,52 @@ string pretty = xson.stringify(config, prettyOptions)
 var copy = xson.parse(compact)
 string jsonText = json.stringify(copy)
 
+XsonWriter writer = xson.writer()
+writer.beginDict()
+writer.writeString("name", "xlang")
+writer.beginList("items")
+writer.writeString(2, "two")
+writer.endList()
+writer.beginSet("tags")
+writer.writeInt(1)
+writer.writeInt(2)
+writer.endSet()
+writer.writeTime("created", #2026-06-18 00:00:00#)
+writer.endDict()
+string writerText = writer.finish()
+var writerCopy = xson.parse(writerText)
+
+XsonWriter optionWriter = xson.writer(prettyOptions)
+optionWriter.beginDict()
+optionWriter.writeInt("level", 6)
+optionWriter.writeTime("created", #2026-06-18 00:00:00#)
+optionWriter.endDict()
+string optionWriterText = optionWriter.finish()
+
 xson.write("examples_out/stdlib_xson_example.xson", config, prettyOptions)
 var fileCopy = xson.read("examples_out/stdlib_xson_example.xson", prettyOptions)
 string fileText = xson.stringify(fileCopy)
 file.delete("examples_out/stdlib_xson_example.xson")
+
+int visitCount = 0
+int listIndex = -1
+
+func onXsonEvent(var event) as bool
+    visitCount += 1
+    if string(event["type"]) == "string" and string(event["value"]) == "two" then
+        listIndex = int(event["index"])
+    end
+    return true
+end
+
+func stopXsonEvent(var event) as bool
+    return int(event["depth"]) < 1
+end
+
+string visitSource = '{"items":list[2:"two"],"tags":set{1,2},"when":time(2026-06-18 00:00:00)}'
+int visitResult = xson.visit(visitSource, onXsonEvent)
+int stopResult = xson.visit(visitSource, stopXsonEvent)
+int invalidResult = xson.visit("{bad}", onXsonEvent)
 
 auto compactText = compact.toString()
 auto prettyText = pretty.toString()
@@ -30,5 +72,15 @@ assert(validIgnored)
 assert(string.contains(compact, "xlang"))
 assert(string.contains(pretty, "\n"))
 assert(string.contains(jsonText, '"level"'))
+assert(string.contains(writerText, "list["))
+assert(string.contains(writerText, "time("))
+assert(string.contains(optionWriterText, "\n"))
+assert(string.contains(optionWriterText, "time("))
+assert(string.contains(json.stringify(writerCopy), '"name"'))
 assert(string.contains(fileText, "enabled"))
+assert(visitCount >= 9)
+assert(listIndex == 2)
+assert(visitResult == xson.visitComplete)
+assert(stopResult == xson.visitStopped)
+assert(invalidResult == xson.visitInvalid)
 println("xson=ok")

@@ -1,0 +1,4 @@
+func main(...) as int
+    throw UnknownError "boom"
+    return 0
+end

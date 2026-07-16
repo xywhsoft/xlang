@@ -1,0 +1,22 @@
+import tar
+import gzip
+import bz2
+
+
+
+func main(...) as int
+    auto writer = tar.create()
+    writer.add("a.txt", "alpha")
+    Buffer archive = writer.finish()
+
+    auto gzipReader = tar.open(gzip.decompress(gzip.compress(archive)))
+    if not gzipReader.next() or gzipReader.readText() != "alpha" then
+        return 1
+    end
+
+    auto bz2Reader = tar.open(bz2.decompress(bz2.compress(archive)))
+    if not bz2Reader.next() or bz2Reader.readText() != "alpha" then
+        return 2
+    end
+    return 0
+end

@@ -513,8 +513,8 @@ func gaRun(GAConfig cfg, int mode, bool verbose) as Individual
         if verbose then
             if g % 50 == 0 or g == cfg.generations - 1 then
                 println("  gen " + string(g) +
-                        "  best=" + string.formatFloat(pop[0].fitness, ".6") +
-                        "  avg=" + string.formatFloat(gaAvgFitness(pop), ".6"))
+                        "  best=" + float.format(pop[0].fitness, ".6") +
+                        "  avg=" + float.format(gaAvgFitness(pop), ".6"))
             end
         end
 
@@ -555,8 +555,8 @@ func gaRun(GAConfig cfg, int mode, bool verbose) as Individual
 
     if verbose then
         println("  gen " + string(cfg.generations) +
-                "  best=" + string.formatFloat(pop[0].fitness, ".6") +
-                "  avg=" + string.formatFloat(gaAvgFitness(pop), ".6"))
+                "  best=" + float.format(pop[0].fitness, ".6") +
+                "  avg=" + float.format(gaAvgFitness(pop), ".6"))
     end
     return pop[0]
 end
@@ -647,7 +647,7 @@ func printVector(var c)
         if i > 0 then
             print(", ")
         end
-        print(string.formatFloat(float(c[i]), ".4"))
+        print(float.format(float(c[i]), ".4"))
         i += 1
     end
     println("]")
@@ -802,7 +802,7 @@ func runTests() as int
     om.selection = "tournament"
     om.tournamentSize = 3
     Individual omBest = runOneMax(N, om, false)
-    println("OneMax N=" + string(N) + " best=" + string.formatFloat(omBest.fitness, ".0"))
+    println("OneMax N=" + string(N) + " best=" + float.format(omBest.fitness, ".0"))
     if omBest.fitness >= float(N) - 1.0 then
         pass("OneMax converges to near-optimal (>= " + string(N - 1) + ")")
     else
@@ -833,8 +833,8 @@ func runTests() as int
         baseline += x * math.sin(x)
         si += 1
     end
-    println("FuncOpt best=" + string.formatFloat(fcBest.fitness, ".4") +
-            " random-baseline=" + string.formatFloat(baseline, ".4"))
+    println("FuncOpt best=" + float.format(fcBest.fitness, ".4") +
+            " random-baseline=" + float.format(baseline, ".4"))
     if fcBest.fitness > baseline then
         pass("FuncOpt GA beats random baseline")
     else
@@ -864,8 +864,8 @@ func runTests() as int
     array<float> tdist = buildDistMatrix(coords, tn)
     float gaLen = tourLength(tspBest.chromosome, tdist, tn)
     bool valid = isValidPermutation(tspBest.chromosome, tn)
-    println("TSP n=" + string(tn) + " brute-optimal=" + string.formatFloat(optimal, ".4") +
-            " GA-len=" + string.formatFloat(gaLen, ".4") + " valid=" + string(valid))
+    println("TSP n=" + string(tn) + " brute-optimal=" + float.format(optimal, ".4") +
+            " GA-len=" + float.format(gaLen, ".4") + " valid=" + string(valid))
     if not valid then
         fail("TSP route validity", "best tour is not a valid permutation")
     else
@@ -956,7 +956,7 @@ func main(...) as int
         println("OneMax  N=" + string(N) + "  pop=" + string(cfg.populationSize) +
                 "  gens=" + string(cfg.generations))
         Individual best = runOneMax(N, cfg, true)
-        println("Best fitness: " + string.formatFloat(best.fitness, ".0") + " / " + string(N))
+        println("Best fitness: " + float.format(best.fitness, ".0") + " / " + string(N))
         return 0
     end
 
@@ -985,7 +985,7 @@ func main(...) as int
                 "  xi in [0,10]  pop=" + string(cfg.populationSize) +
                 "  gens=" + string(gens))
         Individual best = runFuncOpt(D, 0.0, 10.0, cfg, true)
-        println("Best f(x): " + string.formatFloat(best.fitness, ".6"))
+        println("Best f(x): " + float.format(best.fitness, ".6"))
         printVector(best.chromosome)
         return 0
     end
@@ -1032,7 +1032,7 @@ func main(...) as int
         Individual best = runTSP(coords, n, cfg, true)
         array<float> dist = buildDistMatrix(coords, n)
         float len = tourLength(best.chromosome, dist, n)
-        println("Best tour length: " + string.formatFloat(len, ".4"))
+        println("Best tour length: " + float.format(len, ".4"))
         printRoute(best.chromosome, n)
         return 0
     end

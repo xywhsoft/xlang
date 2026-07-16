@@ -1,65 +1,73 @@
 {
-    "name": "xs",
-    "durationMs": 0,
-    "verbose": true,
-    "xlPath": "",
-    "services": [
+  "version": 2,
+  "runtime": {
+    "workDir": ".",
+    "shutdownTimeoutMs": 10000,
+    "reloadDebounceMs": 300,
+    "handlerPoolSize": 4,
+    "handlerQueueLimit": 1024
+  },
+  "logging": {
+    "level": "info",
+    "console": true,
+    "file": "run/xs.log",
+    "rollingBytes": 10485760,
+    "rollingFiles": 5
+  },
+  "services": [
+    {
+      "type": "http",
+      "name": "web",
+      "host": "127.0.0.1",
+      "port": 18080,
+      "workerCount": 4,
+      "queueLimit": 1024,
+      "routes": [
         {
-            "type": "http",
-            "name": "web",
-            "host": "127.0.0.1",
-            "port": 18080,
-            "routes": [
-                {
-                    "kind": "static",
-                    "pattern": "/",
-                    "root": "projects/xs/wwwroot",
-                    "indexNames": "index.html",
-                    "cacheControl": "max-age=30"
-                },
-                {
-                    "kind": "handler",
-                    "method": "GET|POST",
-                    "pattern": "/api/xl",
-                    "handler": "projects/xs/handlers/http_xl.xl",
-                    "contentType": "text/plain; charset=utf-8",
-                    "timeoutMs": 5000
-                },
-                {
-                    "kind": "handler",
-                    "method": "GET|POST",
-                    "pattern": "/api/c",
-                    "handler": "projects/xs/handlers/http_c.c",
-                    "contentType": "text/plain; charset=utf-8",
-                    "timeoutMs": 5000
-                }
-            ]
+          "name": "api-c",
+          "kind": "handler",
+          "method": "GET|POST",
+          "pattern": "/api/c",
+          "contentType": "application/octet-stream",
+          "handler": {"language": "c", "path": "handlers/echo_c.c", "mode": "embedded"}
         },
         {
-            "type": "tcp",
-            "name": "tcp-xl",
-            "host": "127.0.0.1",
-            "port": 18081,
-            "handler": "projects/xs/handlers/tcp_xl.xl",
-            "timeoutMs": 5000,
-            "requestLimit": 0
+          "name": "api-xlang",
+          "kind": "handler",
+          "method": "GET|POST",
+          "pattern": "/api/xlang",
+          "contentType": "application/octet-stream",
+          "handler": {"language": "xlang", "path": "handlers/echo_xlang.xl", "mode": "embedded"}
         },
         {
-            "type": "udp",
-            "name": "udp-c",
-            "host": "127.0.0.1",
-            "port": 18082,
-            "handler": "projects/xs/handlers/udp_c.c",
-            "timeoutMs": 5000,
-            "requestLimit": 0
-        },
-        {
-            "type": "custom",
-            "name": "boot-xl",
-            "handler": "projects/xs/handlers/custom_xl.xl",
-            "timeoutMs": 5000,
-            "intervalMs": 0,
-            "requestLimit": 1
+          "name": "static",
+          "kind": "static",
+          "pattern": "/",
+          "root": "wwwroot",
+          "indexNames": "index.html;index.htm",
+          "cacheControl": "max-age=30"
         }
-    ]
+      ]
+    },
+    {
+      "type": "tcp",
+      "name": "tcp-echo",
+      "host": "127.0.0.1",
+      "port": 18081,
+      "workerCount": 4,
+      "queueLimit": 1024,
+      "framing": "raw",
+      "frameLimit": 1048576,
+      "handler": {"language": "xlang", "path": "handlers/echo_xlang.xl", "mode": "embedded"}
+    },
+    {
+      "type": "udp",
+      "name": "udp-echo",
+      "host": "127.0.0.1",
+      "port": 18082,
+      "workerCount": 4,
+      "queueLimit": 1024,
+      "handler": {"language": "c", "path": "handlers/echo_c.c", "mode": "embedded"}
+    }
+  ]
 }

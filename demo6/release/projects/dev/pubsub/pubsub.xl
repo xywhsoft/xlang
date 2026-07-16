@@ -13,22 +13,20 @@
 //   - Consumer groups: round-robin distribution among group members
 //
 // Concurrency model:
-//   - channel<int> carries message IDs. channel<T> only supports value types
-//     and string is excluded [], so an int message ID indexes into a
-//     global message table (g_msgTopic / g_msgData).
+//   - channel<int> carries stable message IDs; the ID indexes the broker's
+//     message table and lets ACK/redelivery refer to one canonical record.
 //   - One dispatch worker thread routes published messages to subscriber
 //     channels, and re-delivers timed-out (unacked) messages.
 //   - Each subscriber runs its own worker thread that consumes from its own
 //     channel, processes, and ACKs.
 //   - Publishers (main + publisher threads) call publish() under a mutex.
 //
-// xlang constraints worked around:
+// Runtime design:
 //   - channel<T> & thread are non-copyable; cannot live in typed containers.
 //     Subscriber channels are pre-declared globals (one per slot, g_subCh0..7);
 //     threads are fire-and-forget spawned via closure factories.
-//   - Global containers accessed by worker threads are initialized at
-//     declaration and never re-bound []. The registry uses parallel
-//     global arrays populated via push() before threads spawn.
+//   - Registry arrays are populated before subscriber workers start and are
+//     protected by the broker mutex during concurrent access.
 //   - Ack is idempotent: a (slot, msgId) pair is acked at most once even if
 //     redelivery races with the subscriber's ack.
 
@@ -485,7 +483,7 @@ end
 
 // compact JSON -> pretty JSON (2-space indent), text-level (config.xl pattern).
 func prettyCompact(string compact) as string
-    string out = ""
+    string outputValue = ""
     int n = string.len(compact)
     int indent = 0
     int i = 0
@@ -494,20 +492,20 @@ func prettyCompact(string compact) as string
         string c = string.charAt(compact, i)
         if c == "{" or c == "[" then
             indent = indent + 1
-            out = out + c + "\n" + string.repeat(pad, indent)
+            outputValue = outputValue + c + "\n" + string.repeat(pad, indent)
         elseif c == "}" or c == "]" then
             indent = indent - 1
-            out = out + "\n" + string.repeat(pad, indent) + c
+            outputValue = outputValue + "\n" + string.repeat(pad, indent) + c
         elseif c == "," then
-            out = out + c + "\n" + string.repeat(pad, indent)
+            outputValue = outputValue + c + "\n" + string.repeat(pad, indent)
         elseif c == ":" then
-            out = out + ": "
+            outputValue = outputValue + ": "
         else
-            out = out + c
+            outputValue = outputValue + c
         end
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 // Save the full message log (topic + payload per message) to JSON.

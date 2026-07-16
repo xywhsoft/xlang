@@ -5,7 +5,7 @@
 //   merkletree dump     构造示例 8 叶子树并打印层级结构 + 证明样本
 //   merkletree help     打印用法
 //
-// 设计要点（结合 dev/README.md 与 BUGS.md）：
+// 设计要点：
 //   - 完全二叉树用 heap 布局存于 array<string>：
 //       leafCount 个叶子（2 的幂），nodeCount = 2*leafCount - 1。
 //       根 hashes[0]；节点 i 的左子 = 2i+1，右子 = 2i+2，父 = (i-1)/2。
@@ -29,7 +29,7 @@ const string EMPTY_LEAF_DATA = ""
 
 
 // ============================================================================
-// 顶层哈希辅助（纯函数，避开 class 方法容器形参限制）
+// 顶层哈希辅助保持为纯函数，便于测试和复用。
 // ============================================================================
 
 // 单块 SHA-256 → 小写 hex。
@@ -276,27 +276,27 @@ class MerkleTree extends HashTree
 
     // ---- 序列化----
     func serialize() as string
-        var out = {}
-        out["algorithm"] = self.algorithmName()
-        out["name"] = self.name
-        out["leafCount"] = self.leafCount
-        out["nodeCount"] = self.nodeCount
-        out["root"] = self.hashes[0]
+        var outputValue = {}
+        outputValue["algorithm"] = self.algorithmName()
+        outputValue["name"] = self.name
+        outputValue["leafCount"] = self.leafCount
+        outputValue["nodeCount"] = self.nodeCount
+        outputValue["root"] = self.hashes[0]
         var hs = []
         int i = 0
         while i < self.nodeCount do
             hs.push(self.hashes[i])
             i = i + 1
         end
-        out["hashes"] = hs
+        outputValue["hashes"] = hs
         var ds = []
         int j = 0
         while j < self.leafCount do
             ds.push(self.data[j])
             j = j + 1
         end
-        out["data"] = ds
-        return json.stringify(out)
+        outputValue["data"] = ds
+        return json.stringify(outputValue)
     end
 
     // 从 serialize() 文本重建（替换当前内容）。

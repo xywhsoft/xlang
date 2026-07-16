@@ -20,10 +20,8 @@
 //             seek(seekSet/seekCur/seekEnd), readText(size)
 //   * File stream (writable):   open(path,false), writeText, setEOF, seek, readText
 //
-// NOTE: native-backed classes (Buffer/File) cannot be RETURNED from a user
-// function ("不可复制类型不能从已有值返回"), but passing them AS a parameter
-// works. So dumpBytes / verifyStreamReadOnly receive the buffer by parameter;
-// no user function returns a Buffer/File.
+// Buffer/File 是受管理的 native-backed class，可安全作为参数和返回值传递。
+// 本例按职责把 Buffer 交给 dumpBytes / verifyStreamReadOnly 读取，不复制数据。
 // ---------------------------------------------------------------------------
 
 const int BYTES_PER_LINE = 16
@@ -31,11 +29,11 @@ const int DEFAULT_COUNT = 512
 
 // ---- byte -> 2-digit lowercase hex ----
 func hexByte(int b) as string
-    return string.formatInt(b, "x2")
+    return int.format(b, "x2")
 end
 
 // ---- 95-char printable ASCII table (0x20..0x7e), built once via Buffer ----
-// string.formatInt(n,"c") does NOT produce a char (returns the decimal text),
+// int.format(n,"c") does NOT produce a char (returns the decimal text),
 // so we materialize the table with appendByte and index it with charAt.
 func buildPrintable() as string
     Buffer t = Buffer()
@@ -117,7 +115,7 @@ func dumpBytes(Buffer buf, int start, int count, string printable) as int
             j += 1
         end
 
-        println(string.formatInt(off, "x8") + "  " + hexStr + " " + "|" + asciiStr + "|")
+        println(int.format(off, "x8") + "  " + hexStr + " " + "|" + asciiStr + "|")
         off += lineLen
     end
     return off - s
@@ -289,7 +287,7 @@ end
 // Exercises writeText / setEOF / seek / readText / size without touching the
 // user's input file.
 func verifyStreamWritable() as bool
-    string tmp = path.join(path.temp(), "hexdump_scratch.txt")
+    string tmp = path.join(path.temp(), path.random("hexdump_", ".txt"))
     file.delete(tmp)
     if not file.writeText(tmp, "0123456789ABCDEF") then
         return false
@@ -423,14 +421,14 @@ func main(...) as int
     // header: file + region summary
     println("; file: " + target + "  (" + string(buf.len()) + " bytes)")
     if count < 0 then
-        println("; region: offset=" + string.formatInt(skip, "x8") + " .. EOF")
+        println("; region: offset=" + int.format(skip, "x8") + " .. EOF")
     else
-        println("; region: offset=" + string.formatInt(skip, "x8") + " length=" + string(count))
+        println("; region: offset=" + int.format(skip, "x8") + " length=" + string(count))
     end
     println(";")
 
     int dumped = dumpBytes(buf, skip, count, printable)
-    println(string.formatInt(skip + dumped, "x8"))
+    println(int.format(skip + dumped, "x8"))
 
     // ---- Buffer complete-API self-test ----
     println(";")

@@ -19,11 +19,6 @@
 //   - Files are processed in sorted (case-sensitive ascending) order so that
 //     `seq` numbering is deterministic across runs and filesystems.
 //
-// BUG workarounds (see projects/dev/README.md + BUGS.md):
-//   B20 - list<string> read aliases buffer on swap: sort operates on an
-//         int index list (array<int>, value-safe) and only READS paths[idx]
-//         (no write to the string list during sort), so no aliasing can occur.
-//
 // seq pattern grammar:
 //   {000}  -> sequence number zero-padded to width 3 (width = chars in braces)
 //   {n}    -> width 1 (no visible padding)
@@ -258,37 +253,28 @@ func main(...) as int
     println("Directory: " + target)
 
     // ---- collect top-level files ----
-    array files = dir.files(target, false)
+    array<string> files = dir.files(target, false)
     int count = files.length
     if count == 0 then
         println("No files found in " + target)
         return 0
     end
 
-    // ---- build index list and selection-sort it by path (case-sensitive) ----
-    // Sort an int index list, not the string list, to stay clear of BUG-20.
-    array<int> idx = array[]
-    int fi = 0
-    while fi < count do
-        idx.append(fi)
-        fi += 1
-    end
+    // ---- 按完整路径稳定地确定处理顺序 ----
     int a = 0
     while a < count do
         int best = a
         int b = a + 1
         while b < count do
-            string sb = string(files[idx[b]])
-            string sbest = string(files[idx[best]])
-            if string.compare(sb, sbest, false) < 0 then
+            if string.compare(files[b], files[best], false) < 0 then
                 best = b
             end
             b += 1
         end
         if best != a then
-            int tmp = idx[a]
-            idx[a] = idx[best]
-            idx[best] = tmp
+            string tmp = files[a]
+            files[a] = files[best]
+            files[best] = tmp
         end
         a += 1
     end
@@ -300,8 +286,7 @@ func main(...) as int
     int seqNo = start
     int pi = 0
     while pi < count do
-        int realIdx = idx[pi]
-        string fp = string(files[realIdx])
+        string fp = files[pi]
         string d = path.dir(fp)
         string name = path.nameExt(fp)
         string newName = name

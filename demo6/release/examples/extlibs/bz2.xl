@@ -1,0 +1,45 @@
+import bz2
+
+
+
+func main(...) as int
+    Buffer source = Buffer()
+    source.append("xlang bz2 ")
+    source.appendByte(0)
+    source.appendByte(255)
+
+    Buffer packed = bz2.compress(source, 9)
+    Buffer plain = bz2.decompress(packed)
+    assert plain == source, "bz2 Buffer round trip failed"
+
+    auto encoder = bz2.compressor(6)
+    encoder.update("hello ")
+    encoder.update("stream")
+    Buffer streamPacked = encoder.finish()
+
+    auto decoder = bz2.decompressor()
+    decoder.update(streamPacked)
+    assert decoder.finish().text() == "hello stream", "bz2 incremental round trip failed"
+
+    bool rejected = false
+    streamPacked[10] = streamPacked[10] ^ 1
+    try
+        bz2.decompress(streamPacked)
+    catch CompressionError e
+        rejected = true
+    end
+    assert rejected, "corrupt bz2 must raise CompressionError"
+
+    // 文件便捷接口使用 XRT reader/writer，适合大文件和 UTF-8 路径。
+    dir.createAll("tmp")
+    file.writeBytes("tmp/bz2_example_source.bin", source)
+    bz2.compressFile("tmp/bz2_example_source.bin", "tmp/bz2_example.bz2")
+    bz2.decompressFile("tmp/bz2_example.bz2", "tmp/bz2_example_plain.bin")
+    assert file.readBytes("tmp/bz2_example_plain.bin") == source
+    file.delete("tmp/bz2_example_source.bin")
+    file.delete("tmp/bz2_example.bz2")
+    file.delete("tmp/bz2_example_plain.bin")
+
+    println("bz2 example: PASS")
+    return 0
+end

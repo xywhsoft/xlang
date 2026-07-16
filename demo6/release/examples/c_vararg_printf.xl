@@ -1,0 +1,6 @@
+extern "printf" func printf(string fmt, c_vararg) as c_int
+
+func main(...) as int
+    printf("c_vararg printf: %d %.1f %s\n", c_int(7), c_double(2.5), "ok")
+    return 0
+end

@@ -1,0 +1,49 @@
+string platform = os.platform()
+assert platform != ""
+
+array args = os.args()
+assert args.length > 0
+assert string(args[0]) != ""
+int originalArgCount = args.length
+args.push("__mutated_os_args__")
+array argsAgain = os.args()
+assert argsAgain.length == originalArgCount
+
+string oldCwd = os.cwd()
+assert oldCwd == path.cwd()
+
+string tempDir = path.join(path.temp(), "xl6_stdlib_os")
+assert dir.createAll(tempDir)
+assert os.setCwd(tempDir)
+assert path.abs(os.cwd()) == path.abs(tempDir)
+assert os.setCwd(oldCwd)
+
+assert os.env("__XLANG_DEMO6_MISSING_ENV__", "fallback") == "fallback"
+
+string execOut = os.exec("cmd /c echo os-exec")
+assert string.trim(execOut) == "os-exec"
+
+ProcessResult result = os.run("cmd /c echo os-run")
+assert result.success
+assert result.exitCode == 0
+assert string.trim(result.stdout) == "os-run"
+
+Process proc = os.start("cmd /c more")
+assert proc.running
+assert proc.writeLine("os-start")
+assert proc.closeStdin()
+assert proc.wait(5000)
+assert proc.exitCode == 0
+assert string.trim(proc.stdout) == "os-start"
+
+Process fileProc = os.startFile("cmd", ["/c", "more"])
+assert fileProc.running
+assert fileProc.writeLine("os-start-file")
+assert fileProc.closeStdin()
+assert fileProc.wait(5000)
+assert fileProc.exitCode == 0
+assert string.trim(fileProc.stdout) == "os-start-file"
+
+assert os.chain("cmd /c exit /b 0") == 0
+
+println("stdlib_os=ok")

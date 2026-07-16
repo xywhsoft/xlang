@@ -705,8 +705,7 @@ func lintFile(string filePath)
     end
 
     string absFile = path.abs(filePath)
-    string cmd = g_xl + " parse " + absFile + " --format json"
-    ProcessResult r = process.run(cmd, 60000)
+    ProcessResult r = process.runFile(g_xl, ["parse", absFile, "--format", "json"], 60000)
     if not r.success or string.len(string.trim(r.stdout)) == 0 then
         addIssue(1, 1, "xlint", "error", "xl parse failed: " + string.trim(r.stderr))
         return

@@ -18,7 +18,7 @@
 //     array<int> containers was found to silently drop on the caller
 //     side, so the two streams are packed into one -- see)
 //   * Buffer + encoding.fromBytes for byte -> string output (
-//     makes string.formatInt(n,"c") unusable, so output is buffered as
+//     makes int.format(n,"c") unusable, so output is buffered as
 //     raw bytes and decoded once at the end)
 //   * time.timer() for benchmark timing
 
@@ -139,7 +139,7 @@ func interp(array<int> prog) as string
     array<int> jt = buildJumpTable(prog)
     int dp = 0
     int ip = 0
-    Buffer out = Buffer()
+    Buffer outputValue = Buffer()
     while ip < n do
         int c = prog[ip]
         if c == C_PLUS then
@@ -157,7 +157,7 @@ func interp(array<int> prog) as string
                 dp = 0
             end
         elseif c == C_DOT then
-            out.appendByte(mem[dp])
+            outputValue.appendByte(mem[dp])
         elseif c == C_COMMA then
             mem[dp] = 0
         elseif c == C_LBRA then
@@ -171,7 +171,7 @@ func interp(array<int> prog) as string
         end
         ip += 1
     end
-    return encoding.fromBytes(out.data(), c_size(out.len()), encoding.utf8)
+    return encoding.fromBytes(outputValue.data(), c_size(outputValue.len()), encoding.utf8)
 end
 
 
@@ -284,7 +284,7 @@ func runOptimized(array<int> code) as string
     array<int> mem = makeArray(MEM_SIZE, 0)
     int dp = 0
     int pc = 0
-    Buffer out = Buffer()
+    Buffer outputValue = Buffer()
     while pc < n do
         int op = code[pc]
         int arg = code[pc + 1]
@@ -300,7 +300,7 @@ func runOptimized(array<int> code) as string
         elseif op == OP_ZERO then
             mem[dp] = 0
         elseif op == OP_OUT then
-            out.appendByte(mem[dp])
+            outputValue.appendByte(mem[dp])
         elseif op == OP_IN then
             mem[dp] = 0
         elseif op == OP_JZ then
@@ -314,7 +314,7 @@ func runOptimized(array<int> code) as string
         end
         pc += 2
     end
-    return encoding.fromBytes(out.data(), c_size(out.len()), encoding.utf8)
+    return encoding.fromBytes(outputValue.data(), c_size(outputValue.len()), encoding.utf8)
 end
 
 // human-readable name of an optimized opcode (for disasm).
@@ -365,8 +365,8 @@ func cmdRun(string path) as int
     end
     array<int> prog = readProg(path)
     println("; interp mode  src=" + string(prog.length) + " bytes")
-    string out = interp(prog)
-    print(out)
+    string outputValue = interp(prog)
+    print(outputValue)
     return 0
 end
 
@@ -378,24 +378,24 @@ func cmdOpt(string path) as int
     array<int> prog = readProg(path)
     array<int> code = optimize(prog)
     println("; opt mode  src=" + string(prog.length) + " bytes  ops=" + string(code.length / 2))
-    string out = runOptimized(code)
-    print(out)
+    string outputValue = runOptimized(code)
+    print(outputValue)
     return 0
 end
 
 func cmdHello() as int
     array<int> prog = stringToBytes(HELLO_SRC)
     println("; built-in Hello World (interp)")
-    string out = interp(prog)
-    print(out)
+    string outputValue = interp(prog)
+    print(outputValue)
     return 0
 end
 
 func cmdSierpinski() as int
     array<int> prog = stringToBytes(SIERP_SRC)
     println("; built-in Sierpinski triangle (interp)")
-    string out = interp(prog)
-    print(out)
+    string outputValue = interp(prog)
+    print(outputValue)
     return 0
 end
 
@@ -413,7 +413,7 @@ func cmdDisasm(string path) as int
         int op = code[k * 2]
         int arg = code[k * 2 + 1]
         string name = opName(op)
-        string line = string.formatInt(k, "D5") + ": " + string.padRight(name, 5) + " " + string.formatInt(arg, "")
+        string line = int.format(k, "D5") + ": " + string.padRight(name, 5) + " " + int.format(arg, "")
         println(line)
         k += 1
     end
@@ -463,9 +463,9 @@ func cmdBench(string path, int rounds) as int
         speedup = interpPer / optPer
     end
     println("; ----------------------------------------------------------------")
-    println(";  interp : " + string.formatFloat(interpTime * 1000.0, ".3") + " ms total  " + string.formatFloat(interpPer * 1000.0, ".4") + " ms/run")
-    println(";  opt    : " + string.formatFloat(optTime * 1000.0, ".3") + " ms total  " + string.formatFloat(optPer * 1000.0, ".4") + " ms/run")
-    println(";  speedup: " + string.formatFloat(speedup, ".3") + "x")
+    println(";  interp : " + float.format(interpTime * 1000.0, ".3") + " ms total  " + float.format(interpPer * 1000.0, ".4") + " ms/run")
+    println(";  opt    : " + float.format(optTime * 1000.0, ".3") + " ms total  " + float.format(optPer * 1000.0, ".4") + " ms/run")
+    println(";  speedup: " + float.format(speedup, ".3") + "x")
     println("; ----------------------------------------------------------------")
     println(";  sample output (" + string(string.len(refOut)) + " bytes):")
     if string.len(refOut) <= 200 then

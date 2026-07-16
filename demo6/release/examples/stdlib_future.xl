@@ -11,8 +11,9 @@ func addTwo(int value) as int
     return value + 2
 end
 
-func recover(string message) as int
-    assert message == "boom"
+func recover(error e) as int
+    assert e.kind == "AsyncError"
+    assert e.message == "boom"
     return 77
 end
 

@@ -48,6 +48,7 @@ XL_API int xlSetSaveTemps(XL_Context* ctx, int enabled);
 XL_API int xlAddIncludePath(XL_Context* ctx, const char* path);
 XL_API int xlAddLibraryPath(XL_Context* ctx, const char* path);
 XL_API int xlAddLinkLibrary(XL_Context* ctx, const char* nameOrPath);
+XL_API int xlAddResourceFile(XL_Context* ctx, const char* path);
 XL_API int xlLoadDependencyLibrary(XL_Context* ctx, const char* path);
 XL_API int xlRegisterCFunction(XL_Context* ctx, const char* symbolName, void* fn);
 
@@ -63,6 +64,8 @@ XL_API XL_Module* xlCompileCSourceFilesToModule(XL_Context* ctx, const char** pa
 XL_API int xlRunCSourceString(XL_Context* ctx, const char* source, int argc, char** argv);
 XL_API int xlRunCSourceFile(XL_Context* ctx, const char* path, int argc, char** argv);
 XL_API int xlRunCSourceFiles(XL_Context* ctx, const char** paths, int pathCount, int argc, char** argv);
+XL_API int xlActivateModule(XL_Context* ctx, XL_Module* module, xvalue arg);
+XL_API int xlDeactivateModule(XL_Context* ctx, XL_Module* module);
 XL_API int xlRunModuleMain(XL_Context* ctx, XL_Module* module, xvalue arg);
 XL_API void* xlModuleGetSymbol(XL_Module* module, const char* symbolName);
 XL_API void xlDestroyModule(XL_Module* module);

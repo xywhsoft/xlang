@@ -51,9 +51,9 @@ Error: request failed (no HTTP response received).
 - **网络失败判据**：`req.execute()` 在网络层失败时返回 `handle==NULL` 的 `HttpClientResponse`，`status()` 返回 `0`（HTTP 合法状态码是 1xx-5xx，0 可靠表示"没拿到响应"）。所有访问器对 NULL handle 都做了空值兜底，无崩溃。
 - **响应头无法枚举**：API 只支持 `resp.header(name)` 按名查询，不提供遍历所有响应头的能力。本工具固定查询 `Content-Type` / `Content-Length` / `Server` / `Date` 四个常见头，存在才输出。
 
-## 已知限制（见 `../BUGS.md` BUG-13）
-
-`HttpClientRequest` / `HttpClientResponse` 是 native-backed class（含 `native point handle`），**不能作为函数按值参数或返回值**，且 xlang 当前无 `ref`/别名传参语法。因此本工具把所有操作 `req`/`resp` 的逻辑全部内联在 `main` 里，仅把不涉及 class 的纯字符串拆分（`parseHeaderPair`）抽成独立函数。
+`HttpClientRequest` / `HttpClientResponse` 是 native-backed class，按 class 的默认引用
+参数语义传递；例如 `printResponseHeader(HttpClientResponse resp, string name)` 直接接收
+响应对象，不复制底层 native handle。对象由运行时生命周期协议统一释放。
 
 ## 本地验证（无外网时）
 

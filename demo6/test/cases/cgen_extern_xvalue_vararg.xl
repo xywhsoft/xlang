@@ -1,0 +1,9 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "xvalue_vararg_count" func nativeCount(string tag, ...) as int
+extern "xvalue_kw_count" func nativeKwCount(string tag, ***) as int
+
+func main(...) as int
+    expect(nativeCount("pos", 1, "two", true), 3)
+    expect(nativeKwCount("kw", first = 1, second = "two"), 2)
+    return 0
+end

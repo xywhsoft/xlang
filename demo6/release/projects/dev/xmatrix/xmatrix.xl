@@ -88,7 +88,7 @@ func formatNumber(float v) as string
     if v == math.floor(v) and math.abs(v) < 1e15 then
         return string(int(v))
     end
-    return string.formatFloat(v, ".6")
+    return float.format(v, ".6")
 end
 
 // sign 函数：返回 x 的符号（-1 / 0 / 1）
@@ -104,18 +104,18 @@ end
 
 // 把 array<float> 格式化为逗号分隔的文本
 func formatVector(array<float> v) as string
-    string out = "["
+    string outputValue = "["
     int n = v.length
     int i = 0
     while i < n do
         if i > 0 then
-            out = out + ", "
+            outputValue = outputValue + ", "
         end
-        out = out + formatNumber(v[i])
+        outputValue = outputValue + formatNumber(v[i])
         i += 1
     end
-    out = out + "]"
-    return out
+    outputValue = outputValue + "]"
+    return outputValue
 end
 
 // 打印向量
@@ -124,7 +124,7 @@ func printVector(array<float> v)
 end
 
 // ========================================================================
-// 第 2 节：测试框架（参考 shapes.xl 风格，程序始终返回 0）
+// 第 2 节：测试框架（执行全部用例，存在失败时返回非零退出码）
 // ========================================================================
 
 int g_pass = 0
@@ -591,27 +591,27 @@ class Matrix
             c += 1
         end
 
-        string out = ""
+        string outputValue = ""
         int r2 = 0
         while r2 < self.rows do
-            out = out + "| "
+            outputValue = outputValue + "| "
             int cc = 0
             while cc < self.cols do
                 int w = widths[cc]
                 string s = formatNumber(self.at(r2, cc))
-                out = out + string.padLeft(s, w, " ")
+                outputValue = outputValue + string.padLeft(s, w, " ")
                 if cc + 1 < self.cols then
-                    out = out + "  "
+                    outputValue = outputValue + "  "
                 end
                 cc += 1
             end
-            out = out + " |"
+            outputValue = outputValue + " |"
             if r2 + 1 < self.rows then
-                out = out + "\n"
+                outputValue = outputValue + "\n"
             end
             r2 += 1
         end
-        return out
+        return outputValue
     end
 end
 
@@ -1665,26 +1665,26 @@ end
 
 // 把 Matrix 序列化为 JSON 二维数组文本
 func matrixToJson(Matrix m) as string
-    string out = "["
+    string outputValue = "["
     int r = 0
     while r < m.rows do
         if r > 0 then
-            out = out + ", "
+            outputValue = outputValue + ", "
         end
-        out = out + "["
+        outputValue = outputValue + "["
         int c = 0
         while c < m.cols do
             if c > 0 then
-                out = out + ", "
+                outputValue = outputValue + ", "
             end
-            out = out + formatNumber(m.at(r, c))
+            outputValue = outputValue + formatNumber(m.at(r, c))
             c += 1
         end
-        out = out + "]"
+        outputValue = outputValue + "]"
         r += 1
     end
-    out = out + "]"
-    return out
+    outputValue = outputValue + "]"
+    return outputValue
 end
 
 // 把 array<float> 序列化为 JSON 数组文本
@@ -2645,17 +2645,17 @@ end
 
 // 把排列数组格式化为字符串
 func permToString(array<int> perm) as string
-    string out = "["
+    string outputValue = "["
     int i = 0
     while i < perm.length do
         if i > 0 then
-            out = out + ", "
+            outputValue = outputValue + ", "
         end
-        out = out + string(perm[i])
+        outputValue = outputValue + string(perm[i])
         i += 1
     end
-    out = out + "]"
-    return out
+    outputValue = outputValue + "]"
+    return outputValue
 end
 
 // 命令：qr <matrix.json>

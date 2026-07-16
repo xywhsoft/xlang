@@ -1,0 +1,12 @@
+import ini
+
+
+
+func main(...) as int
+    auto config = ini.create()
+    config.set("server", "host", "localhost")
+    config.set("server", "port", "8080")
+    config.set("用户", "name", "测试")
+    config.save("tmp/xlang_interop.ini")
+    return 0
+end

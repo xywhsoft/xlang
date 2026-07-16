@@ -28,11 +28,11 @@ Total: 172 files, 855.7 KB
 ## 设计
 
 - `dir.entries(path, recursive)` 返回的 var 字典数组已含 `size`/`path`/`isFile`/`isDir`, 文件模式直接读 `size`, 无需 `file.info`.
-- **B2 绕过**: array 无 append, 用 `list<string>` + `list<int64>` 平行收集, 越界索引赋值扩容 (与 primes 同款手法).
+- 使用 `array<string>` 与 `array<int64>` 平行收集路径和大小，直接用 `append` 追加。
 - **部分选择排序**: 只跑 `min(N, count)` 轮把最大的 N 个换到队首, O(N*count), 避免对全量排序.
 - 目录模式用 `dir.size(path)` 重新汇总; 路径显示用 `path.rel` 转 root 相对路径.
 - `int64` 承载字节数, 避免大目录累计溢出 32 位 int.
 
 ## 验证
 
-两条路径 (xl run / built exe) 均通过, ASCII argv 下输出一致, EXIT=0. 详见 BUGS.md NOTE-010.
+`xl run` 与构建后的可执行文件均通过目录扫描验证，成功时返回 0。

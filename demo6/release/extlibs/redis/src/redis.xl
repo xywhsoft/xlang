@@ -112,6 +112,69 @@ class Client
 	func set_timeout(int timeout_ms)
 		self.timeout_ms = timeout_ms
 	end
+
+	func command(string a0) as string
+		return command1(self, a0)
+	end
+
+	func command(string a0, string a1) as string
+		return command2(self, a0, a1)
+	end
+
+	func command(string a0, string a1, string a2) as string
+		return command3(self, a0, a1, a2)
+	end
+
+	func command(string a0, string a1, string a2, string a3) as string
+		return command4(self, a0, a1, a2, a3)
+	end
+
+	func command(string a0, string a1, string a2, string a3, string a4) as string
+		return command5(self, a0, a1, a2, a3, a4)
+	end
+
+	func get(string key) as string
+		return get_value(self, key)
+	end
+
+	func get_or(string key, string fallback) as string
+		auto response = command2(self, "GET", key)
+		if response_nil(response) then
+			return fallback
+		end
+		if response_type(response) == "error" then
+			return fallback
+		end
+		return response_value(response)
+	end
+
+	func set_value(string key, string value) as bool
+		return xredis_set(self, key, value)
+	end
+
+	func delete(string key) as int
+		return xredis_del(self, key)
+	end
+
+	func exists(string key) as bool
+		return xredis_exists(self, key)
+	end
+
+	func select_db(int db) as bool
+		return xredis_select(self, db)
+	end
+
+	func length(string key) as int
+		return xredis_strlen(self, key)
+	end
+
+	func incr(string key) as int
+		return response_int(command2(self, "INCR", key))
+	end
+
+	func decr(string key) as int
+		return response_int(command2(self, "DECR", key))
+	end
 end
 
 class Pool

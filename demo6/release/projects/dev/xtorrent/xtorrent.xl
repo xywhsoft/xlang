@@ -126,14 +126,14 @@ func bytesToBuffer(array<int> bytes, int start, int len) as Buffer
 end
 
 func bufSlice(Buffer src, int start, int len) as Buffer
-    Buffer out = Buffer(len + 4)
-    if start < 0 or len < 0 then return out end
+    Buffer outputValue = Buffer(len + 4)
+    if start < 0 or len < 0 then return outputValue end
     int i = 0
     while i < len do
-        out.appendByte(src.byteAt(start + i))
+        outputValue.appendByte(src.byteAt(start + i))
         i += 1
     end
-    return out
+    return outputValue
 end
 
 func bufAppendBuf(Buffer dst, Buffer src) as int
@@ -190,7 +190,7 @@ func humanSize(float bytes) as string
     if unit == "B" then
         return string(int(bytes)) + " " + unit
     end
-    return string.formatFloat(val, ".2") + " " + unit
+    return float.format(val, ".2") + " " + unit
 end
 
 func formatDuration(float seconds) as string
@@ -568,9 +568,9 @@ func bDictPut(BNode d, string key, BNode val) as BNode
     return d
 end
 
-func encWriteUint(Buffer out, int n) as int
+func encWriteUint(Buffer outputValue, int n) as int
     if n == 0 then
-        out.appendByte(48)
+        outputValue.appendByte(48)
         return 0
     end
     array<int> digits = array[]
@@ -581,51 +581,51 @@ func encWriteUint(Buffer out, int n) as int
     end
     int i = digits.length - 1
     while i >= 0 do
-        out.appendByte(int(digits[i]))
+        outputValue.appendByte(int(digits[i]))
         i -= 1
     end
     return 0
 end
 
-func encWriteInt(Buffer out, int n) as int
+func encWriteInt(Buffer outputValue, int n) as int
     if n < 0 then
-        out.appendByte(45)
-        encWriteUint(out, -n)
+        outputValue.appendByte(45)
+        encWriteUint(outputValue, -n)
         return 0
     end
-    return encWriteUint(out, n)
+    return encWriteUint(outputValue, n)
 end
 
-func encNode(Buffer out, BNode n) as int
+func encNode(Buffer outputValue, BNode n) as int
     string t = n.tag
     if t == "i" then
-        out.appendByte(105)
-        encWriteInt(out, n.ivalue)
-        out.appendByte(101)
+        outputValue.appendByte(105)
+        encWriteInt(outputValue, n.ivalue)
+        outputValue.appendByte(101)
         return 0
     elseif t == "s" then
-        encWriteUint(out, n.bytes.length)
-        out.appendByte(58)
+        encWriteUint(outputValue, n.bytes.length)
+        outputValue.appendByte(58)
         int i = 0
         int k = n.bytes.length
         while i < k do
-            out.appendByte(int(n.bytes[i]) & 255)
+            outputValue.appendByte(int(n.bytes[i]) & 255)
             i += 1
         end
         return 0
     elseif t == "l" then
-        out.appendByte(108)
+        outputValue.appendByte(108)
         var ni = n.items
         int i = 0
         int k = ni.length
         while i < k do
-            encNode(out, ni[i] as BNode)
+            encNode(outputValue, ni[i] as BNode)
             i += 1
         end
-        out.appendByte(101)
+        outputValue.appendByte(101)
         return 0
     elseif t == "d" then
-        out.appendByte(100)
+        outputValue.appendByte(100)
         var nkeys = n.keys
         var nitems = n.items
         int k = nkeys.length
@@ -658,27 +658,27 @@ func encNode(Buffer out, BNode n) as int
         while m < k do
             int idx = int(order[m])
             string keyStr = string(nkeys[idx])
-            encWriteUint(out, string.byteLen(keyStr))
-            out.appendByte(58)
+            encWriteUint(outputValue, string.byteLen(keyStr))
+            outputValue.appendByte(58)
             int bi = 0
             int blen = string.byteLen(keyStr)
             while bi < blen do
-                out.appendByte(string.byteAt(keyStr, bi))
+                outputValue.appendByte(string.byteAt(keyStr, bi))
                 bi += 1
             end
-            encNode(out, nitems[idx] as BNode)
+            encNode(outputValue, nitems[idx] as BNode)
             m += 1
         end
-        out.appendByte(101)
+        outputValue.appendByte(101)
         return 0
     end
     return 0
 end
 
 func bencode(BNode n) as Buffer
-    Buffer out = Buffer()
-    encNode(out, n)
-    return out
+    Buffer outputValue = Buffer()
+    encNode(outputValue, n)
+    return outputValue
 end
 
 func bnodeEqual(BNode a, BNode b) as bool
@@ -875,7 +875,7 @@ func nameSeed(string name) as uint64
 end
 
 func generateContent(string name, int totalLength) as Buffer
-    Buffer out = Buffer(totalLength + 16)
+    Buffer outputValue = Buffer(totalLength + 16)
     string printable = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/-_.,: "
     int plen = string.len(printable)
     uint64 seed = nameSeed(name)
@@ -883,10 +883,10 @@ func generateContent(string name, int totalLength) as Buffer
     int i = 0
     while i < totalLength do
         int idx = int(rng.u64() % uint64(plen))
-        out.appendByte(string.byteAt(printable, idx))
+        outputValue.appendByte(string.byteAt(printable, idx))
         i += 1
     end
-    return out
+    return outputValue
 end
 
 func computePieceHashes(Buffer content, int pieceLength, int pieceCount) as array<string>
@@ -1068,11 +1068,11 @@ end
 // peer-wire protocol: handshake + length-prefixed messages
 // ---------------------------------------------------------------------------
 
-func writeUint32Be(Buffer out, int v) as int
-    out.appendByte((v >> 24) & 255)
-    out.appendByte((v >> 16) & 255)
-    out.appendByte((v >> 8) & 255)
-    out.appendByte(v & 255)
+func writeUint32Be(Buffer outputValue, int v) as int
+    outputValue.appendByte((v >> 24) & 255)
+    outputValue.appendByte((v >> 16) & 255)
+    outputValue.appendByte((v >> 8) & 255)
+    outputValue.appendByte(v & 255)
     return 0
 end
 
@@ -1402,13 +1402,13 @@ func ensureParentDir(string filePath) as bool
 end
 
 func joinSegments(array<string> parts) as string
-    string out = parts[0]
+    string outputValue = parts[0]
     int i = 1
     while i < parts.length do
-        out = path.join(out, parts[i])
+        outputValue = path.join(outputValue, parts[i])
         i += 1
     end
-    return out
+    return outputValue
 end
 
 func assembleFiles(Buffer content, var torrent, string outputDir) as array
@@ -1609,7 +1609,7 @@ func simulateDownload(var torrent, string outputDir, int peerCount) as var
             string etaText
             if eta < 0.0 then etaText = "--" else etaText = formatDuration(eta) end
             println("  " + progressBar(frac, BAR_WIDTH) + " "
-                + string.formatFloat(frac * 100.0, ".1") + "%  "
+                + float.format(frac * 100.0, ".1") + "%  "
                 + "D " + humanSize(float(rs["downRate"])) + "/s  "
                 + "U " + humanSize(float(rs["upRate"])) + "/s  "
                 + "ETA " + etaText + "  "
@@ -1728,7 +1728,8 @@ func printTorrentInfo(var torrent, bool verbose) as int
         int j = 0
         while j < show do
             var p = table[j]
-            println("  #" + string.format(int(p["index"]), "04") + "  " + p["hash"]))
+            string pieceHash = string(p["hash"])
+            println("  #" + string.format(int(p["index"]), "04") + "  " + pieceHash)
             j += 1
         end
     end
@@ -1774,7 +1775,7 @@ func printDownloadResult(var torrent, var result) as int
     println("  pieces verified : " + result["verified"] + "/" + result["pieces"])
     println("  downloaded (sim): " + humanSize(float(int(result["downloaded"]))))
     println("  uploaded   (sim): " + humanSize(float(int(result["uploaded"]))))
-    println("  elapsed         : " + formatDuration(float(result["elapsed"])) + " (" + string.formatFloat(float(result["elapsed"]), ".3") + "s)")
+    println("  elapsed         : " + formatDuration(float(result["elapsed"])) + " (" + float.format(float(result["elapsed"]), ".3") + "s)")
     println("  avg rate        : " + humanSize(float(result["avgDownRate"])) + "/s")
     println("  rounds          : " + result["rounds"])
     var written = result["written"]
@@ -2162,7 +2163,7 @@ func testFullDownloadSingleFile() as int
     var pt = torrent["pieces"]
     fails += assertOk("sample pieces table", pt.length == expectedPieces)
 
-    string outDir = path.join(path.temp(), "xtorrent_test_single")
+    string outDir = path.join(path.temp(), path.random("xtorrent_single_", ""))
     if dir.exists(outDir) then dir.clean(outDir) end
     dir.createAll(outDir)
     var result = simulateDownload(torrent, outDir, 8)
@@ -2211,7 +2212,7 @@ func testFullDownloadMultiFile() as int
     fails += assertOk("multi file count", tf.length == 3)
     fails += assertOk("multi total", int(torrent["totalLength"]) == totalLength)
 
-    string outDir = path.join(path.temp(), "xtorrent_test_multi")
+    string outDir = path.join(path.temp(), path.random("xtorrent_multi_", ""))
     if dir.exists(outDir) then dir.clean(outDir) end
     dir.createAll(outDir)
     var result = simulateDownload(torrent, outDir, 8)

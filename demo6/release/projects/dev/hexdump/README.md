@@ -54,7 +54,7 @@ hexdump.exe <file> [-s <off>] [-n <n>]
   直接构造的临时量，两条路径都正常。dev/README「仍需注意的限制」表中「不可按值传参」
   措辞偏宽，实际被禁的只有「return 已有具名值」一档。本工具因此把 `dumpBytes` /
   `verifyStreamReadOnly` 设计成**接收 Buffer 参数**（而非返回 Buffer）。
-- **BUG-HD2（低）**：`string.formatInt(n, "c")` 不按 `%c` 字符格式化，原样返回十进制
+- **BUG-HD2（低）**：`int.format(n, "c")` 不按 `%c` 字符格式化，原样返回十进制
   文本。byte→char 改用 `Buffer` 构造 0x20..0x7e 可打印 ASCII 表 + `string.charAt`
   索引（见 `buildPrintable()` / `asciiOf()`）。
 

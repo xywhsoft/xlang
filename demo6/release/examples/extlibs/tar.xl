@@ -1,0 +1,32 @@
+import tar
+
+
+
+func main(...) as int
+    auto writer = tar.create()
+    writer.mkdir("docs")
+    writer.add("docs/hello.txt", "hello TAR")
+    Buffer binary = Buffer()
+    binary.appendByte(0)
+    binary.appendByte(255)
+    writer.add("data.bin", binary)
+
+    Buffer packed = writer.finish()
+    auto reader = tar.open(packed)
+    int count = 0
+    while reader.next() do
+        auto info = reader.info()
+        if info.isFile then
+            Buffer data = reader.read()
+            if info.name == "docs/hello.txt" then
+                assert data.text() == "hello TAR", "TAR text mismatch"
+            end
+        else
+            reader.skip()
+        end
+        count += 1
+    end
+    assert count == 3, "TAR entry count mismatch"
+    println("tar example: PASS")
+    return 0
+end

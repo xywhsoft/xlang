@@ -1,0 +1,17 @@
+import xml.sax
+
+
+
+func main(...) as int
+    string source = "<catalog><book id=\"xlang\">XLang 编译器</book><book id=\"xrt\">XRT 运行库</book></catalog>"
+    auto events = xml.sax.reader(source)
+    for event in events
+        if event["type"] == "start" then
+            println("start: " + event["name"])
+        elseif event["type"] == "text" then
+            println("text: " + event["text"])
+        end
+    end
+    println("xml.sax example: PASS")
+    return 0
+end

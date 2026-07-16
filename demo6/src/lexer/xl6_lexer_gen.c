@@ -1092,6 +1092,7 @@ static XL6_TokenKind xl6LookupKeyword(const char* text, int len)
         {"get", XL6_KW_GET}, {"let", XL6_KW_LET},
         {"public", XL6_KW_PUBLIC}, {"private", XL6_KW_PRIVATE}, {"protected", XL6_KW_PROTECTED}, {"static", XL6_KW_STATIC},
         {"override", XL6_KW_OVERRIDE}, {"final", XL6_KW_FINAL}, {"virtual", XL6_KW_VIRTUAL}, {"native", XL6_KW_NATIVE},
+        {"c_vararg", XL6_KW_C_VARARG},
         {"byval", XL6_KW_BYVAL}, {"byref", XL6_KW_BYREF}, {"out", XL6_KW_OUT},
         {"and", XL6_KW_AND}, {"or", XL6_KW_OR}, {"not", XL6_KW_NOT}
     };
@@ -3150,7 +3151,6 @@ void yyfree (void * ptr , yyscan_t yyscanner)
 
 
 #define YYTABLES_NAME "yytables"
-
 
 
 

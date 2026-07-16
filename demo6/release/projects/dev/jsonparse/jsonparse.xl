@@ -134,11 +134,11 @@ class Lexer
 
     // 读取字符串字面量（调用者已消耗起始引号）。返回解码后的字符串内容。
     func readStringBody(int openPos) as string
-        string out = ""
+        string outputValue = ""
         while self.pos < self.len do
             string c = string.charAt(self.src, self.pos)
             if c == "\"" then
-                return out
+                return outputValue
             end
             if c == "\\" then
                 self.pos += 1
@@ -147,21 +147,21 @@ class Lexer
                 end
                 string e = string.charAt(self.src, self.pos)
                 if e == "\"" then
-                    out = out + "\""
+                    outputValue = outputValue + "\""
                 elseif e == "\\" then
-                    out = out + "\\"
+                    outputValue = outputValue + "\\"
                 elseif e == "/" then
-                    out = out + "/"
+                    outputValue = outputValue + "/"
                 elseif e == "b" then
-                    out = out + "\b"
+                    outputValue = outputValue + "\b"
                 elseif e == "f" then
-                    out = out + "\f"
+                    outputValue = outputValue + "\f"
                 elseif e == "n" then
-                    out = out + "\n"
+                    outputValue = outputValue + "\n"
                 elseif e == "r" then
-                    out = out + "\r"
+                    outputValue = outputValue + "\r"
                 elseif e == "t" then
-                    out = out + "\t"
+                    outputValue = outputValue + "\t"
                 elseif e == "u" then
                     self.pos += 1
                     string hex = ""
@@ -193,19 +193,19 @@ class Lexer
                                 int lo = parseHex4(hex2)
                                 if lo >= 0xDC00 and lo <= 0xDFFF then
                                     int full = 0x10000 + ((cp - 0xD800) << 10) + (lo - 0xDC00)
-                                    out = out + codepointToUtf8(full)
+                                    outputValue = outputValue + codepointToUtf8(full)
                                     self.pos += 6
                                 else
-                                    out = out + codepointToUtf8(cp)
+                                    outputValue = outputValue + codepointToUtf8(cp)
                                 end
                             else
-                                out = out + codepointToUtf8(cp)
+                                outputValue = outputValue + codepointToUtf8(cp)
                             end
                         else
-                            out = out + codepointToUtf8(cp)
+                            outputValue = outputValue + codepointToUtf8(cp)
                         end
                     else
-                        out = out + codepointToUtf8(cp)
+                        outputValue = outputValue + codepointToUtf8(cp)
                     end
                 else
                     self.errorAt(openPos, "invalid escape: \\" + e)
@@ -220,7 +220,7 @@ class Lexer
                         self.errorAt(openPos, "unescaped control char in string")
                     end
                 end
-                out = out + c
+                outputValue = outputValue + c
                 self.pos += 1
             end
         end
@@ -549,39 +549,39 @@ end
 
 // 字符串转义为 JSON 字符串字面量（不含两侧引号）。
 func escapeString(string s) as string
-    string out = ""
+    string outputValue = ""
     int n = string.len(s)
     int i = 0
     while i < n do
         string c = string.charAt(s, i)
         int blen = string.byteLen(c)
         if c == "\"" then
-            out = out + "\\\""
+            outputValue = outputValue + "\\\""
         elseif c == "\\" then
-            out = out + "\\\\"
+            outputValue = outputValue + "\\\\"
         elseif c == "\n" then
-            out = out + "\\n"
+            outputValue = outputValue + "\\n"
         elseif c == "\r" then
-            out = out + "\\r"
+            outputValue = outputValue + "\\r"
         elseif c == "\t" then
-            out = out + "\\t"
+            outputValue = outputValue + "\\t"
         elseif c == "\b" then
-            out = out + "\\b"
+            outputValue = outputValue + "\\b"
         elseif c == "\f" then
-            out = out + "\\f"
+            outputValue = outputValue + "\\f"
         elseif blen == 1 then
             int code = string.byteAt(c, 0)
             if code < 0x20 then
-                out = out + "\\u00" + hexByte(code)
+                outputValue = outputValue + "\\u00" + hexByte(code)
             else
-                out = out + c
+                outputValue = outputValue + c
             end
         else
-            out = out + c
+            outputValue = outputValue + c
         end
         i += 1
     end
-    return out
+    return outputValue
 end
 
 func quoteString(string s) as string
@@ -628,23 +628,23 @@ func stringifyValue(var v, bool pretty, int indent) as string
         if pretty then
             childPad = string.repeat("  ", indent + 1)
         end
-        string out = "["
+        string outputValue = "["
         int i = 0
         while i < n do
             if i > 0 then
-                out = out + ","
+                outputValue = outputValue + ","
             end
             if pretty then
-                out = out + "\n" + childPad
+                outputValue = outputValue + "\n" + childPad
             end
-            out = out + stringifyValue(v[i], pretty, indent + 1)
+            outputValue = outputValue + stringifyValue(v[i], pretty, indent + 1)
             i += 1
         end
         if pretty then
-            out = out + "\n" + pad
+            outputValue = outputValue + "\n" + pad
         end
-        out = out + "]"
-        return out
+        outputValue = outputValue + "]"
+        return outputValue
     end
     if type(v) == type({}) then
         int n = v.length
@@ -659,27 +659,27 @@ func stringifyValue(var v, bool pretty, int indent) as string
         if pretty then
             childPad = string.repeat("  ", indent + 1)
         end
-        string out = "{"
+        string outputValue = "{"
         bool first = true
         for key, val in v
             if not first then
-                out = out + ","
+                outputValue = outputValue + ","
             end
             first = false
             if pretty then
-                out = out + "\n" + childPad
+                outputValue = outputValue + "\n" + childPad
             end
-            out = out + quoteString(string(key)) + ":"
+            outputValue = outputValue + quoteString(string(key)) + ":"
             if pretty then
-                out = out + " "
+                outputValue = outputValue + " "
             end
-            out = out + stringifyValue(val, pretty, indent + 1)
+            outputValue = outputValue + stringifyValue(val, pretty, indent + 1)
         end
         if pretty then
-            out = out + "\n" + pad
+            outputValue = outputValue + "\n" + pad
         end
-        out = out + "}"
-        return out
+        outputValue = outputValue + "}"
+        return outputValue
     end
     return "null"
 end

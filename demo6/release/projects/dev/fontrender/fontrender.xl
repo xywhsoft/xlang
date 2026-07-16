@@ -577,14 +577,14 @@ end
 //     字符末尾追加 scale 列空格作间隔。
 func loadGlyph(string ch) as array<string>
     var src = gFont[ch]
-    array<string> out = array[]
+    array<string> outputValue = array[]
     int i = 0
     int n = src.length
     while i < n do
-        out.append(string(src[i]))
+        outputValue.append(string(src[i]))
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // ========================================================================
@@ -668,26 +668,26 @@ end
 //   align : "left" / "center" / "right"（其它视为 left）
 //   不足 targetWidth 时补空格；超出则原样保留。
 func applyAlign(array<string> lines, int targetWidth, string align) as array<string>
-    array<string> out = array[]
+    array<string> outputValue = array[]
     int i = 0
     while i < lines.length do
         string line = lines[i]
         int lw = string.len(line)
         int pad = targetWidth - lw
         if pad <= 0 then
-            out.append(line)
+            outputValue.append(line)
         elseif align == "center" then
             int left = pad / 2
             int right = pad - left
-            out.append(string.repeat(" ", left) + line + string.repeat(" ", right))
+            outputValue.append(string.repeat(" ", left) + line + string.repeat(" ", right))
         elseif align == "right" then
-            out.append(string.repeat(" ", pad) + line)
+            outputValue.append(string.repeat(" ", pad) + line)
         else
-            out.append(line + string.repeat(" ", pad))
+            outputValue.append(line + string.repeat(" ", pad))
         end
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 

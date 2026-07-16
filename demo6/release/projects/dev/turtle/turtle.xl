@@ -20,13 +20,9 @@
 // Built-in L-systems: koch (snowflake), sierpinski (triangle), dragon (curve),
 // plant (fractal plant).
 //
-// Architecture notes (xlang gotchas worked around):
-//   * All turtle mutation happens through METHODS on a single instance held in
-//     main scope (never passed by value to a function), so scalar fields
-//     (x/y/angle) survive.
-//   * runCommands / interpret take only scalar (string/float) parameters; the
-//     command text is split into LOCAL var arrays, avoiding (container
-//     params to methods) and BUG-XL5 (typed array<T> from stdlib).
+// Architecture notes:
+//   * Turtle 是托管 class，所有移动和绘制命令通过方法修改同一实例。
+//   * 命令词法结果使用静态 array<string>，规则表使用动态字典。
 //   * The path is stored as array<string> of "M x y" / "L x y" segments with a
 //     parallel array<string> of colours; renderBody bakes scale+translate into
 //     the coordinates so stroke-width stays in screen units.
@@ -35,24 +31,6 @@
 
 
 // ============================================================ numeric helpers
-
-// ASCII uppercase (stdlib has no string.toUpper; mirrors xvm's helper).
-func toUpper(string s) as string
-    string out = ""
-    int n = string.len(s)
-    int i = 0
-    while i < n do
-        int b = string.byteAt(s, i)
-        if b >= 97 and b <= 122 then
-            out = out + string.charAt("ABCDEFGHIJKLMNOPQRSTUVWXYZ", b - 97)
-        else
-            out = out + string.charAt(s, i)
-        end
-        i = i + 1
-    end
-    return out
-end
-
 
 // Format a float for SVG attributes: whole numbers -> integer text, otherwise
 // 2 decimals with trailing zeros stripped. NaN/Inf -> "0".
@@ -63,7 +41,7 @@ func fmtNum(float v) as string
     if v == math.floor(v) and math.abs(v) < 1e15 then
         return string(int(v))
     end
-    string s = string.formatFloat(v, ".2")
+    string s = float.format(v, ".2")
     if string.contains(s, ".") then
         while string.endsWith(s, "0") do
             s = string.slice(s, 0, string.len(s) - 1)
@@ -108,7 +86,7 @@ end
 
 // Map a colour name to a hex code; unknown values (e.g. "#RRGGBB") pass through.
 func colorHex(string name) as string
-    string n = toUpper(string.trim(name))
+    string n = string.upper(string.trim(name))
     var m = {"RED": "#E53935", "GREEN": "#43A047", "BLUE": "#1E88E5", "YELLOW": "#FDD835", "BLACK": "#212121", "WHITE": "#FFFFFF", "PURPLE": "#8E24AA", "ORANGE": "#FB8C00", "CYAN": "#00ACC1", "PINK": "#EC407A", "BROWN": "#6D4C41", "GRAY": "#9E9E9E", "GREY": "#9E9E9E", "MAGENTA": "#E535AB", "LIME": "#C0CA33", "TEAL": "#00897B", "NAVY": "#1A237E"}
     string h = string(m[n])
     if h == "" then
@@ -375,7 +353,7 @@ class Turtle
             bool semi = string.startsWith(line, ";")
             if not (blank or cmt or semi) then
                 var toks = []
-                array parts = string.split(line, " ")
+                array<string> parts = string.split(line, " ")
                 int m = parts.length
                 int j = 0
                 while j < m do
@@ -387,7 +365,7 @@ class Turtle
                 end
                 int tc = toks.length
                 if tc > 0 then
-                    string op = toUpper(string(toks[0]))
+                    string op = string.upper(string(toks[0]))
                     string a1 = ""
                     if tc >= 2 then
                         a1 = string(toks[1])
@@ -428,7 +406,7 @@ class Turtle
             self.reset(0.0, 0.0, 0.0)
             self.penDown = true
         elseif op == "SETXY" or op == "GOTO" then
-            array pp = string.split(arg, ",")
+            array<string> pp = string.split(arg, ",")
             if pp.length == 2 then
                 string sx = string.trim(string(pp[0]))
                 string sy = string.trim(string(pp[1]))
@@ -451,9 +429,9 @@ class Turtle
     // are merged into one <path>.
     func renderBody(float x0, float y0, float tw, float th, float sw) as string
         int n = self.cmds.length
-        string out = ""
+        string outputValue = ""
         if n == 0 then
-            return out
+            return outputValue
         end
         float pad = 24.0
         float cw = self.maxX - self.minX
@@ -494,13 +472,13 @@ class Turtle
         while i < n do
             string cmd = self.cmds[i]
             string col = self.cmdColors[i]
-            array parts = string.split(cmd, " ")
+            array<string> parts = string.split(cmd, " ")
             string letter = string(parts[0])
             float px = float(parts[1]) * s + tx
             float py = float(parts[2]) * s + ty
             if col != curColor then
                 if curD != "" then
-                    out = out + svgPath(curD, "none", curColor, sw, 1.0) + "\n"
+                    outputValue = outputValue + svgPath(curD, "none", curColor, sw, 1.0) + "\n"
                 end
                 curColor = col
                 if letter == "M" then
@@ -518,9 +496,9 @@ class Turtle
             i = i + 1
         end
         if curD != "" then
-            out = out + svgPath(curD, "none", curColor, sw, 1.0) + "\n"
+            outputValue = outputValue + svgPath(curD, "none", curColor, sw, 1.0) + "\n"
         end
-        return out
+        return outputValue
     end
 
 
@@ -665,7 +643,7 @@ func expectF(float got, float want, string label)
     if math.abs(got - want) < 0.001 then
         ok(label)
     else
-        bad(label, "got " + string.formatFloat(got, ".4") + " want " + string.formatFloat(want, ".4"))
+        bad(label, "got " + float.format(got, ".4") + " want " + float.format(want, ".4"))
     end
 end
 
@@ -832,11 +810,11 @@ func main(...) as int
     if cmd == "test" then
         return runTest()
     elseif cmd == "demo" then
-        string out = "turtle_demo.svg"
+        string outputValue = "turtle_demo.svg"
         if arg.length >= 3 then
-            out = string(arg[2])
+            outputValue = string(arg[2])
         end
-        return runDemo(out)
+        return runDemo(outputValue)
     elseif cmd == "draw" then
         if arg.length < 4 then
             println("Usage: turtle draw <commands.txt> <output.svg>")

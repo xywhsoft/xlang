@@ -70,26 +70,11 @@ magick demo.ppm demo.png
 
 ## 重要实现说明（多态存储）
 
-经实战验证，xlang 当前对**多态 class 实例的存储**有以下限制（详见根目录 `BUGS.md` 的 BUG-RT1 / BUG-RT2 / BUG-RT3）：
-
-1. `array<Base>` 在 `append(Derived)` 时**静默丢弃**派生类实例。
-2. `Base` 类型字段 + `derive value` 会把派生类按值**切片**到 Base，丢失 override。
-3. 从函数**返回**带 virtual 方法 + var 字段的 class 实例会**丢失 vtable**，后续 virtual 调用崩溃。
-
-**因此本程序采用以下设计**：
-
-- `World.shapes` 字段使用 `array<var>`（不是 `array<Shape>`）
-- `Sphere` / `Plane` 的 `mat` 字段使用 `var`（不是 `Material`）
-- `HitRecord.mat` 字段使用 `var`
-- 取用时统一 `as Base` 还原类型，vtable 派发到对应 override
-- **场景构造中所有 Shape / Material 实例都直接 `new`**，不通过工厂函数返回
-
-另：
-
-- 「class 构造嵌套 class 构造」会触发 statement-level lowering 限制（BUG-RT4），
-  每个内层 class 实例必须先单独构造为局部变量，再传入外层构造。
-- 复合赋值 `+=` 不派发 class 运算符协议（已记录 BUG-V1），所以累加用 `s = s + x`。
-- 局部变量不能命名为 `dir` / `path` / `time` 等标准库名（会被识别为命名空间访问）。
+- `World.shapes` 使用 `array<Shape>` 保存 `Sphere`、`Plane` 等派生实例。
+- `Material` 和命中记录保持静态类型，容器不会切片派生对象；virtual 调用按实际类型派发。
+- class 采用受管理引用语义，场景只传递对象引用，不复制完整几何体或材质。
+- 向量、颜色和像素数据使用静态类型，`var` 只留给确实需要动态数据的边界。
+- 自测覆盖派生对象装入基类数组、命中材质保留和虚调用结果。
 
 ## 验证
 
@@ -98,9 +83,12 @@ magick demo.ppm demo.png
 xl run projects\dev\raytrace\raytrace.xl -- render 100 75 5
 :: EXIT=0, 输出 raytrace_out.ppm
 
+xl run projects\dev\raytrace\raytrace.xl -- test
+:: EXIT=0, 9 passed, 0 failed
+
 :: xl build 路径
 xl build projects\dev\raytrace\raytrace.xl -o projects\dev\raytrace\raytrace.exe
 :: EXIT=0, 生成 raytrace.exe
 ```
 
-两条路径都必须 EXIT=0。
+运行、自测和构建路径都必须返回 0。

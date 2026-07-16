@@ -90,17 +90,17 @@ end
 
 // string -> array<int>（按字节展开）
 func bytesFromString(string s) as array<int>
-    array<int> out = []
+    array<int> outputValue = []
     int n = string.len(s)
     if n == 0 then
-        return out
+        return outputValue
     end
     int i = 0
     while i < n do
-        out.push(string.byteAt(s, i))
+        outputValue.push(string.byteAt(s, i))
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // array<int> -> string（通过 Buffer + encoding.fromBytes）
@@ -127,19 +127,19 @@ func bytesToHex(array<int> bs) as string
         return ""
     end
     string hex = "0123456789abcdef"
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < bs.length do
         int b = bs[i] & 0xFF
-        out = out + string.charAt(hex, (b >> 4) & 0xF) + string.charAt(hex, b & 0xF)
+        outputValue = outputValue + string.charAt(hex, (b >> 4) & 0xF) + string.charAt(hex, b & 0xF)
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // 可打印展示（非可打印字节用 . 代替），maxLen 截断
 func printableBytes(array<int> bs, int maxLen) as string
-    string out = ""
+    string outputValue = ""
     int n = bs.length
     int show = n
     if show > maxLen then
@@ -149,32 +149,32 @@ func printableBytes(array<int> bs, int maxLen) as string
     while i < show do
         int b = bs[i] & 0xFF
         if b >= 32 and b <= 126 then
-            out = out + string.charAt(PRINTABLE_CHARS, b - 32)
+            outputValue = outputValue + string.charAt(PRINTABLE_CHARS, b - 32)
         else
-            out = out + "."
+            outputValue = outputValue + "."
         end
         i += 1
     end
     if n > maxLen then
-        out = out + "...(" + string(n) + " bytes)"
+        outputValue = outputValue + "...(" + string(n) + " bytes)"
     end
-    return out
+    return outputValue
 end
 
 // 数组深拷贝
 func copyBytes(array<int> bs) as array<int>
-    array<int> out = []
+    array<int> outputValue = []
     int i = 0
     while i < bs.length do
-        out.push(bs[i])
+        outputValue.push(bs[i])
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // 切片 [start, start+len)
 func sliceBytes(array<int> bs, int start, int len) as array<int>
-    array<int> out = []
+    array<int> outputValue = []
     if start < 0 then
         start = 0
     end
@@ -184,31 +184,31 @@ func sliceBytes(array<int> bs, int start, int len) as array<int>
         end2 = bs.length
     end
     while i < end2 do
-        out.push(bs[i])
+        outputValue.push(bs[i])
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // 删除区间 [start, start+len)
 func removeRange(array<int> bs, int start, int len) as array<int>
-    array<int> out = []
+    array<int> outputValue = []
     int i = 0
     while i < start and i < bs.length do
-        out.push(bs[i])
+        outputValue.push(bs[i])
         i += 1
     end
     i = start + len
     while i < bs.length do
-        out.push(bs[i])
+        outputValue.push(bs[i])
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // 在 pos 处插入一段字节
 func insertAt(array<int> bs, int pos, array<int> segment) as array<int>
-    array<int> out = []
+    array<int> outputValue = []
     if pos < 0 then
         pos = 0
     end
@@ -217,19 +217,19 @@ func insertAt(array<int> bs, int pos, array<int> segment) as array<int>
     end
     int i = 0
     while i < pos do
-        out.push(bs[i])
+        outputValue.push(bs[i])
         i += 1
     end
     int j = 0
     while j < segment.length do
-        out.push(segment[j])
+        outputValue.push(segment[j])
         j += 1
     end
     while i < bs.length do
-        out.push(bs[i])
+        outputValue.push(bs[i])
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // 两个字节数组相等比较
@@ -252,26 +252,26 @@ func clampLen(array<int> bs, int maxLen) as array<int>
     if bs.length <= maxLen then
         return bs
     end
-    array<int> out = []
+    array<int> outputValue = []
     int i = 0
     while i < maxLen do
-        out.push(bs[i])
+        outputValue.push(bs[i])
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // 读文件 -> array<int>
 func readFileBytes(string p) as array<int>
     Buffer buf = file.readBytes(p)
-    array<int> out = []
+    array<int> outputValue = []
     int n = buf.len()
     int i = 0
     while i < n do
-        out.push(buf.byteAt(i))
+        outputValue.push(buf.byteAt(i))
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // 写 array<int> -> 文件
@@ -292,7 +292,7 @@ func inputHash(array<int> bs) as string
         hex = "00"
     end
     uint64 h = hash.u64(hex)
-    return string.formatUInt(h, "x16")
+    return int.format(h, "x16")
 end
 
 // ============================================================================
@@ -343,22 +343,22 @@ class MutationEngine
 
     // ---- 位翻转 ----
     func flipBit(array<int> input) as array<int>
-        array<int> out = copyBytes(input)
-        if out.length == 0 then
-            out.push(self.rb())
-            return out
+        array<int> outputValue = copyBytes(input)
+        if outputValue.length == 0 then
+            outputValue.push(self.rb())
+            return outputValue
         end
-        int pos = self.rp(out.length)
+        int pos = self.rp(outputValue.length)
         int bit = random.range(0, 7)
-        out[pos] = (out[pos] ^ (1 << bit)) & 0xFF
-        return out
+        outputValue[pos] = (outputValue[pos] ^ (1 << bit)) & 0xFF
+        return outputValue
     end
 
     // ---- 字节插入 ----
     func insertByte(array<int> input) as array<int>
         array<int> seg = array<int>[self.rb()]
-        array<int> out = insertAt(input, self.rip(input.length), seg)
-        return self.clamp(out)
+        array<int> outputValue = insertAt(input, self.rip(input.length), seg)
+        return self.clamp(outputValue)
     end
 
     // ---- 字节删除 ----
@@ -373,40 +373,40 @@ class MutationEngine
 
     // ---- 字节替换 ----
     func replaceByte(array<int> input) as array<int>
-        array<int> out = copyBytes(input)
-        if out.length == 0 then
-            out.push(self.rb())
-            return out
+        array<int> outputValue = copyBytes(input)
+        if outputValue.length == 0 then
+            outputValue.push(self.rb())
+            return outputValue
         end
-        int pos = self.rp(out.length)
-        out[pos] = self.rb()
-        return out
+        int pos = self.rp(outputValue.length)
+        outputValue[pos] = self.rb()
+        return outputValue
     end
 
     // ---- 算术变异（±N）----
     func arithByte(array<int> input) as array<int>
-        array<int> out = copyBytes(input)
-        if out.length == 0 then
-            out.push(self.rb())
-            return out
+        array<int> outputValue = copyBytes(input)
+        if outputValue.length == 0 then
+            outputValue.push(self.rb())
+            return outputValue
         end
-        int pos = self.rp(out.length)
+        int pos = self.rp(outputValue.length)
         int delta = random.range(-35, 35)
-        out[pos] = (out[pos] + delta) & 0xFF
-        return out
+        outputValue[pos] = (outputValue[pos] + delta) & 0xFF
+        return outputValue
     end
 
     // ---- 有趣字节值注入 ----
     func interestingByte(array<int> input) as array<int>
-        array<int> out = copyBytes(input)
+        array<int> outputValue = copyBytes(input)
         int val = INTERESTING_BYTES[self.rp(INTERESTING_BYTES.length)]
-        if out.length == 0 then
-            out.push(val)
-            return out
+        if outputValue.length == 0 then
+            outputValue.push(val)
+            return outputValue
         end
-        int pos = self.rp(out.length)
-        out[pos] = val
-        return out
+        int pos = self.rp(outputValue.length)
+        outputValue[pos] = val
+        return outputValue
     end
 
     // ---- 字典注入（插入）----
@@ -416,8 +416,8 @@ class MutationEngine
         end
         string tok = self.dictTokens[self.rp(self.dictTokens.length)]
         array<int> tokenBytes = bytesFromString(tok)
-        array<int> out = insertAt(input, self.rip(input.length), tokenBytes)
-        return self.clamp(out)
+        array<int> outputValue = insertAt(input, self.rip(input.length), tokenBytes)
+        return self.clamp(outputValue)
     end
 
     // ---- 字典注入（覆盖）----
@@ -431,14 +431,14 @@ class MutationEngine
         end
         string tok = self.dictTokens[self.rp(self.dictTokens.length)]
         array<int> tokenBytes = bytesFromString(tok)
-        array<int> out = copyBytes(input)
+        array<int> outputValue = copyBytes(input)
         int pos = self.rp(n)
         int j = 0
         while j < tokenBytes.length and pos + j < n do
-            out[pos + j] = tokenBytes[j]
+            outputValue[pos + j] = tokenBytes[j]
             j += 1
         end
-        return out
+        return outputValue
     end
 
     // ---- 块交换 ----
@@ -461,15 +461,15 @@ class MutationEngine
         if s2 + blockLen > n then
             s2 = n - blockLen
         end
-        array<int> out = copyBytes(input)
+        array<int> outputValue = copyBytes(input)
         int k = 0
         while k < blockLen do
-            int tmp = out[s1 + k]
-            out[s1 + k] = out[s2 + k]
-            out[s2 + k] = tmp
+            int tmp = outputValue[s1 + k]
+            outputValue[s1 + k] = outputValue[s2 + k]
+            outputValue[s2 + k] = tmp
             k += 1
         end
-        return out
+        return outputValue
     end
 
     // ---- 块重复（duplicate）----
@@ -485,8 +485,8 @@ class MutationEngine
         int blockLen = random.range(1, half)
         int src = self.rp(n - blockLen + 1)
         array<int> block = sliceBytes(input, src, blockLen)
-        array<int> out = insertAt(input, self.rip(n), block)
-        return self.clamp(out)
+        array<int> outputValue = insertAt(input, self.rip(n), block)
+        return self.clamp(outputValue)
     end
 
     // ---- 块删除 ----
@@ -505,11 +505,11 @@ class MutationEngine
             return self.deleteByte(input)
         end
         int start = random.range(0, maxStart)
-        array<int> out = removeRange(input, start, blockLen)
-        if out.length < self.minLen then
+        array<int> outputValue = removeRange(input, start, blockLen)
+        if outputValue.length < self.minLen then
             return copyBytes(input)
         end
-        return out
+        return outputValue
     end
 
     // ---- 整体克隆（repeat N times）----
@@ -518,22 +518,22 @@ class MutationEngine
             return self.insertByte(input)
         end
         int times = random.range(2, 4)
-        array<int> out = []
+        array<int> outputValue = []
         int t = 0
         while t < times do
             int i = 0
             while i < input.length do
-                out.push(input[i])
+                outputValue.push(input[i])
                 i += 1
             end
             t += 1
         end
-        return self.clamp(out)
+        return self.clamp(outputValue)
     end
 
     // ---- 交叉（splice two inputs）----
     func crossOver(array<int> a, array<int> b) as array<int>
-        array<int> out = []
+        array<int> outputValue = []
         int i = 0
         int j = 0
         bool useA = true
@@ -545,34 +545,34 @@ class MutationEngine
                 useA = not useA
             end
             if useA then
-                out.push(a[i])
+                outputValue.push(a[i])
                 i += 1
             else
-                out.push(b[j])
+                outputValue.push(b[j])
                 j += 1
             end
         end
         while i < a.length do
-            out.push(a[i])
+            outputValue.push(a[i])
             i += 1
         end
         while j < b.length do
-            out.push(b[j])
+            outputValue.push(b[j])
             j += 1
         end
-        return self.clamp(out)
+        return self.clamp(outputValue)
     end
 
     // ---- 随机生成全新输入 ----
     func randomInput() as array<int>
         int n = random.range(1, 64)
-        array<int> out = []
+        array<int> outputValue = []
         int i = 0
         while i < n do
-            out.push(self.rb())
+            outputValue.push(self.rb())
             i += 1
         end
-        return out
+        return outputValue
     end
 
     // ---- havoc：堆叠 1-N 个随机变异 ----
@@ -619,20 +619,20 @@ class MutationEngine
 
     // 长度归一化：补齐 minLen，截断 maxLen
     func normalize(array<int> bs) as array<int>
-        array<int> out = copyBytes(bs)
-        while out.length < self.minLen do
-            out.push(0)
+        array<int> outputValue = copyBytes(bs)
+        while outputValue.length < self.minLen do
+            outputValue.push(0)
         end
-        if out.length > self.maxLen then
+        if outputValue.length > self.maxLen then
             array<int> trimmed = []
             int j = 0
             while j < self.maxLen do
-                trimmed.push(out[j])
+                trimmed.push(outputValue[j])
                 j += 1
             end
-            out = trimmed
+            outputValue = trimmed
         end
-        return out
+        return outputValue
     end
 end
 
@@ -766,7 +766,7 @@ class CoverageTracker
     // 观察一次执行信号，返回 true 表示新路径
     func observe(string signal) as bool
         uint64 h = hash.u64(signal)
-        string key = string.formatUInt(h, "x16")
+        string key = int.format(h, "x16")
         if self.hashes.contains(key) then
             self.hashes[key] = int(self.hashes[key]) + 1
             return false
@@ -1341,17 +1341,17 @@ class Stats
         float e = self.elapsedSec()
         float spd = self.speed()
         float avg = self.avgDuration()
-        string budget = string.formatFloat(e, ".0") + "s"
+        string budget = float.format(e, ".0") + "s"
         if budgetSec > 0 then
             budget = budget + "/" + string(budgetSec) + "s"
         end
         println(C_CYAN + "[xfuzz]" + C_RESET +
-                " execs: " + string.formatInt(self.totalRuns, ",") +
+                " execs: " + int.format(self.totalRuns, ",") +
                 " | paths: " + string(paths) +
                 " | corpus: " + string(corpusSize) +
                 " | crashes: " + C_RED + string(crashCount) + C_RESET +
-                " | " + string.formatFloat(spd, ".1") + " exec/s" +
-                " | " + string.formatFloat(avg, ".1") + " ms/run" +
+                " | " + float.format(spd, ".1") + " exec/s" +
+                " | " + float.format(avg, ".1") + " ms/run" +
                 " | " + budget)
     end
 
@@ -1361,15 +1361,15 @@ class Stats
         float avg = self.avgDuration()
         println("")
         println(C_BOLD + "=== xfuzz summary ===" + C_RESET)
-        println("  executions:    " + string.formatInt(self.totalRuns, ","))
-        println("  unique paths:  " + string.formatInt(paths, ","))
-        println("  crashes found: " + string.formatInt(crashCount, ",") +
+        println("  executions:    " + int.format(self.totalRuns, ","))
+        println("  unique paths:  " + int.format(paths, ","))
+        println("  crashes found: " + int.format(crashCount, ",") +
                 " (" + string(self.timeoutRuns) + " timeout, " +
                 string(self.crashRuns) + " other)")
-        println("  corpus size:   " + string.formatInt(corpusSize, ",") + " seeds")
-        println("  speed:         " + string.formatFloat(spd, ".1") + " exec/s")
-        println("  avg duration:  " + string.formatFloat(avg, ".1") + " ms/run")
-        println("  elapsed:       " + string.formatFloat(e, ".1") + "s")
+        println("  corpus size:   " + int.format(corpusSize, ",") + " seeds")
+        println("  speed:         " + float.format(spd, ".1") + " exec/s")
+        println("  avg duration:  " + float.format(avg, ".1") + " ms/run")
+        println("  elapsed:       " + float.format(e, ".1") + "s")
     end
 end
 
@@ -1391,7 +1391,7 @@ class Fuzzer
     create(string targetName, string seedsDir, int minutes, string scriptPath)
         g_xl = findXl()
         g_scriptPath = scriptPath
-        self.workDir = path.join(path.temp(), "xfuzz_work")
+        self.workDir = path.join(path.temp(), path.random("xfuzz_", ""))
         if not dir.exists(self.workDir) then
             dir.createAll(self.workDir)
         end
@@ -1538,7 +1538,7 @@ func cmdMinimize(string crashFile, string targetName) as int
         return 1
     end
     g_xl = findXl()
-    string workDir = path.join(path.temp(), "xfuzz_min")
+    string workDir = path.join(path.temp(), path.random("xfuzz_min_", ""))
     if not dir.exists(workDir) then
         dir.createAll(workDir)
     end
@@ -1565,7 +1565,7 @@ func cmdMinimize(string crashFile, string targetName) as int
     end
     println("")
     println("  minimized: " + string(mini.length) + " bytes (" +
-            string.formatFloat(ratio, ".1") + "% of original)")
+            float.format(ratio, ".1") + "% of original)")
     println("  saved to:  " + outPath)
     println("  preview:   " + printableBytes(mini, 64))
     return 0

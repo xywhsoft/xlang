@@ -242,6 +242,7 @@ static int xl6CgenChannelCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
 static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
 static int xl6CgenSpecialCollectionCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee);
 static int xl6CgenSpecialCollectionMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);
+static void xl6CgenEmitOsRuntime(XL6_Output* out);
 static XL6_AstNode* xl6CgenSpecialCollectionCtorType(XL6_CgenContext* ctx, const XL6_AstNode* call);
 static XL6_AstNode* xl6CgenSpecialCollectionMethodType(XL6_CgenContext* ctx, const XL6_AstNode* call);
 static void xl6CgenEmitSpecialCollectionRuntime(XL6_Output* out);

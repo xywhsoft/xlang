@@ -346,6 +346,11 @@ XSQLITE_EXPORT int xsqlite3_bind_int_native(void* stmt, int index, int value)
 	return sqlite3_bind_int((sqlite3_stmt*)stmt, index, value);
 }
 
+XSQLITE_EXPORT int xsqlite3_bind_int64_native(void* stmt, int index, int64_t value)
+{
+	return sqlite3_bind_int64((sqlite3_stmt*)stmt, index, (sqlite3_int64)value);
+}
+
 XSQLITE_EXPORT int xsqlite3_bind_double_native(void* stmt, int index, double value)
 {
 	return sqlite3_bind_double((sqlite3_stmt*)stmt, index, value);
@@ -374,6 +379,25 @@ XSQLITE_EXPORT int xsqlite3_column_type_native(void* stmt, int column)
 XSQLITE_EXPORT int xsqlite3_column_int_native(void* stmt, int column)
 {
 	return sqlite3_column_int((sqlite3_stmt*)stmt, column);
+}
+
+XSQLITE_EXPORT int64_t xsqlite3_column_int64_native(void* stmt, int column)
+{
+	return (int64_t)sqlite3_column_int64((sqlite3_stmt*)stmt, column);
+}
+
+XSQLITE_EXPORT int64_t xsqlite3_last_insert_rowid_native(void* db)
+{
+	return db != NULL ? (int64_t)sqlite3_last_insert_rowid((sqlite3*)db) : 0;
+}
+
+XSQLITE_EXPORT int xsqlite3_busy_timeout_native(void* db, int milliseconds)
+{
+	if ( db == NULL || milliseconds < 0 ) {
+		xsqlite_set_error("invalid busy timeout arguments");
+		return SQLITE_MISUSE;
+	}
+	return sqlite3_busy_timeout((sqlite3*)db, milliseconds);
 }
 
 XSQLITE_EXPORT double xsqlite3_column_double_native(void* stmt, int column)

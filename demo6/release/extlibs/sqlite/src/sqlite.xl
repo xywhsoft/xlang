@@ -75,6 +75,11 @@ extern "xsqlite3_bind_int_native" func __xl6_native_sqlite_sqlite3_bind_int(poin
 export func sqlite3_bind_int(point stmt, int index, int value) as int
     return __xl6_native_sqlite_sqlite3_bind_int(stmt, index, value)
 end
+extern "xsqlite3_bind_int64_native" func __xl6_native_sqlite_sqlite3_bind_int64(point stmt, int index, int value) as int
+
+export func sqlite3_bind_int64(point stmt, int index, int value) as int
+    return __xl6_native_sqlite_sqlite3_bind_int64(stmt, index, value)
+end
 extern "xsqlite3_bind_double_native" func __xl6_native_sqlite_sqlite3_bind_double(point stmt, int index, float value) as int
 
 export func sqlite3_bind_double(point stmt, int index, float value) as int
@@ -114,6 +119,11 @@ extern "xsqlite3_column_int_native" func __xl6_native_sqlite_sqlite3_column_int(
 
 export func sqlite3_column_int(point stmt, int column) as int
     return __xl6_native_sqlite_sqlite3_column_int(stmt, column)
+end
+extern "xsqlite3_column_int64_native" func __xl6_native_sqlite_sqlite3_column_int64(point stmt, int column) as int
+
+export func sqlite3_column_int64(point stmt, int column) as int
+    return __xl6_native_sqlite_sqlite3_column_int64(stmt, column)
 end
 extern "xsqlite3_column_double_native" func __xl6_native_sqlite_sqlite3_column_double(point stmt, int column) as float
 
@@ -170,6 +180,16 @@ extern "xsqlite3_last_insert_rowid_text_native" func __xl6_native_sqlite_sqlite3
 export func sqlite3_last_insert_rowid_text(point db) as string
     return __xl6_native_sqlite_sqlite3_last_insert_rowid_text(db)
 end
+extern "xsqlite3_last_insert_rowid_native" func __xl6_native_sqlite_sqlite3_last_insert_rowid(point db) as int
+
+export func sqlite3_last_insert_rowid(point db) as int
+    return __xl6_native_sqlite_sqlite3_last_insert_rowid(db)
+end
+extern "xsqlite3_busy_timeout_native" func __xl6_native_sqlite_sqlite3_busy_timeout(point db, int milliseconds) as int
+
+export func sqlite3_busy_timeout(point db, int milliseconds) as int
+    return __xl6_native_sqlite_sqlite3_busy_timeout(db, milliseconds)
+end
 extern "xsqlite3_libversion_native" func __xl6_native_sqlite_sqlite3_libversion() as string
 
 export func sqlite3_libversion() as string
@@ -225,3 +245,250 @@ export extern "xsqlite_const_SQLITE_OPEN_NOMUTEX" int SQLITE_OPEN_NOMUTEX
 export extern "xsqlite_const_SQLITE_OPEN_FULLMUTEX" int SQLITE_OPEN_FULLMUTEX
 export extern "xsqlite_const_SQLITE_OPEN_SHAREDCACHE" int SQLITE_OPEN_SHAREDCACHE
 export extern "xsqlite_const_SQLITE_OPEN_PRIVATECACHE" int SQLITE_OPEN_PRIVATECACHE
+
+class Statement
+    point handle
+
+    create()
+        self.handle = null
+    end
+
+    create(point handle)
+        self.handle = handle
+    end
+
+    destroy()
+        if self.handle != null then
+            sqlite3_finalize(self.handle)
+            self.handle = null
+        end
+    end
+
+    func valid() as bool
+        return self.handle != null
+    end
+
+    func finalize() as int
+        if self.handle == null then
+            return SQLITE_MISUSE
+        end
+        auto rc = sqlite3_finalize(self.handle)
+        self.handle = null
+        return rc
+    end
+
+    func reset() as int
+        return sqlite3_reset(self.handle)
+    end
+
+    func clear_bindings() as int
+        return sqlite3_clear_bindings(self.handle)
+    end
+
+    func bind(int index, int value) as int
+        return sqlite3_bind_int64(self.handle, index, value)
+    end
+
+    func bind(int index, float value) as int
+        return sqlite3_bind_double(self.handle, index, value)
+    end
+
+    func bind(int index, string value) as int
+        return sqlite3_bind_text(self.handle, index, value)
+    end
+
+    func bind_null(int index) as int
+        return sqlite3_bind_null(self.handle, index)
+    end
+
+    func bind_blob_text(int index, string value) as int
+        return sqlite3_bind_blob_text(self.handle, index, value)
+    end
+
+    func step() as int
+        return sqlite3_step(self.handle)
+    end
+
+    func done() as bool
+        return self.step() == SQLITE_DONE
+    end
+
+    func row_ready() as bool
+        return self.step() == SQLITE_ROW
+    end
+
+    func column_count() as int
+        return sqlite3_column_count(self.handle)
+    end
+
+    func column_name(int column) as string
+        return sqlite3_column_name(self.handle, column)
+    end
+
+    func column_type(int column) as int
+        return sqlite3_column_type(self.handle, column)
+    end
+
+    func column_int(int column) as int
+        return sqlite3_column_int64(self.handle, column)
+    end
+
+    func column_float(int column) as float
+        return sqlite3_column_double(self.handle, column)
+    end
+
+    func column_text(int column) as string
+        return sqlite3_column_text(self.handle, column)
+    end
+
+    func column_blob_text(int column) as string
+        return sqlite3_column_blob_text(self.handle, column)
+    end
+
+    func value(int column) as var
+        int kind = self.column_type(column)
+        if kind == SQLITE_INTEGER then
+            return self.column_int(column)
+        elseif kind == SQLITE_FLOAT then
+            return self.column_float(column)
+        elseif kind == SQLITE_TEXT then
+            return self.column_text(column)
+        elseif kind == SQLITE_BLOB then
+            return self.column_blob_text(column)
+        end
+        return null
+    end
+
+    func row() as var
+        var result = {}
+        int count = self.column_count()
+        int i = 0
+        while i < count do
+            result[self.column_name(i)] = self.value(i)
+            i += 1
+        end
+        return result
+    end
+end
+
+class Database
+    point handle
+
+    create()
+        self.handle = null
+    end
+
+    create(point handle)
+        self.handle = handle
+    end
+
+    create(string filename)
+        self.handle = sqlite3_open(filename)
+    end
+
+    destroy()
+        if self.handle != null then
+            sqlite3_close_v2(self.handle)
+            self.handle = null
+        end
+    end
+
+    func valid() as bool
+        return self.handle != null
+    end
+
+    func close() as int
+        if self.handle == null then
+            return SQLITE_MISUSE
+        end
+        auto rc = sqlite3_close(self.handle)
+        if rc == SQLITE_OK then
+            self.handle = null
+        end
+        return rc
+    end
+
+    func close_v2() as int
+        if self.handle == null then
+            return SQLITE_MISUSE
+        end
+        auto rc = sqlite3_close_v2(self.handle)
+        if rc == SQLITE_OK then
+            self.handle = null
+        end
+        return rc
+    end
+
+    func last_error() as string
+        return sqlite3_errmsg(self.handle)
+    end
+
+    func execute(string sql) as bool
+        return sqlite3_exec(self.handle, sql) == SQLITE_OK
+    end
+
+    func exec_code(string sql) as int
+        return sqlite3_exec(self.handle, sql)
+    end
+
+    func prepare(string sql) as Statement
+        return Statement(sqlite3_prepare_v2(self.handle, sql))
+    end
+
+    func changes() as int
+        return sqlite3_changes(self.handle)
+    end
+
+    func total_changes() as int
+        return sqlite3_total_changes(self.handle)
+    end
+
+    func last_insert_rowid_text() as string
+        return sqlite3_last_insert_rowid_text(self.handle)
+    end
+
+    func last_insert_rowid() as int
+        return sqlite3_last_insert_rowid(self.handle)
+    end
+
+    func busy_timeout(int milliseconds) as bool
+        return sqlite3_busy_timeout(self.handle, milliseconds) == SQLITE_OK
+    end
+
+    func begin() as bool
+        return self.execute("begin")
+    end
+
+    func commit() as bool
+        return self.execute("commit")
+    end
+
+    func rollback() as bool
+        return self.execute("rollback")
+    end
+
+    func query(string sql) as var
+        var rows = []
+        auto stmt = self.prepare(sql)
+        if stmt.valid() == false then
+            return rows
+        end
+        while stmt.step() == SQLITE_ROW do
+            rows.append(stmt.row())
+        end
+        stmt.finalize()
+        return rows
+    end
+end
+
+export func open(string filename) as Database
+    return Database(filename)
+end
+
+export func open_v2(string filename, int flags, string vfs) as Database
+    return Database(sqlite3_open_v2(filename, flags, vfs))
+end
+
+export func memory() as Database
+    return open(":memory:")
+end

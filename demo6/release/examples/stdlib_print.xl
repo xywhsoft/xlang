@@ -1,5 +1,8 @@
 print("xlang", "print", 123)
 println(" done")
+write("raw")
+writeln("-text")
+writeln()
 
 println(null, true, false, 42, 3.14, #2026-06-18 12:30:59#)
 println([1, 2, 3])

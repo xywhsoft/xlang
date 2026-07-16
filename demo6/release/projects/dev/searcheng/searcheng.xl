@@ -411,9 +411,10 @@ func evalPhrase(var words) as var
         // 逐文档检查
         var firstPostings = gIndex[first]
         for doc, positions in firstPostings
-            bool matched = phraseInDoc(words, doc)
+            string docName = string(doc)
+            bool matched = phraseInDoc(words, docName)
             if matched then
-                result[doc] = true
+                result[docName] = true
             end
         end
     end
@@ -672,8 +673,9 @@ func cmdSearch(string queryStr) as int
     var docSet = runQuery(queryStr)
     var pairs = []
     for doc, v in docSet
-        float sc = scoreDoc(doc)
-        pairs.push([sc, doc])
+        string docName = string(doc)
+        float sc = scoreDoc(docName)
+        pairs.push([sc, docName])
     end
     sortPairsDesc(pairs)
 
@@ -685,7 +687,7 @@ func cmdSearch(string queryStr) as int
         string doc = string(pairs[i][1])
         float sc = float(pairs[i][0])
         string rank = string.padLeft(string(i + 1), 3)
-        string scoreStr = string.padLeft(string.formatFloat(sc, ".4"), 9)
+        string scoreStr = string.padLeft(float.format(sc, ".4"), 9)
         println("  " + rank + ".  " + string.padRight(doc, 26) + " score=" + scoreStr)
         i += 1
     end
@@ -720,7 +722,7 @@ func cmdStats() as int
     if gIndex.length > 0 then
         avgPost = float(postings) / float(gIndex.length)
     end
-    println("  avg df         : " + string.formatFloat(avgPost, ".2"))
+    println("  avg df         : " + float.format(avgPost, ".2"))
     // 平均文档长度
     int totalLen = 0
     for doc, len in gDocLens
@@ -730,7 +732,7 @@ func cmdStats() as int
     if gDocCount > 0 then
         avgLen = float(totalLen) / float(gDocCount)
     end
-    println("  avg doc tokens : " + string.formatFloat(avgLen, ".1"))
+    println("  avg doc tokens : " + float.format(avgLen, ".1"))
     println("----------------------------------------------------------------")
     // 词频 Top 10（按 df 降序）
     var pairs = []
@@ -883,7 +885,8 @@ func cmdTest() as int
     var learningSet = runQuery("learning")
     var pairs = []
     for doc, v in learningSet
-        pairs.push([scoreDoc(doc), doc])
+        string docName = string(doc)
+        pairs.push([scoreDoc(docName), docName])
     end
     sortPairsDesc(pairs)
     if pairs.length >= 2 then
@@ -904,12 +907,14 @@ func cmdTest() as int
     var machinePairs = []
     var mSet = runQuery("machine")
     for doc, v in mSet
-        machinePairs.push([scoreDoc(doc), doc])
+        string docName = string(doc)
+        machinePairs.push([scoreDoc(docName), docName])
     end
     var pythonPairs = []
     var pSet = runQuery("python")
     for doc, v in pSet
-        pythonPairs.push([scoreDoc(doc), doc])
+        string docName = string(doc)
+        pythonPairs.push([scoreDoc(docName), docName])
     end
     if machinePairs.length > 0 and pythonPairs.length > 0 then
         float machineScore = float(machinePairs[0][0])
@@ -917,7 +922,7 @@ func cmdTest() as int
         if machineScore > pythonScore then
             println("  [OK]   idf weighting        rare (machine df=1) tf=1 scores higher than common (python df=2) tf=1")
         else
-            println("  [FAIL] idf weighting        machine=" + string.formatFloat(machineScore, ".4") + " python=" + string.formatFloat(pythonScore, ".4"))
+            println("  [FAIL] idf weighting        machine=" + float.format(machineScore, ".4") + " python=" + float.format(pythonScore, ".4"))
             fails += 1
         end
     else

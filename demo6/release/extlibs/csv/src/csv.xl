@@ -1,0 +1,445 @@
+extern "xrtGetError" func __csv_error() as string
+
+
+
+func __csv_newline(string value) as int
+    if value == "lf" then
+        return 0
+    elseif value == "crlf" then
+        return 1
+    end
+    throw ValueError "CSV newline must be lf or crlf"
+end
+
+
+
+class Reader
+    native point handle
+    extern "xcsv_reader_open_memory" create(point data, c_ulonglong size,
+        string delimiter, string quote, c_bool strict, c_ulonglong maxInput,
+        c_ulonglong maxOutput, c_ulonglong maxField, c_ulonglong maxRows,
+        c_ulonglong maxFields)
+    extern "xcsv_reader_open_file" create(string path, string delimiter,
+        string quote, c_bool strict, c_ulonglong maxInput, c_ulonglong maxOutput,
+        c_ulonglong maxField, c_ulonglong maxRows, c_ulonglong maxFields)
+    extern "xcsv_reader_destroy" destroy()
+
+    extern "xcsv_reader_next" func nextNative() as bool
+    extern "xcsv_reader_eof" func eofNative() as bool
+    extern "xcsv_reader_row" func rowNative() as int
+    extern "xcsv_reader_count" func countNative() as int
+    extern "xcsv_reader_field" func fieldNative(c_int index) as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get eof() as bool
+        return self.eofNative()
+    end
+
+    get rowNumber() as int
+        return self.rowNative()
+    end
+
+    get count() as int
+        return self.countNative()
+    end
+
+    func next() as bool
+        if self.nextNative() then
+            return true
+        end
+        if self.eofNative() then
+            return false
+        end
+        throw CsvError __csv_error()
+    end
+
+    func field(int index) as string
+        point result = self.fieldNative(c_int(index))
+        if result == null then
+            throw CsvError __csv_error()
+        end
+        return __xl_std_runtime_take_cstr(result)
+    end
+
+    func row() as array<string>
+        array<string> result = array<string>[]
+        int i = 0
+        while i < self.count do
+            result.append(self.field(i))
+            i += 1
+        end
+        return result
+    end
+end
+
+
+
+class Writer
+    native point handle
+    extern "xcsv_writer_create_memory" create(string delimiter, string quote,
+        c_int newline, c_bool quoteAll, c_bool writeBOM, c_ulonglong maxInput,
+        c_ulonglong maxOutput, c_ulonglong maxField, c_ulonglong maxRows,
+        c_ulonglong maxFields)
+    extern "xcsv_writer_open_file" create(string path, string delimiter,
+        string quote, c_int newline, c_bool quoteAll, c_bool writeBOM,
+        c_ulonglong maxInput, c_ulonglong maxOutput, c_ulonglong maxField,
+        c_ulonglong maxRows, c_ulonglong maxFields)
+    extern "xcsv_writer_destroy" destroy()
+
+    extern "xcsv_writer_begin" func beginNative() as bool
+    extern "xcsv_writer_field" func fieldNative(string value) as bool
+    extern "xcsv_writer_end" func endNative() as bool
+    extern "xcsv_writer_close" func closeNative() as bool
+    extern "xcsv_writer_take_buffer" func takeBufferNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    func write(array<string> fields)
+        if not self.beginNative() then
+            throw CsvError __csv_error()
+        end
+        int i = 0
+        while i < fields.length do
+            if not self.fieldNative(fields[i]) then
+                throw CsvError __csv_error()
+            end
+            i += 1
+        end
+        if not self.endNative() then
+            throw CsvError __csv_error()
+        end
+    end
+
+    func close()
+        if not self.closeNative() then
+            throw CsvError __csv_error()
+        end
+    end
+
+    func finish() as Buffer
+        point result = self.takeBufferNative()
+        if result == null then
+            throw CsvError __csv_error()
+        end
+        return Buffer(result)
+    end
+end
+
+
+
+class DictReader
+    native point handle
+    array<string> fieldNames = array<string>[]
+    extern "xcsv_reader_open_memory" create(point data, c_ulonglong size,
+        string delimiter, string quote, c_bool strict, c_ulonglong maxInput,
+        c_ulonglong maxOutput, c_ulonglong maxField, c_ulonglong maxRows,
+        c_ulonglong maxFields)
+    extern "xcsv_reader_open_file" create(string path, string delimiter,
+        string quote, c_bool strict, c_ulonglong maxInput, c_ulonglong maxOutput,
+        c_ulonglong maxField, c_ulonglong maxRows, c_ulonglong maxFields)
+    extern "xcsv_reader_destroy" destroy()
+
+    extern "xcsv_reader_next" func nextNative() as bool
+    extern "xcsv_reader_eof" func eofNative() as bool
+    extern "xcsv_reader_count" func countNative() as int
+    extern "xcsv_reader_field" func fieldNative(c_int index) as point
+
+    func field(int index) as string
+        point result = self.fieldNative(c_int(index))
+        if result == null then
+            throw CsvError __csv_error()
+        end
+        return __xl_std_runtime_take_cstr(result)
+    end
+
+    func prepare()
+        if not self.nextNative() then
+            if self.eofNative() then
+                throw CsvError "CSV dictionary input has no header row"
+            end
+            throw CsvError __csv_error()
+        end
+        set<string> seen = set<string>{}
+        int i = 0
+        while i < self.countNative() do
+            string name = self.field(i)
+            if name in seen then
+                throw CsvError "CSV dictionary header contains a duplicate field: " + name
+            end
+            seen.add(name)
+            self.fieldNames.append(name)
+            i += 1
+        end
+    end
+
+    get headers() as array<string>
+        return self.fieldNames
+    end
+
+    get eof() as bool
+        return self.eofNative()
+    end
+
+    func next() as bool
+        if self.nextNative() then
+            if self.countNative() != self.fieldNames.length then
+                throw CsvError "CSV dictionary row field count does not match its header"
+            end
+            return true
+        end
+        if self.eofNative() then
+            return false
+        end
+        throw CsvError __csv_error()
+    end
+
+    func row() as dict<string>
+        dict<string> result = dict<string>{}
+        int i = 0
+        while i < self.fieldNames.length do
+            result[self.fieldNames[i]] = self.field(i)
+            i += 1
+        end
+        return result
+    end
+end
+
+
+
+class DictWriter
+    native point handle
+    array<string> fieldNames = array<string>[]
+    extern "xcsv_writer_create_memory" create(string delimiter, string quote,
+        c_int newline, c_bool quoteAll, c_bool writeBOM, c_ulonglong maxInput,
+        c_ulonglong maxOutput, c_ulonglong maxField, c_ulonglong maxRows,
+        c_ulonglong maxFields)
+    extern "xcsv_writer_open_file" create(string path, string delimiter,
+        string quote, c_int newline, c_bool quoteAll, c_bool writeBOM,
+        c_ulonglong maxInput, c_ulonglong maxOutput, c_ulonglong maxField,
+        c_ulonglong maxRows, c_ulonglong maxFields)
+    extern "xcsv_writer_destroy" destroy()
+
+    extern "xcsv_writer_begin" func beginNative() as bool
+    extern "xcsv_writer_field" func fieldNative(string value) as bool
+    extern "xcsv_writer_end" func endNative() as bool
+    extern "xcsv_writer_close" func closeNative() as bool
+    extern "xcsv_writer_take_buffer" func takeBufferNative() as point
+
+    func configure(array<string> headers, bool writeHeader)
+        set<string> seen = set<string>{}
+        int i = 0
+        while i < headers.length do
+            if headers[i] in seen then
+                throw CsvError "CSV dictionary header contains a duplicate field: " + headers[i]
+            end
+            seen.add(headers[i])
+            self.fieldNames.append(headers[i])
+            i += 1
+        end
+        if writeHeader then
+            self.writeFields(self.fieldNames)
+        end
+    end
+
+    func writeFields(array<string> fields)
+        if not self.beginNative() then
+            throw CsvError __csv_error()
+        end
+        int i = 0
+        while i < fields.length do
+            if not self.fieldNative(fields[i]) then
+                throw CsvError __csv_error()
+            end
+            i += 1
+        end
+        if not self.endNative() then
+            throw CsvError __csv_error()
+        end
+    end
+
+    func write(dict<string> values)
+        array<string> fields = array<string>[]
+        int matched = 0
+        int i = 0
+        while i < self.fieldNames.length do
+            string name = self.fieldNames[i]
+            if name in values then
+                fields.append(values[name])
+                matched += 1
+            else
+                fields.append("")
+            end
+            i += 1
+        end
+        if matched != values.length then
+            throw CsvError "CSV dictionary row contains a field outside its header"
+        end
+        self.writeFields(fields)
+    end
+
+    func close()
+        if not self.closeNative() then
+            throw CsvError __csv_error()
+        end
+    end
+
+    func finish() as Buffer
+        point result = self.takeBufferNative()
+        if result == null then
+            throw CsvError __csv_error()
+        end
+        return Buffer(result)
+    end
+end
+
+
+
+export func open(Buffer data, string delimiter = ",", string quote = "\"",
+    bool strict = true, int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as Reader
+    Reader result = Reader(data.data(), c_ulonglong(data.len()), delimiter, quote,
+        c_bool(strict), c_ulonglong(maxInput), c_ulonglong(maxOutput),
+        c_ulonglong(maxField), c_ulonglong(maxRows), c_ulonglong(maxFields))
+    if not result.valid then
+        throw CsvError __csv_error()
+    end
+    return result
+end
+
+export func open(string path, string delimiter = ",", string quote = "\"",
+    bool strict = true, int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as Reader
+    Reader result = Reader(path, delimiter, quote, c_bool(strict),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_ulonglong(maxField),
+        c_ulonglong(maxRows), c_ulonglong(maxFields))
+    if not result.valid then
+        throw CsvError __csv_error()
+    end
+    return result
+end
+
+export func parse(string text, string delimiter = ",", string quote = "\"",
+    bool strict = true, int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as array<var>
+    Buffer data = Buffer()
+    data.append(text)
+    Reader source = open(data, delimiter, quote, strict, maxInput, maxOutput,
+        maxField, maxRows, maxFields)
+    array<var> result = array<var>[]
+    while source.next() do
+        array<string> row = source.row()
+        var rowValue = row
+        result.append(rowValue)
+    end
+    return result
+end
+
+
+
+export func create(string delimiter = ",", string quote = "\"",
+    string newline = "lf", bool quoteAll = false, bool writeBOM = false,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as Writer
+    Writer result = Writer(delimiter, quote, c_int(__csv_newline(newline)),
+        c_bool(quoteAll), c_bool(writeBOM), c_ulonglong(maxInput),
+        c_ulonglong(maxOutput), c_ulonglong(maxField), c_ulonglong(maxRows),
+        c_ulonglong(maxFields))
+    if not result.valid then
+        throw CsvError __csv_error()
+    end
+    return result
+end
+
+export func createFile(string path, string delimiter = ",", string quote = "\"",
+    string newline = "lf", bool quoteAll = false, bool writeBOM = false,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as Writer
+    Writer result = Writer(path, delimiter, quote, c_int(__csv_newline(newline)),
+        c_bool(quoteAll), c_bool(writeBOM), c_ulonglong(maxInput),
+        c_ulonglong(maxOutput), c_ulonglong(maxField), c_ulonglong(maxRows),
+        c_ulonglong(maxFields))
+    if not result.valid then
+        throw CsvError __csv_error()
+    end
+    return result
+end
+
+export func stringify(array<array<string>> rows, string delimiter = ",",
+    string quote = "\"", string newline = "lf", bool quoteAll = false,
+    bool writeBOM = false) as string
+    Writer output = create(delimiter, quote, newline, quoteAll, writeBOM)
+    int i = 0
+    while i < rows.length do
+        output.write(rows[i])
+        i += 1
+    end
+    return output.finish().text()
+end
+
+
+
+export func openDict(Buffer data, string delimiter = ",", string quote = "\"",
+    bool strict = true, int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as DictReader
+    DictReader result = DictReader(data.data(), c_ulonglong(data.len()), delimiter,
+        quote, c_bool(strict), c_ulonglong(maxInput), c_ulonglong(maxOutput),
+        c_ulonglong(maxField), c_ulonglong(maxRows), c_ulonglong(maxFields))
+    if result.handle == null then
+        throw CsvError __csv_error()
+    end
+    result.prepare()
+    return result
+end
+
+export func openDict(string path, string delimiter = ",", string quote = "\"",
+    bool strict = true, int maxInput = 268435456, int maxOutput = 536870912,
+    int maxField = 16777216, int maxRows = 1000000,
+    int maxFields = 10000000) as DictReader
+    DictReader result = DictReader(path, delimiter, quote, c_bool(strict),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_ulonglong(maxField),
+        c_ulonglong(maxRows), c_ulonglong(maxFields))
+    if result.handle == null then
+        throw CsvError __csv_error()
+    end
+    result.prepare()
+    return result
+end
+
+export func createDict(array<string> headers, bool writeHeader = true,
+    string delimiter = ",", string quote = "\"", string newline = "lf",
+    bool quoteAll = false, bool writeBOM = false) as DictWriter
+    DictWriter result = DictWriter(delimiter, quote, c_int(__csv_newline(newline)),
+        c_bool(quoteAll), c_bool(writeBOM), c_ulonglong(268435456),
+        c_ulonglong(536870912), c_ulonglong(16777216), c_ulonglong(1000000),
+        c_ulonglong(10000000))
+    if result.handle == null then
+        throw CsvError __csv_error()
+    end
+    result.configure(headers, writeHeader)
+    return result
+end
+
+export func createDictFile(string path, array<string> headers, bool writeHeader = true,
+    string delimiter = ",", string quote = "\"", string newline = "lf",
+    bool quoteAll = false, bool writeBOM = false) as DictWriter
+    DictWriter result = DictWriter(path, delimiter, quote,
+        c_int(__csv_newline(newline)), c_bool(quoteAll), c_bool(writeBOM),
+        c_ulonglong(268435456), c_ulonglong(536870912), c_ulonglong(16777216),
+        c_ulonglong(1000000), c_ulonglong(10000000))
+    if result.handle == null then
+        throw CsvError __csv_error()
+    end
+    result.configure(headers, writeHeader)
+    return result
+end

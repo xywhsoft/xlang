@@ -205,6 +205,55 @@ if errorlevel 1 exit /b 1
 build\test\cgen_varargs.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_extern_xvalue_vararg.xl --emit build\test\cgen_extern_xvalue_vararg.c
+if errorlevel 1 exit /b 1
+findstr /C:"xvalue arg" build\test\cgen_extern_xvalue_vararg.c >nul
+if errorlevel 1 (
+    echo cgen_extern_xvalue_vararg.c missing xvalue vararg bridge parameter.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_array_varargs(3" build\test\cgen_extern_xvalue_vararg.c >nul
+if errorlevel 1 (
+    echo cgen_extern_xvalue_vararg.c missing extern array vararg lowering.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_dict_varargs(2" build\test\cgen_extern_xvalue_vararg.c >nul
+if errorlevel 1 (
+    echo cgen_extern_xvalue_vararg.c missing extern dict vararg lowering.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_extern_xvalue_vararg.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_extern_xvalue_vararg.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_extern_xvalue_vararg.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe run release\examples\c_vararg_printf.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_extern_c_vararg.xl --emit build\test\cgen_extern_c_vararg.c
+if errorlevel 1 exit /b 1
+findstr /C:"printf(const char* fmt, ..." build\test\cgen_extern_c_vararg.c >nul
+if errorlevel 1 (
+    echo cgen_extern_c_vararg.c missing native C ellipsis prototype.
+    exit /b 1
+)
+findstr /C:"c_vararg:%%d:%%s" build\test\cgen_extern_c_vararg.c >nul
+if errorlevel 1 (
+    echo cgen_extern_c_vararg.c missing raw C vararg call lowering.
+    exit /b 1
+)
+findstr /C:"((int)(42LL))" build\test\cgen_extern_c_vararg.c >nul
+if errorlevel 1 (
+    echo cgen_extern_c_vararg.c missing ABI cast for native C vararg argument.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_extern_c_vararg.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_extern_c_vararg.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_extern_c_vararg.exe > build\test\cgen_extern_c_vararg.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"c_vararg:42:ok" build\test\cgen_extern_c_vararg.out.txt >nul
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_index_access.xl --emit build\test\cgen_index_access.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_typed_array_get_at(values, (long long)(1LL))" build\test\cgen_index_access.c >nul

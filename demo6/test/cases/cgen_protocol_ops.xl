@@ -19,6 +19,10 @@ class Counter
         return self.value == other.value
     end
 
+    func __approx__(Counter other) as bool
+        return math.abs(self.value - other.value) <= 1
+    end
+
     func __contains__(int item) as bool
         return item == self.value
     end
@@ -30,8 +34,13 @@ end
 
 extern "expect_i64" func expect(int actual, int expected)
 
+func expectBool(bool actual, bool expected)
+    expect(int(actual), int(expected))
+end
+
 auto c = Counter(10)
 auto same = Counter(10)
+auto adjacent = Counter(11)
 auto d = c + 5
 auto n = -c
 
@@ -39,6 +48,13 @@ expect(d.value, 15)
 expect(n.value, -10)
 expect(int(c == d), 0)
 expect(int(c == same), 1)
+expectBool(c == same, true)
+expectBool(c ~= adjacent, true)
 expect(int(10 in c), 1)
 expect(int(11 in c), 0)
 expect(c(2, 3), 23)
+
+float absFloat = math.abs(-1.5)
+int absInt = math.abs(-2)
+expect(int(absFloat == 1.5), 1)
+expect(absInt, 2)

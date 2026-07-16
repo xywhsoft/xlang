@@ -26,7 +26,7 @@
 //   value = array of instance dicts, each:
 //     { "instance", "service", "host", "port", "txt", "ttl", "registered", "expire" }
 //
-// xlang constraints honored (see dev/README.md + dev/BUGS.md):
+// xlang design notes:
 //   * var containers are reference-typed through function calls, so helpers
 //     mutate the shared registry / cache in place.
 

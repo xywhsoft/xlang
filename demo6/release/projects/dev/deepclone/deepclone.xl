@@ -20,12 +20,7 @@
 //   deepclone            运行全部用例，PASS=0 失败项时 EXIT=1
 //   deepclone --help     显示帮助
 //
-// 重要说明（详见 README.md / dev/BUGS.md）:
-//  * derive string / hash / equals 当前只通过语义校验，不生成任何协议方法。
-//    为演示这些 derive 「应该生成什么」，Product 上手写了
-//    __eq__ / __ne__ / __toString__ / hashByFields 作为兜底实现；
-//    derive 本身没有提供这些能力。
-// ---------------------------------------------------------------------------
+// class 变量默认是 null；所有测试对象都通过 Product() 显式构造。
 
 const string SEPARATOR = "----------------------------------------"
 
@@ -55,7 +50,7 @@ func expectInt(int got, int want, string label) as bool
     if got == want then
         return true
     end
-    fail(label, "got " + string.formatInt(got) + " want " + string.formatInt(want))
+    fail(label, "got " + int.format(got) + " want " + int.format(want))
     return false
 end
 
@@ -64,7 +59,7 @@ func expectFloat(float got, float want, string label) as bool
     if got == want then
         return true
     end
-    fail(label, "got " + string.formatFloat(got) + " want " + string.formatFloat(want))
+    fail(label, "got " + float.format(got) + " want " + float.format(want))
     return false
 end
 
@@ -121,8 +116,9 @@ class Product
     derive value
     derive json
     derive xson
-    // derive string/hash/equals: reserved but not implemented in demo6
-    // 手写 __eq__/__ne__/__toString__/hashByFields 提供运行能力
+    derive string
+    derive hash
+    derive equals
 
     int id = 0
     string name = ""
@@ -131,49 +127,6 @@ class Product
     string internalNote @persist(skip) = ""
     string memo @json(omit=empty) @xson(omit=null) = ""
 
-    // ---- derive equals 兜底 ----
-    func __eq__(Product other) as bool
-        if self.id != other.id then
-            return false
-        end
-        if self.name != other.name then
-            return false
-        end
-        if self.price != other.price then
-            return false
-        end
-        return true
-    end
-
-    func __ne__(Product other) as bool
-        if self.id != other.id then
-            return true
-        end
-        if self.name != other.name then
-            return true
-        end
-        if self.price != other.price then
-            return true
-        end
-        return false
-    end
-
-    // ---- derive string 兜底 ----
-    func __toString__() as string
-        string s = "Product(id=" + string.formatInt(self.id)
-        s = s + ", name=\"" + self.name + "\""
-        s = s + ", price=" + string.formatFloat(self.price) + ")"
-        return s
-    end
-
-    // ---- derive hash 兜底 ----
-    // 把字段拼成字符串后交给 hash.u32 / hash.u64。
-    func hashByFields() as uint64
-        string buf = "Product|" + string.formatInt(self.id) + "|"
-        buf = buf + self.name + "|" + string.formatFloat(self.price) + "|"
-        buf = buf + self.createdAt
-        return hash.u64(buf)
-    end
 end
 
 // ---------------------------------------------------------------------------
@@ -190,7 +143,7 @@ end
 
 func testDeriveCopy() as int
     section("derive copy - copy(obj) 浅拷贝")
-    Product src
+    Product src = Product()
     src.id = 100
     src.name = "Widget"
     src.price = 19.95
@@ -214,7 +167,7 @@ end
 
 func testDeriveClone() as int
     section("derive clone - clone(obj) 深拷贝")
-    Product src
+    Product src = Product()
     src.id = 200
     src.name = "Gadget"
     src.price = 5.5
@@ -237,7 +190,7 @@ end
 func testDeriveMoveOnly() as int
     section("derive moveOnly - 合法独立声明 + 冲突检查说明")
     // moveOnly 单独声明是合法的（MoveOnlyHandle 类）。
-    MoveOnlyHandle m
+    MoveOnlyHandle m = MoveOnlyHandle()
     m.handle = 42
     if expectInt(m.handle, 42, "moveOnly.handle") then pass("moveOnly 类可正常实例化/读写") end
 
@@ -256,7 +209,7 @@ func testDeriveValue() as int
     // __toValue__ / __fromValue__ 是内部协议，不能直接当方法调用
     // （p.__toValue__() 报 [sem] unknown class/union field）。
     // 它的能力通过 json / xson 标准库导出，下面用往返测试间接验证。
-    Product p
+    Product p = Product()
     p.id = 303
     p.name = "ValueProbe"
     p.price = 1.25
@@ -276,7 +229,7 @@ end
 
 func testDeriveJson() as int
     section("derive json - json.stringify / json.parse::<Product>")
-    Product p
+    Product p = Product()
     p.id = 404
     p.name = "JsonItem"
     p.price = 99.0
@@ -312,7 +265,7 @@ end
 
 func testDeriveXson() as int
     section("derive xson - xson.stringify / xson.parse::<Product>")
-    Product p
+    Product p = Product()
     p.id = 505
     p.name = "XsonItem"
     p.price = 7.77
@@ -339,75 +292,64 @@ func testDeriveXson() as int
 end
 
 func testDeriveString() as int
-    section("derive string - 字符串表示（手写 __toString__ 兜底）")
-    Product p
+    section("derive string - 自动字符串表示")
+    Product p = Product()
     p.id = 606
     p.name = "StringItem"
     p.price = 12.34
 
-    // [sem] 该表达式不能转换为目标类型。本工具靠手写 __toString__ 协议方法。
-    string s = p.__toString__()
+    string s = string(p)
     println("  toString: " + s)
-    if expectContains(s, "606", "__toString__ 含 id") then pass("__toString__ 含 id") end
-    if expectContains(s, "StringItem", "__toString__ 含 name") then pass("__toString__ 含 name") end
-    if expectContains(s, "12.34", "__toString__ 含 price") then pass("__toString__ 含 price") end
-
-    println("[ INFO ] derive string 当前是 no-op（BUG-D2）。string(p) 直接构造")
-    println("         在 [sem] 阶段被拒，仅手写 __toString__ 协议可用。")
-    pass("derive string 声明通过语义校验（运行能力靠手写协议）")
+    if expectContains(s, "Product{", "derive string 含类型名") then pass("derive string 含类型名") end
+    if expectContains(s, "id=606", "derive string 含 id") then pass("derive string 含 id") end
+    if expectContains(s, "name=", "derive string 含 name") then pass("derive string 含 name") end
+    if expectBool(p.toString() == s, true, "toString 成员糖") then pass("toString 成员糖复用 derive string") end
     return 0
 end
 
 func testDeriveHash() as int
-    section("derive hash - 字段哈希（手写 hashByFields 兜底）")
-    Product a
+    section("derive hash - 类型化集合中的自动字段哈希")
+    Product a = Product()
     a.id = 707
     a.name = "HashItem"
     a.price = 0.5
     a.createdAt = "2026-05-06"
 
-    Product b
+    Product b = Product()
     b.id = 707
     b.name = "HashItem"
     b.price = 0.5
     b.createdAt = "2026-05-06"
 
-    Product c
+    Product c = Product()
     c.id = 708
     c.name = "HashItem"
     c.price = 0.5
     c.createdAt = "2026-05-06"
 
-    uint64 ha = a.hashByFields()
-    uint64 hb = b.hashByFields()
-    uint64 hc = c.hashByFields()
-
-    println("  hash a: " + string.formatUInt(ha, "x16"))
-    println("  hash b: " + string.formatUInt(hb, "x16"))
-    println("  hash c: " + string.formatUInt(hc, "x16"))
-
-    if expectBool(ha == hb, true, "同值同哈希") then pass("相同字段 -> 相同 hash") end
-    if expectBool(ha == hc, false, "异值异哈希") then pass("不同字段 -> 不同 hash") end
-
-    println("[ INFO ] derive hash 当前是 no-op（BUG-D2）。hash.u32(p) 等标准库")
-    println("         入口在 [sem] 阶段拒绝 class 实参。")
-    pass("derive hash 声明通过语义校验（运行能力靠手写实现）")
+    // __hash__ 是编译器协议，不是供用户直接调用的公开成员。
+    // 类型化 set 会同时使用 derive hash 与 derive equals 完成查找和去重。
+    set<Product> products = set{a, b, c}
+    if expectInt(products.length, 2, "同值对象去重") then pass("相同字段 -> 相同 hash/equals") end
+    if expectBool(a in products, true, "查找原对象") then pass("set 可按派生 hash 查找原对象") end
+    if expectBool(b in products, true, "查找同值对象") then pass("set 可按派生 hash 查找同值对象") end
+    if expectBool(c in products, true, "查找异值对象") then pass("set 可区分不同字段对象") end
     return 0
 end
 
 func testDeriveEquals() as int
-    section("derive equals - == / != 比较（手写 __eq__/__ne__ 兜底）")
-    Product a
+    section("derive equals - 自动 == / != 比较")
+    Product a = Product()
     a.id = 808
     a.name = "EqItem"
     a.price = 3.0
 
-    Product b
+    Product b = Product()
     b.id = 808
     b.name = "EqItem"
     b.price = 3.0
 
-    Product c
+    Product c = Product()
     c.id = 809
     c.name = "Other"
     c.price = 4.0
@@ -417,14 +359,12 @@ func testDeriveEquals() as int
     if expectBool(a != c, true, "a != c (异值)") then pass("!= 异值返回 true") end
     if expectBool(a != b, false, "a != b (同值)") then pass("!= 同值返回 false") end
 
-    println("[ INFO ] derive equals 当前是 no-op（BUG-D2）。本工具靠手写 __eq__/__ne__。")
-    pass("derive equals 声明通过语义校验（运行能力靠手写协议）")
     return 0
 end
 
 func testFieldAnnotations() as int
     section("字段级注解综合 - @json / @persist(skip) / @persist(name=) / omit")
-    Product p
+    Product p = Product()
     p.id = 909
     p.name = "Anno"
     p.price = 0.99
@@ -459,14 +399,11 @@ end
 
 func printSummary() as int
     section("汇总")
-    println("PASS: " + string.formatInt(g_pass))
-    println("FAIL: " + string.formatInt(g_fail))
-    println("")
-    println("已知限制（不计入 FAIL，详见 README.md / dev/BUGS.md）:")
-    println("  * BUG-D2: derive string/hash/equals 仅过语义校验，不生成代码")
+    println("PASS: " + int.format(g_pass))
+    println("FAIL: " + int.format(g_fail))
     if g_fail == 0 then
         println("")
-        println("全部「已实现」derive 能力均通过。")
+        println("全部 derive 能力均通过。")
         return 0
     end
     return 1
@@ -481,12 +418,12 @@ func printHelp()
     println("")
     println("覆盖:")
     println("  derive copy / clone / moveOnly / value / json / xson")
-    println("  derive string / hash / equals (声明 + 手写协议兜底)")
+    println("  derive string / hash / equals")
     println("  字段级注解 @json / @persist(skip) / @persist(name=) / omit=empty/null")
     println("")
     println("退出码:")
-    println("  0  全部「已实现」能力 PASS")
-    println("  1  存在 FAIL（已知 no-op 项不计入）")
+    println("  0  全部能力 PASS")
+    println("  1  存在 FAIL")
 end
 
 func main(...) as int

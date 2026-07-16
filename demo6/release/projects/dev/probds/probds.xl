@@ -142,7 +142,7 @@ class BloomFilter
         string s = "BloomFilter m=" + string(self.mBits) + " k=" + string(self.kHash)
         s = s + " words=" + string(self.nWords) + " count=" + string(self.count)
         s = s + " nonzeroWords=" + string(nz)
-        s = s + " estFPR=" + string.formatFloat(self.estimatedFPR(), ".6")
+        s = s + " estFPR=" + float.format(self.estimatedFPR(), ".6")
         return s
     end
 end
@@ -382,7 +382,7 @@ class HyperLogLog
         end
         string s = "HyperLogLog p=" + string(self.p) + " m=" + string(self.m)
         s = s + " zeroRegs=" + string(zeros)
-        s = s + " estimate=" + string.formatFloat(self.count(), ".1")
+        s = s + " estimate=" + float.format(self.count(), ".1")
         return s
     end
 end
@@ -452,8 +452,8 @@ func testBloom() as int
     end
     float measuredFPR = float(falsePos) / float(cap)
     float theoryFPR = bf.estimatedFPR()
-    println("  measured FPR = " + string(falsePos) + "/" + string(cap) + " = " + string.formatFloat(measuredFPR, ".5"))
-    println("  theory   FPR = " + string.formatFloat(theoryFPR, ".5"))
+    println("  measured FPR = " + string(falsePos) + "/" + string(cap) + " = " + float.format(measuredFPR, ".5"))
+    println("  theory   FPR = " + float.format(theoryFPR, ".5"))
     // 实测应在理论值附近 (允许 3x 容差, 概率结构有方差)
     check(measuredFPR < theoryFPR * 3.0, "FPR within 3x of theory")
     check(measuredFPR > 0.0, "some false positives observed (Bloom is probabilistic)")
@@ -525,11 +525,11 @@ func testHLL() as int
         i += 1
     end
     float est = hll.count()
-    println("  after " + string(n) + " distinct keys, estimate = " + string.formatFloat(est, ".1"))
+    println("  after " + string(n) + " distinct keys, estimate = " + float.format(est, ".1"))
     // HLL 标准误差 ~0.8% (p=14); 10% 容差非常宽松
     float err = (est - float(n)) / float(n)
     if err < 0.0 then err = 0.0 - err end
-    check(err < 0.10, "cardinality estimate within 10% (actual err=" + string.formatFloat(err * 100.0, ".2") + "%)")
+    check(err < 0.10, "cardinality estimate within 10% (actual err=" + float.format(err * 100.0, ".2") + "%)")
 
     // 重复加入相同 key 不改变基数
     int j = 0
@@ -557,7 +557,7 @@ func testHLL() as int
     float eb = b.count()
     a.merge(b)
     float em = a.count()
-    println("  merge: A=" + string.formatFloat(ea, ".0") + " B=" + string.formatFloat(eb, ".0") + " merged=" + string.formatFloat(em, ".0"))
+    println("  merge: A=" + float.format(ea, ".0") + " B=" + float.format(eb, ".0") + " merged=" + float.format(em, ".0"))
     float merr = (em - 10000.0) / 10000.0
     if merr < 0.0 then merr = 0.0 - merr end
     check(merr < 0.10, "merged cardinality within 10% of 10000")
@@ -595,10 +595,10 @@ func reportMs(string name, int n, float elapsed)
         opsPerSec = float(n) / elapsed
     end
     string line = "  " + string.padRight(name, 22)
-    line = line + "n=" + string.formatInt(n, ",")
-    line = line + "  time=" + string.formatFloat(ms, ".1") + " ms"
-    line = line + "  " + string.formatFloat(usPerOp, ".3") + " us/op"
-    line = line + "  " + string.formatInt(int(opsPerSec), ",") + " ops/sec"
+    line = line + "n=" + int.format(n, ",")
+    line = line + "  time=" + float.format(ms, ".1") + " ms"
+    line = line + "  " + float.format(usPerOp, ".3") + " us/op"
+    line = line + "  " + int.format(int(opsPerSec), ",") + " ops/sec"
     println(line)
 end
 
@@ -684,12 +684,12 @@ func benchHLL(int n) as float
         if hll.regs[k] == 0 then z += 1 end
         k += 1
     end
-    println("  [stats] " + hll.stats() + " estimate=" + string.formatFloat(est, ".0") + " zeroRegs=" + string(z))
+    println("  [stats] " + hll.stats() + " estimate=" + float.format(est, ".0") + " zeroRegs=" + string(z))
     return t3 - t0
 end
 
 func cmdBench(int n) as int
-    println("probds - benchmark (n=" + string.formatInt(n, ",") + " per structure)")
+    println("probds - benchmark (n=" + int.format(n, ",") + " per structure)")
     println("================================================================")
     benchBloom(n)
     println("----------------------------------------------------------------")
@@ -697,7 +697,7 @@ func cmdBench(int n) as int
     println("----------------------------------------------------------------")
     benchHLL(n)
     println("================================================================")
-    println("checksum " + string.formatFloat(g_sink, ".3"))
+    println("checksum " + float.format(g_sink, ".3"))
     return 0
 end
 

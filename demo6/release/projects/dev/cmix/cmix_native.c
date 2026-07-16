@@ -26,7 +26,7 @@
  * cmix_magic   is read from xlang via plain `extern`.
  * ----------------------------------------------------------------------- */
 long long cmix_counter = 100;
-const long long cmix_magic = 7;
+long long cmix_magic = 7;
 
 /* ---- Simple math: xlang `int` (int64_t) path --------------------------- */
 long long cmix_add(long long a, long long b)

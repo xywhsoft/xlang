@@ -8,7 +8,7 @@
 cd /d D:\GIT\x-lang\demo6\release
 xl run projects\dev\chatroom\chatroom.xl
 xl build projects\dev\chatroom\chatroom.xl -o projects\dev\chatroom\chatroom.exe
-chatroom                 :: self-test（启动 server、自发自收 42 项用例、退出）
+chatroom                 :: self-test（启动 server、自发自收 44 项用例、退出）
 chatroom serve [port]    :: 常驻模式（默认 18300），浏览器打开 http://127.0.0.1:18300
 ```
 
@@ -24,29 +24,21 @@ chatroom serve [port]    :: 常驻模式（默认 18300），浏览器打开 htt
 | GET  | `/api/users` | 在线用户列表 |
 | POST | `/api/logout` | 登出，清除会话与 cookie |
 
-## 并发状态设计（绕过 BUG-XB1）
+## 并发状态设计
 
-`dev/BUGS.md` **BUG-XB1**：文件作用域 `var` 容器在 HTTP 回调里**元素引用丢失**（length 对、元素空）。
-本工具的状态全部用**全局 string + int** 承载（这两种在回调里访问完全正常），每次请求把 string
-`json.parse` 成**局部 var** 再读写（局部 var 在回调里正常）：
-
-- `string gMessages` — JSON 数组 `[{id,user,text,time}]`
-- `string gSessions` — JSON 对象 `{token: username}`
-- `int gNextId` / `int gNextTokenSeq` — id / token 自增计数器
-- `mutex gLock` — 串行化 parse-modify-stringify 临界区（workerCount=4，多 worker 下必需）
-
-**长轮询**：`/api/poll` 里 sleep + 检查 `gNextId-1 > since` 的循环，**循环里不持锁**（只持锁读一个 int），
-否则 POST 拿不到锁会死锁；有新消息或超时后，一次性 parse + 过滤返回。
+- `array<int>` 保存单调消息 ID，`array<string>` 保存一次编码的不可变 JSON 记录；`var gSessions` 保存 token 到用户名的字典。
+- `mutex gLock` 保护消息、会话和自增编号；锁内只做短小的内存读写。
+- 查询消息时在锁内复制匹配的不可变字符串，在锁外用 `string.join` 组装 JSON 数组，避免重复解析和序列化。
+- 长轮询只在检查最新消息编号时短暂持锁，等待期间不占锁，因此发送请求可以唤醒轮询。
+- 服务使用 4 个 worker；自测分别验证 POST 路由和异步长轮询状态唤醒，避免把两个故障边界混在同一断言中。
+- 顺序 HTTP 用例复用一个 `HttpClient` 连接池，长轮询使用独立异步客户端。
 
 ## 正向结论
 
-- `mutex` 全局对象在 HTTP C-callback 里 `lock/unlock` **完全正常**（BUG-XB1 只影响 var 容器元素，
-  不影响 native-backed class 全局），多 worker 下共享可变状态可安全串行化。
-- 长轮询在多 worker（workerCount=4）下工作：后台线程 poll 期间，另一 worker 处理 POST，
-  poll 被新消息唤醒（self-test 实测 ~0.8s 唤醒，远小于 5s timeout）。
+- `mutex` 保护消息日志、会话和编号的原子更新；跨线程消息记录只以不可变字符串发布。
+- 长轮询通过 `executeAsync()` 和 `future.wait()` 完成，不用普通 OS 线程包装阻塞式 HTTP 请求。
+- 新消息发布后 poll 会在下一次检查周期返回，明显早于 5 秒 timeout。
 
 ## 注意
 
-- 局部变量**不能命名为 `id`**：与 stdlib `id` 命名空间冲突（`id.toString()` 被解析成命名空间访问，
-  报 `standard library namespace has no such symbol`）。改用 `msgId` 等名字即可。
-- `for x in c ... end` **不带 `do`**（只有 `while` 要 `do`）。
+响应 JSON 使用字典和 `json.stringify` 构造，用户名、消息和查询内容中的引号或控制字符不会破坏 JSON。

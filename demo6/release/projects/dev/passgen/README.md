@@ -40,5 +40,5 @@ projects\dev\passgen\passgen.exe --uuid
 
 - 密码：`random.string(length, charset)`，字符集由 4 类拼接。
 - HEX：`crypto.randomHex(nbytes)` 取 `(length+1)/2` 字节再 `string.left` 截断到指定长度。
-- UUID：4 × `random.u32()` 各用 `string.formatInt(v, "x8")` 转 8 位小写 HEX，拼成 32 位后按 8-4-4-4-12 切片，并写入 version(`4`) / variant(`8`) 半字节。
+- UUID：4 × `random.u32()` 各用 `int.format(v, "x8")` 转 8 位小写 HEX，拼成 32 位后按 8-4-4-4-12 切片，并写入 version(`4`) / variant(`8`) 半字节。
 - 强度：`for c in pw` 遍历，用 `string.contains` 判定字符所属类别，统计覆盖度。

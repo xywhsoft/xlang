@@ -1,0 +1,31 @@
+{
+    "format": "xlang-package-1",
+    "name": "bz2",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "xrt_bz2.c",
+            "bz2_native.c"
+        ],
+        "xlSources": [
+            "src/bz2.xl"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [
+        {
+            "name": "_bzip2",
+            "version": "1.0.8",
+            "abiVersion": "1"
+        }
+    ],
+    "native": {
+        "singleton": false,
+        "loadName": "",
+        "version": ""
+    }
+}

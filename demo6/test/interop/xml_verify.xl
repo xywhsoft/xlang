@@ -1,0 +1,33 @@
+import xml.sax
+import xml.etree
+import xml.dom
+
+
+
+func main(...) as int
+    auto root = xml.etree.load("tmp/python_interop.xml")
+    assert root.name == "catalog" and root.get("id") == "9", "Python XML ElementTree root"
+    auto book = root.find("p:book")
+    assert book.valid and book.namespaceUri == "urn:python", "Python XML namespace"
+    assert book.text == "Python & XLang" and book.get("key") == "b", "Python XML text and attribute"
+
+    auto document = xml.dom.load("tmp/python_interop.xml")
+    assert document.childCount == 2 and document.child(0).nodeType == 7, "Python XML DOM PI"
+    assert document.documentElement.child(2).nodeType == 8, "Python XML DOM comment"
+
+    int starts = 0
+    int comments = 0
+    bool namespaceSeen = false
+    for event in xml.sax.open("tmp/python_interop.xml")
+        if event["type"] == "start" then
+            starts += 1
+            if event["localName"] == "book" and event["namespaceUri"] == "urn:python" then
+                namespaceSeen = true
+            end
+        elseif event["type"] == "comment" then
+            comments += 1
+        end
+    end
+    assert starts == 2 and comments == 1 and namespaceSeen, "Python XML SAX events"
+    return 0
+end

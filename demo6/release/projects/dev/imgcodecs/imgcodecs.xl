@@ -26,8 +26,6 @@
 //   * pixel-processing large loops        width*height*3 iterations per filter
 //   * little-endian u32/u16 codec helpers (shift/mask over Buffer bytes)
 //   * 3x3 convolution kernels (box / sharpen / Sobel) with edge replication
-//
-// BUG workarounds applied (see dev/BUGS.md):
 // ---------------------------------------------------------------------------
 
 // =====================================================================
@@ -183,7 +181,7 @@ class Image
 
     // ---- grayscale: luminance weights 0.299/0.587/0.114 (fixed-point) ----
     func grayscale() as Image
-        Image out = Image(self.width, self.height)
+        Image outputValue = Image(self.width, self.height)
         int n = self.pixelCount()
         int i = 0
         while i < n do
@@ -192,31 +190,31 @@ class Image
             int g = self.pixels[idx + 1]
             int b = self.pixels[idx + 2]
             int gray = (r * 299 + g * 587 + b * 114) / 1000
-            out.pixels[idx] = gray
-            out.pixels[idx + 1] = gray
-            out.pixels[idx + 2] = gray
+            outputValue.pixels[idx] = gray
+            outputValue.pixels[idx + 1] = gray
+            outputValue.pixels[idx + 2] = gray
             i = i + 1
         end
-        return out
+        return outputValue
     end
 
     // ---- invert: 255 - c per channel ----
     func invert() as Image
-        Image out = Image(self.width, self.height)
+        Image outputValue = Image(self.width, self.height)
         int n = self.pixelCount() * 3
         int i = 0
         while i < n do
-            out.pixels[i] = 255 - self.pixels[i]
+            outputValue.pixels[i] = 255 - self.pixels[i]
             i = i + 1
         end
-        return out
+        return outputValue
     end
 
     // ---- brightness/contrast: new = (c-128)*contrast + 128 + brightness ----
     //   brightness : -255..255 additive
     //   contrast100: factor * 100 (e.g. 130 = 1.3x); 100 = unchanged
     func brightnessContrast(int brightness, int contrast100) as Image
-        Image out = Image(self.width, self.height)
+        Image outputValue = Image(self.width, self.height)
         float cf = float(contrast100) / 100.0
         int n = self.pixelCount()
         int i = 0
@@ -228,17 +226,17 @@ class Image
             int nr = clampByte(int((float(r) - 128.0) * cf + 128.0 + float(brightness)))
             int ng = clampByte(int((float(g) - 128.0) * cf + 128.0 + float(brightness)))
             int nb = clampByte(int((float(b) - 128.0) * cf + 128.0 + float(brightness)))
-            out.pixels[idx] = nr
-            out.pixels[idx + 1] = ng
-            out.pixels[idx + 2] = nb
+            outputValue.pixels[idx] = nr
+            outputValue.pixels[idx + 1] = ng
+            outputValue.pixels[idx + 2] = nb
             i = i + 1
         end
-        return out
+        return outputValue
     end
 
     // ---- box blur 3x3 (edge-replicated, integer average) ----
     func boxBlur() as Image
-        Image out = Image(self.width, self.height)
+        Image outputValue = Image(self.width, self.height)
         int w = self.width
         int h = self.height
         int y = 0
@@ -264,37 +262,37 @@ class Image
                     dy = dy + 1
                 end
                 int idx = (y * w + x) * 3
-                out.pixels[idx] = sr / 9
-                out.pixels[idx + 1] = sg / 9
-                out.pixels[idx + 2] = sb / 9
+                outputValue.pixels[idx] = sr / 9
+                outputValue.pixels[idx + 1] = sg / 9
+                outputValue.pixels[idx + 2] = sb / 9
                 x = x + 1
             end
             y = y + 1
         end
-        return out
+        return outputValue
     end
 
     // ---- sharpen via unsharp mask: out = orig + amount*(orig - blur) ----
     func sharpen(int amount) as Image
         Image blur = self.boxBlur()
-        Image out = Image(self.width, self.height)
+        Image outputValue = Image(self.width, self.height)
         int n = self.pixelCount() * 3
         int i = 0
         while i < n do
             int o = self.pixels[i]
             int bf = blur.pixels[i]
             int v = o + amount * (o - bf)
-            out.pixels[i] = clampByte(v)
+            outputValue.pixels[i] = clampByte(v)
             i = i + 1
         end
-        return out
+        return outputValue
     end
 
     // ---- Sobel edge magnitude on luminance ----
     //   Kx = [-1 0 1; -2 0 2; -1 0 1], Ky = [-1 -2 -1; 0 0 0; 1 2 1]
     //   mag = clamp(sqrt(gx*gx + gy*gy))
     func sobel() as Image
-        Image out = Image(self.width, self.height)
+        Image outputValue = Image(self.width, self.height)
         int w = self.width
         int h = self.height
         array<int> kx = array[-1, 0, 1, -2, 0, 2, -1, 0, 1]
@@ -325,14 +323,14 @@ class Image
                 int mag2 = gx * gx + gy * gy
                 int mag = clampByte(int(math.sqrt(float(mag2))))
                 int idx = (y * w + x) * 3
-                out.pixels[idx] = mag
-                out.pixels[idx + 1] = mag
-                out.pixels[idx + 2] = mag
+                outputValue.pixels[idx] = mag
+                outputValue.pixels[idx + 1] = mag
+                outputValue.pixels[idx + 2] = mag
                 x = x + 1
             end
             y = y + 1
         end
-        return out
+        return outputValue
     end
 end
 
@@ -818,9 +816,9 @@ func cmdInfo(string path) as int
     end
     Image img = loadImage(path)
     println("file:    " + path)
-    println("size:    " + string.formatInt(n, ",") + " bytes")
+    println("size:    " + int.format(n, ",") + " bytes")
     println("format:  " + fmt)
-    println("dims:    " + string(img.width) + " x " + string(img.height) + " (" + string.formatInt(img.pixelCount(), ",") + " pixels)")
+    println("dims:    " + string(img.width) + " x " + string(img.height) + " (" + int.format(img.pixelCount(), ",") + " pixels)")
     // channel statistics
     int total = img.pixelCount()
     int rmin = 255
@@ -864,9 +862,9 @@ func cmdInfo(string path) as int
     float rav = float(rsum) / float(total)
     float gav = float(gsum) / float(total)
     float bav = float(bsum) / float(total)
-    println("R:       " + string(rmin) + ".." + string(rmax) + "  avg " + string.formatFloat(rav, ".1"))
-    println("G:       " + string(gmin) + ".." + string(gmax) + "  avg " + string.formatFloat(gav, ".1"))
-    println("B:       " + string(bmin) + ".." + string(bmax) + "  avg " + string.formatFloat(bav, ".1"))
+    println("R:       " + string(rmin) + ".." + string(rmax) + "  avg " + float.format(rav, ".1"))
+    println("G:       " + string(gmin) + ".." + string(gmax) + "  avg " + float.format(gav, ".1"))
+    println("B:       " + string(bmin) + ".." + string(bmax) + "  avg " + float.format(bav, ".1"))
     return 0
 end
 
@@ -878,7 +876,7 @@ func cmdConvert(string inPath, string outPath) as int
     Image img = loadImage(inPath)
     int wrote = saveImage(img, outPath)
     println("[convert] " + inPath + " (" + string(img.width) + "x" + string(img.height) + ") -> " + outPath)
-    println("[convert] wrote " + string.formatInt(wrote, ",") + " bytes")
+    println("[convert] wrote " + int.format(wrote, ",") + " bytes")
     return 0
 end
 
@@ -888,10 +886,10 @@ func cmdFilter(string inPath, string filterSpec, string outPath) as int
         return 1
     end
     Image img = loadImage(inPath)
-    Image out = applyFilter(img, filterSpec)
-    int wrote = saveImage(out, outPath)
+    Image outputValue = applyFilter(img, filterSpec)
+    int wrote = saveImage(outputValue, outPath)
     println("[filter]  " + inPath + " (" + string(img.width) + "x" + string(img.height) + ") --" + filterSpec + "--> " + outPath)
-    println("[filter]  wrote " + string.formatInt(wrote, ",") + " bytes")
+    println("[filter]  wrote " + int.format(wrote, ",") + " bytes")
     return 0
 end
 
@@ -950,9 +948,10 @@ func cmdTest() as int
     check(src.width == w and src.height == h, "gradient image built " + string(w) + "x" + string(h))
 
     string tmpDir = path.temp()
-    string pP3 = path.join(tmpDir, "imgcodecs_test_p3.ppm")
-    string pP6 = path.join(tmpDir, "imgcodecs_test_p6.ppm")
-    string pBmp = path.join(tmpDir, "imgcodecs_test.bmp")
+    string runName = path.random("imgcodecs_", "")
+    string pP3 = path.join(tmpDir, runName + "_p3.ppm")
+    string pP6 = path.join(tmpDir, runName + "_p6.ppm")
+    string pBmp = path.join(tmpDir, runName + ".bmp")
 
     // ---- [1] PPM P3 round-trip (ASCII) ----
     println("[1] PPM P3 round-trip")
@@ -1082,7 +1081,7 @@ func cmdTest() as int
 
     // ---- [7] write a filtered output to disk via the real path ----
     println("[7] end-to-end filtered write")
-    string pOut = path.join(tmpDir, "imgcodecs_test_edge.bmp")
+    string pOut = path.join(tmpDir, runName + "_edge.bmp")
     int wrote = saveImage(src.sobel(), pOut)
     check(wrote > 0 and file.exists(pOut), "sobel result written to BMP")
     Image reloaded = loadImage(pOut)

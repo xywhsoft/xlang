@@ -1,0 +1,49 @@
+import gzip
+
+
+
+func main(...) as int
+    Buffer source = Buffer()
+    source.append("xlang gzip ")
+    source.appendByte(0)
+    source.append("二进制范例")
+
+    // 一次性接口固定返回 Buffer，NUL 和任意字节不会经过字符串转换。
+    Buffer packed = gzip.compress(source, 9)
+    Buffer plain = gzip.decompress(packed)
+    assert plain == source, "gzip Buffer round trip failed"
+
+    // 增量对象可多次写入，finish 后一次取得完整结果。
+    auto encoder = gzip.compressor(6)
+    encoder.update("hello ")
+    encoder.update("stream")
+    Buffer streamPacked = encoder.finish()
+
+    auto decoder = gzip.decompressor()
+    decoder.update(streamPacked)
+    Buffer streamPlain = decoder.finish()
+    assert streamPlain.text() == "hello stream", "gzip incremental round trip failed"
+
+    // 损坏输入使用明确的 CompressionError，不以空 Buffer 冒充成功。
+    bool rejected = false
+    streamPacked[streamPacked.len() - 1] = streamPacked[streamPacked.len() - 1] ^ 1
+    try
+        gzip.decompress(streamPacked)
+    catch CompressionError e
+        rejected = true
+    end
+    assert rejected, "corrupt gzip must raise CompressionError"
+
+    // 文件便捷接口仍使用 XRT 流式处理，不会把整个文件读入内存。
+    dir.createAll("tmp")
+    file.writeBytes("tmp/gzip_example_source.bin", source)
+    gzip.compressFile("tmp/gzip_example_source.bin", "tmp/gzip_example.gz")
+    gzip.decompressFile("tmp/gzip_example.gz", "tmp/gzip_example_plain.bin")
+    assert file.readBytes("tmp/gzip_example_plain.bin") == source
+    file.delete("tmp/gzip_example_source.bin")
+    file.delete("tmp/gzip_example.gz")
+    file.delete("tmp/gzip_example_plain.bin")
+
+    println("gzip example: PASS")
+    return 0
+end

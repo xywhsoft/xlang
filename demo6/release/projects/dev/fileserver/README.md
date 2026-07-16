@@ -38,11 +38,10 @@ post-test requestCount=22
 
 ## 设计要点
 
-- **native-backed class 内联使用**：`HttpRequest` / `HttpResponse` /
-  `HttpClientRequest` / `HttpClientResponse` / `Buffer` 不可按值传给函数，
-  所有路由 handler 把 req/resp 操作全部写在 handler 函数体内；
-  self-test 用 `if true then ... end` 块给每个 case 制造独立作用域，
-  避免多个 `req`/`resp` 局部变量重名。
+- **资源作用域清晰**：请求与响应包装对象只在拥有对应句柄的 handler 或测试块内使用。
+  self-test 用 `if true then ... end` 为每个 case 建立独立生命周期，完成请求后立即释放资源。
+- **结构化 JSON**：反射路径参数、请求头、查询字符串、Cookie 和错误信息时，先构造字典再
+  `json.stringify`，不会因为外部文本包含引号而生成非法 JSON。
 - **无 bare block scope**：xlang 只有 `do ... while`，没有 `do ... end` 块；
   用 `if true then ... end` 替代。
 - **self-test 端口 = 0**：让系统自动分配空闲端口，避免端口冲突；

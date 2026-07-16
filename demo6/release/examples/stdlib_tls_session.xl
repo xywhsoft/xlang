@@ -4,8 +4,10 @@ assert(config.host("localhost"))
 config.verifyPeer(false)
 
 TlsSession session = config.session()
+assert(session.peerCert().len() == 0)
 int status = session.handshake()
 assert(status == 0 or status == -2)
+assert(session.peerCert().len() == 0)
 
 // 首次客户端握手会生成 ClientHello 密文，发送后必须显式消费。
 Buffer clientHello = session.peekCipher()

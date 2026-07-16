@@ -41,22 +41,21 @@ Figure 2 的四类规则：
 - **AppendEntries**：心跳 + 日志追加；prevLogIndex/prevTerm 一致性检查；commitIndex 推进。
 - **AppendEntriesResponse**：成功 → 更新 matchIndex 并尝试提交；失败 → nextIndex 回退重试。
 
-## RPC 传输（channel<int> slot 信封）
+## RPC 传输（channel<string> + 类型化解码）
 
-`channel<T>` 只接受 int/bool/float 等值类型（**BUG-AC1**），不能传字符串或结构体。
-因此采用 **slot 信封**：
+每个节点拥有独立 `channel<string>` inbox。发送端把只包含整数的 RPC 编码为紧凑
+逗号分隔信封，接收端立即解码成局部 `Rpc` class：
 
 ```
 sender:                                    receiver:
-  rpcAlloc() -> slot s                       inbox.tryRecvInto(slot) -> s
-  g_rpcType[s], g_rpcTerm[s], ... = payload  读 g_rpcType[s], g_rpcTerm[s], ...
-  inbox[dst].send(s)                         processRpc(id, s)
+  Rpc rpc = Rpc()                            inbox.tryRecvInto(wire)
+  rpc.term = term                            Rpc rpc = decodeRpc(wire)
+  inbox[dst].send(encodeRpc(rpc))             processRpc(id, rpc)
 ```
 
-- 13 个并行全局数组（`g_rpcType`/`g_rpcTerm`/`g_rpcPrevIdx`/...）按 slot id 索引，
-  承载一条 RPC 的全部字段。
-- `rpcAlloc` 在 mutex 下 push 一整行，保证 slot id 在所有数组中同步可用。
-- channel 的 send→recv 提供 happens-before，receiver 读到的 slot 字段一定完整。
+- 消息是 channel 拥有的 string 副本，不共享发送端对象。
+- 解码后的 `Rpc` 只属于接收线程，不需要额外锁保护消息字段。
+- 删除了 slot 分配器、RPC 全局锁和 13 张并行数组，字段不会发生错位。
 
 ## 网络分区
 
@@ -84,16 +83,14 @@ sender:                                    receiver:
 | 恢复 | 旧 Leader 降级为 Follower；仍有 Leader；回到单一 Leader（无脑裂） |
 | 一致性恢复 | entry 5 被接收；全部 5 节点复制到 entry 5；全部节点日志 term 完全一致 |
 
-## xlang 限制绕过
+## 并发边界
 
-| 限制 | 绕过 |
+| 边界 | 处理方式 |
 |---|---|
-| **BUG-AC1**：`channel<string>` 不支持 | 全部 RPC 用 `channel<int>` + slot 信封（并行全局数组承载字段） |
-| channel / thread 不可复制，不能进 typed 数组 | inbox 用 5 个预声明全局 channel；node body 用闭包工厂 `makeNodeBody(id)` 捕获 id（按值），fire-and-forget `thread(...)` |
-| `channel.send` 非阻塞 try-enqueue；close 后 `recvInto` 永挂（BUG-32） | 节点用 `tryRecvInto` 轮询，从不 close inbox；inbox 容量 128 远大于峰值 |
-| **BUG-XT3**：main 中重绑定全局容器致线程崩溃 | 所有全局数组在声明处 `array[]` 初始化，仅 push / index 赋值就地修改，从不 `g = [...]` 重绑定 |
-| `time.clock()` 在 `xl run` 下恒 0（BUG-XL7） | 计时用 `time.timer()`（float 秒，单调墙钟，`xl run` 下正常） |
-| 复合赋值不派发 class 协议（BUG-V1） | 本工具不使用 class 运算符协议；int 的 `+=` 正常 |
+| channel / thread 是不可复制的 native-backed 资源 | inbox 用 5 个明确命名的全局 channel；节点线程由闭包工厂捕获 id |
+| `channel.send` 是有界队列投递 | inbox 容量 128；节点每轮先排空 inbox，再执行定时状态机 |
+| 节点状态由多个线程读取 | `g_lock` 保护状态快照和状态迁移；发送消息时不持锁 |
+| 定时选举需要单调时间 | 使用 `time.timer()` 计算 deadline，`time.sleep(ms)` 控制轮询节奏 |
 
 ## 设计要点
 

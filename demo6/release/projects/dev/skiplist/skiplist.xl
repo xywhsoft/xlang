@@ -13,7 +13,7 @@
 //
 // 数据自动持久化到 脚本/exe 同目录的 skiplist.json（compact JSON，保序）。
 //
-// 设计要点（结合 dev/README.md 与 BUGS.md）：
+// 设计要点：
 //   - 概率性平衡：多层链表，插入时 random.u32() 抛硬币（p=0.5）决定层数。
 //     查找/插入/删除/排名均为期望 O(log n)。
 //   - 节点用单一 SkipNode class（key/value/forward/span 数组）。
@@ -453,10 +453,10 @@ class SkipList
 
     // ---- 序列化到 JSON（compact，手动遍历保序）----
     func serialize() as string
-        var out = {}
-        out["maxLevel"] = self.maxLevel
-        out["level"] = self.level
-        out["count"] = self.count
+        var outputValue = {}
+        outputValue["maxLevel"] = self.maxLevel
+        outputValue["level"] = self.level
+        outputValue["count"] = self.count
         var ns = []
         int total = self.nodes.length
         int i = 0
@@ -479,8 +479,8 @@ class SkipList
             ns.push(nd)
             i = i + 1
         end
-        out["nodes"] = ns
-        return json.stringify(out)
+        outputValue["nodes"] = ns
+        return json.stringify(outputValue)
     end
 
     // 从 JSON 文本重建（替换当前内容）；失败返回 false。

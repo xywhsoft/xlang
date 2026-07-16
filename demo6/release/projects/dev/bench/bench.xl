@@ -50,10 +50,10 @@ func report(string name, int n, float elapsed)
     end
     string line = "  "
     line = line + string.padRight(name, 8)
-    line = line + "n=" + string.formatInt(n, ",")
-    line = line + "  time=" + string.formatFloat(ms, ".3") + " ms"
-    line = line + "  " + string.formatFloat(usPerOp, ".4") + " us/op"
-    line = line + "  " + string.formatInt(int(opsPerSec), ",") + " ops/sec"
+    line = line + "n=" + int.format(n, ",")
+    line = line + "  time=" + float.format(ms, ".3") + " ms"
+    line = line + "  " + float.format(usPerOp, ".4") + " us/op"
+    line = line + "  " + int.format(int(opsPerSec), ",") + " ops/sec"
     println(line)
 end
 
@@ -118,8 +118,8 @@ func benchJson(int n) as float
     int i = 0
     while i < n do
         var doc = json.parse(sample)
-        string out = json.stringify(doc)
-        acc += float(string.len(out))
+        string outputValue = json.stringify(doc)
+        acc += float(string.len(outputValue))
         i += 1
     end
     float t1 = time.timer()
@@ -177,6 +177,6 @@ func main(...) as int
     end
 
     println("================================================================")
-    println("checksum " + string.formatFloat(g_sink, ".3") + " (防优化累计值)")
+    println("checksum " + float.format(g_sink, ".3") + " (防优化累计值)")
     return 0
 end

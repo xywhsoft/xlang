@@ -12,20 +12,15 @@
 //   5. 可用表达式分析 Available Expressions（e_gen/e_kill，前向，meet = 交集）
 //      —— 作为第三种分析，验证框架对「前向/后向 + 并集/交集」四种组合的通用性。
 //
-// 设计要点（结合 dev/README.md 与 BUGS.md）：
+// 设计要点：
 //   - 集合一律用 dict<string, bool> 模拟（key=元素，value=true）。
 //     提供并/交/差/相等/拷贝 等集合算子（set* 系列自由函数）。
-//   - 节点池 + id 引用（参考 trie/btree，规避 BUG-RT1/RT2：
-//     「typed 容器直接嵌套 class 实例」脆弱）。BasicBlock 存于 CFG.blocks
-//     （var dict），Instr 存于 BasicBlock.instrs（var 数组），取出时用 as 还原。
-//   - 值语义 write-back：derive value class，getBlock 取副本，改字段后 setBlock 写回
-//     （容器字段虽因引用共享，但统一 write-back 保证两种语义下都正确，参考 trie）。
+//   - CFG、BasicBlock 和 Instr 使用静态泛型容器；class 是托管引用，修改节点后无需回写。
 //   - Worklist 框架为纯迭代实现（非递归），规避 （var dict 递归分配二次方劣化）。
 //   - 传递函数与 meet 算子作为一等公民 func 值传入求解器（func 是一等公民，已验证）；
 //     各分析的传递函数用 auto 闭包捕获预计算的 use/def、gen/kill 字典。
-//   - 形参不重载 var（BUG：var 实参传给重载函数失败）；class 方法形参用 var 而非
-//     array<T>。
-//   - 字符串拼接前对来自 var 容器的 key/value 先 string 显式转换。
+//   - 数据流集合采用动态字典，是因为集合内容在求解过程中按分析种类动态组合；
+//     CFG 主体则保持静态类型，避免无意义的装箱和类型转换。
 
 
 // ============================================================
@@ -177,17 +172,17 @@ func setToSortedString(var s) as string
         end
         i = i + 1
     end
-    string out = "{"
+    string outputValue = "{"
     i = 0
     while i < n do
         if i > 0 then
-            out = out + ", "
+            outputValue = outputValue + ", "
         end
-        out = out + string(keys[i])
+        outputValue = outputValue + string(keys[i])
         i = i + 1
     end
-    out = out + "}"
-    return out
+    outputValue = outputValue + "}"
+    return outputValue
 end
 
 
@@ -199,15 +194,15 @@ class Instr
     derive value
 
     string text = ""          // 可读文本，如 "b = i + j"
-    var defvars = []          // 本指令定义（赋值）的变量名数组
-    var usevars = []          // 本指令使用（读取）的变量名数组
-    var exprs = []            // 本指令计算的表达式数组（如 ["i+j"]），无则为 []
+    array<string> defvars = array<string>[]
+    array<string> usevars = array<string>[]
+    array<string> exprs = array<string>[]
 
     create()
         self.text = ""
-        self.defvars = []
-        self.usevars = []
-        self.exprs = []
+        self.defvars = array<string>[]
+        self.usevars = array<string>[]
+        self.exprs = array<string>[]
     end
 end
 
@@ -216,7 +211,7 @@ end
 //   defvars 定义变量数组（如 ["b"]），无可传 []
 //   usevars 使用变量数组（如 ["i","j"]），无可传 []
 //   exprs   表达式数组（如 ["i+j"]），无可传 []
-func mkInstr(string text, var defvars, var usevars, var exprs) as Instr
+func mkInstr(string text, array<string> defvars, array<string> usevars, array<string> exprs) as Instr
     Instr ins = Instr()
     ins.text = text
     ins.defvars = defvars
@@ -234,15 +229,15 @@ class BasicBlock
     derive value
 
     string id = ""
-    var instrs = []           // Instr 数组（var 承载，as 还原）
-    var predIds = []          // 前驱块 id（字符串）数组
-    var succIds = []          // 后继块 id（字符串）数组
+    array<Instr> instrs = array<Instr>[]
+    array<string> predIds = array<string>[]
+    array<string> succIds = array<string>[]
 
     create(string id)
         self.id = id
-        self.instrs = []
-        self.predIds = []
-        self.succIds = []
+        self.instrs = array<Instr>[]
+        self.predIds = array<string>[]
+        self.succIds = array<string>[]
     end
 end
 
@@ -254,13 +249,13 @@ end
 class CFG
     derive value
 
-    var blocks = {}           // id(string) -> BasicBlock（var 承载）
-    var order = []            // 块 id 插入序（稳定遍历用）
+    dict<BasicBlock> blocks = dict<BasicBlock>{}
+    array<string> order = array<string>[]
     string entryId = ""       // 入口块 id
 
     create()
-        self.blocks = {}
-        self.order = []
+        self.blocks = dict<BasicBlock>{}
+        self.order = array<string>[]
         self.entryId = ""
     end
 
@@ -274,29 +269,20 @@ class CFG
     end
 
     func getBlock(string id) as BasicBlock
-        var v = self.blocks[id]
-        BasicBlock b = v as BasicBlock
-        return b
-    end
-
-    // 值语义 write-back：取副本改字段后写回。
-    func setBlock(string id, BasicBlock b)
-        self.blocks[id] = b
+        return self.blocks[id]
     end
 
     // 加有向边 from -> to（同时维护双向前驱/后继）。
     func addEdge(string from, string to)
         BasicBlock fb = self.getBlock(from)
         fb.succIds.push(to)
-        self.setBlock(from, fb)
         BasicBlock tb = self.getBlock(to)
         tb.predIds.push(from)
-        self.setBlock(to, tb)
     end
 
     // 返回块 id 数组的拷贝（插入序）。
-    func blockIds() as var
-        var r = []
+    func blockIds() as array<string>
+        array<string> r = array<string>[]
         int i = 0
         while i < self.order.length do
             r.push(self.order[i])
@@ -502,8 +488,7 @@ func computeUseDef(CFG cfg) as (var, var)
         int m = b.instrs.length
         int j = 0
         while j < m do
-            var iv = b.instrs[j]
-            Instr ins = iv as Instr
+            Instr ins = b.instrs[j]
             // 先处理使用：未在本块先前定义 -> upward-exposed
             int uk = 0
             while uk < ins.usevars.length do
@@ -565,8 +550,7 @@ func computeGenKill(CFG cfg) as (var, var)
         int m = b.instrs.length
         int j = 0
         while j < m do
-            var iv = b.instrs[j]
-            Instr ins = iv as Instr
+            Instr ins = b.instrs[j]
             int dk = 0
             while dk < ins.defvars.length do
                 string v = string(ins.defvars[dk])
@@ -674,8 +658,7 @@ func computeExprGenKill(CFG cfg) as (var, var)
         int m = b.instrs.length
         int j = 0
         while j < m do
-            var iv = b.instrs[j]
-            Instr ins = iv as Instr
+            Instr ins = b.instrs[j]
             int ek = 0
             while ek < ins.exprs.length do
                 string e = string(ins.exprs[ek])
@@ -700,8 +683,7 @@ func computeExprGenKill(CFG cfg) as (var, var)
         int m = b.instrs.length
         int j = 0
         while j < m do
-            var iv = b.instrs[j]
-            Instr ins = iv as Instr
+            Instr ins = b.instrs[j]
             // 先把本指令计算的表达式加入 generated
             int ek = 0
             while ek < ins.exprs.length do
@@ -776,7 +758,7 @@ end
 // 输出格式化
 // ============================================================
 
-func joinIds(var arr) as string
+func joinIds(array<string> arr) as string
     string s = ""
     int i = 0
     while i < arr.length do
@@ -807,8 +789,7 @@ func printCFG(CFG cfg)
         int m = b.instrs.length
         int j = 0
         while j < m do
-            var iv = b.instrs[j]
-            Instr ins = iv as Instr
+            Instr ins = b.instrs[j]
             println("      " + ins.text)
             j = j + 1
         end

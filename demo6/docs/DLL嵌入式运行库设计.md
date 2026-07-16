@@ -57,6 +57,7 @@ int xlSetSaveTemps(XL_Context* ctx, int enabled);
 int xlAddIncludePath(XL_Context* ctx, const char* path);
 int xlAddLibraryPath(XL_Context* ctx, const char* path);
 int xlAddLinkLibrary(XL_Context* ctx, const char* nameOrPath);
+int xlAddResourceFile(XL_Context* ctx, const char* path);
 int xlLoadDependencyLibrary(XL_Context* ctx, const char* path);
 int xlRegisterCFunction(XL_Context* ctx, const char* symbolName, void* fn);
 
@@ -73,6 +74,8 @@ XL_Module* xlCompileCSourceFilesToModule(XL_Context* ctx, const char** paths, in
 int xlRunCSourceString(XL_Context* ctx, const char* source, int argc, char** argv);
 int xlRunCSourceFile(XL_Context* ctx, const char* path, int argc, char** argv);
 int xlRunCSourceFiles(XL_Context* ctx, const char** paths, int pathCount, int argc, char** argv);
+int xlActivateModule(XL_Context* ctx, XL_Module* module, xvalue arg);
+int xlDeactivateModule(XL_Context* ctx, XL_Module* module);
 int xlRunModuleMain(XL_Context* ctx, XL_Module* module, xvalue arg);
 void* xlModuleGetSymbol(XL_Module* module, const char* symbolName);
 void xlDestroyModule(XL_Module* module);
@@ -84,6 +87,9 @@ const char* xlGetLastError(XL_Context* ctx);
 void xlClearLastError(XL_Context* ctx);
 int xlGetLastExitCode(XL_Context* ctx);
 ```
+
+`xlRunModuleMain` 用于一次性脚本执行，按顺序完成模块初始化、用户入口和模块卸载。
+需要长期保留模块全局状态的宿主使用 `xlActivateModule`，然后通过 `xlModuleGetSymbol` 调用导出函数，最后使用 `xlDeactivateModule` 成对卸载。重复激活和重复卸载均为幂等操作；活动模块不能同时作为一次性脚本运行，`xlDestroyModule` 会对仍处于活动状态的模块执行兜底卸载。
 
 编译版额外 API：
 
@@ -114,6 +120,7 @@ int xlcAddIncludePath(XLC_Context* ctx, const char* path);
 int xlcAddLibraryPath(XLC_Context* ctx, const char* path);
 int xlcAddLinkLibrary(XLC_Context* ctx, const char* nameOrPath);
 int xlcAddCSourceFile(XLC_Context* ctx, const char* path);
+int xlcAddResourceFile(XLC_Context* ctx, const char* path);
 int xlcLoadDependencyLibrary(XLC_Context* ctx, const char* path);
 int xlcRegisterCFunction(XLC_Context* ctx, const char* symbolName, void* fn);
 
@@ -146,6 +153,7 @@ int xlcGetLastExitCode(XLC_Context* ctx);
 
 - `xlRuntimeInit` / `xlRuntimeUnit` 是进程级公共 API，用于管理 DLL 内部 XRT/libtcc 运行时计数。
 - `xlCreateContext` / `xlDestroyContext` 会为每个 context 持有独立运行时引用；公开 `xlRuntimeUnit` 只释放公开 `xlRuntimeInit` 取得的引用，不能提前释放仍被 context 持有的运行时。
+- `xlAddResourceFile` / `xlcAddResourceFile` 登记 Windows 资源配置文件。编译时资源配置被转换为 COFF `.rsrc` 对象并挂载到动态 VFS，再交给 TCC 链接，不生成磁盘 `.obj` 中间文件。
 - `xlLoadDependencyLibrary` 加载的依赖库句柄由当前 context 持有，`xlDestroyContext` 负责释放；该 API 会在调用时把路径按宿主当前目录固化为快照，然后用同一快照路径加载动态库并参与后续 TCC 链接。
 - 生成出来的 xlang/C 程序仍使用 `xlInit` / `xlUnit` 作为模块生命周期入口。
 - DEMO6 不使用任何 Uninit/UnInit 式卸载命名，避免和 `xrtInit` / `xrtUnit` 口径冲突。

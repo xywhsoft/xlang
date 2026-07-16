@@ -1,0 +1,29 @@
+import tar
+import gzip
+import bz2
+
+
+
+func makeTar() as Buffer
+    auto writer = tar.create()
+    writer.add("message.txt", "compressed TAR")
+    return writer.finish()
+end
+
+func verify(Buffer packed) as bool
+    auto reader = tar.open(packed)
+    if not reader.next() then
+        return false
+    end
+    return reader.info().name == "message.txt" and reader.readText() == "compressed TAR"
+end
+
+func main(...) as int
+    Buffer archive = makeTar()
+    Buffer tarGz = gzip.compress(archive)
+    Buffer tarBz2 = bz2.compress(archive)
+    assert verify(gzip.decompress(tarGz)), "tar.gz composition failed"
+    assert verify(bz2.decompress(tarBz2)), "tar.bz2 composition failed"
+    println("compressed tar example: PASS")
+    return 0
+end

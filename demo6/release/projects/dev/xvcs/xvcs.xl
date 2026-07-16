@@ -30,10 +30,10 @@
 //   .xvcs/refs/heads/<分支>  内含一个 commit 哈希
 //   .xvcs/index.json        {"path/with/slash": "<blob-hash>"}  (扁平, 用 / 分隔)
 //
-// 设计要点 (对齐 dev/README.md 现有能力与限制):
+// 设计要点：
 //   * 路径规范: index/tree 内一律用 "/" 分隔; 文件系统操作前 toFsPath 转 path.sep().
 //   * pop() 不走 auto (auto 无法从 pop 推断): 用显式 int/string 接收, 或索引 + remove.
-//   * var 实参传重载 (BUG-VO1): 容器内值先用 string()/int() 显式转换再传 API.
+//   * 动态 JSON 值在进入静态 API 边界时显式转换，保证格式错误尽早暴露。
 //   * LCS 行级 diff: 一维 DP 表 + 回溯 (复用 dev/diff 思路).
 //   * 3-way 文本合并: 用 base↔ours 与 base↔theirs 两份 LCS 匹配做 diff3 同步点算法,
 //     一致变更自动合并, 双向冲突产生 <<<<<<< HEAD / ======= / >>>>>>> branch 标记.
@@ -112,14 +112,14 @@ end
 // 把全文拆成行.
 func toLines(string content) as array<string>
     array raw = string.splitLines(content)
-    array<string> out = array[]
+    array<string> outputValue = array[]
     int n = raw.length
     int i = 0
     while i < n do
-        out.push(string(raw[i]))
+        outputValue.push(string(raw[i]))
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // 行数组 -> 文本 (用 \n 连接; 末尾保留一个换行便于文件落盘).
@@ -371,7 +371,7 @@ func buildTreeFromIndex(var index) as string
 end
 
 // 递归把一个 tree 哈希拍平成 path -> blobHash 字典 (path 用 "/" 分隔).
-func flattenTreeRecurse(string treeHash, string prefix, var out)
+func flattenTreeRecurse(string treeHash, string prefix, var outputValue)
     if not objectExists(treeHash) then return end
     var tree = readObject(treeHash)
     if tree == null then return end
@@ -386,9 +386,9 @@ func flattenTreeRecurse(string treeHash, string prefix, var out)
         string h = string(entry["hash"])
         string full = prefix + nm
         if kind == BLOB_K then
-            out[full] = h
+            outputValue[full] = h
         else
-            flattenTreeRecurse(h, full + "/", out)
+            flattenTreeRecurse(h, full + "/", outputValue)
         end
         i += 1
     end
@@ -536,7 +536,7 @@ end
 // ============================================================================
 
 // 从 dirPath (文件系统路径) 递归收集文件, 输出为 rel 列表 ("/" 分隔, 含 prefix).
-func scanDirRecurse(string dirPath, string prefix, array<string> out)
+func scanDirRecurse(string dirPath, string prefix, array<string> outputValue)
     array raw = dir.entries(dirPath, false)
     int n = raw.length
     int i = 0
@@ -554,9 +554,9 @@ func scanDirRecurse(string dirPath, string prefix, array<string> out)
             rel = prefix + "/" + nm
         end
         if isDir then
-            scanDirRecurse(string(e["path"]), rel, out)
+            scanDirRecurse(string(e["path"]), rel, outputValue)
         else
-            out.push(rel)
+            outputValue.push(rel)
         end
         i += 1
     end
@@ -564,10 +564,10 @@ end
 
 // 扫描整个工作区 (相对 cwd), 返回排序后的 rel 路径列表 ("/" 分隔).
 func scanWorkdir() as array<string>
-    array<string> out = array[]
-    scanDirRecurse(".", "", out)
-    sortStringArray(out)
-    return out
+    array<string> outputValue = array[]
+    scanDirRecurse(".", "", outputValue)
+    sortStringArray(outputValue)
+    return outputValue
 end
 
 // 读取 rel 路径文件内容 (rel 用 "/" 分隔).
@@ -902,7 +902,7 @@ end
 
 // 三方合并 base/ours/theirs (均为行数组). 返回 {"lines":[...], "conflict":bool}.
 func merge3(array<string> base, array<string> ours, array<string> theirs, string branchName) as var
-    var out = {}
+    var outputValue = {}
     var lines = []
     bool conflict = false
     array<int> mo = matchBase(base, ours)
@@ -952,9 +952,9 @@ func merge3(array<string> base, array<string> ours, array<string> theirs, string
         end
     end
 
-    out["lines"] = lines
-    out["conflict"] = conflict
-    return out
+    outputValue["lines"] = lines
+    outputValue["conflict"] = conflict
+    return outputValue
 end
 
 

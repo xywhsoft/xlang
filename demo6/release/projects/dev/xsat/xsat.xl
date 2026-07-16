@@ -1002,7 +1002,7 @@ end
 
 func g_printStats(float elapsed)
     println("c conflicts=" + string(g_conflicts) + " decisions=" + string(g_decisions) + " propagations=" + string(g_propagations))
-    println("c learnt=" + string(g_learnts_cnt) + " time=" + string.formatFloat(elapsed * 1000.0, ".3") + "ms")
+    println("c learnt=" + string(g_learnts_cnt) + " time=" + float.format(elapsed * 1000.0, ".3") + "ms")
 end
 
 
@@ -1356,7 +1356,7 @@ end
 // 把原始题面文本清洗为 81 位数字串 (0 表示空), 忽略空白/分隔符.
 func cleanPuzzle(string raw) as string
     array lines = string.splitLines(raw)
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < lines.length do
         string ln = string(lines[i])
@@ -1366,12 +1366,12 @@ func cleanPuzzle(string raw) as string
         while j < L do
             int b = string.byteAt(ln, j)
             if b >= 48 and b <= 57 then
-                out = out + string.charAt(ln, j)
+                outputValue = outputValue + string.charAt(ln, j)
             end
             j += 1
         end
     end
-    return out
+    return outputValue
 end
 
 // 打印原始题面网格 (0 显示为 .).

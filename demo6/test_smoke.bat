@@ -5,6 +5,9 @@ cd /d %~dp0
 call tools\xl6_toolchain_env.bat
 if errorlevel 1 exit /b 1
 
+rem Keep package resolution deterministic in a clean environment.
+set "XLANG_PACKAGE_PATH=release\extlibs;test\fixtures"
+
 call build.bat
 if errorlevel 1 exit /b 1
 

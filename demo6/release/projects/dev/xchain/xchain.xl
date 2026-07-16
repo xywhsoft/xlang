@@ -11,7 +11,7 @@
 //   xchain test                     内置自测：挖矿 / 余额 / 合约 / Merkle / 事件 / 分叉 / 持久化
 //   xchain -h | --help              打印帮助
 //
-// 设计要点（结合 dev/README.md 与 BUGS.md）：
+// 设计要点：
 //   - 账户模型（非 UTXO）：每笔交易 from -> to 转账 amount；余额按最长链重放计算。
 //     全局 g_balances 由 computeBalances() 在每次查询/挖矿时按最长链重建，避免脏状态。
 //   - PoW（工作量证明）：blockHash = sha256(index:ts:merkleRoot:prevHash:nonce:difficulty)，
@@ -96,7 +96,7 @@ array<int> gOpHasOperand = array[
 
 var g_blockIndex = {}           // hash -> Block 实例
 array<string> g_tips = array[]  // 当前叶子块哈希列表（候选链顶）
-array<var> g_mempool = array[]  // 待打包交易（Transaction 实例）
+array<Transaction> g_mempool = array<Transaction>[] // 待打包交易
 var g_keyStore = {}             // 地址 -> 私钥（演示用账户注册表）
 var g_nameIndex = {}            // 名称 -> 地址（便于按名查账户）
 array<var> g_events = array[]   // 事件日志条目（dict）
@@ -160,23 +160,6 @@ func leadingZeros(string h) as int
     return n
 end
 
-// 大写化 ASCII 串（助记符查表用）。
-func toUpper(string s) as string
-    string out = ""
-    int n = string.len(s)
-    int i = 0
-    while i < n do
-        int b = string.byteAt(s, i)
-        if b >= 97 and b <= 122 then
-            out = out + string.charAt("ABCDEFGHIJKLMNOPQRSTUVWXYZ", b - 97)
-        else
-            out = out + string.charAt(s, i)
-        end
-        i = i + 1
-    end
-    return out
-end
-
 // 判断 s 是否十进制整数（可选符号）。
 func looksInt(string s) as bool
     int n = string.len(s)
@@ -202,12 +185,12 @@ end
 
 // 按分隔符切分字符串为 array<string>（比 string.split 多一层 trim 空元素保护）。
 func splitOn(string s, string delim) as array<string>
-    array<string> out = string.split(s, delim)
+    array<string> outputValue = string.split(s, delim)
     array<string> cleaned = array[]
     int i = 0
-    int n = out.length
+    int n = outputValue.length
     while i < n do
-        string t = string.trim(string(out[i]))
+        string t = string.trim(string(outputValue[i]))
         if string.len(t) > 0 then
             cleaned.push(t)
         end
@@ -467,7 +450,7 @@ class Block
 
     int index = 0
     int ts = 0
-    array<var> txs = array[]     // Transaction 实例列表
+    array<Transaction> txs = array<Transaction>[] // Transaction 实例列表
     string prevHash = ""
     int nonce = 0
     string hash = ""
@@ -500,7 +483,7 @@ class Block
         int n = self.txs.length
         int i = 0
         while i < n do
-            Transaction t = self.txs[i] as Transaction
+            Transaction t = self.txs[i]
             hashes.push(t.hash)
             i = i + 1
         end
@@ -556,7 +539,7 @@ class Block
         int i = 0
         int n = self.txs.length
         while i < n do
-            Transaction t = self.txs[i] as Transaction
+            Transaction t = self.txs[i]
             txList.push(t.toDict())
             i = i + 1
         end
@@ -589,7 +572,7 @@ end
 
 // 助记符 -> opcode；未找到返回 -1。
 func opNameToCode(string name) as string
-    string up = toUpper(name)
+    string up = string.upper(name)
     int i = 0
     while i < NUM_OPS do
         if gOpNames[i] == up then
@@ -665,7 +648,7 @@ func assemble(string src) as array<int>
                     labelAddrs.push(addr)
                     ti = ti + 1
                 else
-                    string mnem = toUpper(tok)
+                    string mnem = string.upper(tok)
                     int opcode = int(opNameToCode(mnem))
                     if opcode < 0 then
                         g_asmError = "line " + string(li + 1) + ": unknown instruction '" + tok + "'"
@@ -733,7 +716,7 @@ end
 
 // 反汇编字节码为可读文本（调试/dump 用）。
 func disassemble(array<int> code) as string
-    string out = ""
+    string outputValue = ""
     int n = code.length
     int p = 0
     while p < n do
@@ -744,19 +727,19 @@ func disassemble(array<int> code) as string
             name = gOpNames[op]
             hasOp = gOpHasOperand[op]
         end
-        out = out + string(p) + ": " + name
+        outputValue = outputValue + string(p) + ": " + name
         p = p + 1
         if hasOp != 0 then
             if p < n then
-                out = out + " " + string(code[p])
+                outputValue = outputValue + " " + string(code[p])
                 p = p + 1
             else
-                out = out + " <missing>"
+                outputValue = outputValue + " <missing>"
             end
         end
-        out = out + "\n"
+        outputValue = outputValue + "\n"
     end
-    return out
+    return outputValue
 end
 
 
@@ -834,7 +817,7 @@ class Contract
                         self.labelAddrs.push(addr)
                         ti = ti + 1
                     else
-                        string mnem = toUpper(tok)
+                        string mnem = string.upper(tok)
                         int opcode = int(opNameToCode(mnem))
                         if gOpHasOperand[opcode] != 0 then
                             ti = ti + 2
@@ -1196,7 +1179,7 @@ end
 func initChain(int difficulty)
     g_blockIndex = {}
     g_tips = array[]
-    g_mempool = array[]
+    g_mempool = array<Transaction>[]
     g_events = array[]
     g_contracts = {}
     g_keyStore = {}
@@ -1261,7 +1244,7 @@ func appendBlock(Block b) as bool
     int ti = 0
     int tn = b.txs.length
     while ti < tn do
-        Transaction t = b.txs[ti] as Transaction
+        Transaction t = b.txs[ti]
         if not t.isValid() then
             emitEvent(b.index, "block.reject", b.miner, "invalid tx " + shortHash(t.hash))
             return false
@@ -1366,7 +1349,7 @@ func mineNextBlock(int difficulty) as Block
     int mi = 0
     int mn = g_mempool.length
     while mi < mn and packed < MAX_TX_PER_BLOCK do
-        Transaction t = g_mempool[mi] as Transaction
+        Transaction t = g_mempool[mi]
         if t.isValid() then
             b.txs.push(t)
             fees = fees + TX_FEE
@@ -1382,7 +1365,7 @@ func mineNextBlock(int difficulty) as Block
     b.mine()
 
     // 清空已打包的 mempool（这里简单清空全部；保留未打包的留给下块）
-    array<var> leftover = array[]
+    array<Transaction> leftover = array<Transaction>[]
     while mi < mn do
         leftover.push(g_mempool[mi])
         mi = mi + 1
@@ -1422,7 +1405,7 @@ func validateLongestChain() as int
         int ti = 0
         int tn = b.txs.length
         while ti < tn do
-            Transaction t = b.txs[ti] as Transaction
+            Transaction t = b.txs[ti]
             if not t.isValid() then
                 return i
             end
@@ -1445,7 +1428,7 @@ func balanceOf(string addr) as int
         int ti = 0
         int tn = b.txs.length
         while ti < tn do
-            Transaction t = b.txs[ti] as Transaction
+            Transaction t = b.txs[ti]
             if t.to == addr then
                 bal = bal + t.amount
             end
@@ -1495,7 +1478,7 @@ func loadState(string statePath) as bool
 
     g_blockIndex = {}
     g_tips = array[]
-    g_mempool = array[]
+    g_mempool = array<Transaction>[]
     g_events = array[]
     g_contracts = {}
     g_keyStore = {}
@@ -1570,7 +1553,7 @@ func saveState(string statePath) as bool
     int pn = g_mempool.length
     int pi = 0
     while pi < pn do
-        Transaction t = g_mempool[pi] as Transaction
+        Transaction t = g_mempool[pi]
         pool.push(t.toDict())
         pi = pi + 1
     end
@@ -1844,7 +1827,7 @@ func cmdTest() as int
     Block b1 = mineNextBlock(2)
     expectI(b1.index, 1, "mined block index = 1")
     expectTrue(b1.sealsCorrectly(), "mined block seals correctly")
-    expectI(leadingZeros(b1.hash), 2, "mined block hash has >= 2 leading zeros")
+    expectTrue(leadingZeros(b1.hash) >= 2, "mined block hash has >= 2 leading zeros")
     // 区块应含 2 笔业务交易 + 1 coinbase
     expectI(b1.txs.length, 3, "block has 2 txs + 1 coinbase")
     expectI(g_mempool.length, 0, "mempool drained after mine")
@@ -1865,7 +1848,7 @@ func cmdTest() as int
     // ---- 8. 再挖一块（难度 3）测试难度参数 ----
     submitTransaction(makeTx(carol, alice, 50, 0, "payback"))
     Block b2 = mineNextBlock(3)
-    expectI(leadingZeros(b2.hash), 3, "block2 hash has >= 3 leading zeros")
+    expectTrue(leadingZeros(b2.hash) >= 3, "block2 hash has >= 3 leading zeros")
     expectI(b2.difficulty, 3, "block2 difficulty = 3")
     array<string> chain2 = longestChain()
     expectI(chain2.length, 3, "longest chain = 3 blocks")
@@ -1877,7 +1860,7 @@ func cmdTest() as int
     int b2i = 0
     int b2n = b2.txs.length
     while b2i < b2n do
-        Transaction t = b2.txs[b2i] as Transaction
+        Transaction t = b2.txs[b2i]
         b2leaves.push(t.hash)
         b2i = b2i + 1
     end
@@ -1904,10 +1887,9 @@ func cmdTest() as int
     expectTrue(b3.hash == chainFinal[chainFinal.length - 1], "main chain tip is the freshly mined b3")
 
     // ---- 11. 持久化往返 ----
-    string tmpPath = path.join(path.dir(g_stateFile), "xchain_test_snapshot.json")
-    if string.len(g_stateFile) == 0 then
-        tmpPath = "xchain_test_snapshot.json"
-    end
+    string tempRoot = path.join(path.temp(), path.random("xchain_", ""))
+    dir.createAll(tempRoot)
+    string tmpPath = path.join(tempRoot, "snapshot.json")
     bool saved = saveState(tmpPath)
     expectTrue(saved, "saveState wrote snapshot")
 
@@ -1921,7 +1903,7 @@ func cmdTest() as int
     // 清空后重载
     g_blockIndex = {}
     g_tips = array[]
-    g_mempool = array[]
+    g_mempool = array<Transaction>[]
     g_events = array[]
     g_keyStore = {}
     g_nameIndex = {}
@@ -2001,10 +1983,7 @@ func cmdTest() as int
 
     // ---- 14. 合约 deploy/call 经全局 g_contracts ----
     // 写合约源到临时文件，用 deployContract 走文件路径
-    string contractFilePath = path.join(path.dir(tmpPath), "xchain_token_test.xbin")
-    if string.len(contractFilePath) == 0 then
-        contractFilePath = "xchain_token_test.xbin"
-    end
+    string contractFilePath = path.join(tempRoot, "token.xbin")
     file.writeText(contractFilePath, TOKEN_CONTRACT_SRC)
     string deployedAddr = deployContract(alice, contractFilePath)
     expectTrue(string.len(deployedAddr) > 0, "deployContract returns address")
@@ -2023,9 +2002,10 @@ func cmdTest() as int
     var callMissing = callContract("0xnonexist", "supply", "")
     expectI(int(callMissing[0]), 1, "call missing contract -> rc=1")
 
-    // 清理临时文件（忽略失败）
-    file.writeText(contractFilePath, "")
-    file.writeText(tmpPath, "")
+    // 自测不在项目目录留下快照或合约文件。
+    file.delete(contractFilePath)
+    file.delete(tmpPath)
+    dir.delete(tempRoot)
 
     // ---- 15. 事件日志 ----
     initChain(2)
@@ -2065,7 +2045,7 @@ func cmdMine(string scriptPath, int difficulty) as int
     int i = 0
     int n = b.txs.length
     while i < n do
-        Transaction t = b.txs[i] as Transaction
+        Transaction t = b.txs[i]
         println("    " + t.describe())
         i = i + 1
     end

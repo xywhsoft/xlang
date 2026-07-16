@@ -16,7 +16,7 @@
 //   double -1.0  ↔ int64 0xBFF0000000000000 = -4611686018427387904
 //   double  0.0  ↔ int64 0
 //
-// 程序始终返回 0（即使发现 BUG 也只记录不中断），保证 xl run / xl build 双路径 EXIT=0。
+// 任一断言失败时返回非 0，可直接作为回归测试运行。
 
 // ===== 被测 union：int64 ↔ float64 位重解释（任务规格核心）=====
 union IntFloat
@@ -116,7 +116,7 @@ func fmtF(float64 v) as string
     if v == math.floor(v) and math.abs(v) < 1e15 then
         return string(float(v))
     end
-    return string.formatFloat(float(v), ".6")
+    return float.format(float(v), ".6")
 end
 
 func approxEq(float64 a, float64 b) as bool
@@ -281,18 +281,13 @@ func testAbiMetadata()
     v.f = 2.0
     IntFloat w = uIdent(v)
     expectFExact(w.f, 2.0, "export uIdent(u) round-trip (ABI wrapper)")
-    // type 值可转字符串 —— union 类型值的字符串化返回 "unknown"
     // type 身份和名称反查都应保留声明类型。
     string tn = string(type(u))
     println("    string(type(u)) = '" + tn + "'")
-    if tn == "unknown" then
-        ok("BUG-U1 reproduced: union type name stringifies as 'unknown'")
+    if tn == "IntFloat" then
+        ok("union type name stringifies as IntFloat")
     else
-        if tn == "IntFloat" then
-            ok("union type name stringifies correctly (BUG-U1 fixed)")
-        else
-            bad("union type name", "got '" + tn + "'")
-        end
+        bad("union type name", "got '" + tn + "'")
     end
 end
 
@@ -336,11 +331,14 @@ func testUnionArray()
     // 修改数组元素字段
     arr[0].i = D2_0_BITS
     expectFExact(arr[0].f, 2.0, "arr[0].i overwrite -> f == 2.0")
-    // 数组拷贝（不影响原数组）
-    array<IntFloat> copy = arr
-    copy[0].f = 0.0
-    expectFExact(arr[0].f, 2.0, "original array untouched after copy edit")
-    expectFExact(copy[0].f, 0.0, "copy array field edited")
+    // 容器赋值保留同一受管理引用；显式 clone 才建立独立深副本。
+    array<IntFloat> alias = arr
+    alias[0].f = 0.0
+    expectFExact(arr[0].f, 0.0, "array assignment preserves shared identity")
+    array<IntFloat> independent = clone(arr)
+    independent[0].f = 2.0
+    expectFExact(arr[0].f, 0.0, "clone array edit leaves source untouched")
+    expectFExact(independent[0].f, 2.0, "clone array field edited")
     // union 数组转 var
     var boxed = arr
     expectB(type(boxed) == type(arr), true, "var boxed union array type identity")
@@ -349,7 +347,7 @@ end
 // ===== 6. class 内匿名 union + 多字段 union =====
 func testAnonymousUnion()
     println("[6] anonymous union inside class + multi-field union")
-    Packet p
+    Packet p = Packet()
     p.tag = 1
     p.code = 200
     expectI64(int64(p.tag), 1, "packet.tag beside anon union")
@@ -381,5 +379,5 @@ func main(...) as int
     if g_fail == 0 then
         println("ALL CHECKS PASSED")
     end
-    return 0
+    return g_fail
 end

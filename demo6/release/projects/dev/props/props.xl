@@ -7,8 +7,7 @@
 //   4. virtual / override 属性         (Base/Child.name)
 //   5. 属性作为表达式 vs 赋值目标       (读 obj.p / 写 obj.p = x / obj.p[i] = x)
 //
-// 程序始终返回 0，即便发现 BUG 也只记录 [FAIL] 不中断，
-// 保证 xl run / xl build 两条路径都 EXIT=0。
+// 测试会运行全部用例；只要存在失败，进程就返回非零退出码。
 
 // ====================================================================
 // 测试目标 1：Meter
@@ -228,10 +227,8 @@ func testMeterHp()
     int computed = m.hp + 10
     expectI(computed, 40, "int x = m.hp + 10 expression")
 
-    // NOTE: 复合赋值 m.hp += 10 在编译期被拒 (sem: class property assignment only supports =)
-    //       见同目录 BUGS.md。属性只支持直接 = 赋值，复合赋值需展开为 m.hp = m.hp + 10。
-    m.hp = m.hp + 10
-    expectI(m.hp, 40, "m.hp = m.hp + 10 (manual compound on property)")
+    m.hp += 10
+    expectI(m.hp, 40, "m.hp += 10 compound property assignment")
 end
 
 func testMeterValue()
@@ -366,5 +363,8 @@ func main(...) as int
 
     println("---")
     println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
+    if g_fail > 0 then
+        return 1
+    end
     return 0
 end

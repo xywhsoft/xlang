@@ -9,14 +9,14 @@ end
 HttpClientResponse home = http.get("http://127.0.0.1:18080/", 5000)
 require("http_static", home.status() == 200 and string.contains(home.body(), "xs prototype") != 0)
 
-HttpClientResponse xlResp = http.get("http://127.0.0.1:18080/api/xl?smoke=1", 5000)
-require("http_xlang_handler", xlResp.status() == 200 and string.trim(xlResp.body()) == "xl-http:http:GET:/api/xl:smoke=1:")
+HttpClientResponse xlResp = http.post("http://127.0.0.1:18080/api/xlang", "from-xlang", "text/plain", 5000)
+require("http_xlang_handler", xlResp.status() == 200 and xlResp.body() == "from-xlang")
 
-HttpClientResponse cResp = http.post("http://127.0.0.1:18080/api/c?smoke=1", "payload", "text/plain", 5000)
-require("http_c_handler", cResp.status() == 200 and string.trim(cResp.body()) == "c-http:http:POST:/api/c:smoke=1:payload")
+HttpClientResponse cResp = http.post("http://127.0.0.1:18080/api/c", "from-c", "text/plain", 5000)
+require("http_c_handler", cResp.status() == 200 and cResp.body() == "from-c")
 
-HttpClientResponse cRespAgain = http.post("http://127.0.0.1:18080/api/c?smoke=2", "again", "text/plain", 5000)
-require("http_c_handler_reuse", cRespAgain.status() == 200 and string.trim(cRespAgain.body()) == "c-http:http:POST:/api/c:smoke=2:again")
+HttpClientResponse cRespAgain = http.post("http://127.0.0.1:18080/api/c", "again", "text/plain", 5000)
+require("http_c_handler_reuse", cRespAgain.status() == 200 and cRespAgain.body() == "again")
 
 point tcpHandle = tcp.connect("127.0.0.1", 18081, 5000)
 require("tcp_connect", tcpHandle != null)
@@ -26,10 +26,10 @@ require("tcp_drain", tcpClient.drain(5000))
 Buffer tcpReplyBytes = tcpClient.recvBytes(10000, 65536)
 string tcpReply = tcpReplyBytes.text()
 tcpClient.close()
-if string.trim(tcpReply) != "xl-tcp:tcp-xl:ping" then
+if tcpReply != "ping" then
     println("tcp_reply=[", tcpReply, "]")
 end
-require("tcp_xlang_handler", string.trim(tcpReply) == "xl-tcp:tcp-xl:ping")
+require("tcp_xlang_handler", tcpReply == "ping")
 
 point udpHandle = udp.bind(0)
 require("udp_bind", udpHandle != null)
@@ -38,10 +38,7 @@ require("udp_send", udpClient.send("127.0.0.1", uint16(18082), "dgram"))
 point udpPacketHandle = udpClient.recv(5000)
 require("udp_recv", udpPacketHandle != null)
 UdpPacket udpPacket = UdpPacket(udpPacketHandle)
-string udpReply = string.trim(udpPacket.text())
-require("udp_c_handler", string.startsWith(udpReply, "c-udp:udp-c:dgram:127.0.0.1:"))
-
-string customText = string.trim(file.readText("projects/xs/run/custom.out"))
-require("custom_xlang_handler", customText == "custom:boot-xl")
+string udpReply = udpPacket.text()
+require("udp_c_handler", udpReply == "dgram")
 
 println("xs smoke client ok")

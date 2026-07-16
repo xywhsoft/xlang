@@ -164,6 +164,9 @@ if not errorlevel 1 (
     echo export_package_vars.h should not expose package-only export variable.
     exit /b 1
 )
+
+release\xl.exe cgen test\cases\cgen_extern_string_return.xl --emit build\test\cgen_extern_string_return.c
+if errorlevel 1 exit /b 1
 findstr /C:"xl6_xrt_external_string_copy(native_shared_text(" build\test\cgen_extern_string_return.c >nul
 if errorlevel 1 (
     echo cgen_extern_string_return.c missing stable extern string copy.

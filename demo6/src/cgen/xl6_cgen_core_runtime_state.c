@@ -562,6 +562,7 @@ static void xl6CgenTimeLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
 static void xl6CgenIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+static int xl6CgenBinaryArithmeticIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static const XL6_AstNode* xl6CgenArgExpr(const XL6_AstNode* arg);
 static void xl6CgenCStringLiteral(XL6_Output* out, const char* text);
 static void xl6CgenArrayVarargExpr(XL6_CgenContext* ctx, const XL6_AstNode* args, int fixedCount);

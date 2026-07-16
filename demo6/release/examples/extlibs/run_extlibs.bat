@@ -24,6 +24,32 @@ call :run_example release\examples\extlibs\lzma.xl lzma xlzma_compress_hex
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\miniz.xl miniz xminiz_compress_hex
 if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\gzip.xl gzip xgzip_compress
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\bz2.xl bz2 xbz2_compress
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\zip.xl zip xzip_archive_create
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\tar.xl tar xtar_reader_open_memory
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\tar_compressed.xl tar_compressed xrtTarWriterCreateMemory
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\csv.xl csv xcsv_reader_open_memory
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\ini.xl ini xini_parse
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\toml.xl toml xtoml_parse
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\netrc.xl netrc xnetrc_parse
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\plist.xl plist xplist_parse
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\xml_sax.xl xml_sax xsax_open_memory
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\xml_etree.xl xml_etree xetree_parse
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\xml_dom.xl xml_dom xdom_parse
+if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\md4c.xl md4c xmd4c_html
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\stb_image.xl stb_image xstbi_load

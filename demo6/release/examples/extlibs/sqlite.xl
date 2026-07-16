@@ -18,12 +18,13 @@ assert string.contains(sqlite.sqlite3_errstr(sqlite.SQLITE_OK), "not an error"),
 
 point db = sqlite.sqlite3_open(dbPath)
 assert db != null, "sqlite open failed"
+assert sqlite.sqlite3_busy_timeout(db, 3000) == sqlite.SQLITE_OK, "sqlite busy timeout failed"
 assert sqlite.sqlite3_exec(db, "create table items(id integer, amount real, name text, payload blob, optional text)") == sqlite.SQLITE_OK, "sqlite create table failed"
 
 point insertStmt = sqlite.sqlite3_prepare_v2(db, "insert into items(id, amount, name, payload, optional) values(?, ?, ?, ?, ?)")
 assert insertStmt != null, "sqlite prepare insert failed"
 assert sqlite.sqlite3_bind_parameter_count(insertStmt) == 5, "sqlite bind parameter count mismatch"
-assert sqlite.sqlite3_bind_int(insertStmt, 1, 7) == sqlite.SQLITE_OK, "sqlite bind int failed"
+assert sqlite.sqlite3_bind_int64(insertStmt, 1, 5000000000) == sqlite.SQLITE_OK, "sqlite bind int64 failed"
 assert sqlite.sqlite3_bind_double(insertStmt, 2, 12.5) == sqlite.SQLITE_OK, "sqlite bind double failed"
 assert sqlite.sqlite3_bind_text(insertStmt, 3, "demo") == sqlite.SQLITE_OK, "sqlite bind text failed"
 assert sqlite.sqlite3_bind_blob_text(insertStmt, 4, "blob") == sqlite.SQLITE_OK, "sqlite bind blob failed"
@@ -36,6 +37,7 @@ assert sqlite.sqlite3_finalize(insertStmt) == sqlite.SQLITE_OK, "sqlite finalize
 assert sqlite.sqlite3_changes(db) == 1, "sqlite changes mismatch"
 assert sqlite.sqlite3_total_changes(db) == 1, "sqlite total changes mismatch"
 assert sqlite.sqlite3_last_insert_rowid_text(db) == "1", "sqlite rowid mismatch"
+assert sqlite.sqlite3_last_insert_rowid(db) == 1, "sqlite numeric rowid mismatch"
 assert sqlite.sqlite3_extended_errcode(db) == sqlite.SQLITE_OK, "sqlite extended errcode mismatch"
 
 point queryStmt = sqlite.sqlite3_prepare_v2(db, "select id, amount, name, payload, optional from items")
@@ -44,7 +46,7 @@ assert sqlite.sqlite3_column_count(queryStmt) == 5, "sqlite column count mismatc
 assert sqlite.sqlite3_column_name(queryStmt, 0) == "id", "sqlite column name mismatch"
 assert sqlite.sqlite3_step(queryStmt) == sqlite.SQLITE_ROW, "sqlite query step failed"
 assert sqlite.sqlite3_column_type(queryStmt, 0) == sqlite.SQLITE_INTEGER, "sqlite integer column type mismatch"
-assert sqlite.sqlite3_column_int(queryStmt, 0) == 7, "sqlite column int mismatch"
+assert sqlite.sqlite3_column_int64(queryStmt, 0) == 5000000000, "sqlite column int64 mismatch"
 assert sqlite.sqlite3_column_type(queryStmt, 1) == sqlite.SQLITE_FLOAT, "sqlite float column type mismatch"
 assert sqlite.sqlite3_column_double(queryStmt, 1) == 12.5, "sqlite column double mismatch"
 assert sqlite.sqlite3_column_type(queryStmt, 2) == sqlite.SQLITE_TEXT, "sqlite text column type mismatch"
@@ -59,6 +61,28 @@ assert sqlite.sqlite3_finalize(queryStmt) == sqlite.SQLITE_OK, "sqlite finalize 
 point db2 = sqlite.sqlite3_open_v2(db2Path, sqlite.SQLITE_OPEN_READWRITE + sqlite.SQLITE_OPEN_CREATE, "")
 assert db2 != null, "sqlite open_v2 failed"
 assert sqlite.sqlite3_close(db2) == sqlite.SQLITE_OK, "sqlite close failed"
+
+auto mem = sqlite.memory()
+assert mem.valid(), "sqlite memory database failed"
+assert mem.busy_timeout(3000), "sqlite object busy timeout failed"
+assert mem.execute("create table users(id integer, name text, score real)"), "sqlite object create table failed"
+auto stmt = mem.prepare("insert into users(id, name, score) values(?, ?, ?)")
+assert stmt.valid(), "sqlite object prepare failed"
+assert stmt.bind(1, 5000000000) == sqlite.SQLITE_OK, "sqlite object bind int failed"
+assert stmt.bind(2, "Ada") == sqlite.SQLITE_OK, "sqlite object bind string failed"
+assert stmt.bind(3, 98.5) == sqlite.SQLITE_OK, "sqlite object bind float failed"
+assert stmt.step() == sqlite.SQLITE_DONE, "sqlite object insert step failed"
+assert stmt.finalize() == sqlite.SQLITE_OK, "sqlite object finalize failed"
+assert mem.changes() == 1, "sqlite object changes mismatch"
+assert mem.last_insert_rowid() == 1, "sqlite object numeric rowid mismatch"
+var rows = mem.query("select id, name, score from users")
+assert rows.length == 1, "sqlite object query row count mismatch"
+assert int(rows[0]["id"]) == 5000000000, "sqlite object row id mismatch"
+assert string(rows[0]["name"]) == "Ada", "sqlite object row name mismatch"
+assert float(rows[0]["score"]) == 98.5, "sqlite object row score mismatch"
+assert mem.begin(), "sqlite object begin failed"
+assert mem.rollback(), "sqlite object rollback failed"
+assert mem.close() == sqlite.SQLITE_OK, "sqlite object close failed"
 
 point missing = null
 assert sqlite.sqlite3_exec(missing, "select 1") == sqlite.SQLITE_MISUSE, "sqlite null exec should fail"

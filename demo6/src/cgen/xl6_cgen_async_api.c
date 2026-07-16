@@ -83,8 +83,11 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
     const XL6_AstNode* args;
     const XL6_AstNode* arg;
     const XL6_AstNode* argExpr;
+    const XL6_AstNode* timeoutArg;
+    const XL6_AstNode* timeoutExpr;
     const char* cType;
     int isString;
+    int isTimeoutRecv;
 
     if ( call == NULL || member == NULL || member->kind != XL6_AST_MEMBER ) {
         return 0;
@@ -121,8 +124,11 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
     cType = itemType != NULL ? xl6CgenTypeName(ctx, itemType) : "int";
     isString = itemType != NULL && xl6CTextEquals(cType, "const char*");
     args = call->childCount > 1 ? call->children[1] : NULL;
-    arg = args != NULL && args->childCount == 1 ? args->children[0] : NULL;
+    arg = args != NULL && args->childCount > 0 ? args->children[0] : NULL;
     argExpr = arg != NULL && arg->childCount > 0 ? arg->children[0] : NULL;
+    isTimeoutRecv = xl6CTextEquals(member->text, "recvTimeoutInto");
+    timeoutArg = isTimeoutRecv && args != NULL && args->childCount > 1 ? args->children[1] : NULL;
+    timeoutExpr = timeoutArg != NULL && timeoutArg->childCount > 0 ? timeoutArg->children[0] : NULL;
 
     if ( xl6CTextEquals(member->text, "send") ||
          xl6CTextEquals(member->text, "trySend") ) {
@@ -131,6 +137,18 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
             xl6CgenChannelReceiverExpr(ctx, receiver);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, argExpr);
+            xl6OutputPrintf(ctx->out,
+                            ", %d, \"\", %d, %d)",
+                            xl6CTextEquals(member->text, "send") ? 1 : 0,
+                            member->line,
+                            member->column);
+            return 1;
+        }
+        if ( itemType != NULL && xl6CTextEquals(cType, "xvalue") ) {
+            xl6OutputPuts("xl6_channel_send_xvalue(", ctx->out);
+            xl6CgenChannelReceiverExpr(ctx, receiver);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenXValueFromExpr(ctx, argExpr);
             xl6OutputPrintf(ctx->out,
                             ", %d, \"\", %d, %d)",
                             xl6CTextEquals(member->text, "send") ? 1 : 0,
@@ -155,19 +173,47 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
     }
 
     if ( xl6CTextEquals(member->text, "recvInto") ||
-         xl6CTextEquals(member->text, "tryRecvInto") ) {
+         xl6CTextEquals(member->text, "tryRecvInto") ||
+         isTimeoutRecv ) {
         if ( isString ) {
-            xl6OutputPuts("xl6_channel_recv_string(", ctx->out);
+            xl6OutputPuts(isTimeoutRecv ? "xl6_channel_recv_string_timeout(" : "xl6_channel_recv_string(", ctx->out);
             xl6CgenChannelReceiverExpr(ctx, receiver);
             xl6OutputPuts(", &", ctx->out);
             xl6CgenFputsCIdent(ctx->out, argExpr->text);
-            xl6OutputPrintf(ctx->out, ", %d, \"\", %d, %d)",
-                            xl6CTextEquals(member->text, "recvInto") ? 1 : 0,
-                            member->line,
-                            member->column);
+            if ( isTimeoutRecv ) {
+                xl6OutputPuts(", ", ctx->out);
+                xl6CgenExpr(ctx, timeoutExpr);
+                xl6OutputPrintf(ctx->out, ", \"\", %d, %d)", member->line, member->column);
+            } else {
+                xl6OutputPrintf(ctx->out, ", %d, \"\", %d, %d)",
+                                xl6CTextEquals(member->text, "recvInto") ? 1 : 0,
+                                member->line,
+                                member->column);
+            }
             return 1;
         }
-        xl6OutputPuts("xl6_channel_recv_into(", ctx->out);
+        if ( itemType != NULL && xl6CTextEquals(cType, "xvalue") ) {
+            xl6OutputPuts(isTimeoutRecv ? "xl6_channel_recv_xvalue_timeout(" : "xl6_channel_recv_xvalue(", ctx->out);
+            xl6CgenChannelReceiverExpr(ctx, receiver);
+            xl6OutputPuts(", &", ctx->out);
+            if ( argExpr != NULL && argExpr->kind == XL6_AST_NAME ) {
+                xl6CgenFputsCIdent(ctx->out, argExpr->text);
+            } else {
+                xl6CgenExpr(ctx, argExpr);
+            }
+            if ( isTimeoutRecv ) {
+                xl6OutputPuts(", ", ctx->out);
+                xl6CgenExpr(ctx, timeoutExpr);
+                xl6OutputPrintf(ctx->out, ", \"\", %d, %d)", member->line, member->column);
+            } else {
+                xl6OutputPrintf(ctx->out, ", %d, \"\", %d, %d)",
+                                xl6CTextEquals(member->text, "recvInto") ? 1 : 0,
+                                member->line,
+                                member->column);
+            }
+            return 1;
+        }
+        xl6OutputPuts(isTimeoutRecv ? "xl6_channel_recv_into_timeout(" : "xl6_channel_recv_into(", ctx->out);
         xl6CgenChannelReceiverExpr(ctx, receiver);
         xl6OutputPuts(", &", ctx->out);
         if ( argExpr != NULL && argExpr->kind == XL6_AST_NAME ) {
@@ -177,10 +223,16 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
         }
         xl6OutputPuts(", sizeof(", ctx->out);
         xl6OutputPuts(cType, ctx->out);
-        xl6OutputPrintf(ctx->out, "), %d, \"\", %d, %d)",
-                        xl6CTextEquals(member->text, "recvInto") ? 1 : 0,
-                        member->line,
-                        member->column);
+        if ( isTimeoutRecv ) {
+            xl6OutputPuts("), ", ctx->out);
+            xl6CgenExpr(ctx, timeoutExpr);
+            xl6OutputPrintf(ctx->out, ", \"\", %d, %d)", member->line, member->column);
+        } else {
+            xl6OutputPrintf(ctx->out, "), %d, \"\", %d, %d)",
+                            xl6CTextEquals(member->text, "recvInto") ? 1 : 0,
+                            member->line,
+                            member->column);
+        }
         return 1;
     }
 
@@ -225,15 +277,17 @@ static int xl6CgenFutureContinuationCall(
         return 0;
     }
 
-    callbackExpr = xl6CgenCallArgExpr(call, 0);
-    callbackType = xl6CgenCloneExprTypeForInference(ctx, callbackExpr);
-    inputType = xl6CgenCloneFutureValueTypeFromType(ctx, receiverType);
-    returns = xl6CgenFunctionReturnTypes(callbackType);
     kind = xl6CTextEquals(member->text, "then") ? 1 :
            (xl6CTextEquals(member->text, "catch") ? 2 : 3);
-    outputType = kind == 1 && returns != NULL && returns->childCount == 1
+    callbackExpr = xl6CgenCallArgExpr(call, 0);
+    callbackType = xl6CgenCloneExprTypeForInference(ctx, callbackExpr);
+    inputType = kind == 2
+        ? xl6CgenNewSimpleType("error", member)
+        : xl6CgenCloneFutureValueTypeFromType(ctx, receiverType);
+    returns = xl6CgenFunctionReturnTypes(callbackType);
+    outputType = (kind == 1 || kind == 2) && returns != NULL && returns->childCount == 1
         ? xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0])
-        : xl6CgenCloneTypeNode(inputType);
+        : xl6CgenCloneFutureValueTypeFromType(ctx, receiverType);
 
     if ( callbackExpr == NULL || !xl6CgenIsFunctionType(callbackType) ||
          inputType == NULL || outputType == NULL ) {

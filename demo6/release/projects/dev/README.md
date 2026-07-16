@@ -5,12 +5,13 @@
 ## 目标
 
 - 用真实项目压测 xlang 各项特性（语法、类型、标准库、并发、持久化、C 混编）。
-- 发现 BUG 和手感不正确的地方，记录到 `BUGS.md`。
+- 发现 BUG 和手感不正确的地方后，优先修复根因，并同步更新范例与回归测试。
 - 工具本身要能跑、能用，不是玩具占位。
 
 ## 核心工具批次
 
-当前目录包含 137 个项目目录、174 个 xlang 源文件；下表记录最初按批次建立的核心工具，
+当前目录包含 175 个项目目录、212 个 xlang 源文件；其中 172 个是可运行应用，
+`xanalyze` 是分析器夹具，`netstack`/`xtrade` 是预留目录。下表记录最初按批次建立的核心工具，
 其余项目用于网络、扩展库、嵌入式运行和边界回归等专项验证。
 
 | 批次 | 工具 | 覆盖领域 |
@@ -45,6 +46,14 @@ xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<to
 
 每个工具通过 `xl run` 和 `xl build` 两条路径验证。
 
+完整目录审计、改写范围、验证分级和 175 个目录的归类见
+[项目审计报告.md](项目审计报告.md)。可使用以下脚本重复验证：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ..\..\..\tools\check_dev_projects.ps1 -Mode all -KeepGoing
+powershell -ExecutionPolicy Bypass -File ..\..\..\tools\run_dev_selftests.ps1 -KeepGoing
+```
+
 ## xlang 关键语法速查
 
 - 输出：`print(args...)` 不加换行；`println(args...)` 加换行。参数间自动加空格。
@@ -55,7 +64,7 @@ xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<to
 - 容器：`[1,2,3]` = array；`{}` = dict；`array<int>[1,2,3]`/`set<int>{1,2}`/`list[0: 1]`/`dict<int>{"a":1}` 显式构造。
 - array 方法：`append/push/pop/insert/remove/removeValue/contains/indexOf/clear/reverse`，`array + array` 拼接。
 - dict 方法：`d.remove(key)` / `dict.remove(d, key)`。
-- 转换：`int(expr)`、`float(expr)`、`string(expr)` 等构造函数。`uint64` 格式化用 `string.formatUInt(v, format)`。
+- 转换：`int(expr)`、`float(expr)`、`string(expr)` 等构造函数。`uint64` 格式化用 `int.format(v, format)`。
 - `as` 是运行时类型检查向下转换，不是数值转换。
 - 字符串拼接用 `+`。f-string：`f"hello {name}"`，`rf"c:\{name}"`。
 - 标准 API 入口参考：`D:\GIT\x-lang\DEMO6功能清单.md` 第 14 节。
@@ -63,7 +72,7 @@ xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<to
 
 ## 当前设计限制
 
-以下条目是当前明确保留的设计边界，不是兼容旧实现的临时绕过，也不代表 `BUGS.md` 中存在未关闭缺陷：
+以下条目是当前明确保留的设计边界，不是兼容旧实现的临时绕行：
 
 | 限制 | 说明 | 绕过方式 |
 |---|---|---|
@@ -73,7 +82,6 @@ xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<to
 | **`auto` 无法从 `pop()` 推断** | 用显式类型 | `int p = a.pop()` |
 | **list 无 append** | int64 稀疏存储 | `li[index] = value` |
 | **`#` 不是注释** | `//` 才是注释 | `#` 开启时间字面量 |
-| **`RTB b = RTD(...)` 多态赋值的 C 代码生成未完成** | 语义层已接受父子类赋值，但 codegen 仍报 `cannot convert struct` | 用 `array<var>` + `as Base` 还原 vtable |
 
 ## 正向验证通过的能力
 
@@ -94,7 +102,8 @@ xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<to
 - **计算密集型**：raytrace（光线追踪）渲染 100×75×5 抗锯齿递归图像 < 0.4s（约 10 万根光线/秒，每像素递归 25 层上限）
 - **其他**：UTF-8 全链路（文件名/argv/输出）、xl run 精确返回码、build exe UTF-8 argv、**class 按引用传参**、**命名函数可作函数值传递**、**union `string(type(u))` 返回正确类型名**、**自引用 class 字段**
 
-## BUG 记录
+## 质量记录
 
-当前确认未修复的 BUG 记录在 `BUGS.md`；设计限制只记录在本节和对应权威设计文档中。
-三轮集中治理的根因、修复边界与验收证据见 `docs/三轮问题统一修复任务.md`。
+历史问题不作为当前推荐写法保留在项目代码中。根因、修复边界与验收证据见
+`docs/三轮问题统一修复任务.md` 和 `docs/质量压实长期任务.md`；当前行为以 demo6
+设计文档、`DEMO6功能清单.md`、分类测试套件和本目录最新范例为准。

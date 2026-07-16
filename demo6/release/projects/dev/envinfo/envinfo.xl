@@ -23,21 +23,21 @@ func formatMAC(string raw) as string
     if n == 0 then
         return ""
     end
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < n do
         if i > 0 then
-            out = out + "-"
+            outputValue = outputValue + "-"
         end
         int remain = n - i
         int take = 2
         if remain < 2 then
             take = remain
         end
-        out = out + string.slice(raw, i, take)
+        outputValue = outputValue + string.slice(raw, i, take)
         i += 2
     end
-    return out
+    return outputValue
 end
 
 func formatTZ(int offset) as string

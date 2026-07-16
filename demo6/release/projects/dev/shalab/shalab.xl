@@ -1,4 +1,4 @@
-﻿// shalab - SHA-1 / SHA-256 from scratch (no crypto stdlib)
+// shalab - SHA-1 / SHA-256 from scratch (no crypto stdlib)
 //
 // usage:
 //   shalab test                 self-test: SHA-1/256("abc") known-answer vectors
@@ -195,13 +195,13 @@ func sha1(string msg) as string
         sha1Compress(off)
         off += 64
     end
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < 5 do
-        out = out + string.formatInt(g_h1[i], "X8")
+        outputValue = outputValue + int.format(g_h1[i], "X8")
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -297,13 +297,13 @@ func sha256(string msg) as string
         sha256Compress(off)
         off += 64
     end
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < 8 do
-        out = out + string.formatInt(g_h256[i], "X8")
+        outputValue = outputValue + int.format(g_h256[i], "X8")
         i += 1
     end
-    return out
+    return outputValue
 end
 
 

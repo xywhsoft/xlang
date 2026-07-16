@@ -10,19 +10,11 @@
 //   1. Collect every regular file via dir.entries(dir, recursive).
 //   2. Level 1: count size collisions (file.info / entries.size). Files with a
 //      unique size cannot be duplicates, so their hash is skipped entirely.
-//   3. Level 2: for files sharing a size, read content and compute crypto.sha256,
-//      then group by (size, sha). Same-size different-content files are split.
-//      Text files use file.readText + crypto.sha256; binary files (readText
-//      throws FileError on NUL / non-UTF-8) use file.readBytes + hex-encode +
-//      crypto.sha256 so binary duplicates are also detected.
+//   3. Level 2: stream files sharing a size into SHA-256, then group by
+//      (size, digest). Same-size different-content files are split.
 //   4. Emit every group with >= 2 members.
-//
-// Notes (see projects/dev/README.md):
-//   - All grouping logic is inlined into main; only scalar->scalar helpers are
-//     factored.
-//   - file.readText now auto-strips BOM and throws FileError on binary/missing,
-//     so text files are hashed via readText; binary files fall back to
-//     file.readBytes + codec.hexEncodeBytes + crypto.sha256.
+
+const int HASH_CHUNK_SIZE = 65536
 
 // Format a byte count as B/KB/MB/GB with one decimal place.
 func formatSize(int64 bytes) as string
@@ -31,14 +23,14 @@ func formatSize(int64 bytes) as string
     end
     float kb = float(bytes) / 1024.0
     if kb < 1024.0 then
-        return string.formatFloat(kb, ".1") + " KB"
+        return float.format(kb, ".1") + " KB"
     end
     float mb = kb / 1024.0
     if mb < 1024.0 then
-        return string.formatFloat(mb, ".1") + " MB"
+        return float.format(mb, ".1") + " MB"
     end
     float gb = mb / 1024.0
-    return string.formatFloat(gb, ".1") + " GB"
+    return float.format(gb, ".1") + " GB"
 end
 
 // Render fullPath relative to root for display (e.g. calc\calc.xl).
@@ -59,6 +51,23 @@ func relName(string root, string fullPath) as string
         return string.mid(fullN, plen, rest)
     end
     return fullN
+end
+
+// 流式读取原始字节，内存占用不随文件大小增长。
+func hashFile(string filePath) as string
+    File stream = file.open(filePath, true, encoding.binary)
+    Sha256 digest = crypto.sha256Stream()
+
+    while not stream.eof do
+        Buffer chunk = stream.readBytes(HASH_CHUNK_SIZE)
+        if chunk.len() == 0 then
+            break
+        end
+        if not digest.update(chunk) then
+            throw "failed to hash file: " + filePath
+        end
+    end
+    return string.lower(digest.hex())
 end
 
 func printUsage()
@@ -120,95 +129,73 @@ func main(...) as int
         return 0
     end
 
-    // ---- Phase 2: size collision count per file (level-1 filter). ----
-    array<int> sizeHits = array[]
+    // ---- Phase 2: count size buckets in one pass (level-1 filter). ----
+    dict<int> sizeCounts = dict{}
     int c = 0
     while c < len do
-        int64 cur = sizes[c]
-        int hits = 0
-        int d = 0
-        while d < len do
-            if sizes[d] == cur then
-                hits += 1
-            end
-            d += 1
+        string sizeKey = string(sizes[c])
+        if sizeKey in sizeCounts then
+            sizeCounts[sizeKey] += 1
+        else
+            sizeCounts[sizeKey] = 1
         end
-        sizeHits.append(hits)
         c += 1
     end
 
     // ---- Phase 3: compute sha256 only for size-collision files. ----
-    // Unique-size files get an empty hash and are skipped during grouping.
-    // Text files: file.readText + crypto.sha256. Binary files (readText throws
-    // FileError on NUL / non-UTF-8): file.readBytes + hex-encode + sha256, so
-    // binary duplicates are detected too.
+    // Unique-size or unreadable files get an empty digest and are skipped.
     array<string> hashes = array[]
+    dict<int> groupCounts = dict{}
+    int skipped = 0
     int h = 0
     while h < len do
-        if sizeHits[h] >= 2 then
-            string hash = ""
-            bool hashed = false
+        string hash = ""
+        string sizeKey = string(sizes[h])
+        if sizeCounts[sizeKey] >= 2 then
             try
-                string content = file.readText(paths[h])
-                hash = crypto.sha256(content)
-                hashed = true
+                hash = hashFile(paths[h])
             catch e
-                // Not valid UTF-8 text (binary); fall through to readBytes.
+                println("Warning: skipped unreadable file: " + paths[h])
+                skipped += 1
             end
-            if not hashed then
-                try
-                    Buffer buf = file.readBytes(paths[h])
-                    string hex = codec.hexEncodeBytes(buf.data(), c_size(buf.len()))
-                    hash = crypto.sha256(hex)
-                    hashed = true
-                catch e
-                    // Unreadable: give a path-unique sentinel so it never matches.
-                    hash = "UNREADABLE:" + paths[h]
-                end
+        end
+        hashes.append(hash)
+
+        if hash != "" then
+            string groupKey = sizeKey + ":" + hash
+            if groupKey in groupCounts then
+                groupCounts[groupKey] += 1
+            else
+                groupCounts[groupKey] = 1
             end
-            hashes.append(hash)
-        else
-            hashes.append("")
         end
         h += 1
     end
 
     // ---- Phase 4: cluster by (size, sha) and emit groups with >= 2 members. ----
-    array<int> visited = array[]
-    int v = 0
-    while v < len do
-        visited.append(0)
-        v += 1
-    end
-
+    dict<bool> emitted = dict{}
     int groupCount = 0
     int totalDupFiles = 0
 
     int a = 0
     while a < len do
-        if visited[a] == 1 then
+        if hashes[a] == "" then
             a += 1
             continue
         end
-        if sizeHits[a] < 2 then
+        string groupKey = string(sizes[a]) + ":" + hashes[a]
+        if groupCounts[groupKey] < 2 or groupKey in emitted then
             a += 1
             continue
         end
+        emitted[groupKey] = true
 
         // Gather group members (same size AND same hash as a).
         array<int> gIdx = array[]
-        gIdx.append(a)
-        visited[a] = 1
-
-        int b = a + 1
+        int b = 0
         while b < len do
-            if visited[b] == 0 then
-                if sizes[b] == sizes[a] then
-                    if hashes[b] == hashes[a] then
-                        gIdx.append(b)
-                        visited[b] = 1
-                    end
-                end
+            if sizes[b] == sizes[a] and hashes[b] == hashes[a] then
+                gIdx.append(b)
             end
             b += 1
         end
@@ -230,9 +217,7 @@ func main(...) as int
                 g += 1
             end
 
-            // crypto.sha256 emits uppercase HEX; lowercase to match spec style,
-            // show first 16 hex chars (8 bytes) as a short fingerprint.
-            string shortSha = string.lower(string.slice(hashes[a], 0, 16)) + "..."
+            string shortSha = string.slice(hashes[a], 0, 16) + "..."
             println("Group " + string(groupCount) + " (SHA: " + shortSha + "):")
 
             g = 0
@@ -252,5 +237,8 @@ func main(...) as int
     end
 
     println("Found " + string(groupCount) + " duplicate groups, " + string(totalDupFiles) + " files can be deduplicated.")
+    if skipped > 0 then
+        println("Skipped " + string(skipped) + " unreadable files.")
+    end
     return 0
 end

@@ -449,14 +449,14 @@ class Term
 
     // ---- 渲染整个屏幕 ----
     func render() as string
-        string out = ""
+        string outputValue = ""
         int row = 0
         while row < self.height do
-            out = out + self.rowText(row)
-            out = out + "\n"
+            outputValue = outputValue + self.rowText(row)
+            outputValue = outputValue + "\n"
             row += 1
         end
-        return out
+        return outputValue
     end
 end
 

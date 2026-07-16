@@ -1,0 +1,225 @@
+extern "xdom_parse" func __dom_parse(point data, c_ulonglong size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_ulonglong maxItem,
+    c_ulonglong maxEntries, c_ulonglong maxNodes, c_uint maxDepth) as point
+extern "xdom_load" func __dom_load(string path, c_ulonglong maxInput,
+    c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
+    c_ulonglong maxNodes, c_uint maxDepth) as point
+extern "xdom_create_document" func __dom_create_document() as point
+extern "xdom_error_code" func __dom_error_code() as int
+extern "xdom_error_line" func __dom_error_line() as int
+extern "xdom_error_column" func __dom_error_column() as int
+extern "xdom_error_offset" func __dom_error_offset() as int
+extern "xdom_error_message" func __dom_error_message() as point
+
+func __dom_error() as string
+    return __xl_std_runtime_take_cstr(__dom_error_message())
+end
+
+class Node
+    native point handle
+    extern "xdom_adopt" create(point handle)
+    extern "xdom_release" destroy()
+    extern "xdom_type" func typeNative() as int
+    extern "xdom_type_name" func typeNameNative() as point
+    extern "xdom_name" func nameNative() as point
+    extern "xdom_local_name" func localNameNative() as point
+    extern "xdom_namespace_uri" func namespaceUriNative() as point
+    extern "xdom_prefix" func prefixNative() as point
+    extern "xdom_value" func valueNative() as point
+    extern "xdom_set_value" func setValueNative(string value) as bool
+    extern "xdom_text_content" func textContentNative() as point
+    extern "xdom_parent" func parentNative() as point
+    extern "xdom_child_count" func childCountNative() as int
+    extern "xdom_child" func childNative(c_uint index) as point
+    extern "xdom_document_element" func documentElementNative() as point
+    extern "xdom_append_child" func appendChildNative(point child) as bool
+    extern "xdom_remove_child" func removeChildNative(point child) as bool
+    extern "xdom_create_element" func createElementNative(string name) as point
+    extern "xdom_create_text" func createTextNative(string text) as point
+    extern "xdom_create_comment" func createCommentNative(string text) as point
+    extern "xdom_create_pi" func createPiNative(string target,
+        string text) as point
+    extern "xdom_get_attribute" func getAttributeNative(string name) as point
+    extern "xdom_set_attribute" func setAttributeNative(string name,
+        string value) as bool
+    extern "xdom_remove_attribute" func removeAttribute(string name) as bool
+    extern "xdom_attributes" func attributesNative() as var
+    extern "xdom_stringify" func stringifyNative(c_bool pretty,
+        c_uint indent, c_bool declaration, c_ulonglong maxOutput) as point
+    extern "xdom_save" func saveNative(string path, c_bool pretty,
+        c_uint indent, c_bool declaration, c_ulonglong maxOutput) as bool
+
+    get valid() as bool
+        return self.handle != null
+    end
+    get nodeType() as int
+        return self.typeNative()
+    end
+    get typeName() as string
+        return __xl_std_runtime_take_cstr(self.typeNameNative())
+    end
+    get name() as string
+        return __xl_std_runtime_take_cstr(self.nameNative())
+    end
+    get localName() as string
+        return __xl_std_runtime_take_cstr(self.localNameNative())
+    end
+    get namespaceUri() as string
+        return __xl_std_runtime_take_cstr(self.namespaceUriNative())
+    end
+    get prefix() as string
+        return __xl_std_runtime_take_cstr(self.prefixNative())
+    end
+    get value() as string
+        return __xl_std_runtime_take_cstr(self.valueNative())
+    end
+    let value(string newValue)
+        if not self.setValueNative(newValue) then
+            throw XmlError "this DOM node does not have a writable value"
+        end
+    end
+    get textContent() as string
+        return __xl_std_runtime_take_cstr(self.textContentNative())
+    end
+    get childCount() as int
+        return self.childCountNative()
+    end
+    get parent() as Node
+        return Node(self.parentNative())
+    end
+    get documentElement() as Node
+        return Node(self.documentElementNative())
+    end
+    get attributes() as var
+        return self.attributesNative()
+    end
+
+    func child(int index) as Node
+        if index < 0 or index >= self.childCount then
+            throw IndexError "DOM child index out of range"
+        end
+        return Node(self.childNative(c_uint(index)))
+    end
+
+    func children() as array<Node>
+        array<Node> result = array<Node>[]
+        int index = 0
+        while index < self.childCount do
+            result.append(self.child(index))
+            index += 1
+        end
+        return result
+    end
+
+    func appendChild(Node child) as Node
+        if not self.appendChildNative(child.handle) then
+            throw XmlError "could not append DOM child"
+        end
+        return child
+    end
+
+    func removeChild(Node child) as Node
+        if not self.removeChildNative(child.handle) then
+            throw XmlError "the DOM node is not a child of this parent"
+        end
+        return child
+    end
+
+    func createElement(string name) as Node
+        point result = self.createElementNative(name)
+        if result == null then throw XmlError "could not create DOM element" end
+        return Node(result)
+    end
+
+    func createText(string text) as Node
+        point result = self.createTextNative(text)
+        if result == null then throw XmlError "could not create DOM text node" end
+        return Node(result)
+    end
+
+    func createComment(string text) as Node
+        point result = self.createCommentNative(text)
+        if result == null then throw XmlError "could not create DOM comment" end
+        return Node(result)
+    end
+
+    func createProcessingInstruction(string target, string text = "") as Node
+        point result = self.createPiNative(target, text)
+        if result == null then
+            throw XmlError "could not create DOM processing instruction"
+        end
+        return Node(result)
+    end
+
+    func getAttribute(string name, string defaultValue = "") as string
+        point result = self.getAttributeNative(name)
+        if result == null then return defaultValue end
+        return __xl_std_runtime_take_cstr(result)
+    end
+
+    func setAttribute(string name, string value)
+        if not self.setAttributeNative(name, value) then
+            throw XmlError "could not set DOM attribute"
+        end
+    end
+
+    func stringify(bool pretty = false, int indent = 2,
+        bool declaration = false, int maxOutput = 536870912) as string
+        point result = self.stringifyNative(c_bool(pretty), c_uint(indent),
+            c_bool(declaration), c_ulonglong(maxOutput))
+        if result == null then throw XmlError __dom_error() end
+        Buffer data = Buffer(result)
+        return data.text()
+    end
+
+    func save(string path, bool pretty = false, int indent = 2,
+        bool declaration = false, int maxOutput = 536870912)
+        if not self.saveNative(path, c_bool(pretty), c_uint(indent),
+            c_bool(declaration), c_ulonglong(maxOutput)) then
+            throw XmlError __dom_error()
+        end
+    end
+end
+
+export func errorCode() as int
+    return __dom_error_code()
+end
+export func errorLine() as int
+    return __dom_error_line()
+end
+export func errorColumn() as int
+    return __dom_error_column()
+end
+export func errorOffset() as int
+    return __dom_error_offset()
+end
+
+export func createDocument() as Node
+    point result = __dom_create_document()
+    if result == null then throw XmlError "could not create DOM document" end
+    return Node(result)
+end
+
+export func parse(string text, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxItem = 268435456,
+    int maxEntries = 100000, int maxNodes = 1000000,
+    int maxDepth = 128) as Node
+    Buffer data = Buffer()
+    data.append(text)
+    point result = __dom_parse(data.data(), c_ulonglong(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_ulonglong(maxItem),
+        c_ulonglong(maxEntries), c_ulonglong(maxNodes), c_uint(maxDepth))
+    if result == null then throw XmlError __dom_error() end
+    return Node(result)
+end
+
+export func load(string path, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxItem = 268435456,
+    int maxEntries = 100000, int maxNodes = 1000000,
+    int maxDepth = 128) as Node
+    point result = __dom_load(path, c_ulonglong(maxInput),
+        c_ulonglong(maxOutput), c_ulonglong(maxItem),
+        c_ulonglong(maxEntries), c_ulonglong(maxNodes), c_uint(maxDepth))
+    if result == null then throw XmlError __dom_error() end
+    return Node(result)
+end

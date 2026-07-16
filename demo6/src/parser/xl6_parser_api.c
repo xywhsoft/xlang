@@ -73,6 +73,7 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_KW_FINAL: return XL6PG_KW_FINAL;
     case XL6_KW_VIRTUAL: return XL6PG_KW_VIRTUAL;
     case XL6_KW_NATIVE: return XL6PG_KW_NATIVE;
+    case XL6_KW_C_VARARG: return XL6PG_KW_C_VARARG;
     case XL6_KW_BYVAL: return XL6PG_KW_BYVAL;
     case XL6_KW_BYREF: return XL6PG_KW_BYREF;
     case XL6_KW_OUT: return XL6PG_KW_OUT;

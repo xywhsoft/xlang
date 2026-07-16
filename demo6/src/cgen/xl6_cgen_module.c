@@ -32,6 +32,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     int hasStringEdgeRuntime;
     int hasStdStringRuntime;
     int hasPathRuntime;
+    int hasOsRuntime;
     int hasHttpServerRuntime;
     int hasHttpClientRuntime;
     int hasBufferRuntime;
@@ -39,6 +40,8 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     int hasSpecialCollectionRuntime;
     int hasEncodingRuntime;
     int hasLogRuntime;
+    int hasSignalRuntime;
+    int hasSignalChannelRuntime;
     int hasTemplateRuntime;
     int hasFileRuntime;
     int hasAsyncFileRuntime;
@@ -103,6 +106,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     hasStringEdgeRuntime = xl6CgenNodeNeedsStringEdgeRuntime(root);
     hasStdStringRuntime = xl6CgenNodeNeedsStdStringRuntime(root);
     hasPathRuntime = xl6CgenNodeNeedsPathRuntime(root);
+    hasOsRuntime = xl6CgenNodeNeedsOsRuntime(root);
     hasHttpServerRuntime = xl6CgenNodeNeedsHttpServerRuntime(root);
     hasHttpClientRuntime = xl6CgenNodeNeedsHttpClientRuntime(root);
     hasBufferRuntime = xl6CgenNodeNeedsBufferRuntime(root);
@@ -124,6 +128,8 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     hasEncodingRuntime = xl6CgenNodeNeedsEncodingRuntime(root);
     hasLogRuntime = xl6CgenNodeNeedsLogRuntime(root);
+    hasSignalRuntime = xl6CgenNodeNeedsSignalRuntime(root);
+    hasSignalChannelRuntime = xl6CgenNodeNeedsSignalChannelRuntime(root);
     hasTemplateRuntime = xl6CgenNodeNeedsTemplateRuntime(root);
     hasFileRuntime = xl6CgenNodeNeedsFileRuntime(root);
     hasAsyncFileRuntime = xl6CgenNodeNeedsAsyncFileRuntime(root);
@@ -149,6 +155,15 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     if ( xl6CgenNodeNeedsLogObjectRuntime(root) ) {
         hasFunctionVarRuntime = 1;
+        hasXValueRuntime = 1;
+    }
+    if ( hasSignalRuntime ) {
+        hasFunctionVarRuntime = 1;
+        hasXValueRuntime = 1;
+    }
+    if ( hasSignalChannelRuntime ) {
+        hasAsyncRuntime = 1;
+        hasErrorRuntime = 1;
         hasXValueRuntime = 1;
     }
     if ( hasJsonRuntime ) {
@@ -276,6 +291,9 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( hasPathRuntime ) {
         xl6CgenEmitPathRuntime(out);
     }
+    if ( hasOsRuntime ) {
+        xl6CgenEmitOsRuntime(out);
+    }
     if ( hasFunctionVarRuntime ) {
         xl6CgenEmitFunctionVarRuntime(out, hasTaskSpawn);
     }
@@ -299,6 +317,9 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     if ( hasLogRuntime ) {
         xl6CgenEmitLogRuntime(out);
+    }
+    if ( hasSignalRuntime ) {
+        xl6CgenEmitSignalRuntime(out, hasSignalChannelRuntime);
     }
     if ( hasTemplateRuntime ) {
         xl6CgenEmitTemplateRuntime(out);
@@ -515,7 +536,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
 
     if ( hasEntryRuntime ) {
-        xl6CgenEmitTopLevelXlangMain(&ctx, root, mainFunc, hasErrorRuntime, hasAsyncRuntime);
+        xl6CgenEmitTopLevelXlangMain(&ctx, root, mainFunc, hasErrorRuntime, hasAsyncRuntime, hasOsRuntime);
     }
     if ( (mainFunc != NULL || hasEntryRuntime) && (options == NULL || !options->suppressMainWrapper) ) {
         xl6CgenEmitMainWrapper(&ctx);

@@ -53,10 +53,11 @@ Result: X wins! (5 moves)
 ## 设计
 
 - **棋盘**：`array<int>` 长度 9，`0=空 1=X 2=O`；位置编号 `idx = row*3 + col`。
-- **`class Board`** 封装：`cell/place/unset/checkWin/isFull/clone/signature/symbol/
+- **`class Board`** 封装：`cell/place/unset/checkWin/isFull/signature/symbol/
   render/showBoard/randomMove/minimax/bestMove`。胜负判定硬编码 8 条线（3 行 + 3 列 + 2 对角）。
+- **独立棋盘**：`Board` 声明 `derive clone`，分析器通过标准库 `clone(board)` 深克隆棋盘和内部 `array<int>`。
 - **最优 AI**：`minimax(player)` 用 **negamax** 写法（`score = -self.minimax(opponent)`），
-  在 `self.cells` 上 **make/undo**（`self.cells[pos]=player` → 递归 → `=0`），无需克隆，
+  直接扫描固定的 9 格并在 `self.cells` 上 **make/undo**，递归热路径不创建临时空位数组，
   评分 `+10 胜 / -10 负 / 0 平`。`bestMove(player)` 遍历 9 格取最大分。
 - **锦标赛**：随机 X vs 最优 O。理论：最优 O 永不输（实测 X wins 恒为 0，O≈76~81%，平≈18~24%）。
 - **analyze**：`explore(Board b)` 从空棋盘递归遍历博弈树，用 `set<string>` 按 9 位签名去重，
@@ -75,13 +76,8 @@ xl build projects\dev\tictactoe\tictactoe.xl -o projects\dev\tictactoe\tictactoe
 built exe 经全命令验证与 `xl run` 输出逐字节一致，退出码透传正确（有效命令 EXIT=0，
 无参/未知命令 EXIT=1）。
 
-## 已知限制
+## 语言能力验证
 
-见 `BUGS.md`：
-
-- **BUG-T1（高）**：class **方法**返回 `array<int>` 等 typed 容器后，调用方使用即段错误
-  （`auto x = self.method()` 能过编译却在运行期崩；typed 局部 `array<int> x = self.method()`
-  编译期被拒）。顶层 **function** 返回 typed 容器则正常（`contacts` 同款）。
-  绕过：Board 不暴露返回 array 的方法，`randomMove/minimax/bestMove/explore` 全部内联遍历 0..8。
-- **NOTE-T2（低）**：`set`/`get` 是属性关键字，不能作方法名（报"语法错误"且不直观）。
-  绕过：访问器叫 `cell`，清子叫 `unset`。
+- `emptyCells() as array<int>` 验证 class 方法返回静态泛型容器。
+- `derive clone` 与标准库 `clone(board)` 验证 class 和容器字段的深克隆。
+- `get` 可在成员名上下文中作为普通方法名；本例使用 `cell/place/unset` 是领域命名，不是语法绕过。

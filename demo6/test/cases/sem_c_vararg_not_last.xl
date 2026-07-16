@@ -1,0 +1,1 @@
+extern "bad_c_vararg" func bad(c_vararg, c_int value) as c_int

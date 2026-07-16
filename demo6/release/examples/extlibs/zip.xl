@@ -1,0 +1,25 @@
+import zip
+
+
+
+func main(...) as int
+    auto archive = zip.create()
+    archive.mkdir("docs")
+    archive.add("docs/hello.txt", "hello ZIP")
+    Buffer binary = Buffer()
+    binary.appendByte(0)
+    binary.appendByte(255)
+    archive.add("data.bin", binary, false, "store", 0)
+    archive.setEntryComment("data.bin", "binary example")
+
+    Buffer packed = archive.finish()
+    auto reader = zip.open(packed)
+    assert reader.count == 3, "ZIP entry count mismatch"
+    assert reader.readText("docs/hello.txt") == "hello ZIP", "ZIP text mismatch"
+    assert reader.read("data.bin") == binary, "ZIP binary mismatch"
+    assert reader.info(2).comment == "binary example", "ZIP metadata mismatch"
+    reader.close()
+
+    println("zip example: PASS")
+    return 0
+end

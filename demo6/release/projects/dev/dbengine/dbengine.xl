@@ -156,7 +156,7 @@ end
 
 // 引号字符串反转义（\" \\ \n \t \r）。
 func unescapeString(string s) as string
-    string out = ""
+    string outputValue = ""
     int i = 0
     int n = string.len(s)
     while i < n do
@@ -164,29 +164,29 @@ func unescapeString(string s) as string
         if b == 92 then
             i += 1
             if i >= n then
-                out = out + "\\"
+                outputValue = outputValue + "\\"
                 break
             end
             int b2 = string.byteAt(s, i)
             if b2 == 110 then
-                out = out + "\n"
+                outputValue = outputValue + "\n"
             elseif b2 == 116 then
-                out = out + "\t"
+                outputValue = outputValue + "\t"
             elseif b2 == 114 then
-                out = out + "\r"
+                outputValue = outputValue + "\r"
             elseif b2 == 34 then
-                out = out + "\""
+                outputValue = outputValue + "\""
             elseif b2 == 92 then
-                out = out + "\\"
+                outputValue = outputValue + "\\"
             else
-                out = out + "\\" + string.charAt(s, i)
+                outputValue = outputValue + "\\" + string.charAt(s, i)
             end
         else
-            out = out + string.charAt(s, i)
+            outputValue = outputValue + string.charAt(s, i)
         end
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -219,40 +219,40 @@ end
 
 // 把字符串嵌入 JSON 文本（转义）。
 func jsonEscape(string s) as string
-    string out = ""
+    string outputValue = ""
     int i = 0
     int n = string.len(s)
     while i < n do
         string c = string.charAt(s, i)
         if c == "\"" then
-            out = out + "\\\""
+            outputValue = outputValue + "\\\""
         elseif c == "\\" then
-            out = out + "\\\\"
+            outputValue = outputValue + "\\\\"
         elseif c == "\n" then
-            out = out + "\\n"
+            outputValue = outputValue + "\\n"
         elseif c == "\r" then
-            out = out + "\\r"
+            outputValue = outputValue + "\\r"
         elseif c == "\t" then
-            out = out + "\\t"
+            outputValue = outputValue + "\\t"
         else
-            out = out + c
+            outputValue = outputValue + c
         end
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
 // 把 var 数组拼接成换行分隔的字符串。
 func joinLines(var arr) as string
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < arr.length do
-        if i > 0 then out = out + "\n" end
-        out = out + string(arr[i])
+        if i > 0 then outputValue = outputValue + "\n" end
+        outputValue = outputValue + string(arr[i])
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -571,10 +571,10 @@ func runScript(string scriptPath) as int
     int i = 0
     while i < lines.length do
         string ln = string(lines[i])
-        string out = execute(ln)
-        if not string.isEmpty(out) then
+        string outputValue = execute(ln)
+        if not string.isEmpty(outputValue) then
             println("> " + ln)
-            println(out)
+            println(outputValue)
             println("")
         end
         i += 1
@@ -616,9 +616,9 @@ func runDemo() as int
     int i = 0
     while i < cmds.length do
         string ln = string(cmds[i])
-        string out = execute(ln)
+        string outputValue = execute(ln)
         println("> " + ln)
-        println(out)
+        println(outputValue)
         println("")
         i += 1
     end
@@ -934,7 +934,7 @@ end
 
 
 func testServe(string scriptPath)
-    println("[8] HTTP serve mode (disk-backed, BUG-XB1 bypass)")
+    println("[8] HTTP serve mode (disk-backed request isolation)")
     string dataFile = path.join(path.dir(scriptPath), ".serve_selftest.json")
     // 干净起步
     if file.exists(dataFile) then file.delete(dataFile) end

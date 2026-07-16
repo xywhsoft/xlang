@@ -22,10 +22,10 @@ func formatSize(int bytes) as string
     end
     float kb = float(bytes) / 1024.0
     if kb < 1024.0 then
-        return string.formatFloat(kb, ".1") + " KB"
+        return float.format(kb, ".1") + " KB"
     end
     float mb = kb / 1024.0
-    return string.formatFloat(mb, ".1") + " MB"
+    return float.format(mb, ".1") + " MB"
 end
 
 // 就地对 dir.entries 返回的 var 数组排序: 目录优先, 同类按 name 大小写不敏感升序

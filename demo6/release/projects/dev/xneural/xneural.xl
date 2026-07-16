@@ -3,24 +3,12 @@
 // 综合验证 xlang 的：
 //   * class 继承 + virtual/override 多态（Layer > Dense/ReLU/Sigmoid, Optimizer > SGD/Adam）
 //   * 泛型容器 array<float> 作为 Tensor 主存储
-//   * 多态容器 array<var> + as 还原 + vtable 派发（见下文「多态存储说明」）
+//   * 多态容器 array<Layer> + 安全向上转换 + vtable 派发
 //   * 多返回值 + 解构（loss/grad、optimizer compute、forward/backward）
 //   * 数值计算密集（矩阵乘、激活、梯度检查、XOR 训练）
 //
-// 多态存储说明（重要，BUG-RT1/RT2 绕过）：
-//   xlang 对多态 class 实例的存储有以下边界（参考 raytrace/btree 等 dev 项目）：
-//     (RT1) typed array<Layer> 在 append(Derived) 时会丢派生实例 -> 改用 array<var>
-//     (RT2) typed Base 字段 + derive value 会把派生类切片到基类 -> 用 var 槽位
-//     (RT3) 从函数返回带 virtual 的 class 会丢 vtable -> Layer/Optimizer 实例从不
-//           从函数返回；它们只在调用方直接 new，存入 array<var>，再 as 还原调用
-//   因此本框架统一采用：
-//     - Sequential.layers: array<var>，每个槽位是 Dense/ReLU/Sigmoid 实例
-//     - 取用时统一 `var v = layers[i]; Layer lyr = v as Layer; lyr.forward(...)`
-//     - virtual 方法通过还原后的 self 引用调用，vtable 派发到对应 override
-//   另一条边界（owned-copy 语义）：
-//     普通 class 按值形参建立独立 owned copy，函数内修改不传播回调用方。
-//     因此 Adam/SGD 的可变状态（m/v/t）存在各 Dense 自己的字段里，optimizer 只
-//     携带只读超参（lr/beta1/beta2/eps），通过多返回值把新状态写回 Dense 字段。
+// 多态对象使用受管理引用语义：派生层可以直接存入 array<Layer>，取出后保留
+// 动态类型和对象身份，forward/backward/update 均通过 virtual 方法派发。
 //
 // 用法：
 //   xl run projects\dev\xneural\xneural.xl xor      训练 XOR（2->4->1 网络）
@@ -62,7 +50,7 @@ func relError(float a, float b) as float
 end
 
 // ========================================================================
-// 测试框架（参考 shapes.xl 风格，程序始终返回 0）
+// 测试框架：执行全部用例，存在失败时返回非零退出码。
 // ========================================================================
 int g_pass = 0
 int g_fail = 0
@@ -81,7 +69,7 @@ func expectF(float got, float want, string label)
     if math.abs(got - want) < 0.001 then
         ok(label)
     else
-        bad(label, "got " + string.formatFloat(got, ".6") + " want " + string.formatFloat(want, ".6"))
+        bad(label, "got " + float.format(got, ".6") + " want " + float.format(want, ".6"))
     end
 end
 
@@ -94,7 +82,7 @@ func expectI(int got, int want, string label)
 end
 
 func fmt(float v) as string
-    return string.formatFloat(v, ".6")
+    return float.format(v, ".6")
 end
 
 // ========================================================================
@@ -315,12 +303,17 @@ end
 // Layer 基类 + Dense / ReLU / Sigmoid
 //
 //   forward/backward/update 均为 virtual，子类 override。
-//   层实例只由调用方直接 new（Dense(2,4) / ReLU() / Sigmoid()），存入
-//   Sequential 的 array<var>，再 as Layer 还原后通过 self 调用 virtual 方法。
-//   不从函数返回带 virtual 的 Layer 实例。
 // ========================================================================
 class Layer
     string kind = "layer"
+
+    virtual func forward(Tensor input) as Tensor
+        return input
+    end
+
+    virtual func backward(Tensor gradOutput) as Tensor
+        return gradOutput
+    end
 
     virtual func update(Optimizer opt)
     end
@@ -357,14 +350,14 @@ class Dense extends Layer
         self.gradB = tensorZeros(1, outFeatures)
     end
 
-    func forward(Tensor input) as Tensor
+    override func forward(Tensor input) as Tensor
         self.cachedInputVar = input
         Tensor y = input.matMul(self.W)
         y = y.add(self.b)
         return y
     end
 
-    func backward(Tensor gradOutput) as Tensor
+    override func backward(Tensor gradOutput) as Tensor
         Tensor x = self.cachedInputVar
         // gradInput = gradOutput * W^T
         Tensor gradInput = gradOutput.matMul(self.W.transpose())
@@ -424,12 +417,12 @@ class ReLU extends Layer
         self.kind = "relu"
     end
 
-    func forward(Tensor input) as Tensor
+    override func forward(Tensor input) as Tensor
         self.cachedInputVar = input
         return input.relu()
     end
 
-    func backward(Tensor gradOutput) as Tensor
+    override func backward(Tensor gradOutput) as Tensor
         Tensor x = self.cachedInputVar
         return gradOutput.reluGrad(x)
     end
@@ -443,15 +436,15 @@ class Sigmoid extends Layer
         self.kind = "sigmoid"
     end
 
-    func forward(Tensor input) as Tensor
-        Tensor out = input.sigmoid()
-        self.cachedOutputVar = out
-        return out
+    override func forward(Tensor input) as Tensor
+        Tensor outputValue = input.sigmoid()
+        self.cachedOutputVar = outputValue
+        return outputValue
     end
 
-    func backward(Tensor gradOutput) as Tensor
-        Tensor out = self.cachedOutputVar
-        return gradOutput.sigmoidGrad(out)
+    override func backward(Tensor gradOutput) as Tensor
+        Tensor outputValue = self.cachedOutputVar
+        return gradOutput.sigmoidGrad(outputValue)
     end
 end
 
@@ -595,13 +588,12 @@ end
 
 // ========================================================================
 // Sequential：线性堆叠的层容器
-//   layers 用 array<var> 存储（BUG-RT1 绕过），取用时 as Layer 还原 +
-//   通过 self 调用 virtual 方法。
+//   layers 用 array<Layer> 存储，派生层向上转换后仍保留动态类型和对象身份。
 // ========================================================================
 class Sequential
-    array<var> layers = array[]
+    array<Layer> layers = array[]
 
-    func add(var lyr)
+    func add(Layer lyr)
         self.layers.append(lyr)
     end
 
@@ -613,18 +605,7 @@ class Sequential
         Tensor cur = input
         int i = 0
         while i < self.layers.length do
-            var v = self.layers[i]
-            Layer lyr = v as Layer
-            if lyr.kind == "dense" then
-                Dense d = v as Dense
-                cur = d.forward(cur)
-            elseif lyr.kind == "relu" then
-                ReLU r = v as ReLU
-                cur = r.forward(cur)
-            elseif lyr.kind == "sigmoid" then
-                Sigmoid s = v as Sigmoid
-                cur = s.forward(cur)
-            end
+            cur = self.layers[i].forward(cur)
             i += 1
         end
         return cur
@@ -634,18 +615,7 @@ class Sequential
         Tensor cur = grad
         int i = self.layers.length - 1
         while i >= 0 do
-            var v = self.layers[i]
-            Layer lyr = v as Layer
-            if lyr.kind == "dense" then
-                Dense d = v as Dense
-                cur = d.backward(cur)
-            elseif lyr.kind == "relu" then
-                ReLU r = v as ReLU
-                cur = r.backward(cur)
-            elseif lyr.kind == "sigmoid" then
-                Sigmoid s = v as Sigmoid
-                cur = s.backward(cur)
-            end
+            cur = self.layers[i].backward(cur)
             i -= 1
         end
         return cur
@@ -654,9 +624,7 @@ class Sequential
     func update(Optimizer opt)
         int i = 0
         while i < self.layers.length do
-            var v = self.layers[i]
-            Layer lyr = v as Layer
-            lyr.update(opt)
+            self.layers[i].update(opt)
             i += 1
         end
     end
@@ -711,22 +679,21 @@ func cmdXor() as int
     Tensor xt3 = tensorFrom(1, 2, floats(1.0, 1.0)); xs.append(xt3)
     Tensor yt3 = tensorFrom(1, 1, floats(0.0)); ys.append(yt3)
 
-    // 构建网络：层实例直接 new，存入 Sequential(array<var>)
+    // 构建网络：派生层直接存入 Sequential(array<Layer>)
     Sequential net = Sequential()
     net.add(Dense(2, 4))
     net.add(ReLU())
     net.add(Dense(4, 1))
     net.add(Sigmoid())
 
-    var optv = Adam(0.05)
-    Optimizer opt = optv as Optimizer
+    Optimizer opt = Adam(0.05)
 
     float t0 = time.timer()
     net.train(xs, ys, opt, 3000, true)
     float t1 = time.timer()
 
     println("")
-    println("Training took " + string.formatFloat((t1 - t0) * 1000.0, ".1") + " ms")
+    println("Training took " + float.format((t1 - t0) * 1000.0, ".1") + " ms")
     println("")
     println("Predictions:")
     int s = 0
@@ -735,7 +702,7 @@ func cmdXor() as int
         Tensor target = ys[s]
         Tensor pred = net.forward(x)
         string label = "XOR(" + string(int(x.at(0, 0))) + "," + string(int(x.at(0, 1))) + ")"
-        println("  " + label + " => " + string.formatFloat(pred.at(0, 0), ".4") + "  (target " + string(int(target.at(0, 0))) + ")")
+        println("  " + label + " => " + float.format(pred.at(0, 0), ".4") + "  (target " + string(int(target.at(0, 0))) + ")")
         s += 1
     end
 
@@ -895,15 +862,40 @@ func gradCheckDense() as float
 end
 
 // Sequential(Dense->Sigmoid->Dense) + MSE 的梯度检查。
-// 通过 array<var> + as Dense 取回首层并就地扰动其 W，验证：
-//   (a) array<var> 多态存储 + as 还原后 vtable 派发正确
-//   (b) 扰动能作用到 Sequential 实际使用的层参数上
+// 首层同时由局部变量和 array<Layer> 持有，扰动局部变量应直接作用于网络。
 func gradCheckSequential() as float
-    // NOTE: Sequential gradient check 需要通过 as Dense 从 array<var> 取回层实例并
-    // 就地扰动 W，但 class 值语义下 d0.W.data[i]=x 只修改副本、不影响 Sequential
-    // 内部的网络权重，数值梯度恒为 0 且 as Dense 大结构 unbox 可触发崩溃。
-    // 当前编译器限制下无法实现有意义的 Sequential 梯度检查，直接返回 0（通过）。
-    return 0.0
+    Sequential net = Sequential()
+    Dense first = Dense(2, 3)
+    net.add(first)
+    net.add(Sigmoid())
+    net.add(Dense(3, 1))
+
+    Tensor x = tensorFrom(1, 2, floats(0.25, -0.5))
+    Tensor target = tensorFrom(1, 1, floats(0.75))
+    Tensor pred = net.forward(x)
+    Tensor grad = mseLossGrad(pred, target)
+    net.backward(grad)
+
+    float eps = 1e-4
+    float maxRelErr = 0.0
+    int i = 0
+    while i < first.W.data.length do
+        float orig = first.W.data[i]
+        first.W.data[i] = orig + eps
+        float lp = mseLoss(net.forward(x), target)
+        first.W.data[i] = orig - eps
+        float lm = mseLoss(net.forward(x), target)
+        first.W.data[i] = orig
+
+        float numerical = (lp - lm) / (2.0 * eps)
+        float analytic = first.gradW.data[i]
+        float rel = relError(numerical, analytic)
+        if rel > maxRelErr then
+            maxRelErr = rel
+        end
+        i += 1
+    end
+    return maxRelErr
 end
 
 func testGradientChecks()
@@ -918,9 +910,9 @@ func testGradientChecks()
         end
 
         float errS = gradCheckSequential()
-        println("  Sequential(Dense->Sigmoid->Dense) via array<var>: max rel err=" + fmt(errS))
+        println("  Sequential(Dense->Sigmoid->Dense) via array<Layer>: max rel err=" + fmt(errS))
         if errS < 1e-4 then
-            ok("Sequential gradient check passed (vtable + var-slot mutation)")
+            ok("Sequential gradient check passed (vtable + shared object identity)")
         else
             bad("Sequential gradient check", "max rel err=" + fmt(errS))
         end
@@ -934,11 +926,11 @@ func denseParamCountFor3x4() as int
     return 16
 end
 
-// 多态派发自检：3 种层存入 array<var>，as Layer 还原后 forward 结果各不相同
+// 多态派发自检：3 种派生层存入 array<Layer> 后直接 virtual 调用。
 func testPolymorphism()
-    println("[4] Layer polymorphism via array<var> + as Layer (BUG-RT1 bypass)")
+    println("[4] Layer polymorphism via array<Layer>")
     try
-        array<var> bag = array[]
+        array<Layer> bag = array[]
         bag.append(Dense(2, 3))
         bag.append(ReLU())
         bag.append(Sigmoid())
@@ -948,32 +940,28 @@ func testPolymorphism()
         Tensor in2 = tensorFrom(1, 3, floats(1.0, -2.0, 3.0))
 
         // Dense
-        var vd = bag[0]
-        Dense dd = vd as Dense
-        Tensor od = dd.forward(in1)
-        expectI(od.cols, 3, "Dense.forward via typed ref -> 3 outputs")
-        // 扰动后再次前向，确认写入的 W 生效（验证 var 槽位是可变引用）
+        Layer firstLayer = bag[0]
+        Dense dd = firstLayer as Dense
+        Tensor od = bag[0].forward(in1)
+        expectI(od.cols, 3, "Dense.forward via base reference -> 3 outputs")
+        // 扰动后再次前向，确认向下转换保留同一对象身份。
         float wsave = dd.W.data[0]
         dd.W.data[0] = 999.0
-        Tensor od2 = dd.forward(in1)
+        Tensor od2 = bag[0].forward(in1)
         dd.W.data[0] = wsave
         if od.at(0, 0) != od2.at(0, 0) then
-            ok("mutating Dense.W affects forward (var slot is mutable)")
+            ok("downcast mutation affects object stored as Layer")
         else
-            bad("var slot mutation", "forward output unchanged after W perturb")
+            bad("shared object identity", "forward output unchanged after W perturb")
         end
 
         // ReLU
-        var vr = bag[1]
-        ReLU rr = vr as ReLU
-        Tensor or_ = rr.forward(in2)
+        Tensor or_ = bag[1].forward(in2)
         expectF(or_.at(0, 0), 1.0, "ReLU(1)=1")
         expectF(or_.at(0, 1), 0.0, "ReLU(-2)=0")
 
         // Sigmoid
-        var vs = bag[2]
-        Sigmoid ss = vs as Sigmoid
-        Tensor os = ss.forward(in2)
+        Tensor os = bag[2].forward(in2)
         expectF(os.at(0, 1), 0.1192, "Sigmoid(-2)~0.1192")
 
         // 三种层 forward 结果不同 -> vtable 派发
@@ -997,6 +985,9 @@ func cmdTest() as int
     testPolymorphism()
     println("")
     println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
+    if g_fail > 0 then
+        return 1
+    end
     return 0
 end
 

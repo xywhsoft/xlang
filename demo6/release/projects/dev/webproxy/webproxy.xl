@@ -14,10 +14,9 @@
 //   6. Stats: request count, error count, error rate, uptime (/__stats)
 //   7. Methods: GET / POST / PUT / DELETE / PATCH
 //
-// Design constraints (per dev/README and BUGS.md):
-//   * native-backed class (HttpClientRequest/HttpResponse/HttpRequest) cannot be
-//     passed to functions by value -- all forwarding logic is inline in the handler.
-//   * Global state uses only string/int types (confirmed safe in callbacks).
+// Design constraints:
+//   * 请求与响应对象的生命周期限定在回调内，避免把服务端句柄带出所有者作用域。
+//   * 配置在启动前解析一次，运行期间只读；统计、轮询游标和健康状态由 mutex 保护。
 
 
 const int DEFAULT_TIMEOUT_MS = 10000
@@ -26,7 +25,7 @@ const int DEFAULT_TIMEOUT_MS = 10000
 // ============================================================
 // Global state
 // ============================================================
-string gConfigJson = "{}"       // full config as JSON text
+var    gConfig = {}              // parsed, immutable after server start
 int    gListenPort = 0
 int    gReqTotal = 0            // total forwarded requests
 int    gReqError = 0            // errors (5xx responses, all-backends-failed)
@@ -36,6 +35,7 @@ int    gHealthInterval = 10     // seconds between active health checks
 int    gHealthTimeout = 3       // seconds for health check HTTP timeout
 string gHealthMap = ""          // "host:port=up,host:port=down"
 int    gStartUnix = 0           // startup timestamp for uptime
+mutex  gStateLock
 
 // selftest counters
 int gPassed = 0
@@ -58,6 +58,52 @@ end
 
 func expectStatus(int got, int want, string name)
     check(got == want, name, "got status " + got.toString() + " want " + want.toString())
+end
+
+
+// ============================================================
+// Concurrent runtime state
+// ============================================================
+func recordRequest()
+    gStateLock.lock()
+    gReqTotal += 1
+    gStateLock.unlock()
+end
+
+func recordError()
+    gStateLock.lock()
+    gReqError += 1
+    gStateLock.unlock()
+end
+
+func nextServerIndex(int count) as int
+    gStateLock.lock()
+    int index = gRRCounter % count
+    gRRCounter += 1
+    gStateLock.unlock()
+    return index
+end
+
+func statsSnapshot() as (int, int, int)
+    gStateLock.lock()
+    int total = gReqTotal
+    int errors = gReqError
+    int roundRobin = gRRCounter
+    gStateLock.unlock()
+    return total, errors, roundRobin
+end
+
+func healthSnapshot() as string
+    gStateLock.lock()
+    string result = gHealthMap
+    gStateLock.unlock()
+    return result
+end
+
+func publishHealth(string status)
+    gStateLock.lock()
+    gHealthMap = status
+    gStateLock.unlock()
 end
 
 
@@ -122,16 +168,23 @@ func backendEcho(point reqHandle, point respHandle) as bool
     int lp = req.localPort()
     resp.header("X-Backend-Port", lp.toString())
 
-    string body = "{\"port\":" + lp.toString() + ",\"method\":\"" + req.method() + "\",\"path\":\"" + req.path() + "\""
+    var result = {}
+    result["port"] = lp
+    result["method"] = req.method()
+    result["path"] = req.path()
     string q = req.query()
     if q != "" then
-        body = body + ",\"query\":\"" + q + "\""
+        result["query"] = q
     end
     if req.contentLength() > 0 then
-        body = body + ",\"body\":" + req.body()
+        string requestBody = req.body()
+        if json.valid(requestBody) then
+            result["body"] = json.parse(requestBody)
+        else
+            result["body"] = requestBody
+        end
     end
-    body = body + "}"
-    return resp.jsonText(body)
+    return resp.jsonText(json.stringify(result))
 end
 
 func(point, point) as bool backendEchoHandler = backendEcho
@@ -140,16 +193,14 @@ func(point, point) as bool backendEchoHandler = backendEcho
 // ============================================================
 // Proxy handler -- the core reverse proxy logic.
 //
-// All HttpClientRequest / HttpClientResponse operations are inline
-// because native-backed classes cannot be passed to functions.
-// Config routing data is parsed from gConfigJson to a LOCAL var each
-// call to avoid (global var array element loss in callbacks).
+// Request/response wrappers stay in the callback that owns their handles.
+// The parsed config is immutable after startup and can be shared read-only.
 // ============================================================
 func proxyRoute(point reqHandle, point respHandle) as bool
     HttpRequest req = HttpRequest(reqHandle)
     HttpResponse resp = HttpResponse(respHandle)
 
-    gReqTotal += 1
+    recordRequest()
     resp.header("X-Proxy", "xlang-webproxy")
 
     string method = req.method()
@@ -158,41 +209,38 @@ func proxyRoute(point reqHandle, point respHandle) as bool
 
     // ---- internal endpoints (not forwarded) ----
     if path == "/__stats" then
+        auto total, errors, roundRobin = statsSnapshot()
         int nowUnix = time.toUnix(time.now())
         int uptime = nowUnix - gStartUnix
         if uptime < 1 then
             uptime = 1
         end
-        int rps = gReqTotal / uptime
+        int rps = total / uptime
         int errRate = 0
-        if gReqTotal > 0 then
-            errRate = gReqError * 100 / gReqTotal
+        if total > 0 then
+            errRate = errors * 100 / total
         end
-        string s = "{\"total\":" + gReqTotal.toString()
-        s = s + ",\"errors\":" + gReqError.toString()
+        string s = "{\"total\":" + total.toString()
+        s = s + ",\"errors\":" + errors.toString()
         s = s + ",\"errorRate\":" + errRate.toString()
         s = s + ",\"uptimeSec\":" + uptime.toString()
         s = s + ",\"reqPerSec\":" + rps.toString()
-        s = s + ",\"roundRobin\":" + gRRCounter.toString()
+        s = s + ",\"roundRobin\":" + roundRobin.toString()
         s = s + "}"
         return resp.jsonText(s)
     end
 
     if path == "/__health" then
-        return resp.jsonText("{\"status\":\"ok\",\"backends\":\"" + gHealthMap + "\"}")
+        var result = {}
+        result["status"] = "ok"
+        result["backends"] = healthSnapshot()
+        return resp.jsonText(json.stringify(result))
     end
 
-    // ---- parse config to local var ----
-    var cfg = json.parse(gConfigJson)
-    if cfg == null then
-        gReqError += 1
-        resp.status(503)
-        return resp.text("config parse error", "text/plain; charset=utf-8")
-    end
-
-    var backends = cfg["backends"]
+    // ---- read immutable routing config ----
+    var backends = gConfig["backends"]
     if backends == null then
-        gReqError += 1
+        recordError()
         resp.status(503)
         return resp.text("no backends configured", "text/plain; charset=utf-8")
     end
@@ -223,14 +271,14 @@ func proxyRoute(point reqHandle, point respHandle) as bool
     end
 
     if not matched then
-        gReqError += 1
+        recordError()
         resp.status(503)
         return resp.text("no backend matched for path: " + path, "text/plain; charset=utf-8")
     end
 
     int scount = matchedServers.length
     if scount == 0 then
-        gReqError += 1
+        recordError()
         resp.status(503)
         return resp.text("empty server list", "text/plain; charset=utf-8")
     end
@@ -244,8 +292,7 @@ func proxyRoute(point reqHandle, point respHandle) as bool
     int attempts = scount
     while attempts > 0 do
         attempts -= 1
-        int pick = gRRCounter % scount
-        gRRCounter += 1
+        int pick = nextServerIndex(scount)
         string targetServer = string(matchedServers[pick])
         string targetUrl = "http://" + targetServer + path
         if query != "" then
@@ -283,7 +330,7 @@ func proxyRoute(point reqHandle, point respHandle) as bool
             end
             resp.status(bkStatus)
             if bkStatus >= 500 then
-                gReqError += 1
+                recordError()
             end
             string respCt = bresp.header("Content-Type")
             if respCt == "" then
@@ -292,14 +339,14 @@ func proxyRoute(point reqHandle, point respHandle) as bool
             return resp.text(bresp.body(), respCt)
         catch e
             if attempts == 0 then
-                gReqError += 1
+                recordError()
                 resp.status(502)
                 return resp.text("all backends failed for: " + targetUrl, "text/plain; charset=utf-8")
             end
         end
     end
 
-    gReqError += 1
+    recordError()
     resp.status(502)
     return resp.text("no backend available", "text/plain; charset=utf-8")
 end
@@ -325,18 +372,18 @@ func(int, string, point, point) as bool proxyErrorHandler = proxyError
 // ============================================================
 // Health worker thread (serve mode only).
 // Periodically pings each backend server and stores status in
-// gHealthMap (a string global -- safe for cross-thread access).
+// Health checks publish one immutable status string under the state lock.
 // ============================================================
 func healthWorker() as int
     while true do
         time.sleep(gHealthInterval * 1000)
-        var cfg = json.parse(gConfigJson)
+        var cfg = gConfig
         if cfg == null then
-            gHealthMap = "config-error"
+            publishHealth("config-error")
         else
             var backends = cfg["backends"]
             if backends == null then
-                gHealthMap = "no-backends"
+                publishHealth("no-backends")
             else
                 string result = ""
                 int bn = backends.length
@@ -372,7 +419,7 @@ func healthWorker() as int
                     end
                     bi += 1
                 end
-                gHealthMap = result
+                publishHealth(result)
                 println("[health] " + result)
             end
         end
@@ -395,7 +442,7 @@ func loadConfig(string configPath) as bool
         return false
     end
     var cfg = json.parse(raw)
-    gConfigJson = raw
+    gConfig = cfg
     gListenPort = int(cfg["listen"])
     var hc = cfg["healthCheck"]
     if hc != null then
@@ -448,7 +495,8 @@ func runSelfTest() as int
     println("  default-D  127.0.0.1:" + port4.toString())
 
     // ---- 2. build config JSON with actual ports ----
-    gConfigJson = "{\"listen\":0,\"backends\":[{\"name\":\"api\",\"pattern\":\"/api/*\",\"servers\":[\"127.0.0.1:" + port1.toString() + "\",\"127.0.0.1:" + port2.toString() + "\"]},{\"name\":\"static\",\"pattern\":\"/static/*\",\"servers\":[\"127.0.0.1:" + port3.toString() + "\"]},{\"name\":\"default\",\"pattern\":\"/*\",\"servers\":[\"127.0.0.1:" + port4.toString() + "\"]}],\"healthCheck\":{\"interval\":10,\"timeout\":3}}"
+    string configText = "{\"listen\":0,\"backends\":[{\"name\":\"api\",\"pattern\":\"/api/*\",\"servers\":[\"127.0.0.1:" + port1.toString() + "\",\"127.0.0.1:" + port2.toString() + "\"]},{\"name\":\"static\",\"pattern\":\"/static/*\",\"servers\":[\"127.0.0.1:" + port3.toString() + "\"]},{\"name\":\"default\",\"pattern\":\"/*\",\"servers\":[\"127.0.0.1:" + port4.toString() + "\"]}],\"healthCheck\":{\"interval\":10,\"timeout\":3}}"
+    gConfig = json.parse(configText)
     gProxyTimeoutMs = 5000
     gReqTotal = 0
     gReqError = 0
@@ -644,7 +692,8 @@ func runSelfTest() as int
     println("------------------- summary -------------------")
     println("passed: " + gPassed.toString() + " / " + (gPassed + gFailed).toString())
     println("failed: " + gFailed.toString())
-    println("proxy stats: total=" + gReqTotal.toString() + " errors=" + gReqError.toString() + " rr=" + gRRCounter.toString())
+    auto total, errors, roundRobin = statsSnapshot()
+    println("proxy stats: total=" + total.toString() + " errors=" + errors.toString() + " rr=" + roundRobin.toString())
     println("")
 
     // ---- 6. cleanup ----
@@ -693,7 +742,7 @@ func runServe() as int
     println("webproxy listening on http://127.0.0.1:" + boundPort.toString())
 
     // print config summary
-    var cfg = json.parse(gConfigJson)
+    var cfg = gConfig
     var backends = cfg["backends"]
     if backends != null then
         int bn = backends.length
@@ -727,7 +776,8 @@ func runServe() as int
 
     while true do
         time.sleep(5000)
-        println("[stats] total=" + gReqTotal.toString() + " errors=" + gReqError.toString() + " rr=" + gRRCounter.toString())
+        auto total, errors, roundRobin = statsSnapshot()
+        println("[stats] total=" + total.toString() + " errors=" + errors.toString() + " rr=" + roundRobin.toString())
     end
 
     return 0
@@ -741,6 +791,7 @@ func main(...) as int
     println("xlang webproxy - HTTP reverse proxy / load balancer")
     println("")
 
+    gStateLock = mutex()
     gStartUnix = time.toUnix(time.now())
 
     if arg.length < 2 then

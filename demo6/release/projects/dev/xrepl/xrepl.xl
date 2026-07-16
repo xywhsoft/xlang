@@ -78,7 +78,7 @@ func findHistFile() as string
 end
 
 func makeTempDir() as string
-    string base = path.join(path.temp(), "xrepl_cache")
+    string base = path.join(path.temp(), path.random("xrepl_", ""))
     dir.createAll(base)
     return base
 end
@@ -376,12 +376,11 @@ func evalLine(string line) as bool
     // 写临时文件并运行（必须以换行结尾，否则 xl 解析最后一条语句会报语法错误）
     string tp = path.join(g_tempDir, "line.xl")
     file.writeText(tp, full + "\n")
-    string cmd = g_xl + " run " + tp
-    ProcessResult r = process.run(cmd, 20000)
+    ProcessResult r = process.runFile(g_xl, ["run", tp], 20000)
     if r.exitCode == 0 then
-        string out = r.stdout
+        string outputValue = r.stdout
         // 增量提取：去掉前缀输出，只保留当前行新增的输出
-        string delta = string.mid(out, string.len(g_prefixOut), string.len(out))
+        string delta = string.mid(outputValue, string.len(g_prefixOut), string.len(outputValue))
         // 子进程 stdout 在 Windows 上是 CRLF；若直接 print 会触发文本模式二次翻译，
         // 产生多余空行。这里先把 \r 去掉，统一为 LF。
         delta = string.replace(delta, "\r", "")
@@ -395,7 +394,7 @@ func evalLine(string line) as bool
         end
         // 更新前缀与前缀输出
         g_prefix = full
-        g_prefixOut = out
+        g_prefixOut = outputValue
         return true
     end
     // 错误：显示诊断信息（把临时路径替换为 <repl> 便于阅读）
@@ -450,6 +449,8 @@ func cmdTest() as int
     demo = demo + "string.upper(\"abc\")\n"
     array<string> lines = readLogicalLines(demo)
     g_tempDir = makeTempDir()
+    // 内置自测使用临时历史文件；正常脚本模式仍保留持久历史。
+    g_histFile = path.join(g_tempDir, "history.txt")
     int i = 0
     int fails = 0
     while i < lines.length do

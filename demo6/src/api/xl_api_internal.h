@@ -15,6 +15,7 @@ int xlcSetSaveTemps(struct XLC_Context* ctx, int enabled);
 int xlcAddIncludePath(struct XLC_Context* ctx, const char* path);
 int xlcAddLibraryPath(struct XLC_Context* ctx, const char* path);
 int xlcAddLinkLibrary(struct XLC_Context* ctx, const char* nameOrPath);
+int xlcAddResourceFile(struct XLC_Context* ctx, const char* path);
 int xlcAddCSourceFile(struct XLC_Context* ctx, const char* path);
 int xlcLoadDependencyLibrary(struct XLC_Context* ctx, const char* path);
 int xlcRegisterCFunction(struct XLC_Context* ctx, const char* symbolName, void* fn);

@@ -14,21 +14,16 @@
 //   bubble / selection / insertion / shell / merge / quick / heap
 //   counting / radix / bucket / cocktail / gnome
 //
-// 设计要点 (与 xlang 当前语义/限制对齐):
-//   - 数据载体: 全程使用 **var 数组** (而非 array<int>)。
-//     原因: typed array<int> 作为函数实参按值拷贝, 递归排序
-//     (merge/quick) 的子函数拿到的会是副本, 原地排序不生效。实测 var 数组
-//     按引用传递 (swap/push 在被调函数里对调用方可见), 递归 by-ref 完全正常。
+// 设计要点:
+//   - 数据全程使用 array<int>，容器默认按引用传递，递归排序可直接原地修改。
 //   - 计数: 全局 g_cmp / g_swap, 每次 benchOne 前 resetStats()。comparisons 计
-//     每次两元素比较; swaps 计每次交换操作 (doSwapVar 内累加)。merge / counting /
+//     每次两元素比较; swaps 计每次交换操作 (swapItems 内累加)。merge / counting /
 //     radix 不做原地两两交换, 故 swaps=0 (符合其算法特性)。
-//   - 元素比较: 直接 a[i] > a[j] (var>var, 实测在 if 条件里合法, 见 BUG-XT4#4)。
 //   - 单行 `while c do s; s end` 是 parse 错误 (实测), 所有 while 体一律多行。
 //   - 计数/基数/桶排序假设非负整数; 各数据生成器均产出非负值。
 //   - 快排采用三数取中 (median-of-three) 选 pivot, 使已排序/逆序数据下递归深度
 //     保持 O(log n), 避免 n=10000 时栈溢出 (压测点: 递归深度)。
-//   - 结果收集用并行数组 (g_names/g_times/g_cmps/g_swaps/g_oks), 规避 class 实例
-//     array<Base> 丢派生实例问题 (BUG-RT1)。
+//   - 结果列使用并行静态数组，适合逐列输出和顺序扫描，避免为小型基准记录额外分配对象。
 
 // ---- 全局状态 ----
 
@@ -43,10 +38,10 @@ array<int> g_swaps
 array<bool> g_oks
 
 // 算法名表 (小写, 用于 dispatch 与迭代)
-var g_algos = ["bubble", "selection", "insertion", "shell", "merge", "quick", "heap", "counting", "radix", "bucket", "cocktail", "gnome"]
+array<string> g_algos = ["bubble", "selection", "insertion", "shell", "merge", "quick", "heap", "counting", "radix", "bucket", "cocktail", "gnome"]
 
 // 显示名表 (与 g_algos 同序)
-var g_disp = ["Bubble", "Selection", "Insertion", "Shell", "Merge", "Quick", "Heap", "Counting", "Radix", "Bucket", "Cocktail", "Gnome"]
+array<string> g_disp = ["Bubble", "Selection", "Insertion", "Shell", "Merge", "Quick", "Heap", "Counting", "Radix", "Bucket", "Cocktail", "Gnome"]
 
 // 防死代码消除的累计槽
 int g_sink = 0
@@ -66,10 +61,10 @@ func clearResults()
     g_oks.clear()
 end
 
-// 复制 var 数组 (返回新数组, 不影响原数组)
-func dupArr(var src) as var
+// 复制数组，排序函数始终返回新数组，不改调用方数据。
+func dupArr(array<int> src) as array<int>
     int n = src.length
-    var a = []
+    array<int> a = array<int>[]
     int i = 0
     while i < n do
         a.push(src[i])
@@ -78,16 +73,16 @@ func dupArr(var src) as var
     return a
 end
 
-// 原地交换 var 数组两元素 (by-ref, 计入 g_swap)
-func doSwapVar(var a, int i, int j)
-    var t = a[i]
+// 原地交换两个元素，并计入交换次数。
+func swapItems(array<int> a, int i, int j)
+    int t = a[i]
     a[i] = a[j]
     a[j] = t
     g_swap += 1
 end
 
 // 判断是否升序
-func isSorted(var a) as bool
+func isSorted(array<int> a) as bool
     int n = a.length
     int i = 1
     while i < n do
@@ -132,8 +127,8 @@ end
 
 // ---- 数据生成器 (均产出非负整数) ----
 
-func genRandom(int n) as var
-    var a = []
+func genRandom(int n) as array<int>
+    array<int> a = array<int>[]
     int i = 0
     while i < n do
         a.push(random.range(0, n * 2))
@@ -142,8 +137,8 @@ func genRandom(int n) as var
     return a
 end
 
-func genSorted(int n) as var
-    var a = []
+func genSorted(int n) as array<int>
+    array<int> a = array<int>[]
     int i = 0
     while i < n do
         a.push(i)
@@ -152,8 +147,8 @@ func genSorted(int n) as var
     return a
 end
 
-func genReverse(int n) as var
-    var a = []
+func genReverse(int n) as array<int>
+    array<int> a = array<int>[]
     int i = 0
     while i < n do
         a.push(n - i)
@@ -162,8 +157,8 @@ func genReverse(int n) as var
     return a
 end
 
-func genFewUnique(int n) as var
-    var a = []
+func genFewUnique(int n) as array<int>
+    array<int> a = array<int>[]
     int i = 0
     while i < n do
         a.push(random.range(0, 4) * 100)
@@ -172,11 +167,11 @@ func genFewUnique(int n) as var
     return a
 end
 
-// ---- 12 种排序算法 (均: 输入 var 数组 -> 返回排序后的新 var 数组) ----
+// ---- 12 种排序算法（输入 array<int>，返回排序后的新数组）----
 
 // 1. 冒泡排序
-func sortBubble(var src) as var
-    var a = dupArr(src)
+func sortBubble(array<int> src) as array<int>
+    array<int> a = dupArr(src)
     int n = a.length
     int i = 0
     while i < n do
@@ -184,7 +179,7 @@ func sortBubble(var src) as var
         while j < n - 1 - i do
             g_cmp += 1
             if a[j] > a[j + 1] then
-                doSwapVar(a, j, j + 1)
+                swapItems(a, j, j + 1)
             end
             j += 1
         end
@@ -194,8 +189,8 @@ func sortBubble(var src) as var
 end
 
 // 2. 选择排序
-func sortSelection(var src) as var
-    var a = dupArr(src)
+func sortSelection(array<int> src) as array<int>
+    array<int> a = dupArr(src)
     int n = a.length
     int i = 0
     while i < n do
@@ -209,7 +204,7 @@ func sortSelection(var src) as var
             j += 1
         end
         if sel != i then
-            doSwapVar(a, i, sel)
+            swapItems(a, i, sel)
         end
         i += 1
     end
@@ -217,12 +212,12 @@ func sortSelection(var src) as var
 end
 
 // 3. 插入排序
-func sortInsertion(var src) as var
-    var a = dupArr(src)
+func sortInsertion(array<int> src) as array<int>
+    array<int> a = dupArr(src)
     int n = a.length
     int i = 1
     while i < n do
-        var key = a[i]
+        int key = a[i]
         int j = i - 1
         bool go = true
         while j >= 0 and go do
@@ -242,14 +237,14 @@ func sortInsertion(var src) as var
 end
 
 // 4. 希尔排序
-func sortShell(var src) as var
-    var a = dupArr(src)
+func sortShell(array<int> src) as array<int>
+    array<int> a = dupArr(src)
     int n = a.length
     int gap = n / 2
     while gap > 0 do
         int i = gap
         while i < n do
-            var key = a[i]
+            int key = a[i]
             int j = i - gap
             bool go = true
             while j >= 0 and go do
@@ -271,8 +266,8 @@ func sortShell(var src) as var
 end
 
 // 5. 归并排序 (递归, by-ref 原地写回)
-func mergeMerge(var a, int lo, int mid, int hi)
-    var tmp = []
+func mergeMerge(array<int> a, int lo, int mid, int hi)
+    array<int> tmp = array<int>[]
     int i = lo
     int j = mid + 1
     while i <= mid and j <= hi do
@@ -300,7 +295,7 @@ func mergeMerge(var a, int lo, int mid, int hi)
     end
 end
 
-func mergeSortRange(var a, int lo, int hi)
+func mergeSortRange(array<int> a, int lo, int hi)
     if lo >= hi then return end
     int mid = (lo + hi) / 2
     mergeSortRange(a, lo, mid)
@@ -308,8 +303,8 @@ func mergeSortRange(var a, int lo, int hi)
     mergeMerge(a, lo, mid, hi)
 end
 
-func sortMerge(var src) as var
-    var a = dupArr(src)
+func sortMerge(array<int> src) as array<int>
+    array<int> a = dupArr(src)
     int n = a.length
     if n > 1 then
         mergeSortRange(a, 0, n - 1)
@@ -318,41 +313,41 @@ func sortMerge(var src) as var
 end
 
 // 6. 快速排序 (递归, 三数取中 pivot)
-func quickPartition(var a, int lo, int hi) as int
+func quickPartition(array<int> a, int lo, int hi) as int
     int mid = (lo + hi) / 2
     g_cmp += 1
-    if a[lo] > a[mid] then doSwapVar(a, lo, mid) end
+    if a[lo] > a[mid] then swapItems(a, lo, mid) end
     g_cmp += 1
-    if a[lo] > a[hi] then doSwapVar(a, lo, hi) end
+    if a[lo] > a[hi] then swapItems(a, lo, hi) end
     g_cmp += 1
-    if a[mid] > a[hi] then doSwapVar(a, mid, hi) end
+    if a[mid] > a[hi] then swapItems(a, mid, hi) end
     // 中位数已到 a[mid], 放到 a[hi] 作 pivot
-    doSwapVar(a, mid, hi)
-    var pivot = a[hi]
+    swapItems(a, mid, hi)
+    int pivot = a[hi]
     int i = lo - 1
     int j = lo
     while j < hi do
         g_cmp += 1
         if a[j] < pivot then
             i += 1
-            doSwapVar(a, i, j)
+            swapItems(a, i, j)
         end
         j += 1
     end
     i += 1
-    doSwapVar(a, i, hi)
+    swapItems(a, i, hi)
     return i
 end
 
-func quickSortRange(var a, int lo, int hi)
+func quickSortRange(array<int> a, int lo, int hi)
     if lo >= hi then return end
     int p = quickPartition(a, lo, hi)
     quickSortRange(a, lo, p - 1)
     quickSortRange(a, p + 1, hi)
 end
 
-func sortQuick(var src) as var
-    var a = dupArr(src)
+func sortQuick(array<int> src) as array<int>
+    array<int> a = dupArr(src)
     int n = a.length
     if n > 1 then
         quickSortRange(a, 0, n - 1)
@@ -361,7 +356,7 @@ func sortQuick(var src) as var
 end
 
 // 7. 堆排序
-func siftDown(var a, int start, int endd)
+func siftDown(array<int> a, int start, int endd)
     int root = start
     bool go = true
     while root * 2 + 1 <= endd and go do
@@ -374,7 +369,7 @@ func siftDown(var a, int start, int endd)
         end
         g_cmp += 1
         if a[root] < a[child] then
-            doSwapVar(a, root, child)
+            swapItems(a, root, child)
             root = child
         else
             go = false
@@ -382,8 +377,8 @@ func siftDown(var a, int start, int endd)
     end
 end
 
-func sortHeap(var src) as var
-    var a = dupArr(src)
+func sortHeap(array<int> src) as array<int>
+    array<int> a = dupArr(src)
     int n = a.length
     if n <= 1 then return a end
     int i = n / 2 - 1
@@ -393,7 +388,7 @@ func sortHeap(var src) as var
     end
     int e = n - 1
     while e > 0 do
-        doSwapVar(a, 0, e)
+        swapItems(a, 0, e)
         e -= 1
         siftDown(a, 0, e)
     end
@@ -401,8 +396,8 @@ func sortHeap(var src) as var
 end
 
 // 8. 计数排序 (非比较; 假设非负)
-func sortCounting(var src) as var
-    var a = dupArr(src)
+func sortCounting(array<int> src) as array<int>
+    array<int> a = dupArr(src)
     int n = a.length
     if n <= 1 then return a end
     int mx = int(a[0])
@@ -412,7 +407,7 @@ func sortCounting(var src) as var
         if v > mx then mx = v end
         i += 1
     end
-    var count = []
+    array<int> count = array<int>[]
     int ci = 0
     while ci <= mx do
         count.push(0)
@@ -440,14 +435,14 @@ func sortCounting(var src) as var
 end
 
 // 9. 基数排序 (LSD, base 10; 假设非负)
-func radixCount(var a, int n, int exp)
-    var output = []
+func radixCount(array<int> a, int n, int exp)
+    array<int> output = array<int>[]
     int oi = 0
     while oi < n do
         output.push(0)
         oi += 1
     end
-    var count = []
+    array<int> count = array<int>[]
     int ci = 0
     while ci < 10 do
         count.push(0)
@@ -478,8 +473,8 @@ func radixCount(var a, int n, int exp)
     end
 end
 
-func sortRadix(var src) as var
-    var a = dupArr(src)
+func sortRadix(array<int> src) as array<int>
+    array<int> a = dupArr(src)
     int n = a.length
     if n <= 1 then return a end
     int mx = int(a[0])
@@ -498,11 +493,11 @@ func sortRadix(var src) as var
 end
 
 // 桶内插入排序 (by-ref)
-func insertionSortVar(var b)
+func insertionSort(array<int> b)
     int n = b.length
     int i = 1
     while i < n do
-        var key = b[i]
+        int key = b[i]
         int j = i - 1
         bool go = true
         while j >= 0 and go do
@@ -519,8 +514,8 @@ func insertionSortVar(var b)
 end
 
 // 10. 桶排序 (10 个桶 + 桶内插入)
-func sortBucket(var src) as var
-    var a = dupArr(src)
+func sortBucket(array<int> src) as array<int>
+    array<int> a = dupArr(src)
     int n = a.length
     if n <= 1 then return a end
     int mx = 0
@@ -533,7 +528,7 @@ func sortBucket(var src) as var
     if mx == 0 then return a end
     int nb = 10
     int sz = mx / nb + 1
-    var buckets = []
+    array<array<int>> buckets = []
     int bi = 0
     while bi < nb do
         buckets.push([])
@@ -544,32 +539,34 @@ func sortBucket(var src) as var
         int v = int(a[j])
         int idx = v / sz
         if idx >= nb then idx = nb - 1 end
-        buckets[idx].push(v)
+        array<int> bucket = buckets[idx]
+        bucket.push(v)
         j += 1
     end
-    var out = []
+    array<int> outputValue = array<int>[]
     int k = 0
     while k < nb do
-        insertionSortVar(buckets[k])
+        array<int> bucket = buckets[k]
+        insertionSort(bucket)
         int m = 0
-        int blen = buckets[k].length
+        int blen = bucket.length
         while m < blen do
-            out.push(buckets[k][m])
+            outputValue.push(bucket[m])
             m += 1
         end
         k += 1
     end
     int p = 0
     while p < n do
-        a[p] = out[p]
+        a[p] = outputValue[p]
         p += 1
     end
     return a
 end
 
 // 11. 鸡尾酒排序 (双向冒泡)
-func sortCocktail(var src) as var
-    var a = dupArr(src)
+func sortCocktail(array<int> src) as array<int>
+    array<int> a = dupArr(src)
     int n = a.length
     if n <= 1 then return a end
     bool swapped = true
@@ -581,7 +578,7 @@ func sortCocktail(var src) as var
         while i < endd do
             g_cmp += 1
             if a[i] > a[i + 1] then
-                doSwapVar(a, i, i + 1)
+                swapItems(a, i, i + 1)
                 swapped = true
             end
             i += 1
@@ -593,7 +590,7 @@ func sortCocktail(var src) as var
         while j >= start do
             g_cmp += 1
             if a[j] > a[j + 1] then
-                doSwapVar(a, j, j + 1)
+                swapItems(a, j, j + 1)
                 swapped = true
             end
             j -= 1
@@ -604,8 +601,8 @@ func sortCocktail(var src) as var
 end
 
 // 12. 侏儒排序
-func sortGnome(var src) as var
-    var a = dupArr(src)
+func sortGnome(array<int> src) as array<int>
+    array<int> a = dupArr(src)
     int n = a.length
     int i = 0
     while i < n do
@@ -614,7 +611,7 @@ func sortGnome(var src) as var
         else
             g_cmp += 1
             if a[i] < a[i - 1] then
-                doSwapVar(a, i, i - 1)
+                swapItems(a, i, i - 1)
                 i -= 1
             else
                 i += 1
@@ -626,7 +623,7 @@ end
 
 // ---- 算法 dispatch ----
 
-func runAlgo(string name, var data) as var
+func runAlgo(string name, array<int> data) as array<int>
     if name == "bubble" then return sortBubble(data) end
     if name == "selection" then return sortSelection(data) end
     if name == "insertion" then return sortInsertion(data) end
@@ -643,10 +640,10 @@ func runAlgo(string name, var data) as var
 end
 
 // 运行单个算法并记录 (同一份 data, 公平对比; runAlgo 内部会复制)
-func benchOne(string name, var data)
+func benchOne(string name, array<int> data)
     resetStats()
     float t0 = time.timer()
-    var result = runAlgo(name, data)
+    array<int> result = runAlgo(name, data)
     float t1 = time.timer()
     bool ok = isSorted(result)
     g_sink += result.length
@@ -660,7 +657,7 @@ end
 // ---- 输出 ----
 
 func padNum(int v) as string
-    return string.padLeft(string.formatInt(v, ","), 12)
+    return string.padLeft(int.format(v, ","), 12)
 end
 
 func printTable()
@@ -670,7 +667,7 @@ func printTable()
     int n = g_names.length
     while i < n do
         string s = string.padRight(g_names[i], 13)
-        s = s + string.padLeft(string.formatFloat(g_times[i], ".3"), 11)
+        s = s + string.padLeft(float.format(g_times[i], ".3"), 11)
         s = s + padNum(g_cmps[i])
         s = s + padNum(g_swaps[i])
         s = s + "  "
@@ -708,7 +705,7 @@ func parseN(string s, int def) as int
     return n
 end
 
-func runBenchAll(var data, string label)
+func runBenchAll(array<int> data, string label)
     clearResults()
     println("sortlab - " + label + "  (n=" + string(data.length) + ")")
     println("================================================================")
@@ -729,7 +726,7 @@ func runBenchAll(var data, string label)
 end
 
 func cmdBench(string kind, int n)
-    var data = []
+    array<int> data = array<int>[]
     if kind == "random" then
         data = genRandom(n)
     elseif kind == "sorted" then
@@ -743,7 +740,7 @@ func cmdBench(string kind, int n)
 end
 
 func cmdCompare(string a1, string a2, int n)
-    var data = genRandom(n)
+    array<int> data = genRandom(n)
     clearResults()
     println("sortlab - compare: " + a1 + " vs " + a2 + "  (n=" + string(n) + ", random data)")
     println("================================================================")
@@ -752,17 +749,17 @@ func cmdCompare(string a1, string a2, int n)
     printTable()
     println("================================================================")
     if g_times[0] < g_times[1] then
-        println(dispName(a1) + " was faster by " + string.formatFloat(g_times[1] - g_times[0], ".3") + " ms")
+        println(dispName(a1) + " was faster by " + float.format(g_times[1] - g_times[0], ".3") + " ms")
     else
-        println(dispName(a2) + " was faster by " + string.formatFloat(g_times[0] - g_times[1], ".3") + " ms")
+        println(dispName(a2) + " was faster by " + float.format(g_times[0] - g_times[1], ".3") + " ms")
     end
 end
 
 func cmdVerify() as int
     println("sortlab - correctness verification")
     println("================================================================")
-    // 多组测试数据 (var 数组, 每个元素本身是一个 var 数组)
-    var datasets = []
+    // 多组测试数据，覆盖随机、顺序、逆序、重复、单元素和空数组。
+    array<array<int>> datasets = []
     datasets.push([5, 2, 8, 1, 9, 3, 7, 4, 6, 0])
     datasets.push([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     datasets.push([10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
@@ -778,8 +775,8 @@ func cmdVerify() as int
         bool algoOk = true
         int ci = 0
         while ci < datasets.length do
-            var ds = datasets[ci]
-            var res = runAlgo(algo, ds)
+            array<int> ds = datasets[ci]
+            array<int> res = runAlgo(algo, ds)
             bool ok = isSorted(res)
             // 空集/单元素 直接 ok; 否则还要校验长度一致
             if ds.length != res.length then ok = false end
@@ -811,12 +808,12 @@ func cmdTest() as int
     int fails = 0
 
     // T1: 已知输入 -> 期望输出
-    var input = [5, 3, 8, 1, 9, 3, 0, 4, 7, 6, 2]
+    array<int> input = [5, 3, 8, 1, 9, 3, 0, 4, 7, 6, 2]
     int expectedLen = input.length
     int ai = 0
     while ai < g_algos.length do
         string algo = string(g_algos[ai])
-        var res = runAlgo(algo, input)
+        array<int> res = runAlgo(algo, input)
         bool ok = isSorted(res)
         if res.length != expectedLen then ok = false end
         if not ok then
@@ -830,9 +827,9 @@ func cmdTest() as int
     end
 
     // T2: 稳定性基准 - 同一份数据两次运行结果应一致 (确定性)
-    var data = genRandom(200)
-    var r1 = sortQuick(data)
-    var r2 = sortQuick(data)
+    array<int> data = genRandom(200)
+    array<int> r1 = sortQuick(data)
+    array<int> r2 = sortQuick(data)
     bool det = true
     if r1.length != r2.length then det = false end
     int i = 0
@@ -848,8 +845,8 @@ func cmdTest() as int
     end
 
     // T3: 排序结果应与 "最大值在末尾, 最小值在开头" 一致 (对非空)
-    var data3 = genRandom(300)
-    var sorted = sortMerge(data3)
+    array<int> data3 = genRandom(300)
+    array<int> sorted = sortMerge(data3)
     int minv = int(sorted[0])
     int maxv = int(sorted[-1])
     int origMin = int(data3[0])

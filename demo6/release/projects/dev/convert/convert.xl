@@ -114,7 +114,7 @@ func fmtNum(float v) as string
     if v == math.floor(v) and math.abs(v) < 1e15 then
         return string(int(v))
     end
-    string s = string.formatFloat(v, ".6")
+    string s = float.format(v, ".6")
     s = string.rtrim(s, "0")
     if string.right(s, 1) == "." then
         s = string.left(s, string.len(s) - 1)

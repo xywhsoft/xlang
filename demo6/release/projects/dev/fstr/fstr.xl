@@ -75,36 +75,28 @@ func findXl() as string
     if file.exists(c1) then
         return c1
     end
-    string c2 = path.join(path.appDir(), "xl.exe")
+    string c2 = path.join(path.cwd(), "release", "xl.exe")
     if file.exists(c2) then
         return c2
     end
-    return ""
+    string c3 = path.join(path.appDir(), "xl.exe")
+    if file.exists(c3) then
+        return c3
+    end
+    return "xl"
 end
 
 // 将 snippet 写入临时 .xl 文件，调用 xl parse，验证编译失败且报错含 expectedDiag
 func negativeCheck(string label, string snippet, string expectedDiag)
-    if string.len(g_xl) == 0 then
-        println("  [SKIP] " + label + " (xl.exe not found)")
-        return
-    end
-
-    string tmpDir = path.join(path.temp(), "fstr_neg")
-    if not dir.exists(tmpDir) then
-        dir.createAll(tmpDir)
-    end
-
-    string safeName = "neg_" + string(g_pass) + "_" + string(g_fail) + ".xl"
-    string filePath = path.join(tmpDir, safeName)
+    string filePath = path.join(path.temp(), path.random("fstr_neg_", ".xl"))
     file.writeText(filePath, snippet + "\n")
 
-    string cmd = g_xl + " parse " + filePath
-    ProcessResult r = process.run(cmd, 15000)
+    ProcessResult r = process.runFile(g_xl, ["check", filePath], 15000)
 
     file.delete(filePath)
 
     if r.exitCode == 0 then
-        bad(label, "expected compile error but xl parse succeeded")
+        bad(label, "expected compile error but xl check succeeded")
     elseif string.contains(r.stderr, expectedDiag) then
         ok(label + " (rejected correctly)")
     else
@@ -204,6 +196,14 @@ end
 // ====================================================================
 func testNegatives()
     println("[12] invalid f-string cases (must produce compile errors)")
+    negativeCheck(
+        "undeclared identifier in ordinary expression",
+        "func main(...) as int\n    string text = missingValue\n    return 0\nend",
+        "undeclared identifier 'missingValue'")
+    negativeCheck(
+        "undeclared identifier in f-string expression",
+        "func main(...) as int\n    string text = f\"value={missingValue}\"\n    return 0\nend",
+        "undeclared identifier 'missingValue'")
     negativeCheck("empty expr f\"{}\"", "auto text = f\"hello {}\"", "不能为空")
     negativeCheck("unclosed brace f\"{name\"", "auto name = \"x\"\nauto text = f\"hello {name\"", "未闭合")
     negativeCheck("lone close brace f\"}\"", "auto text = f\"hello }\"", "单独的 }")

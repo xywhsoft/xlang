@@ -49,13 +49,13 @@ func makeArray(int n, int v) as array<int>
 end
 
 func sub(array<int> arr, int start, int len) as array<int>
-    array<int> out = makeArray(len, 0)
+    array<int> outputValue = makeArray(len, 0)
     int i = 0
     while i < len do
-        out[i] = arr[start + i]
+        outputValue[i] = arr[start + i]
         i += 1
     end
-    return out
+    return outputValue
 end
 
 func copyArray(array<int> src) as array<int>
@@ -63,18 +63,18 @@ func copyArray(array<int> src) as array<int>
 end
 
 func concat(array<int> a, array<int> b) as array<int>
-    array<int> out = makeArray(a.length + b.length, 0)
+    array<int> outputValue = makeArray(a.length + b.length, 0)
     int i = 0
     while i < a.length do
-        out[i] = a[i]
+        outputValue[i] = a[i]
         i += 1
     end
     int j = 0
     while j < b.length do
-        out[a.length + j] = b[j]
+        outputValue[a.length + j] = b[j]
         j += 1
     end
-    return out
+    return outputValue
 end
 
 func xorArrays(array<int> a, array<int> b) as array<int>
@@ -82,13 +82,13 @@ func xorArrays(array<int> a, array<int> b) as array<int>
     if b.length < n then
         n = b.length
     end
-    array<int> out = makeArray(n, 0)
+    array<int> outputValue = makeArray(n, 0)
     int i = 0
     while i < n do
-        out[i] = a[i] ^ b[i]
+        outputValue[i] = a[i] ^ b[i]
         i += 1
     end
-    return out
+    return outputValue
 end
 
 func arrEquals(array<int> a, array<int> b) as bool
@@ -411,19 +411,19 @@ func ecbEncrypt(array<int> pt, array<int> rk, int nr) as array<int>
     if n % 16 != 0 then
         throw "ECB requires block-aligned data (multiple of 16 bytes)"
     end
-    array<int> out = makeArray(n, 0)
+    array<int> outputValue = makeArray(n, 0)
     int off = 0
     while off < n do
         array<int> blk = sub(pt, off, 16)
         array<int> ct = encryptBlock(blk, rk, nr)
         int i = 0
         while i < 16 do
-            out[off + i] = ct[i]
+            outputValue[off + i] = ct[i]
             i += 1
         end
         off += 16
     end
-    return out
+    return outputValue
 end
 
 func ecbDecrypt(array<int> ct, array<int> rk, int nr) as array<int>
@@ -431,19 +431,19 @@ func ecbDecrypt(array<int> ct, array<int> rk, int nr) as array<int>
     if n % 16 != 0 then
         throw "ECB requires block-aligned data (multiple of 16 bytes)"
     end
-    array<int> out = makeArray(n, 0)
+    array<int> outputValue = makeArray(n, 0)
     int off = 0
     while off < n do
         array<int> blk = sub(ct, off, 16)
         array<int> pt = decryptBlock(blk, rk, nr)
         int i = 0
         while i < 16 do
-            out[off + i] = pt[i]
+            outputValue[off + i] = pt[i]
             i += 1
         end
         off += 16
     end
-    return out
+    return outputValue
 end
 
 
@@ -455,17 +455,17 @@ func pkcs7Pad(array<int> data) as array<int>
     if padLen == 0 then
         padLen = 16
     end
-    array<int> out = makeArray(n + padLen, 0)
+    array<int> outputValue = makeArray(n + padLen, 0)
     int i = 0
     while i < n do
-        out[i] = data[i]
+        outputValue[i] = data[i]
         i += 1
     end
     while i < n + padLen do
-        out[i] = padLen
+        outputValue[i] = padLen
         i += 1
     end
-    return out
+    return outputValue
 end
 
 func pkcs7Unpad(array<int> data) as array<int>
@@ -493,7 +493,7 @@ end
 func cbcEncrypt(array<int> pt, array<int> iv, array<int> rk, int nr) as array<int>
     array<int> padded = pkcs7Pad(pt)
     int n = padded.length
-    array<int> out = makeArray(n, 0)
+    array<int> outputValue = makeArray(n, 0)
     array<int> prev = copyArray(iv)
     int off = 0
     while off < n do
@@ -502,13 +502,13 @@ func cbcEncrypt(array<int> pt, array<int> iv, array<int> rk, int nr) as array<in
         array<int> ct = encryptBlock(blk, rk, nr)
         int i = 0
         while i < 16 do
-            out[off + i] = ct[i]
+            outputValue[off + i] = ct[i]
             prev[i] = ct[i]
             i += 1
         end
         off += 16
     end
-    return out
+    return outputValue
 end
 
 func cbcDecrypt(array<int> ct, array<int> iv, array<int> rk, int nr) as array<int>
@@ -553,7 +553,7 @@ end
 
 func ctrXor(array<int> data, array<int> iv, array<int> rk, int nr) as array<int>
     int n = data.length
-    array<int> out = makeArray(n, 0)
+    array<int> outputValue = makeArray(n, 0)
     array<int> counter = copyArray(iv)
     int off = 0
     while off < n do
@@ -564,13 +564,13 @@ func ctrXor(array<int> data, array<int> iv, array<int> rk, int nr) as array<int>
         end
         int i = 0
         while i < chunk do
-            out[off + i] = data[off + i] ^ ks[i]
+            outputValue[off + i] = data[off + i] ^ ks[i]
             i += 1
         end
         counter = incCounter(counter)
         off += 16
     end
-    return out
+    return outputValue
 end
 
 
@@ -659,7 +659,7 @@ func gctr(array<int> data, array<int> icb, array<int> rk, int nr) as array<int>
     if n == 0 then
         return makeArray(0, 0)
     end
-    array<int> out = makeArray(n, 0)
+    array<int> outputValue = makeArray(n, 0)
     array<int> cb = copyArray(icb)
     int off = 0
     while off < n do
@@ -670,13 +670,13 @@ func gctr(array<int> data, array<int> icb, array<int> rk, int nr) as array<int>
         end
         int i = 0
         while i < chunk do
-            out[off + i] = data[off + i] ^ ks[i]
+            outputValue[off + i] = data[off + i] ^ ks[i]
             i += 1
         end
         cb = inc32(cb)
         off += 16
     end
-    return out
+    return outputValue
 end
 
 // Compute the GHASH tag input S over AAD and ciphertext.
@@ -795,7 +795,7 @@ func parseHex(string s) as array<int>
         throw "hex string must have even length"
     end
     int n = string.len(h) / 2
-    array<int> out = makeArray(n, 0)
+    array<int> outputValue = makeArray(n, 0)
     int i = 0
     while i < n do
         int hi = hexVal(string.byteAt(h, i * 2))
@@ -803,10 +803,10 @@ func parseHex(string s) as array<int>
         if hi < 0 or lo < 0 then
             throw "invalid hex character in '" + h + "'"
         end
-        out[i] = (hi << 4) | lo
+        outputValue[i] = (hi << 4) | lo
         i += 1
     end
-    return out
+    return outputValue
 end
 
 string HEX_DIGITS = "0123456789abcdef"
@@ -818,13 +818,13 @@ func toHexByte(int b) as string
 end
 
 func toHex(array<int> bytes) as string
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < bytes.length do
-        out = out + toHexByte(bytes[i] & 0xFF)
+        outputValue = outputValue + toHexByte(bytes[i] & 0xFF)
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -939,26 +939,26 @@ end
 func checkSboxKnown() as bool
     // Spot-check a few well-known S-Box entries (FIPS-197 Figure 7).
     if SBOX[0x00] != 0x63 then
-        println("  FAIL sbox[0x00] = " + string.formatInt(SBOX[0x00], "x2") + ", want 63")
+        println("  FAIL sbox[0x00] = " + int.format(SBOX[0x00], "x2") + ", want 63")
         return false
     end
     if SBOX[0x10] != 0xca then
-        println("  FAIL sbox[0x10] = " + string.formatInt(SBOX[0x10], "x2") + ", want ca")
+        println("  FAIL sbox[0x10] = " + int.format(SBOX[0x10], "x2") + ", want ca")
         return false
     end
     if SBOX[0x53] != 0xed then
-        println("  FAIL sbox[0x53] = " + string.formatInt(SBOX[0x53], "x2") + ", want ed")
+        println("  FAIL sbox[0x53] = " + int.format(SBOX[0x53], "x2") + ", want ed")
         return false
     end
     if SBOX[0xff] != 0x16 then
-        println("  FAIL sbox[0xff] = " + string.formatInt(SBOX[0xff], "x2") + ", want 16")
+        println("  FAIL sbox[0xff] = " + int.format(SBOX[0xff], "x2") + ", want 16")
         return false
     end
     // verify inverse property: invSbox[sbox[i]] == i for all i
     int i = 0
     while i < 256 do
         if INV_SBOX[SBOX[i]] != i then
-            println("  FAIL invSbox[sbox[" + string.formatInt(i, "x2") + "]] mismatch")
+            println("  FAIL invSbox[sbox[" + int.format(i, "x2") + "]] mismatch")
             return false
         end
         i += 1
@@ -1390,8 +1390,8 @@ func main(...) as int
                 return 1
             end
             array<int> data = parseHex(string(arg[5]))
-            array<int> out = ctrXor(data, iv, rk, nr)
-            println(toHex(out))
+            array<int> outputValue = ctrXor(data, iv, rk, nr)
+            println(toHex(outputValue))
             return 0
         end
 

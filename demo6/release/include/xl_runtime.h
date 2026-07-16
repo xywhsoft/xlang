@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -745,6 +746,21 @@ static uint64 xl6_xrt_type_value_id(xvalue value, bool release)
 void xl6_xrt_print(xvalue values, bool newline)
 {
     xvoPrint(values, newline);
+}
+
+void xl6_xrt_write(const char* text)
+{
+    if ( text != 0 && text[0] != '\0' ) {
+        fputs(text, stdout);
+    }
+    fflush(stdout);
+}
+
+void xl6_xrt_writeln(const char* text)
+{
+    xl6_xrt_write(text);
+    fputc('\n', stdout);
+    fflush(stdout);
 }
 
 static xvalue xl6_xrt_index_safe_get_i64(xvalue values, int64 index)

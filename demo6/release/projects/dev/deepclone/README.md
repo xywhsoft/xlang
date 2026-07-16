@@ -22,9 +22,9 @@ xl build projects\dev\deepclone\deepclone.xl -o projects\dev\deepclone\deepclone
 | `value`       | OK | 经 `json` / `xson` 往返验证 `__toValue__/__fromValue__` | 已实现 |
 | `json`        | OK | `json.stringify` / `json.parse::<Product>` | 已实现 |
 | `xson`        | OK | `xson.stringify` / `xson.parse::<Product>` | 已实现 |
-| `string`      | OK | **不生成代码**；只能手写 `__toString__` | BUG-D2 |
-| `hash`        | OK | **不生成代码**；只能手写字段哈希 | BUG-D2 |
-| `equals`      | OK | **不生成代码**；只能手写 `__eq__/__ne__` | BUG-D2 |
+| `string`      | OK | 自动生成字符串表示，支持 `string(obj)` / `obj.toString()` | 已实现 |
+| `hash`        | OK | 自动字段哈希，可直接用于类型化 set | 已实现 |
+| `equals`      | OK | 自动生成 `==` / `!=` 值比较 | 已实现 |
 
 字段级注解（全部已实现）：
 
@@ -45,9 +45,9 @@ class Product
     derive value
     derive json
     derive xson
-    derive string      // no-op
-    derive hash        // no-op
-    derive equals      // no-op
+    derive string
+    derive hash
+    derive equals
 
     int id = 0
     string name = ""
@@ -56,11 +56,6 @@ class Product
     string internalNote @persist(skip) = ""
     string memo @json(omit=empty) @xson(omit=null) = ""
 
-    // 因 BUG-D2 derive 不生成，以下协议方法全部手写兜底
-    func __eq__(Product other) as bool ...
-    func __ne__(Product other) as bool ...
-    func __toString__() as string ...
-    func hashByFields() as uint64 ...
 end
 ```
 
@@ -78,6 +73,4 @@ end
 实测 `xl check` 与 `xl run` 均返回 EXIT=1 并定位到对应行。因非法源码无法内联进本工具
 （会破坏 EXIT=0 基线），冲突复现保留在本 README 中作为独立用例。
 
-## 发现的 BUG
-
-详见 `dev/BUGS.md` 中 `BUG-D2`、`手感-D1` 两条。
+当前用例直接使用编译器派生实现，不包含历史手写兜底。

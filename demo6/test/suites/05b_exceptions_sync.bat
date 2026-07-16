@@ -130,9 +130,22 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_export_vararg.xl >nul 2> build\test\sem_export_vararg.err.txt
+release\xl.exe check test\cases\sem_export_vararg.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_c_vararg_export.xl >nul 2> build\test\sem_c_vararg_export.err.txt
 if not errorlevel 1 (
-    echo sem_export_vararg.xl should fail.
+    echo sem_c_vararg_export.xl should fail.
+    exit /b 1
+)
+findstr /C:"C ABI export" build\test\sem_c_vararg_export.err.txt >nul
+if errorlevel 1 (
+    echo sem_c_vararg_export.err.txt missing C ABI export vararg diagnostic.
+    exit /b 1
+)
+findstr /C:"c_vararg" build\test\sem_c_vararg_export.err.txt >nul
+if errorlevel 1 (
+    echo sem_c_vararg_export.err.txt missing c_vararg extern diagnostic.
     exit /b 1
 )
 
@@ -347,9 +360,39 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_extern_vararg.xl >nul 2> build\test\sem_extern_vararg.err.txt
+release\xl.exe check test\cases\sem_extern_vararg.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_c_vararg_nonextern.xl >nul 2> build\test\sem_c_vararg_nonextern.err.txt
 if not errorlevel 1 (
-    echo sem_extern_vararg.xl should fail.
+    echo sem_c_vararg_nonextern.xl should fail.
+    exit /b 1
+)
+findstr /C:"c_vararg" build\test\sem_c_vararg_nonextern.err.txt >nul
+if errorlevel 1 (
+    echo sem_c_vararg_nonextern.err.txt missing c_vararg extern diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_c_vararg_not_last.xl >nul 2> build\test\sem_c_vararg_not_last.err.txt
+if not errorlevel 1 (
+    echo sem_c_vararg_not_last.xl should fail.
+    exit /b 1
+)
+findstr /C:"c_vararg must be the last extern C parameter" build\test\sem_c_vararg_not_last.err.txt >nul
+if errorlevel 1 (
+    echo sem_c_vararg_not_last.err.txt missing c_vararg position diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_c_vararg_xvalue_fixed.xl >nul 2> build\test\sem_c_vararg_xvalue_fixed.err.txt
+if not errorlevel 1 (
+    echo sem_c_vararg_xvalue_fixed.xl should fail.
+    exit /b 1
+)
+findstr /C:"c_vararg extern cannot mix with xvalue managed parameters" build\test\sem_c_vararg_xvalue_fixed.err.txt >nul
+if errorlevel 1 (
+    echo sem_c_vararg_xvalue_fixed.err.txt missing c_vararg managed-parameter diagnostic.
     exit /b 1
 )
 

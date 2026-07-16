@@ -1,6 +1,6 @@
 # gstack - 泛型验证工具
 
-用 xlang 编写的泛型能力综合验证器。通过一组真实可用的泛型容器（`Stack<T>` / `SortedStack<T>` / `Range<T>`）和泛型函数，全面压测 xlang 的泛型声明、约束、实例化与迭代协议。
+用 xlang 编写的泛型能力综合验证器。通过一组真实可用的泛型容器（`GenericStack<T>` / `SortedStack<T>` / `PairSequence<T>`）和泛型函数，全面压测 xlang 的泛型声明、约束、实例化与迭代协议。
 
 ## 用法
 
@@ -23,12 +23,12 @@ gstack.exe help
 | 2 | 泛型约束 `<T is comparable>`、`<T is cloneable>` | `maxValue` / `cloneValue` |
 | 2 | 组合约束 `<T is cloneable and json>` | `combined` |
 | 2 | class 继承约束 `<T is Entity>`（`Player extends Entity`） | `keepEntity` |
-| 3 | 泛型 class `Stack<T>`，`array<T>` 字段 + `push/pop/top/size/isEmpty/clear` | `Stack<T>` |
-| 3 | 多类型实例化 `Stack<int>` / `Stack<string>` / `Stack<float>` | `testStack{Int,String,Float}` |
+| 3 | 泛型 class `GenericStack<T>`，`array<T>` 字段 + `push/pop/top/size/isEmpty/clear` | `GenericStack<T>` |
+| 3 | 多类型实例化 `GenericStack<int>` / `GenericStack<string>` / `GenericStack<float>` | `testStack{Int,String,Float}` |
 | 3 | 带约束的泛型 class `SortedStack<T is comparable>`，内部 `array<T>` 冒泡排序 | `SortedStack<T>` |
-| 3 | 泛型函数 `array<T>` 形参 `sortArray<T>` / `arrayMax<T>`（GS1 已修复） | `sortArray` / `arrayMax` / `testGenericArrayFunc` |
-| 4 | 泛型 class 迭代协议 `Range<T>.__iter__() as RangeIter<T>` + `RangeIter<T>.__next__() as (bool, T)` | `Range<T>` / `RangeIter<T>` |
-| 4 | `for value in Range` 与 `for index, value in Range` | `testRangeIter` |
+| 3 | 泛型函数 `array<T>` 形参 `sortArray<T>` / `arrayMax<T>` | `sortArray` / `arrayMax` / `testGenericArrayFunc` |
+| 4 | 泛型 class 迭代协议 `PairSequence<T>.__iter__() as PairSequenceIter<T>` + `PairSequenceIter<T>.__next__() as (bool, T)` | `PairSequence<T>` / `PairSequenceIter<T>` |
+| 4 | `for value in PairSequence` 与 `for index, value in PairSequence` | `testGenericIter` |
 
 ## 已知限制 / 发现的 BUG
 

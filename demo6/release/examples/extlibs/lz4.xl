@@ -14,8 +14,11 @@ file.delete(outPath)
 
 assert string.len(lz4.version()) > 0, "lz4 version missing"
 string packedHex = lz4.compress_hex(sample)
+string packedAliasHex = lz4.compress(sample)
 assert string.len(packedHex) > 0, "lz4 compress_hex failed"
+assert string.len(packedAliasHex) > 0, "lz4 compress alias failed"
 assert lz4.decompress_hex(packedHex) == sample, "lz4 decompress_hex mismatch"
+assert lz4.decompress(packedAliasHex) == sample, "lz4 decompress alias mismatch"
 assert lz4.compress_file(srcPath, packedPath) != 0, "lz4 compress_file failed"
 assert lz4.decompress_file(packedPath, outPath) != 0, "lz4 decompress_file failed"
 assert file.readText(outPath) == sample, "lz4 file round trip mismatch"

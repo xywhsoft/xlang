@@ -20,7 +20,7 @@ func timerFormatMS(int total) as string
     int safe = total < 0 ? 0 : total
     int m = safe / 60
     int s = safe % 60
-    return string.formatInt(m, "02") + ":" + string.formatInt(s, "02")
+    return int.format(m, "02") + ":" + int.format(s, "02")
 end
 
 // 倒计时：每秒打印剩余时间，到 0 结束。

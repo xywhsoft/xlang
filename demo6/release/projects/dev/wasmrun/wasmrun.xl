@@ -201,7 +201,7 @@ func bufferToBytes(Buffer buf) as array<int>
 end
 
 func hex2(int b) as string
-    return string.formatInt(b & 0xFF, "x2")
+    return int.format(b & 0xFF, "x2")
 end
 
 
@@ -805,7 +805,7 @@ func disasmModule() as int
                 while string.len(hexPart) < 12 do
                     hexPart = hexPart + " "
                 end
-                println("    " + string.formatInt(instrStart - codeOff, "X4") + ": " + hexPart + " " + text)
+                println("    " + int.format(instrStart - codeOff, "X4") + ": " + hexPart + " " + text)
             end
             fi += 1
         end

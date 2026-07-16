@@ -13,11 +13,9 @@
 //   6. REST API：GET/POST/PUT/DELETE /api/posts[/{slug}]
 //   7. 搜索 /search?q=xxx
 //
-// 设计约束（来自 dev/README）：
-//   * native-backed class（HttpRequest/HttpResponse/HttpClientRequest/
-//     HttpClientResponse/Buffer）不能按值传给函数。route handler 和 self-test
-//     中的 HTTP client 操作全部内联。纯字符串/数据处理的 Markdown 渲染、
-//     JSON 拼接、模板数据构造可以拆成普通函数。
+// 设计要点：
+//   * 请求与响应对象只在回调作用域内持有，资源所有权边界清晰。
+//   * 文章缓存由 rwlock 保护；读请求使用快照，写请求原子更新缓存与磁盘。
 //   * json pretty 模式会 hash 重排键序，需要保序时手工拼接 JSON 文本。
 //   * `#` 不是注释（开启时间字面量），注释统一用 `//`。
 
@@ -36,6 +34,8 @@ string gListTpl = ""
 string gPostTpl = ""
 string gArchiveTpl = ""
 string gSearchTpl = ""
+var gPosts = []
+rwlock gPostsLock = rwlock()
 
 
 // ============================================================
@@ -93,7 +93,7 @@ end
 // 输入文本先做 HTML 转义；输出包含 HTML 标签。
 func mdInline(string text) as string
     string s = escapeHtml(text)
-    string out = ""
+    string outputValue = ""
     int n = string.len(s)
     int i = 0
     while i < n do
@@ -110,7 +110,7 @@ func mdInline(string text) as string
                 int close = findFrom(s, "**", i + 2)
                 if close > 0 then
                     string inner = string.slice(s, i + 2, close - i - 2)
-                    out = out + "<strong>" + inner + "</strong>"
+                    outputValue = outputValue + "<strong>" + inner + "</strong>"
                     i = close + 2
                     matched = true
                 end
@@ -123,7 +123,7 @@ func mdInline(string text) as string
                 int close = findFrom(s, "`", i + 1)
                 if close > 0 then
                     string inner = string.slice(s, i + 1, close - i - 1)
-                    out = out + "<code>" + inner + "</code>"
+                    outputValue = outputValue + "<code>" + inner + "</code>"
                     i = close + 1
                     matched = true
                 end
@@ -136,7 +136,7 @@ func mdInline(string text) as string
                 int close = findFrom(s, "*", i + 1)
                 if close > 0 then
                     string inner = string.slice(s, i + 1, close - i - 1)
-                    out = out + "<em>" + inner + "</em>"
+                    outputValue = outputValue + "<em>" + inner + "</em>"
                     i = close + 1
                     matched = true
                 end
@@ -153,7 +153,7 @@ func mdInline(string text) as string
                         if parenClose > 0 then
                             string alt = string.slice(s, i + 2, bracketClose - i - 2)
                             string url = string.slice(s, bracketClose + 2, parenClose - bracketClose - 2)
-                            out = out + "<img src=\"" + url + "\" alt=\"" + alt + "\">"
+                            outputValue = outputValue + "<img src=\"" + url + "\" alt=\"" + alt + "\">"
                             i = parenClose + 1
                             matched = true
                         end
@@ -172,7 +172,7 @@ func mdInline(string text) as string
                         if parenClose > 0 then
                             string linkText = string.slice(s, i + 1, bracketClose - i - 1)
                             string url = string.slice(s, bracketClose + 2, parenClose - bracketClose - 2)
-                            out = out + "<a href=\"" + url + "\">" + linkText + "</a>"
+                            outputValue = outputValue + "<a href=\"" + url + "\">" + linkText + "</a>"
                             i = parenClose + 1
                             matched = true
                         end
@@ -182,11 +182,11 @@ func mdInline(string text) as string
         end
 
         if not matched then
-            out = out + c0
+            outputValue = outputValue + c0
             i = i + 1
         end
     end
-    return out
+    return outputValue
 end
 
 
@@ -356,27 +356,27 @@ end
 
 // JSON 字符串转义
 func jsonString(string s) as string
-    string out = "\""
+    string outputValue = "\""
     int n = string.len(s)
     int i = 0
     while i < n do
         string c = string.charAt(s, i)
         if c == "\"" then
-            out = out + "\\\""
+            outputValue = outputValue + "\\\""
         elseif c == "\\" then
-            out = out + "\\\\"
+            outputValue = outputValue + "\\\\"
         elseif c == "\n" then
-            out = out + "\\n"
+            outputValue = outputValue + "\\n"
         elseif c == "\r" then
-            out = out + "\\r"
+            outputValue = outputValue + "\\r"
         elseif c == "\t" then
-            out = out + "\\t"
+            outputValue = outputValue + "\\t"
         else
-            out = out + c
+            outputValue = outputValue + c
         end
         i = i + 1
     end
-    return out + "\""
+    return outputValue + "\""
 end
 
 
@@ -389,16 +389,16 @@ func tagsToJsonArray(var tags) as string
     if n == 0 then
         return "[]"
     end
-    string out = "["
+    string outputValue = "["
     int i = 0
     while i < n do
         if i > 0 then
-            out = out + ","
+            outputValue = outputValue + ","
         end
-        out = out + jsonString(string(tags[i]))
+        outputValue = outputValue + jsonString(string(tags[i]))
         i = i + 1
     end
-    return out + "]"
+    return outputValue + "]"
 end
 
 
@@ -418,16 +418,16 @@ func postsToJson(var posts) as string
     if n == 0 then
         return "[]"
     end
-    string out = "["
+    string outputValue = "["
     int i = 0
     while i < n do
         if i > 0 then
-            out = out + ","
+            outputValue = outputValue + ","
         end
-        out = out + postToJson(posts[i])
+        outputValue = outputValue + postToJson(posts[i])
         i = i + 1
     end
-    return out + "]"
+    return outputValue + "]"
 end
 
 
@@ -469,6 +469,14 @@ func savePosts(string path_, var posts)
     end
 end
 
+// 返回文章数组的独立浅副本。文章内容在读路径中不会被修改，浅副本即可隔离数组结构。
+func postsSnapshot() as var
+    gPostsLock.readLock()
+    var posts = copy(gPosts)
+    gPostsLock.readUnlock()
+    return posts
+end
+
 
 // 找指定 slug 在数组中的下标；不存在返回 -1。
 func findPostIndex(var posts, string slug) as int
@@ -494,16 +502,16 @@ func joinTags(var tags) as string
     if n == 0 then
         return ""
     end
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < n do
         if i > 0 then
-            out = out + ", "
+            outputValue = outputValue + ", "
         end
-        out = out + tags[i]
+        outputValue = outputValue + tags[i]
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -555,16 +563,7 @@ end
 
 
 // ============================================================
-// HTTP 路由 handler（HttpRequest/HttpResponse 必须内联）
-//
-// 设计取舍：每次请求都重新 loadPosts() 从磁盘读取。
-// 之所以不缓存到全局 var 数组，是因为发现一个 xlang BUG ——
-// 文件作用域的 `var gPosts = []` 在被 push 填充后，从 main 直接
-// 访问 gPosts[0] 完全正常；但 HTTP 回调 route handler 里
-// gPosts.length 返回正确值，gPosts[i] 却返回空（元素引用丢失），
-// 字符串全局变量在同一回调里则完全正常。怀疑是 native callback
-// 上下文里 var 数组元素的某种 marshalling 缺陷（见 BUGS.md XB1）。
-// 绕过：每次请求 loadPosts 拿到一个 *局部* var，局部 var 访问正常。
+// HTTP 路由 handler
 // ============================================================
 func route(point reqHandle, point respHandle) as bool
     HttpRequest req = HttpRequest(reqHandle)
@@ -577,7 +576,7 @@ func route(point reqHandle, point respHandle) as bool
 
     // GET / -> 首页（文章列表）
     if method == "GET" and path == "/" then
-        var posts = loadPosts(gPostsPath)
+        var posts = postsSnapshot()
         var data = buildListData(posts, "")
         string html = template.render(gListTpl, data)
         return resp.text(html, "text/html; charset=utf-8")
@@ -585,7 +584,7 @@ func route(point reqHandle, point respHandle) as bool
 
     // GET /archive -> 归档页
     if method == "GET" and path == "/archive" then
-        var posts = loadPosts(gPostsPath)
+        var posts = postsSnapshot()
         var data = buildListData(posts, "")
         string html = template.render(gArchiveTpl, data)
         return resp.text(html, "text/html; charset=utf-8")
@@ -594,7 +593,7 @@ func route(point reqHandle, point respHandle) as bool
     // GET /post/{slug} -> 文章详情
     if method == "GET" and string.startsWith(path, "/post/") then
         string slug = req.param("slug")
-        var posts = loadPosts(gPostsPath)
+        var posts = postsSnapshot()
         int idx = findPostIndex(posts, slug)
         if idx < 0 then
             resp.status(404)
@@ -607,18 +606,18 @@ func route(point reqHandle, point respHandle) as bool
 
     // GET /api/posts -> 所有文章 JSON
     if method == "GET" and path == "/api/posts" then
-        var posts = loadPosts(gPostsPath)
+        var posts = postsSnapshot()
         return resp.jsonText(postsToJson(posts))
     end
 
     // GET /api/posts/{slug} -> 单篇 JSON
     if method == "GET" and string.startsWith(path, "/api/posts/") then
         string slug = req.param("slug")
-        var posts = loadPosts(gPostsPath)
+        var posts = postsSnapshot()
         int idx = findPostIndex(posts, slug)
         if idx < 0 then
             resp.status(404)
-            return resp.jsonText("{\"error\":\"not found\",\"slug\":\"" + slug + "\"}")
+            return resp.jsonText("{\"error\":\"not found\",\"slug\":" + jsonString(slug) + "}")
         end
         return resp.jsonText(postToJson(posts[idx]))
     end
@@ -636,10 +635,11 @@ func route(point reqHandle, point respHandle) as bool
             return resp.jsonText("{\"error\":\"missing required fields: slug, title, content\"}")
         end
         string slug = string(newPost["slug"])
-        var posts = loadPosts(gPostsPath)
-        if findPostIndex(posts, slug) >= 0 then
+        gPostsLock.writeLock()
+        if findPostIndex(gPosts, slug) >= 0 then
+            gPostsLock.writeUnlock()
             resp.status(409)
-            return resp.jsonText("{\"error\":\"slug already exists\",\"slug\":\"" + slug + "\"}")
+            return resp.jsonText("{\"error\":\"slug already exists\",\"slug\":" + jsonString(slug) + "}")
         end
         if not ("date" in newPost) then
             newPost["date"] = today()
@@ -647,8 +647,9 @@ func route(point reqHandle, point respHandle) as bool
         if not ("tags" in newPost) then
             newPost["tags"] = []
         end
-        posts.push(newPost)
-        savePosts(gPostsPath, posts)
+        gPosts.push(newPost)
+        savePosts(gPostsPath, gPosts)
+        gPostsLock.writeUnlock()
         resp.status(201)
         return resp.jsonText(postToJson(newPost))
     end
@@ -656,19 +657,20 @@ func route(point reqHandle, point respHandle) as bool
     // PUT /api/posts/{slug} -> 编辑现有文章
     if method == "PUT" and string.startsWith(path, "/api/posts/") then
         string slug = req.param("slug")
-        var posts = loadPosts(gPostsPath)
-        int idx = findPostIndex(posts, slug)
-        if idx < 0 then
-            resp.status(404)
-            return resp.jsonText("{\"error\":\"not found\",\"slug\":\"" + slug + "\"}")
-        end
         string body = req.body()
         if not json.valid(body) then
             resp.status(400)
             return resp.jsonText("{\"error\":\"invalid json body\"}")
         end
         var update = json.parse(body)
-        var existing = posts[idx]
+        gPostsLock.writeLock()
+        int idx = findPostIndex(gPosts, slug)
+        if idx < 0 then
+            gPostsLock.writeUnlock()
+            resp.status(404)
+            return resp.jsonText("{\"error\":\"not found\",\"slug\":" + jsonString(slug) + "}")
+        end
+        var existing = gPosts[idx]
         if "title" in update then
             existing["title"] = update["title"]
         end
@@ -681,31 +683,35 @@ func route(point reqHandle, point respHandle) as bool
         if "tags" in update then
             existing["tags"] = update["tags"]
         end
-        posts[idx] = existing
-        savePosts(gPostsPath, posts)
+        gPosts[idx] = existing
+        savePosts(gPostsPath, gPosts)
+        gPostsLock.writeUnlock()
         return resp.jsonText(postToJson(existing))
     end
 
     // DELETE /api/posts/{slug} -> 删除文章
     if method == "DELETE" and string.startsWith(path, "/api/posts/") then
         string slug = req.param("slug")
-        var posts = loadPosts(gPostsPath)
-        int idx = findPostIndex(posts, slug)
+        gPostsLock.writeLock()
+        int idx = findPostIndex(gPosts, slug)
         if idx < 0 then
+            gPostsLock.writeUnlock()
             resp.status(404)
-            return resp.jsonText("{\"error\":\"not found\",\"slug\":\"" + slug + "\"}")
+            return resp.jsonText("{\"error\":\"not found\",\"slug\":" + jsonString(slug) + "}")
         end
         var newArr = []
-        int n = posts.length
+        int n = gPosts.length
         int k = 0
         while k < n do
             if k != idx then
-                newArr.push(posts[k])
+                newArr.push(gPosts[k])
             end
             k = k + 1
         end
-        savePosts(gPostsPath, newArr)
-        return resp.jsonText("{\"deleted\":true,\"slug\":\"" + slug + "\"}")
+        gPosts = newArr
+        savePosts(gPostsPath, gPosts)
+        gPostsLock.writeUnlock()
+        return resp.jsonText("{\"deleted\":true,\"slug\":" + jsonString(slug) + "}")
     end
 
     // GET /search?q=xxx -> 搜索
@@ -714,7 +720,7 @@ func route(point reqHandle, point respHandle) as bool
         if q == "" then
             q = req.query()
         end
-        var posts = loadPosts(gPostsPath)
+        var posts = postsSnapshot()
         var matches = []
         int n = posts.length
         int i = 0
@@ -746,7 +752,7 @@ func errorPage(int status, string message, point reqHandle, point respHandle) as
     HttpResponse resp = HttpResponse(respHandle)
     resp.status(status)
     resp.header("X-Error-Path", req.path())
-    string body = "{\"status\":" + status.toString() + ",\"message\":\"" + message + "\",\"path\":\"" + req.path() + "\"}"
+    string body = "{\"status\":" + status.toString() + ",\"message\":" + jsonString(message) + ",\"path\":" + jsonString(req.path()) + "}"
     return resp.jsonText(body)
 end
 
@@ -757,7 +763,7 @@ func(int, string, point, point) as bool errorHandler = errorPage
 // server 构建：注册全部路由 + 静态目录 + 错误处理器
 // ============================================================
 func buildServer(int port) as point
-    point server = http.server.create(port, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 1)
+    point server = http.server.create(port, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 4)
 
     http.server.getRequest(server, "/", requestHandler)
     http.server.getRequest(server, "/archive", requestHandler)
@@ -1124,8 +1130,8 @@ func main(...) as int
     if not loadTemplates(path.join(gScriptDir, "templates")) then
         return 1
     end
-    var seed = loadPosts(gPostsPath)
-    println("loaded " + string(seed.length) + " posts from " + gPostsPath)
+    gPosts = loadPosts(gPostsPath)
+    println("loaded " + string(gPosts.length) + " posts from " + gPostsPath)
 
     // 备份 posts.json，self-test 会新建/删除一篇，结束后恢复
     string backupPath = path.join(gScriptDir, "posts.json.bak")

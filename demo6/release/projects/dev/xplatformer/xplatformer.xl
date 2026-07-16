@@ -240,13 +240,7 @@ end
 
 // float 裁剪到 [lo, hi]。
 func clampF(float v, float lo, float hi) as float
-    if v < lo then
-        return lo
-    end
-    if v > hi then
-        return hi
-    end
-    return v
+    return math.clamp(v, lo, hi)
 end
 
 // 向下取整为 int。
@@ -256,10 +250,7 @@ end
 
 // float 绝对值。
 func absF(float v) as float
-    if v < 0.0 then
-        return 0.0 - v
-    end
-    return v
+    return math.abs(v)
 end
 
 // int 绝对值。
@@ -995,7 +986,7 @@ end
 // 把屏幕缓冲拼成单个多行字符串（带边框和 HUD）。
 func renderToString() as string
     string border = "+" + string.repeat("-", g_viewW) + "+"
-    string out = border + "\n"
+    string outputValue = border + "\n"
     int r = 0
     while r < g_viewH do
         string line = "|"
@@ -1005,10 +996,10 @@ func renderToString() as string
             c += 1
         end
         line = line + "|"
-        out = out + line + "\n"
+        outputValue = outputValue + line + "\n"
         r += 1
     end
-    out = out + border + "\n"
+    outputValue = outputValue + border + "\n"
 
     // HUD
     string hpBar = ""
@@ -1030,8 +1021,8 @@ func renderToString() as string
     if string.len(g_statusMsg) > 0 then
         hud = hud + "  | " + g_statusMsg
     end
-    out = out + hud + "\n"
-    return out
+    outputValue = outputValue + hud + "\n"
+    return outputValue
 end
 
 // ===========================================================================

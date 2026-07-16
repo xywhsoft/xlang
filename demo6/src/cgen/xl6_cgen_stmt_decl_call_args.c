@@ -590,9 +590,9 @@ static int xl6CgenDeclCanEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode
         return 1;
     }
     if ( xl6CgenDeclCallArgStaticBoolLikeType(typeNode) &&
-         (xl6CgenBinaryCompareIsXValue(ctx, expr) ||
+         ((!xl6CgenClassProtocolBinaryAvailable(ctx, expr) && xl6CgenBinaryCompareIsXValue(ctx, expr)) ||
           xl6CgenDeclStringCompareNeedsCallArgTemp(ctx, expr) ||
-          xl6CgenBinaryApproxIsXValue(ctx, expr) ||
+          (!xl6CgenClassProtocolBinaryAvailable(ctx, expr) && xl6CgenBinaryApproxIsXValue(ctx, expr)) ||
           xl6CgenBinaryLogicalIsXValue(ctx, expr) ||
           (expr->kind == XL6_AST_BINARY && xl6CTextEquals(expr->text, "in"))) ) {
         return 1;

@@ -438,6 +438,7 @@ static void xl6CgenEmitFunctionValueVarInvoke(XL6_CgenContext* ctx, const XL6_As
     xl6OutputPuts("(__xl6_env", ctx->out);
     xl6CgenEmitVarInvokeCallArgs(ctx, params, fixedCount, hasArrayVararg);
     xl6OutputPuts(");\n", ctx->out);
+    xl6CgenEmitCallableBridgeErrorReturn(ctx, hasArrayVararg, 0, "0");
 
     if ( returns != NULL && returns->childCount == 1 ) {
         if ( xl6CgenIsSpecialCollectionType(ctx, returns->children[0]) ) {
@@ -514,6 +515,7 @@ static void xl6CgenEmitFunctionValueXCall(XL6_CgenContext* ctx, const XL6_AstNod
             }
         }
         xl6OutputPuts(");\n", ctx->out);
+        xl6CgenEmitCallableBridgeErrorReturn(ctx, hasArrayVararg, hasDictVararg, "false");
         for ( i = 0; i < returns->childCount; ++i ) {
             char exprText[96];
             snprintf(exprText, sizeof(exprText), "__xl6_multi.value%u", (unsigned)i);
@@ -538,6 +540,7 @@ static void xl6CgenEmitFunctionValueXCall(XL6_CgenContext* ctx, const XL6_AstNod
             }
         }
         xl6OutputPuts(");\n", ctx->out);
+        xl6CgenEmitCallableBridgeErrorReturn(ctx, hasArrayVararg, hasDictVararg, "false");
         xl6CgenEmitXCallSetResult(ctx, returns->children[0], 0u, "__xl6_single", hasArrayVararg, hasDictVararg);
     } else {
         xl6OutputPuts("    ", ctx->out);
@@ -556,6 +559,7 @@ static void xl6CgenEmitFunctionValueXCall(XL6_CgenContext* ctx, const XL6_AstNod
             }
         }
         xl6OutputPuts(");\n", ctx->out);
+        xl6CgenEmitCallableBridgeErrorReturn(ctx, hasArrayVararg, hasDictVararg, "false");
     }
 
     (void)hasArrayVararg;
@@ -762,6 +766,7 @@ static void xl6CgenEmitFunctionValueAdapterXCall(XL6_CgenContext* ctx, const XL6
             xl6OutputPuts(", __xl6_vararg", ctx->out);
         }
         xl6OutputPuts(");\n", ctx->out);
+        xl6CgenEmitCallableBridgeErrorReturn(ctx, hasArrayVararg, hasDictVararg, "false");
         for ( i = 0; returns != NULL && i < (int)returns->childCount; ++i ) {
             char exprText[96];
             snprintf(exprText, sizeof(exprText), "__xl6_multi.value%d", i);
@@ -781,6 +786,7 @@ static void xl6CgenEmitFunctionValueAdapterXCall(XL6_CgenContext* ctx, const XL6
             xl6OutputPuts(", __xl6_vararg", ctx->out);
         }
         xl6OutputPuts(");\n", ctx->out);
+        xl6CgenEmitCallableBridgeErrorReturn(ctx, hasArrayVararg, hasDictVararg, "false");
         xl6CgenEmitXCallSetResult(ctx, returns->children[0], 0u, "__xl6_single", hasArrayVararg, hasDictVararg);
     } else {
         xl6OutputPuts("    ", ctx->out);
@@ -794,6 +800,7 @@ static void xl6CgenEmitFunctionValueAdapterXCall(XL6_CgenContext* ctx, const XL6
             xl6OutputPuts(", __xl6_vararg", ctx->out);
         }
         xl6OutputPuts(");\n", ctx->out);
+        xl6CgenEmitCallableBridgeErrorReturn(ctx, hasArrayVararg, hasDictVararg, "false");
     }
 
     (void)hasArrayVararg;

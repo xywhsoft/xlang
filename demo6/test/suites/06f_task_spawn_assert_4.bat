@@ -406,7 +406,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered assert-condition task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_fn_makeSpawnValue(401LL)'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-1000); $slice=$text.Substring($start,[Math]::Min(8000,$text.Length-$start)); if($slice -notmatch 'xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?xl_fn_makeSpawnValue\(401LL\)[\s\S]*?xl6_error_raise\(\x22AssertError\x22,[\s\S]*?xl6_task_spawn_values\(varMessageJob,[\s\S]*?\1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_fn_makeSpawnValue(401LL)'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-1000); $slice=$text.Substring($start,[Math]::Min(8000,$text.Length-$start)); if($slice -notmatch 'xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?xl_fn_makeSpawnValue\(401LL\)[\s\S]*?xl6_error_raise\(\x22AssertionError\x22,[\s\S]*?xl6_task_spawn_values\(varMessageJob,[\s\S]*?\1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered assert-message task.spawn argument.
     exit /b 1

@@ -45,7 +45,7 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $m = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Select-String -SimpleMatch '({ XL6_Function'; if ($m) { Write-Host 'src cgen contains stale XL6_Function statement-expression fallback.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $allowed = @('xl6_cgen_async_runtime.c', 'xl6_cgen_async_runtime_await.c'); $files = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Where-Object { $allowed -notcontains $_.Name }; $m = $files | Select-String -SimpleMatch 'xFutureRequestCancel'; if ($m) { Write-Host 'src cgen emits direct future cancel outside async runtime helpers.'; exit 1 }"
+powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $allowed = @('xl6_cgen_async_runtime.c', 'xl6_cgen_async_runtime_await.c', 'xl6_cgen_async_runtime_prelude.c'); $files = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Where-Object { $allowed -notcontains $_.Name }; $m = $files | Select-String -SimpleMatch 'xFutureRequestCancel'; if ($m) { Write-Host 'src cgen emits direct future cancel outside async runtime helpers.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cgen_statement_expr_allowlist.ps1
@@ -55,6 +55,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cgen_module_size
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_toolchain_paths.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_tcc_xrt_contract.ps1
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_c_string_safety.ps1

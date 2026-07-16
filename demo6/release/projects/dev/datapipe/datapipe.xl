@@ -18,7 +18,7 @@
 // expression tokenizers), var dict row operations, iterative merge sort,
 // and streaming aggregation.
 //
-// Design avoids known xlang traps (see dev/BUGS.md):
+// Design notes:
 //   - no var dict allocated inside recursion (filter/compute eval is read-only
 //     recursion; sorting is iterative bottom-up merge sort);
 //   - all string concatenation uses statically-typed `string` operands (the
@@ -840,16 +840,16 @@ end
 
 func opFilter(var rows, var step) as var
     var ast = parseFilter(string(step["expr"]))
-    var out = []
+    var outputValue = []
     int i = 0
     while i < rows.length do
         bool keep = evalFilter(ast, rows[i])
         if keep then
-            out.append(rows[i])
+            outputValue.append(rows[i])
         end
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -899,7 +899,7 @@ func opMap(var rows, var step) as var
     end
 
     // row pass
-    var out = []
+    var outputValue = []
     int i = 0
     while i < rows.length do
         var r = copyRow(rows[i])
@@ -942,10 +942,10 @@ func opMap(var rows, var step) as var
                 end
             end
         end
-        out.append(r)
+        outputValue.append(r)
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1097,7 +1097,7 @@ func opGroup(var rows, var step) as var
     end
     gHeaders = newHeaders
 
-    var out = []
+    var outputValue = []
     int gi = 0
     while gi < groupOrder.length do
         string key = string(groupOrder[gi])
@@ -1144,10 +1144,10 @@ func opGroup(var rows, var step) as var
             orow[outname] = val
             ai3 = ai3 + 1
         end
-        out.append(orow)
+        outputValue.append(orow)
         gi = gi + 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1295,7 +1295,7 @@ func opJoin(var rows, var step) as var
         hi = hi + 1
     end
 
-    var out = []
+    var outputValue = []
     int li = 0
     while li < rows.length do
         var lrow = rows[li]
@@ -1313,7 +1313,7 @@ func opJoin(var rows, var step) as var
                     merged[prefix + cn] = getCell(rrow, cn)
                     ci = ci + 1
                 end
-                out.append(merged)
+                outputValue.append(merged)
                 matched = true
                 mj = mj + 1
             end
@@ -1326,11 +1326,11 @@ func opJoin(var rows, var step) as var
                 merged[prefix + cn] = ""
                 ci2 = ci2 + 1
             end
-            out.append(merged)
+            outputValue.append(merged)
         end
         li = li + 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1379,61 +1379,61 @@ end
 
 
 func jsonEscape(string s) as string
-    string out = ""
+    string outputValue = ""
     int n = string.len(s)
     int i = 0
     while i < n do
         string c = string.charAt(s, i)
         if c == "\"" then
-            out = out + "\\\""
+            outputValue = outputValue + "\\\""
         elseif c == "\\" then
-            out = out + "\\\\"
+            outputValue = outputValue + "\\\\"
         elseif c == "\n" then
-            out = out + "\\n"
+            outputValue = outputValue + "\\n"
         elseif c == "\r" then
-            out = out + "\\r"
+            outputValue = outputValue + "\\r"
         elseif c == "\t" then
-            out = out + "\\t"
+            outputValue = outputValue + "\\t"
         else
-            out = out + c
+            outputValue = outputValue + c
         end
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 
 func formatCsv(var headers, var grid, string delim) as string
-    string out = ""
+    string outputValue = ""
     int h = 0
     while h < headers.length do
         if h > 0 then
-            out = out + delim
+            outputValue = outputValue + delim
         end
-        out = out + csvQuote(string(headers[h]))
+        outputValue = outputValue + csvQuote(string(headers[h]))
         h = h + 1
     end
-    out = out + "\n"
+    outputValue = outputValue + "\n"
     int r = 0
     while r < grid.length do
         var row = grid[r]
         int c = 0
         while c < row.length do
             if c > 0 then
-                out = out + delim
+                outputValue = outputValue + delim
             end
-            out = out + csvQuote(string(row[c]))
+            outputValue = outputValue + csvQuote(string(row[c]))
             c = c + 1
         end
-        out = out + "\n"
+        outputValue = outputValue + "\n"
         r = r + 1
     end
-    return out
+    return outputValue
 end
 
 
 func prettyJson(string compact) as string
-    string out = ""
+    string outputValue = ""
     int n = string.len(compact)
     int indent = 0
     bool inStr = false
@@ -1441,10 +1441,10 @@ func prettyJson(string compact) as string
     while i < n do
         string c = string.charAt(compact, i)
         if inStr then
-            out = out + c
+            outputValue = outputValue + c
             if c == "\\" then
                 if i + 1 < n then
-                    out = out + string.charAt(compact, i + 1)
+                    outputValue = outputValue + string.charAt(compact, i + 1)
                     i = i + 2
                     continue
                 end
@@ -1457,16 +1457,16 @@ func prettyJson(string compact) as string
         end
         if c == "\"" then
             inStr = true
-            out = out + c
+            outputValue = outputValue + c
             i = i + 1
             continue
         elseif c == "{" or c == "[" then
-            out = out + c
+            outputValue = outputValue + c
             if i + 1 < n then
                 string nc = string.charAt(compact, i + 1)
                 if nc != "}" and nc != "]" then
                     indent = indent + 1
-                    out = out + "\n" + string.repeat("  ", indent)
+                    outputValue = outputValue + "\n" + string.repeat("  ", indent)
                 end
             end
             i = i + 1
@@ -1476,28 +1476,28 @@ func prettyJson(string compact) as string
                 string pc = string.charAt(compact, i - 1)
                 if pc != "{" and pc != "[" then
                     indent = indent - 1
-                    out = out + "\n" + string.repeat("  ", indent)
+                    outputValue = outputValue + "\n" + string.repeat("  ", indent)
                 end
             end
-            out = out + c
+            outputValue = outputValue + c
             i = i + 1
             continue
         elseif c == "," then
-            out = out + c
-            out = out + "\n" + string.repeat("  ", indent)
+            outputValue = outputValue + c
+            outputValue = outputValue + "\n" + string.repeat("  ", indent)
             i = i + 1
             continue
         elseif c == ":" then
-            out = out + ": "
+            outputValue = outputValue + ": "
             i = i + 1
             continue
         else
-            out = out + c
+            outputValue = outputValue + c
             i = i + 1
             continue
         end
     end
-    return out
+    return outputValue
 end
 
 
@@ -1557,36 +1557,36 @@ func formatTable(var headers, var grid) as string
         sep = sep + string.repeat("-", int(widths[c2]) + 2)
         c2 = c2 + 1
     end
-    string out = sep + "\n"
+    string outputValue = sep + "\n"
     int c3 = 0
     while c3 < nc do
         if c3 > 0 then
-            out = out + "|"
+            outputValue = outputValue + "|"
         end
-        out = out + " " + string.padRight(string(headers[c3]), int(widths[c3])) + " "
+        outputValue = outputValue + " " + string.padRight(string(headers[c3]), int(widths[c3])) + " "
         c3 = c3 + 1
     end
-    out = out + "\n" + sep + "\n"
+    outputValue = outputValue + "\n" + sep + "\n"
     int r2 = 0
     while r2 < grid.length do
         var row = grid[r2]
         int c4 = 0
         while c4 < nc do
             if c4 > 0 then
-                out = out + "|"
+                outputValue = outputValue + "|"
             end
             string cellv = ""
             if c4 < row.length then
                 cellv = string(row[c4])
             end
-            out = out + " " + string.padRight(cellv, int(widths[c4])) + " "
+            outputValue = outputValue + " " + string.padRight(cellv, int(widths[c4])) + " "
             c4 = c4 + 1
         end
-        out = out + "\n"
+        outputValue = outputValue + "\n"
         r2 = r2 + 1
     end
-    out = out + sep + "\n"
-    return out
+    outputValue = outputValue + sep + "\n"
+    return outputValue
 end
 
 
@@ -2040,11 +2040,11 @@ func testEnd2End(string tmpDir)
     file.writeText(pipePath, pipeJson)
     file.writeText(inPath, "name,age,dept\nAlice,30,eng\nBob,25,eng\nCarol,40,sales\nDave,35,sales\n")
 
-    string out = executeRun(pipePath, inPath, "")
-    check(string.contains(out, "dept,cnt,avg_age"), "e2e csv header  first line: " + firstLine(out))
+    string outputValue = executeRun(pipePath, inPath, "")
+    check(string.contains(outputValue, "dept,cnt,avg_age"), "e2e csv header  first line: " + firstLine(outputValue))
     // filter age>25 keeps Alice(30),Carol(40),Dave(35); eng={Alice} cnt1 avg30; sales={Carol,Dave} cnt2 avg37.5
-    check(string.contains(out, "sales,2,37.5"), "e2e sales row  got=" + out)
-    check(string.contains(out, "eng,1,30"), "e2e eng row  got=" + out)
+    check(string.contains(outputValue, "sales,2,37.5"), "e2e sales row  got=" + outputValue)
+    check(string.contains(outputValue, "eng,1,30"), "e2e eng row  got=" + outputValue)
 
     // format override on CLI beats sink
     string outJson = executeRun(pipePath, inPath, "json")
@@ -2200,8 +2200,8 @@ func main(...) as int
         if arg.length >= 5 then
             fmtOverride = string.lower(string(arg[4]))
         end
-        string out = executeRun(pipePath, inputPath, fmtOverride)
-        println(out)
+        string outputValue = executeRun(pipePath, inputPath, fmtOverride)
+        println(outputValue)
         return 0
     end
 

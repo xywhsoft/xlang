@@ -211,12 +211,12 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `http.server.create(port)` / `http.server.get(server, pattern, handler)` / `http.server.static(server, mount, root)` |
-| 生成规则描述 | create 检查端口范围，分配 `XL6_Http_Server`，初始化 `xwebconfig`，绑定 `127.0.0.1:port`，调用 `xrtWebServerCreate`。route 注册检查 server、pattern 和 handler，可调用时才 retain；注册失败会释放 route。static 注册只检查 server、mount、root，并把默认 `xwebstaticconfig` 传给 XRT。 |
-| 生成器文件名和行号 | `xl6_cgen_http_server.c:127`、`xl6_cgen_http_server.c:135`、`xl6_cgen_http_server.c:142`、`xl6_cgen_http_server.c:152`、`xl6_cgen_http_server.c:177` |
-| 对应生成的 C 代码 | `self->server = xrtWebServerCreate(0, &cfg); ... if (!xrtWebServerRoute(...)) { release route; return false; } ... return xrtWebServerStatic(self->server, mount, root, &cfg);` |
-| 中间形态伪代码 | `create xweb server; route register owns function; static register delegates to xweb` |
+| 生成规则描述 | create 检查端口范围并分配 `XL6_Http_Server`，随后把全部标量配置交给 XRT 的 `xrtWebServerCreateHostFullEx`；TLS 版本使用 `xrtWebServerCreateHostTlsFullEx`。生成代码不复制 `xwebconfig`、`xtlsconfig` 等 XRT 结构体布局，避免单头文件字段扩展造成 ABI 错位。route 注册检查 server、pattern 和 handler，可调用时才 retain；注册失败会释放 route。static 注册委托 XRT 的稳定 helper。 |
+| 生成器文件名和行号 | XRT 标量构造原型 `xl6_cgen_http_server.c:51-52`，普通/TLS 创建 `xl6_cgen_http_server.c:728-751`，运行时类型前置声明 `xl6_cgen_http_server_types.c:1` |
+| 对应生成的 C 代码 | `self->server = xrtWebServerCreateHostFullEx(0, host, port, backlog, recvLimit, ...);` / `xrtWebServerCreateHostTlsFullEx(0, certFile, keyFile, host, port, ...);` |
+| 中间形态伪代码 | `validate scalars; XRT full constructor owns config layout; route register owns function; static register delegates to XRT` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要维护 xweb server 创建失败、route retain/release 和静态目录注册失败路径。 |
-| 额外依赖的封装代码 | XRT xweb config、route callback、function retain/release helper。 |
+| 额外依赖的封装代码 | XRT 标量构造 API、route callback、function retain/release helper；不生成 XRT 配置结构体副本。 |
 
 ## CGEN-STD-019 http.server start/port/stop/destroy
 

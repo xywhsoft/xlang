@@ -1,0 +1,51 @@
+println("signal demo")
+
+println("known signals:")
+println(signal.name(signal.HUP))
+println(signal.name(signal.INT))
+println(signal.name(signal.TERM))
+println(signal.name(signal.BREAK))
+println(signal.name(signal.CLOSE))
+println(signal.name(signal.LOGOFF))
+println(signal.name(signal.SHUTDOWN))
+println("INT supported=" + string(signal.supported(signal.INT)))
+
+channel<var> events = channel::<var>(2)
+func(var) printSignal = func(var event)
+    println("callback " + string(event["name"]))
+end
+func() printOnce = func()
+    println("once callback")
+end
+
+SignalHandle direct = signal.on(signal.INT, printSignal)
+SignalHandle once = signal.once(signal.INT, printOnce)
+SignalHandle handle = signal.sendTo(events, signal.INT)
+TaskGroup group = task.group()
+SignalHandle cancelHandle = signal.cancelOn(group, signal.TERM)
+
+println("registered " + signal.name(signal.INT))
+
+signal.raise(signal.INT)
+signal.raise(signal.TERM)
+
+var event = null
+if events.recvInto(event) then
+    println("received " + string(event["name"]) + " count=" + string(event["count"]))
+end
+
+time.sleep(20)
+println("INT received=" + string(signal.received(signal.INT)))
+println("INT count=" + string(signal.count(signal.INT)))
+signal.clear(signal.INT)
+println("INT count after clear=" + string(signal.count(signal.INT)))
+
+direct.close()
+once.close()
+handle.close()
+cancelHandle.close()
+group.close()
+events.close()
+signal.restore(signal.INT)
+signal.restore(signal.TERM)
+signal.reset()

@@ -3,8 +3,8 @@ import stb_image_write
 
 assert stb_image_write.available(), "stb_image_write available failed"
 
-string imagePath = "release/examples/extlibs/assets/tiny.png"
-string outDir = "build/test/examples_extlibs/stb_image_write"
+string imagePath = "examples/extlibs/assets/tiny.png"
+string outDir = "examples_out/extlibs/stb_image_write"
 dir.createAll(outDir)
 
 point image = stb_image.load(imagePath, 4)

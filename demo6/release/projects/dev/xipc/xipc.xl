@@ -24,9 +24,9 @@
 //                      Topic-based publish / subscribe fan-out.
 //   7. Deadlock Detect Resource allocation graph + DFS cycle detection.
 //
-// Concurrency model & xlang constraints worked around:
-//   - channel<T> only supports value types (int used throughout); it cannot
-//     carry strings or structs. All data-bearing conduits are channel<int>.
+// Concurrency model:
+//   - channel<int> models byte/cell-oriented IPC payloads and compact message
+//     IDs. Text-oriented protocols may use channel<string> directly.
 //   - channel<T>, thread, sem, mutex are non-copyable native resources: they
 //     cannot live inside typed containers (array<channel<int>> etc.). Each
 //     mechanism therefore keeps a fixed pool of PRE-DECLARED global channels /
@@ -35,8 +35,7 @@
 //   - On create, the slot's channel/sem is RE-BOUND to a freshly constructed
 //     instance with the caller-requested capacity / initial count (globals may
 //     be re-bound once before threads spawn; prodcon rebinds g_ch this way).
-//   - Global containers accessed by worker threads are initialized at
-//     declaration (array[]) and grown via push() only; they are never re-bound.
+//   - Shared registries are guarded by their owning synchronization primitive.
 //   - Worker threads are spawned fire-and-forget via closure factories and
 //     tracked through a pre-seeded active counter polled under a mutex, so the
 //     main thread can join without storing non-copyable thread handles.

@@ -71,7 +71,7 @@ func formatNum(float v) as string
     if v == math.floor(v) and math.abs(v) < 1e15 then
         return string(int(v))
     end
-    return string.formatFloat(v, ".6")
+    return float.format(v, ".6")
 end
 
 // 校验三条边能否构成合法三角形。

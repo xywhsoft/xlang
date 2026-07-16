@@ -27,6 +27,11 @@ assert sessionOptions.set_log_id("xlang-demo"), "onnxruntime set_log_id failed"
 assert sessionOptions.set_log_verbosity_level(0), "onnxruntime set_log_verbosity_level failed"
 assert sessionOptions.set_log_severity_level(2), "onnxruntime set_log_severity_level failed"
 assert sessionOptions.append_execution_provider("CPUExecutionProvider"), "onnxruntime append_execution_provider failed"
+assert sessionOptions.set_threads(1, 1), "onnxruntime set_threads failed"
+assert sessionOptions.optimize_all(), "onnxruntime optimize_all failed"
+
+auto cpuOptions = onnxruntime.CpuSessionOptions(1, 1)
+assert cpuOptions.valid(), "onnxruntime CpuSessionOptions valid failed"
 
 auto runOptions = onnxruntime.RunOptions()
 assert runOptions.valid(), "onnxruntime RunOptions valid failed"
@@ -112,6 +117,7 @@ assert cvTensorBatch.release() == false, "onnxruntime empty opencv batch tensor 
 assert missingSession.release() == false, "onnxruntime missing session release failed"
 assert tensor.release(), "onnxruntime tensor release failed"
 assert runOptions.release(), "onnxruntime run options release failed"
+assert cpuOptions.release(), "onnxruntime cpu options release failed"
 assert sessionOptions.release(), "onnxruntime session options release failed"
 
 println("onnxruntime extlib ok")

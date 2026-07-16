@@ -561,8 +561,8 @@ func runTest(int workers, int taskCount) as int
     println("doneCount:     ", doneCount)
     println("duplicates:    ", dup)
     println("missing:       ", missing)
-    println("submit time:   ", string.formatFloat((t1 - t0) * 1000.0, ".2"), "ms")
-    println("total time:    ", string.formatFloat((t2 - t0) * 1000.0, ".2"), "ms")
+    println("submit time:   ", float.format((t1 - t0) * 1000.0, ".2"), "ms")
+    println("total time:    ", float.format((t2 - t0) * 1000.0, ".2"), "ms")
     check("stealing actually occurred (steals > 0)", workers == 1 or steals > 0)
 
     println("passed:", g_pass, " failed:", g_fail)

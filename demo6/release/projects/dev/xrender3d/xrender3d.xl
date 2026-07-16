@@ -41,8 +41,7 @@
 //
 // PPM 格式：ASCII (P3)，可用 GIMP / ImageMagick / 在线查看器打开。
 //
-// 绕过记录（参照 rasterizer / imgcodecs 的 BUG 规避策略）：
-//   * derive value : 含 array 字段的 class 标注 derive value。
+// 实现说明：场景数据使用静态容器，矩阵和像素缓冲按连续内存布局。
 
 // ========================================================================
 // 全局常量
@@ -75,21 +74,12 @@ func degToRad(float deg) as float
 end
 
 func clampF(float v, float lo, float hi) as float
-    if v < lo then
-        return lo
-    end
-    if v > hi then
-        return hi
-    end
-    return v
+    return math.clamp(v, lo, hi)
 end
 
-// absF：math.abs 传 int 实参可能解析失败（参照 rasterizer BUG-XL4），显式 float 路径
+// 浮点绝对值统一走标准库。
 func absF(float v) as float
-    if v < 0.0 then
-        return 0.0 - v
-    end
-    return v
+    return math.abs(v)
 end
 
 func minF(float a, float b) as float
@@ -802,7 +792,7 @@ end
 // 网格合并：将 b 追加到 a 后面，调整索引偏移
 // ========================================================================
 func mergeMesh(Mesh a, Mesh b) as Mesh
-    Mesh out = Mesh()
+    Mesh outputValue = Mesh()
     int vOff = a.vertCount()
     int tOff = a.uvCount()
     int nOff = a.normalCount()
@@ -810,43 +800,43 @@ func mergeMesh(Mesh a, Mesh b) as Mesh
     // 复制顶点
     int i = 0
     while i < a.verts.length do
-        out.verts.append(a.verts[i])
+        outputValue.verts.append(a.verts[i])
         i = i + 1
     end
     i = 0
     while i < b.verts.length do
-        out.verts.append(b.verts[i])
+        outputValue.verts.append(b.verts[i])
         i = i + 1
     end
 
     // 复制 UV
     i = 0
     while i < a.uvs.length do
-        out.uvs.append(a.uvs[i])
+        outputValue.uvs.append(a.uvs[i])
         i = i + 1
     end
     i = 0
     while i < b.uvs.length do
-        out.uvs.append(b.uvs[i])
+        outputValue.uvs.append(b.uvs[i])
         i = i + 1
     end
 
     // 复制法线
     i = 0
     while i < a.norms.length do
-        out.norms.append(a.norms[i])
+        outputValue.norms.append(a.norms[i])
         i = i + 1
     end
     i = 0
     while i < b.norms.length do
-        out.norms.append(b.norms[i])
+        outputValue.norms.append(b.norms[i])
         i = i + 1
     end
 
     // 复制面（a 的索引不变，b 的索引加偏移）
     i = 0
     while i < a.faces.length do
-        out.faces.append(a.faces[i])
+        outputValue.faces.append(a.faces[i])
         i = i + 1
     end
     i = 0
@@ -860,13 +850,13 @@ func mergeMesh(Mesh a, Mesh b) as Mesh
         elseif mod == 2 and val >= 0 then
             val = val + nOff
         end
-        out.faces.append(val)
+        outputValue.faces.append(val)
         i = i + 1
     end
 
-    out.hasUv = a.hasUv or b.hasUv
-    out.hasNormal = a.hasNormal or b.hasNormal
-    return out
+    outputValue.hasUv = a.hasUv or b.hasUv
+    outputValue.hasNormal = a.hasNormal or b.hasNormal
+    return outputValue
 end
 
 // ========================================================================
@@ -2043,9 +2033,9 @@ func cmdRender(string modelPath, int width, int height, string outPath) as int
     end
     int drawn = countNonBg(rt, 20, 25, 45)
 
-    println("[render] done in " + string.formatFloat(elapsed, ".3") + "s")
-    println("[render] " + string.formatInt(pixels, ",") + " pixels, " + string.formatInt(int(pps), ",") + " pix/sec")
-    println("[render] " + string.formatInt(drawn, ",") + " shaded pixels (" + string.formatFloat(float(drawn) / float(pixels) * 100.0, ".1") + "% coverage)")
+    println("[render] done in " + float.format(elapsed, ".3") + "s")
+    println("[render] " + int.format(pixels, ",") + " pixels, " + int.format(int(pps), ",") + " pix/sec")
+    println("[render] " + int.format(drawn, ",") + " shaded pixels (" + float.format(float(drawn) / float(pixels) * 100.0, ".1") + "% coverage)")
     println("[render] wrote " + outPath)
     return 0
 end
@@ -2141,8 +2131,8 @@ func cmdRenderScene(int sceneChoice, int width, int height, string outPath) as i
     end
     int drawn = countNonBg(rt, 20, 25, 45)
 
-    println("[scene] done in " + string.formatFloat(elapsed, ".3") + "s")
-    println("[scene] " + string.formatInt(drawn, ",") + " shaded pixels (" + string.formatFloat(float(drawn) / float(pixels) * 100.0, ".1") + "% coverage)")
+    println("[scene] done in " + float.format(elapsed, ".3") + "s")
+    println("[scene] " + int.format(drawn, ",") + " shaded pixels (" + float.format(float(drawn) / float(pixels) * 100.0, ".1") + "% coverage)")
     println("[scene] wrote " + outPath)
     return 0
 end
@@ -2210,10 +2200,10 @@ func cmdBench(int width, int height) as int
 
         string line = "  "
         line = line + string.padRight(label, 18)
-        line = line + "time=" + string.formatFloat(elapsed, ".3") + "s"
-        line = line + "  " + string.formatInt(pixels, ",") + " px"
-        line = line + "  " + string.formatFloat(usPerPix, ".3") + " us/px"
-        line = line + "  " + string.formatInt(int(pps), ",") + " pix/sec"
+        line = line + "time=" + float.format(elapsed, ".3") + "s"
+        line = line + "  " + int.format(pixels, ",") + " px"
+        line = line + "  " + float.format(usPerPix, ".3") + " us/px"
+        line = line + "  " + int.format(int(pps), ",") + " pix/sec"
         println(line)
 
         if round == 0 then

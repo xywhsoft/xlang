@@ -73,8 +73,7 @@ static void xl6CgenExportInternalProto(XL6_CgenContext* ctx, const XL6_AstNode* 
             if ( i > 0 ) {
                 xl6OutputPuts(", ", ctx->out);
             }
-            if ( param->childCount == 0 || xl6CTextEquals(param->children[0]->text, "array<var>") ||
-                 xl6CTextEquals(param->children[0]->text, "dict<var>") ) {
+            if ( param->childCount == 0 || xl6CgenParamIsCVararg(param) ) {
                 xl6CgenError(ctx, param, "当前 C 生成暂不支持可变参数 export 函数");
                 xl6OutputPuts("int ", ctx->out);
             } else {
@@ -116,8 +115,7 @@ static void xl6CgenExportWrapperProto(XL6_CgenContext* ctx, const XL6_AstNode* n
                 if ( wroteParam ) {
                     xl6OutputPuts(", ", ctx->out);
                 }
-                if ( param->childCount == 0 || xl6CTextEquals(param->children[0]->text, "array<var>") ||
-                     xl6CTextEquals(param->children[0]->text, "dict<var>") ) {
+                if ( param->childCount == 0 || xl6CgenParamIsCVararg(param) ) {
                     xl6CgenError(ctx, param, "当前 C 生成暂不支持可变参数 export wrapper");
                     xl6OutputPuts("int ", ctx->out);
                 } else {
@@ -174,8 +172,7 @@ static void xl6CgenClassExportWrapperProto(XL6_CgenContext* ctx, const XL6_AstNo
             if ( wroteParam ) {
                 xl6OutputPuts(", ", ctx->out);
             }
-            if ( param->childCount == 0 || xl6CTextEquals(param->children[0]->text, "array<var>") ||
-                 xl6CTextEquals(param->children[0]->text, "dict<var>") ) {
+            if ( param->childCount == 0 || xl6CgenParamIsCVararg(param) ) {
                 xl6CgenError(ctx, param, "class C ABI export wrapper does not support vararg parameters");
                 xl6OutputPuts("int ", ctx->out);
             } else {
@@ -231,8 +228,11 @@ static void xl6CgenExternFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* node
             if ( i > 0 ) {
                 xl6OutputPuts(", ", ctx->out);
             }
-            if ( param->childCount == 0 || xl6CTextEquals(param->children[0]->text, "array<var>") ||
-                 xl6CTextEquals(param->children[0]->text, "dict<var>") ) {
+            if ( xl6CgenParamIsCVararg(param) ) {
+                xl6OutputPuts("...", ctx->out);
+                continue;
+            }
+            if ( param->childCount == 0 ) {
                 xl6CgenError(ctx, param, "当前 C 生成暂不支持可变参数 extern 函数");
                 xl6OutputPuts("int ", ctx->out);
             } else {
@@ -407,8 +407,11 @@ static void xl6CgenEmitRecordBoxRuntime(
     int isGeneric;
     int canCopy;
     int canClone;
+    int hasValueEquality;
     const XL6_AstNode* copyMethod;
     const XL6_AstNode* cloneMethod;
+    const XL6_AstNode* hashMethod;
+    const XL6_AstNode* equalsMethod;
     const XL6_AstNode* prevParams;
     const XL6_AstNode* prevArgs;
 
@@ -419,10 +422,15 @@ static void xl6CgenEmitRecordBoxRuntime(
     isGeneric = typeNode != NULL && typeNode->childCount > 0 && xl6CgenClassHasTypeParams(classNode);
     copyMethod = xl6CgenFindClassFunc(classNode, "__copy__");
     cloneMethod = xl6CgenFindClassFunc(classNode, "__clone__");
+    hashMethod = xl6CgenFindClassFunc(classNode, "__hash__");
+    equalsMethod = xl6CgenFindClassFunc(classNode, "__eq__");
     canCopy = classNode != NULL &&
               (xl6CgenClassHasDerive(classNode, "copy") || copyMethod != NULL);
     canClone = classNode != NULL &&
                (xl6CgenClassHasDerive(classNode, "clone") || cloneMethod != NULL);
+    hasValueEquality = classNode != NULL &&
+                       (xl6CgenClassHasDerive(classNode, "hash") || hashMethod != NULL) &&
+                       (xl6CgenClassHasDerive(classNode, "equals") || equalsMethod != NULL);
     prevParams = ctx->currentGenericParams;
     prevArgs = ctx->currentGenericArgs;
     if ( isGeneric ) {
@@ -565,14 +573,45 @@ static void xl6CgenEmitRecordBoxRuntime(
     xl6OutputPrintf(ctx->out, "    if ( b == 0 ) {\n");
     xl6OutputPrintf(ctx->out, "        return 1;\n");
     xl6OutputPrintf(ctx->out, "    }\n");
-    xl6OutputPrintf(ctx->out, "    return memcmp(a, b, sizeof(%s));\n", cTypeName);
+    if ( hasValueEquality ) {
+        xl6OutputPuts("    if ( ", ctx->out);
+        if ( equalsMethod != NULL ) {
+            if ( isGeneric ) {
+                xl6CgenGenericClassCallableSymbol(ctx, classNode, typeNode, equalsMethod);
+            } else {
+                xl6CgenClassCallableSymbol(ctx, classNode, equalsMethod);
+            }
+        } else {
+            xl6CgenClassMemberSymbol(ctx->out, classNode->text, "__eq__");
+        }
+        xl6OutputPrintf(ctx->out, "((%s*)a, *(const %s*)b) ) {\n", cTypeName, cTypeName);
+        xl6OutputPuts("        return 0;\n", ctx->out);
+        xl6OutputPuts("    }\n", ctx->out);
+        xl6OutputPrintf(ctx->out, "    { int raw = memcmp(a, b, sizeof(%s)); return raw != 0 ? raw : 1; }\n", cTypeName);
+    } else {
+        xl6OutputPrintf(ctx->out, "    return memcmp(a, b, sizeof(%s));\n", cTypeName);
+    }
     xl6OutputPrintf(ctx->out, "}\n\n");
 
     xl6OutputPrintf(ctx->out, "static unsigned long long xl6_type_hash_%s(const void* obj)\n{\n", cTypeName);
     xl6OutputPrintf(ctx->out, "    if ( obj == 0 ) {\n");
     xl6OutputPrintf(ctx->out, "        return 0;\n");
     xl6OutputPrintf(ctx->out, "    }\n");
-    xl6OutputPrintf(ctx->out, "    return xrtHash64((const char*)obj, sizeof(%s));\n", cTypeName);
+    if ( hasValueEquality ) {
+        xl6OutputPuts("    return (unsigned long long)", ctx->out);
+        if ( hashMethod != NULL ) {
+            if ( isGeneric ) {
+                xl6CgenGenericClassCallableSymbol(ctx, classNode, typeNode, hashMethod);
+            } else {
+                xl6CgenClassCallableSymbol(ctx, classNode, hashMethod);
+            }
+        } else {
+            xl6CgenClassMemberSymbol(ctx->out, classNode->text, "__hash__");
+        }
+        xl6OutputPrintf(ctx->out, "((%s*)obj);\n", cTypeName);
+    } else {
+        xl6OutputPrintf(ctx->out, "    return xrtHash64((const char*)obj, sizeof(%s));\n", cTypeName);
+    }
     xl6OutputPrintf(ctx->out, "}\n\n");
 
     xl6OutputPrintf(ctx->out, "static xvalue xl6_type_box_%s(const void* obj, const xrt_type_desc* type)\n{\n", cTypeName);
@@ -631,6 +670,18 @@ static void xl6CgenEmitRecordBoxRuntime(
     }
     xl6OutputPuts("};\n\n", ctx->out);
 
+    if ( hasValueEquality ) {
+        xl6OutputPuts("#ifndef XL6_CLASS_TYPE_EXTRA_DEFINED\n", ctx->out);
+        xl6OutputPuts("#define XL6_CLASS_TYPE_EXTRA_DEFINED\n", ctx->out);
+        xl6OutputPuts("#define XL6_CLASS_TYPE_FLAG_VALUE_EQUALITY 0x00000001u\n", ctx->out);
+        xl6OutputPuts("#define XL6_CLASS_TYPE_EXTRA_MAGIC 0x584C3643u\n", ctx->out);
+        xl6OutputPuts("typedef struct xl6_class_type_extra { unsigned int magic; unsigned int flags; } xl6_class_type_extra;\n", ctx->out);
+        xl6OutputPuts("#endif\n", ctx->out);
+        xl6OutputPrintf(ctx->out,
+                        "static const xl6_class_type_extra xl6_type_extra_%s = { XL6_CLASS_TYPE_EXTRA_MAGIC, XL6_CLASS_TYPE_FLAG_VALUE_EQUALITY };\n\n",
+                        cTypeName);
+    }
+
     xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
     xl6CgenTypeDescSymbol(ctx->out, cTypeName);
     xl6OutputPuts("(void)\n{\n", ctx->out);
@@ -644,7 +695,13 @@ static void xl6CgenEmitRecordBoxRuntime(
     xl6CgenCStringLiteral(ctx->out, cTypeName);
     xl6OutputPrintf(ctx->out, ", %uu,\n", (unsigned)strlen(cTypeName));
     xl6OutputPrintf(ctx->out, "        sizeof(%s), sizeof(void*),\n", cTypeName);
-    xl6OutputPrintf(ctx->out, "        &xl6_type_ops_%s, 0, 0, 0\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "        &xl6_type_ops_%s, 0, ", cTypeName);
+    if ( hasValueEquality ) {
+        xl6OutputPrintf(ctx->out, "&xl6_type_extra_%s", cTypeName);
+    } else {
+        xl6OutputPuts("0", ctx->out);
+    }
+    xl6OutputPuts(", 0\n", ctx->out);
     xl6OutputPuts("    };\n", ctx->out);
     if ( xl6CgenClassHasBaseType(classNode) ) {
         xl6OutputPuts("    if ( desc.BaseType == 0 ) { desc.BaseType = ", ctx->out);

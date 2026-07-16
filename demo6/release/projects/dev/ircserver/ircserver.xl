@@ -20,9 +20,8 @@
 //  10. self-test 模式      不启动真实 server，直接驱动核心状态机验证协议交互
 //
 // 设计约束：
-//   * native-backed class（TcpStream / TcpServer）不跨函数按值传参。
-//     每个 client 连接的 TcpStream 只存在于该连接的 thread 闭包内部，
-//     协议处理函数（processLine 等）完全不接触 TcpStream，只读写全局状态。
+//   * 每个 TcpStream 由对应连接线程独占，协议状态机只处理文本与共享状态，
+//     网络资源生命周期不会泄漏到命令处理函数。
 //   * IRC 大小写：RFC 1459 2.2 规定 `{}|^` 为 `[]\~` 的小写形式，ircUpper 做
 //     ASCII 大写 + 这四组特殊折叠；昵称 / 频道名比较一律走 ircEqual。
 //   * processLine 是唯一触碰全局可变状态（gConns/gChannels/gOutbox）的入口：
@@ -48,9 +47,9 @@ point ZERO                            // 默认零句柄（tcp.connect/listen �
 //   gChannels : { "#name": {topic,members:[nick],modes:[c],op:nick,key:""} }
 //   gOutbox   : { "<connId>": ["raw line\r\n", ...] }  待发送队列
 // ============================================================
-string gConns = "{}"
-string gChannels = "{}"
-string gOutbox = "{}"
+var gConns = {}
+var gChannels = {}
+var gOutbox = {}
 int gNextConnId = 1
 int gServing = 0
 int gTotalConns = 0
@@ -288,8 +287,8 @@ end
 // 统计：当前连接数 / 频道数 / 已注册连接数（持锁快照）
 func serverStats() as (int, int, int)
     gLock.lock()
-    var conns = json.parse(gConns)
-    var chans = json.parse(gChannels)
+    var conns = gConns
+    var chans = gChannels
     int totalConns = 0
     int registered = 0
     for k, v in conns
@@ -344,13 +343,13 @@ func modeInArray(var modes, string c) as bool
 end
 
 func modeRemove(var modes, string c) as var
-    var out = []
+    var outputValue = []
     for m in modes
         if string(m) != c then
-            out.push(m)
+            outputValue.push(m)
         end
     end
-    return out
+    return outputValue
 end
 
 func hasMode(var ch, string mode) as bool
@@ -1180,9 +1179,9 @@ end
 // ============================================================
 func processLine(int connId, string rawLine)
     gLock.lock()
-    var conns = json.parse(gConns)
-    var chans = json.parse(gChannels)
-    var outbox = json.parse(gOutbox)
+    var conns = gConns
+    var chans = gChannels
+    var outbox = gOutbox
 
     if not (cidKey(connId) in conns) then
         gLock.unlock()
@@ -1192,9 +1191,6 @@ func processLine(int connId, string rawLine)
     var msg = parseIrcLine(rawLine)
     string cmd = ircUpper(string(msg["command"]))
     if cmd == "" then
-        gConns = json.stringify(conns)
-        gChannels = json.stringify(chans)
-        gOutbox = json.stringify(outbox)
         gLock.unlock()
         return
     end
@@ -1250,9 +1246,6 @@ func processLine(int connId, string rawLine)
         end
     end
 
-    gConns = json.stringify(conns)
-    gChannels = json.stringify(chans)
-    gOutbox = json.stringify(outbox)
     gLock.unlock()
 end
 
@@ -1262,9 +1255,9 @@ end
 
 func resetState()
     gLock.lock()
-    gConns = "{}"
-    gChannels = "{}"
-    gOutbox = "{}"
+    gConns = {}
+    gChannels = {}
+    gOutbox = {}
     gNextConnId = 1
     gLock.unlock()
 end
@@ -1274,9 +1267,8 @@ func allocConn(string host) as int
     gLock.lock()
     int id = gNextConnId
     gNextConnId = id + 1
-    var conns = json.parse(gConns)
+    var conns = gConns
     conns[cidKey(id)] = newConnDict(host)
-    gConns = json.stringify(conns)
     gLock.unlock()
     return id
 end
@@ -1284,7 +1276,7 @@ end
 // 取走 connId 的全部待发报文（拼接成一个字符串），并清空该队列
 func drainOutbox(int connId) as string
     gLock.lock()
-    var outbox = json.parse(gOutbox)
+    var outbox = gOutbox
     string result = ""
     string k = cidKey(connId)
     if k in outbox then
@@ -1294,14 +1286,13 @@ func drainOutbox(int connId) as string
         end
         outbox.remove(k)
     end
-    gOutbox = json.stringify(outbox)
     gLock.unlock()
     return result
 end
 
 func outboxHas(int connId, string needle) as bool
     gLock.lock()
-    var outbox = json.parse(gOutbox)
+    var outbox = gOutbox
     string k = cidKey(connId)
     bool found = false
     if k in outbox then
@@ -1318,7 +1309,7 @@ end
 
 func connExists(int connId) as bool
     gLock.lock()
-    var conns = json.parse(gConns)
+    var conns = gConns
     bool ok = cidKey(connId) in conns
     gLock.unlock()
     return ok
@@ -1327,13 +1318,10 @@ end
 // 断开清理：广播 QUIT 并移除连接（serve 用）
 func processQuit(int connId, string reason)
     gLock.lock()
-    var conns = json.parse(gConns)
-    var chans = json.parse(gChannels)
-    var outbox = json.parse(gOutbox)
+    var conns = gConns
+    var chans = gChannels
+    var outbox = gOutbox
     doQuit(connId, reason, conns, chans, outbox)
-    gConns = json.stringify(conns)
-    gChannels = json.stringify(chans)
-    gOutbox = json.stringify(outbox)
     gLock.unlock()
 end
 
@@ -1969,10 +1957,10 @@ end
 // serve 模式：真实 TCP server
 // ============================================================
 
-// 每个客户端连接的处理 thread（TcpStream 仅存在于此闭包，不跨函数传参）
+// 每个客户端连接的处理 thread 独占一个 TcpStream。
 func makeClientLoop(int connId, point handle) as func() as int
     return func() as int
-        // native-backed class 在此内联构造使用，绝不传给其它函数
+        // 连接线程负责构造、使用并释放自己的流对象。
         TcpStream conn = TcpStream(handle)
         string recvBuf = ""
         bool alive = true
@@ -2095,8 +2083,8 @@ func usage()
     println("")
     println("Core commands:  NICK USER JOIN PART PRIVMSG QUIT PING PONG MODE TOPIC NAMES")
     println("Bonus commands: NOTICE LUSERS WHOIS VERSION TIME CAP PASS")
-    println("State held in global JSON strings (gConns/gChannels/gOutbox) + mutex,")
-    println("working around BUG-XB1. TcpStream never crosses function boundaries.")
+    println("State is held in mutex-protected in-memory dictionaries.")
+    println("Each client thread exclusively owns its TcpStream.")
 end
 
 // ============================================================
@@ -2107,9 +2095,9 @@ func main(...) as int
     println("")
 
     // 初始化全局共享状态（mutex 需显式构造）
-    gConns = "{}"
-    gChannels = "{}"
-    gOutbox = "{}"
+    gConns = {}
+    gChannels = {}
+    gOutbox = {}
     gNextConnId = 1
     gServing = 0
     gTotalConns = 0

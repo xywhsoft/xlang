@@ -65,6 +65,24 @@ static void xl6CgenAddChannelCleanup(XL6_CgenContext* ctx, const char* name, con
     xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_CHANNEL, typeNode, NULL);
 }
 
+static int xl6CgenCleanupIsVarChannel(const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* args;
+    const XL6_AstNode* itemType;
+
+    if ( !xl6CgenIsChannelType(typeNode) ||
+         typeNode->childCount == 0 ||
+         typeNode->children[0] == NULL ||
+         typeNode->children[0]->kind != XL6_AST_LIST ) {
+        return 0;
+    }
+    args = typeNode->children[0];
+    itemType = args->childCount > 0 ? args->children[0] : NULL;
+    return itemType != NULL &&
+           itemType->text != NULL &&
+           xl6CTextEquals(itemType->text, "var");
+}
+
 static void xl6CgenAddSpecialCollectionCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode)
 {
     if ( !xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
@@ -334,7 +352,10 @@ static void xl6CgenEmitOneCleanup(XL6_CgenContext* ctx, const XL6_CgenCleanup* c
         xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", cleanup->name);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xl6_channel_destroy(%s);\n", cleanup->name);
+        xl6OutputPrintf(ctx->out,
+                        "%s(%s);\n",
+                        xl6CgenCleanupIsVarChannel(cleanup->typeNode) ? "xl6_channel_destroy_xvalue" : "xl6_channel_destroy",
+                        cleanup->name);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = 0;\n", cleanup->name);
         ctx->indent -= 1;
@@ -597,10 +618,25 @@ static int xl6CgenExprIsXValueBorrow(XL6_CgenContext* ctx, const XL6_AstNode* ex
     }
     if ( expr->kind == XL6_AST_INDEX || expr->kind == XL6_AST_SAFE_INDEX ) {
         const XL6_AstNode* receiver = expr->childCount > 0 ? expr->children[0] : NULL;
+        const XL6_AstNode* index = expr->childCount > 1 ? expr->children[1] : NULL;
+        XL6_AstNode* receiverType;
+        int receiverIsVar;
+
         if ( xl6CgenExprUsesTypedContainerStorage(ctx, receiver) ) {
             return 0;
         }
-        /* 已有动态容器返回借用元素；临时 receiver 的 lowering 会显式 retain 后再释放容器。 */
+        receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+        receiverIsVar = receiverType != NULL && xl6CTextEquals(receiverType->text, "var");
+        xl6AstFree(receiverType);
+
+        /*
+         * 字符串安全索引和 var 字符串索引通过 record-field 桥返回拥有值。
+         * 数值索引与运行期 var key 则直接借用容器元素，必须跟随 receiver 的所有权。
+         */
+        if ( xl6CgenExprStaticTypeIs(ctx, index, "string") &&
+             (expr->kind == XL6_AST_SAFE_INDEX || receiverIsVar) ) {
+            return 0;
+        }
         return xl6CgenExprIsXValueBorrow(ctx, receiver);
     }
     if ( expr->kind == XL6_AST_AWAIT ) {

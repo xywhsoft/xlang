@@ -1,0 +1,30 @@
+import netrc
+
+
+
+func main(...) as int
+    string source = "# credentials\nmachine api.example.com login alice password s3cr\\ et account ops\ndefault login guest password guest\nmacdef deploy\n echo deploy\n echo done\n\n"
+    auto value = netrc.parse(source)
+    var api = value.authenticators("api.example.com")
+    assert api["login"] == "alice", "netrc machine login"
+    assert api["password"] == "s3cr et", "netrc escaped password"
+    assert api["account"] == "ops", "netrc account"
+    var fallback = value.authenticators("missing.example.com")
+    assert fallback["login"] == "guest", "netrc default entry"
+    assert value.macros["deploy"].length == 2, "netrc macro lines"
+    array<string> hostNames = value.hostNames()
+    assert hostNames.length == 2, "netrc host names"
+
+    string encoded = value.stringify()
+    auto roundTrip = netrc.parse(encoded)
+    assert roundTrip.authenticators("api.example.com")["password"] == "s3cr et", "netrc round trip"
+
+    bool malformed = false
+    try
+        netrc.parse("machine host unknown value")
+    catch ConfigError e
+        malformed = true
+    end
+    assert malformed and netrc.errorCode() != 0 and netrc.errorLine() == 1, "netrc typed syntax error"
+    return 0
+end

@@ -2,6 +2,8 @@ func tlsStatusOk(int status) as bool
     return status == 0 or status == -2
 end
 
+bool tlsHandshakeTrace = true
+
 func moveTlsCipher(TlsSession source, TlsSession target, int chunkSize) as bool
     bool moved = false
     while source.pendingCipher > 0 do
@@ -22,7 +24,9 @@ func handshakeTlsPair(TlsSession client, TlsSession server) as bool
         int clientStatus = client.handshake()
         int serverStatus = server.handshake()
         if not tlsStatusOk(clientStatus) or not tlsStatusOk(serverStatus) then
-            println(f"tls_handshake_error client={clientStatus} server={serverStatus} step={step}")
+            if tlsHandshakeTrace then
+                println(f"tls_handshake_error client={clientStatus} server={serverStatus} step={step}")
+            end
             return false
         end
         bool movedClient = moveTlsCipher(client, server, 37)
@@ -35,9 +39,28 @@ func handshakeTlsPair(TlsSession client, TlsSession server) as bool
     return false
 end
 
+int verifySeen = 0
+int verifyDefaultOk = -1
+int verifyCertSize = 0
+
+func acceptVerify(var event) as bool
+    verifySeen += 1
+    verifyDefaultOk = int(event["defaultOk"])
+    verifyCertSize = int(event["certSize"])
+    assert verifyCertSize > 0
+    assert string.len(string(event["certHex"])) > 0
+    return true
+end
+
+func rejectVerify(var event) as bool
+    assert int(event["certSize"]) > 0
+    return false
+end
+
 func makeServerConfig() as TlsConfig
     TlsConfig config = TlsConfig()
     assert config.certificate("release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem")
+    assert config.alpn("http/1.1")
     config.verifyPeer(false)
     config.maxVersion(0x0303)
     return config
@@ -46,7 +69,9 @@ end
 func makeClientConfig() as TlsConfig
     TlsConfig config = TlsConfig()
     assert config.host("localhost")
+    assert config.alpn("h2,http/1.1")
     config.verifyPeer(false)
+    assert config.verifyCallback(acceptVerify)
     config.maxVersion(0x0303)
     return config
 end
@@ -60,6 +85,13 @@ TlsSession server = serverConfig.session(true)
 assert server.certificate("release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem")
 assert handshakeTlsPair(client, server)
 assert server.sni() == "localhost"
+assert client.alpn() == "http/1.1"
+assert server.alpn() == "http/1.1"
+assert client.peerCert().len() > 0
+assert server.peerCert().len() == 0
+assert verifySeen >= 1
+assert verifyDefaultOk == 1
+assert verifyCertSize > 0
 
 Buffer request = Buffer()
 assert request.append("hello tls")
@@ -81,6 +113,8 @@ TlsSession resumedServer = serverConfig.session(true)
 assert handshakeTlsPair(resumedClient, resumedServer)
 assert resumedClient.resumed
 assert resumedServer.resumed
+assert resumedClient.alpn() == "http/1.1"
+assert resumedServer.alpn() == "http/1.1"
 
 TlsConfig badServerConfig = TlsConfig()
 assert badServerConfig.certificate("missing-cert.pem", "missing-key.pem")
@@ -99,5 +133,16 @@ assert truncated.appendByte(hello.byteAt(0))
 assert tlsStatusOk(partialServer.feed(truncated))
 assert partialServer.handshake() == -2
 assert not partialServer.ready
+
+TlsConfig rejectClientConfig = TlsConfig()
+assert rejectClientConfig.host("localhost")
+rejectClientConfig.verifyPeer(false)
+assert rejectClientConfig.verifyCallback(rejectVerify)
+rejectClientConfig.maxVersion(0x0303)
+TlsSession rejectClient = rejectClientConfig.session()
+TlsSession rejectServer = serverConfig.session(true)
+tlsHandshakeTrace = false
+assert not handshakeTlsPair(rejectClient, rejectServer)
+tlsHandshakeTrace = true
 
 println("tls_session_pair=ok")

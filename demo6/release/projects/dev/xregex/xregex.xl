@@ -13,8 +13,8 @@
 //                  指令: CHAR / ANY / CLASS / SAVE / JMP / SPLIT / ASSERT / MATCH
 //   3. Matcher —— 递归回溯 VM：直线指令迭代推进，SPLIT 两个出口递归回溯
 //
-// 实现要点（避坑）:
-//   - BUG-XL3: 不用 is 作标识符。
+// 实现要点:
+//   - `is` 是运行时类型判断运算符，不作为内部变量名。
 //   - 不使用 regex 标准库，全程手写解析、NFA 构造、回溯匹配。
 
 // ===== 操作码 =====
@@ -874,7 +874,7 @@ end
 func doReplace(string text, string repl) as string
     gText = text
     gTextLen = string.len(text)
-    string out = ""
+    string outputValue = ""
     int p = 0
     int lastAppend = 0
     while p <= gTextLen do
@@ -882,8 +882,8 @@ func doReplace(string text, string repl) as string
         if run(0, p) then
             int s = int(gSaves[0])
             int e = int(gSaves[1])
-            out = out + string.slice(text, lastAppend, s - lastAppend)
-            out = out + expandRepl(repl, text)
+            outputValue = outputValue + string.slice(text, lastAppend, s - lastAppend)
+            outputValue = outputValue + expandRepl(repl, text)
             lastAppend = e
             if e > s then
                 p = e
@@ -894,8 +894,8 @@ func doReplace(string text, string repl) as string
             p += 1
         end
     end
-    out = out + string.slice(text, lastAppend, gTextLen - lastAppend)
-    return out
+    outputValue = outputValue + string.slice(text, lastAppend, gTextLen - lastAppend)
+    return outputValue
 end
 
 func firstGroups(string text) as var
@@ -968,8 +968,8 @@ func cmdFind(string txt) as int
 end
 
 func cmdReplace(string txt, string repl) as int
-    string out = doReplace(txt, repl)
-    println(out)
+    string outputValue = doReplace(txt, repl)
+    println(outputValue)
     return 0
 end
 

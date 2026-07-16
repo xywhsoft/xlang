@@ -6,10 +6,9 @@ $xl = Join-Path $release "xl.exe"
 $outDir = Join-Path $project "run"
 $outLog = Join-Path $outDir "xs_smoke.out.log"
 $errLog = Join-Path $outDir "xs_smoke.err.log"
-$customOut = Join-Path $outDir "custom.out"
 
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-Remove-Item -LiteralPath $outLog,$errLog,$customOut -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $outLog,$errLog -Force -ErrorAction SilentlyContinue
 
 function Wait-HttpReady {
     param(
@@ -44,7 +43,7 @@ function Wait-HttpReady {
 }
 
 $proc = Start-Process -FilePath $xl `
-    -ArgumentList @("run", "projects\xs\xs.xl", "--", "--duration", "12000", "--quiet") `
+    -ArgumentList @("run", "projects\xs\xs.xl", "--", "--duration", "12000") `
     -WorkingDirectory $release `
     -RedirectStandardOutput $outLog `
     -RedirectStandardError $errLog `

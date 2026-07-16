@@ -24,27 +24,27 @@
 
 // Escape a string for use as a JSON string literal value.
 func jsonEscape(string s) as string
-    string out = ""
+    string outputValue = ""
     int n = string.len(s)
     int i = 0
     while i < n do
         string c = string.charAt(s, i)
         if c == "\"" then
-            out = out + "\\\""
+            outputValue = outputValue + "\\\""
         elseif c == "\\" then
-            out = out + "\\\\"
+            outputValue = outputValue + "\\\\"
         elseif c == "\n" then
-            out = out + "\\n"
+            outputValue = outputValue + "\\n"
         elseif c == "\r" then
-            out = out + "\\r"
+            outputValue = outputValue + "\\r"
         elseif c == "\t" then
-            out = out + "\\t"
+            outputValue = outputValue + "\\t"
         else
-            out = out + c
+            outputValue = outputValue + c
         end
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -261,7 +261,7 @@ end
 // json.stringify, because json.parse uses a hash dict — round-tripping
 // through it would scramble CSV column order.
 func prettyJson(string compact) as string
-    string out = ""
+    string outputValue = ""
     int n = string.len(compact)
     int indent = 0
     bool inStr = false
@@ -269,11 +269,11 @@ func prettyJson(string compact) as string
     while i < n do
         string c = string.charAt(compact, i)
         if inStr then
-            out = out + c
+            outputValue = outputValue + c
             if c == "\\" then
                 int nextI = i + 1
                 if nextI < n then
-                    out = out + string.charAt(compact, nextI)
+                    outputValue = outputValue + string.charAt(compact, nextI)
                     i = i + 2
                     continue
                 end
@@ -286,17 +286,17 @@ func prettyJson(string compact) as string
         end
         if c == "\"" then
             inStr = true
-            out = out + c
+            outputValue = outputValue + c
             i = i + 1
             continue
         elseif c == "{" or c == "[" then
-            out = out + c
+            outputValue = outputValue + c
             int nextI = i + 1
             if nextI < n then
                 string nc = string.charAt(compact, nextI)
                 if nc != "}" and nc != "]" then
                     indent = indent + 1
-                    out = out + "\n" + string.repeat("  ", indent)
+                    outputValue = outputValue + "\n" + string.repeat("  ", indent)
                 end
             end
             i = i + 1
@@ -307,28 +307,28 @@ func prettyJson(string compact) as string
                 string pc = string.charAt(compact, prevI)
                 if pc != "{" and pc != "[" then
                     indent = indent - 1
-                    out = out + "\n" + string.repeat("  ", indent)
+                    outputValue = outputValue + "\n" + string.repeat("  ", indent)
                 end
             end
-            out = out + c
+            outputValue = outputValue + c
             i = i + 1
             continue
         elseif c == "," then
-            out = out + c
-            out = out + "\n" + string.repeat("  ", indent)
+            outputValue = outputValue + c
+            outputValue = outputValue + "\n" + string.repeat("  ", indent)
             i = i + 1
             continue
         elseif c == ":" then
-            out = out + ": "
+            outputValue = outputValue + ": "
             i = i + 1
             continue
         else
-            out = out + c
+            outputValue = outputValue + c
             i = i + 1
             continue
         end
     end
-    return out
+    return outputValue
 end
 
 

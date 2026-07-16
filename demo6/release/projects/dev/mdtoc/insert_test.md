@@ -80,7 +80,7 @@ xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<to
 - async 函数内读全局容器 ✅
 - `func f() as var` 可 `return float(...)` ✅
 - list<string> swap 不再别名缓冲 ✅
-- `string.formatInt` 负数非十进制保留符号 ✅
+- `int.format` 负数非十进制保留符号 ✅
 - `T x`（无括号）触发无参 `create()` ✅
 - `json.parse` compact 模式保留键序 ✅
 - json key order in compact stringify ✅

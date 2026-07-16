@@ -915,7 +915,7 @@ func fmtDist(float f) as string
         int whole = int(f)
         return string(whole)
     end
-    return string.formatFloat(f, ".4")
+    return float.format(f, ".4")
 end
 
 func fmtPath(var route) as string

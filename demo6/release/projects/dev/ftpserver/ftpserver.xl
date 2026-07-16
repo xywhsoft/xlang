@@ -16,7 +16,7 @@
 //   * File I/O: LIST (dir.entries), RETR (file.readBytes), STOR (file.writeBytes),
 //     DELE/MKD/RMD, with virtual-path root confinement.
 //
-// Design constraints honored (see dev/README.md "当前限制" + dev/BUGS.md):
+// Design constraints:
 //   * TcpStream/TcpServer are native-backed. Verified this session that a
 //     TcpStream CAN be passed by value to a helper (the handle survives the
 //     call; "作函数参数传入 OK" holds) — so sendLine/recvLine/
@@ -893,7 +893,7 @@ func main(...) as int
 
     // ---- self-test mode ----
     // Use the OS temp dir so the test is self-contained and cwd-independent.
-    gTestRoot = path.join(path.temp(), "xlang_ftpserver_test")
+    gTestRoot = path.join(path.temp(), path.random("ftpserver_", ""))
     if not setupTestRoot(gTestRoot) then
         println("FATAL: cannot create test root " + gTestRoot)
         return 1

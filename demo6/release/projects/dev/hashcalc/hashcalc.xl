@@ -12,9 +12,9 @@
 //
 // ---------------------------------------------------------------------------
 // Implementation notes:
-//  * hash.u64 returns uint64; string.formatUInt formats it directly as 16
+//  * hash.u64 returns uint64; int.format formats it directly as 16
 //    lowercase hex digits ("x16").
-//  * hash.u32 returns uint32 which always fits positive int64, so "x8" is safe.
+//  * hash.u32 显式拓宽为 uint64，避免在有符号/无符号格式化重载间产生歧义。
 //  * crypto.sha*/hmacSha256 return UPPERCASE hex; we lowercase with string.lower
 //    to match conventional digest output (e.g. sha256("hello") = 2cf24dba...).
 // ---------------------------------------------------------------------------
@@ -27,9 +27,9 @@ end
 
 func computeAlgo(string algo, string text, string hmacKey) as string
     if algo == "u32" then
-        return string.formatInt(hash.u32(text), "x8")
+        return int.format(uint64(hash.u32(text)), "x8")
     elseif algo == "u64" then
-        return string.formatUInt(hash.u64(text), "x16")
+        return int.format(hash.u64(text), "x16")
     elseif algo == "sha1" then
         return string.lower(crypto.sha1(text))
     elseif algo == "sha256" then
@@ -48,8 +48,8 @@ end
 
 func printAll(string text, string hmacKey, bool hasHmac) as int
     println("Input: \"" + text + "\"")
-    println(row("u32:", string.formatInt(hash.u32(text), "x8")))
-    println(row("u64:", string.formatUInt(hash.u64(text), "x16")))
+    println(row("u32:", int.format(uint64(hash.u32(text)), "x8")))
+    println(row("u64:", int.format(hash.u64(text), "x16")))
     println(row("sha1:", string.lower(crypto.sha1(text))))
     println(row("sha256:", string.lower(crypto.sha256(text))))
     println(row("sha512:", string.lower(crypto.sha512(text))))

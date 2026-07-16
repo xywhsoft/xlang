@@ -38,6 +38,7 @@
 - `native_counter.xl`：native-backed class 句柄类示例；回归：`check`。
 - `second_stage.xl`：第二阶段基础语义组合示例；回归：`check`、`run`。
 - `top_level_main.xl`：顶层语句与 `main(...)` 共存示例，验证顶层语句先于 `main` 执行；回归：`run`。
+- `error_model.xl`：分类异常、异常层级捕获、`AssertionError` 和 future catch 回调示例；回归：`run`。
 - `concurrency.xl`：并发、通道和异步相关示例；回归：`run`。
 - `task_api.xl`：高层 task API 的 spawn、all、race 和 cancel 示例；回归：`run`。
 - `async_task_wait.xl`：future wait、waitTimeout、state/error、cancel 和 task.whenAny 示例；回归：`run`。
@@ -49,6 +50,7 @@
 ## C 混编与导出范例
 
 - `c_hello.xl`：调用 C/CRT 风格函数的最小示例；回归：`run`。
+- `c_vararg_printf.xl`：通过 `c_vararg` 调用 C 可变参数函数并显式保持 ABI 类型；回归：`run`。
 - `c_variables.xl`：extern C 变量示例；回归：`check`。
 - `c_export.xl`：xlang 导出 C ABI 和 ABI dump 示例；回归：`abi`。
 - `class_c_export.xl`：class 成员函数导出 C ABI wrapper、头文件和 ABI dump 示例；回归：`cgen`、`abi`。
@@ -67,6 +69,8 @@
 - `stdlib_buffer_c.c`：与 `stdlib_buffer.xl` 对照的 C/XRT xbuffer 范例，主回归会比较两者输出。
 - `stdlib_path_file.xl`
 - `stdlib_path_file_c.c`：与 `stdlib_path_file.xl` 对照的 C/XRT 路径、文件和目录范例，主回归会比较两者输出。
+- `stdlib_os.xl`
+- `stdlib_os_c.c`: C/XRT counterpart for `stdlib_os.xl`; covers args, cwd, env, shell execution, process start and chain helpers.
 - `stdlib_json.xl`
 - `stdlib_json_c.c`: C/XRT counterpart for `stdlib_json.xl`; covers validation, parse/stringify and file read/write.
 - `stdlib_file_async.xl`
@@ -106,6 +110,7 @@
 - `stdlib_regex_c.c`：与 `stdlib_regex.xl` 对照的 C/XRT 正则库范例，展示懒加载 match object 和 regex set。
 - `stdlib_process.xl`
 - `stdlib_process_c.c`：与 `stdlib_process.xl` 对照的 C/XRT process 库范例，展示结构化执行、pipeline 和长生命周期进程。
+- `stdlib_signal.xl`：`signal` 标准库范例，展示信号常量、普通回调、一次性回调、channel 路由、任务组取消桥接和默认行为恢复。
 - `stdlib_http_client.xl`：`http` 客户端范例，展示 GET、POST、通用 request、请求对象、响应对象、header、body 和超时配置。
 - `stdlib_http_client_c.c`：与 `stdlib_http_client.xl` 对照的 C/XRT HTTP client 范例。
 - `stdlib_http_server.xl`：`http.server` 基础服务示例，展示简化路由、对象化路由、静态文件、流式响应、流式请求体上传、HTTPS 创建、错误处理器和统计接口。

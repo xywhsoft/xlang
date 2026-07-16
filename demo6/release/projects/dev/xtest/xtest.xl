@@ -367,12 +367,11 @@ end
 
 func extractFuncs(string filePath, string src) as ParseInfo
     if string.len(g_xl) > 0 then
-        string cmd = g_xl + " parse " + filePath + " --format json"
-        ProcessResult r = process.run(cmd, 20000)
-        string out = string.trim(r.stdout)
-        if r.success and string.len(out) > 0 then
+        ProcessResult r = process.runFile(g_xl, ["parse", filePath, "--format", "json"], 20000)
+        string outputValue = string.trim(r.stdout)
+        if r.success and string.len(outputValue) > 0 then
             try
-                var root = json.parse(out)
+                var root = json.parse(outputValue)
                 ParseInfo info = walkModule(root)
                 info.ok = true
                 return info
@@ -497,8 +496,7 @@ func processFile(string filePath, int idx)
         string harness = buildHarness(filePath, src, tests, info.hasSetup, info.hasTeardown)
         string harnessPath = path.join(g_tempDir, "h_" + string(idx) + ".xl")
         file.writeText(harnessPath, harness)
-        string cmd = g_xl + " run " + harnessPath
-        ProcessResult r = process.run(cmd, g_timeout)
+        ProcessResult r = process.runFile(g_xl, ["run", harnessPath], g_timeout)
         fileMs = (time.timer() - ft0) * 1000.0
         string jsonStr = extractResultJson(r.stdout)
         if string.len(jsonStr) > 0 then
@@ -533,7 +531,11 @@ func processFile(string filePath, int idx)
             if string.len(detail) == 0 then
                 detail = string.trim(r.stdout)
             end
-            recs.push(TestRec(filePath, "<file>", "error", "harness failed to produce result: " + truncateMsg(detail, 300), fileMs))
+            string reason = "harness failed to produce result (exit=" + string(r.exitCode) + ")"
+            if string.len(detail) > 0 then
+                reason = reason + ": " + truncateMsg(detail, 300)
+            end
+            recs.push(TestRec(filePath, "<file>", "error", reason, fileMs))
         end
     catch e
         fileMs = (time.timer() - ft0) * 1000.0
@@ -670,17 +672,17 @@ func statusLabel(string status) as string
 end
 
 func fmtMs(float ms) as string
-    return string.formatFloat(ms, ".3") + "ms"
+    return float.format(ms, ".3") + "ms"
 end
 
 func padRight(string s, int width) as string
-    string out = s
+    string outputValue = s
     int n = string.len(s)
     while n < width do
-        out = out + " "
+        outputValue = outputValue + " "
         n += 1
     end
-    return out
+    return outputValue
 end
 
 func reportText()
@@ -763,7 +765,7 @@ end
 // ===== 临时目录 =====
 
 func makeTempDir() as string
-    string base = path.join(path.temp(), "xtest_cache")
+    string base = path.join(path.temp(), path.random("xtest_", ""))
     dir.createAll(base)
     return base
 end
@@ -904,7 +906,7 @@ func printUsage()
     println("  assertNull(value, message=\"\")")
     println("  assertNotNull(value, message=\"\")")
     println("  assertContains(haystack, needle, message=\"\")")
-    println("  assertThrows(func block, message=\"\")")
+    println("  assertThrows(func() as int block, message=\"\")")
     println("  assertInRange(value, low, high, message=\"\")")
     println("  approxEqual(actual, expected, tolerance, message=\"\")")
     println("  skip(reason)")

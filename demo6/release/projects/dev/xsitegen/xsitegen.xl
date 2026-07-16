@@ -174,27 +174,27 @@ func jsonString(string s) as string
     if s == "" then
         return "\"\""
     end
-    string out = "\""
+    string outputValue = "\""
     int n = string.len(s)
     int i = 0
     while i < n do
         string c = string.charAt(s, i)
         if c == "\"" then
-            out = out + "\\\""
+            outputValue = outputValue + "\\\""
         elseif c == "\\" then
-            out = out + "\\\\"
+            outputValue = outputValue + "\\\\"
         elseif c == "\n" then
-            out = out + "\\n"
+            outputValue = outputValue + "\\n"
         elseif c == "\r" then
-            out = out + "\\r"
+            outputValue = outputValue + "\\r"
         elseif c == "\t" then
-            out = out + "\\t"
+            outputValue = outputValue + "\\t"
         else
-            out = out + c
+            outputValue = outputValue + c
         end
         i = i + 1
     end
-    return out + "\""
+    return outputValue + "\""
 end
 
 
@@ -207,16 +207,16 @@ func tagsToJsonArray(var arr) as string
     if n == 0 then
         return "[]"
     end
-    string out = "["
+    string outputValue = "["
     int i = 0
     while i < n do
         if i > 0 then
-            out = out + ","
+            outputValue = outputValue + ","
         end
-        out = out + jsonString(string(arr[i]))
+        outputValue = outputValue + jsonString(string(arr[i]))
         i = i + 1
     end
-    return out + "]"
+    return outputValue + "]"
 end
 
 
@@ -311,7 +311,7 @@ end
 
 // 把 markdown 文本剥离为纯文本（用于搜索索引/摘要）。
 func mdToPlainText(string md) as string
-    string out = ""
+    string outputValue = ""
     array lines = string.splitLines(md)
     int total = lines.length
     int i = 0
@@ -334,13 +334,13 @@ func mdToPlainText(string md) as string
                 level = level + 1
             end
             if level < string.len(trimmed) then
-                out = out + string.trim(string.slice(trimmed, level)) + " "
+                outputValue = outputValue + string.trim(string.slice(trimmed, level)) + " "
             end
             i = i + 1
             continue
         end
         if string.startsWith(trimmed, "-") or string.startsWith(trimmed, ">") then
-            out = out + string.trim(string.replace(string.replace(trimmed, "-", ""), ">", "")) + " "
+            outputValue = outputValue + string.trim(string.replace(string.replace(trimmed, "-", ""), ">", "")) + " "
             i = i + 1
             continue
         end
@@ -350,16 +350,16 @@ func mdToPlainText(string md) as string
         cleaned = string.replace(cleaned, "`", "")
         cleaned = string.replace(cleaned, "[", "")
         cleaned = string.replace(cleaned, "]", "")
-        out = out + cleaned + " "
+        outputValue = outputValue + cleaned + " "
         i = i + 1
     end
     // 折叠多空格
     string collapsed = ""
-    int cn = string.len(out)
+    int cn = string.len(outputValue)
     int ci = 0
     bool prevSpace = false
     while ci < cn do
-        string ch = string.charAt(out, ci)
+        string ch = string.charAt(outputValue, ci)
         if ch == " " then
             if not prevSpace then
                 collapsed = collapsed + ch
@@ -383,7 +383,7 @@ end
 // 输入文本先做 HTML 转义，输出包含 HTML 标签。
 func mdInline(string text) as string
     string s = escapeHtml(text)
-    string out = ""
+    string outputValue = ""
     int n = string.len(s)
     int i = 0
     while i < n do
@@ -400,7 +400,7 @@ func mdInline(string text) as string
                 int close = findFrom(s, "**", i + 2)
                 if close > 0 then
                     string inner = string.slice(s, i + 2, close - i - 2)
-                    out = out + "<strong>" + inner + "</strong>"
+                    outputValue = outputValue + "<strong>" + inner + "</strong>"
                     i = close + 2
                     matched = true
                 end
@@ -413,7 +413,7 @@ func mdInline(string text) as string
                 int close = findFrom(s, "`", i + 1)
                 if close > 0 then
                     string inner = string.slice(s, i + 1, close - i - 1)
-                    out = out + "<code>" + inner + "</code>"
+                    outputValue = outputValue + "<code>" + inner + "</code>"
                     i = close + 1
                     matched = true
                 end
@@ -426,7 +426,7 @@ func mdInline(string text) as string
                 int close = findFrom(s, "*", i + 1)
                 if close > 0 then
                     string inner = string.slice(s, i + 1, close - i - 1)
-                    out = out + "<em>" + inner + "</em>"
+                    outputValue = outputValue + "<em>" + inner + "</em>"
                     i = close + 1
                     matched = true
                 end
@@ -443,7 +443,7 @@ func mdInline(string text) as string
                         if parenClose > 0 then
                             string alt = string.slice(s, i + 2, bracketClose - i - 2)
                             string url = string.slice(s, bracketClose + 2, parenClose - bracketClose - 2)
-                            out = out + "<img src=\"" + url + "\" alt=\"" + alt + "\">"
+                            outputValue = outputValue + "<img src=\"" + url + "\" alt=\"" + alt + "\">"
                             i = parenClose + 1
                             matched = true
                         end
@@ -462,7 +462,7 @@ func mdInline(string text) as string
                         if parenClose > 0 then
                             string linkText = string.slice(s, i + 1, bracketClose - i - 1)
                             string url = string.slice(s, bracketClose + 2, parenClose - bracketClose - 2)
-                            out = out + "<a href=\"" + url + "\">" + linkText + "</a>"
+                            outputValue = outputValue + "<a href=\"" + url + "\">" + linkText + "</a>"
                             i = parenClose + 1
                             matched = true
                         end
@@ -472,11 +472,11 @@ func mdInline(string text) as string
         end
 
         if not matched then
-            out = out + c0
+            outputValue = outputValue + c0
             i = i + 1
         end
     end
-    return out
+    return outputValue
 end
 
 
@@ -1079,32 +1079,32 @@ end
 // 渲染节点数组（nodes）为字符串。
 // blocks：当前生效的 block 覆盖表（name -> body nodes）。
 func tplRenderNodes(var nodes, var data, var blocks) as string
-    string out = ""
+    string outputValue = ""
     int n = nodes.length
     int i = 0
     while i < n do
         var node = nodes[i]
         string tt = string(node["type"])
         if tt == "text" then
-            out = out + node["value"]
+            outputValue = outputValue + node["value"]
         elseif tt == "var" then
             var v = tplResolve(string(node["name"]), data)
-            out = out + tplVarToString(v)
+            outputValue = outputValue + tplVarToString(v)
         elseif tt == "if" then
-            out = out + tplRenderIf(node, data, blocks)
+            outputValue = outputValue + tplRenderIf(node, data, blocks)
         elseif tt == "foreach" then
-            out = out + tplRenderForeach(node, data, blocks)
+            outputValue = outputValue + tplRenderForeach(node, data, blocks)
         elseif tt == "block" then
             string bname = string(node["name"])
             var body = node["body"]
             if bname in blocks then
                 body = blocks[bname]
             end
-            out = out + tplRenderNodes(body, data, blocks)
+            outputValue = outputValue + tplRenderNodes(body, data, blocks)
         end
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1136,16 +1136,16 @@ func tplRenderForeach(var node, var data, var blocks) as string
     if not (coll is array) then
         return ""
     end
-    string out = ""
+    string outputValue = ""
     int n = coll.length
     int i = 0
     while i < n do
         var item = coll[i]
         var scope = tplMakeScope(data, item, i)
-        out = out + tplRenderNodes(node["body"], scope, blocks)
+        outputValue = outputValue + tplRenderNodes(node["body"], scope, blocks)
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1983,7 +1983,7 @@ end
 // 生成全文搜索索引 search.json
 // 结构：[{title, url, date, summary, content, tags}]
 func generateSearchIndex()
-    string out = "["
+    string outputValue = "["
     int n = gPosts.length
     int i = 0
     bool first = true
@@ -1994,21 +1994,21 @@ func generateSearchIndex()
             continue
         end
         if not first then
-            out = out + ","
+            outputValue = outputValue + ","
         end
         first = false
-        out = out + "{"
-        out = out + "\"title\":" + jsonString(string(p["title"])) + ","
-        out = out + "\"url\":" + jsonString(string(p["url"])) + ","
-        out = out + "\"date\":" + jsonString(string(p["date"])) + ","
-        out = out + "\"summary\":" + jsonString(string(p["summary"])) + ","
-        out = out + "\"content\":" + jsonString(string(p["plain"])) + ","
-        out = out + "\"tags\":" + tagsToJsonArray(p["tags"])
-        out = out + "}"
+        outputValue = outputValue + "{"
+        outputValue = outputValue + "\"title\":" + jsonString(string(p["title"])) + ","
+        outputValue = outputValue + "\"url\":" + jsonString(string(p["url"])) + ","
+        outputValue = outputValue + "\"date\":" + jsonString(string(p["date"])) + ","
+        outputValue = outputValue + "\"summary\":" + jsonString(string(p["summary"])) + ","
+        outputValue = outputValue + "\"content\":" + jsonString(string(p["plain"])) + ","
+        outputValue = outputValue + "\"tags\":" + tagsToJsonArray(p["tags"])
+        outputValue = outputValue + "}"
         i = i + 1
     end
-    out = out + "]"
-    writeOutput("search.json", out)
+    outputValue = outputValue + "]"
+    writeOutput("search.json", outputValue)
 end
 
 

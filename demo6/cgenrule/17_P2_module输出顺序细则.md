@@ -199,36 +199,36 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `func main(...) as int ... end` 或存在顶层运行语句的脚本 |
-| 生成规则描述 | 如果模块存在 xlang `main` 或顶层运行语句，模块末尾统一输出显式 C `main` wrapper。该 wrapper 负责初始化 xlang 运行环境、把 `argc/argv` 融合为 `xvalue arg`，调用固定入口 `xlang_main(__xl6_arg)`，释放 `__xl6_arg`，并在退出前调用 `xlUnit`。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:276`、`demo6/src/cgen/xl6_cgen_module.c:277`、`demo6/src/cgen/xl6_cgen_main.c:25` |
+| 生成规则描述 | 如果模块存在 xlang `main` 或顶层运行语句，且生成选项没有抑制发布入口，模块末尾输出显式 C `main` wrapper。该 wrapper 负责初始化 xlang 运行环境、把 `argc/argv` 融合为 `xvalue arg`，调用固定入口 `xlang_main(__xl6_arg)`，释放 `__xl6_arg`，并在退出前调用 `xlUnit`。脚本嵌入目标抑制 C `main`，改为输出错误桥。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:532-540`、`demo6/src/cgen/xl6_cgen_main_wrapper.c:1-62` |
 | 对应生成的 C 代码 | `int main(int argc, char** argv) { xlInit(...); __xl6_arg = xl6_argv_to_arg(argc, argv); __xl6_code = xlang_main(__xl6_arg); xvoUnref(__xl6_arg); xlUnit(); return __xl6_code; }` |
-| 中间形态伪代码 | `if mainFunc != null or hasTopLevel: emitMainWrapper()` |
+| 中间形态伪代码 | `if hasEntry and !suppressMainWrapper: emitMainWrapper(); else if hasEntry: emitScriptErrorBridge()` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自行初始化 runtime、转换参数、调用固定入口并释放 `xvalue arg`。 |
 | 额外依赖的封装代码 | C main wrapper、argv 数组 helper。 |
 
-## CGEN-MODULE-018 无 xlang main 但有顶层语句时生成 xlang_main
+## CGEN-MODULE-018 模块生命周期与统一 xlang_main
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | 文件顶层直接写可执行语句，例如 `print("hi")` |
-| 生成规则描述 | 如果没有 xlang main，但存在顶层运行语句，则先生成固定运行入口 `int xlang_main(xvalue arg)`。该入口忽略当前未使用的 `arg`，只遍历并输出顶层运行语句，跳过声明节点；执行成功后返回 0。随后再由 CGEN-MODULE-017 输出统一 C `main` wrapper。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:273`、`demo6/src/cgen/xl6_cgen_module.c:274`、`demo6/src/cgen/xl6_cgen_main.c:56` |
-| 对应生成的 C 代码 | `int xlang_main(xvalue arg) { (void)arg; <top-level stmts>; return 0; }` 与统一 C `main` wrapper |
-| 中间形态伪代码 | `if hasTopLevel and mainFunc == null: emitTopLevelXlangMain(topLevelRuntimeStatements); emitMainWrapper()` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要把脚本顶层语句搬进一个固定入口函数，再写外层 `main` 调用入口。 |
-| 额外依赖的封装代码 | `xlang_main` 脚本入口、C main wrapper、argv 数组 helper。 |
+| xlang 写法 | 文件顶层直接写可执行语句，或声明 `func main(...) as int` |
+| 生成规则描述 | 只要模块具有入口运行内容，就生成幂等的 `xl_script_module_init(xvalue arg)` 与 `xl_script_module_unit()`。init 负责全局初始化和顶层运行语句，失败时清理已建立状态；unit 等待 async 空闲、逆序释放模块资源并清理参数状态。固定 `xlang_main` 调用 init，按需调用用户 main，最后保证 unit。 |
+| 生成器文件名和行号 | 调度 `demo6/src/cgen/xl6_cgen_module.c:532-540`，生命周期和固定入口 `demo6/src/cgen/xl6_cgen_main.c:1080-1188` |
+| 对应生成的 C 代码 | `int xl_script_module_init(xvalue arg) { ... } void xl_script_module_unit(void) { ... } int xlang_main(xvalue arg) { if (!xl_script_module_init(arg)) return 0; code = user_main(arg); xl_script_module_unit(); return code; }` |
+| 中间形态伪代码 | `module init(top-level/global state); user main if present; module unit(cleanups); return code` |
+| 实现同等功能手写的 C 代码 | 手写 C 需要显式维护模块初始化标志、失败回滚、异步等待和逆序资源释放。 |
+| 额外依赖的封装代码 | 模块 init/unit、固定 `xlang_main`、可选 C main wrapper、argv 数组 helper。 |
 
-## CGEN-MODULE-019 顶层 xlang_main 的异常退出路径
+## CGEN-MODULE-019 模块 init 与 xlang_main 的异常退出路径
 
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 顶层语句里使用 `throw`、`assert` 或可能产生 xlang 错误的表达式 |
-| 生成规则描述 | 顶层脚本入口 `xlang_main` 在错误 runtime 启用时设置 `__xl6_script_error` 标签。顶层语句执行后如果存在未清理错误，则跳转到错误路径；错误路径先输出未捕获错误诊断，再清理错误状态并返回 1。外层 C `main` wrapper 继续负责释放 `arg` 和调用 `xlUnit`。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main.c:65`、`demo6/src/cgen/xl6_cgen_main.c:74`、`demo6/src/cgen/xl6_cgen_main.c:79` |
-| 对应生成的 C 代码 | `if (xl6_error_has()) goto __xl6_script_error; ... __xl6_script_error: xl6_error_print_uncaught(); xl6_error_clear(); return 1;` |
-| 中间形态伪代码 | `currentErrorExitLabel = "__xl6_script_error"; emitTopLevel(); if error: goto label; return 0; label: printUncaught(); clearError(); return 1` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要人工维护错误标签、统一错误返回码，并确保外层 wrapper 继续做生命周期清理。 |
-| 额外依赖的封装代码 | 错误 runtime、脚本错误标签、`xl6_error_print_uncaught`。 |
+| 生成规则描述 | 顶层初始化错误先进入 `__xl6_module_init_error`，等待异步、清理参数状态和临时作用域后返回失败。用户 main 返回后若仍有错误，`xlang_main` 进入 `__xl6_script_error`，先调用 module unit 再返回失败；未捕获错误的打印和清理由外层 C main 或嵌入错误桥负责，避免模块入口重复消费错误。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main.c:1095-1142`、`demo6/src/cgen/xl6_cgen_main.c:1161-1188`、错误桥 `demo6/src/cgen/xl6_cgen_main_wrapper.c:43-62` |
+| 对应生成的 C 代码 | `if (xl6_error_has()) goto __xl6_module_init_error; ... if (xl6_error_has()) goto __xl6_script_error; __xl6_script_error: xl_script_module_unit(); return 0;` |
+| 中间形态伪代码 | `init error -> rollback init; main error -> module unit; outer host reads/prints error` |
+| 实现同等功能手写的 C 代码 | 手写 C 需要区分初始化失败、用户入口失败与宿主诊断职责，并保证所有路径只卸载一次。 |
+| 额外依赖的封装代码 | 错误 runtime、模块 init/unit 错误标签、嵌入错误桥。 |
 
 ## CGEN-MODULE-020 模块生成状态汇总与上下文资源释放
 

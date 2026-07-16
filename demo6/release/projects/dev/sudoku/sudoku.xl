@@ -26,8 +26,8 @@ class Sudoku
 
     // 从 81 位数字串加载棋盘。
     func load(string s)
-        if string.len(s) < 81 then
-            throw "puzzle string must have 81 digits"
+        if string.len(s) != 81 then
+            throw "puzzle string must contain exactly 81 digits"
         end
         int i = 0
         while i < 81 do
@@ -139,6 +139,16 @@ class Sudoku
         return self.data.length
     end
 
+    func digits() as string
+        string result = ""
+        int i = 0
+        while i < 81 do
+            result += string(self.data[i])
+            i += 1
+        end
+        return result
+    end
+
     // 打印第 r 行（带 3x3 分隔）。
     func printRow(int r)
         int b = r * 9
@@ -161,6 +171,7 @@ func printUsage()
     println("Usage:")
     println("  sudoku \"<81 digits>\"        solve puzzle given as 81-digit string (0 = empty)")
     println("  sudoku solve <input_file>   read 81-digit string from file and solve")
+    println("  sudoku selftest             solve and verify a known puzzle")
     println("Example:")
     println("  sudoku \"530070000600195000098000060800060003400803001700020006060000280000419005000080079\"")
 end
@@ -185,7 +196,10 @@ func main(...) as int
 
     try
         string puzzle = ""
-        if cmd == "solve" then
+        bool selftest = cmd == "selftest"
+        if selftest then
+            puzzle = "530070000600195000098000060800060003400803001700020006060000280000419005000080079"
+        elseif cmd == "solve" then
             if arg.length < 3 then
                 println("Error: 'solve' needs <input_file>")
                 return 1
@@ -202,10 +216,17 @@ func main(...) as int
         println()
 
         if g.solve(0) then
-            if g.verify() then
+            bool valid = g.verify()
+            if valid then
                 println("Solved (verified valid):")
             else
                 println("Solved (verification FAILED):")
+            end
+            if selftest then
+                assert valid, "solver produced an invalid grid"
+                assert g.digits() == "534678912672195348198342567859761423426853791713924856961537284287419635345286179", "solver result mismatch"
+                println("sudoku selftest ok")
+                return 0
             end
             println()
             int rr = 0

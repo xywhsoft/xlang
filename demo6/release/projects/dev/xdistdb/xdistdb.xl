@@ -115,7 +115,7 @@ func deepCopy(var d) as var
 end
 
 func hex8(int v) as string
-    return string.formatInt(v, "x8")
+    return int.format(v, "x8")
 end
 
 func isEmpty(string s) as bool
@@ -276,16 +276,16 @@ end
 func formatBytes(int n) as string
     if n < 1024 then return string(n) + " B" end
     float kb = float(n) / 1024.0
-    if kb < 1024.0 then return string.formatFloat(kb, ".2") + " KB" end
+    if kb < 1024.0 then return float.format(kb, ".2") + " KB" end
     float mb = kb / 1024.0
-    if mb < 1024.0 then return string.formatFloat(mb, ".2") + " MB" end
+    if mb < 1024.0 then return float.format(mb, ".2") + " MB" end
     float gb = mb / 1024.0
-    return string.formatFloat(gb, ".2") + " GB"
+    return float.format(gb, ".2") + " GB"
 end
 
 func formatMs(int ms) as string
     if ms < 1000 then return string(ms) + " ms" end
-    return string.formatFloat(float(ms) / 1000.0, ".3") + " s"
+    return float.format(float(ms) / 1000.0, ".3") + " s"
 end
 
 func electionTimeout(string shardId, int attempt) as int
@@ -1678,7 +1678,7 @@ func opZrange(string sid, string key, int start, int stop) as string
     while i <= stop do
         string m = string(sorted[i]["member"])
         float sc = float(sorted[i]["score"])
-        lines.append(m + " : " + string.formatFloat(sc, ".4"))
+        lines.append(m + " : " + float.format(sc, ".4"))
         i += 1
     end
     return joinLines(lines)
@@ -1693,7 +1693,7 @@ func opZscore(string sid, string key, string member) as string
     int i = 0
     while i < lst.length do
         if string(lst[i]["member"]) == member then
-            return string.formatFloat(float(lst[i]["score"]), ".4")
+            return float.format(float(lst[i]["score"]), ".4")
         end
         i += 1
     end
@@ -2805,7 +2805,7 @@ func formatClusterSlots() as string
         float ratio = float(int(c)) / float(DEFAULT_SHARD_COUNT)
         res = res + padRight(string(nid), 10) + " slots=" + padRight(string(c), 5)
         res = res + " " + progressBar(ratio, 30) + " "
-        res = res + string.formatFloat(ratio * 100.0, ".1") + "%\n"
+        res = res + float.format(ratio * 100.0, ".1") + "%\n"
     end
     return res
 end
@@ -2952,7 +2952,7 @@ func formatKeyDistribution() as string
         float ratio = float(int(c)) / float(total)
         res = res + padRight(string(nid), 10) + " keys=" + padRight(string(c), 7)
         res = res + " " + progressBar(ratio, 30) + " "
-        res = res + string.formatFloat(ratio * 100.0, ".1") + "%\n"
+        res = res + float.format(ratio * 100.0, ".1") + "%\n"
     end
     return res
 end
@@ -3729,7 +3729,7 @@ func cmdBench(int ops) as int
     float writeQps = 0.0
     if writeMs > 0 then writeQps = float(ops) / float(writeMs) * 1000.0 end
     println("  wrote " + string(ops) + " keys in " + formatMs(writeMs))
-    println("  throughput: " + string.formatFloat(writeQps, ".1") + " ops/sec")
+    println("  throughput: " + float.format(writeQps, ".1") + " ops/sec")
 
     println("[2/3] READ phase (GET key:<i>)...")
     int t2 = nowMs()
@@ -3751,7 +3751,7 @@ func cmdBench(int ops) as int
     float readQps = 0.0
     if readMs > 0 then readQps = float(ops) / float(readMs) * 1000.0 end
     println("  read " + string(ops) + " keys in " + formatMs(readMs))
-    println("  throughput: " + string.formatFloat(readQps, ".1") + " ops/sec")
+    println("  throughput: " + float.format(readQps, ".1") + " ops/sec")
     println("  hits=" + string(hits) + " misses=" + string(misses))
 
     println("[3/3] Distribution analysis...")
@@ -3800,9 +3800,9 @@ func cmdBench(int ops) as int
         float cv = 0.0
         if mean > 0.0 then cv = stddev / mean end
         println("")
-        println("balance: mean=" + string.formatFloat(mean, ".1") +
-                " stddev=" + string.formatFloat(stddev, ".1") +
-                " cv=" + string.formatFloat(cv, ".3"))
+        println("balance: mean=" + float.format(mean, ".1") +
+                " stddev=" + float.format(stddev, ".1") +
+                " cv=" + float.format(cv, ".3"))
     end
     return 0
 end
@@ -4032,7 +4032,7 @@ func test03KeyDistribution() as int
     end
     float cv = 0.0
     if mean > 0.0 then cv = stddev / mean end
-    check(cv < 0.5, "balance CV < 0.5 (got " + string.formatFloat(cv, ".3") + " mean=" + string.formatFloat(mean, ".1") + " stddev=" + string.formatFloat(stddev, ".1") + ")")
+    check(cv < 0.5, "balance CV < 0.5 (got " + float.format(cv, ".3") + " mean=" + float.format(mean, ".1") + " stddev=" + float.format(stddev, ".1") + ")")
     var slotPerNode = collectSlotPerNode()
     int minSlots = 99999
     int maxSlots = 0
@@ -4597,8 +4597,8 @@ func test18Persistence() as int
     routeSet("persist:k3", "v3")
     int before = totalKeyCount()
     check(before == 3, "3 keys written")
-    string tmpFile = path.join(path.dir(gStateFile), ".xdistdb_persist_test.json")
-    if file.exists(tmpFile) then file.delete(tmpFile) end
+    // 持久化测试不占用应用数据目录，并允许多个测试进程并行运行。
+    string tmpFile = path.join(path.temp(), path.random("xdistdb_persist_", ".json"))
     bool saved = saveState(tmpFile)
     check(saved, "saveState ok")
     check(file.exists(tmpFile), "state file created")

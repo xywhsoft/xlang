@@ -1,4 +1,4 @@
-﻿// compressor.xl - compression algorithm library (RLE / LZW / Huffman / Delta / BWT)
+// compressor.xl - compression algorithm library (RLE / LZW / Huffman / Delta / BWT)
 //
 // usage:
 //   compressor test                          roundtrip all algorithms on samples
@@ -35,14 +35,14 @@ array<int> gHSym = array[]       // leaf byte (0..255) if leaf, else -1
 
 func strToBytes(string s) as array<int>
     array raw = string.bytes(s)
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int i = 0
     int n = raw.length
     while i < n do
-        out.push(int(raw[i]))
+        outputValue.push(int(raw[i]))
         i += 1
     end
-    return out
+    return outputValue
 end
 
 func bytesToStr(array<int> b) as string
@@ -72,17 +72,17 @@ func bytesEqual(array<int> a, array<int> b) as bool
 end
 
 func bytesSlice(array<int> data, int maxN) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int n = data.length
     if n > maxN then
         n = maxN
     end
     int i = 0
     while i < n do
-        out.push(data[i])
+        outputValue.push(data[i])
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // ===========================================================================
@@ -93,9 +93,9 @@ func formatSize(int bytes) as string
     if bytes < 1024 then
         return string(bytes) + " B"
     elseif bytes < 1048576 then
-        return string.formatFloat(float(bytes) / 1024.0, ".2") + " KB"
+        return float.format(float(bytes) / 1024.0, ".2") + " KB"
     end
-    return string.formatFloat(float(bytes) / 1048576.0, ".2") + " MB"
+    return float.format(float(bytes) / 1048576.0, ".2") + " MB"
 end
 
 func formatRatio(int orig, int stored) as string
@@ -103,7 +103,7 @@ func formatRatio(int orig, int stored) as string
         return "---"
     end
     float r = float(orig) / float(stored)
-    return string.formatFloat(r, ".2") + ":1"
+    return float.format(r, ".2") + ":1"
 end
 
 func formatPct(int orig, int stored) as string
@@ -111,7 +111,7 @@ func formatPct(int orig, int stored) as string
         return "---"
     end
     float p = float(stored) * 100.0 / float(orig)
-    return string.formatFloat(p, ".1") + "%"
+    return float.format(p, ".1") + "%"
 end
 
 func padField(string s, int w) as string
@@ -123,10 +123,10 @@ end
 // ===========================================================================
 
 func rleEncode(array<int> data) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int n = data.length
     if n == 0 then
-        return out
+        return outputValue
     end
     int i = 0
     while i < n do
@@ -135,15 +135,15 @@ func rleEncode(array<int> data) as array<int>
         while i + run < n and data[i + run] == b and run < 255 do
             run += 1
         end
-        out.push(run)
-        out.push(b)
+        outputValue.push(run)
+        outputValue.push(b)
         i += run
     end
-    return out
+    return outputValue
 end
 
 func rleDecode(array<int> enc) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int n = enc.length
     int i = 0
     while i < n do
@@ -151,12 +151,12 @@ func rleDecode(array<int> enc) as array<int>
         int b = enc[i + 1]
         int k = 0
         while k < run do
-            out.push(b)
+            outputValue.push(b)
             k += 1
         end
         i += 2
     end
-    return out
+    return outputValue
 end
 
 // ===========================================================================
@@ -164,10 +164,10 @@ end
 // ===========================================================================
 
 func lzwEncode(array<int> data) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int n = data.length
     if n == 0 then
-        return out
+        return outputValue
     end
     var table = {}
     int nextCode = 256
@@ -179,15 +179,15 @@ func lzwEncode(array<int> data) as array<int>
         if key in table then
             w = int(table[key])
         else
-            out.push(w)
+            outputValue.push(w)
             table[key] = nextCode
             nextCode += 1
             w = b
         end
         i += 1
     end
-    out.push(w)
-    return out
+    outputValue.push(w)
+    return outputValue
 end
 
 // Walk prefix chain to the root, return the single first byte of a code.
@@ -200,7 +200,7 @@ func lzwFirstByte(array<int> dprefix, int code) as int
 end
 
 // Emit the full byte sequence for a code into out (iterative, no recursion).
-func lzwEmitCode(array<int> out, array<int> dprefix, array<int> dsuffix, int code)
+func lzwEmitCode(array<int> outputValue, array<int> dprefix, array<int> dsuffix, int code)
     array<int> stk = array[]
     int c = code
     while c >= 256 do
@@ -210,35 +210,35 @@ func lzwEmitCode(array<int> out, array<int> dprefix, array<int> dsuffix, int cod
     stk.push(c)
     int s = stk.length - 1
     while s >= 0 do
-        out.push(stk[s])
+        outputValue.push(stk[s])
         s -= 1
     end
 end
 
 func lzwDecode(array<int> codes) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int n = codes.length
     if n == 0 then
-        return out
+        return outputValue
     end
     array<int> dprefix = array[]
     array<int> dsuffix = array[]
     int nextCode = 256
     int prev = codes[0]
-    lzwEmitCode(out, dprefix, dsuffix, prev)
+    lzwEmitCode(outputValue, dprefix, dsuffix, prev)
     int i = 1
     while i < n do
         int cur = codes[i]
         int fb = 0
         if cur < nextCode then
-            lzwEmitCode(out, dprefix, dsuffix, cur)
+            lzwEmitCode(outputValue, dprefix, dsuffix, cur)
             fb = lzwFirstByte(dprefix, cur)
         elseif cur == nextCode then
             fb = lzwFirstByte(dprefix, prev)
-            lzwEmitCode(out, dprefix, dsuffix, prev)
-            out.push(fb)
+            lzwEmitCode(outputValue, dprefix, dsuffix, prev)
+            outputValue.push(fb)
         else
-            lzwEmitCode(out, dprefix, dsuffix, cur)
+            lzwEmitCode(outputValue, dprefix, dsuffix, cur)
             fb = lzwFirstByte(dprefix, cur)
         end
         dprefix.push(prev)
@@ -247,7 +247,7 @@ func lzwDecode(array<int> codes) as array<int>
         prev = cur
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // Estimate byte size of the index stream (1/2/4 bytes per code).
@@ -449,11 +449,11 @@ end
 
 // Encode: [nsym, (sym,len)*, bitCount, packedBytes...]
 func huffEncode(array<int> data) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int n = data.length
     if n == 0 then
-        out.push(0)
-        return out
+        outputValue.push(0)
+        return outputValue
     end
     int root = huffBuildTree(data)
     array<int> lengths = huffCodeLengths(root)
@@ -467,12 +467,12 @@ func huffEncode(array<int> data) as array<int>
         end
         bi += 1
     end
-    out.push(nsym)
+    outputValue.push(nsym)
     int bi2 = 0
     while bi2 < 256 do
         if lengths[bi2] > 0 then
-            out.push(bi2)
-            out.push(lengths[bi2])
+            outputValue.push(bi2)
+            outputValue.push(lengths[bi2])
         end
         bi2 += 1
     end
@@ -506,22 +506,22 @@ func huffEncode(array<int> data) as array<int>
         packed.push(acc & 0xFF)
     end
 
-    out.push(bitCount)
+    outputValue.push(bitCount)
     int pi = 0
     while pi < packed.length do
-        out.push(packed[pi])
+        outputValue.push(packed[pi])
         pi += 1
     end
-    return out
+    return outputValue
 end
 
 func huffDecode(array<int> packed) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int idx = 0
     int nsym = packed[idx]
     idx += 1
     if nsym == 0 then
-        return out
+        return outputValue
     end
     array<int> lengths = array[]
     int bi = 0
@@ -564,12 +564,12 @@ func huffDecode(array<int> packed) as array<int>
         curLen += 1
         string key = string(curCode) + ":" + string(curLen)
         if key in inv then
-            out.push(int(inv[key]))
+            outputValue.push(int(inv[key]))
             curCode = 0
             curLen = 0
         end
     end
-    return out
+    return outputValue
 end
 
 // ===========================================================================
@@ -577,35 +577,35 @@ end
 // ===========================================================================
 
 func deltaEncode(array<int> data) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int n = data.length
     if n == 0 then
-        return out
+        return outputValue
     end
-    out.push(data[0])
+    outputValue.push(data[0])
     int i = 1
     while i < n do
-        out.push((data[i] - data[i - 1]) & 0xFF)
+        outputValue.push((data[i] - data[i - 1]) & 0xFF)
         i += 1
     end
-    return out
+    return outputValue
 end
 
 func deltaDecode(array<int> data) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int n = data.length
     if n == 0 then
-        return out
+        return outputValue
     end
     int prev = data[0]
-    out.push(prev)
+    outputValue.push(prev)
     int i = 1
     while i < n do
         prev = (prev + data[i]) & 0xFF
-        out.push(prev)
+        outputValue.push(prev)
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // ===========================================================================
@@ -634,12 +634,12 @@ end
 
 // Encode: [primary, n, lastColumn bytes...]
 func bwtEncode(array<int> data) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int n = data.length
     if n == 0 then
-        out.push(0)
-        out.push(0)
-        return out
+        outputValue.push(0)
+        outputValue.push(0)
+        return outputValue
     end
     array<int> idx = array[]
     int i = 0
@@ -672,8 +672,8 @@ func bwtEncode(array<int> data) as array<int>
         end
         p2 += 1
     end
-    out.push(primary)
-    out.push(n)
+    outputValue.push(primary)
+    outputValue.push(n)
     int p3 = 0
     while p3 < n do
         int startPos = idx[p3]
@@ -681,22 +681,22 @@ func bwtEncode(array<int> data) as array<int>
         if lastPos < 0 then
             lastPos = n - 1
         end
-        out.push(data[lastPos])
+        outputValue.push(data[lastPos])
         p3 += 1
     end
-    return out
+    return outputValue
 end
 
 // Decode: reconstruct original via LF-mapping.
 func bwtDecode(array<int> packed) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int idx = 0
     int primary = packed[idx]
     idx += 1
     int n = packed[idx]
     idx += 1
     if n == 0 then
-        return out
+        return outputValue
     end
     array<int> L = array[]
     int li = 0
@@ -748,17 +748,17 @@ func bwtDecode(array<int> packed) as array<int>
 
     int ri = 0
     while ri < n do
-        out.push(0)
+        outputValue.push(0)
         ri += 1
     end
     int pos = primary
     int k = n - 1
     while k >= 0 do
-        out[k] = L[pos]
+        outputValue[k] = L[pos]
         pos = LF[pos]
         k -= 1
     end
-    return out
+    return outputValue
 end
 
 // ===========================================================================

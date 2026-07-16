@@ -7,15 +7,9 @@
 //   * 递归性能（traceRay 每像素递归 MAX_DEPTH 层）
 //   * 多态容器的运行时派发（见下文「多态存储说明」）
 //
-// 多态存储说明（重要）：
-//   实战验证发现 xlang 当前存在两条多态存储限制（详见 BUGS.md BUG-RT1/BUG-RT2）：
-//     (a) typed array<Base> 在 append(Derived) 时静默丢弃派生类实例；
-//     (b) typed field of Base + derive value 会把派生类按值切到 Base（slicing）。
-//   因此本程序统一采用 var 槽位承载多态实例：
-//     - World.shapes: array<var>，每个槽位是 Sphere/Plane 实例
-//     - Sphere/Plane.mat: var，承载 Lambertian/Metal/Dielectric 实例
-//     - HitRecord.mat: var，承载实际命中的材质实例
-//   取用时统一 `as Base` 还原类型，运行时 vtable 派发到对应 override（已实测保留）。
+// 多态存储说明：
+//   class 使用受管理引用语义。World 通过 array<Shape> 保存几何体，命中记录和
+//   几何体通过 Material 基类引用保存材质；向上转型不会复制或切片派生对象。
 //
 // 用法：
 //   raytrace                              打印用法
@@ -25,6 +19,7 @@
 //   raytrace demo                         渲染默认场景 (200x150x10 -> demo.ppm)
 //   raytrace bench [w] [h] [s]            性能测试，输出耗时与吞吐
 //                                          默认 100 75 5
+//   raytrace test                         运行几何、材质和多态自测
 //
 // 验证：
 //   cd /d D:\GIT\x-lang\demo6\release
@@ -89,13 +84,7 @@ func randInUnitDisk() as Vec3
 end
 
 func clampF(float v, float lo, float hi) as float
-    if v < lo then
-        return lo
-    end
-    if v > hi then
-        return hi
-    end
-    return v
+    return math.clamp(v, lo, hi)
 end
 
 func degToRad(float deg) as float
@@ -309,15 +298,14 @@ class Ray
 end
 
 // ========================================================================
-// HitRecord：光线-物体相交记录
-//   mat 字段用 var 承载，避免 derive value 把派生 Material 切到基类（BUG-RT2）。
+// HitRecord：光线-物体相交记录，mat 保留实际材质对象的动态类型。
 // ========================================================================
 class HitRecord
     float t = 0.0
     Vec3 p = Vec3(0.0, 0.0, 0.0)
     Vec3 normal = Vec3(0.0, 0.0, 0.0)
     bool frontFace = false
-    var mat = null
+    Material mat = null
 
     // 根据光线方向决定法线朝外（始终指向入射侧）
     func setFaceNormal(Ray r, Vec3 outwardNormal)
@@ -441,9 +429,9 @@ end
 class Sphere extends Shape
     Vec3 center = Vec3(0.0, 0.0, 0.0)
     float radius = 1.0
-    var mat = null
+    Material mat = null
 
-    create(Vec3 center, float radius, var mat)
+    create(Vec3 center, float radius, Material mat)
         self.center = center
         self.radius = radius
         self.mat = mat
@@ -488,9 +476,9 @@ end
 class Plane extends Shape
     Vec3 point = Vec3(0.0, 0.0, 0.0)
     Vec3 normal = Vec3(0.0, 1.0, 0.0)
-    var mat = null
+    Material mat = null
 
-    create(Vec3 point, Vec3 normal, var mat)
+    create(Vec3 point, Vec3 normal, Material mat)
         self.point = point
         self.normal = normal.normalize()
         self.mat = mat
@@ -517,11 +505,10 @@ class Plane extends Shape
 end
 
 // ========================================================================
-// World：场景，封装 array<var> + 最近相交查找
-//   shapes 字段使用 array<var> 以支持派生类 Shape 实例存取（见 BUG-RT1）
+// World：场景，封装 array<Shape> + 最近相交查找。
 // ========================================================================
 class World
-    array<var> shapes = array[]
+    array<Shape> shapes = array<Shape>[]
 
     func add(Shape s)
         self.shapes.append(s)
@@ -539,8 +526,7 @@ class World
         int n = self.shapes.length
         int i = 0
         while i < n do
-            var item = self.shapes[i]
-            Shape s = item as Shape
+            Shape s = self.shapes[i]
             bool hit
             HitRecord rec
             hit, rec = s.hit(r, tMin, closest)
@@ -630,8 +616,7 @@ func traceRay(Ray r, World world, int depth) as Color
     if not hit then
         return skyColor(r.dir.normalize())
     end
-    var matVar = rec.mat
-    Material mat = matVar as Material
+    Material mat = rec.mat
     bool scattered = false
     Vec3 zeroV = Vec3(0.0, 0.0, 0.0)
     Ray scatteredRay = Ray(zeroV, zeroV)
@@ -648,11 +633,8 @@ end
 // ========================================================================
 // 场景构造
 //
-// 重要：经实测，xlang 当前存在 BUG：
-//   从函数返回带 virtual 方法 + var 字段的 class 实例，会丢失 vtable。
-// 因此场景构造中所有 Shape / Material 实例都必须直接构造，不能用工厂函数。
-// 「class 构造嵌套 class 构造」会触发 statement-level lowering 限制，
-// 所以每个 class 实例都先单独构造，再传给下一个构造。
+// 场景构造函数返回 World 受管理引用；其中的 Shape / Material 动态类型保持不变。
+// 中间对象使用具名变量，让场景配置更易读，也便于逐项调整材质参数。
 // ========================================================================
 
 // 经典三球 + 地面场景（"Ray Tracing in One Weekend"）
@@ -906,7 +888,75 @@ func printUsage()
     println("                                            defaults: 200 150 10 raytrace_out.ppm")
     println("  raytrace demo                             render 200x150x10 -> demo.ppm")
     println("  raytrace bench [w] [h] [s]                benchmark, default 100 75 5")
+    println("  raytrace test                             run geometry/material self-tests")
     println("algorithm: ray tracing with reflection/refraction, anti-aliasing, depth of field")
+end
+
+int g_rayPass = 0
+int g_rayFail = 0
+
+func rayCheck(string label, bool condition)
+    if condition then
+        g_rayPass += 1
+        println("  [PASS] " + label)
+    else
+        g_rayFail += 1
+        println("  [FAIL] " + label)
+    end
+end
+
+func cmdTest() as int
+    println("raytrace self-test")
+    println("================================================================")
+    random.seed(uint64(20260709), uint64(1))
+
+    Color redColor = Color(0.7, 0.2, 0.1)
+    Lambertian red = Lambertian(redColor)
+    Vec3 center = Vec3(0.0, 0.0, -3.0)
+    Sphere sphere = Sphere(center, 1.0, red)
+    World world = World()
+    world.add(sphere)
+
+    rayCheck("typed world stores one Shape", world.size() == 1)
+    Vec3 origin = Vec3(0.0, 0.0, 0.0)
+    Vec3 forward = Vec3(0.0, 0.0, -1.0)
+    Ray ray = Ray(origin, forward)
+    bool hit = false
+    HitRecord rec
+    hit, rec = world.hit(ray, 0.001, INF)
+    rayCheck("ray hits sphere through Shape vtable", hit)
+    if hit then
+        rayCheck("nearest sphere hit t is 2", math.abs(rec.t - 2.0) < 0.000001)
+        rayCheck("hit record preserves Lambertian dynamic type", rec.mat is Lambertian)
+        Lambertian actual = rec.mat as Lambertian
+        rayCheck("material object preserves albedo", math.abs(actual.albedo.r - 0.7) < 0.000001)
+
+        bool scattered = false
+        Vec3 zero = Vec3(0.0, 0.0, 0.0)
+        Ray scatteredRay = Ray(zero, zero)
+        Color attenuation = colorBlack()
+        Material material = rec.mat
+        scattered, scatteredRay, attenuation = material.scatter(ray, rec)
+        rayCheck("Lambertian scatter dispatch succeeds", scattered)
+        rayCheck("scatter attenuation uses concrete material", math.abs(attenuation.r - 0.7) < 0.000001)
+    end
+
+    Vec3 upward = Vec3(0.0, 1.0, 0.0)
+    Ray missRay = Ray(origin, upward)
+    bool missed = false
+    HitRecord missRec
+    missed, missRec = world.hit(missRay, 0.001, INF)
+    rayCheck("non-intersecting ray misses", not missed)
+
+    World built = buildSimpleScene()
+    rayCheck("scene factory returns complete typed world", built.size() == 6)
+
+    println("----------------------------------------------------------------")
+    println("passed=" + string(g_rayPass) + " failed=" + string(g_rayFail))
+    if g_rayFail > 0 then
+        return 1
+    end
+    return 0
 end
 
 func cmdRender(int width, int height, int samples, string outPath, int sceneChoice) as int
@@ -957,9 +1007,9 @@ func cmdRender(int width, int height, int samples, string outPath, int sceneChoi
     float elapsed = t1 - t0
     int pixels = width * height
     int totalRays = pixels * samples
-    println("[render] done in " + string.formatFloat(elapsed, ".3") + "s")
-    println("[render] " + string.formatInt(totalRays, ",") + " primary rays, " + string.formatFloat(float(totalRays) / elapsed, ",.0") + " rays/sec")
-    println("[render] wrote " + string.formatInt(string.len(string.join(lines, "")), ",") + " chars to " + outPath)
+    println("[render] done in " + float.format(elapsed, ".3") + "s")
+    println("[render] " + int.format(totalRays, ",") + " primary rays, " + float.format(float(totalRays) / elapsed, ",.0") + " rays/sec")
+    println("[render] wrote " + int.format(string.len(string.join(lines, "")), ",") + " chars to " + outPath)
     return 0
 end
 
@@ -1008,10 +1058,10 @@ func cmdBench(int width, int height, int samples) as int
         end
         string line = "  "
         line = line + string.padRight(label, 18)
-        line = line + "time=" + string.formatFloat(elapsed, ".3") + "s"
-        line = line + "  " + string.formatInt(totalRays, ",") + " rays"
-        line = line + "  " + string.formatFloat(usPerRay, ".3") + " us/ray"
-        line = line + "  " + string.formatInt(int(rps), ",") + " rays/sec"
+        line = line + "time=" + float.format(elapsed, ".3") + "s"
+        line = line + "  " + int.format(totalRays, ",") + " rays"
+        line = line + "  " + float.format(usPerRay, ".3") + " us/ray"
+        line = line + "  " + int.format(int(rps), ",") + " rays/sec"
         println(line)
 
         // 第一次跑把结果写出来作为功能校验
@@ -1062,6 +1112,8 @@ func main(...) as int
             if arg.length >= 4 then height = parseArgInt(string(arg[3]), 75) end
             if arg.length >= 5 then samples = parseArgInt(string(arg[4]), 5) end
             return cmdBench(width, height, samples)
+        elseif cmd == "test" then
+            return cmdTest()
         else
             println("error: unknown command '" + cmd + "'")
             printUsage()

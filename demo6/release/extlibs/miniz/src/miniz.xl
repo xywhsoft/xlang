@@ -20,15 +20,27 @@ extern "xminiz_compress_hex" func __xl6_native_miniz_compress_hex(string text) a
 export func compress_hex(string text) as string
     return __xl6_native_miniz_compress_hex(text)
 end
+
+export func compress(string text) as string
+    return compress_hex(text)
+end
 extern "xminiz_compress_hex_level" func __xl6_native_miniz_compress_hex_level(string text, c_int level) as string
 
 export func compress_hex_level(string text, c_int level) as string
     return __xl6_native_miniz_compress_hex_level(text, level)
 end
+
+export func compress(string text, int level) as string
+    return compress_hex_level(text, c_int(level))
+end
 extern "xminiz_decompress_hex" func __xl6_native_miniz_decompress_hex(string hex_text) as string
 
 export func decompress_hex(string hex_text) as string
     return __xl6_native_miniz_decompress_hex(hex_text)
+end
+
+export func decompress(string hex_text) as string
+    return decompress_hex(hex_text)
 end
 extern "xminiz_compress_file" func __xl6_native_miniz_compress_file(string input_path, string output_path) as c_int
 
@@ -39,6 +51,10 @@ extern "xminiz_compress_file_level" func __xl6_native_miniz_compress_file_level(
 
 export func compress_file_level(string input_path, string output_path, c_int level) as c_int
     return __xl6_native_miniz_compress_file_level(input_path, output_path, level)
+end
+
+export func compress_file(string input_path, string output_path, int level) as c_int
+    return compress_file_level(input_path, output_path, c_int(level))
 end
 extern "xminiz_decompress_file" func __xl6_native_miniz_decompress_file(string input_path, string output_path) as c_int
 

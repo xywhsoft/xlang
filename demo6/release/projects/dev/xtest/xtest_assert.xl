@@ -121,7 +121,7 @@ func assertContains(var haystack, var needle, string message = "")
     xtestFail(xtestMsg("assertContains failed", message) + " (needle " + xtestFormat(needle) + " not in " + xtestFormat(haystack) + ")")
 end
 
-func assertThrows(var block, string message = "")
+func assertThrows(func() as int block, string message = "")
     try
         block()
     catch e
@@ -153,5 +153,5 @@ func approxEqual(var actual, var expected, var tolerance, string message = "")
     if diff <= t then
         return
     end
-    xtestFail(xtestMsg("approxEqual failed", message) + " (|" + string.formatFloat(a, ".6") + " - " + string.formatFloat(e, ".6") + "| = " + string.formatFloat(diff, ".6") + " > tolerance " + string.formatFloat(t, ".6") + ")")
+    xtestFail(xtestMsg("approxEqual failed", message) + " (|" + float.format(a, ".6") + " - " + float.format(e, ".6") + "| = " + float.format(diff, ".6") + " > tolerance " + float.format(t, ".6") + ")")
 end

@@ -95,13 +95,13 @@ func listLength(int id) as int
 end
 
 func listToArr(int id) as array<int>
-    array<int> out
+    array<int> outputValue
     int cur = id
     while cur != NIL do
-        out.append(listVal[cur])
+        outputValue.append(listVal[cur])
         cur = listNext[cur]
     end
-    return out
+    return outputValue
 end
 
 // 数组 -> 列表 (保持顺序; 从尾部向前 cons)
@@ -276,7 +276,7 @@ end
 
 // inorder: 中序遍历 -> 升序数组。用显式栈 (避免深递归)。
 func bstInorder(int root) as array<int>
-    array<int> out
+    array<int> outputValue
     array<int> st
     int cur = root
     while cur != NIL or st.length > 0 do
@@ -285,10 +285,10 @@ func bstInorder(int root) as array<int>
             cur = bstLeft[cur]
         end
         int node = st.pop()
-        out.append(bstKey[node])
+        outputValue.append(bstKey[node])
         cur = bstRight[node]
     end
-    return out
+    return outputValue
 end
 
 func bstHeight(int root) as int
@@ -443,19 +443,19 @@ func hmSize(int ver) as int
 end
 
 func hmKeys(int ver) as array<string>
-    array<string> out
+    array<string> outputValue
     int cap = hmCap[ver]
     int base = hmBase[ver]
     int i = 0
     while i < cap do
         int entry = hmBuckets[base + i]
         while entry != NIL do
-            out.append(hmKey[entry])
+            outputValue.append(hmKey[entry])
             entry = hmNext[entry]
         end
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // 字符串展示 (key 排序, 保证输出稳定)

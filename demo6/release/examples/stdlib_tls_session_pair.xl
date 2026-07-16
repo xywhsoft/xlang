@@ -37,9 +37,26 @@ func handshakeTlsPair(TlsSession client, TlsSession server) as bool
     return false
 end
 
+int verifySeen = 0
+int verifyCertSize = 0
+
+func acceptVerify(var event) as bool
+    verifySeen += 1
+    verifyCertSize = int(event["certSize"])
+    assert int(event["defaultOk"]) == 1
+    assert string.len(string(event["certHex"])) > 0
+    return true
+end
+
+func rejectVerify(var event) as bool
+    assert int(event["certSize"]) > 0
+    return false
+end
+
 func makeServerConfig() as TlsConfig
     TlsConfig config = TlsConfig()
     assert config.certificate("release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem")
+    assert config.alpn("http/1.1")
     config.verifyPeer(false)
     config.maxVersion(0x0303)
     return config
@@ -48,7 +65,9 @@ end
 func makeClientConfig() as TlsConfig
     TlsConfig config = TlsConfig()
     assert config.host("localhost")
+    assert config.alpn("h2,http/1.1")
     config.verifyPeer(false)
+    assert config.verifyCallback(acceptVerify)
     config.maxVersion(0x0303)
     return config
 end
@@ -59,6 +78,12 @@ TlsSession client = clientConfig.session()
 TlsSession server = serverConfig.session(true)
 assert handshakeTlsPair(client, server)
 assert server.sni() == "localhost"
+assert client.alpn() == "http/1.1"
+assert server.alpn() == "http/1.1"
+assert client.peerCert().len() > 0
+assert server.peerCert().len() == 0
+assert verifySeen >= 1
+assert verifyCertSize > 0
 
 // 明文写入后只会从另一端读出，传输过程中始终是 TLS 密文。
 Buffer request = Buffer()
@@ -80,6 +105,8 @@ TlsSession resumedServer = serverConfig.session(true)
 assert handshakeTlsPair(resumedClient, resumedServer)
 assert resumedClient.resumed
 assert resumedServer.resumed
+assert resumedClient.alpn() == "http/1.1"
+assert resumedServer.alpn() == "http/1.1"
 
 // 缺失证书以及截断握手报文都必须稳定失败或等待更多数据。
 TlsConfig badConfig = TlsConfig()
@@ -96,5 +123,12 @@ assert truncated.appendByte(hello.byteAt(0))
 assert tlsStatusOk(partialServer.feed(truncated))
 assert partialServer.handshake() == -2
 assert not partialServer.ready
+
+TlsConfig rejectConfig = TlsConfig()
+assert rejectConfig.host("localhost")
+rejectConfig.verifyPeer(false)
+assert rejectConfig.verifyCallback(rejectVerify)
+rejectConfig.maxVersion(0x0303)
+assert not handshakeTlsPair(rejectConfig.session(), serverConfig.session(true))
 
 println("tls_session_pair=ok")

@@ -494,7 +494,7 @@ func tokenize(string src) as array<var>
     g_src = src
     g_pos = 0
     g_len = string.len(src)
-    array<var> out = []
+    array<var> outputValue = []
     while true do
         skipWsAndComments()
         if g_pos >= g_len then
@@ -513,10 +513,10 @@ func tokenize(string src) as array<var>
         else
             t = tryMatchOp()
         end
-        out.append(t)
+        outputValue.append(t)
     end
-    out.append(mkTok("eof", "", ""))
-    return out
+    outputValue.append(mkTok("eof", "", ""))
+    return outputValue
 end
 
 
@@ -1520,28 +1520,28 @@ end
 
 // C 字符串字面量转义：把任意字符串包成 C 字面量。
 func cQuote(string s) as string
-    string out = "\""
+    string outputValue = "\""
     int n = string.len(s)
     int i = 0
     while i < n do
         string c = string.charAt(s, i)
         if c == "\\" then
-            out = out + "\\\\"
+            outputValue = outputValue + "\\\\"
         elseif c == "\"" then
-            out = out + "\\\""
+            outputValue = outputValue + "\\\""
         elseif c == "\n" then
-            out = out + "\\n"
+            outputValue = outputValue + "\\n"
         elseif c == "\r" then
-            out = out + "\\r"
+            outputValue = outputValue + "\\r"
         elseif c == "\t" then
-            out = out + "\\t"
+            outputValue = outputValue + "\\t"
         else
-            out = out + c
+            outputValue = outputValue + c
         end
         i += 1
     end
-    out = out + "\""
-    return out
+    outputValue = outputValue + "\""
+    return outputValue
 end
 
 
@@ -1659,7 +1659,7 @@ func genPrintCall(string name, var args) as string
         return "printf(\"\")"
     end
     // 多参数：用拼接方式依次输出。
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < args.length do
         var a = args[i]
@@ -1678,19 +1678,19 @@ func genPrintCall(string name, var args) as string
             fmt = "%lld"
         end
         if i > 0 then
-            out = out + " "
+            outputValue = outputValue + " "
         end
-        out = out + "printf(\"" + fmt
+        outputValue = outputValue + "printf(\"" + fmt
         if name == "println" and i == args.length - 1 then
-            out = out + "\\n"
+            outputValue = outputValue + "\\n"
         end
-        out = out + "\", " + code + ")"
+        outputValue = outputValue + "\", " + code + ")"
         if i < args.length - 1 then
-            out = out + "; "
+            outputValue = outputValue + "; "
         end
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1825,52 +1825,52 @@ end
 
 func genIf(var n, int level) as string
     string ind = genIndent(level)
-    string out = ind + "if (" + genExpr(n["cond"]) + ") {\n"
+    string outputValue = ind + "if (" + genExpr(n["cond"]) + ") {\n"
     pushScope()
     var tb = n["then"]
     for s in tb
-        out = out + genStmt(s, level + 1)
+        outputValue = outputValue + genStmt(s, level + 1)
     end
     popScope()
-    out = out + ind + "}\n"
+    outputValue = outputValue + ind + "}\n"
     // elseif 链翻译成 else if
     var eis = n["elseifs"]
     for ei in eis
         pushScope()
-        out = out + ind + "else if (" + genExpr(ei["cond"]) + ") {\n"
+        outputValue = outputValue + ind + "else if (" + genExpr(ei["cond"]) + ") {\n"
         var eb = ei["body"]
         for s in eb
-            out = out + genStmt(s, level + 1)
+            outputValue = outputValue + genStmt(s, level + 1)
         end
-        out = out + ind + "}\n"
+        outputValue = outputValue + ind + "}\n"
         popScope()
     end
     // else
     var el = n["else"]
     if el.length > 0 then
         pushScope()
-        out = out + ind + "else {\n"
+        outputValue = outputValue + ind + "else {\n"
         for s in el
-            out = out + genStmt(s, level + 1)
+            outputValue = outputValue + genStmt(s, level + 1)
         end
-        out = out + ind + "}\n"
+        outputValue = outputValue + ind + "}\n"
         popScope()
     end
-    return out
+    return outputValue
 end
 
 
 func genWhile(var n, int level) as string
     string ind = genIndent(level)
-    string out = ind + "while (" + genExpr(n["cond"]) + ") {\n"
+    string outputValue = ind + "while (" + genExpr(n["cond"]) + ") {\n"
     pushScope()
     var body = n["body"]
     for s in body
-        out = out + genStmt(s, level + 1)
+        outputValue = outputValue + genStmt(s, level + 1)
     end
     popScope()
-    out = out + ind + "}\n"
-    return out
+    outputValue = outputValue + ind + "}\n"
+    return outputValue
 end
 
 
@@ -1880,27 +1880,27 @@ func genFor(var n, int level) as string
     pushScope()
     declareVar(iter, "int")
     // 简化：仅支持 range(n) 形式的可迭代对象。
-    string out = ind + "for (int64_t " + iter + " = 0; " + iter + " < "
+    string outputValue = ind + "for (int64_t " + iter + " = 0; " + iter + " < "
     var it = n["iterable"]
     // 如果是 range(n) 调用，直接取上界。
     if string(it["nt"]) == "call" and string(it["name"]) == "range" then
         var args = it["args"]
         if args.length >= 1 then
-            out = out + genExpr(args[0])
+            outputValue = outputValue + genExpr(args[0])
         else
-            out = out + "0"
+            outputValue = outputValue + "0"
         end
     else
-        out = out + genExpr(it)
+        outputValue = outputValue + genExpr(it)
     end
-    out = out + "; " + iter + "++) {\n"
+    outputValue = outputValue + "; " + iter + "++) {\n"
     var body = n["body"]
     for s in body
-        out = out + genStmt(s, level + 1)
+        outputValue = outputValue + genStmt(s, level + 1)
     end
-    out = out + ind + "}\n"
+    outputValue = outputValue + ind + "}\n"
     popScope()
-    return out
+    return outputValue
 end
 
 
@@ -1914,7 +1914,7 @@ end
 
 // 生成 forward declarations（函数原型）。
 func genForwardDecls(var prog) as string
-    string out = ""
+    string outputValue = ""
     var stmts = prog["stmts"]
     for s in stmts
         if string(s["nt"]) == "func" then
@@ -1923,10 +1923,10 @@ func genForwardDecls(var prog) as string
             if name == "main" then
                 rt = "int"
             end
-            out = out + rt + " " + name + "();\n"
+            outputValue = outputValue + rt + " " + name + "();\n"
         end
     end
-    return out + "\n"
+    return outputValue + "\n"
 end
 
 
@@ -1976,14 +1976,14 @@ end
 
 // 把编译结果 dump 成 token 列表字符串（调试用）。
 func dumpTokens(var toks) as string
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < toks.length do
         var t = toks[i]
-        out = out + "[" + string(i) + "] " + t["kind"] + " '" + t["text"] + "'\n"
+        outputValue = outputValue + "[" + string(i) + "] " + t["kind"] + " '" + t["text"] + "'\n"
         i += 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1999,130 +1999,130 @@ func dumpAst(var node, int depth) as string
         pad = pad + "  "
         i += 1
     end
-    string out = pad + nt
+    string outputValue = pad + nt
     if nt == "program" then
-        out = out + "\n"
+        outputValue = outputValue + "\n"
         var ss = node["stmts"]
         for s in ss
-            out = out + dumpAst(s, depth + 1)
+            outputValue = outputValue + dumpAst(s, depth + 1)
         end
-        return out
+        return outputValue
     end
     if nt == "func" then
-        out = out + " " + node["name"] + " ret=" + node["retType"] + "\n"
+        outputValue = outputValue + " " + node["name"] + " ret=" + node["retType"] + "\n"
         var ps = node["params"]
         for p in ps
-            out = out + dumpAst(p, depth + 1)
+            outputValue = outputValue + dumpAst(p, depth + 1)
         end
         var bs = node["body"]
         for s in bs
-            out = out + dumpAst(s, depth + 1)
+            outputValue = outputValue + dumpAst(s, depth + 1)
         end
-        return out
+        return outputValue
     end
     if nt == "param" then
-        return out + " " + node["ptype"] + " " + node["pname"] + "\n"
+        return outputValue + " " + node["ptype"] + " " + node["pname"] + "\n"
     end
     if nt == "vardecl" then
-        out = out + " " + node["vtype"] + " " + node["name"]
+        outputValue = outputValue + " " + node["vtype"] + " " + node["name"]
         if node["init"] != null then
-            out = out + " =\n" + dumpAst(node["init"], depth + 1)
+            outputValue = outputValue + " =\n" + dumpAst(node["init"], depth + 1)
         else
-            out = out + "\n"
+            outputValue = outputValue + "\n"
         end
-        return out
+        return outputValue
     end
     if nt == "assign" then
-        out = out + " " + node["name"] + " =\n"
-        out = out + dumpAst(node["expr"], depth + 1)
-        return out
+        outputValue = outputValue + " " + node["name"] + " =\n"
+        outputValue = outputValue + dumpAst(node["expr"], depth + 1)
+        return outputValue
     end
     if nt == "if" then
-        out = out + "\n" + pad + "  cond:\n" + dumpAst(node["cond"], depth + 2)
-        out = out + pad + "  then:\n"
+        outputValue = outputValue + "\n" + pad + "  cond:\n" + dumpAst(node["cond"], depth + 2)
+        outputValue = outputValue + pad + "  then:\n"
         var tb = node["then"]
         for s in tb
-            out = out + dumpAst(s, depth + 2)
+            outputValue = outputValue + dumpAst(s, depth + 2)
         end
         var eis = node["elseifs"]
         for ei in eis
-            out = out + pad + "  elseif:\n" + dumpAst(ei["cond"], depth + 2)
+            outputValue = outputValue + pad + "  elseif:\n" + dumpAst(ei["cond"], depth + 2)
             var eb = ei["body"]
             for s in eb
-                out = out + dumpAst(s, depth + 2)
+                outputValue = outputValue + dumpAst(s, depth + 2)
             end
         end
         var el = node["else"]
         if el.length > 0 then
-            out = out + pad + "  else:\n"
+            outputValue = outputValue + pad + "  else:\n"
             for s in el
-                out = out + dumpAst(s, depth + 2)
+                outputValue = outputValue + dumpAst(s, depth + 2)
             end
         end
-        return out
+        return outputValue
     end
     if nt == "while" then
-        out = out + "\n" + pad + "  cond:\n" + dumpAst(node["cond"], depth + 2)
-        out = out + pad + "  body:\n"
+        outputValue = outputValue + "\n" + pad + "  cond:\n" + dumpAst(node["cond"], depth + 2)
+        outputValue = outputValue + pad + "  body:\n"
         var body = node["body"]
         for s in body
-            out = out + dumpAst(s, depth + 2)
+            outputValue = outputValue + dumpAst(s, depth + 2)
         end
-        return out
+        return outputValue
     end
     if nt == "for" then
-        out = out + " " + node["iter"] + " in\n"
-        out = out + dumpAst(node["iterable"], depth + 1)
-        out = out + pad + "  body:\n"
+        outputValue = outputValue + " " + node["iter"] + " in\n"
+        outputValue = outputValue + dumpAst(node["iterable"], depth + 1)
+        outputValue = outputValue + pad + "  body:\n"
         var body = node["body"]
         for s in body
-            out = out + dumpAst(s, depth + 2)
+            outputValue = outputValue + dumpAst(s, depth + 2)
         end
-        return out
+        return outputValue
     end
     if nt == "return" then
         if node["value"] == null then
-            return out + " void\n"
+            return outputValue + " void\n"
         end
-        out = out + "\n" + dumpAst(node["value"], depth + 1)
-        return out
+        outputValue = outputValue + "\n" + dumpAst(node["value"], depth + 1)
+        return outputValue
     end
     if nt == "break" then
-        return out + "\n"
+        return outputValue + "\n"
     end
     if nt == "continue" then
-        return out + "\n"
+        return outputValue + "\n"
     end
     if nt == "exprstmt" then
-        out = out + "\n" + dumpAst(node["expr"], depth + 1)
-        return out
+        outputValue = outputValue + "\n" + dumpAst(node["expr"], depth + 1)
+        return outputValue
     end
     if nt == "binary" then
-        out = out + " " + node["op"] + "\n"
-        out = out + dumpAst(node["left"], depth + 1)
-        out = out + dumpAst(node["right"], depth + 1)
-        return out
+        outputValue = outputValue + " " + node["op"] + "\n"
+        outputValue = outputValue + dumpAst(node["left"], depth + 1)
+        outputValue = outputValue + dumpAst(node["right"], depth + 1)
+        return outputValue
     end
     if nt == "unary" then
-        out = out + " " + node["op"] + "\n"
-        out = out + dumpAst(node["expr"], depth + 1)
-        return out
+        outputValue = outputValue + " " + node["op"] + "\n"
+        outputValue = outputValue + dumpAst(node["expr"], depth + 1)
+        return outputValue
     end
     if nt == "literal" then
-        return out + " " + node["litType"] + " " + node["value"] + "\n"
+        return outputValue + " " + node["litType"] + " " + node["value"] + "\n"
     end
     if nt == "varref" then
-        return out + " " + node["name"] + "\n"
+        return outputValue + " " + node["name"] + "\n"
     end
     if nt == "call" then
-        out = out + " " + node["name"] + "\n"
+        outputValue = outputValue + " " + node["name"] + "\n"
         var args = node["args"]
         for a in args
-            out = out + dumpAst(a, depth + 1)
+            outputValue = outputValue + dumpAst(a, depth + 1)
         end
-        return out
+        return outputValue
     end
-    return out + " <?>\n"
+    return outputValue + " <?>\n"
 end
 
 

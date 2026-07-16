@@ -9,7 +9,7 @@
 //   segtree test                                     内置自测（含随机对拍）
 //   segtree help                                     帮助
 //
-// 设计要点（结合 dev/README.md 与 BUGS.md）：
+// 设计要点：
 //   - 经典数组式线段树：tree[1..4n]、lazy[1..4n]，节点 1 为根，左 2i 右 2i+1。
 //   - 三种聚合 op：sum(0)/max(1)/min(2)。懒惰语义统一为「区间加」：
 //       applyVal(node,len,val)：sum → tree += len*val；max/min → tree += val。
@@ -862,7 +862,7 @@ end
 
 
 func main(...) as int
-    // arg 仅在 main 内可用（BUGS.md NOTE-22/23）：收集到 array<string> 后传给各 cmd。
+// main 负责把命令行参数整理为 array<string>，再传给各子命令。
     array<string> args = array[]
     int ai = 0
     while ai < arg.length do

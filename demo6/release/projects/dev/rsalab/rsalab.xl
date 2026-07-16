@@ -141,7 +141,7 @@ func addAbs(string a, string b) as string
     if lb > n then
         n = lb
     end
-    string out = ""
+    string outputValue = ""
     int carry = 0
     int i = 0
     while i < n do
@@ -155,13 +155,13 @@ func addAbs(string a, string b) as string
         end
         int sum = da + db + carry
         carry = sum / 10
-        out = out + string.charAt("0123456789", sum - carry * 10)
+        outputValue = outputValue + string.charAt("0123456789", sum - carry * 10)
         i += 1
     end
     if carry > 0 then
-        out = out + "1"
+        outputValue = outputValue + "1"
     end
-    return string.reverse(out)
+    return string.reverse(outputValue)
 end
 
 // 无符号减法（要求 a >= b，返回 a - b）。
@@ -170,7 +170,7 @@ func subAbs(string a, string b) as string
     string rb = string.reverse(b)
     int la = string.len(ra)
     int lb = string.len(rb)
-    string out = ""
+    string outputValue = ""
     int borrow = 0
     int i = 0
     while i < la do
@@ -186,10 +186,10 @@ func subAbs(string a, string b) as string
         else
             borrow = 0
         end
-        out = out + string.charAt("0123456789", diff)
+        outputValue = outputValue + string.charAt("0123456789", diff)
         i += 1
     end
-    return stripLeadZeros(string.reverse(out))
+    return stripLeadZeros(string.reverse(outputValue))
 end
 
 // 大数 a 乘以单个数字 d（0..9）。
@@ -199,22 +199,22 @@ func mulDigit(string a, int d) as string
     end
     string ra = string.reverse(a)
     int la = string.len(ra)
-    string out = ""
+    string outputValue = ""
     int carry = 0
     int i = 0
     while i < la do
         int da = string.byteAt(ra, i) - 48
         int prod = da * d + carry
         carry = prod / 10
-        out = out + string.charAt("0123456789", prod - carry * 10)
+        outputValue = outputValue + string.charAt("0123456789", prod - carry * 10)
         i += 1
     end
     while carry > 0 do
         int m = carry % 10
-        out = out + string.charAt("0123456789", m)
+        outputValue = outputValue + string.charAt("0123456789", m)
         carry = carry / 10
     end
-    return string.reverse(out)
+    return string.reverse(outputValue)
 end
 
 // 无符号乘法（竖式：对 b 的每一位做 mulDigit 并移位累加）。
@@ -345,17 +345,17 @@ end
 
 // 十进制串除以 2（非负）。
 func div2(string a) as string
-    string out = ""
+    string outputValue = ""
     int rem = 0
     int n = string.len(a)
     int i = 0
     while i < n do
         int d = string.byteAt(a, i) - 48 + rem * 10
-        out = out + string.charAt("0123456789", d / 2)
+        outputValue = outputValue + string.charAt("0123456789", d / 2)
         rem = d % 2
         i += 1
     end
-    return stripLeadZeros(out)
+    return stripLeadZeros(outputValue)
 end
 
 func isEven(string s) as bool

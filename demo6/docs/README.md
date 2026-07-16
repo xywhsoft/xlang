@@ -25,6 +25,7 @@
 - `命令行设计.md`：CLI、四阶段编译管线、调试 dump、构建、运行和 C 混编命令。
 - `标准库设计.md`：标准库默认注册、短命名空间、XRT/CRT 边界、第一批标准库函数、暂缓能力和后续设计议题。
 - `XRT扩展标准库API.md`：当前已公开的扩展标准库对象、函数、常量、异步语义和 C/XRT 对照接口。
+- `数据格式与归档扩展库设计.md`：JSON/XSON、codec、hash/crypto、archive、template、encoding 等数据格式与归档扩展库设计。
 - `网络服务基座补全设计.md`：XRT 网络服务基座、HTTP server 标准库、路由、静态资源、请求响应对象和 xs 静态原型支撑设计。
 - `异常处理与文档注释设计.md`：异常处理、断言、高级错误模型和 `#doc ... #end` 文档注释。
 - `调试器与task_async_generator设计.md`：完整调试器体系、高层 `task` API 和 `async generator<T>` 的设计口径、开发顺序和验收标准。
@@ -33,6 +34,7 @@
 - `TCC内嵌与运行入口设计.md`：内嵌 `libtcc`、运行版/编译版 DLL 分层、`xlang_main(xvalue arg)` 入口 ABI、VFS 资源包和 TCC IO 边界。
 - `脚本嵌入与TCC模块设计.md`：`tcc` 模块、脚本嵌入、动态 VFS、运行版/编译版能力边界和按需嵌入裁剪口径。
 - `union设计.md`：C 风格 `union` 的语法、规则、代码生成、C ABI 和ABI 元数据。
+- `xs2生产级重构设计.md`：XS 2.0 的 HTTP/HTTPS、TCP/UDP、动态 C/xlang handler、虚拟主机、原子 reload、生产配置、稳定性和博客系统验收口径。
 
 ## 当前工程与质量口径
 

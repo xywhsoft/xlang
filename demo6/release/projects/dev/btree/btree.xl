@@ -5,14 +5,12 @@
 //   btree dump       构造示例树并打印结构（leaf 链 + internal 层级）
 //   btree help       打印用法
 //
-// 设计要点（结合 dev/README.md 与 BUGS.md）：
+// 设计要点：
 //   - 阶 m=4：internal 最多 4 子（3 键），leaf 最多 3 键。
 //     leaf 下限 = 2 键，internal 下限 = 1 键（2 子）；root 可更少。
-//   - 节点用单一 BPlusTreeNode class（leaf 标志区分 leaf/internal）——组合而非继承，
-//     规避 BUG-RT1/RT2（typed Base 字段/array<Base> 致 vtable 切片/崩溃）。
-//   - 节点池：BPlusTree.nodes 为 var 数组（index = node id）；节点按 id 引用。
-//     var 数组承载 class 实例 + as 还原是 README 记录的已验证能力。
-//   - 值语义：getNode 取出的是副本，修改后用 setNode 写回（探针已确认 write-back 持久）。
+//   - 节点用单一 BPlusTreeNode class（leaf 标志区分 leaf/internal），组合关系清晰。
+//   - 节点池使用 array<BPlusTreeNode>，节点按稳定整数 id 引用。
+//   - class 是受管理引用；getNode 返回同一节点对象，字段修改会直接保留。
 //   - 递归用 var 数组承载 split 结果（[upKey, newRightId]），避免 var dict 在递归中触发。
 //   - class 继承：BPlusTree extends IndexEngine（virtual engineKind + base() + describe），
 //     始终以具体 BPlusTree 实例调用，不从函数返回带 virtual 的实例。
@@ -141,13 +139,13 @@ end
 class BPlusTree extends IndexEngine
     derive value
 
-    var nodes = []         // 节点池：var 数组，index = node id
+    array<BPlusTreeNode> nodes = array<BPlusTreeNode>[] // 节点池，index = node id
     int rootId = 0
     int keyCount = 0
 
     create(string name)
         base(name)
-        self.nodes = []
+        self.nodes = array<BPlusTreeNode>[]
         BPlusTreeNode r = BPlusTreeNode()    // 空叶根
         self.nodes.push(r)
         self.rootId = 0
@@ -158,16 +156,10 @@ class BPlusTree extends IndexEngine
         return "bplus"
     end
 
-    // ---- 节点池访问（值语义 write-back）----
+    // ---- 节点池访问 ----
 
     func getNode(int id) as BPlusTreeNode
-        var v = self.nodes[id]
-        BPlusTreeNode n = v as BPlusTreeNode
-        return n
-    end
-
-    func setNode(int id, BPlusTreeNode n)
-        self.nodes[id] = n
+        return self.nodes[id]
     end
 
     func allocNode(BPlusTreeNode n) as int
@@ -234,7 +226,6 @@ class BPlusTree extends IndexEngine
             if pos >= 0 then
                 // 已存在：覆盖值，不分裂
                 n.vals[pos] = val
-                self.setNode(id, n)
                 return []
             end
             int ip = lowerBound(n.keys, key)
@@ -242,7 +233,6 @@ class BPlusTree extends IndexEngine
             n.vals.insert(ip, val)
             int lenk = n.keys.length
             if lenk <= MAX_KEYS then
-                self.setNode(id, n)
                 return []
             end
             // 叶分裂
@@ -264,7 +254,6 @@ class BPlusTree extends IndexEngine
             right.next = n.next
             int rightId = self.allocNode(right)
             n.next = rightId
-            self.setNode(id, n)
             var ret = [upKey, rightId]
             return ret
         end
@@ -290,7 +279,6 @@ class BPlusTree extends IndexEngine
         n.children.insert(ip + 1, newChild)
         int lenk = n.keys.length
         if lenk <= MAX_KEYS then
-            self.setNode(id, n)
             return []
         end
 
@@ -320,7 +308,6 @@ class BPlusTree extends IndexEngine
             n.children.remove(n.children.length - 1)
         end
         int rightId2 = self.allocNode(rightI)
-        self.setNode(id, n)
         var ret2 = [pushKey, rightId2]
         return ret2
     end
@@ -361,7 +348,6 @@ class BPlusTree extends IndexEngine
             end
             n.keys.remove(pos)
             n.vals.remove(pos)
-            self.setNode(id, n)
             return true
         end
         // internal
@@ -414,9 +400,6 @@ class BPlusTree extends IndexEngine
                     p.keys[childIdx - 1] = left.keys[llen - 1]
                     left.keys.remove(llen - 1)
                 end
-                self.setNode(leftId, left)
-                self.setNode(cId, c)
-                self.setNode(parentId, p)
                 return
             end
         end
@@ -445,9 +428,6 @@ class BPlusTree extends IndexEngine
                     p.keys[childIdx] = right.keys[0]
                     right.keys.remove(0)
                 end
-                self.setNode(rightId, right)
-                self.setNode(cId, c)
-                self.setNode(parentId, p)
                 return
             end
         end
@@ -494,8 +474,6 @@ class BPlusTree extends IndexEngine
         end
         p.keys.remove(leftIdx)
         p.children.remove(leftIdx + 1)
-        self.setNode(leftId, left)
-        self.setNode(parentId, p)
     end
 
     // 公开删除：返回 true=删除成功，false=不存在
@@ -651,11 +629,11 @@ class BPlusTree extends IndexEngine
 
     // ---- 序列化到 JSON（手动遍历，compact 保序）----
     func serialize() as string
-        var out = {}
-        out["name"] = self.name
-        out["order"] = ORDER
-        out["rootId"] = self.rootId
-        out["keyCount"] = self.keyCount
+        var outputValue = {}
+        outputValue["name"] = self.name
+        outputValue["order"] = ORDER
+        outputValue["rootId"] = self.rootId
+        outputValue["keyCount"] = self.keyCount
         var ns = []
         int total = self.nodes.length
         int i = 0
@@ -691,8 +669,8 @@ class BPlusTree extends IndexEngine
             ns.push(nd)
             i = i + 1
         end
-        out["nodes"] = ns
-        return json.stringify(out)
+        outputValue["nodes"] = ns
+        return json.stringify(outputValue)
     end
 
     // 从 JSON 文本重建（替换当前内容）
@@ -704,7 +682,7 @@ class BPlusTree extends IndexEngine
         self.name = string(data["name"])
         self.rootId = int(data["rootId"])
         self.keyCount = int(data["keyCount"])
-        self.nodes = []
+        self.nodes = array<BPlusTreeNode>[]
         var ns = data["nodes"]
         int total = ns.length
         int i = 0

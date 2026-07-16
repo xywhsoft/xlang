@@ -49,8 +49,12 @@ func genHex(int length) as string
     return string.lower(string.left(hex, length))
 end
 
+func randomHex8() as string
+    return int.format(uint64(random.u32()), "x8")
+end
+
 func genUuid() as string
-    string all = string.formatInt(random.u32(), "x8") + string.formatInt(random.u32(), "x8") + string.formatInt(random.u32(), "x8") + string.formatInt(random.u32(), "x8")
+    string all = randomHex8() + randomHex8() + randomHex8() + randomHex8()
     string p1 = string.left(all, 8)
     string p2 = string.mid(all, 8, 4)
     string p3 = "4" + string.mid(all, 13, 3)
@@ -96,7 +100,7 @@ func assessStrength(string pw) as string
     if hasUpper then detail = detail + "upper " end
     if hasDigit then detail = detail + "digit " end
     if hasSym then detail = detail + "symbol" end
-    return "[" + tag + "] " + string.formatInt(categories, "") + "/4 categories (" + detail + ")"
+    return "[" + tag + "] " + int.format(categories, "") + "/4 categories (" + detail + ")"
 end
 
 func printUsage()

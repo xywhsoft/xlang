@@ -27,13 +27,10 @@
 //   line 1: magic "XVMBC1"
 //   each remaining line: one integer cell (opcode or operand)
 //
-// Design notes / BUG workarounds:
+// Design notes:
 //   * No stdin API -> READ instruction returns 0 (reads from an optional
 //     input queue that can only be filled programmatically).
-//   * Class methods cannot safely receive array<int> params ->
-//     the VM loads bytecode in its constructor via a local copy loop;
-//     execution only touches self.* fields (indexed read/write works fine).
-//   * `return self.field.length` rejected -> cache into int local.
+//   * 字节码、数据栈、调用栈和槽位均使用静态 array<int>，布局简单且可预测。
 //   * `#` is not a comment -> use `//` in xlang source and `;` in asm source.
 
 
@@ -117,23 +114,6 @@ func makeArray(int n, int initVal) as array<int>
     return a
 end
 
-// Uppercase ASCII letters in s (for case-insensitive mnemonic lookup).
-func toUpper(string s) as string
-    string out = ""
-    int n = string.len(s)
-    int i = 0
-    while i < n do
-        int b = string.byteAt(s, i)
-        if b >= 97 and b <= 122 then
-            out = out + string.charAt("ABCDEFGHIJKLMNOPQRSTUVWXYZ", b - 97)
-        else
-            out = out + string.charAt(s, i)
-        end
-        i += 1
-    end
-    return out
-end
-
 // Validate that s is a decimal integer (optionally signed).
 func looksInt(string s) as bool
     int n = string.len(s)
@@ -159,7 +139,7 @@ end
 
 // Look up an opcode by uppercased mnemonic; -1 if not found.
 func opNameToCode(string name) as int
-    string up = toUpper(name)
+    string up = string.upper(name)
     int i = 0
     while i < NUM_OPS do
         if gNames[i] == up then
@@ -263,7 +243,7 @@ func assemble(string src) as array<int>
                 labelAddrs.push(addr)
                 ti += 1
             else
-                string mnem = toUpper(tok)
+                string mnem = string.upper(tok)
                 int opcode = opNameToCode(mnem)
                 if opcode < 0 then
                     gAsmError = "line " + string(li + 1) + ": unknown instruction '" + tok + "'"
@@ -384,7 +364,7 @@ end
 
 // Decode bytecode cells into human-readable assembly text.
 func disassembleCode(array<int> code) as string
-    string out = ""
+    string outputValue = ""
     int n = code.length
     int p = 0
     while p < n do
@@ -400,19 +380,19 @@ func disassembleCode(array<int> code) as string
         while string.len(addrStr) < 4 do
             addrStr = " " + addrStr
         end
-        out = out + addrStr + ":  " + name
+        outputValue = outputValue + addrStr + ":  " + name
         p += 1
         if hasOp != 0 then
             if p < n then
-                out = out + " " + string(code[p])
+                outputValue = outputValue + " " + string(code[p])
                 p += 1
             else
-                out = out + " <missing operand>"
+                outputValue = outputValue + " <missing operand>"
             end
         end
-        out = out + "\n"
+        outputValue = outputValue + "\n"
     end
-    return out
+    return outputValue
 end
 
 
@@ -436,14 +416,8 @@ class VM
 
     create(string src)
         array<int> bc = assemble(src)
-        int cn = bc.length
-        self.code = makeArray(cn, 0)
-        int ci = 0
-        while ci < cn do
-            self.code[ci] = bc[ci]
-            ci += 1
-        end
-        self.codeLen = cn
+        self.code = bc
+        self.codeLen = bc.length
         self.stack = makeArray(STACK_MAX, 0)
         self.callStack = makeArray(CALL_MAX, 0)
         self.slots = makeArray(SLOT_COUNT, 0)
@@ -793,22 +767,22 @@ class VM
 
     // Snapshot the value stack as "[ a b c ]".
     func dumpStack() as string
-        string out = "["
+        string outputValue = "["
         int i = 0
         while i < self.sp do
             if i > 0 then
-                out = out + " "
+                outputValue = outputValue + " "
             end
-            out = out + string(self.stack[i])
+            outputValue = outputValue + string(self.stack[i])
             i += 1
         end
-        out = out + "]"
-        return out
+        outputValue = outputValue + "]"
+        return outputValue
     end
 
     // Disassemble the loaded program (reads self.code).
     func disassemble() as string
-        string out = ""
+        string outputValue = ""
         int n = self.codeLen
         int p = 0
         while p < n do
@@ -823,19 +797,19 @@ class VM
             while string.len(addrStr) < 4 do
                 addrStr = " " + addrStr
             end
-            out = out + addrStr + ":  " + name
+            outputValue = outputValue + addrStr + ":  " + name
             p += 1
             if hasOp != 0 then
                 if p < n then
-                    out = out + " " + string(self.code[p])
+                    outputValue = outputValue + " " + string(self.code[p])
                     p += 1
                 else
-                    out = out + " <missing operand>"
+                    outputValue = outputValue + " <missing operand>"
                 end
             end
-            out = out + "\n"
+            outputValue = outputValue + "\n"
         end
-        return out
+        return outputValue
     end
 end
 

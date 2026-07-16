@@ -162,6 +162,20 @@ class SessionOptionsObject
 	func append_execution_provider(string provider_name, string options_json) as bool
 		return ort_session_options_append_execution_provider_with_options_native(self.handle, provider_name, options_json) != 0
 	end
+
+	func set_threads(int intra_op, int inter_op) as bool
+		bool ok1 = self.set_intra_op_num_threads(intra_op)
+		bool ok2 = self.set_inter_op_num_threads(inter_op)
+		return ok1 and ok2
+	end
+
+	func optimize_all() as bool
+		return self.set_graph_optimization_level(ORT_ENABLE_ALL)
+	end
+
+	func use_cpu() as bool
+		return self.append_execution_provider(CPUExecutionProvider)
+	end
 end
 
 class RunOptionsObject
@@ -431,6 +445,14 @@ end
 
 export func SessionOptions() as SessionOptionsObject
 	return SessionOptionsObject()
+end
+
+export func CpuSessionOptions(int intra_op, int inter_op) as SessionOptionsObject
+	auto options = SessionOptionsObject()
+	options.set_threads(intra_op, inter_op)
+	options.optimize_all()
+	options.use_cpu()
+	return options
 end
 
 export func RunOptions() as RunOptionsObject

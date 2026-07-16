@@ -45,7 +45,7 @@ const int FACE_STRIDE = 12   // 每个面在 faces 数组里占 12 个 float：
                              // sx0,sy0,sx1,sy1,sx2,sy2,sx3,sy3, depth, r, g, b
 
 float PI        = 3.14159265358979323846
-float NEAR      = 0.1           // 近裁剪面
+float CAMERA_NEAR_PLANE = 0.1  // 近裁剪面
 float INF_DEPTH = 1.0e30        // 深度缓冲初值（无穷远）
 float AMBIENT   = 0.35          // 环境光
 // 方向光：指向太阳的单位向量（归一化的 (0.4, 1.0, 0.5)）
@@ -77,9 +77,7 @@ func degToRad(float deg) as float
 end
 
 func clampF(float v, float lo, float hi) as float
-    if v < lo then return lo end
-    if v > hi then return hi end
-    return v
+    return math.clamp(v, lo, hi)
 end
 
 func clampByte(int v) as int
@@ -311,8 +309,8 @@ class Camera
         float cz = dx * self.fx + dy * self.fy + dz * self.fz
         float cx = dx * self.rx + dy * self.ry + dz * self.rz
         float cy = dx * self.ux + dy * self.uy + dz * self.uz
-        if cz < NEAR then
-            cz = NEAR
+        if cz < CAMERA_NEAR_PLANE then
+            cz = CAMERA_NEAR_PLANE
         end
         float sx = self.scx + cx / cz * self.focal
         float sy = self.scy - cy / cz * self.focal
@@ -359,7 +357,7 @@ func collectFaces(VoxelWorld world, Camera cam, array<float> faces)
                                 float csy = 0.0
                                 float ccz = 0.0
                                 csx, csy, ccz = cam.project(fcx, fcy, fcz)
-                                if ccz > NEAR then
+                if ccz > CAMERA_NEAR_PLANE then
                                     // 光照：diffuse = max(0, normal · toLight)
                                     float diff = fnx * LX + fny * LY + fnz * LZ
                                     if diff < 0.0 then
@@ -537,7 +535,7 @@ end
 // 帧缓冲 -> ASCII 灰度图（每像素按亮度映射到一个字符）
 func renderAscii(array<int> fb, int sw, int sh) as string
     string ramp = " .:-=+*#%@"
-    string out = ""
+    string outputValue = ""
     int y = 0
     while y < sh do
         string line = ""
@@ -551,13 +549,13 @@ func renderAscii(array<int> fb, int sw, int sh) as string
             line = line + string.slice(ramp, ci, 1)
             x += 1
         end
-        out = out + line
+        outputValue = outputValue + line
         if y + 1 < sh then
-            out = out + "\n"
+            outputValue = outputValue + "\n"
         end
         y += 1
     end
-    return out
+    return outputValue
 end
 
 // 帧缓冲 -> PPM (P3 ASCII) 文件
@@ -594,7 +592,7 @@ func renderDepthAscii(array<float> depth, int sw, int sh, float maxDist) as stri
     if maxDist <= 0.0 then
         maxDist = 1.0
     end
-    string out = ""
+    string outputValue = ""
     int y = 0
     while y < sh do
         string line = ""
@@ -614,13 +612,13 @@ func renderDepthAscii(array<float> depth, int sw, int sh, float maxDist) as stri
             line = line + string.slice(ramp, ci, 1)
             x += 1
         end
-        out = out + line
+        outputValue = outputValue + line
         if y + 1 < sh then
-            out = out + "\n"
+            outputValue = outputValue + "\n"
         end
         y += 1
     end
-    return out
+    return outputValue
 end
 
 // ========================================================================
@@ -920,7 +918,7 @@ func doRender(int width, int height, string outPath, string scene, float fov) as
     Camera cam = makeCamera(world, fov, width, height)
 
     println("[voxel] scene=" + scene + " grid=" + string(world.w) + "x" + string(world.h) + "x" + string(world.d))
-    println("[voxel] voxels=" + string(world.countSolid()) + " render=" + string(width) + "x" + string(height) + " fov=" + string.formatFloat(fov, ".1"))
+    println("[voxel] voxels=" + string(world.countSolid()) + " render=" + string(width) + "x" + string(height) + " fov=" + float.format(fov, ".1"))
     float t0 = time.timer()
     array<int> fb
     array<float> depth
@@ -941,7 +939,7 @@ func doRender(int width, int height, string outPath, string scene, float fov) as
         end
     end
 
-    println("[voxel] faces=" + string(faceCount) + " time=" + string.formatFloat(elapsed, ".3") + "s")
+    println("[voxel] faces=" + string(faceCount) + " time=" + float.format(elapsed, ".3") + "s")
     return 0
 end
 
@@ -982,7 +980,7 @@ func checkFloat(float actual, float expected, string label)
         println("  ok   " + label)
         gPass += 1
     else
-        println("  FAIL " + label + " (expected " + string.formatFloat(expected, ".3") + " got " + string.formatFloat(actual, ".3") + ")")
+        println("  FAIL " + label + " (expected " + float.format(expected, ".3") + " got " + float.format(actual, ".3") + ")")
         gFail += 1
     end
 end
@@ -1048,7 +1046,10 @@ func runTests() as int
     // --- 6. 背面剔除 ---
     // 法线 +X，相机在 +X 侧 -> 朝向相机（可见）
     check(faceFacesCamera(cam, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0) == false, "+X face away from cam at (0,0,5)")
-    Camera cam2 = Camera(Vec3(10.0, 0.0, 0.0), Vec3(0.0, 0.0, 0.0), Vec3(0.0, 1.0, 0.0), 90.0, 100, 100)
+    Vec3 sideEye = Vec3(10.0, 0.0, 0.0)
+    Vec3 sideTarget = Vec3(0.0, 0.0, 0.0)
+    Vec3 sideUp = Vec3(0.0, 1.0, 0.0)
+    Camera cam2 = Camera(sideEye, sideTarget, sideUp, 90.0, 100, 100)
     check(faceFacesCamera(cam2, 5.0, 0.0, 0.0, 1.0, 0.0, 0.0), "+X face toward cam at (10,0,0)")
 
     // --- 7. 光照：顶面比底面亮 ---
@@ -1109,7 +1110,7 @@ end
 // ========================================================================
 func main(...) as int
     initPalette()
-    // arg 仅在 main 内可用（BUGS.md NOTE-22/23）：收集后传给 parseRenderArgs。
+// main 收集命令行参数后传给 parseRenderArgs。
     array<string> args = array[]
     int ai = 0
     while ai < arg.length do

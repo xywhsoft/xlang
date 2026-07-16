@@ -1,0 +1,27 @@
+{
+    "format": "xlang-package-1",
+    "name": "csv",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "xrt_csv_common.c",
+            "xrt_csv_reader.c",
+            "xrt_csv_writer.c",
+            "csv_native.c"
+        ],
+        "xlSources": [
+            "src/csv.xl"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": {
+        "singleton": false,
+        "loadName": "",
+        "version": ""
+    }
+}

@@ -9,7 +9,7 @@
 //   * 并行全局数组（array<int>/float/string/bool）作为 SoA 组件存储
 //   * class 继承 + virtual/override（System 基类派发到 Movement/Physics/
 //     AI/Combat/Render 五个子类）
-//   * 多态容器 array<var> 承载 System 实例，`as System` 还原后 vtable 派发
+//   * 多态容器 array<System> 直接承载各类系统并通过 vtable 派发
 //   * 2D 瓦片地图（array<int> 一维模拟二维）
 //   * AABB 碰撞检测、轴分离响应、单向平台、重力
 //   * 有限状态机 AI（PATROL / CHASE / FLEE）
@@ -31,7 +31,7 @@
 // xlang 约定适配：
 //   * 全局并行数组在声明处初始化（array[]），用 push() 填充，不再整体重绑定。
 //   * Entity ID 引用全局数组，不用 class 层次存 entity。
-//   * virtual 方法仅用于 System 基类；多态容器用 array<var> + `as System`。
+//   * virtual 方法用于 System 基类，array<System> 保留派生系统的动态类型。
 //   * 无 `for i in 0..n` 区间语法，统一用 while 索引循环。
 
 // ===========================================================================
@@ -210,13 +210,7 @@ end
 
 // float 数值裁剪到 [lo, hi]。
 func clampF(float v, float lo, float hi) as float
-    if v < lo then
-        return lo
-    end
-    if v > hi then
-        return hi
-    end
-    return v
+    return math.clamp(v, lo, hi)
 end
 
 // int 数值裁剪。
@@ -237,10 +231,7 @@ end
 
 // 绝对值（float）。
 func absF(float v) as float
-    if v < 0.0 then
-        return 0.0 - v
-    end
-    return v
+    return math.abs(v)
 end
 
 // ===========================================================================
@@ -460,8 +451,7 @@ func runWorldSystems(World w)
     int n = w.systems.length
     int i = 0
     while i < n do
-        var item = w.systems[i]
-        System s = item as System
+        System s = w.systems[i]
         if s.enabled then
             s.update(w)
         end
@@ -499,7 +489,7 @@ class World
     int exitCol = 0                     // 出口瓦片坐标
     int exitRow = 0
 
-    array<var> systems = array[]        // System 实例列表（多态）
+    array<System> systems = array<System>[] // System 实例列表（多态）
 
     create(int w, int h)
         self.mapW = w
@@ -560,7 +550,7 @@ class World
     end
 
     // 注册一个 System。
-    func addSystem(var s)
+    func addSystem(System s)
         self.systems.append(s)
     end
 
@@ -1338,7 +1328,7 @@ end
 // 把 screen buffer 拼成单个多行字符串（带边框和 HUD）。
 func renderToString(World w) as string
     string top = "+" + string.repeat("-", w.viewW) + "+"
-    string out = top + "\n"
+    string outputValue = top + "\n"
     int r = 0
     while r < w.viewH do
         string line = "|"
@@ -1348,10 +1338,10 @@ func renderToString(World w) as string
             c += 1
         end
         line = line + "|"
-        out = out + line + "\n"
+        outputValue = outputValue + line + "\n"
         r += 1
     end
-    out = out + top + "\n"
+    outputValue = outputValue + top + "\n"
     // HUD
     string hpBar = ""
     if w.player >= 0 and hasComp(w.player, C_HEALTH) then
@@ -1375,8 +1365,8 @@ func renderToString(World w) as string
     if string.len(w.statusMsg) > 0 then
         hud = hud + "  | " + w.statusMsg
     end
-    out = out + hud + "\n"
-    return out
+    outputValue = outputValue + hud + "\n"
+    return outputValue
 end
 
 // ===========================================================================
@@ -2129,7 +2119,7 @@ end
 
 // T19: System 多态容器（vtable 派发）
 func testSystemPolymorphism() as bool
-    println("[T19] System virtual dispatch via array<var>")
+    println("[T19] System virtual dispatch via array<System>")
     resetRegistry()
     World w = World(10, 10)
     MovementSystem ms = MovementSystem()
@@ -2141,12 +2131,11 @@ func testSystemPolymorphism() as bool
     w.addSystem(combat)
     w.addSystem(render)
     bool ok = check("4 systems registered", w.systems.length == 4)
-    // runSystems 通过 `as System` + virtual update 派发，不应抛错
+    // runSystems 直接通过基类引用调用 virtual update。
     runWorldSystems(w)
     ok = check("runSystems executed without crash", true) and ok
     // describe 返回各 System 名字
-    var item = w.systems[0]
-    System s = item as System
+    System s = w.systems[0]
     ok = check("first system name is Movement", s.name == "Movement") and ok
     return ok
 end

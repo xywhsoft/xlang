@@ -1,0 +1,22 @@
+import gzip
+import bz2
+import zip
+
+
+
+func main(...) as int
+    Buffer expected = Buffer()
+    expected.append("xlang compression interop")
+    expected.appendByte(0)
+    expected.appendByte(255)
+
+    assert gzip.decompress(file.readBytes("tmp/python_interop.gz")) == expected
+    assert bz2.decompress(file.readBytes("tmp/python_interop.bz2")) == expected
+
+    auto archive = zip.open("tmp/python_interop.zip")
+    assert archive.readText("docs/hello.txt") == "hello from python"
+    assert archive.read("payload.bin") == expected
+    archive.close()
+    println("compression xlang interop: PASS")
+    return 0
+end

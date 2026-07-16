@@ -1,0 +1,167 @@
+extern "xtoml_error_code" func __toml_error_code() as int
+extern "xtoml_error_line" func __toml_error_line() as int
+extern "xtoml_error_column" func __toml_error_column() as int
+extern "xtoml_error_offset" func __toml_error_offset() as int
+extern "xtoml_error_message" func __toml_error_message() as point
+extern "xtoml_parse" func __toml_parse(point data, c_ulonglong size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_ulonglong maxItem,
+    c_ulonglong maxEntries, c_ulonglong maxNodes, c_uint maxDepth) as var
+extern "xtoml_load" func __toml_load(string path, c_ulonglong maxInput,
+    c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
+    c_ulonglong maxNodes, c_uint maxDepth) as var
+extern "xtoml_stringify" func __toml_stringify(var value,
+    c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
+    c_ulonglong maxNodes, c_uint maxDepth) as point
+extern "xtoml_save" func __toml_save(string path, var value,
+    c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
+    c_ulonglong maxNodes, c_uint maxDepth) as bool
+
+extern "xtoml_date" func __toml_date(c_int year, c_int month, c_int day) as var
+extern "xtoml_time" func __toml_time(c_int hour, c_int minute, c_int second,
+    c_int microsecond) as var
+extern "xtoml_datetime" func __toml_datetime(c_int year, c_int month,
+    c_int day, c_int hour, c_int minute, c_int second,
+    c_int microsecond) as var
+extern "xtoml_offset_datetime" func __toml_offset_datetime(c_int year,
+    c_int month, c_int day, c_int hour, c_int minute, c_int second,
+    c_int microsecond, c_int offsetMinutes) as var
+extern "xtoml_datetime_kind" func __toml_datetime_kind(var value) as int
+extern "xtoml_datetime_part" func __toml_datetime_part(var value,
+    c_int part) as int
+extern "xtoml_datetime_text" func __toml_datetime_text(var value) as point
+
+
+
+export func errorCode() as int
+    return __toml_error_code()
+end
+
+export func errorLine() as int
+    return __toml_error_line()
+end
+
+export func errorColumn() as int
+    return __toml_error_column()
+end
+
+export func errorOffset() as int
+    return __toml_error_offset()
+end
+
+func __toml_error() as string
+    return __xl_std_runtime_take_cstr(__toml_error_message())
+end
+
+export func parse(string text, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxItem = 268435456,
+    int maxEntries = 100000, int maxNodes = 1000000,
+    int maxDepth = 128) as var
+    Buffer data = Buffer()
+    data.append(text)
+    var result = __toml_parse(data.data(), c_ulonglong(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_ulonglong(maxItem),
+        c_ulonglong(maxEntries), c_ulonglong(maxNodes), c_uint(maxDepth))
+    if result == null then
+        throw TomlError __toml_error()
+    end
+    return result
+end
+
+export func load(string path, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxItem = 268435456,
+    int maxEntries = 100000, int maxNodes = 1000000,
+    int maxDepth = 128) as var
+    var result = __toml_load(path, c_ulonglong(maxInput),
+        c_ulonglong(maxOutput), c_ulonglong(maxItem),
+        c_ulonglong(maxEntries), c_ulonglong(maxNodes), c_uint(maxDepth))
+    if result == null then
+        throw TomlError __toml_error()
+    end
+    return result
+end
+
+export func stringify(var value, int maxOutput = 536870912,
+    int maxItem = 268435456, int maxEntries = 100000,
+    int maxNodes = 1000000, int maxDepth = 128) as string
+    point result = __toml_stringify(value, c_ulonglong(maxOutput),
+        c_ulonglong(maxItem), c_ulonglong(maxEntries),
+        c_ulonglong(maxNodes), c_uint(maxDepth))
+    if result == null then
+        throw TomlError __toml_error()
+    end
+    Buffer data = Buffer(result)
+    return data.text()
+end
+
+export func save(string path, var value, int maxOutput = 536870912,
+    int maxItem = 268435456, int maxEntries = 100000,
+    int maxNodes = 1000000, int maxDepth = 128)
+    if not __toml_save(path, value, c_ulonglong(maxOutput),
+        c_ulonglong(maxItem), c_ulonglong(maxEntries),
+        c_ulonglong(maxNodes), c_uint(maxDepth)) then
+        throw TomlError __toml_error()
+    end
+end
+
+export func localDate(int year, int month, int day) as var
+    var result = __toml_date(c_int(year), c_int(month), c_int(day))
+    if result == null then throw ValueError "invalid TOML local date" end
+    return result
+end
+
+export func localTime(int hour, int minute, int second = 0,
+    int microsecond = 0) as var
+    var result = __toml_time(c_int(hour), c_int(minute), c_int(second),
+        c_int(microsecond))
+    if result == null then throw ValueError "invalid TOML local time" end
+    return result
+end
+
+export func localDateTime(int year, int month, int day, int hour,
+    int minute, int second = 0, int microsecond = 0) as var
+    var result = __toml_datetime(c_int(year), c_int(month), c_int(day),
+        c_int(hour), c_int(minute), c_int(second), c_int(microsecond))
+    if result == null then throw ValueError "invalid TOML local datetime" end
+    return result
+end
+
+export func offsetDateTime(int year, int month, int day, int hour,
+    int minute, int second = 0, int microsecond = 0,
+    int offsetMinutes = 0) as var
+    var result = __toml_offset_datetime(c_int(year), c_int(month), c_int(day),
+        c_int(hour), c_int(minute), c_int(second), c_int(microsecond),
+        c_int(offsetMinutes))
+    if result == null then throw ValueError "invalid TOML offset datetime" end
+    return result
+end
+
+export func dateTimeKind(var value) as int
+    return __toml_datetime_kind(value)
+end
+
+export func isLocalDate(var value) as bool
+    return dateTimeKind(value) == 1
+end
+
+export func isLocalTime(var value) as bool
+    return dateTimeKind(value) == 2
+end
+
+export func isLocalDateTime(var value) as bool
+    return dateTimeKind(value) == 3
+end
+
+export func isOffsetDateTime(var value) as bool
+    return dateTimeKind(value) == 4
+end
+
+export func dateTimePart(var value, int part) as int
+    if dateTimeKind(value) == 0 then throw TypeError "value is not a TOML date/time value" end
+    return __toml_datetime_part(value, c_int(part))
+end
+
+export func dateTimeText(var value) as string
+    point result = __toml_datetime_text(value)
+    if result == null then throw TypeError "value is not a TOML date/time value" end
+    return __xl_std_runtime_take_cstr(result)
+end

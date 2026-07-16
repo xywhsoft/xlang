@@ -310,14 +310,19 @@ if errorlevel 1 (
     echo stdlib_string.c missing xrtNumFormat extern prototype.
     exit /b 1
 )
-findstr /C:"const char* __xl_std_string_format_int" build\test\stdlib_string.c >nul
+findstr /C:"xl_fn_____xl__std__int__format__int__string" build\test\stdlib_string.c >nul
 if errorlevel 1 (
-    echo stdlib_string.c missing string.formatInt helper.
+    echo stdlib_string.c missing int.format int overload.
     exit /b 1
 )
-findstr /C:"const char* __xl_std_string_format_float" build\test\stdlib_string.c >nul
+findstr /C:"xl_fn_____xl__std__int__format__uint64__string" build\test\stdlib_string.c >nul
 if errorlevel 1 (
-    echo stdlib_string.c missing string.formatFloat helper.
+    echo stdlib_string.c missing int.format uint64 overload.
+    exit /b 1
+)
+findstr /C:"const char* __xl_std_float_format" build\test\stdlib_string.c >nul
+if errorlevel 1 (
+    echo stdlib_string.c missing float.format helper.
     exit /b 1
 )
 findstr /C:"char** xrtSplit" build\test\stdlib_string.c >nul

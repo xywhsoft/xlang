@@ -39,7 +39,7 @@ func catchAssert() as int
         if e.message == "bad state" then
             messageOk = 1
         end
-        if e.kind == "AssertError" then
+        if e.kind == "AssertionError" then
             kindOk = 1
         end
     end

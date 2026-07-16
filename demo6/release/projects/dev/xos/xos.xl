@@ -1,72 +1,37 @@
-// xos.xl - Operating System Simulator (integrated)
+// xos - 集成式操作系统模拟器
 //
-// 闂備焦妞垮鍧楀礉瀹ュ洦鍏?
-//   xos test                     闂備礁鎲￠崝鏇㈠箠閹扮増鍋柛鈩冪⊕閳锋牠鏌涢埄鍏狀亪鎮橀崶顒佺厾濠靛倸顦花鑲╃磼? 闂佸搫顦弲婊呯矙閹捐鐓?闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋?闂備礁鎼崐绋棵洪敐鍛瀻?Shell/缂傚倷绶￠崹闈涚暦閻㈤潧鍨濋柧蹇氼潐鐎氼剟鏌涢幇鍏哥凹闁哄棗绻橀弻娑滅疀鐎ｎ亜顫囬梺纭呮閵堟悂寮?//   xos shell <script.xsh>       闂備礁婀遍悷鎶藉幢閳哄倹鏉?shell 闂備胶鍘ч悺銊у枈瀹ュ拑鑰?(闂傚倷绶￠崑鍛村礉濮椻偓閵嗕線骞嬮悩鍐叉瀭闂佹寧绻傚Λ娑㈠焵? 闂備浇銆€閸嬫挻銇勯弽銊р槈闁伙富鍠氱槐鎺楁偑閸涱垳鐦堟繛?闂傚倷鐒﹁ぐ鍐矓閹绢喗鍋╁Δ锝呭暞閺?闂備礁鎲￠懝鐐殽濮濆被浜?
-//   xos demo                     闂傚倸鍊稿Λ妤€螞濞嗘挸鍨傛慨姗嗗劦閻旂厧鐒洪柛鎰╁妿瑜版彃鈹戦悩铏婵﹤顭锋俊? 闂備礁鎲￠崙褰掑垂閻楀牊鍙?>闂備礁鎲″缁樻叏閹灐褰掑炊閳哄啰鐓撻柣搴秵娴滅偟鍠?>闂佽崵濮撮鍛村疮椤愩倐鍋?>闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋ら柕濞у懐顦╅梺鍝勫缁绘帒危?>闂備礁鎼崐绋棵洪敐鍛瀻妞ゃ垻鏋?>缂傚倸鍊风粈渚€鎮ф繝鍥舵晢?
-//   xos help                     闂備礁鎼€氼剚鏅舵禒瀣︽慨妯块哺閺嗘粍銇勯弮鍌氬付鐞?
+// 用法：
+//   xos test                 运行进程、内存、文件系统、Shell 和 syscall 自测
+//   xos shell <script.xsh>   执行 Shell 脚本
+//   xos demo                 运行完整的系统启动与调度演示
+//   xos help                 显示帮助
 //
-// 闂傚倸鍊稿Λ妤€螞濞嗘挸鍨傛慨妯垮煐閸庡秹鏌涢弴銊ょ敖閻庣懓顦…鍧楀醇閸℃鏆熼柟钘夌Ф缁辨帡顢涘┑鍡楁優缂?(闂備胶顭堢换鍫ュ礉瀹€鍕剳妞ゆ帒瀚粈鍕煠閹帒鍔滄繛?+ 闂備胶顭堢换鍫ュ礉瀹€鍕剳妞ゆ帒瀚崑鎰版偣娴ｇ瓔娼愰悗? 闂備礁鎲￠悷銉╁磻婵犲洤绠?cpusched/virtfs/procmgr 闁诲海鎳撻幉锟犳偂閿熺姵鍋樻繛鍡樺灦鐎氭艾霉閿濆澶勫〒姘ｅ亾闁?:
+// 功能组成：
+//   1. 进程管理：PCB 生命周期、三级 MLFQ、时间片、优先级提升和睡眠唤醒。
+//   2. 虚拟内存：二级页表、TLB、缺页处理、LRU 页面置换和进程地址空间释放。
+//   3. 文件系统：inode、目录树、权限、文件描述符及 open/read/write/lseek。
+//   4. Shell：命令解析、管道、重定向以及进程、内存、文件系统管理命令。
+//   5. syscall：用统一分派入口连接进程、内存和文件系统子系统。
 //
-//   1. 闂佸搫顦弲婊呯矙閹捐鐓濋柤娴嬫櫇娑撳秹鏌ㄥ☉妯侯仾闁?(Process Manager)
-//      - class PCB: pid/name/state/priority/burstTime/arrivalTime + 闂佽崵濮撮鍛村疮椤愩倐鍋撻悷鏉挎毐閻撱倝鏌涢幘妤€瀚▍銏ゆ煟鎼淬垻鈯曟い銊ユ椤?
-//      - MLFQ 濠电姰鍨奸崺鏍ь潩閵婏富娈介柛銉墮閻鈧箍鍎遍ˇ钘壝洪鐐粹拻闁告劦浜滈弸搴ㄦ煕? 3 濠电偞鍨堕幖鈺傜濞嗘垶顫曟い鎾卞灩缁€鍌炴煕椤愮姴鐏查柣娑欐崌濮婂宕橀鍕€婚梺?(Q0=2, Q1=4, Q2=8 闂備礁鎼崯顐︽偉閻撳宫娑㈠锤濡や礁浜遍梺鎼炲労閸忔﹢宕戦幘璇茬闁规惌鍘藉?, 闂備焦妞垮鍧楀礉瀹€鍕瀬闁哄稁鍘介埛鏃傗偓骞垮劚濞差參鎮?
-//      - 濠电偞鍨堕幐鎼佹晝閿濆洨绠旈柛娑欐綑濡﹢鏌涢妷鎴濆暟閳ь剙銈搁弻鐔肩嵁閸喚浠鹃柤鍨涙櫊閺?(闂備礁鎲＄敮鎺懨洪敃鈧悾鐑芥嚑椤掍礁顎涢梺鏂ユ櫅閸燁垰鈻?/ 濠电偞鍨堕幐鎼佹晝閿濆洨绠旈柛娑欐綑濡﹢鏌涢妷顖氼洭缂佺姳绮欓幃妤€鈽夊▍铏灦缁傛帡顢氶埀顒勫极?
-//      - 闂佸搫顦弲婊呯矙閹捐鐓濆┑鍌氭啞閸嬫劙鏌ら崫銉毌闁稿鎸婚幏鍛喆閸曨厾姣? NEW -> READY -> RUNNING -> (WAITING/READY) -> TERMINATED
-//
-//   2. 闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋ら柕濞у懍绗夐梺鎸庣☉鐎氼參宕?(Memory Manager)
-//      - 濠电偛鐡ㄧ划宀勬儔閸忕⒈娈介柛銉ｅ妸娴滄粌霉閿濆懎鏆旈柍? 濠碉紕鍋戦崐妤呭极缁嬫５鐑樺鐎涙ɑ娅?(8 闂? -> 濠碉紕鍋戦崐鎾跺緤婵犳艾违?(8 闂?, 闂備焦鍎崇换鎴犲枈瀹ュ洠鍋撳顓犳噰鐎规洜鍏樺鍫曞箰鎼达絿銈?10 闂?= [dir:3][tab:3][off:4]
-//      - TLB 缂傚倸鍊搁崐褰掑箰閹间焦鍋?(8 闂? 闂備胶顭堢换鍫ュ礉鎼粹埗瑙勫緞閹邦厽娅? 濠电偞鍨堕幐鎼佹晝閿濆洨绠旈柛娑欐綑濡﹢鏌涢妷鎴濆暟閳ь剙銈搁弻鐔肩嵁閸喚浠惧┑锛勫仜閸婂灝鐣峰鑸电叆閻庯綆鍋嗛崢?
-//      - LRU 濠碉紕鍋戦崐妤呭极鐠囧樊鐒介柟娈垮枤绾剧偓銇勯弮鍥棄閹?(闂佹眹鍩勯崹搴ㄥ礋椤掑袧闂傚倸鍊搁崐鎼佹偤閵娾晛鏄? 婵犵數濮磋墝闁逞屽墮閸熷潡鎮橀悢鍝ョ闁挎繂鏌€閹达箑纭€闁硅揪绠戠€氬鏌嶈閸撴氨绮欐繝鍥у窛妞ゆ棁妫勭槐锕傛⒑?
-//      - 闂備焦鍎崇换鎴犲枈瀹ュ洠鍋撳顓犳噰鐎规洜鍏樺鍫曞箰鎼达絿銈?-> 闂備胶绮妵娑㈠疾濠靛绠栧┑鐘叉搐閹瑰爼鏌℃径瀣嚋缂佽尪宕电槐鎾诲醇閻斿壊娼￠梺?(TLB 闂備礁鎲＄粙鎺楀垂濠靛鍤?/ 濠碉紕鍋戦崐鎾跺緤婵犳艾违闁告劦浜濈亸搴ㄦ煟濡も偓閻楀繘宕ｉ埀?/ 缂傚倸鍊搁崐鐟邦渻娴犲违?-> 闂備礁鎲＄敮鎺懳涘┑瀣偍?婵犵數鍎戠徊鎹愭懌闂?
-//
-//   3. 闂備礁鎼崐绋棵洪敐鍛瀻闁靛繈鍨圭€垫煡鏌ゆ慨鎰偓妤呭春?(File System, 濠电姰鍨煎▔娑氱矓閸洖鏋?virtfs 闂備浇顕栭崜姘辨崲閸℃稒鍎?
-//      - inode + 闂備胶鍎甸弲鈺呭窗閺嶎偆绀婄€广儱顦伴弲?(闂備胶鍘ч幖顐﹀磹婵犳艾纾婚柨婵嗩槹閺? id 闁诲孩顔栭崰妤€煤濠婂牆鏋?
-//      - open/read/write/close/lseek/mkdir/ls/rm/create
-//      - 闂備礁鎼ˇ顖炲疮閺夋埈鐎堕柛婵嗗珋閻旂厧鐒洪柛鎰╁妿瑜?(rwx: r=4, w=2, x=1)
-//      - 闂備胶顭堢换鍫ュ礉瀹€鍕剳妞ゆ帒瀚粻銉╂煙閹咃紞缁炬儳顭烽弻锟犲磼濮橆厾鐓戝┑鐐叉閸ㄤ粙寮?(fd), lseek 婵犵數鍋為幐鎼佸箟閿熺姵鍋?
-//
-//   4. Shell
-//      - 闂備礁鎲＄粙鎺楀垂濠靛绠柕鍫濇处閸犲棝鏌ㄥ┑鍡橆棤闁? 缂傚倷鑳舵刊瀵告崲濠靛洨顩?`|` / 闂傚倷鐒﹁ぐ鍐矓閹绢喗鍋╁Δ锝呭暞閺?`>` `<` / 闂備礁鎲￠懝鐐殽濮濆被浜?`&`
-//      - 闂備礁鎲￠崝鏇㈠箠閹扮増鍋柛鈩冪☉瀹告繈鏌熺€涙ê绗氬┑? ls/cat/echo/ps/mem/kill/exec/help/cd/pwd/mkdir/touch/rm/alloc/free
-//      - 缂傚倷鑳舵刊瀵告崲濠靛洨顩? 闂備礁鎲￠幐鍝ョ矓瀹曞洨鍗氶柟缁㈠枛瀹告繈鏌熺€涙ê绗氬┑?stdout 濠电偠鎻徊鍓у垝閸垺瀚婚柣鏃傚帶鐟欙箓骞栫€涙绠樻い蹇涗憾閺屾稑鈽夊▎蹇曚喊闂?stdin
-//
-//   5. 缂傚倷绶￠崹闈涚暦閻㈤潧鍨濋柧蹇氼潐鐎氼剟鏌涢幇鍏哥凹闁哄棗绻橀弻鐔煎箒閹烘垵濮庨悷?
-//      - syscall(op, args) -> 缂傚倸鍊烽懗鍫曞窗瀹ュ洨鍗氶柟缁㈠枛缁€鍌炴煏婢跺牆鍔氱紓? 闂備礁鎲＄敮鎺懳涘Δ鍕╀汗闁稿瞼鍋涚粈鍡涙煙瀹勬壆鐏辩紒鐘差煼閺?闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋?闂備礁鎼崐绋棵洪敐鍛瀻闁靛繆鎳囬崑鎾斥槈濞嗗繐顫庨梻渚囧枟閹告娊寮?//      - op: FORK/EXEC/EXIT/OPEN/READ/WRITE/CLOSE/LSEEK/MKDIR/LS/RM/PS/MEM/KILL/...
-//
-// 闂傚倸鍊稿Λ妤€螞濞嗘挸鍨傛慨姗嗗劦閻旂厧鐒洪柛鎰╁妿瑜版煡姊?
-//   boot() -> 闂備礁鎲＄敮妤冪矙閹寸姷纾?init(PID1) 闂佸搫顦弲婊呯矙閹捐鐓?-> init exec 濠电姰鍨奸崺鏍儗椤曗偓閺屽苯顭ㄩ崨顖滅厯闁诲函缍嗘禍鐐靛枈?-> MLFQ 闂佽崵濮撮鍛村疮椤愩倐鍋撻悷鏉挎毐妞ゆ洏鍎甸、鏃堝幢濡ゅ啰鏆?->
-//   婵犳鍣徊鐣屾崲鐎ｎ喗鐓傛繝濠傜墕缁秹鏌涢锝嗙闁挎稓鍠栭弻锝呂旈埀顒€煤閵堝鑸归悗娑櫳戞禍銈嗙箾閹寸偛鐒归柡灞诲€濋弻鐔虹箔濞戞ɑ锛嶉柡鈧禒瀣厵闁割煈鍠氬皬缂?(COMPUTE 闂佽崵鍠愰悷杈╃不閹达絻浜?CPU, OPEN/READ/WRITE 闂佽崵鍠愰悷杈╃不閹达絻浜?FS,
-//   ACCESS 闂佽崵鍠愰悷杈╃不閹达絻浜归柛宀€鍋涚粈鍐煕濞戝崬骞橀柟鐣屽Х缁辨捇宕奸悢鍓叉健闂?缂傚倸鍊搁崐鐟邦渻娴犲违? -> 缂傚倷绀侀鍛搭敄閸涱垵濮虫い鎾跺Х绾惧ジ鏌熼幆褏鎽犻悘?EXIT -> 闂備胶顭堢换鍫ュ礉閹达箑纾块悗闈涙憸绾惧ジ鏌涢銈呮珡闁?-> dump 缂傚倸鍊烽懗鍫曞窗閺囥埄鏁?
-//
-// xlang 闂佽崵濮抽悞锕€鐣峰鈧、姗€宕妷褎锛忛梺鎸庢婵倗浜搁崱妤婄唵閻犲搫鎼顐︽煙?(闂備礁鎲￠悷銉╁磻婵犲洤绠?dev/README.md "闁荤喐绮庢晶妤呭箰閸涘﹥娅犻柣妯虹仛婵ジ鏌熺憴鍕Е闁告埃鍋撻梻鍌氬€哥€氼參宕濋弴銏犳槬? 濠电偞鍨堕幐鍛婎殽閹间礁绠栭柛銉戝苯鏅犻梺闈涱槶閸庡崬顕?:
-//   - 闂備胶顭堢换鍫ュ礉瀹€鍕剳妞ゆ帒瀚崑鎰版煠閸濄儺鏆柛瀣尰閹峰懘鎮滃Ο缁橆吂濠碉紕鍋戦崐娑樷枖濞戙垺鍎?var/typed array, 闂?push/clear 濠电姭鎷冮崨顓濈捕闂? 濠电偞鍨堕幐鍝ョ矓瑜版帒闂柛婵勫劤绾惧ジ鏌熺€涙绠橀柡?(procmgr 闂備礁鎲￠懝楣冨嫉椤掑嫷鏁?.
-//   - class PCB/Inode/TlbEntry derive value, 闂傚倷绶￠崑鍛┍閾忚宕?g_xxx[i].field 闂備胶鍎甸弲娑㈡偤閵娧勬殰?mutate
-//     (cpusched 闁诲海鎳撻幉锟犳偂閿熺姵鍋樻繛鍡樻尰閺?array<T> 闂備胶顭堢换鎰板疮閹殿喚鐭嗙€光偓閳ь剟鍩€椤掍胶鈯曟い銊ユ椤㈡瑥鐣濋崟顒€鍓柣搴㈢⊕閿氬璺虹Ч閹顦叉い鎴濇嚇閸┾偓妞ゆ帒鍊哥敮鍓佹喐閻楀牏鍙€妤犵偞鍔栭幏鍛槹鎼达絾姣?.
-//   - 濠电偞鍨堕幐鍝ョ矓閸洖鏋?set/get/let 濠电偠鎻徊鍓у垝瀹€鍕惞闂侇剙绉撮弸渚€鏌℃径瀣嚋闁? 闂佽绻掗崑鎰板磻閹剧粯鈷戞い鏂挎惈婵倸霉鐏忔牗娅呮い鏇秮閸┾偓?path/dir 闂?stdlib 闂備礁鎲＄粙鏍涢崟顖氱畺闁哄洨濮烽惌姘箾瀹割喕绨奸柨?.
-//   - 濠碉紕鍋戦崐娑樷枖濞戙垺鍎戝ù鍏兼綑缁€鍕煠閹帒鍔滄繛鍫濈埣閺屾稑顫濋鍌傃兠圭亸鏍ㄦ珔妞ゆ洩缍侀崺鈧?C 闂備礁鎼粔鏉懨洪妶澶婇棷妞ゆ牗绋掗崕鐔兼煙閹规劕鐨虹紒鐘辩矙閺岋綁鏁愰崱娆愬櫑闂?(BUG-CL2).
-//   - 濠电偞鍨堕幐鍝ョ矓鐠哄ソ娲锤濡や焦娅?return self.field.length, 闂備胶顭堢换鎰版偋閹版澘绠氶柕鍫濇矗濞岊亪鏌嶈閸撶喖寮?int.
-//   - 闂?stdin API, 闂備胶顭堢换鍫ュ礉閹达箑纾块柟缁㈠枟閺?argv / 闂備礁鎲￠崝鏇㈠箠閹扮増鍋柛鈩冪⊕閸ゅ洦鎱ㄥ鍡楀箺闁瑰嘲宕—鍐偡閺夎儻鍩炴繝?
-
+// 该项目故意使用固定大小的数组和整数句柄模拟内核表，保持状态布局可观察、
+// 测试可重复；它不是宿主操作系统 API 的薄包装。
 
 // ===============================================================
-//  闂佹眹鍩勯崹閬嶅箖閸岀偛闂柧蹇撳帨閸嬫挾鎲撮崟顓犲彎缂?
+// 全局常量与运行状态
 // ===============================================================
 
-// ---- 闂佸搫顦弲婊呯矙閹捐鐓濆┑鍌氭啞閸嬫劙鎮规担绛嬫綈閻?----
 int PROC_NEW        = 0
 int PROC_READY      = 1
 int PROC_RUNNING    = 2
 int PROC_WAITING    = 3
 int PROC_TERMINATED = 4
 
-// ---- MLFQ 濠电姰鍨奸崺鏍ь潩閵婏富娈介柛銉墮閻鈧箍鍎遍ˇ钘壝洪鐐粹拻闁告劦浜滈弸搴ㄦ煕?----
 int MLFQ_LEVELS = 3
-int MLFQ_Q0     = 2     // 闂備礁鎼悧鍐磻閹炬緞鏃堝磼濞淬垼鍋愬Σ鎰邦敇閵忕姷顦ч梺鍓插亖閸ㄤ粙鎮? 闂備礁鎼悧鍐磻閹剧粯鍊堕煫鍥ㄦ尵缁犲弶淇婇悙鎻掆偓鍨潖閼姐倐鍋撻悽娈跨劸妞?
+int MLFQ_Q0     = 2
 int MLFQ_Q1     = 4
-int MLFQ_Q2     = 8     // 闂備礁鎼悧鍐磻閹捐秮褰掓晲閸涱垰鍤紓渚€纭搁崣鍐ㄧ暦濡ゅ懎閱囬柕蹇嬪€楀畷? 闂備礁鎼悧鍐磻閹炬剚鐔嗛柛顐㈡鐎氼參藝瑜斿濠氬磼濮樼厧娈舵繝?
-int MLFQ_BOOST  = 50    // 闂?N 闂?tick 闂備胶顭堥鍡涙儗椤斿墽鍗氶柡澶嬪灍閺嬪酣鏌嶉妷銊ョ毢闁哥姵锕㈤弻娑滅疀閹捐泛鈪辨俊銈囧Т濞差參鐛幘璇茬疀妞ゆ巻鍋撶痪?(闂傚倷绶￠崜娆撴倶濠靛鍌ㄩ柕鍫濇－濞堜即鏌曟径鍡樻澓闁?
+int MLFQ_Q2     = 8
+int MLFQ_BOOST  = 50
 
-// ---- 闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋?----
 int FRAME_SIZE      = 16
 int NUM_FRAMES      = 32
 int PAGE_DIR_SIZE   = 8
@@ -76,14 +41,12 @@ int NUM_TAB_SLOTS   = 512
 int TLB_SIZE        = 8
 int PAGE_INVALID    = -1
 
-// 闂備焦鍎崇换鎴犲枈瀹ュ洠鍋撳顓犳噰鐎规洜鍏樺鍫曞箰鎼达絿銈峰┑鐐舵彧缁茬晫绮旂€靛摜鍗氬瀣凹濞岊亪鏌? [dir:3][tab:3][off:4] = 10 闂? 闂備浇鍋愰崢褔宕鈷?0..1023
 int OFF_BITS = 4
 int OFF_MASK = 15     // 0xF
 int TAB_BITS = 3
 int TAB_MASK = 7      // 0x7
 int DIR_MASK = 7
 
-// ---- 闂備礁鎼崐绋棵洪敐鍛瀻闁靛繈鍨圭€垫煡鏌ゆ慨鎰偓妤呭春?----
 int FT_FILE = 0
 int FT_DIR  = 1
 int NIL     = -1
@@ -97,7 +60,6 @@ int PERM_NONE = 0
 int MAX_OPEN_FILES = 64
 int MAX_INODES = 1024
 
-// ---- 缂傚倷绶￠崹闈涚暦閻㈤潧鍨濋柧蹇氼潐鐎氼剟鏌涢幇鍏哥凹闁哄棗绻橀弻?----
 int SYS_FORK  = 1
 int SYS_EXEC  = 2
 int SYS_EXIT  = 3
@@ -118,63 +80,56 @@ int SYS_ALLOC = 17
 int SYS_ACCESS = 18
 int SYS_HELP  = 19
 
-// ---- 闂傚倷绶￠崑鍛潩閵娾晛鏋?----
 int EXIT_OK = 0
 int SLASH_BYTE = 47   // '/'
 
 
 // ===============================================================
-//  闂備胶顭堢换鍫ュ礉瀹€鍕剳妞ゆ帒瀚崑鎰版偣娴ｇ瓔娼愰悗? 闂佸搫顦弲婊呯矙閹捐鐓濋柤娴嬫杹閸嬫挸鈽夊▎蹇擃潕闂備緡鍠楅幐鎶藉极?// ===============================================================
 
-array<PCB> g_pcb = array[]        // 闂佸搫顦弲婊呯矙閹捐鐓濆┑鍌滎焾缁犲磭鎲稿澶婃槬婵°倕鎳庨柨銈嗕繆閵堝嫯鍏屾繛? index = pid
-array<int> g_mlfq0 = array[]      // 闂備礁鎼悧鍐磻閹炬緞鏃堝磼濞淬垼鍋愬Σ鎰邦敇閵忕姷顦ч梺鍓插亖閸ㄤ粙鎮伴幘缁樺€堕煫鍥ㄧ煯閸氼偊鏌涘Δ鈧柊锝咁潖婵傚憡鍋勭€瑰嫭澹嗘禒?(闂?pid)
+array<PCB> g_pcb = array[]
+array<int> g_mlfq0 = array[]
 array<int> g_mlfq1 = array[]
-array<int> g_mlfq2 = array[]      // 闂備礁鎼悧鍐磻閹捐秮褰掓晲閸涱垰鍤紓渚€纭搁崣鍐ㄧ暦濡ゅ懎閱囬柕蹇嬪€楀畷婊堟煟韫囨挾绠哄ù婊庡墴瀹曗剝鎯旈妸锔规寑闂佺粯鏌ㄩ崲鏌ユ倶?
-int g_currentPid   = NIL          // 闁荤喐绮庢晶妤呭箰閸涘﹥娅犻柣妯款嚙绾偓闂佺粯锚閻忔岸寮?CPU 闂?pid
-int g_nextPid      = 1            // 濠电偞鍨堕幐鎼侇敄閸曨厾鍗氶柟缁㈠枟閺?pid (闂?1 闁诲孩顔栭崰鎺楀磻閹剧粯鐓? 0 濠电儑绲藉ú锔炬崲閸曨垰姹查柍褜鍓熼弻?idle)
-int g_contextSwitches = 0         // 濠电偞鍨堕幐鎼佹晝閿濆洨绠旈柛娑欐綑濡﹢鏌涢妷鎴濆暟閳ь剙銈搁弻鐔肩嵁閸喚浼囧銈嗘尰閹倿寮?
-int g_totalTick    = 0            // 闂備胶顭堢换鍫ュ礉瀹€鍕剳妞ゆ帒鍊圭€氼剟鏌涢幇鈺佸妞?tick
-int g_lastBoost    = 0            // 濠电偞鍨堕幐鎼佹晝閵夆晩鏁冮柛蹇曞帶椤曡鲸淇婇姘儓閻㈩垬鍎崇槐鎺楁偑濞嗗繐顏╃紒鎻掔秺閺屾稑螖閳ь剙煤閵娿儮鏋?tick
-bool g_trace       = false        // 闂備礁鎼€氱兘宕规导鏉戠畾濞撴埃鍋撴鐐茬Ч楠炴﹢宕橀懠顑惧亼闂備礁婀遍悷鎶藉幢閳哄倹鏉?trace
+array<int> g_mlfq2 = array[]
+int g_currentPid   = NIL
+int g_nextPid      = 1
+int g_contextSwitches = 0
+int g_totalTick    = 0
+int g_lastBoost    = 0
+bool g_trace       = false
 
-// idle 闂佸搫顦弲婊呯矙閹捐鐓濆┑鍌氭啞閸庡秹鏌涢弴銊ュ箻闁哄苯鐗撻幃瑙勬媴閹绘帒鈷夊┑锛勫仜閸婂潡寮?
 int g_idleTicks    = 0
 
 
 // ===============================================================
-//  闂備胶顭堢换鍫ュ礉瀹€鍕剳妞ゆ帒瀚崑鎰版偣娴ｇ瓔娼愰悗? 闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋ら柕濞р偓閸嬫挸鈽夊▎蹇擃潕闂備緡鍠楅幐鎶藉极?// ===============================================================
 
-array<int> g_frameOwner = array[]    // 闂佹眹鍩勯崹搴ㄥ礃椤忓柊銊╂⒑?pid, -1 = 缂傚倷绀侀張顒€顪冮挊澹?
-array<int> g_frameTick  = array[]    // 闂?last-access 闂備礁鎼崯顐︽偉閻撳宫娑㈠锤濡や焦娅?(LRU 濠电偞鎸荤喊宥囨崲閸愩劎鏆?
-array<int> g_ptDir      = array[]    // 濠碉紕鍋戦崐妤呭极缁嬫５娲箯鐏炶姹楅梺鍝勬川閸犳挸顭?(闂備胶鎳撻崥鈧紒鈧笟鈧弻? dirId*8+i -> pageTableId|闂?)
+array<int> g_frameOwner = array[]
+array<int> g_frameTick  = array[]
+array<int> g_ptDir      = array[]
 array<bool> g_ptDirUsed = array[]
-array<int> g_ptTab      = array[]    // 濠碉紕鍋戦崐鎾跺緤婵犳艾违闁告劦鍠楅弲?(闂備胶鎳撻崥鈧紒鈧笟鈧弻? tabId*8+i -> frame|闂?)
+array<int> g_ptTab      = array[]
 array<bool> g_ptTabUsed = array[]
-array<TlbEntry> g_tlb   = array[]    // TLB 缂傚倸鍊搁崐褰掑箰閹间焦鍋?
+array<TlbEntry> g_tlb   = array[]
 
-// 闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋ら柕濞у懐锛滈梺缁樻⒐濡炲潡宕ラ埀?
-int g_memTranslate = 0     // 缂傚倸鍊搁悧濠偽ｉ幒妤佸剨鐟滄棃鐛埀顒傜磽娴ｇ櫢渚涢柛瀣斿洦鐓?
-int g_memTlbHit    = 0     // TLB 闂備礁鎲＄粙鎺楀垂濠靛鍤?
-int g_memTlbMiss   = 0     // TLB 闂備礁鎼悧婊勭濠婂牆绠犻柨鐔哄У閺?
-int g_memPageFault = 0     // 缂傚倸鍊搁崐鐟邦渻娴犲违濠㈣泛艌閺嬪酣鏌嶉埡浣告殲婵?
-int g_memEvict     = 0     // 婵犵數鍎戠徊鎹愭懌闂佸憡顨嗛崹鐢稿煝鎼淬劌鐒洪柛鎰ㄦ櫆椤?
-int g_memAlloc     = 0     // 缂傚倷绶氱涵鎼佸垂閻㈠壊鏁囬柟闂寸缁€鍡涙煕閳╁啰鈽夐悽顖涘▕閺?
+int g_memTranslate = 0
+int g_memTlbHit    = 0
+int g_memTlbMiss   = 0
+int g_memPageFault = 0
+int g_memEvict     = 0
+int g_memAlloc     = 0
 
 // ===============================================================
-//  闂備胶顭堢换鍫ュ礉瀹€鍕剳妞ゆ帒瀚崑鎰版偣娴ｇ瓔娼愰悗? 闂備礁鎼崐绋棵洪敐鍛瀻闁靛繆鎳囬崑鎾斥槈濞嗗繐顫庨梻渚囧枟閹告娊寮?// ===============================================================
 
-array<Inode> g_inodes = array[]     // inode 闂? index = inode number
+array<Inode> g_inodes = array[]
 int g_rootIno  = 0
 int g_cwdIno   = 0
 int g_nextIno  = 1
 
-array<OpenFile> g_open = array[]    // 闂備胶鎳撻悘姘跺箰閸濄儲顫曢柟杈剧畱濡﹢鏌涢妷顖炴妞ゆ劒绮欓弻? index = fd
-array<bool> g_openUsed = array[]    // fd 闂備礁鎼€氱兘宕规导鏉戠畾濞撴埃鍋撶€规洩绻濋幃鈺呭垂椤愶絾顓?
+array<OpenFile> g_open = array[]
+array<bool> g_openUsed = array[]
 int g_openCount = 0
 
 
 // ===============================================================
-//  闂傚倷绶￠崑鍛潩閵娾晛鏋侀柕鍫濇媼閸熷懘鏌曟径鍫濆姎鐎电増妫冮弻娑㈠箣閿濆憛鎾绘煛?
 // ===============================================================
 
 func padR(string s, int w) as string
@@ -205,17 +160,14 @@ func maxi(int a, int b) as int
     return b
 end
 
-// 闂備胶顢婂▔娑㈡晝閵堝鍋ょ憸鏃堝箠閻愬搫纾兼繝濠傛噹閻忥綁姊?2 闂?hex 闂佸搫顦悧濠囧箰閹间礁鍚?(闂備焦妞垮鍧楀礉鐎ｎ剝濮虫い鎺戝缁€鍐煕濞戝崬骞橀柟?dump).
 func hex2(int b) as string
-    return string.formatInt(b & 0xFF, "x2")
+    return int.format(b & 0xFF, "x2")
 end
 
-// 闂備浇妗ㄧ粈渚€鎮洪妸鈺佹辈闁绘柨鎲℃慨婊勩亜閹哄棗浜鹃梺鐑╁閸涱垳鐣堕梺鎸庢閸庡銆?
 func i2s(int v) as string
     return string(v)
 end
 
-// 闂佽瀛╃粙鎺椼€冮崼銉晞濞达絽婀遍埢鏃堟煕濞嗗浚妲圭粭鎴︽⒑閸涘﹦鍟茬紓鍌涚缁傚秹骞掑Δ鈧拑鐔兼煙闁箑澧い銈呮噽缁辨捇宕掑Δ鈧禍楣冩倵濞堝灝鏋撻柛瀣崌閺?(闂佽崵鍠愰悷銉р偓姘卞鐎?stdlib 闂備礁鎲＄粙鏍涢崟顖氱畺闁哄洨濮烽惌姘箾瀹割喕绨奸柨娑氬枛閺屾盯骞囬姘辨闂佺粯绋戦敃顏堝箖娴犲惟闁挎棁濮ょ€氭娊姊洪棃鈺呮婵犮垺锕㈤幆鍐ㄢ攽鐎ｎ偅娅?.
 func startsWithP(string s, string pre) as bool
     return string.startsWith(s, pre)
 end
@@ -228,12 +180,10 @@ func splitP(string s, string sep) as var
     return string.split(s, sep)
 end
 
-// 闂備礁鎲￠…鍥╁垝椤栨粍鏆滈柍褜鍓欒灋闁挎繂妫涙晶顏堟煟閺冩垵澧扮紒顔藉哺閹煎湱鎲撮崟鍏告.
 func trimP(string s) as string
     return string.trim(s)
 end
 
-// 闂備線娼荤拹鐔煎礉瀹€鍕仱鐟滃繒鍒掗銏℃櫆闁兼剚鍨煎ú?s 濠电偞鍨堕幖鈺呭储閾忕懓鍨濋柣妯烘▕閸熷懘鏌ㄩ弮鍥棄妞ゃ儲绻勭槐鎺懳旀繝鍌氬箰缂備焦姊归幐鎶藉极?ch(byte) 闂備焦鐪归崝宀€鈧凹浜炵划顓㈠川鐎涙ɑ娅? 婵犵數鍋涙径鍥礈濠靛棴鑰垮ù锝堫潐娴溿倝鏌￠崒娑橆嚋缂佲偓閳?-1.
 func findByte(string s, int ch) as int
     int n = string.len(s)
     int i = 0
@@ -246,7 +196,6 @@ func findByte(string s, int ch) as int
     return -1
 end
 
-// 闂備礁鎲＄敮鍥磹閺嶎厼钃熼柛銉㈡杹閸嬫挸鈽夊▎妯荤暭濡炪倖鍨抽悞锔剧矙婢舵劕鐭楀璺虹懇閿曞倹鐓曟慨妯哄⒔閻ｉ亶鏌涘▎蹇曠缂佸顦甸幃婊兾熺紒姗嗗晙闂?
 func isDigits(string s) as bool
     int n = string.len(s)
     if n == 0 then return false end
@@ -261,10 +210,8 @@ func isDigits(string s) as bool
     return true
 end
 
-// 闂佽娴烽幊鎾凰囬鐐茬煑?int 闂佽崵鍠愰悷杈╁緤妤ｅ啯鍊? 濠电姰鍨洪崕鑲╁垝閸撗勫枂闁挎棁濮ゆ禍銈夋煛閸屾稑顕滅紒鈧埀?def.
 func parseIntSafe(string s, int def) as int
     if not isDigits(s) then
-        // 闂備胶顭堢换瀣归崶顒夋晩闊洦绋戠粈鍫⑩偓骞垮劚濞层劑寮?'-'
         int n = string.len(s)
         if n > 1 and string.byteAt(s, 0) == 45 then
             if isDigits(string.mid(s, 1, n - 1)) then
@@ -284,32 +231,33 @@ end
 
 
 // ===============================================================
-//  Part 1: 闂佸搫顦弲婊呯矙閹捐鐓濋柤娴嬫櫇娑撳秹鏌ㄥ☉妯侯仾闁?
 // ===============================================================
 
-// ---- PCB: 闂佸搫顦弲婊呯矙閹捐鐓濆┑鍌滎焾缁犲磭鎲稿澶婃槬婵°倕鎳忛弲?----
+// ===============================================================
+// 进程与 MLFQ 调度器
+// ===============================================================
 class PCB
     derive value
     int pid = 0
     string name = ""
     int state = 0
-    int level = 0            // 闁荤喐绮庢晶妤呭箰閸涘﹥娅犻柣妯款嚙缁犮儵鏌嶈閸撶喖寮?MLFQ 缂傚倷鑳剁€氬繘宕橀妸褍濮?(0/1/2)
-    int burstTime = 0        // 闂?CPU 闂傚倸鍊稿ú鐘诲磻閹剧粯鐓?
-    int arrivalTime = 0      // 闂備礁鎲＄敮妤佸垔娴犲绠垫い蹇撶墕缁秹鏌涢锝嗙闁?
-    int remaining = 0        // 闂備礁鎲￠幐鎾疾濞嗘垹绀?CPU 闂傚倸鍊稿ú鐘诲磻閹剧粯鐓?
-    int usedInLevel = 0      // 闂備線娼荤拹鐔煎礉瀹€鈧槐鐐碘偓锝庡枛缁€鍫⑩偓骞垮劚濞差參鎮伴幘缁樼厱闁圭儤绻傛禍婊堟煕閹搭垳绡€闁诡喕绮欐俊姝岊槼闁伙綁浜堕弻锟犲礃閵娧冪厽濠碘槅鍋勫锟犲极?
-    int parentPid = NIL      // 闂備胶绮悧妤呭磿閼测晜宕叉慨妞诲亾闁?pid
+    int level = 0
+    int burstTime = 0
+    int arrivalTime = 0
+    int remaining = 0
+    int usedInLevel = 0
+    int parentPid = NIL
     int waitTime = 0
     int startTime = -1
     int completionTime = 0
     int responseTime = -1
-    int pc = 0               // 缂傚倷绀侀鍛搭敄閸涱垵濮虫い鎾跺У婵ジ鏌嶉埡浣告殲婵炲牆鐖奸弻?(闂備礁婀遍…鍫澝洪妶澶婄畺?program 闂備浇妗ㄩ悞锔界珶閸℃瑥鍨濈€广儱妫涢埢鏃堟倵閿濆倹娅囨い蹇涗憾閺?
-    int ptDirId = NIL        // 闂佽崵濮村ú銏ゅ磿鐎靛憡宕叉俊顖濆亹閻瑩鎮楅敐搴″闁伙絽宕—鍐Χ閸ャ劍姣勫┑鐐跺紦閸楁娊寮?id (闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋ら柕濞р偓閸嬫挸鈽夊▎蹇擃潕闂備緡鍠楅幐鎶藉极?
-    int sleepUntil = -1      // WAITING 闂備胶绮…鍫ュ春閺嶎厼鐒垫い鎴ｆ硶閸斿秴霉閻欌偓閸ｏ綁寮?tick (-1 = 濠电偞鍨堕幐鍝ョ矓鐠轰警鐒芥い鏍仦閺?
+    int pc = 0
+    int ptDirId = NIL
+    int sleepUntil = -1
     int exitCode = 0
-    array<string> program = array[]   // 闁诲骸鐏氬姗€骞婅箛鏃€娅犻柣锝呮湰閸嬫鈧厜鍋撻柍褜鍓欓埢鎾诲箣閿曗偓缁犺偐鈧箍鍎辩€氼喚绮欐繝鍥х闁哄鍨圭粻浼存煕?
+    array<string> program = array[]
     array<int> fdMap = array[]
-    int computeLeft = 0               // 闁荤喐绮庢晶妤呭箰閸涘﹥娅犻柣妯款嚙鐎氬銇勮箛鎾愁伀闁哄棙宀搁弻鐔衡偓娑櫭慨澶嬬箾?compute 闂備礁鎲￠幐鎾疾濞嗘垹绀?tick (闂備浇銆€閸嬫挻銇勯弽銊р槈闁?quantum 闂備胶顢婄紙浼村垂閻熸壆鏆?
+    int computeLeft = 0
 end
 
 func procStateName(int s) as string
@@ -334,7 +282,6 @@ func procCreate(string name, int arrival, int burst, int level, array<string> pr
     p.parentPid = g_currentPid
     p.pc = 0
     p.program = program
-    // 濠电偞鍨堕幑鍥╃磽濮樿鲸宕叉俊顖濆亹閻瑩鎮楅敐搴濈盎闁诲骸顭峰娲级鐠恒剱褔鏌曢崱妤婃█闁诡垰瀚伴、娆撴嚃閳哄唭?(闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋ら柕濞р偓閸嬫挸鈽夊▎蹇擃潕闂備緡鍠楅幐鎶藉极?
     p.ptDirId = memAllocDir()
     g_pcb.append(p)
     int pid = g_nextPid
@@ -343,7 +290,6 @@ func procCreate(string name, int arrival, int burst, int level, array<string> pr
     return pid
 end
 
-// 闂備胶顢婂▔娑㈡晝閵娧勫床婵☆垵鍋愰惌娆撴倵閿濆骸澧伴柡瀣€块弻?TERMINATED, 闂傚倷鐒﹁ぐ鍐晝閵夆晛妫樺〒姘ｅ亾鐎规洘顨堥幑鍕传閸曨剚娈介梺璇插缁嬫帡鏁冮姀銈呂?
 func procTerminate(int pid, int code)
     if pid < 0 or pid >= g_pcb.length then
         return
@@ -363,9 +309,7 @@ func procTerminate(int pid, int code)
     trace("procTerminate pid=" + i2s(pid) + " code=" + i2s(code))
 end
 
-// ---- 闂佸搫顦弲婊呯矙閹捐鐓濋柤娴嬫櫇閻挸霉閿濆牜娼愮紒?fd 闂?(婵犳鍣徊鐣屾崲鐎ｎ喗鐓傛繝濠傚娴溿倖绻涢幋鐐茬劰闁哄被鍊濋弻锝呪枎濡搫顫梺?fd 缂傚倷绀侀張顒€顪冮挊澹? 闂備礁鎼€氼喗鎱ㄩ幘顔藉剭闁绘顕х粈鍡涙煛婢跺﹦浠㈢€殿喖娼￠幃姗€鎮欓埡浣峰闂備胶鎳撻悘姘跺箰閸濄儲顫曢柟瀵稿У閸嬫﹢鏌曟繛銈傚亾妞ゆ劧绲炬刊? ----
 
-// 闂備胶鎳撻悘姘跺箰閸濄儲顫曢柟杈剧畱濡﹢鏌涢妷顖炴妞ゆ劘濮ら〃銉╂倷閺夋垵濮稿銈冨劚閿曨亜鐣峰Δ鍛ㄩ柕濞у拋鍟嬬紓鍌欑椤戝懘顢栭崶顒婄稏闁糕剝绋戠€?fd 闂? 闂佸搫顦弲婊堝蓟閵娿儍?local fd (濠电姰鍨洪崕鑲╁垝閸撗勫枂?NIL).
 func procOpen(int pid, string path, string mode) as int
     int gslot = fsOpen(path, mode)
     if gslot == NIL then return NIL end
@@ -390,14 +334,12 @@ func procOpen(int pid, string path, string mode) as int
     return localFd
 end
 
-// local fd -> 闂備胶顭堢换鍫ュ礉瀹€鍕剳妞ゆ帒瀚粻銉╂煙閹咃紞缁炬儳顭烽幃璺衡槈閺嵮冾瀴闁撅箑楠搁湁?(闂備礁鎼崯鐗堟叏閻㈢鐤鹃柕澶涢檮娴溿倝鏌￠崒娑橆嚋缂佲偓閳?NIL).
 func procLocalToGlobal(int pid, int localFd) as int
     PCB p = g_pcb[pid]
     if localFd < 0 or localFd >= p.fdMap.length then return NIL end
     return p.fdMap[localFd]
 end
 
-// 闂備胶顭堢换鎴炵箾婵犲伣娑氣偓娑櫳戞禍銈嗙箾閹寸偛鐒归柡灞诲€濋弻锝夊Ω閵夈儺浠鹃梺缁樻尭濞诧妇绮?local fd.
 func procCloseLocal(int pid, int localFd) as bool
     PCB p = g_pcb[pid]
     if localFd < 0 or localFd >= p.fdMap.length then return false end
@@ -409,7 +351,6 @@ func procCloseLocal(int pid, int localFd) as bool
     return true
 end
 
-// 闂備胶顭堢换鎴炵箾婵犲伣娑氣偓娑櫳戞禍銈嗙箾閹寸偛鐒归柡灞诲€濋弻鐔哄枈濡桨澹曢梻浣告惈閻楀棝藝閻楀牊娅犻柨鏇楀亾妞ゆ洩缍侀崺鈧い鎺戝閸?fd (闂傚倷绶￠崑鈧柛瀣崌閺屾盯骞嬮悩鎻掑濠碉紕鍋涢崐鎼佸Υ閹烘宸濇い鏍ㄧ☉閳?.
 func procCloseAllFd(int pid)
     PCB p = g_pcb[pid]
     int i = 0
@@ -424,7 +365,6 @@ func procCloseAllFd(int pid)
     g_pcb[pid] = p
 end
 
-// 闂備胶顢婂▔娑㈡晝閵娧勫床婵☆垵鍋愰惌娆撴倵閿濆倹娅囬柣顓滃€濆濠氬礃椤忓嫭鐎婚梺鍓茬厛娴滄繄绮欐径鎰垫晣闁绘ɑ菤閺呯娀寮?(闂?pid 闂備線娼荤拹鐔煎礉鐎ｎ剛绠斿ù锝呮贡閳绘梹銇勮箛鎾跺鐞氭繈姊洪崨濠傜瑲妞ゃ劌锕畷铏槹鎼达絾锛忛梺鍦焾缁ㄥ爼宕戦幘璇℃Ъ闂佺粯鎼换婵嬪极?.
 func mlfqRemove(int pid)
     procRemoveFromQueue(g_mlfq0, pid)
     procRemoveFromQueue(g_mlfq1, pid)
@@ -444,7 +384,6 @@ func procRemoveFromQueue(array<int> q, int pid)
     end
 end
 
-// 闂備礁鎲″缁樻叏閹绢喖鐭楅柛鈩冪懁閻掑﹪寮堕崼姘珔鐎规洘娲熷濠氬礃椤忓嫭鐎婚梺?(闂?level 闂傚倷绶￠崑鍕囬幍顔瑰亾?, 闂備礁鎲￠懝楣冨嫉椤掆偓椤啴宕掗悙瀵稿帓閻庡箍鍎卞ú銊╁几?usedInLevel.
 func mlfqEnqueue(int pid, int level)
     if pid < 0 or pid >= g_pcb.length then return end
     g_pcb[pid].level = clamp(level, 0, MLFQ_LEVELS - 1)
@@ -459,7 +398,6 @@ func mlfqEnqueue(int pid, int level)
     end
 end
 
-// 闂備礁鎲＄敮妤佸垔娴犲绠垫い蹇撴噽椤╂煡鎮楅敐鍌涙珕妞? NEW -> READY (闂佸搫顦弲婊呯矙閹达箑鐭楅柛鈩冪憿閸嬫捇鎮介崹顐㈡畬缂備降鍔忕亸娆撴儉椤忓浂妲婚梺?.
 func procArrive(int pid)
     if pid < 0 or pid >= g_pcb.length then return end
     PCB p = g_pcb[pid]
@@ -468,7 +406,6 @@ func procArrive(int pid)
     trace("procArrive pid=" + i2s(pid) + " at tick " + i2s(g_totalTick))
 end
 
-// 闂傚倷绶￠崑鍕囬棃娴筹綁鏁冮崒姘鳖槴濠德板€愰崑鎾绘煏? 闂佸搫顦弲婊堝蓟閵娿儍?pid, 缂傚倷绀侀惌鍌滅磽濮樿鲸宕查柟杈鹃檮閺?NIL.
 func mlfqPopHead() as int
     if g_mlfq0.length > 0 then
         int pid = g_mlfq0[0]
@@ -494,7 +431,6 @@ func levelQuantum(int level) as int
     return MLFQ_Q2
 end
 
-// 濠电偞娼欓崥瀣晪闂佸憡蓱缁嬫捇鎯€椤忓浂妲奸悷婊堫暒缁舵岸寮? 闂備胶顢婂▔娑㈡晝閵夛附娅犵€广儱顦€氬顭跨捄鐚存敾闁汇劍鍨圭槐鎾寸瑹閸ワ附鎹ｇ紓浣虹帛椤洨鍒掑▎鎴斿亾閿濆骸鏋涙繛鍛灲閺岋繝宕掑鍐炬毉闂佸搫鍊风欢姘跺极?Q0 (闂傚倸鍊搁崯顐㈩嚕閸洦鏁嗘繛鎴炵懄婵挳骞栫€涙绠橀柛鐘筹耿閺屾稖绠涢幘璺衡叡婵°倗濮村ú锕傘€冨鍫澪ㄩ柍鐟扮仢娴?.
 func mlfqBoost()
     while g_mlfq1.length > 0 do
         int pid = g_mlfq1[0]
@@ -510,7 +446,6 @@ func mlfqBoost()
     trace("mlfqBoost @tick " + i2s(g_totalTick))
 end
 
-// 濠电偞鍨堕幐鎼佹晝閿濆洨绠旈柛娑欐綑濡﹢鏌涢妷鎴濆暟閳ь剙銈搁弻? 濠电儑绲藉ú锔炬崲閸岀偞鍋ら柕濞炬櫅缁秶鎲搁幋鐘冲床婵☆垵鍋愰惌娆撴倵閿濆倹娅囬柣鐔稿姇閳藉骞橀幇浣稿壉闂?(闂備胶绮…鍫ヮ敊閹版澘绠?, 闂佽崵鍠嶇粈渚€骞婇幘瓒佸綊宕堕鈧Λ姗€鏌熷畡鎵伇缂佺姴顭烽弻? 闂佽崵濮抽悞锕€顭垮Ο鑲╃鐎广儱顦粈鍡涙煕閵夛絽濡奸幖鏉戯攻缁绘盯宕辫箛鎾斥拤闂? 闂備礁鎲＄敮锟犲绩闁秴钃?TLB.
 func contextSwitch(int newPid)
     if g_currentPid == newPid then
         return
@@ -519,7 +454,6 @@ func contextSwitch(int newPid)
         if g_pcb[g_currentPid].state == PROC_RUNNING then
             g_pcb[g_currentPid].state = PROC_READY
         end
-            // 闂佸搫顦弲婊堟晪濠电姭鍋撴い蹇撴噺娴溿倝鏌熼柇锕€鐏遍柡鈧?-> 闂備焦鎮堕崕鎶藉磻濞戙垹鏄ョ€光偓閳ь剚绂嶉崨濠冪秶闁宠桨绀佺壕鍧楁⒑? 闂備焦鐪归崹鑲╁垝妤ｅ啯鍎嶉柣鏂垮悑閸嬨劑鏌曟繝蹇涙闁绘挻鐟╅弻娑㈠箛椤掆偓閺嗛亶鏌ｉ敐澶岀暫鐎殿喓鍔戦獮鍡氼槼缂佲偓閳ь剟姊洪崨濠勭濞存粎鍋為〃銉╁炊椤掍讲鎸€闂佺粯鏌ㄩ崲鏌ユ倶?
     end
     g_currentPid = newPid
     g_contextSwitches = g_contextSwitches + 1
@@ -534,8 +468,6 @@ func contextSwitch(int newPid)
     end
 end
 
-// 闂佽崵濮崇拋鏌ュ疾濠婂牊鍋傞柛銉ｅ妽娴溿倖绻涢幋鐐茬劰闁哄被鍊濋弻鐔虹箔濞戞ɑ锛嶉柡鈧禒瀣厸闁割偅鑹炬禍楣冩⒑?quantum 闂?CPU 闂備礁鎲￠〃鍡椕洪幋鐘电? 闂佸搫顦弲婊堝蓟閵娿儍娲冀椤愮喎浜鹃柛锔诲幖娴犺鲸淇婄紒銏犵仩闁宠棄顦靛畷濂告晲閸屾矮澹曞┑掳鍊曢崯顖炴偩闁秵鐓曟俊銈勭劍绾捐崵绱撳鍛殗闁?
-// 闂備礁鍚嬮惇褰掑磿閹惰棄鐓濋柛蹇撳悑閸庣喖鐓崶銊ュ毈闁告埃鍋撻梻浣芥〃閻掞箑顭垮Ο琛℃瀺闁圭儤姊圭亸搴ㄦ煛婢跺孩纭堕柡鍡樺哺閺岀喓鈧稒顭囨晶宕囩磼缂佹﹫鑰块柡?WAITING/TERMINATED, 闂備礁婀辩划顖炲礉閺囩喐娅犻柣妯挎珪娴溿倝鏌￠崒娑橆嚋缂佲偓閳?
 func procRunQuantum(int pid, int quantum) as int
     int used = 0
     while used < quantum do
@@ -545,7 +477,6 @@ func procRunQuantum(int pid, int quantum) as int
         if g_pcb[pid].state == PROC_WAITING then
             return used
         end
-        // 缂傚倸鍊风紞鈧柛娑卞灡閺嗕即姊洪崫鍕⒈濞存粍绮撻幃楣冾敆閸曨偆顓洪梺褰掑亰閸犳鎮?compute (闂?tick 婵犵數鍋為崹鐢告偋閹版澘鐒? 闂備浇銆€閸嬫挻銇勯弽銊р槈闁伙富鍣ｅ娲箵閹烘梻顔囬梺鐑╁墲閻熲晠鐛惔銊ヮ潊闁绘灏欓悰?
         if g_pcb[pid].computeLeft > 0 then
             g_pcb[pid].computeLeft = g_pcb[pid].computeLeft - 1
             procDecRemaining(pid, 1)
@@ -553,13 +484,11 @@ func procRunQuantum(int pid, int quantum) as int
         else
             int progLen = g_pcb[pid].program.length
             if g_pcb[pid].pc >= progLen then
-                // 缂傚倷绀侀鍛搭敄閸涱垵濮虫い鎾跺Х绾惧ジ鏌熼幆褏鎽犻悘?-> 缂傚倸鍊风粈渚€鎮ф繝鍥舵晢?
                 procTerminate(pid, EXIT_OK)
                 return used
             end
             string line = g_pcb[pid].program[g_pcb[pid].pc]
             g_pcb[pid].pc = g_pcb[pid].pc + 1
-            // execOp 闂備礁婀遍悷鎶藉幢閳哄倹鏉稿┑鐐村灦閹告挳宕戦幘鏂ユ闁瑰灝鍟╃花濂告煙婵傚憡鏁遍柟?(compute 濠电偞娼欓崥瀣┍濞差亶鏁婇柡鍥╁Х绾?computeLeft 婵°倗濮烽崑鐘诲春閺嶃劍娅?1; 闂備胶顭堢换鎴濓耿閸︻厼鍨濇い鎺戝缁犺偐鈧箍鍎辩€氼喚绮欐繝鍥ㄧ厵?1 tick)
             int cost = execOp(pid, line)
             if cost < 1 then cost = 1 end
             used = used + 1
@@ -573,8 +502,6 @@ func procRunQuantum(int pid, int quantum) as int
     end
     return used
 end
-        // execOp 闂備礁鎲￠悷顖炲垂閻㈢绀傛慨妞诲亾鐎殿喓鍔戦幃鐑藉级鐠恒劎袦 p.state (WAITING/TERMINATED); 闂傚倷鐒﹁ぐ鍐矓閻㈢钃熷┑鐘叉处閺?        PCB p2 = g_pcb[pid]
-// 闂佽崵濮崇拋鏌ュ疾濠婂嫭娅犵€广儱顦€氬顭跨捄鐑樻拱闁藉倸顑夐弻锝夘敂閸℃ぅ銏ゆ煕閳轰胶鐒哥€殿喚鏁婚幃銏ゆ倻濡吋娈搁梺鍝勵槴閺呮粎绮欓幘璇茬厺濠靛倻顭堥懜褰掓煏閸繍妲搁柡?
 func procWakeSleepers()
     int i = 1
     int n = g_pcb.length
@@ -591,7 +518,6 @@ func procWakeSleepers()
     end
 end
 
-// 闂佽崵濮崇拋鏌ュ疾濞戙垹鏄ラ悘鐐靛亾缂嶅洭鏌ｉ幇闈涘妞は佸洦鈷掗柛灞剧⊕缂嶆垿鏌涢幋顖滅瘈鐎规洘宀搁獮宥夘敊閻ｅ本娈?NEW 闂佸搫顦弲婊呯矙閹捐鐓濆┑鍌滎焾缁€鍌炴煏婢跺牆鍔滈柣銊﹀灩缁辨挻绗熼崶锕傚仐濠德ゎ嚋缁犳捇寮?
 func procAdmitArrivals()
     int i = 1
     int n = g_pcb.length
@@ -617,7 +543,6 @@ func procHasAlive() as bool
     return false
 end
 
-// 缂傚倸鍊烽懗鍫曞窗閺囥埄鏁囬柛婵勫劙閻掑﹪寮堕崼姘珔鐎规洘娲熷鍫曞煛閸屾嚎鈧帡鏌嶇拠灞傚仮闁?
 func procReadyCount() as int
     int c = 0
     c = c + g_mlfq0.length
@@ -635,7 +560,6 @@ func procReadyCount() as int
     return c
 end
 
-// 缂傚倷鐒︾粙鎴λ囬婊勵偨闁绘梻鍘х猾宥夋煕椤愶絾绀冮柨娑氬枔缁辨帗顫戦弽褏浠村?(闂佽娴烽弫鎼佸箠閹惧嚢鍥煛閸涱喗娅?READY/WAITING 闂備焦鐪归崝宀€鈧碍婢橀…鍥敂閸℃瑧锛滈梺鍓插亞閸ｃ儵宕滄ィ鍐ㄧ骇闁冲搫鍊婚妴鎺楁煃?.
 func procTickWait()
     int i = 1
     int n = g_pcb.length
@@ -647,7 +571,6 @@ func procTickWait()
     end
 end
 
-// 濠电偞鍨堕幐璇参ｉ幒妤佸剭闁绘柨鎲￠崕鐔兼煥閺囨浜鹃梺璇″灠閿曨亪寮? 婵犳鍣徊鐣屾崲濡ゅ懏鍋柛鈩冪⊕閻掕顭跨捄渚Ш妞ゅ繐宕埥澶愬箼閸愌呯泿濠殿喗菧閸斿海妲愰幒妤婃晜闁搞儮鏅濋鎺旂磽娴ｅ壊鍎忔い鎴濈墢閹广垹顓奸崶銊ヤ粧闁诲繒鍋犻崑鎰邦敂闁秵鐓?quantum, 闂備胶顭堢换鍫ュ礉閹达箑纾块悗闈涙憸绾惧ジ鏌涢銈呮珡闁告捇绠栭弻娑橆潩椤掍礁鏀紓浣虹帛閸ㄥ潡寮?
 func schedulerLoop(int maxTicks)
     bool stop = false
     int guard = 0
@@ -664,9 +587,7 @@ func schedulerLoop(int maxTicks)
         end
         int pid = mlfqPopHead()
         if pid == NIL then
-            // 婵犵數鍋涙径鍥礈濠靛棴鑰垮ù锝堟〃閻掑﹪寮堕崼姘珔鐎规洘娲熷鍫曞煛閸屾嚎鈧帡鏌?
             if procHasAlive() then
-                // 闂備礁鎼悧鍡浰囬柆宥嗗仱闁硅揪闄勯弲?闂備礁鎼悧婊勭濠婂牆鏄ョ€光偓閸曨剚娅?-> 闂備浇顫夋禍浠嬪礉韫囨洘宕叉慨妞诲亾鐎殿噮鍣ｅ畷濂稿即閻曞倻鍚?
                 g_totalTick = g_totalTick + 1
                 g_idleTicks = g_idleTicks + 1
                 procTickWait()
@@ -678,9 +599,7 @@ func schedulerLoop(int maxTicks)
     PCB p = g_pcb[pid]
             int q = levelQuantum(p.level)
             int used = procRunQuantum(pid, q)
-            // 闂備礁鎼崯顐︽偉閻撳宫娑㈠锤濡も偓缁犳娊鏌曟繛鍨缂佺姴顭烽弻?used
             g_totalTick = g_totalTick + used
-            // 闂備胶顭堢换鎴濓耿閸︻厾绀婇柟瀵稿仦娴溿倖绻涢幋鐐茬劰闁哄被鍊楃槐鎺戔槈濮楀棙笑缂備礁澧庨崰鏍ь嚕椤曗偓瀹曞ジ寮撮悤鍌滃惞缂傚倷绶氱涵鎼佸垂閻㈠壊鏁?
             int i = 1
             int n = g_pcb.length
             while i < n do
@@ -691,13 +610,9 @@ func schedulerLoop(int maxTicks)
                 end
                 i += 1
             end
-            // 濠电姰鍨煎▔娑氣偓姘煎櫍楠炲啯绻濋崶褍鐝?quantum 闂備礁鎲￠懝鎯瑰畡鎵虫灁闁瑰濮电€氼剟鏌涢幇鈺佸妞ゆ柨锕弻娑㈠箛椤掑偊绱為梺?
             if g_pcb[pid].state == PROC_TERMINATED then
-                // 闁诲海鎳撻幉锟犳偂閿熺姴鐒垫い鎴ｆ娴滈箖姊? 闂備礁鎼崯鐗堢箾閳ь剚绻涢幘宕囧煟闁哄苯鑻濂稿幢濡ゅ啰鎳?
             elseif g_pcb[pid].state == PROC_WAITING then
-                // 缂傚倷鐒︾粙鎴λ囬婊勵偨? 闁诲氦顫夐悺鏇犱焊濞嗘挸鏋?sleep 闂佽崵濮崇粈浣规櫠娴犲鍋? 濠电偞鍨堕幐鍝ョ矓閺夋嚚娲冀椤撶啿鎸€闂佺粯鏌ㄩ崲鏌ユ倶?
             else
-                // 濠电偛顕慨瀵哥矓閺夋埊鑰?READY/RUNNING -> 闂備焦妞垮鍧楀礉瀹€鍕瀬?quantum 闂備礁鎲￠懝楣冩煀閿濆拋鐎跺瀣捣濡?
                 g_pcb[pid].usedInLevel = g_pcb[pid].usedInLevel + used
                 if g_pcb[pid].remaining <= 0 then
                     procTerminate(pid, EXIT_OK)
@@ -721,7 +636,6 @@ func schedulerLoop(int maxTicks)
     end
 end
 
-// 缂傚倷绶氱涵鎼佸垂閻㈠壊鏁?remaining (execOp 闂?COMPUTE 濠电偞娼欓崥瀣暆閹间礁鐒垫い鎺嶇缁楁帡鏌?.
 func procDecRemaining(int pid, int n)
     g_pcb[pid].remaining = g_pcb[pid].remaining - n
     if g_pcb[pid].remaining < 0 then
@@ -731,10 +645,11 @@ end
 
 
 // ===============================================================
-//  Part 2: 闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋ら柕濞у懍绗夐梺鎸庣☉鐎氼參宕?
 // ===============================================================
 
-// ---- TLB 闂備礁鎼¨鈧紒杈ㄦ礀鐓?----
+// ===============================================================
+// 虚拟内存、页表与 TLB
+// ===============================================================
 class TlbEntry
     derive value
     int vpn = -1
@@ -744,7 +659,6 @@ class TlbEntry
     int tick = 0
 end
 
-// 闂備礁鎲＄敮妤冩崲閸岀儑缍栭柟鐗堟緲缁€宀勬煛瀹擃喖鍟弳銉╂煟鎼淬垻鈯曢柨姘舵煟閳╁啰鎳呴柛鏍ㄧ墵閹筹繝濡堕崶褏鍘?
 func memInit()
     g_frameOwner = array[]
     g_frameTick = array[]
@@ -830,7 +744,6 @@ func memFreeTab(int tabId)
     g_ptTabUsed[tabId] = false
 end
 
-// 闂備礁鎲＄敮鎺懳涘┑瀣偍闁靛牆妫涢埢鏃堟煃瑜滈崜姘辩矙婢舵劦鏁傞柛鈥崇箲閺呯偤姊婚崒姘偓纭呫亹閸愵喖绠? 婵犵數鍋涙径鍥礈濠靛棴鑰垮〒姘ｅ亾鐎规洘鑹鹃埢搴ㄥ箛椤掑倹鈻?LRU 婵犵數鍎戠徊鎹愭懌闂佸憡顨嗛崹鍓佺矙婢舵劕鐒垫い鎺嶈兌閳绘梹銇勮箛鎾愁伂閻庢碍鐟╁鍫曞煛閸屾稓鍙嗗┑鐐插级閻楃娀寮? 濠电姰鍨洪崕鑲╁垝閸撗勫枂闁挎棁濮ゆ禍銈夋煛閸屾稑顕滅紒鈧埀?NIL.
 func memAllocFrame(int pid) as int
     int i = 0
     while i < NUM_FRAMES do
@@ -842,7 +755,6 @@ func memAllocFrame(int pid) as int
         end
         i += 1
     end
-    // 闂備礁鎼崯鐗堟叏閻戣棄鐓橀柡宥庡幗閺?-> LRU 婵犵數鍎戠徊鎹愭懌闂?
     int victim = memLruVictim()
     if victim == NIL then
         return NIL
@@ -854,7 +766,6 @@ func memAllocFrame(int pid) as int
     return victim
 end
 
-// 闂備礁婀遍弫鎼佸磻閹剧偨鈧帡鎳滈悽纰樻灆闂佸憡渚楅崰妤€顕ｉ幘缁樼厽妞ゎ偒鍓欐俊鎸庣箾閸喎鐏ユい鏂跨箻楠炴捇骞掗幋鐘亾婵犳碍鈷戦柡澶庢硶瀛濋梺?
 func memLruVictim() as int
     int best = NIL
     int bestTick = -1
@@ -871,7 +782,6 @@ func memLruVictim() as int
     return best
 end
 
-// 婵犵數鍎戠徊鎹愭懌闂佸憡顨嗛崹鍧楀极? 婵犵數鍋為幐鎼佸箠濡　鏋嶉幖娣€戞禍褰掓煙閻戞ê鐏╂繛?+ 闂備線娼荤拹鐔煎礉瀹ュ棙娅犵€广儱顦€氬顭块懜闈涘闁逞屽墮椤﹂亶骞冩导鏉懳╅柕鍫濈墕楠炩偓闂備胶顢婂▔娑㈡晝閵壯€鍋撻崹顐㈠摵鐎规洏鍎甸獮瀣晲鎼粹剝鐣介梺姹囧焺閸ㄥ酣宕ㄩ鐐濠碉紕鍋戦崐鏇烇耿闁秵鍋?NIL + TLB 濠电姰鍨洪崕鍏笺仈閹间礁鐤?
 func memEvictFrame(int frame)
     g_memEvict = g_memEvict + 1
     int owner = g_frameOwner[frame]
@@ -901,7 +811,6 @@ func memEvictFrame(int frame)
     end
 end
 
-// 闂傚倷鐒﹁ぐ鍐晝閵夆晛妫樺〒姘ｅ亾鐎殿喖顭烽獮鍥敍濠婂拋鍟嬬紓鍌欑椤戝懘顢栭崶褉鏋旈柟杈剧畱缁犮儵鏌嶈閸撶喎顕ｉ崹顐㈢窞濠电姴鍟～?+ 濠碉紕鍋戦崐鎾跺緤婵犳艾违?濠碉紕鍋戦崐妤呭极缁嬫５鐑樺鐎涙ɑ娅?
 func memReleaseProc(int pid)
     int i = 0
     while i < NUM_FRAMES do
@@ -910,7 +819,6 @@ func memReleaseProc(int pid)
         end
         i += 1
     end
-    // 濠电姰鍨洪崕鍏笺仈閹间礁鐤?TLB 濠电偞鍨堕幖鈺呭矗閳ь剚銇勯弴鐔侯暡婵炶壈顕ч埥澶婎潩閿濆棛鍘鹃梻浣圭湽閸斿瞼鈧矮鍗虫俊?
     int t = 0
     while t < TLB_SIZE do
         if g_tlb[t].valid and g_tlb[t].pid == pid then
@@ -935,8 +843,6 @@ func memReleaseProc(int pid)
     memFreeDir(dirId)
     g_pcb[pid].ptDirId = NIL
 end
-    // 闂傚倷鐒﹁ぐ鍐晝閵夆晛妫樺ù锝囧劋鐎氭岸鏌曟径鍫濆缂佺姾宕电槐鎺斺偓锝庝憾閸庢垶绻涢崼鐔风仸闁靛洤瀚伴幃浠嬪垂椤愩倗宕堕梻?(闂備礁鎲￠悷銉╂晝閵堝鍋╅柣妯肩帛閸嬫垶銇勯幒鍡椾壕閻庤娲戦崡鎶藉箚閸愵喖绀嬫い鏍ㄇ氶崑鎾村緞閹邦厽娅?
-// TLB 闂備礁鎼悮顐﹀磿閸欏鐝?
 func memTlbLookup(int pid, int vpn) as int
     int i = 0
     while i < TLB_SIZE do
@@ -949,9 +855,7 @@ func memTlbLookup(int pid, int vpn) as int
     return NIL
 end
 
-// TLB 闂備礁婀辩划顖滄暜閹烘鐭?(LRU 闂備礁鎼ú锔锯偓绗涘啰鏆﹂柡灞诲劚鐎氬鏌嶈閸撴氨绮欐繝鍥у窛妞ゆ棁妫勭槐锕傛⒑濞茬粯濞囬柛鏂块閳绘捇骞嬮敂鑺ユ?.
 func memTlbInsert(int pid, int vpn, int frame)
-    // 闂備胶顭堢换鎰版偋婵犲啰鐝舵慨妞诲亾鐎殿噮鍣ｉ幃鈺呮惞椤愶絿褰欓梻?
     int victimSlot = NIL
     int oldestTick = -1
     int i = 0
@@ -976,7 +880,6 @@ func memTlbInsert(int pid, int vpn, int frame)
     g_tlb[victimSlot].tick = g_totalTick
 end
 
-// 濠电偞鍨堕幐鎼佹晝閿濆洨绠旈柛娑欐綑濡﹢鏌涢妷鎴濆暟閳ь剙銈搁弻鐔肩嵁閸喚浠惧┑锛勫仜閸婂灝鐣峰鑸电叆閻庯綆鍋嗛崢?TLB (缂傚倷鑳舵慨顓㈠磻閹剧粯鐓曢柡宥冨妿婢ь剟鎳氶埡鍛叆? 闂備胶顭堢换鍫ュ礉閹达箑纾块悗娑櫭欢鐐哄级閸稑濡芥繛?.
 func memFlushTlb()
     int i = 0
     while i < TLB_SIZE do
@@ -988,8 +891,6 @@ func memFlushTlb()
     end
 end
 
-// 濠电姰鍨煎▔娑氣偓姘煎櫍楠炲啯绻濋崟顓狅紳濠电偛妯婃禍妤呭焵? 闂?(pid, vpn) 闂備礁鎲＄敮鎺懳涘┑瀣偍闁靛牆妫庢禍婊兠归敐鍛殧闁逞屽墮閸熸挳寮?+ 闂?
-// dirIdx/tabIdx 闁诲氦顫夐悺鏇犱焊椤忓牜鏁囬柛婵勫劤娑撳秵淇婇妶鍌氫壕闂? 闂佸搫顦弲婊堝蓟閵娿儍娲冀椤愶絾娈伴悷婊冪Х閵?
 func memHandleFault(int pid, int dirIdx, int tabIdx, int vpn) as int
     g_memPageFault = g_memPageFault + 1
     int dirId = g_pcb[pid].ptDirId
@@ -1011,8 +912,6 @@ func memHandleFault(int pid, int dirIdx, int tabIdx, int vpn) as int
     return frame
 end
 
-// 闂備焦鍎崇换鎴犲枈瀹ュ洠鍋撳顓犳噰鐎规洜鍏樺鍫曞箰鎼达絿銈?-> 闂備胶绮妵娑㈠疾濠靛绠栧┑鐘叉搐閹瑰爼鏌℃径瀣嚋缂? 闂佸搫顦弲婊堝蓟閵娿儍娲冀椤撶喎浜遍梺鍐叉惈閸燁垶宕愰悙鐑樼厱闁挎棁濮ょ欢鍙夌箾?(frame*FRAME_SIZE+offset), 濠电姰鍨洪崕鑲╁垝閸撗勫枂闁挎棁濮ゆ禍銈夋煛閸屾稑顕滅紒鈧埀?NIL.
-// 闂備礁鎲￠懝楣冨嫉椤掆偓椤啴宕掗悙鎻掑祮闁诲孩绋掕摫闁绘挴鍋?TLB / LRU 闂備礁鎼崯顐︽偉閻撳宫娑㈠锤濡も偓缁狅綁鏌涜箛鎾村櫧闁荤喆鍨荤槐鎾存媴閸濆嫭鐏嗗銈嗘尭閹芥粓骞忕€ｎ喖鐒洪柛鎰ㄦ櫆椤?
 func memTranslate(int pid, int vaddr) as int
     if pid < 0 or pid >= g_pcb.length then return NIL end
     g_memTranslate = g_memTranslate + 1
@@ -1020,7 +919,6 @@ func memTranslate(int pid, int vaddr) as int
     int vpn = vaddr >> OFF_BITS
     int dirIdx = (vpn >> TAB_BITS) & DIR_MASK
     int tabIdx = vpn & TAB_MASK
-    // 闂備胶顭堢换鎰版偋婵犲洦鍋?TLB
     int frame = memTlbLookup(pid, vpn)
     if frame != NIL then
         g_memTlbHit = g_memTlbHit + 1
@@ -1028,7 +926,6 @@ func memTranslate(int pid, int vaddr) as int
         return frame * FRAME_SIZE + offset
     end
     g_memTlbMiss = g_memTlbMiss + 1
-    // 闂佽崵濮嶉崶鑸垫缂備降鍔夐弲婵嬫儉椤忓浂妯勯梺闈涙椤︾敻寮?
     PCB p = g_pcb[pid]
     int dirId = p.ptDirId
     if dirId != NIL then
@@ -1040,20 +937,17 @@ func memTranslate(int pid, int vaddr) as int
             end
         end
     end
-    // 婵犵數鍋涙径鍥礈濠靛洨鐝舵慨妞诲亾闁?-> 缂傚倸鍊搁崐鐟邦渻娴犲违?
     if frame == NIL then
         frame = memHandleFault(pid, dirIdx, tabIdx, vpn)
         if frame == NIL then
             return NIL
         end
     end
-    // 闂佽崵鍠嶇粈渚€骞婃惔銊ョ煑?TLB
     memTlbInsert(pid, vpn, frame)
     g_frameTick[frame] = g_totalTick
     return frame * FRAME_SIZE + offset
 end
 
-// 闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋ら柕濞у懐锛滈梺缁樻⒐濡炲潡宕ラ埀顒勬⒑绾懐鍫柛搴ㄤ憾楠?
 func memReport()
     int used = 0
     int i = 0
@@ -1078,7 +972,6 @@ func memReport()
     println("Alloc frames: " + i2s(g_memAlloc))
 end
 
-// 闂備胶鎳撻悘姘跺箰缁嬭法鏆ら柛鎰靛枛閽冪喖鏌熼柇锕€鐏ｇ紒鐘哄吹缁辨帞鈧綆浜堕崕鎴炵箾閸喎鐏﹂柕鍥у閹峰懘宕橀敂鐟颁壕?
 func memDumpProc(int pid) as string
     if pid < 0 or pid >= g_pcb.length then return "" end
     PCB p = g_pcb[pid]
@@ -1108,10 +1001,12 @@ end
 
 
 // ===============================================================
-//  Part 3: 闂備礁鎼崐绋棵洪敐鍛瀻闁靛繈鍨圭€垫煡鏌ゆ慨鎰偓妤呭春?(inode + 闂備胶鍎甸弲鈺呭窗閺嶎偆绀婄€广儱顦伴弲?
 // ===============================================================
 
 // ---- Inode ----
+// ===============================================================
+// 内存文件系统与文件描述符
+// ===============================================================
 class Inode
     derive value
     string name = ""
@@ -1124,11 +1019,10 @@ class Inode
     int ino = 0
 end
 
-// ---- 闂備胶鎳撻悘姘跺箰閸濄儲顫曢柟杈剧畱濡﹢鏌涢妷顖炴妞ゆ劒绮欓幃璺衡槈閺嵮冾潎闂?----
 class OpenFile
     derive value
     int ino = NIL
-    int pos = 0               // lseek 婵犵數鍋為幐鎼佸箟閿熺姵鍋?
+    int pos = 0
     int mode = 0              // 0=read 1=write 2=rw
     bool used = false
 end
@@ -1139,7 +1033,6 @@ func fsInit()
     g_openUsed = array[]
     g_openCount = 0
     g_nextIno = 1
-    // 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鍓х帛閺?inode "/"
     Inode root = Inode()
     root.name = "/"
     root.type = FT_DIR
@@ -1179,7 +1072,6 @@ func fsCheckPerm(int ino, int need) as bool
     return false
 end
 
-// 闂佽崵濮崇拃锕傚垂閹殿喗顐介柣鎰惈閸欏﹥銇勯弽銊ь暡闁稿骸锕︾槐鎾存媴閸︻厾鐣靛?
 func fsIsAbsolute(string p) as bool
     if string.len(p) > 0 then
         if string.byteAt(p, 0) == SLASH_BYTE then
@@ -1189,7 +1081,6 @@ func fsIsAbsolute(string p) as bool
     return false
 end
 
-// 闂備胶顢婂▔娑㈡晝閵娾晜鍎楅柟顖嗗苯娈梺鍛婃处閸撴瑩顢撻弴銏＄叆?[闂備胶绮悧妤呭磿婵傚憡鍎楀Δ锝呭暞閺? 闂備礁鎼悧婊堝磻閸涙惌鏁婄€光偓閸曨偉袝閻?
 func fsSplitParent(string p) as var
     int last = -1
     int n = string.len(p)
@@ -1213,7 +1104,6 @@ func fsSplitParent(string p) as var
     return result
 end
 
-// 闂佽崵濮崇拃锕傚垂閹殿喗顐介柣鎰仛閸犲棝鏌ㄥ┑鍡橆棤闁?-> inode 闂? 闂備礁缍婂褑銇愰悙鐢电當濠㈣埖鍔曠粈鍡涙煙瀹勬壆鐏辩紒鐘崇叀閺?NIL.
 func fsResolve(string p) as int
     if string.len(p) == 0 then
         return g_cwdIno
@@ -1260,7 +1150,6 @@ func fsResolve(string p) as int
     return cur
 end
 
-// 闂?inode 闂備礁鎲￠悷銉х矓閻㈠灚鏆滈柛锔诲幘绾惧吋绻濋棃娑欙紞闁搞倗濞€閹绗熼姘变哗缂?
 func fsAbsPath(int ino) as string
     if ino == g_rootIno then return "/" end
     var parts = []
@@ -1333,7 +1222,6 @@ func fsDropChild(int dirIno, int childIno)
     g_inodes[dirIno] = d
 end
 
-// 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鍓х帛閸庡孩銇勯弮鍥т汗缂? 闂佸搫顦弲婊堝蓟閵娿儍?inode 闂? 濠电姰鍨洪崕鑲╁垝閸撗勫枂闁挎棁濮ゆ禍銈夋煛閸屾稑顕滅紒鈧埀?NIL.
 func fsMkdir(string p, int perm) as int
     var parts = fsSplitParent(p)
     string parentP = string(parts[0])
@@ -1357,7 +1245,6 @@ func fsMkdir(string p, int perm) as int
     return newIno
 end
 
-// 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鎯у閻岸鏌ｉ幋鐐嗘垿鎮楅鈧弻? 闁诲海鎳撻幉陇銇愰崘顔藉仱闁靛ň鏅涢幑鍫曟煏婵炲灝濡跨紒鐘崇叀閺?NIL.
 func fsCreate(string p, int perm) as int
     var parts = fsSplitParent(p)
     string parentP = string(parts[0])
@@ -1381,7 +1268,6 @@ func fsCreate(string p, int perm) as int
     return newIno
 end
 
-// 闂佽崵濮村ú銊у垝椤栫偛鍑犻柛鎰ㄦ櫇椤╃兘鎮归崫鍕儓闁轰礁鐖奸弻?
 func fsReadFile(string p) as string
     int id = fsResolve(p)
     if id == NIL then return "" end
@@ -1391,7 +1277,6 @@ func fsReadFile(string p) as string
     return n.content
 end
 
-// 闂備礁鎲￠崝鏍偡閿曞倸鍑犻柛鎰靛枟閺?(闂佽瀛╃粙鎺楁晪濠电姭鍋撴い蹇撴閸熸椽鏌涢埄鍐噭缁? 濠电偞鍨堕幐鍝ョ矓閹绢喗鍋ら柕濞炬櫅閹瑰爼鏌曟繛鍨姎闁诲骏绻濋弻?.
 func fsWriteFile(string p, string content) as bool
     int id = fsResolve(p)
     if id != NIL then
@@ -1426,7 +1311,6 @@ func fsWriteFile(string p, string content) as bool
     return true
 end
 
-// 闂備礁鎲＄敮鐐寸箾閳ь剚绻涢崨顓㈠弰鐎殿噮鍓熷畷鍫曟晜缁涘浠?/ 缂傚倷绀侀惌浣糕枍閿濆悿鐑樺鐎涙ɑ娅?
 func fsRemove(string p) as bool
     int id = fsResolve(p)
     if id == NIL then return false end
@@ -1443,7 +1327,6 @@ func fsRemove(string p) as bool
     return true
 end
 
-// 闂備礁鎲＄敮妤呫€冮崼婢濈儤瀵肩€涙ɑ娅? 闂佸搫顦弲婊堝蓟閵娿儍娲冀椤撶偠袝閻庡箍鍎卞▔锕傛倷閸濆嫭鐎梺瑙勵問閸犳岸鎯?(var).
 func fsListDir(string p) as var
     var result = []
     int id = fsResolve(p)
@@ -1465,7 +1348,6 @@ func fsListDir(string p) as var
     return result
 end
 
-// 闂備礁鎲＄敮鎺懨洪敃鈧悾鐑藉箵閹烘繂鏅犻梺闈涱槶閸婃绮欐繝鍥ㄧ厽闁冲搫锕ら弸娑氱磽?
 func fsCd(string p) as bool
     int id = fsResolve(p)
     if id == NIL then return false end
@@ -1476,7 +1358,6 @@ func fsCd(string p) as bool
     return true
 end
 
-// ---- 闂備胶鎳撻悘姘跺箰閸濄儲顫曢柟杈剧畱濡﹢鏌涢妷顖炴妞ゆ劒绮欓弻?(fd) ----
 
 func fsAllocFd() as int
     int i = 0
@@ -1504,11 +1385,9 @@ func fsFreeFd(int fd)
     end
 end
 
-// open(path, mode): 闂佸搫顦弲婊堝蓟閵娿儍?fd, 濠电姰鍨洪崕鑲╁垝閸撗勫枂?NIL. mode: "r"/"w"/"rw".
 func fsOpen(string p, string mode) as int
     int id = fsResolve(p)
     if id == NIL then
-        // w/rw 婵犵妲呴崹顏堝焵椤掆偓绾绢厾娑甸埀顒勬⒑閸涘﹦鎳愰柛顭戝灡缁傚秹骞掑Δ浣告疁濡炪倕绻愮€氼剝顤勯梻浣告啞鐢绮欓幋鐘电＝?
         if mode == "w" or mode == "rw" then
             int created = fsCreate(p, PERM_RW)
             if created == NIL then return NIL end
@@ -1548,7 +1427,6 @@ func fsClose(int fd) as bool
     return true
 end
 
-// 闂?fd 闁荤喐绮庢晶妤呭箰閸涘﹥娅?pos 闂佽崵濮村ú鈺咁敋瑜戦妵?n 闂佽瀛╃粙鎺椼€冩径瀣╃箚? 闂佸搫顦弲婊堝蓟閵娿儍娲冀椤愮喎浜炬繛鎴炵懐濞堟ɑ銇勯幋婊呯獢闁? 闂備礁鎲＄敮鐐存櫠濡も偓閿曘垽顢涘鈧悞濠囨煙鐟欏嫬濮夌紒鐘崇叀閺屾盯濡疯娴犳粌顭胯濞硷繝寮?
 func fsRead(int fd, int n) as string
     if fd < 0 or fd >= MAX_OPEN_FILES then return "" end
     if not g_openUsed[fd] then return "" end
@@ -1567,7 +1445,6 @@ func fsRead(int fd, int n) as string
     return s
 end
 
-// 闂?fd 闁荤喐绮庢晶妤呭箰閸涘﹥娅?pos 闂備礁鎲￠崝鏍偡閵夆晛鐭?(闂備礁婀辩划顖滄暜閹烘鐭?闂佽崵鍠愬ú鏍涘☉妯?.
 func fsWrite(int fd, string data) as int
     if fd < 0 or fd >= MAX_OPEN_FILES then return 0 end
     if not g_openUsed[fd] then return 0 end
@@ -1585,7 +1462,6 @@ func fsWrite(int fd, string data) as int
         after = node.content
     elseif pos >= total then
         before = node.content
-        // 濠电偞鍨堕幖鈺呭矗閸愩剮娑氭崉閵婏箑浠掗梺闈涳紡閳ь剟寮崟顖涚厸鐎广儱鎳庨幃鎴︽嚉閳哄懏鐓欏瀣閺嬫棃鏌嶇拠鑼ⅵ闁?
         int gap = pos - total
         int g = 0
         while g < gap do
@@ -1605,7 +1481,6 @@ func fsWrite(int fd, string data) as int
     return dataLen
 end
 
-// lseek: 0=SEEK_SET 1=SEEK_CUR 2=SEEK_END. 闂佸搫顦弲婊堝蓟閵娿儍娲冀椤撶喐娅?pos.
 func fsLseek(int fd, int offset, int whence) as int
     if fd < 0 or fd >= MAX_OPEN_FILES then return NIL end
     if not g_openUsed[fd] then return NIL end
@@ -1626,7 +1501,6 @@ func fsLseek(int fd, int offset, int whence) as int
     return newPos
 end
 
-// 闂備胶鎳撻悘姘跺箰缁嬭法鏆ら柛鎰靛枟閸庡孩銇勯弮鍥т汗缂佸娼￠弻?
 func fsDumpTree()
     println("Filesystem tree (inodes=" + i2s(g_inodes.length) + ", nextIno=" + i2s(g_nextIno) + "):")
     fsDumpNode(g_rootIno, 0)
@@ -1659,11 +1533,11 @@ end
 
 
 // ===============================================================
-//  Part 4: Shell (闂佽崵鍠愰悷杈╁緤妤ｅ啯鍊?+ 闂備礁鎲￠崝鏇㈠箠閹扮増鍋柛鈩冪☉瀹告繈鏌熺€涙ê绗氬┑?
 // ===============================================================
 
-// 闂佽崵鍠愰悷杈╁緤妤ｅ啯鍊甸柤鎭掑劤閳绘棃鏌嶈閸撶喖寮?shell: 闂佸搫顦弲婊堝蓟閵娿儍?var 缂傚倸鍊烽悞锕傚箰婵犳碍鍊?{pipeline:[cmds], redirect_out, redirect_in, bg}.
-// 婵犳鍣徊鐣屾崲鐎ｎ喗鐓?cmd = {args:[...], stdin:?, stdout:?} (stdout/stdin 闂?runPipeline 闂傚倷鐒﹁ぐ鍐嫉椤掑倹鏆滈柟缁㈠枟閺?.
+// ===============================================================
+// Shell 解析与命令执行
+// ===============================================================
 func shParse(string line) as var
     var cmd = {}
     string s = trimP(line)
@@ -1671,20 +1545,17 @@ func shParse(string line) as var
         cmd["empty"] = true
         return cmd
     end
-    // 闂備礁鎲￠懝鐐殽濮濆被浜?&
     cmd["bg"] = false
     if string.byteAt(s, string.len(s) - 1) == 38 then
         cmd["bg"] = true
         s = trimP(string.mid(s, 0, string.len(s) - 1))
     end
-    // 闂佸搫顦悧濠囧箰閹间礁鍚规い鎾卞灪閻撳倻鈧箍鍎遍幊鎰板汲娴煎瓨鐓?> (闂備礁鎲￠悷锕傛偋濡も偓閵嗘帡宕奸弴鐐缎曢柟鐓庣摠缁诲嫰顢旈柆宥嗙叆?
     string redirOut = ""
     int gt = findByte(s, 62)
     if gt >= 0 then
         redirOut = trimP(string.mid(s, gt + 1, string.len(s) - gt - 1))
         s = trimP(string.mid(s, 0, gt))
     end
-    // 闂佸搫顦悧濠囧箰閹间礁鐭楅柛鈩冪⊕閻撳倻鈧箍鍎遍幊鎰板汲娴煎瓨鐓?<
     string redirIn = ""
     int lt = findByte(s, 60)
     if lt >= 0 then
@@ -1693,7 +1564,6 @@ func shParse(string line) as var
     end
     cmd["redirOut"] = redirOut
     cmd["redirIn"] = redirIn
-    // 缂傚倷鑳舵刊瀵告崲濠靛洨顩插Δ锝呭暙缁€鍡涙煕閵夋垵鍟伴埀?
     var segs = string.split(s, "|")
     var pipeline = []
     int n = segs.length
@@ -1712,8 +1582,6 @@ func shParse(string line) as var
     return cmd
 end
 
-// 缂傚倷鑳舵慨顓㈠磻閹剧粯鐓曟俊銈勭劍缁€澶愭煟閿旂晫绠為柡? 闂備礁婀遍…鍫ニ囬柆宥呯厴闁哄稁鍘介崕宀勬煠閹帒鍔氭い搴㈡礋閺?(闂備浇銆€閸嬫挻銇勯弽銊р槈闁伙富鍣ｉ弻?闂備礁鎲￠悷銉╂嚐椤栨粍顫曢柍鍝勬噹閻鏌у顒€鈧崵绮绘禒瀣厽闁挎繂妫涢幊鍐煕閻愬瓨灏﹂柡灞界墦婵℃瓕顦柡浣稿閺?.
-// 闂佽瀛╃粙鎺椼€冮崼銉晞濞撴埃鍋撶€殿喗鎮傚畷鐔碱敍濡も偓娴滈箖鏌ｅΟ铏逛粵闁?string.charAt(s, i) 闂備礁鎲￠悷锕傛偋濠婂牜鏁?i 濠电偞鍨堕幖鈺傜濠婂牊鍋ょ憸鏃堝极?(byteAt 闂佸搫顦弲婊堝蓟閵娿儍娲冀椤愮喎浜炬繛鎴炵懐濞堟瑥鈹戦埥鍡楀籍闁? 濠电偞鍨堕幐鍝ョ矓閻戣棄绀傛慨妞诲亾闁诡垰瀚埀顒佺⊕閿氬璺虹Ч閺?.
 func shTokenize(string s) as var
     return shTokenize2(s)
 end
@@ -1725,14 +1593,12 @@ func shTokenize2(string s) as var
     while i < n do
         int b = string.byteAt(s, i)
         if b == 32 or b == 9 then
-            // 缂傚倷绀侀惌浣糕枍閿濆應鏋? 闂佽崵濮撮幖顐︽偪閸モ晜宕?
             i += 1
         else
             string cur = ""
             bool quoted = false
             bool done = false
             if b == 34 or b == 39 then
-                // 闁诲孩顔栭崰妤€煤閺嶎兙浜归柛褎顨嗛弲? 闂佽崵濮村ú鈺咁敋瑜戦妵鎰板炊椤掆偓缁€鍡涙煛婢跺﹦浠㈤柣鏍憾濮婃椽寮剁捄銊愩垻绱掗幍浣规珚鐎规洩缍侀幗搴ㄥ磼濠靛牜妲归梻? 闂備礁鎲￠崝鏇㈠箠濮椻偓瀹曟洜鈧潧鎽滈惌姘舵煟閹寸儐鐒藉瑙勫姇鑿愰柛銉ｅ妿缁犳﹢鏌￠崱蹇撲壕
                 quoted = true
                 int quote = b
                 i += 1
@@ -1750,7 +1616,6 @@ func shTokenize2(string s) as var
                 done = true
             end
             if not done then
-                // 闂備礁鎼幏瀣闯閿濆鐒垫い鎺嶈兌椤ｅ弶銇? 闂佽崵濮村ú鈺咁敋瑜斿畷铏逛沪閸撗€鏋栭柣搴岛閺呮繈顢旈崡鐐╂闁瑰灝鍟╃花浠嬫煃鐟欏嫮澧甸柡?
                 bool stop2 = false
                 while i < n and not stop2 do
                     int c = string.byteAt(s, i)
@@ -1770,8 +1635,6 @@ func shTokenize2(string s) as var
     return tokens
 end
 
-// 闂備礁婀遍悷鎶藉幢閳哄倹鏉稿┑鐐村灦閹告挳宕戦幘缁樼厸濠㈣鍤庢导鍡涘箳濡も偓閸戠娀鏌熼柇锕€澧柛濠勬暬閺岋綁濡搁妷銉患闂佸湱顒茬换婵嬪极? 闂佸搫顦弲婊堝蓟閵娿儍娲冀閵婏妇绉堕梺瑙勫劤閸熷灝袙婢舵劖鍊垫繛鎴炵懐濞堟ɑ銇勯幋婊呯獢闁?(闂備焦妞垮鍧楀礉鐎ｎ剝濮虫い鎺戝閸ゅ洦鎱ㄥ鍡楀箺闁圭兘浜堕弻鐔烘喆閸曨剛顦Δ?闂傚倷鐒﹁ぐ鍐矓閹绢喗鍋╁Δ锝呭暞閺?.
-// 闂備焦鐪归崹纭呫亹婢跺矁濮虫い鎺戝閸欏﹥銇勯弽銊よ吂濞撴埃鍋撻柡? "闂備礁鎲￠懝鐐殽濮濆被浜? 闂備礁鎲＄粙鎺楀垂濠靛绠柕鍫濇川閸楁岸鎮楅敐搴濈盎缂佷緡鍣ｉ弻鐔虹箔濞戞ɑ锛嶉柡鈧? 缂傚倸鍊烽悞锕傚箰婵犳碍鍊跺璺侯儑閳绘棃骞栫划鍏夊亾閹颁焦鐎梻浣告啞閻熲晠銆傞敂鍓у崥閻庨潧鎲＄亸搴ㄦ⒑閸噮鍎愰柡鍡╀邯閺?
 func shExecParsed(var parsed) as string
     if parsed["empty"] != null then
         if bool(parsed["empty"]) then
@@ -1781,7 +1644,6 @@ func shExecParsed(var parsed) as string
     var pipeline = parsed["pipeline"]
     int n = pipeline.length
     if n == 0 then return "" end
-    // 缂傚倷鑳舵刊瀵告崲濠靛洨顩? 闂備礁鎲￠幐鍝ョ矓瀹曞洨鍗氶悗娑欘焽閳绘梹銇勮箛鎾搭棡闁伙綁浜跺鍫曞醇閻旂纰嶉梺鎼炲€ら崢浠嬪箯閸涱収鐓ラ柍褜鍓涢幏褰掓偄閻撳氦袝闁圭厧鐡ㄧ换鍕敂閸楃偐妲堥柟鍨暕缁ㄨ姤绻涢崼鐔风仸婵炵厧绻橀獮姗€宕橀幓鎺撹緢
     string flow = ""
     if parsed["redirIn"] != null then
         string rin = string(parsed["redirIn"])
@@ -1811,8 +1673,6 @@ func shExecParsed(var parsed) as string
     return flow
 end
 
-// 闂備礁婀遍悷鎶藉幢閳哄倹鏉搁梻浣告啞椤ㄥ棗煤閹达附鐓傛繝濠傜墕瀹告繈鏌熺€涙ê绗氬┑?(token 闂備浇妗ㄩ悞锔界珶閸℃瑥鍨?+ stdin). 闂佸搫顦弲婊堝蓟閵娿儍?{out:..., code:...}.
-// isLast 闂備礁鎼粔鏉懨洪埡鍜佹晩闁搞儺鍓欓崣濠冦亜閺嶃劎顣查柛搴★功缁辨帡鎮崨顖滅槇婵炲瓨绮撶粻鏍ь嚕閻㈠壊鏁冮柨婵嗛閺傗偓 (闂備礁鎲￠崝鏇㈠疮閸ф鍋╁Δ锝呭暙閸欏﹥銇勯弽銊ь暡闁稿骸锕濠氬炊閿濆懍澹曢梺鑽ゅ枑濞叉垿鎮為敂鑺ユ珷闁挎洖鍊归弲?.
 func shRunOne(var tokens, string stdin, bool isLast, var parsed) as var
     var res = {}
     res["out"] = ""
@@ -1820,32 +1680,30 @@ func shRunOne(var tokens, string stdin, bool isLast, var parsed) as var
     int tn = tokens.length
     if tn == 0 then return res end
     string name = string(tokens[0])
-    // 闂備浇銆€閸嬫捇鏌涢锝嗙闁艰尙濞€閺屾稑鈻庤箛鎾亾瑜版帒姹?
     var args = []
     int i = 1
     while i < tn do
         args.append(tokens[i])
         i += 1
     end
-    string out = shDispatch(name, args, stdin)
-    res["out"] = out
-    // 闂備礁鎼悧婊堝磻閸涙惌鏁婄€光偓閸曨偅宓嶉梺闈涱焾閸婃牠宕径鎰叆?闂備胶鍘ч悺銊у枈瀹ュ拑鑰块柣妤€鐗忛埢鏃堟倵閿濆骸浜滈柍顏嗘暬閺?(闂傚倸鍊哥€氥劑宕愬┑鍡╃劷妞ゅ繐鐗嗙€氬顭块懜闈涘婵炲懌鍨介幃妤冩喆閸曨喖顥濋梺?
+    string outputValue = shDispatch(name, args, stdin)
+    res["out"] = outputValue
     if isLast then
         if parsed["redirOut"] != null then
             string rout = string(parsed["redirOut"])
             if string.len(rout) == 0 then
-                if string.len(out) > 0 then
-                    print(out)
-                    if not string.contains(out, "\n") then
+                if string.len(outputValue) > 0 then
+                    print(outputValue)
+                    if not string.contains(outputValue, "\n") then
                         println("")
                     end
                 end
             end
         else
-            if string.len(out) > 0 then
-                print(out)
-                if string.len(out) > 0 then
-                    int lastByte = string.byteAt(out, string.len(out) - 1)
+            if string.len(outputValue) > 0 then
+                print(outputValue)
+                if string.len(outputValue) > 0 then
+                    int lastByte = string.byteAt(outputValue, string.len(outputValue) - 1)
                     if lastByte != 10 then
                         println("")
                     end
@@ -1856,7 +1714,6 @@ func shRunOne(var tokens, string stdin, bool isLast, var parsed) as var
     return res
 end
 
-// 闂備礁鎲＄粙鎺楀垂濠靛绠柕鍫濐槸缁€鍡涙煕閳╁喚娈旂紒?
 func shDispatch(string name, var args, string stdin) as string
     if name == "echo" then return shEcho(args) end
     if name == "ls" then return shLs(args) end
@@ -1880,7 +1737,6 @@ func shDispatch(string name, var args, string stdin) as string
     return "xos: unknown command: " + name + "\n"
 end
 
-// ---- 闂備礁鎲￠崝鏇㈠箠閹扮増鍋柛鈩冪☉瀹告繈鏌熺€涙ê绗氬┑顔哄灲閹宕烽鐐版埛濡?----
 
 func shEcho(var args) as string
     string s = ""
@@ -1988,7 +1844,6 @@ func shKill(var args) as string
     return "killed pid " + i2s(pid) + "\n"
 end
 
-// exec <name> <burst> <level>  -> 闂?OS 闂傚倷鐒﹁ぐ鍐嚐椤栫偛鍨傞柛妤冨剱閸ゅ牓寮堕悙鏉戭棆妞ゅ繐宕埥澶愬箼閸愌勬崳缂備胶绮敃銏ゅ极?(濠电偛鐡ㄩ崵搴ㄥ磹閹炬儼濮抽柡澶嬵儥閸ゆ洟鐓崶銊︹拹闁哄棗鐗撻弻?.
 func shExec(var args) as string
     if args.length < 2 then
         return "exec: usage: exec <name> <burst> [level] [program...]\n"
@@ -2087,7 +1942,6 @@ func shWrite(var args) as string
     return ""
 end
 
-// alloc <pid> <vaddr>  -> 闂佽崵鍠愰悷杈╃不閹达絻浜归柛宀€鍋涚粈鍐煕濞戝崬骞橀柟鐣屽Х缁辨捇宕奸悢鍓叉健闂?
 func shAlloc(var args) as string
     if args.length < 2 then
         return "alloc: usage: alloc <pid> <vaddr>\n"
@@ -2104,7 +1958,6 @@ func shAlloc(var args) as string
     return "vaddr " + i2s(vaddr) + " -> paddr " + i2s(paddr) + "\n"
 end
 
-// free <pid>  -> 闂傚倷鐒﹁ぐ鍐晝閵夆晛妫樺ù锝囧劋鐎氭岸鏌曟径鍫濆缂佺姾宕电槐鎺斺偓锝庝憾閸庢垶绻涢崼鐔风伌鐎规洘锕㈠畷銊╊敇閻樿櫕鍠?
 func shFree(var args) as string
     if args.length < 1 then
         return "free: usage: free <pid>\n"
@@ -2181,7 +2034,6 @@ func shTree() as string
     return s
 end
 
-// 闂備礁婀遍悷鎶藉幢閳哄倹鏉稿┑鐐村灦閹告挳宕戦幘缁樼叆?shell 闂備胶鍘ч悺銊у枈瀹ュ拑鑰垮ù鍏兼綑濡﹢鏌涢妷顖炴妞?
 func shRunScript(string path) as int
     if not file.exists(path) then
         println("xos: script not found: " + path)
@@ -2197,12 +2049,9 @@ func shRunScript(string path) as int
         i += 1
         string t = trimP(line)
         if string.len(t) == 0 then
-            // 缂傚倷绀侀惌鍌滅磽濮樿翰鈧線骞嬮悩鍐茬／闁诲骸婀辨慨椋庣不?
         else
             int hb = string.byteAt(t, 0)
-                // '#' 婵炴垶鎸哥粔闈浳?xlang 濠电偛顦崝鎴﹀闯閹绢喖绀堢€广儱娲ㄧ壕? 闁荤喐鐟ュΛ鏃傛嫻閻旂厧鐤炬い鏇楀亾闁逞屽墯閼归箖骞婇埄鍐浄闁靛牆鎳愰幗鐔虹磼?
             if hb == 47 and string.len(t) >= 2 and string.byteAt(t, 1) == 47 then
-                // 闂佽崵鍋炵粙鎴﹀嫉椤掑嫬鏋侀柣鎰劋閺?//
             else
                 var parsed = shParse(line)
                 shExecParsed(parsed)
@@ -2214,10 +2063,11 @@ end
 
 
 // ===============================================================
-//  Part 5: 缂傚倷绶￠崹闈涚暦閻㈤潧鍨濋柧蹇氼潐鐎氼剟鏌涢幇鍏哥凹闁哄棗绻橀弻鐔煎箒閹烘垵濮庨悷?
 // ===============================================================
 
-// syscall(op, args): 缂傚倸鍊烽懗鍫曞窗瀹ュ洨鍗氶柟缁㈠枛缁€鍌炴煏婢跺牆鍔氱紓? 闂佸搫顦弲婊堝蓟閵娿儍?var {ret:..., msg:...}.
+// ===============================================================
+// 系统调用分派
+// ===============================================================
 func syscall(int op, var args) as var
     var res = {}
     res["ret"] = NIL
@@ -2355,7 +2205,6 @@ func syscall(int op, var args) as var
     return res
 end
 
-// fork: 闁荤喐绮庢晶妤呭箰閸涘﹥娅犻柣妯挎珪娴溿倖绻涢幋鐐茬劰闁哄被鍊濋弻娑㈠箳閹惧灈妲堢紓鍌氬€归幐鑽ょ矙婢舵劕鐒垫い鎺嶈兌閳绘梹銇勮箛鎾愁伀闁硅棄绉瑰鍫曞煛閸屾嚎鈧帡鏌?(濠电姰鍨煎▔娑氱矓閹绢喖鏄ユ俊銈呮噹缁€鍫ユ煃鐞涒€充壕缂傚倸绉甸崹鍦垝濞嗘垟鍋撻敐搴濈敖缁? 闂備胶顭堢换鎰亹婢舵劖顥?FS 濠电偞鍨堕幐鎼佹晝閿濆洨绠旈柛娑樼摠閺?.
 func procForkOp() as int
     if g_currentPid == NIL then return NIL end
     PCB par = g_pcb[g_currentPid]
@@ -2374,19 +2223,10 @@ end
 
 
 // ===============================================================
-//  Part 6: 闂備胶鎳撻悘婵堢矓瀹曞洨绀婇柡鍐ㄧ墕缁犮儳鎲搁幋锔衡偓?(execOp) 闂備胶鍋ㄩ崕鎻捨涢幋锕€绠?闂傚倸鍊稿Λ妤€螞濞嗘挸鍨傛慨妯挎硾鐟欙箓鏌涢弴銊ヤ簽闁硅棄绉剁槐鎺楊敍濠靛棗鎯炵紓?
 // ===============================================================
 
-// 闂備礁婀遍悷鎶藉幢閳哄倹鏉哥紓鍌欑椤戝懘顢栭崨顖濆С妞ゆ挶鍨洪崕宥夋煕閺囥劋绨芥い蹇涗憾閺屸剝寰勯崱妤€鈷夐梺纭呭亹閸忔﹢寮? 闂佸搫顦弲婊堝蓟閵娿儍娲冀瑜夊Σ鍫ユ煕椤愵剛宀涢柛瀣尭铻栭柛鎰ㄦ櫇閺?CPU 闂備礁鎲￠〃鍡椕洪幋鐘电?
-// 闂備胶鎳撻悘婵堢矓瀹曞洨绀婇柡鍐ㄥ€圭€氭碍銇勯幘璺烘灁闁?(闂備胶鎳撻悘婵堢矓瀹曞洨绀婇柡鍐ㄧ墛閸庢ê霉閿濆妫戦柣鐔哥箞閺屾盯寮借閹牓鏌涢妸銉ヮ劉鐎垫澘瀚ˇ鏌ユ煟椤垵澧撮柡?:
-//   compute <n>          婵犵數鍋為崹鐢告偋閻愬搫绠?n 闂備礁鎲￠〃鍡椕洪幋鐘电?CPU
-//   open <path> <mode>   闂備胶鎳撻悘姘跺箰閸濄儲顫曢柟杈剧畱濡﹢鏌涢妷顖炴妞? fd 闂佽瀛╃粙鎺楁晪闂佺硶鏅涢惌渚€濡甸幇鏉跨闁告劕妯婇弸鈧梺鍝勵槴閺呮粎绮欓幘璇茬厺?(闂備焦妞垮鍧楀礉瀹ュ懌鈧帡鎳滈崹顐℃唉闂佺懓顕崐?
-//   read <fd> <n>        闂佽崵濮村ú銊у垝椤栫偛鍑犻柛鎰靛枟閺?//   write <fd> <text>    闂備礁鎲￠崝鏍偡閿曞倸鍑犻柛鎰靛枟閺?//   close <fd>
 //   mkdir <path>
-//   ls <path>            (缂傚倸鍊烽悞锕傚箰婵犳碍鍊跺璺侯儑閳绘棃鏌曡箛鏇炐ョ痪? 濠电偛顕慨鎾箠閹捐鏉洪梻?FS 闂傚倷绶￠崜娆戠矓閺夋埈鍟?
 //   create <path>
-//   access <vaddr>       闂佽崵鍠愰悷杈╃不閹达絻浜归柛宀€鍋涚粈鍐煕濞戝崬骞橀柟鐣屽Х缁辨捇宕奸悢鍓叉健闂?(TLB/濠碉紕鍋戦崐鎾跺緤婵犳艾违?缂傚倸鍊搁崐鐟邦渻娴犲违?
-//   sleep <n>            闂佸搫顦弲婊呯矙閹达箑鐭?WAITING n tick
 //   exit <code>
 //   fork
 func execOp(int pid, string line) as int
@@ -2399,7 +2239,6 @@ func execOp(int pid, string line) as int
         int n = 1
         if tokens.length > 1 then n = parseIntSafe(string(tokens[1]), 1) end
         if n < 1 then n = 1 end
-        // 闂?tick 闂?1, 闂備礁鎲￠幐鎾疾濞嗘垹绀?n-1 闂?procRunQuantum 闂?tick 婵犵數鍋為崹鐢告偋閹版澘鐒?(闂備浇銆€閸嬫挻銇勯弽銊р槈闁?quantum 闂備胶顢婄紙浼村垂閻熸壆鏆?
         g_pcb[pid].computeLeft = n - 1
         procDecRemaining(pid, 1)
         return 1
@@ -2493,19 +2332,19 @@ func execOp(int pid, string line) as int
         procTerminate(pid, code)
         return 1
     end
-    // 闂備礁鎼悧婊勭閻愮儤鍋傞柨鐔哄Т缁犺偐鈧箍鍎辩€氼喚绮? 闁荤喐绮庢晶妤呭箰妞嬪海绀?1 闂備礁鎲￠〃鍡椕洪幋鐘电?compute
     procDecRemaining(pid, 1)
     return 1
 end
 
 
 // ===============================================================
-//  Part 7: 闂傚倸鍊稿Λ妤€螞濞嗘挸鍨傛慨姗嗗劦閻旂厧鐒洪柛鎰╁妿瑜?(boot / demo)
 // ===============================================================
 
+// ===============================================================
+// 系统启动、演示与测试
+// ===============================================================
 func osReset()
     g_pcb = array[]
-    // g_pcb[0] 濠电儑绲藉ú锔炬崲閸曨垰姹查柍褜鍓欓埥澶愬箻閾忣偅鍎撻梺纭呭亹閸樠冨祫?(pid 0 = idle), 濠?index == pid 闂備胶鎳撻悺銊╁礉濡ゅ懏鍋?
     PCB dummy = PCB()
     dummy.pid = 0
     dummy.name = "idle"
@@ -2534,7 +2373,6 @@ end
 
 func osBoot()
     osReset()
-    // 闁诲海鍋ｉ崐娑樷枍閿濆鍋熸繛鎴欏灩閺勩儵鏌ц箛姘煎殐闁衡偓閵娾晜鐓熼柍鍝勶工閺嬫稓绱撳鍛ょ紒杈ㄥ浮楠炴鈧數纭堕崑?
     fsMkdir("/etc", PERM_RWX)
     fsMkdir("/bin", PERM_RWX)
     fsMkdir("/home", PERM_RWX)
@@ -2548,10 +2386,8 @@ func osBoot()
     fsWriteFile("/var/log/messages", "boot: kernel started\nboot: mounts ready\n")
 end
 
-// 婵犵數濮靛ú妯侯潖婵犳艾桅婵浜惌娆撴倵閿濆簼绨界痪鏉跨Ч濮婂宕卞Δ渚囨闂? 闂備礁鎲￠懝鍓р偓姘煎灦瀹曢潧顭ㄩ崨顒佸媰闂佸搫娲ㄦ慨鐗堢濞戞ǚ妲堥柟鎯х－瀛濋梺璇″枟閹搁箖鍩€椤掍胶鈯曢柛鏃€顨婇弻鍫⑩偓闈涙憸绾惧ジ鏌ｉ弮鍌氬妺闁伙絽宕湁闁挎繂鐗婄涵鍫曟煛?
 func buildPrograms() as var
     var progs = {}
-    // init: 闂備礁鎲＄敮妤冪矙閹寸姷纾介柟鍓х帛閸ゆ劙鏌曟径鍫濆姎闁告瑱绱曠槐鎺楊敍濠靛棗鎯炵紓渚囧枟濡炶棄顕ｉ鍕倞闁挎梻鐡旈崑銊╂⒑?fork 闂備礁鎲￠崹褰掑磿閵堝拑鑰块柛銉墮缁€澶愭⒔閸モ晜宕叉慨妞诲亾闁?
     progs["init"] = array[
         "open /var/log/boot.log w",
         "write 0 boot sequence start",
@@ -2562,7 +2398,6 @@ func buildPrograms() as var
         "compute 1",
         "exit 0"
     ]
-    // writer: 濠电姰鍨归悥銏ゅ炊瑜庨锟犳⒑閸涘﹤濮堥柣鐕傜畵瀵悂宕橀鑺ユ?
     progs["writer"] = array[
         "open /tmp/out.log w",
         "write 0 line-one",
@@ -2571,7 +2406,6 @@ func buildPrograms() as var
         "compute 3",
         "exit 0"
     ]
-    // reader: 闂佽崵濮村ú銊у垝椤栫偛鍑犻柛鎰靛枟閺?+ 闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋ら柕濞у嫬顎涢梺绉嗗嫷娈曢柨?
     progs["reader"] = array[
         "open /etc/passwd r",
         "read 0 16",
@@ -2582,7 +2416,6 @@ func buildPrograms() as var
         "compute 2",
         "exit 0"
     ]
-    // memory-heavy: 闂佽崵鍠愰悷杈╃不閹达絻浜归柛灞剧☉缁剁偟鎲搁弮鍫濋棷闁惧繐婀辩壕鑺ョ箾瀹割喕绨甸柍?+ TLB
     progs["memhog"] = array[
         "access 0",
         "access 16",
@@ -2594,14 +2427,12 @@ func buildPrograms() as var
         "compute 2",
         "exit 0"
     ]
-    // sleeper: 婵犵數鍋炲娆擃敄閸儲鍎?WAITING 闂備胶绮…鍫ヮ敊閹版澘绠?
     progs["sleeper"] = array[
         "compute 1",
         "sleep 3",
         "compute 1",
         "exit 0"
     ]
-    // cpu: 闂?CPU 闂佽崵濮甸崝妤呭窗閺囩伝?(濠电偞娼欓崥瀣暆閹间礁鐒垫い鎺嶇婵螖閻樺弶鍠樻慨濠呮椤撳ジ宕堕鍌氱)
     progs["cpu"] = array[
         "compute 10",
         "exit 0"
@@ -2609,16 +2440,15 @@ func buildPrograms() as var
     return progs
 end
 
-// 闂?var 闂佽楠稿﹢閬嶅箠閹炬枼鏋?(dict 闂佽瀛╃粙鎺楁晪闂佺顑呯粔褰掑极?array) 闂傚倷绶￠崑鍛村礉閺囥垹鍌ㄩ柟鎹愬煐椤洟鏌ｅΟ鍝勬毐妞ゅ繐鐖奸幃褰掑箛椤撶姷鐣甸梺?array<string>, 闂佽崵鍠愰悷銉р偓姘卞鐎?var->typed array 闂備胶鍎甸弲娑㈡偤閵娧勬殰閻庢稒蓱婵粍銇勯幒宥囶槮閹?
 func copyStrArray(var src) as array<string>
-    array<string> out = array[]
+    array<string> outputValue = array[]
     int n = src.length
     int i = 0
     while i < n do
-        out.append(string(src[i]))
+        outputValue.append(string(src[i]))
         i += 1
     end
-    return out
+    return outputValue
 end
 
 func runDemo() as int
@@ -2658,7 +2488,6 @@ func runDemo() as int
     return 0
 end
 
-// 闂備胶鎳撻悘姘跺箰缁嬭法鏆ら柛鎰ㄦ櫆娴溿倖绻涢幋鐐茬劰闁哄被鍊濋弻鐔虹箔濞戞ɑ锛嶉柡鈧悾宀€纾藉ù锝堫潐鐏忎即鏌ｈ箛鎿冩Ц閺佸牓鏌涢妷锝呭Ψ闁稿鎹囧鎷岀疀鐎Ｑ冧壕?
 func printProcSummary()
     println(rep("=", 60))
     println("Process Summary")
@@ -2676,7 +2505,6 @@ end
 
 
 // ===============================================================
-//  Part 8: 闂備胶鍘ч〃搴㈢濠靛牏鐭堥柡澶嬪焾濞存牠鏌涢埄鍐剧劷濞?
 // ===============================================================
 
 int g_pass = 0
@@ -2717,7 +2545,6 @@ func expectS(string got, string want, string label)
 end
 
 
-// ---- FS 婵犵數鍋炲娆擃敄閸儲鍎?----
 func testFS()
     println("[testFS] file system CRUD + path + perms")
     fsMkdir("/proj", PERM_RWX)
@@ -2728,7 +2555,6 @@ func testFS()
     expectS(fsReadFile("/proj/a.txt"), "alpha", "readFile a.txt")
     expectTrue(fsWriteFile("/proj/a.txt", "ALPHA"), "overwrite a.txt")
     expectS(fsReadFile("/proj/a.txt"), "ALPHA", "overwritten content")
-    // fd 闂備胶鎳撻悘婵堢矓瀹曞洨绀?
     int fd = fsOpen("/proj/b.txt", "w")
     expectTrue(fd >= 0, "open b.txt w returns fd")
     int w1 = fsWrite(fd, "hello ")
@@ -2742,18 +2568,15 @@ func testFS()
     expectS(fsRead(fd2, 5), "world", "read after lseek")
     expectI(fsLseek(fd2, 0, 2), 11, "lseek SEEK_END -> size")
     fsClose(fd2)
-    // 闂備礁鎼ˇ顖炲疮閺夋埈鐎?
     int roId = fsCreate("/proj/ro.txt", PERM_R)
     expectTrue(roId >= 0, "create read-only file")
     expectFalse(fsWriteFile("/proj/ro.txt", "x"), "write to read-only denied")
-    // 闂備胶鍎甸弲鈺呭窗閺嶎偆绀婄€广儱顦伴弲?x 濠电偞鍨堕幐鍝ョ矓绾惧浜?cd
     fsMkdir("/proj/locked", PERM_RW)
     expectFalse(fsCd("/proj/locked"), "cd dir without x denied")
     fsCd("/")
     // ls
     var items = fsListDir("/proj")
     expectTrue(items.length >= 4, "ls /proj has >=4 entries")
-    // 闂備礁鎲＄敮鐐寸箾閳ь剚绻?
     expectTrue(fsRemove("/proj/a.txt"), "remove a.txt")
     expectFalse(fsExists("/proj/a.txt"), "removed gone")
     expectFalse(fsRemove("/proj"), "remove non-empty dir fails")
@@ -2765,10 +2588,8 @@ func testFS()
 end
 
 
-// ---- 闂備礁鎲￠崝鏇㈠箠鎼淬劍鍋ら柕濞垮剭閸︻厸鍋撻敐搴″箻婵?----
 func testMem()
     println("[testMem] paging + TLB + LRU")
-    // 闂備礁鎲￠〃鍡椕哄┑鍫熷床婵☆垵鍋愰惌娆撴倵閿濆骸澧伴柛濠冨▕閺? 闂佸搫顦弲婵嬪磻閻斿吋鍋ㄩ柤濮愬€栨刊濂告煕瑜庨〃鍡涙晬閺嶎厼绠归悗娑櫳戦悡銉х磽閸屾稒灏电紒顔规櫇閳ь剨缍嗛崑鍛般€栭梻?
     array<string> prog = array["compute 1"]
     int pid = procCreate("tester", 0, 1, 0, prog)
     procArrive(pid)
@@ -2779,15 +2600,12 @@ func testMem()
     int p3 = memTranslate(pid, 32)
     expectTrue(p1 >= 0 and p2 >= 0 and p3 >= 0, "three translates succeed")
     expectI(g_memPageFault, baseFault + 3, "3 page faults for 3 new pages")
-    // 闂傚倷鐒﹁ぐ鍐矓閹绢啟鍥嚑椤掍礁顎涢梺绉嗗嫷娈曢柨娑欑墵閺屾稑顫濋鈧〃娆戠磼?vpn -> TLB 闂備礁鎲＄粙鎺楀垂濠靛鍤? 濠电偞鍨堕幐鍝ョ矓閹绢喖鐤柍褜鍓涚槐鎾诲磼濞戞瑣浠㈤梺?
     int baseHit = g_memTlbHit
     int p1b = memTranslate(pid, 0)
     expectI(p1b, p1, "repeat translate same paddr")
     expectTrue(g_memTlbHit > baseHit, "TLB hit increased on repeat")
-    // 闂佺儵鍓濈敮鎺楁晝閵娧勫床闁告劏鏂傛禍婊堟煟閵忕姷浠涚紒鎰殘閹叉悂鎮ч崼鐔侯槷缂備焦姊婚崰鏍极? dirIdx 闂備礁鎲＄敮鎺懨洪敃鈧悾?
     int p5 = memTranslate(pid, 128)    // dirIdx=1
     expectTrue(p5 >= 0, "translate across dir boundary")
-    // LRU: 闂備礁鎲￠〃鍫熸叏闂堟侗鍤曠憸蹇涘极椤旀妲婚梺璇″枟椤ㄥ牏妲愰幒鏇ㄦЬ闂佹眹鍨归…宄扮暦濮樿泛骞㈡繛鎴灻挧?-> 闂佽崵鍠愰悷杈╃不閹达絻浜归柛灞绢嚙鎼粹垾鐔烘嫚閹绘帞顦?
     int i = 0
     while i < NUM_FRAMES + 4 do
         memTranslate(pid, 64 + i * 16)
@@ -2797,7 +2615,6 @@ func testMem()
 end
 
 
-// ---- 闂佸搫顦弲婊呯矙閹捐鐓濋柤娴嬫櫆鐎氼剟鏌涢幇鈺佸妞ゆ柨锕ョ换娑㈠级閹搭厼鍓甸梺?----
 func testSched()
     println("[testSched] MLFQ + context switch + states")
     osBoot()
@@ -2808,7 +2625,6 @@ func testSched()
     procCreate("B", 0, 6, 0, progB)
     procCreate("C", 0, 2, 0, progC)
     schedulerLoop(500)
-    // 闂備胶顭堢换鍫ュ礉閹达箑纾块悗娑櫳戦崕鐔兼煛閸愩劌鈧鎯岄幒妤佺叆?
     int i = 1
     int n = g_pcb.length
     bool allTerm = true
@@ -2821,9 +2637,6 @@ func testSched()
     end
     expectTrue(allTerm, "all test processes terminated")
     expectTrue(g_contextSwitches > 0, "context switches happened")
-    // CPU-bound 闂佸搫顦弲婊呯矙閹捐鐓濋柛蹇撳悑閸庣喖鏌￠崘銊у妞ゅ孩鐗滅槐鎺楁偑濞嗗繐鏆欓柣?level 2 (闂備焦妞垮鍧楀礉瀹€鍕瀬闁哄秲鍔岀欢鐐存叏濮楀棗浜伴柛?quantum)
-    // (闂備胶鍘ч崲鏌ュ疮閸ф鍎嶆い鏍仜鐎氬顭跨捄渚Ш妞ゅ繐宕埥澶愬箼閸愌勬崳缂備胶绮敃銏ゅ极?level 濠电偞鍨堕幐鎼佹晝閵堝懐鏆︾€光偓閸曨剚娅?- 闂佸搫顦弲婊堟偡閳哄懎闂梺鍨儑椤╃兘鏌涘☉姗嗗殶鐎规洩缍侀幃褰掑炊閿旂瓔妯傜紓浣诡殔椤﹂潧鐣烽敓鐘茬労闁告劖鍎虫慨?
-    // 闂備焦妞块崑鎾舵閺囩儑鑰块柕蹇婂墲娴溿倖绻涢幋鐐茬劰闁哄被鍊栫换娑㈠级閹搭厼鍓甸梺?
     osBoot()
     array<string> progS = array["compute 1", "sleep 3", "compute 1", "exit 0"]
     int pidS = procCreate("sleeper", 0, 4, 0, progS)
@@ -2836,7 +2649,6 @@ func testSched()
 end
 
 
-// ---- Shell 闂佽崵鍠愰悷杈╁緤妤ｅ啯鍊甸柦妯侯棦閸︻厸鍋撻敐搴″箻婵?----
 func testShellParse()
     println("[testShellParse] pipe/redirect/bg tokenizing")
     var c1 = shParse("echo hello")
@@ -2857,13 +2669,12 @@ func testShellParse()
 end
 
 
-// ---- Shell 闂備礁婀遍悷鎶藉幢閳哄倹鏉告繝鐢靛仦濞兼瑩顢栭崼銉﹀剨?----
 func testShellExec()
     println("[testShellExec] builtin commands + pipe + redirect")
     // echo
     var p = shParse("echo hello world")
-    string out = shExecParsed(p)
-    expectS(trimP(out), "hello world", "echo outputs text")
+    string outputValue = shExecParsed(p)
+    expectS(trimP(outputValue), "hello world", "echo outputs text")
     // mkdir + ls
     shExecParsed(shParse("mkdir /xtest"))
     shExecParsed(shParse("write /xtest/f.txt the-data"))
@@ -2871,11 +2682,9 @@ func testShellExec()
     var pLs = shParse("ls /xtest")
     string lsOut = shExecParsed(pLs)
     expectTrue(containsP(lsOut, "f.txt"), "ls lists created file")
-    // 缂傚倷鑳舵刊瀵告崲濠靛洨顩? echo | cat
     var pPipe = shParse("echo piped-data | cat")
     string pipeOut = shExecParsed(pPipe)
     expectTrue(containsP(pipeOut, "piped-data"), "pipe echo|cat forwards data")
-    // 闂傚倷鐒﹁ぐ鍐矓閹绢喗鍋╁Δ锝呭暞閺? echo > file
     fsWriteFile("/tmp/redir.txt", "")
     var pRed = shParse("echo redir-content > /tmp/redir.txt")
     shExecParsed(pRed)
@@ -2888,7 +2697,6 @@ func testShellExec()
     shExecParsed(shParse("cd /xtest"))
     expectS(fsPwd(), "/xtest", "cd changes cwd")
     shExecParsed(shParse("cd /"))
-    // ps / mem 濠电偞鍨堕幐鍝ョ矓鐎靛摜鐭氶柛顭戝枓閺€锕傛煕閹扳晛濡肩紒渚囧櫍閺?
     string psOut = shExecParsed(shParse("ps"))
     expectTrue(containsP(psOut, "PID"), "ps prints header")
     string memOut = shExecParsed(shParse("mem"))
@@ -2899,7 +2707,6 @@ func testShellExec()
 end
 
 
-// ---- 缂傚倷绶￠崹闈涚暦閻㈤潧鍨濋柧蹇氼潐鐎氼剟鏌涢幇鍏哥凹闁哄棗绻橀弻鐔煎箒閹烘垵濮庨悷婊呭缁嬫垿婀侀柣搴秵閸樻儳危?----
 func testSyscall()
     println("[testSyscall] unified syscall entry")
     fsWriteFile("/etc/sc.txt", "syscall-data")
@@ -2918,13 +2725,11 @@ func testSyscall()
     var r6 = syscall(SYS_MKDIR, ["/scdir"])
     expectTrue(int(r6["ret"]) >= 0, "SYS_MKDIR returns ino")
     expectTrue(g_nextIno > beforeIno, "nextIno advanced after mkdir")
-    // 闂備礁鎼悧婊勭閻愮儤鍋?syscall
     var r7 = syscall(9999, [])
     expectTrue(containsP(string(r7["msg"]), "unknown syscall"), "unknown syscall reported")
 end
 
 
-// ---- 闂傚倸鍊稿Λ妤€螞濞嗘挸鍨傛慨姗嗗劦閻旂厧鐒洪柛鎰╁妿瑜版彃鈹戦悙瀛樼稇妞ゆ垵鐗撻幆?----
 func testIntegration()
     println("[testIntegration] boot -> schedule -> memory -> fs -> terminate")
     osBoot()
@@ -2936,7 +2741,6 @@ func testIntegration()
     procCreate("sleeper",4, 5,  2, copyStrArray(progs["sleeper"]))
     procCreate("cpu",    5, 10, 0, copyStrArray(progs["cpu"]))
     schedulerLoop(3000)
-    // 闂備胶顭堢换鍫ュ礉閹达箑纾块悗闈涙憸绾惧ジ鏌涢銈呮珡闁?
     int i = 1
     int n = g_pcb.length
     bool allTerm = true
@@ -2952,9 +2756,7 @@ func testIntegration()
     expectTrue(g_memTranslate > 0, "integration: memory translates occurred")
     expectTrue(g_memPageFault > 0, "integration: page faults occurred")
     expectTrue(g_memTlbHit > 0, "integration: TLB hits occurred")
-    // writer 闂佸湱鍘ч悺銊ノ涙笟鈧、姘潩鐠鸿櫣顦┑鐐村灦椤洨妲愰敃鍌涚叆?/tmp/out.log
     expectTrue(fsExists("/tmp/out.log"), "integration: writer created /tmp/out.log")
-    // init 闂佸湱鍘ч悺銊ノ涙笟鈧、姘潩鐠鸿櫣顦┑鐐村灦椤洨妲愰敃鍌涚叆?/srv 闂?/var/log/boot.log
     expectTrue(fsExists("/srv"), "integration: init created /srv")
     expectTrue(fsExists("/var/log/boot.log"), "integration: init created boot.log")
 end
@@ -2963,7 +2765,6 @@ end
 func cmdTest() as int
     println("=== xos self-test ===")
     println("")
-    // 婵犳鍣徊鐣屾崲閹烘柨鍨濈€广儱鎮块崷顓涘亾閿濆骸骞樻俊鍙夋倐閺屾盯骞樺畷鍥喲囨煕閿濆懏鎲哥紒杈ㄦ椤㈡瑩骞嗚閻ｉ箖姊?
     osBoot()
     testFS()
     println("")
@@ -2991,7 +2792,6 @@ end
 
 
 // ===============================================================
-//  Part 9: 闂備礁鎲＄粙鎺楀垂濠靛绠柕鍫濐槸缁€鍌炴煏婢跺牆鍔氱紓?
 // ===============================================================
 
 func printUsage()
@@ -3026,7 +2826,6 @@ func main(...) as int
             return 1
         end
     osBoot()
-        // shell 闂備礁鎲￠崙褰掑垂閻楀牊鍙忛柍鍝勬噹缁秹鎮规ウ鎸庮仩缂佹唻绠戦埥澶愬箻椤栨矮澹曞┑鐐村灦閹尖晜绂嶅▎蹇ｆ僵闁挎洖鍊归弲?idle 闂佸搫顦弲婊呯矙閹捐鐓? 濠电偛顕慨浼村磿閹殿喚鐭?ps/kill/exec 闂備礁鎼悧鍡浰囬鍓х當闁稿本绋撻埢鏃堟倵閿濆骸浜濋柣?
         array<string> idleProg = array["compute 999"]
         int idle = procCreate("shell", 0, 999, 0, idleProg)
         procArrive(idle)

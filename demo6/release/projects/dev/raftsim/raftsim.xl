@@ -15,10 +15,9 @@
 // periodic loop (heartbeat pacing for leaders, election-timeout check for
 // followers/candidates).
 //
-// xlang constraints worked around:
-//   - channel<T> only supports value types (int); no string/struct
-//     . RPCs use a slot-envelope: channel<int> carries a slot id;
-//     the actual payload lives in parallel global arrays indexed by slot.
+// xlang concurrency model used here:
+//   - channel<string> carries compact, owned RPC envelopes. Receivers decode
+//     each envelope into a local Rpc object, so message state is never shared.
 //   - channel / thread are non-copyable; cannot live in typed arrays.
 //     Node inboxes are pre-declared globals; node bodies are spawned
 //     fire-and-forget via thread(closure) capturing the node id by value
@@ -91,28 +90,29 @@ array<int> g_link = array[]
 int g_running = 1
 
 // ============================== rpc envelope ==============================
-// channel<int> inbox per node (non-copyable => pre-declared globals).
-channel<int> g_inbox0 = channel::<int>(128)
-channel<int> g_inbox1 = channel::<int>(128)
-channel<int> g_inbox2 = channel::<int>(128)
-channel<int> g_inbox3 = channel::<int>(128)
-channel<int> g_inbox4 = channel::<int>(128)
 
-// RPC payload arrays, one row per sent RPC, indexed by monotonic slot id.
-array<int> g_rpcType = array[]
-array<int> g_rpcSrc = array[]
-array<int> g_rpcDst = array[]
-array<int> g_rpcTerm = array[]
-array<int> g_rpcPrevIdx = array[]
-array<int> g_rpcPrevTerm = array[]
-array<int> g_rpcEntriesLen = array[]
-array<int> g_rpcEntryTerm = array[]
-array<int> g_rpcLeaderCommit = array[]
-array<int> g_rpcCandidateId = array[]
-array<int> g_rpcVoteGranted = array[]
-array<int> g_rpcSuccess = array[]
-array<int> g_rpcMatchIdx = array[]
-int g_rpcNext = 0
+class Rpc
+    int kind = 0
+    int src = 0
+    int dst = 0
+    int term = 0
+    int prevIdx = 0
+    int prevTerm = 0
+    int entriesLen = 0
+    int entryTerm = 0
+    int leaderCommit = 0
+    int candidateId = -1
+    int voteGranted = 0
+    int success = 0
+    int matchIdx = 0
+end
+
+// channel 是 native-backed 资源，因此每个节点使用一个明确的全局 inbox。
+channel<string> g_inbox0 = channel::<string>(128)
+channel<string> g_inbox1 = channel::<string>(128)
+channel<string> g_inbox2 = channel::<string>(128)
+channel<string> g_inbox3 = channel::<string>(128)
+channel<string> g_inbox4 = channel::<string>(128)
 
 // ============================== client submit =============================
 // Main thread submits a value by targeting a specific leader; that leader
@@ -190,53 +190,57 @@ end
 
 // ============================== inbox dispatch ============================
 
-func inboxSend(int dst, int slot) as bool
-    if dst == 0 then return g_inbox0.send(slot) end
-    if dst == 1 then return g_inbox1.send(slot) end
-    if dst == 2 then return g_inbox2.send(slot) end
-    if dst == 3 then return g_inbox3.send(slot) end
-    if dst == 4 then return g_inbox4.send(slot) end
+func encodeRpc(Rpc r) as string
+    return f"{r.kind},{r.src},{r.dst},{r.term},{r.prevIdx},{r.prevTerm},{r.entriesLen},{r.entryTerm},{r.leaderCommit},{r.candidateId},{r.voteGranted},{r.success},{r.matchIdx}"
+end
+
+func decodeRpc(string wire) as Rpc
+    array<string> fields = string.split(wire, ",")
+    if fields.length != 13 then
+        throw "invalid Raft RPC envelope"
+    end
+    Rpc r = Rpc()
+    r.kind = int(fields[0])
+    r.src = int(fields[1])
+    r.dst = int(fields[2])
+    r.term = int(fields[3])
+    r.prevIdx = int(fields[4])
+    r.prevTerm = int(fields[5])
+    r.entriesLen = int(fields[6])
+    r.entryTerm = int(fields[7])
+    r.leaderCommit = int(fields[8])
+    r.candidateId = int(fields[9])
+    r.voteGranted = int(fields[10])
+    r.success = int(fields[11])
+    r.matchIdx = int(fields[12])
+    return r
+end
+
+func inboxSend(int dst, Rpc rpc) as bool
+    string wire = encodeRpc(rpc)
+    if dst == 0 then return g_inbox0.send(wire) end
+    if dst == 1 then return g_inbox1.send(wire) end
+    if dst == 2 then return g_inbox2.send(wire) end
+    if dst == 3 then return g_inbox3.send(wire) end
+    if dst == 4 then return g_inbox4.send(wire) end
     return false
 end
 
-func inboxTryRecv(int dst) as (bool, int)
-    int v = 0
+func inboxTryRecv(int dst) as (bool, string)
+    string wire = ""
     bool ok = false
     if dst == 0 then
-        ok = g_inbox0.tryRecvInto(v)
+        ok = g_inbox0.tryRecvInto(wire)
     elseif dst == 1 then
-        ok = g_inbox1.tryRecvInto(v)
+        ok = g_inbox1.tryRecvInto(wire)
     elseif dst == 2 then
-        ok = g_inbox2.tryRecvInto(v)
+        ok = g_inbox2.tryRecvInto(wire)
     elseif dst == 3 then
-        ok = g_inbox3.tryRecvInto(v)
+        ok = g_inbox3.tryRecvInto(wire)
     elseif dst == 4 then
-        ok = g_inbox4.tryRecvInto(v)
+        ok = g_inbox4.tryRecvInto(wire)
     end
-    return ok, v
-end
-
-// Allocate one RPC slot (lock-protected: push mutates shared arrays) and
-// zero-initialize its payload row.
-func rpcAlloc() as int
-    g_lock.lock()
-    int s = g_rpcNext
-    g_rpcNext = s + 1
-    g_rpcType.push(0)
-    g_rpcSrc.push(0)
-    g_rpcDst.push(0)
-    g_rpcTerm.push(0)
-    g_rpcPrevIdx.push(0)
-    g_rpcPrevTerm.push(0)
-    g_rpcEntriesLen.push(0)
-    g_rpcEntryTerm.push(0)
-    g_rpcLeaderCommit.push(0)
-    g_rpcCandidateId.push(-1)
-    g_rpcVoteGranted.push(0)
-    g_rpcSuccess.push(0)
-    g_rpcMatchIdx.push(0)
-    g_lock.unlock()
-    return s
+    return ok, wire
 end
 
 func canSend(int src, int dst) as bool
@@ -247,78 +251,77 @@ end
 
 func sendVoteReq(int src, int dst, int term, int candId, int lastLogIdx, int lastLogTerm)
     if not canSend(src, dst) then return end
-    int s = rpcAlloc()
-    g_rpcType[s] = RPC_VOTE
-    g_rpcSrc[s] = src
-    g_rpcDst[s] = dst
-    g_rpcTerm[s] = term
-    g_rpcCandidateId[s] = candId
-    g_rpcPrevIdx[s] = lastLogIdx
-    g_rpcPrevTerm[s] = lastLogTerm
-    inboxSend(dst, s)
+    Rpc rpc = Rpc()
+    rpc.kind = RPC_VOTE
+    rpc.src = src
+    rpc.dst = dst
+    rpc.term = term
+    rpc.candidateId = candId
+    rpc.prevIdx = lastLogIdx
+    rpc.prevTerm = lastLogTerm
+    inboxSend(dst, rpc)
 end
 
 func sendVoteResp(int src, int dst, int term, int granted)
     if not canSend(src, dst) then return end
-    int s = rpcAlloc()
-    g_rpcType[s] = RPC_VOTE_RESP
-    g_rpcSrc[s] = src
-    g_rpcDst[s] = dst
-    g_rpcTerm[s] = term
-    g_rpcVoteGranted[s] = granted
-    inboxSend(dst, s)
+    Rpc rpc = Rpc()
+    rpc.kind = RPC_VOTE_RESP
+    rpc.src = src
+    rpc.dst = dst
+    rpc.term = term
+    rpc.voteGranted = granted
+    inboxSend(dst, rpc)
 end
 
 func sendAppendReq(int src, int dst, int term, int prevIdx, int prevTerm, int entriesLen, int entryTerm, int leaderCommit)
     if not canSend(src, dst) then return end
-    int s = rpcAlloc()
-    g_rpcType[s] = RPC_APPEND
-    g_rpcSrc[s] = src
-    g_rpcDst[s] = dst
-    g_rpcTerm[s] = term
-    g_rpcPrevIdx[s] = prevIdx
-    g_rpcPrevTerm[s] = prevTerm
-    g_rpcEntriesLen[s] = entriesLen
-    g_rpcEntryTerm[s] = entryTerm
-    g_rpcLeaderCommit[s] = leaderCommit
-    inboxSend(dst, s)
+    Rpc rpc = Rpc()
+    rpc.kind = RPC_APPEND
+    rpc.src = src
+    rpc.dst = dst
+    rpc.term = term
+    rpc.prevIdx = prevIdx
+    rpc.prevTerm = prevTerm
+    rpc.entriesLen = entriesLen
+    rpc.entryTerm = entryTerm
+    rpc.leaderCommit = leaderCommit
+    inboxSend(dst, rpc)
 end
 
 func sendAppendResp(int src, int dst, int term, int success, int matchIdx)
     if not canSend(src, dst) then return end
-    int s = rpcAlloc()
-    g_rpcType[s] = RPC_APPEND_RESP
-    g_rpcSrc[s] = src
-    g_rpcDst[s] = dst
-    g_rpcTerm[s] = term
-    g_rpcSuccess[s] = success
-    g_rpcMatchIdx[s] = matchIdx
-    inboxSend(dst, s)
+    Rpc rpc = Rpc()
+    rpc.kind = RPC_APPEND_RESP
+    rpc.src = src
+    rpc.dst = dst
+    rpc.term = term
+    rpc.success = success
+    rpc.matchIdx = matchIdx
+    inboxSend(dst, rpc)
 end
 
 // ============================== rpc dispatch ==============================
 
-func processRpc(int id, int s)
-    int t = g_rpcType[s]
-    if t == RPC_VOTE then
-        handleVoteReq(id, s)
-    elseif t == RPC_VOTE_RESP then
-        handleVoteResp(id, s)
-    elseif t == RPC_APPEND then
-        handleAppendReq(id, s)
-    elseif t == RPC_APPEND_RESP then
-        handleAppendResp(id, s)
+func processRpc(int id, Rpc rpc)
+    if rpc.kind == RPC_VOTE then
+        handleVoteReq(id, rpc)
+    elseif rpc.kind == RPC_VOTE_RESP then
+        handleVoteResp(id, rpc)
+    elseif rpc.kind == RPC_APPEND then
+        handleAppendReq(id, rpc)
+    elseif rpc.kind == RPC_APPEND_RESP then
+        handleAppendResp(id, rpc)
     end
 end
 
 // ---- RequestVote (receiver = id) -----------------------------------------
 // Figure 2: Rules for Servers -> RequestVote RPC handler.
-func handleVoteReq(int id, int s)
+func handleVoteReq(int id, Rpc rpc)
     g_lock.lock()
-    int reqTerm = g_rpcTerm[s]
-    int candId = g_rpcCandidateId[s]
-    int lastLogIdx = g_rpcPrevIdx[s]
-    int lastLogTerm = g_rpcPrevTerm[s]
+    int reqTerm = rpc.term
+    int candId = rpc.candidateId
+    int lastLogIdx = rpc.prevIdx
+    int lastLogTerm = rpc.prevTerm
     int myTerm = g_term[id]
     int grant = 0
     int respTerm = myTerm
@@ -356,17 +359,17 @@ func handleVoteReq(int id, int s)
         end
         respTerm = myTerm
     end
-    int dst = g_rpcSrc[s]
+    int dst = rpc.src
     g_lock.unlock()
     sendVoteResp(id, dst, respTerm, grant)
 end
 
 // ---- RequestVoteResponse (receiver = candidate id) -----------------------
 // Figure 2: Rules for Servers -> Candidates.
-func handleVoteResp(int id, int s)
+func handleVoteResp(int id, Rpc rpc)
     g_lock.lock()
-    int respTerm = g_rpcTerm[s]
-    int grant = g_rpcVoteGranted[s]
+    int respTerm = rpc.term
+    int grant = rpc.voteGranted
     int myTerm = g_term[id]
     if respTerm > myTerm then
         // Discovered higher term -> step down (refreshes election deadline).
@@ -413,15 +416,15 @@ end
 
 // ---- AppendEntries (receiver = id) ---------------------------------------
 // Figure 2: AppendEntries RPC handler (handles heartbeats too).
-func handleAppendReq(int id, int s)
+func handleAppendReq(int id, Rpc rpc)
     g_lock.lock()
-    int reqTerm = g_rpcTerm[s]
-    int leaderId = g_rpcSrc[s]
-    int prevIdx = g_rpcPrevIdx[s]
-    int prevTerm = g_rpcPrevTerm[s]
-    int entriesLen = g_rpcEntriesLen[s]
-    int entryTerm = g_rpcEntryTerm[s]
-    int leaderCommit = g_rpcLeaderCommit[s]
+    int reqTerm = rpc.term
+    int leaderId = rpc.src
+    int prevIdx = rpc.prevIdx
+    int prevTerm = rpc.prevTerm
+    int entriesLen = rpc.entriesLen
+    int entryTerm = rpc.entryTerm
+    int leaderCommit = rpc.leaderCommit
     int myTerm = g_term[id]
     int success = 0
     int respMatchIdx = g_logLen[id]
@@ -493,12 +496,12 @@ end
 
 // ---- AppendEntriesResponse (receiver = leader id) ------------------------
 // Figure 2: Rules for Servers -> Leaders.
-func handleAppendResp(int id, int s)
+func handleAppendResp(int id, Rpc rpc)
     g_lock.lock()
-    int respTerm = g_rpcTerm[s]
-    int success = g_rpcSuccess[s]
-    int matchIdx = g_rpcMatchIdx[s]
-    int fromNode = g_rpcSrc[s]
+    int respTerm = rpc.term
+    int success = rpc.success
+    int matchIdx = rpc.matchIdx
+    int fromNode = rpc.src
     int myTerm = g_term[id]
     if respTerm > myTerm then
         stepDown(id, respTerm)
@@ -649,10 +652,10 @@ func nodeLoop(int id) as int
         bool draining = true
         while draining do
             bool ok = false
-            int slot = 0
-            ok, slot = inboxTryRecv(id)
+            string wire = ""
+            ok, wire = inboxTryRecv(id)
             if ok then
-                processRpc(id, slot)
+                processRpc(id, decodeRpc(wire))
             else
                 draining = false
             end

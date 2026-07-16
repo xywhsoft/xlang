@@ -1,0 +1,57 @@
+import xml.sax
+
+
+
+func main(...) as int
+    string source = "<?xml version=\"1.0\"?><root xmlns:p=\"urn:test\" id=\"7\"><p:item>你好</p:item><!--note--></root>"
+    auto events = xml.sax.reader(source)
+    int starts = 0
+    int ends = 0
+    int texts = 0
+    int comments = 0
+    bool namespaceSeen = false
+    bool attributeSeen = false
+    bool unicodeSeen = false
+    for event in events
+        if event["type"] == "start" then
+            starts += 1
+            if event["name"] == "root" and event["attributes"]["id"] == "7" then
+                attributeSeen = true
+            end
+            if event["localName"] == "item" and event["namespaceUri"] == "urn:test" and event["prefix"] == "p" then
+                namespaceSeen = true
+            end
+        elseif event["type"] == "end" then
+            ends += 1
+        elseif event["type"] == "text" then
+            texts += 1
+            if event["text"] == "你好" then unicodeSeen = true end
+        elseif event["type"] == "comment" then
+            comments += 1
+        end
+    end
+    assert starts == 2 and ends == 2, "SAX element events"
+    assert texts >= 1 and comments == 1, "SAX text and comment events"
+    assert namespaceSeen and attributeSeen and unicodeSeen, "SAX namespace, attributes and UTF-8"
+
+    bool malformed = false
+    try
+        auto broken = xml.sax.reader("<root><child></root>")
+        for event in broken
+        end
+    catch XmlError e
+        malformed = true
+    end
+    assert malformed and xml.sax.errorCode() != 0, "malformed XML must throw XmlError"
+
+    bool dtdRejected = false
+    try
+        auto unsafe = xml.sax.reader("<!DOCTYPE root [<!ENTITY x \"boom\">]><root>&x;</root>")
+        for event in unsafe
+        end
+    catch XmlError e
+        dtdRejected = true
+    end
+    assert dtdRejected, "DTD must be rejected by default"
+    return 0
+end

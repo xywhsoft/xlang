@@ -1,568 +1,165 @@
-import tcc
-import xlang
-
-// xs：基于 xlang demo6 标准库的 xserver 雏形。
-// 目标是验证配置驱动、HTTP/TCP/UDP/custom 服务，以及 C/xlang handler 调用链路。
+import "./src/logging.xl"
+import "./src/service_runtime.xl"
 
 func xsUsage()
-    println("xs usage:")
-    println("  xl run projects/xs/xs.xl -- [options]")
-    println("")
-    println("options:")
-    println("  --config <file>      config path, default projects/xs/xs.json")
-    println("  --duration <ms>      override run duration; 0 means forever")
-    println("  --init               create default runtime directories")
-    println("  --quiet              reduce startup logs")
-    println("  --help               show this help")
+    println("xs 2.0")
+    println("usage: xl run projects/xs/xs.xl -- [options]")
+    println("  --config <path>   configuration file")
+    println("  --check           validate configuration and exit")
+    println("  --status          start, print status, then stop")
+    println("  --duration <ms>   stop after a bounded test interval")
+    println("  --help            show this help")
 end
 
-func xsProjectRoot() as string
-    if dir.exists("projects/xs") then
-        return "projects/xs"
-    end
-    if dir.exists("release/projects/xs") then
-        return "release/projects/xs"
-    end
-    return "."
-end
-
-func xsDefaultConfigPath() as string
-    return path.join(xsProjectRoot(), "xs.json")
-end
-
-func xsString(var value, string fallback = "") as string
-    if value == null then
-        return fallback
-    end
-    return string(value)
-end
-
-func xsInt(var value, int fallback = 0) as int
-    if value == null then
-        return fallback
-    end
-    return int(value)
-end
-
-func xsBool(var value, bool fallback = false) as bool
-    if value == null then
-        return fallback
-    end
-    return bool(value)
-end
-
-func xsNextOutputPath(string prefix) as string
-    string runDir = path.join(xsProjectRoot(), "run")
-    dir.createAll(runDir)
-    return path.join(runDir, prefix + "_" + random.string(16) + ".out")
-end
-
-func xsReadOutput(string outPath, string fallback) as string
-    if not file.exists(outPath) then
-        return fallback
-    end
-
-    string text = file.readText(outPath)
-    file.delete(outPath)
-    return string.trim(text)
-end
-
-func xsRememberHandler(array kinds, array handles, string kind, point raw)
-    if raw == null then
-        return
-    end
-
-    kinds[kinds.length] = kind
-    handles[handles.length] = raw
-end
-
-func xsTccHandlerRun(point raw, array args) as int
-    TccHandler borrowed = TccHandler(raw)
-    int rc = borrowed.run(args)
-    borrowed.handle = null
-    return rc
-end
-
-func xsXlangHandlerRun(point raw, array args) as bool
-    XLangHandler borrowed = XLangHandler(raw)
-    bool ok = borrowed.run(args)
-    borrowed.handle = null
-    return ok
-end
-
-func xsXlangHandlerLastError(point raw) as string
-    XLangHandler borrowed = XLangHandler(raw)
-    string text = borrowed.lastError
-    borrowed.handle = null
-    return text
-end
-
-func xsDestroyHandler(string kind, point raw)
-    if raw == null then
-        return
-    end
-
-    if kind == "c" then
-        TccHandler owned = TccHandler(raw)
-        return
-    end
-
-    XLangHandler owned = XLangHandler(raw)
-end
-
-func xsDestroyHandlers(array kinds, array handles)
-    int i = 0
-    while i < int(handles.length) do
-        xsDestroyHandler(string(kinds[i]), point(handles[i]))
-        i += 1
+func xsCloseSignal(SignalHandle handle)
+    if handle != null then
+        handle.close()
     end
 end
 
-func xsMakeHandlerInvoker(string handler, int timeoutMs, bool verbose, array poolKinds, array poolHandles) as func(string, string, string, string, string) as string
-    if string.endsWith(handler, ".c") then
-        TccHandler compiled = TccHandler(handler)
-        point raw = compiled.handle
-        compiled.handle = null
-        xsRememberHandler(poolKinds, poolHandles, "c", raw)
-
-        return func(string protocol, string a, string b, string c, string d) as string
-            if raw == null then
-                return "xs C handler load failed: " + handler
-            end
-
-            string outPath = xsNextOutputPath("c")
-            int rc = xsTccHandlerRun(raw, [protocol, a, b, c, d, outPath])
-            if rc != 0 then
-                return "xs C handler failed: " + handler + " exitCode=" + rc.toString()
-            end
-            return xsReadOutput(outPath, "")
-        end
+func xsRun(
+    string configPath,
+    string includeDir,
+    var normalized,
+    bool printStatus,
+    int durationMs) as int
+    auto runtimeLog = src.logging.open(normalized["logging"])
+    if not runtimeLog.ready() then
+        println("xs logging error: " + runtimeLog.lastError())
+        return 5
     end
 
-    XLangHandler script = XLangHandler(handler, path.cwd())
-    point raw = script.handle
-    script.handle = null
-    xsRememberHandler(poolKinds, poolHandles, "xl", raw)
-
-    return func(string protocol, string a, string b, string c, string d) as string
-        if raw == null then
-            return "xs xlang handler load failed: " + handler
-        end
-
-        string outPath = xsNextOutputPath("xl")
-        if not xsXlangHandlerRun(raw, [protocol, a, b, c, d, outPath]) then
-            return "xs xlang handler failed: " + handler + " " + xsXlangHandlerLastError(raw)
-        end
-        return xsReadOutput(outPath, "")
-    end
-end
-
-func xsMakeHttpHandler(string handler, int timeoutMs, string contentType, bool verbose, array poolKinds, array poolHandles) as func(point, point) as bool
-    func(string, string, string, string, string) as string invoke = xsMakeHandlerInvoker(handler, timeoutMs, verbose, poolKinds, poolHandles)
-
-    return func(point reqHandle, point respHandle) as bool
-        HttpRequest req = HttpRequest(reqHandle)
-        HttpResponse resp = HttpResponse(respHandle)
-        string output = invoke("http", req.method(), req.path(), req.query(), req.body())
-
-        resp.header("X-XS-Handler", handler)
-        resp.text(output, contentType)
-        return true
-    end
-end
-
-func xsStartHttpService(var svc, bool verbose, array poolKinds, array poolHandles) as point
-    string host = xsString(svc?.host, "127.0.0.1")
-    int port = xsInt(svc?.port, 8080)
-    point server = http.server.create(port, host)
-
-    if server == null then
-        println("xs http create failed: ", host, ":", port.toString())
-        return null
-    end
-
-    var routes = svc?.routes ?? []
-    int i = 0
-    while i < int(routes.length) do
-        var route = routes[i]
-        string kind = xsString(route?.kind, "handler")
-        string method = xsString(route?.method, "GET")
-        string pattern = xsString(route?.pattern, "/")
-
-        if kind == "static" then
-            string root = xsString(route?.root, path.join(xsProjectRoot(), "wwwroot"))
-            string indexNames = xsString(route?.indexNames, "index.html;index.htm")
-            string cacheControl = xsString(route?.cacheControl, "")
-            int chunkSize = xsInt(route?.chunkSize, 65536)
-            int flags = xsInt(route?.flags, 0)
-
-            if not http.server.staticEx(server, pattern, root, indexNames, cacheControl, chunkSize, flags) then
-                println("xs static route failed: ", pattern)
-            end
-        else
-            string handler = xsString(route?.handler, "")
-            string contentType = xsString(route?.contentType, "text/plain; charset=utf-8")
-            int timeoutMs = xsInt(route?.timeoutMs, 5000)
-
-            if handler == "" then
-                println("xs route missing handler: ", pattern)
-            else
-                func(point, point) as bool fn = xsMakeHttpHandler(handler, timeoutMs, contentType, verbose, poolKinds, poolHandles)
-                if not http.server.routeRequest(server, method, pattern, fn) then
-                    println("xs route failed: ", method, " ", pattern)
-                end
-            end
-        end
-
-        i += 1
-    end
-
-    if not http.server.start(server) then
-        println("xs http start failed: ", host, ":", port.toString())
-        http.server.destroy(server)
-        return null
-    end
-
-    if verbose then
-        println("xs http listening: http://", host, ":", http.server.port(server).toString())
-    end
-
-    return server
-end
-
-func xsMakeTcpWorker(string name, string host, int port, string handler, int timeoutMs, int requestLimit, int durationMs, bool verbose, array poolKinds, array poolHandles) as func() as int
-    func(string, string, string, string, string) as string invoke = xsMakeHandlerInvoker(handler, timeoutMs, verbose, poolKinds, poolHandles)
-
-    return func() as int
-        point listenHandle = tcp.listen(port, host)
-        if listenHandle == null then
-            println("xs tcp listen failed: ", name)
-            return 1
-        end
-
-        TcpServer server = TcpServer(listenHandle)
-        if verbose then
-            println("xs tcp listening: ", host, ":", server.port().toString(), " [", name, "]")
-        end
-
-        int count = 0
-        int elapsedMs = 0
-        int pollMs = 1000
-        if durationMs > 0 then
-            pollMs = 200
-        end
-
-        while requestLimit <= 0 or count < requestLimit do
-            if durationMs > 0 and elapsedMs >= durationMs then
-                break
-            end
-
-            point peerHandle = server.accept(pollMs)
-            if peerHandle == null then
-                if durationMs > 0 then
-                    elapsedMs += pollMs
-                end
-                continue
-            end
-
-            TcpStream peer = TcpStream(peerHandle)
-            Buffer dataBytes = peer.recvBytes(timeoutMs, 65536)
-            string data = dataBytes.text()
-            string output = invoke("tcp", name, data, "", "")
-            if output == "" then
-                println("xs tcp handler produced empty output [", name, "] data=", data, " handler=", handler)
-            end
-            if verbose then
-                println("xs tcp request [", name, "]: ", data)
-                println("xs tcp response [", name, "]: ", output)
-            end
-            bool sent = peer.send(output)
-            bool drained = peer.drain(timeoutMs)
-            if verbose then
-                println("xs tcp sent [", name, "]: ", sent, " drain=", drained)
-            end
-            peer.close(net.closeGraceful)
-            peer.waitClose(timeoutMs)
-            count += 1
-        end
-
-        return 0
-    end
-end
-
-func xsMakeUdpWorker(string name, string host, int port, string handler, int timeoutMs, int requestLimit, int durationMs, bool verbose, array poolKinds, array poolHandles) as func() as int
-    func(string, string, string, string, string) as string invoke = xsMakeHandlerInvoker(handler, timeoutMs, verbose, poolKinds, poolHandles)
-
-    return func() as int
-        point socketHandle = udp.bind(port, host)
-        if socketHandle == null then
-            println("xs udp bind failed: ", name)
-            return 1
-        end
-
-        UdpSocket sock = UdpSocket(socketHandle)
-        if verbose then
-            println("xs udp listening: ", host, ":", sock.port().toString(), " [", name, "]")
-        end
-
-        int count = 0
-        int elapsedMs = 0
-        int pollMs = 1000
-        if durationMs > 0 then
-            pollMs = 200
-        end
-
-        while requestLimit <= 0 or count < requestLimit do
-            if durationMs > 0 and elapsedMs >= durationMs then
-                break
-            end
-
-            point packetHandle = sock.recv(pollMs)
-            if packetHandle == null then
-                if durationMs > 0 then
-                    elapsedMs += pollMs
-                end
-                continue
-            end
-
-            UdpPacket packet = UdpPacket(packetHandle)
-            string data = packet.text()
-            string remoteAddr = packet.addr()
-            int remotePort = packet.port()
-            string output = invoke("udp", name, data, remoteAddr, remotePort.toString())
-            if verbose then
-                println("xs udp request [", name, "]: ", data)
-                println("xs udp response [", name, "]: ", output)
-            end
-            sock.send(remoteAddr, uint16(remotePort), output)
-            count += 1
-        end
-
-        return 0
-    end
-end
-
-func xsMakeCustomWorker(string name, string handler, int timeoutMs, int intervalMs, int requestLimit, bool verbose, array poolKinds, array poolHandles) as func() as int
-    func(string, string, string, string, string) as string invoke = xsMakeHandlerInvoker(handler, timeoutMs, verbose, poolKinds, poolHandles)
-
-    return func() as int
-        int count = 0
-        while requestLimit <= 0 or count < requestLimit do
-            string output = invoke("custom", name, "", "", "")
-            if verbose and output != "" then
-                println("xs custom output [", name, "]: ", output)
-            end
-            count += 1
-
-            if requestLimit > 0 and count >= requestLimit then
-                break
-            end
-            if intervalMs <= 0 then
-                break
-            end
-            time.sleep(intervalMs)
-        end
-        return 0
-    end
-end
-
-func xsEnsureProjectFiles(string root) as bool
-    dir.createAll(path.join(root, "run"))
-    dir.createAll(path.join(root, "wwwroot"))
-
-    string indexPath = path.join(root, "wwwroot/index.html")
-    if not file.exists(indexPath) then
-        file.writeText(indexPath, "<!doctype html><meta charset=\"utf-8\"><title>xs</title><h1>xs</h1><p>xlang xserver prototype is running.</p>")
-    end
-
-    return true
-end
-
-func main(...) as int
-    string configPath = xsDefaultConfigPath()
-    bool showHelp = false
-    bool initOnly = false
-    bool quiet = false
-    int durationOverride = -1
-
-    int i = 0
-    if arg.length > 0 then
-        string firstArg = string(arg[0])
-        if string.endsWith(firstArg, ".xl") or string.endsWith(firstArg, ".exe") then
-            i = 1
-        end
-    end
-
-    while i < arg.length do
-        string key = string(arg[i])
-
-        if key == "--help" or key == "-h" then
-            showHelp = true
-            i += 1
-            continue
-        end
-
-        if key == "--init" then
-            initOnly = true
-            i += 1
-            continue
-        end
-
-        if key == "--quiet" then
-            quiet = true
-            i += 1
-            continue
-        end
-
-        if key == "--config" and i + 1 < arg.length then
-            configPath = string(arg[i + 1])
-            i += 2
-            continue
-        end
-
-        if key == "--duration" and i + 1 < arg.length then
-            durationOverride = int(arg[i + 1])
-            i += 2
-            continue
-        end
-
-        println("unknown option: ", key)
-        return 2
-    end
-
-    if showHelp then
-        xsUsage()
-        return 0
-    end
-
-    string root = path.dir(configPath)
-    if root == "" then
-        root = xsProjectRoot()
-    end
-
-    xsEnsureProjectFiles(root)
-    if initOnly then
-        println("xs initialized: ", root)
-        return 0
-    end
-
-    if not file.exists(configPath) then
-        println("xs config not found: ", configPath)
+    auto runtime = src.service_runtime.open(configPath, includeDir)
+    if not runtime.ready() then
+        runtimeLog.errorMessage("configuration rejected: " + runtime.lastError())
+        runtimeLog.flush()
         return 3
     end
-
-    var cfg = json.read(configPath)
-    int durationMs = xsInt(cfg?.durationMs, 0)
-    bool verbose = xsBool(cfg?.verbose, true)
-    if quiet then
-        verbose = false
-    end
-    if durationOverride >= 0 then
-        durationMs = durationOverride
-    end
-
-    point httpServer = null
-    bool hasHttp = false
-    bool hasTcp = false
-    bool hasUdp = false
-    bool hasCustom = false
-    thread tcpThread
-    thread udpThread
-    thread customThread
-    array handlerKinds = []
-    array handlerHandles = []
-
-    var services = cfg?.services ?? []
-    i = 0
-    while i < int(services.length) do
-        var svc = services[i]
-        string serviceType = xsString(svc?.type, "")
-        string name = xsString(svc?.name, serviceType)
-        string host = xsString(svc?.host, "127.0.0.1")
-        int port = xsInt(svc?.port, 0)
-        string handler = xsString(svc?.handler, "")
-        int timeoutMs = xsInt(svc?.timeoutMs, 5000)
-        int requestLimit = xsInt(svc?.requestLimit, 0)
-
-        if serviceType == "http" then
-            if hasHttp then
-                println("xs prototype currently starts one http service; skipped: ", name)
-            else
-                httpServer = xsStartHttpService(svc, verbose, handlerKinds, handlerHandles)
-                hasHttp = httpServer != null
-            end
-        elseif serviceType == "tcp" then
-            if hasTcp then
-                println("xs prototype currently starts one tcp service; skipped: ", name)
-            elseif handler == "" then
-                println("xs tcp missing handler: ", name)
-            else
-                tcpThread = thread(xsMakeTcpWorker(name, host, port, handler, timeoutMs, requestLimit, durationMs, verbose, handlerKinds, handlerHandles))
-                hasTcp = true
-            end
-        elseif serviceType == "udp" then
-            if hasUdp then
-                println("xs prototype currently starts one udp service; skipped: ", name)
-            elseif handler == "" then
-                println("xs udp missing handler: ", name)
-            else
-                udpThread = thread(xsMakeUdpWorker(name, host, port, handler, timeoutMs, requestLimit, durationMs, verbose, handlerKinds, handlerHandles))
-                hasUdp = true
-            end
-        elseif serviceType == "custom" then
-            if hasCustom then
-                println("xs prototype currently starts one custom service; skipped: ", name)
-            elseif handler == "" then
-                println("xs custom missing handler: ", name)
-            else
-                int intervalMs = xsInt(svc?.intervalMs, 0)
-                customThread = thread(xsMakeCustomWorker(name, handler, timeoutMs, intervalMs, requestLimit, verbose, handlerKinds, handlerHandles))
-                hasCustom = true
-            end
-        else
-            println("xs unknown service type: ", serviceType)
-        end
-
-        i += 1
-    end
-
-    if not hasHttp and not hasTcp and not hasUdp and not hasCustom then
-        println("xs no service started")
+    if not runtime.start() then
+        runtimeLog.errorMessage("startup failed: " + runtime.lastError())
+        runtimeLog.flush()
         return 4
     end
 
-    if durationMs <= 0 then
-        while true do
-            time.sleep(1000)
+    runtimeLog.info("xs 2.0 started: " + json.stringify(runtime.status()))
+    if printStatus then
+        println(json.stringify(runtime.status(), true))
+        runtime.stop()
+        runtimeLog.info("xs 2.0 stopped after status probe")
+        return 0
+    end
+
+    channel<var> events = channel::<var>(32)
+    SignalHandle intHandle
+    SignalHandle termHandle
+    SignalHandle hupHandle
+    SignalHandle breakHandle
+    SignalHandle closeHandle
+    SignalHandle shutdownHandle
+    if signal.supported(signal.INT) then intHandle = signal.sendTo(events, signal.INT) end
+    if signal.supported(signal.TERM) then termHandle = signal.sendTo(events, signal.TERM) end
+    if signal.supported(signal.HUP) then hupHandle = signal.sendTo(events, signal.HUP) end
+    if signal.supported(signal.BREAK) then breakHandle = signal.sendTo(events, signal.BREAK) end
+    if signal.supported(signal.CLOSE) then closeHandle = signal.sendTo(events, signal.CLOSE) end
+    if signal.supported(signal.SHUTDOWN) then shutdownHandle = signal.sendTo(events, signal.SHUTDOWN) end
+
+    bool stopping = false
+    int elapsedMs = 0
+    int pollMs = 100
+    while not stopping do
+        var event = null
+        while events.tryRecvInto(event) do
+            int code = int(event["code"])
+            if code == signal.HUP or code == signal.BREAK then
+                int debounceMs = int(normalized["runtime"]["reloadDebounceMs"])
+                if debounceMs > 0 then time.sleep(debounceMs) end
+                if runtime.reload() then
+                    runtimeLog.info("reload committed: " + json.stringify(runtime.status()))
+                else
+                    runtimeLog.errorMessage("reload rejected: " + runtime.lastError())
+                end
+            else
+                runtimeLog.info("stop signal received: " + signal.name(code))
+                stopping = true
+            end
+            event = null
         end
+        if durationMs >= 0 and elapsedMs >= durationMs then
+            stopping = true
+        end
+        if not stopping then
+            time.sleep(pollMs)
+            if durationMs >= 0 then elapsedMs += pollMs end
+        end
+    end
+
+    bool stopped = runtime.stop()
+    if stopped then
+        runtimeLog.info("xs 2.0 stopped")
     else
-        time.sleep(durationMs)
+        runtimeLog.errorMessage("xs 2.0 stopped with errors: " + runtime.lastError())
     end
+    runtimeLog.flush()
 
-    if hasHttp then
-        http.server.stop(httpServer)
-        http.server.destroy(httpServer)
-    end
-    if hasTcp then
-        if not tcpThread.waitTimeout(2000) then
-            tcpThread.stop()
+    xsCloseSignal(shutdownHandle)
+    xsCloseSignal(closeHandle)
+    xsCloseSignal(breakHandle)
+    xsCloseSignal(hupHandle)
+    xsCloseSignal(termHandle)
+    xsCloseSignal(intHandle)
+    events.close()
+    return stopped ? 0 : 6
+end
+
+func main(...) as int
+    string configPath = path.abs("projects/xs/xs.json")
+    string includeDir = path.abs("projects/xs/include")
+    bool checkOnly = false
+    bool printStatus = false
+    int durationMs = -1
+
+    int index = 0
+    if arg.length > 0 then
+        string first = string(arg[0])
+        if string.endsWith(first, ".xl") or string.endsWith(first, ".exe") then
+            index = 1
         end
     end
-    if hasUdp then
-        if not udpThread.waitTimeout(2000) then
-            udpThread.stop()
-        end
-    end
-    if hasCustom then
-        if not customThread.waitTimeout(2000) then
-            customThread.stop()
+    while index < arg.length do
+        string option = string(arg[index])
+        if option == "--help" or option == "-h" then
+            xsUsage()
+            return 0
+        elseif option == "--check" then
+            checkOnly = true
+            index += 1
+        elseif option == "--status" then
+            printStatus = true
+            index += 1
+        elseif option == "--config" and index + 1 < arg.length then
+            configPath = path.abs(string(arg[index + 1]))
+            index += 2
+        elseif option == "--duration" and index + 1 < arg.length then
+            durationMs = int(arg[index + 1])
+            if durationMs < 0 then
+                println("--duration must not be negative")
+                return 2
+            end
+            index += 2
+        else
+            println("unknown or incomplete option: " + option)
+            return 2
         end
     end
 
-    xsDestroyHandlers(handlerKinds, handlerHandles)
-
-    if verbose then
-        println("xs stopped")
+    auto loaded = src.service_runtime.loadConfig(configPath)
+    if not loaded.ok then
+        println("xs config error: " + string(loaded.error))
+        return 3
     end
-    return 0
+    if checkOnly then
+        println("xs config ok: " + configPath)
+        return 0
+    end
+    return xsRun(configPath, includeDir, json.parse(loaded.json), printStatus, durationMs)
 end

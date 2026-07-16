@@ -1,0 +1,23 @@
+import csv
+
+
+
+func main(...) as int
+    array<string> headers = array["name", "city", "note"]
+    auto writer = csv.createDict(headers)
+    dict<string> alice = dict{"name": "Alice", "city": "上海", "note": "comma, quote \" and newline\nare safe"}
+    dict<string> bob = dict{"name": "Bob", "city": "深圳", "note": "plain text"}
+    writer.write(alice)
+    writer.write(bob)
+    Buffer data = writer.finish()
+
+    println(data.text())
+
+    auto reader = csv.openDict(data)
+    while reader.next() do
+        dict<string> row = reader.row()
+        println(row["name"] + " lives in " + row["city"])
+    end
+    println("csv example: PASS")
+    return 0
+end

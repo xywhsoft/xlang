@@ -46,21 +46,12 @@ func degToRad(float deg) as float
 end
 
 func clampF(float v, float lo, float hi) as float
-    if v < lo then
-        return lo
-    end
-    if v > hi then
-        return hi
-    end
-    return v
+    return math.clamp(v, lo, hi)
 end
 
-// absF：math.abs 传 int 实参解析失败（BUG-XL4），这里显式 float 路径。
+// 浮点绝对值统一走标准库。
 func absF(float v) as float
-    if v < 0.0 then
-        return 0.0 - v
-    end
-    return v
+    return math.abs(v)
 end
 
 func minF(float a, float b) as float
@@ -352,8 +343,7 @@ end
 //   tris  : array<int>    三角形索引，每 3 个一组 (i0,i1,i2)
 //   colors: array<float>  每个三角形的基色 (r,g,b)，与 tris 同序
 //
-//   全部用扁平 array 存储，避免 class-as-field 的 derive 限制
-//   和多态容器陷阱（BUG-RT1/RT2）。
+//   顶点和三角形采用扁平 SoA 存储，便于连续遍历并直接写入光栅化热路径。
 // ========================================================================
 class Mesh
     derive value
@@ -476,39 +466,39 @@ end
 
 // 拼接两个 Mesh（用于「both」场景）
 func mergeMesh(Mesh a, Mesh b) as Mesh
-    Mesh out = Mesh()
+    Mesh outputValue = Mesh()
     int av = a.vertCount()
     int i = 0
     while i < a.verts.length do
-        out.verts.append(a.verts[i])
+        outputValue.verts.append(a.verts[i])
         i = i + 1
     end
     i = 0
     while i < b.verts.length do
-        out.verts.append(b.verts[i])
+        outputValue.verts.append(b.verts[i])
         i = i + 1
     end
     i = 0
     while i < a.tris.length do
-        out.tris.append(a.tris[i])
+        outputValue.tris.append(a.tris[i])
         i = i + 1
     end
     i = 0
     while i < b.tris.length do
-        out.tris.append(b.tris[i] + av)
+        outputValue.tris.append(b.tris[i] + av)
         i = i + 1
     end
     i = 0
     while i < a.colors.length do
-        out.colors.append(a.colors[i])
+        outputValue.colors.append(a.colors[i])
         i = i + 1
     end
     i = 0
     while i < b.colors.length do
-        out.colors.append(b.colors[i])
+        outputValue.colors.append(b.colors[i])
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 // ========================================================================
@@ -879,9 +869,9 @@ func cmdRender(int width, int height, string outPath, int sceneChoice) as int
     end
     int drawn = countNonBg(rt, 15, 20, 40)
 
-    println("[render] done in " + string.formatFloat(elapsed, ".3") + "s")
-    println("[render] " + string.formatInt(pixels, ",") + " pixels, " + string.formatInt(int(pps), ",") + " pix/sec")
-    println("[render] " + string.formatInt(drawn, ",") + " shaded pixels (" + string.formatFloat(float(drawn) / float(pixels) * 100.0, ".1") + "% coverage)")
+    println("[render] done in " + float.format(elapsed, ".3") + "s")
+    println("[render] " + int.format(pixels, ",") + " pixels, " + int.format(int(pps), ",") + " pix/sec")
+    println("[render] " + int.format(drawn, ",") + " shaded pixels (" + float.format(float(drawn) / float(pixels) * 100.0, ".1") + "% coverage)")
     println("[render] wrote " + outPath)
     return 0
 end
@@ -935,10 +925,10 @@ func cmdBench(int width, int height) as int
         end
         string line = "  "
         line = line + string.padRight(label, 18)
-        line = line + "time=" + string.formatFloat(elapsed, ".3") + "s"
-        line = line + "  " + string.formatInt(pixels, ",") + " px"
-        line = line + "  " + string.formatFloat(usPerPix, ".3") + " us/px"
-        line = line + "  " + string.formatInt(int(pps), ",") + " pix/sec"
+        line = line + "time=" + float.format(elapsed, ".3") + "s"
+        line = line + "  " + int.format(pixels, ",") + " px"
+        line = line + "  " + float.format(usPerPix, ".3") + " us/px"
+        line = line + "  " + int.format(int(pps), ",") + " pix/sec"
         println(line)
 
         if which == 0 then

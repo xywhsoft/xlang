@@ -167,20 +167,32 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
 
     if ( node->kind == XL6_AST_TRY ) {
         const XL6_AstNode* tryBlock = node->childCount > 0 ? node->children[0] : NULL;
-        const XL6_AstNode* catchNode = node->childCount > 1 ? node->children[1] : NULL;
+        const XL6_AstNode* catchList = node->childCount > 1 ? node->children[1] : NULL;
         const XL6_AstNode* finallyBlock = node->childCount > 2 ? node->children[2] : NULL;
+        size_t i;
 
         if ( xl6CgenNodeNeedsStringRuntime(ctx, tryBlock) ) {
             return 1;
         }
-        if ( catchNode != NULL && catchNode->kind == XL6_AST_CATCH ) {
-            const XL6_AstNode* catchName = catchNode->childCount > 0 ? catchNode->children[0] : NULL;
-            const XL6_AstNode* catchBlock = catchNode->childCount > 1 ? catchNode->children[1] : NULL;
-            const XL6_AstNode* errorType = xl6CgenOwnSimpleType(ctx, "error", catchName != NULL ? catchName : catchNode);
+        for ( i = 0; catchList != NULL && catchList->kind == XL6_AST_LIST && i < catchList->childCount; ++i ) {
+            const XL6_AstNode* catchNode = catchList->children[i];
+            const XL6_AstNode* catchName;
+            const XL6_AstNode* catchBlock;
+            const XL6_AstNode* errorType;
             size_t varMark = ctx->varCount;
             size_t cleanupMark = ctx->cleanupCount;
             int result;
 
+            if ( catchNode == NULL || catchNode->kind != XL6_AST_CATCH ) {
+                continue;
+            }
+            catchName = catchNode->childCount == 3
+                ? catchNode->children[1]
+                : (catchNode->childCount > 0 ? catchNode->children[0] : NULL);
+            catchBlock = catchNode->childCount == 3
+                ? catchNode->children[2]
+                : (catchNode->childCount > 1 ? catchNode->children[1] : NULL);
+            errorType = xl6CgenOwnSimpleType(ctx, "error", catchName != NULL ? catchName : catchNode);
             xl6CgenAddVarType(ctx, catchName != NULL ? catchName->text : "__xl6_error", errorType);
             result = xl6CgenNodeNeedsStringRuntime(ctx, catchBlock);
             xl6CgenFreeCleanupsSince(ctx, cleanupMark);

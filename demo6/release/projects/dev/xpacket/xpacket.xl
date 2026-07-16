@@ -28,7 +28,7 @@
 //   * 位运算 & | ^ << >> 与 0xFF/0xFFFF 掩码, 字节序 (LE/BE) 处理
 //   * class (PktRecord / PcapFile / FNode / PState) + 自引用字段 + array<T>
 //   * 独立函数以 user-class 与 Buffer 同时为参数 (参考 loadBuffer(Chip8, Buffer))
-//   * string.bytes / string.slice(s,start,len) / string.formatInt(x,fmt)
+//   * string.bytes / string.slice(s,start,len) / int.format(x,fmt)
 //   * var dict 计数 + 平行 list 冒泡排序取 Top N
 //   * 多返回值 + 解构  (auto a, b = f()  /  a, b = f())
 //
@@ -128,27 +128,27 @@ func putBe32(Buffer b, int v)
     b.appendByte(v & 0xFF)
 end
 
-func putBytes(Buffer out, array<int> bs)
+func putBytes(Buffer outputValue, array<int> bs)
     int i = 0
     while i < bs.length do
-        out.appendByte(bs[i] & 0xFF)
+        outputValue.appendByte(bs[i] & 0xFF)
         i += 1
     end
 end
 
-func putText(Buffer out, string s)
+func putText(Buffer outputValue, string s)
     array bs = string.bytes(s)
     int i = 0
     while i < bs.length do
-        out.appendByte(int(bs[i]))
+        outputValue.appendByte(int(bs[i]))
         i += 1
     end
 end
 
-func putBuffer(Buffer out, Buffer src, int len)
+func putBuffer(Buffer outputValue, Buffer src, int len)
     int i = 0
     while i < len do
-        out.appendByte(src.byteAt(i))
+        outputValue.appendByte(src.byteAt(i))
         i += 1
     end
 end
@@ -157,11 +157,11 @@ end
 // ============================ 格式化辅助 ============================
 
 func hexByte(int b) as string
-    return string.formatInt(b & 0xFF, "x2")
+    return int.format(b & 0xFF, "x2")
 end
 
 func hexWord(int w) as string
-    return string.formatInt(w & 0xFFFF, "X4")
+    return int.format(w & 0xFFFF, "X4")
 end
 
 // 6 字节 MAC -> "aa:bb:cc:dd:ee:ff"
@@ -189,7 +189,7 @@ func etherTypeName(int t) as string
     if t == ETHER_TYPE_ARP  then return "ARP"  end
     if t == ETHER_TYPE_IPV6 then return "IPv6" end
     if t == ETHER_TYPE_VLAN then return "VLAN" end
-    return "0x" + string.formatInt(t, "X4")
+    return "0x" + int.format(t, "X4")
 end
 
 func ipProtoName(int p) as string
@@ -271,7 +271,7 @@ func hexPreview(Buffer buf, int off, int len, int maxBytes) as string
         if i > 0 then
             s = s + " "
         end
-        s = s + string.formatInt(buf.byteAt(off + i), "x2")
+        s = s + int.format(buf.byteAt(off + i), "x2")
         i += 1
     end
     if len > n then
@@ -398,42 +398,35 @@ class FNode
     int mask = 0        // tcpflags 掩码
     int op = 0          // 0='!='  1='=='
     int cmpv = 0        // 比较值
-    var left = null
-    var right = null
+    FNode left
+    FNode right
 end
 
 
 // 过滤表达式词法/语法分析上下文
 class PState
-    var toks = []
-    var pos = 0
-
-    create()
-        self.toks = array[]
-        self.pos = 0
-    end
+    array<string> toks = array[]
+    int pos = 0
 end
 
-func psPeek(var st) as string
-    int p = int(st.pos)
-    var tv = st.toks
-    if p < tv.length then
-        return string(tv[p])
+func psPeek(PState st) as string
+    int p = st.pos
+    if p < st.toks.length then
+        return st.toks[p]
     end
     return ""
 end
 
-func psNext(var st) as string
+func psNext(PState st) as string
     string t = psPeek(st)
-    int p = int(st.pos)
-    var tv = st.toks
-    if p < tv.length then
+    int p = st.pos
+    if p < st.toks.length then
         st.pos = p + 1
     end
     return t
 end
 
-func psEat(var st, string t) as bool
+func psEat(PState st, string t) as bool
     if psPeek(st) == t then
         st.pos = int(st.pos) + 1
         return true
@@ -911,7 +904,7 @@ end
 //
 //   tcp[tcpflags] & flag op val
 
-func parseOr(var st) as FNode
+func parseOr(PState st) as FNode
     FNode left = parseAnd(st)
     bool loop = true
     while loop do
@@ -931,7 +924,7 @@ func parseOr(var st) as FNode
     return left
 end
 
-func parseAnd(var st) as FNode
+func parseAnd(PState st) as FNode
     FNode left = parseNot(st)
     bool loop = true
     while loop do
@@ -951,7 +944,7 @@ func parseAnd(var st) as FNode
     return left
 end
 
-func parseNot(var st) as FNode
+func parseNot(PState st) as FNode
     string t = psPeek(st)
     if t == "not" or t == "!" then
         psNext(st)
@@ -964,7 +957,7 @@ func parseNot(var st) as FNode
     return parsePrimary(st)
 end
 
-func parsePrimary(var st) as FNode
+func parsePrimary(PState st) as FNode
     string t = psPeek(st)
 
     if t == "(" then
@@ -1055,7 +1048,7 @@ func parsePrimary(var st) as FNode
 end
 
 // tcp [ tcpflags ] (& flag)? (op val)?
-func parseTcpFlags(var st) as FNode
+func parseTcpFlags(PState st) as FNode
     psEat(st, "[")
     string inner = psNext(st)
     psEat(st, "]")
@@ -1118,12 +1111,11 @@ func makeAnd(FNode a, FNode b) as FNode
 end
 
 func parseFilter(string expr) as FNode
-    var st = PState()
+    PState st = PState()
     array<string> toksArr = tokenize(expr)
     st.toks = toksArr
     st.pos = 0
-    var tv = st.toks
-    if tv.length == 0 then
+    if st.toks.length == 0 then
         FNode n = FNode()
         n.kind = 8
         return n
@@ -1134,8 +1126,8 @@ end
 
 // ============================ BPF 过滤: 求值 ============================
 
-func evalMatch(var n, var p) as bool
-    int nk = int(n.kind)
+func evalMatch(FNode n, var p) as bool
+    int nk = n.kind
     if nk == 8 then
         return true
     end
@@ -1143,23 +1135,23 @@ func evalMatch(var n, var p) as bool
         if not bool(p.hasIp) then
             return false
         end
-        if int(n.ival) < 0 then
+        if n.ival < 0 then
             return int(p.ipVer) == 4
         end
-        return int(p.ipProto) == int(n.ival)
+        return int(p.ipProto) == n.ival
     end
     if nk == 2 then
-        return matchPort(p, int(n.ival), int(n.dir))
+        return matchPort(p, n.ival, n.dir)
     end
     if nk == 3 then
-        return matchHost(p, string(n.sval), int(n.dir))
+        return matchHost(p, n.sval, n.dir)
     end
     if nk == 4 then
-        int f = int(p.tcpFlags) & int(n.mask)
-        if int(n.op) == 0 then
-            return f != int(n.cmpv)
+        int f = int(p.tcpFlags) & n.mask
+        if n.op == 0 then
+            return f != n.cmpv
         end
-        return f == int(n.cmpv)
+        return f == n.cmpv
     end
     if nk == 5 then
         bool lv = evalMatch(n.left, p)
@@ -1224,16 +1216,20 @@ func printPacket(var p, Buffer buf)
     bool nano = bool(p.nano)
     int capLen = int(p.capLen)
     int origLen = int(p.origLen)
+    string srcMac = string(p.srcMac)
+    string dstMac = string(p.dstMac)
+    string srcIp = string(p.srcIp)
+    string dstIp = string(p.dstIp)
     string fracPad = string(tsFrac)
     if nano then
         fracPad = fracPad + "ns"
     end
-    println("[" + string.formatInt(int(p.index), "D4") + "] " + string(tsSec) + "." + fracPad
+    println("[" + int.format(int(p.index), "D4") + "] " + string(tsSec) + "." + fracPad
          + "  cap=" + string(capLen) + "/" + string(origLen))
 
     if bool(p.hasEth) then
-        println("  ETH  " + p.srcMac + " -> " + p.dstMac
-             + "  type=0x" + string.formatInt(int(p.etherType), "X4")
+        println("  ETH  " + srcMac + " -> " + dstMac
+             + "  type=0x" + int.format(int(p.etherType), "X4")
              + " (" + etherTypeName(int(p.etherType)) + ")")
     end
 
@@ -1245,11 +1241,11 @@ func printPacket(var p, Buffer buf)
         if int(p.ipFragOff) != 0 then
             fragNote = fragNote + " frag=" + string(int(p.ipFragOff))
         end
-        println("  IP   v" + string(int(p.ipVer)) + "  " + p.srcIp + " -> " + p.dstIp
+        println("  IP   v" + string(int(p.ipVer)) + "  " + srcIp + " -> " + dstIp
              + "  proto=" + ipProtoName(int(p.ipProto)) + "(" + string(int(p.ipProto)) + ")"
              + " ttl=" + string(int(p.ipTtl))
              + " len=" + string(int(p.ipTotalLen))
-             + " id=0x" + string.formatInt(int(p.ipId), "X4") + fragNote)
+             + " id=0x" + int.format(int(p.ipId), "X4") + fragNote)
     end
 
     if bool(p.hasTcp) then
@@ -1268,7 +1264,7 @@ func printPacket(var p, Buffer buf)
 
     string appProtoStr = string(p.appProto)
     if string.len(appProtoStr) > 0 then
-        println("  APP  " + appProtoStr + ": " + p.appInfo)
+        println("  APP  " + appProtoStr + ": " + string(p.appInfo))
     end
 
     if int(p.payloadLen) > 0 and string.len(appProtoStr) == 0 then
@@ -1509,8 +1505,8 @@ end
 
 // 规范化双向 4 元组 key
 func flowKey(var p) as string
-    string a = p.srcIp + ":" + string(p.srcPort)
-    string b = p.dstIp + ":" + string(p.dstPort)
+    string a = string(p.srcIp) + ":" + string(p.srcPort)
+    string b = string(p.dstIp) + ":" + string(p.dstPort)
     if string.compare(a, b) <= 0 then
         return a + " <-> " + b
     end
@@ -1670,50 +1666,50 @@ func ipHeaderBytes(array<int> srcIp, array<int> dstIp, int proto, int totalLen) 
     return h
 end
 
-func putEth(Buffer out, array<int> dstMac, array<int> srcMac)
-    putBytes(out, dstMac)
-    putBytes(out, srcMac)
-    putBe16(out, ETHER_TYPE_IPV4)
+func putEth(Buffer outputValue, array<int> dstMac, array<int> srcMac)
+    putBytes(outputValue, dstMac)
+    putBytes(outputValue, srcMac)
+    putBe16(outputValue, ETHER_TYPE_IPV4)
 end
 
 // 写一个完整的 ETH+IPv4+TCP 帧 (无 pcap 记录头)
-func putFrameTcp(Buffer out, array<int> dstMac, array<int> srcMac,
+func putFrameTcp(Buffer outputValue, array<int> dstMac, array<int> srcMac,
                  array<int> srcIp, array<int> dstIp,
                  int srcPort, int dstPort, int seq, int ack,
                  int flags, int win, string payload)
-    putEth(out, dstMac, srcMac)
+    putEth(outputValue, dstMac, srcMac)
     int payloadLen = string.byteLen(payload)
     int ipTotal = 20 + 20 + payloadLen
     array<int> iph = ipHeaderBytes(srcIp, dstIp, IP_PROTO_TCP, ipTotal)
-    putBytes(out, iph)
-    putBe16(out, srcPort)
-    putBe16(out, dstPort)
-    putBe32(out, seq)
-    putBe32(out, ack)
-    out.appendByte(0x50)             // data offset = 5 (20B), reserved 0
-    out.appendByte(flags & 0xFF)
-    putBe16(out, win)
-    putBe16(out, 0)                  // checksum
-    putBe16(out, 0)                  // urg pointer
+    putBytes(outputValue, iph)
+    putBe16(outputValue, srcPort)
+    putBe16(outputValue, dstPort)
+    putBe32(outputValue, seq)
+    putBe32(outputValue, ack)
+    outputValue.appendByte(0x50)             // data offset = 5 (20B), reserved 0
+    outputValue.appendByte(flags & 0xFF)
+    putBe16(outputValue, win)
+    putBe16(outputValue, 0)                  // checksum
+    putBe16(outputValue, 0)                  // urg pointer
     if payloadLen > 0 then
-        putText(out, payload)
+        putText(outputValue, payload)
     end
 end
 
 // 写一个完整的 ETH+IPv4+UDP 帧, payload 来自一个已构造的 Buffer (DNS)
-func putFrameUdpRaw(Buffer out, array<int> dstMac, array<int> srcMac,
+func putFrameUdpRaw(Buffer outputValue, array<int> dstMac, array<int> srcMac,
                     array<int> srcIp, array<int> dstIp,
                     int srcPort, int dstPort, Buffer payload, int payloadLen)
-    putEth(out, dstMac, srcMac)
+    putEth(outputValue, dstMac, srcMac)
     int ipTotal = 20 + 8 + payloadLen
     array<int> iph = ipHeaderBytes(srcIp, dstIp, IP_PROTO_UDP, ipTotal)
-    putBytes(out, iph)
-    putBe16(out, srcPort)
-    putBe16(out, dstPort)
-    putBe16(out, 8 + payloadLen)     // udp length
-    putBe16(out, 0)                  // checksum
+    putBytes(outputValue, iph)
+    putBe16(outputValue, srcPort)
+    putBe16(outputValue, dstPort)
+    putBe16(outputValue, 8 + payloadLen)     // udp length
+    putBe16(outputValue, 0)                  // checksum
     if payloadLen > 0 then
-        putBuffer(out, payload, payloadLen)
+        putBuffer(outputValue, payload, payloadLen)
     end
 end
 
@@ -1743,11 +1739,11 @@ func buildDnsSection(Buffer dns, string name, int qtype)
 end
 
 // 写一个 16 字节 pcap 记录头
-func addPacket(Buffer out, int tsSec, int tsUsec, int frameLen)
-    putLe32(out, tsSec)
-    putLe32(out, tsUsec)
-    putLe32(out, frameLen)
-    putLe32(out, frameLen)
+func addPacket(Buffer outputValue, int tsSec, int tsUsec, int frameLen)
+    putLe32(outputValue, tsSec)
+    putLe32(outputValue, tsUsec)
+    putLe32(outputValue, frameLen)
+    putLe32(outputValue, frameLen)
 end
 
 

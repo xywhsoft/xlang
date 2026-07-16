@@ -116,7 +116,7 @@ end
 // ===== 文本辅助 =====
 
 func fmtMs(float ms) as string
-    return string.formatFloat(ms, ".3") + "ms"
+    return float.format(ms, ".3") + "ms"
 end
 
 func truncate(string s, int maxLen) as string
@@ -650,13 +650,7 @@ end
 func runSelftest() as int
     println(cBold("=== xmake self-test ==="))
     string oldCwd = path.cwd()
-    string td = path.join(path.temp(), "xmake_selftest")
-    if dir.exists(td) then
-        try
-            dir.delete(td)
-        catch e
-        end
-    end
+    string td = path.join(path.temp(), path.random("xmake_", ""))
     dir.createAll(td)
     path.setCwd(td)
 

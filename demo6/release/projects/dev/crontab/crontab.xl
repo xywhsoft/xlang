@@ -199,7 +199,7 @@ func parseCron(string expr) as (bool, CronExpr)
         return false, CronExpr()
     end
 
-    CronExpr c
+    CronExpr c = CronExpr()
     c.minute = bitsM
     c.hour = bitsH
     c.dom = bitsDom

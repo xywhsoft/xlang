@@ -322,7 +322,7 @@ func findToolDir() as string
 end
 
 func makeTempDir() as string
-    string base = path.join(path.temp(), "xdebugger_cache")
+    string base = path.join(path.temp(), path.random("xdebugger_", ""))
     dir.createAll(base)
     return base
 end
@@ -396,21 +396,21 @@ func indentOf(string line) as int
 end
 
 func padRight(string s, int width) as string
-    string out = s
+    string outputValue = s
     int n = string.len(s)
     while n < width do
-        out = out + " "
+        outputValue = outputValue + " "
         n += 1
     end
-    return out
+    return outputValue
 end
 
 func padLeft(string s, int width) as string
-    string out = s
-    while string.len(out) < width do
-        out = " " + out
+    string outputValue = s
+    while string.len(outputValue) < width do
+        outputValue = " " + outputValue
     end
-    return out
+    return outputValue
 end
 
 func intStr(int v) as string
@@ -434,7 +434,7 @@ func tplReplace(string src, var d) as string
         elseif vv is int then
             val = string(int(vv))
         elseif vv is float then
-            val = string.formatFloat(float(vv), ".3")
+            val = float.format(float(vv), ".3")
         else
             try
                 val = json.stringify(vv)
@@ -555,13 +555,13 @@ func findFuncEndByIndent(array<string> lines, int startLine1) as int
     return lines.length
 end
 
-func collectReturnsInBlock(var node, string ownerFunc, array<int> out)
+func collectReturnsInBlock(var node, string ownerFunc, array<int> outputValue)
     if node is null then
         return
     end
     string k = nodeKind(node)
     if k == "return" then
-        out.push(nodeLine(node))
+        outputValue.push(nodeLine(node))
         return
     end
     // 不进入嵌套函数
@@ -570,7 +570,7 @@ func collectReturnsInBlock(var node, string ownerFunc, array<int> out)
     end
     var ch = childrenOf(node)
     for c in ch
-        collectReturnsInBlock(c, ownerFunc, out)
+        collectReturnsInBlock(c, ownerFunc, outputValue)
     end
 end
 
@@ -616,7 +616,7 @@ func makeFuncInfoFromAst(var node, string cls, array<string> lines) as FuncInfo
     return fi
 end
 
-func collectFuncsFromAst(var node, string cls, array<string> lines, array<FuncInfo> out)
+func collectFuncsFromAst(var node, string cls, array<string> lines, array<FuncInfo> outputValue)
     if node is null then
         return
     end
@@ -624,7 +624,7 @@ func collectFuncsFromAst(var node, string cls, array<string> lines, array<FuncIn
     if isFuncKind(k) then
         FuncInfo fi = makeFuncInfoFromAst(node, cls, lines)
         if fi.ok then
-            out.push(fi)
+            outputValue.push(fi)
         end
     end
     if k == "class" then
@@ -632,7 +632,7 @@ func collectFuncsFromAst(var node, string cls, array<string> lines, array<FuncIn
     end
     var ch = childrenOf(node)
     for c in ch
-        collectFuncsFromAst(c, cls, lines, out)
+        collectFuncsFromAst(c, cls, lines, outputValue)
     end
 end
 
@@ -853,8 +853,7 @@ end
 // ===== AST 获取（通过 xl parse）=====
 
 func parseAst(string xl, string absFile) as var
-    string cmd = xl + " parse " + absFile + " --format json"
-    ProcessResult r = process.run(cmd, 30000)
+    ProcessResult r = process.runFile(xl, ["parse", absFile, "--format", "json"], 30000)
     if not r.success or string.len(string.trim(r.stdout)) == 0 then
         return null
     end
@@ -880,27 +879,7 @@ func discoverFuncs(string xl, string absFile, string src) as array<FuncInfo>
     return scanFuncsFromSource(src)
 end
 
-// ===== 行映射分析（xl run --save-temps → C 文件）=====
-
-// 在指定目录中查找生成的 .c 文件
-func findGeneratedCFiles(string searchDir) as array<string>
-    array<string> result = []
-    if not dir.exists(searchDir) then
-        return result
-    end
-    var fs = dir.files(searchDir, true)
-    for f in fs
-        string p = string(f)
-        if string.lower(path.ext(p)) == "c" then
-            // 排除 companion C 文件（项目自带的 .c）
-            string nm = path.name(p)
-            if string.startsWith(nm, "xlgen_") or string.startsWith(nm, "_xl_") or string.contains(nm, ".xl.") then
-                result.push(p)
-            end
-        end
-    end
-    return result
-end
+// ===== 行映射分析 =====
 
 // 从 C 文件中提取行映射（#line 指令 / /* line N */ 注释）
 func extractLineMapFromC(string cPath, string xlFileName) as array<LineMapEntry>
@@ -983,48 +962,22 @@ func extractLineMapFromC(string cPath, string xlFileName) as array<LineMapEntry>
     return result
 end
 
-// 综合行映射分析：运行 xl run --save-temps，扫描输出目录
+// 直接把目标的 C 代码生成到本次临时目录，避免执行目标程序和猜测输出文件。
 func analyzeLineMap(string xl, string absFile, string tempOutDir) as array<LineMapEntry>
     array<LineMapEntry> empty = []
-    // 运行 xl run --save-temps（设置工作目录为 tempOutDir 以便生成文件落在那里）
-    string cmd = xl + " run " + absFile + " --save-temps"
-    try
-        ProcessResult r = process.run(cmd, 30000)
-        // 即使程序运行错误，C 文件可能已生成
-    catch e
+    string cPath = path.join(tempOutDir, path.random("xdebugger_", ".c"))
+    ProcessResult r = process.runFile(xl, ["cgen", absFile, "--emit", cPath], 30000)
+    if not r.success or not file.exists(cPath) then
         return empty
     end
-    // 搜索生成的 C 文件
-    array<string> cFiles = []
-    // 搜索 tempOutDir
-    array<string> tmp = findGeneratedCFiles(tempOutDir)
-    for c in tmp
-        cFiles.push(c)
-    end
-    // 搜索目标文件所在目录
-    string fileDir = path.dir(absFile)
-    array<string> tmp2 = findGeneratedCFiles(fileDir)
-    for c in tmp2
-        cFiles.push(c)
-    end
-    // 搜索 cwd
-    array<string> tmp3 = findGeneratedCFiles(path.cwd())
-    for c in tmp3
-        cFiles.push(c)
-    end
-    if cFiles.length == 0 then
-        return empty
-    end
-    string xlFn = path.name(absFile)
-    // 取第一个 C 文件（通常只有一个）
-    return extractLineMapFromC(cFiles[0], xlFn)
+    string xlFn = path.nameExt(absFile)
+    return extractLineMapFromC(cPath, xlFn)
 end
 
 // ===== IR 分析：函数调用关系（xl ir --format json）=====
 
 func parseIR(string xl, string absFile) as var
-    string cmd = xl + " ir " + absFile + " --format json"
-    ProcessResult r = process.run(cmd, 30000)
+    ProcessResult r = process.runFile(xl, ["ir", absFile, "--format", "json"], 30000)
     if not r.success or string.len(string.trim(r.stdout)) == 0 then
         return null
     end
@@ -1168,10 +1121,12 @@ func bpmFind(var bpm, int id) as var
 end
 
 func bpmRemove(var bpm, int id) as bool
+    var breakpoints = bpm.bps
     int i = 0
-    while i < bpm.bps.length do
-        if int(bpm.bps[i].id) == id then
-            bpm.bps.remove(i)
+    while i < breakpoints.length do
+        var bp = breakpoints[i]
+        if int(bp.id) == id then
+            breakpoints.remove(i)
             return true
         end
         i += 1
@@ -1180,10 +1135,12 @@ func bpmRemove(var bpm, int id) as bool
 end
 
 func bpmSetEnabled(var bpm, int id, bool on) as bool
+    var breakpoints = bpm.bps
     int i = 0
-    while i < bpm.bps.length do
-        if int(bpm.bps[i].id) == id then
-            bpm.bps[i].enabled = on
+    while i < breakpoints.length do
+        var bp = breakpoints[i]
+        if int(bp.id) == id then
+            bp.enabled = on
             return true
         end
         i += 1
@@ -1192,10 +1149,12 @@ func bpmSetEnabled(var bpm, int id, bool on) as bool
 end
 
 func bpmSetIgnore(var bpm, int id, int count) as bool
+    var breakpoints = bpm.bps
     int i = 0
-    while i < bpm.bps.length do
-        if int(bpm.bps[i].id) == id then
-            bpm.bps[i].ignoreCount = count
+    while i < breakpoints.length do
+        var bp = breakpoints[i]
+        if int(bp.id) == id then
+            bp.ignoreCount = count
             return true
         end
         i += 1
@@ -1206,22 +1165,26 @@ end
 // 绑定断点到实际行（基于 AST 分析）
 func bpmResolve(var bpm, array<FuncInfo> funcs, string srcFile)
     array<string> lines = splitLinesSafe(file.readText(srcFile))
+    var breakpoints = bpm.bps
     int bi = 0
-    while bi < bpm.bps.length do
-        if bpm.bps[bi].state == "pending" then
-            if int(bpm.bps[bi].kind) == BP_FUNC then
+    while bi < breakpoints.length do
+        var bp = breakpoints[bi]
+        if string(bp.state) == "pending" then
+            if int(bp.kind) == BP_FUNC then
+                string breakpointFunction = string(bp.funcName)
                 for fi in funcs
-                    if fi.name == string(bpm.bps[bi].funcName) or string.endsWith(fi.name, "." + string(bpm.bps[bi].funcName)) then
-                        bpm.bps[bi].line = fi.bodyStart
-                        bpm.bps[bi].file = srcFile
-                        bpm.bps[bi].state = "resolved"
+                    if fi.name == breakpointFunction or string.endsWith(fi.name, "." + breakpointFunction) then
+                        bp.line = fi.bodyStart
+                        bp.file = srcFile
+                        bp.state = "resolved"
                         break
                     end
                 end
-            elseif int(bpm.bps[bi].kind) == BP_LINE or int(bpm.bps[bi].kind) == BP_CONDITIONAL then
-                if int(bpm.bps[bi].line) > 0 and int(bpm.bps[bi].line) <= lines.length then
-                    bpm.bps[bi].file = srcFile
-                    bpm.bps[bi].state = "resolved"
+            elseif int(bp.kind) == BP_LINE or int(bp.kind) == BP_CONDITIONAL then
+                int breakpointLine = int(bp.line)
+                if breakpointLine > 0 and breakpointLine <= lines.length then
+                    bp.file = srcFile
+                    bp.state = "resolved"
                 end
             end
         end
@@ -1232,16 +1195,18 @@ end
 // 检查一个 point 事件是否命中某个断点
 // 返回命中的 Breakpoint（null 表示未命中）
 func bpmCheckHit(var bpm, string file, int line, string funcName, var locals) as var
+    var breakpoints = bpm.bps
     int i = 0
-    while i < bpm.bps.length do
-        var bp = bpm.bps[i]
+    while i < breakpoints.length do
+        var bp = breakpoints[i]
         if not bool(bp.enabled) then
             i += 1
             continue
         end
         bool matched = false
         if int(bp.kind) == BP_FUNC then
-            if funcName == string(bp.funcName) or string.endsWith(funcName, "." + bp.funcName) then
+            string breakpointFunction = string(bp.funcName)
+            if funcName == breakpointFunction or string.endsWith(funcName, "." + breakpointFunction) then
                 matched = true
             end
         elseif int(bp.kind) == BP_LINE then
@@ -1257,12 +1222,12 @@ func bpmCheckHit(var bpm, string file, int line, string funcName, var locals) as
             end
         end
         if matched then
-            bpm.bps[i].hitCount = int(bpm.bps[i].hitCount) + 1
-            if int(bpm.bps[i].hitCount) <= int(bpm.bps[i].ignoreCount) then
+            bp.hitCount = int(bp.hitCount) + 1
+            if int(bp.hitCount) <= int(bp.ignoreCount) then
                 i += 1
                 continue
             end
-            return bpm.bps[i]
+            return bp
         end
         i += 1
     end
@@ -2056,7 +2021,8 @@ func execPrint(DebugSession sess, string varName) as string
     if not e.locals.contains(varName) then
         return colorOn(C_YELLOW, varName + " is not available in current scope")
     end
-    var v = e.locals[varName]
+    var locals = e.locals
+    var v = locals[varName]
     string rep = valueToString(v)
     return varName + " = " + rep
 end
@@ -2127,19 +2093,24 @@ func showWatches(DebugSession sess) as string
     end
     var e = currentPointEvent(sess)
     string result = colorOn(C_CYAN, "[watch]") + "\n"
+    var locals = null
+    if not (e is null) then
+        locals = e.locals
+    end
     for w in sess.watches
+        string watchName = string(w.name)
         string curVal = "<N/A>"
-        if not (e is null) then
-            if e.locals.contains(w.name) then
-                curVal = valueToString(e.locals[w.name])
+        if not (locals is null) then
+            if locals.contains(watchName) then
+                curVal = valueToString(locals[watchName])
             end
         end
         string marker = ""
-        if curVal != w.lastValue then
+        if curVal != string(w.lastValue) then
             marker = colorOn(C_YELLOW, " *")
             w.lastValue = curVal
         end
-        result = result + "  " + padRight(w.name, 16) + " = " + curVal + marker + "\n"
+        result = result + "  " + padRight(watchName, 16) + " = " + curVal + marker + "\n"
     end
     return result
 end
@@ -2156,7 +2127,7 @@ func valueToString(var v) as string
         return string(int(v))
     end
     if v is float then
-        return string.formatFloat(float(v), ".6")
+        return float.format(float(v), ".6")
     end
     if v is bool then
         if bool(v) then
@@ -2613,7 +2584,7 @@ func reportLineMap(string xl, string absFile) as int
     string tempOut = makeTempDir()
     array<LineMapEntry> entries = analyzeLineMap(xl, absFile, tempOut)
     if entries.length == 0 then
-        println(colorOn(C_YELLOW, "no C line markers found (--save-temps may not be supported or C file not located)"))
+        println(colorOn(C_YELLOW, "generated C contains no source line markers"))
         println(colorOn(C_GRAY, "falling back to AST-based line analysis..."))
         println("")
     end
@@ -2730,8 +2701,7 @@ func cmdDebug(string targetFile, string cmdFile, bool dapMode) as int
     // 运行插桩后的程序
     println(colorOn(C_GRAY, "  running instrumented program..."))
     println("")
-    string runCmd = g_xl + " run " + instrumentedPath
-    ProcessResult r = process.run(runCmd, 60000)
+    ProcessResult r = process.runFile(g_xl, ["run", instrumentedPath], 60000)
 
     // 提取事件流
     string dumpJson = extractDumpJson(r.stdout)
@@ -3067,7 +3037,7 @@ func cmdTest() as int
     println(colorOn(C_CYAN, "test 10: C line map extraction"))
     bool t10ok = true
     string testC = "#line 5 \"test.xl\"\nint main() {\n#line 10 \"test.xl\"\n    return 0;\n}"
-    string testCPath = path.join(path.temp(), "xdbg_test.c")
+    string testCPath = path.join(path.temp(), path.random("xdbg_", ".c"))
     file.writeText(testCPath, testC)
     array<LineMapEntry> entries = extractLineMapFromC(testCPath, "test.xl")
     if entries.length != 2 then t10ok = false end

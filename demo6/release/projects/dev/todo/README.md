@@ -13,6 +13,7 @@ xl run projects\dev\todo\todo.xl -- list
 xl run projects\dev\todo\todo.xl -- done 1
 xl run projects\dev\todo\todo.xl -- remove 2
 xl run projects\dev\todo\todo.xl -- clear
+xl run projects\dev\todo\todo.xl -- test
 ```
 
 build 成 exe：
@@ -32,6 +33,7 @@ projects\dev\todo\todo.exe list
 | `done <id>`       | 标记指定 id 完成       |
 | `remove <id>`     | 删除指定 id            |
 | `clear`           | 清空所有已完成项       |
+| `test`            | 在随机临时目录运行完整持久化自测 |
 
 输出示例：
 
@@ -44,12 +46,11 @@ Total: 2
 ## 设计
 
 - `TodoItem` 用 `class + derive value + derive json` 定义 `id/text/done/createdAt`。
-- 单项序列化走 `json.stringify(item)`，反序列化走 `json.parse::<TodoItem>(text)`。
-- 集合持久化以"JSON 对象数组文本"形式存盘（`[{...},{...}]`），见
-  `BUGS.md` BUG-002 中关于 `derive json` 不序列化容器内 class 实例的说明及绕过方式。
+- 集合直接通过 `json.stringify(array<TodoItem>, pretty = true)` 序列化，读回时
+  用 `json.parse::<TodoItem>` 恢复强类型对象。
+- `array<TodoItem>` 可直接作为参数和返回值使用；class 引用在容器中保持正常生命周期。
 
-## 已知限制
+## 数据边界
 
-见 `../BUGS.md`：
-- BUG-002：derive json 不序列化容器内 class 实例（本工具的主要绕过点）。
-- BUG-006：build 出的 exe 接收非 ASCII argv 会乱码，含中文时请用 `xl run`。
+- 数据文件使用 UTF-8 JSON；`xl run` 与 build 产物均支持中文参数和中文路径。
+- `clear` 只删除已完成项；未完成项和原 id 保持不变。

@@ -19,12 +19,19 @@ file.delete(zipPath)
 assert string.len(miniz.version()) > 0, "miniz version missing"
 string packedHex = miniz.compress_hex(sample)
 string packedLevelHex = miniz.compress_hex_level(sample, 1)
+string packedAliasHex = miniz.compress(sample)
+string packedLevelAliasHex = miniz.compress(sample, 1)
 assert string.len(packedHex) > 0, "miniz compress_hex failed"
 assert string.len(packedLevelHex) > 0, "miniz compress_hex_level failed"
+assert string.len(packedAliasHex) > 0, "miniz compress alias failed"
+assert string.len(packedLevelAliasHex) > 0, "miniz compress level alias failed"
 assert miniz.decompress_hex(packedHex) == sample, "miniz decompress_hex mismatch"
 assert miniz.decompress_hex(packedLevelHex) == sample, "miniz decompress_hex_level mismatch"
+assert miniz.decompress(packedAliasHex) == sample, "miniz decompress alias mismatch"
+assert miniz.decompress(packedLevelAliasHex) == sample, "miniz decompress level alias mismatch"
 assert miniz.compress_file(srcPath, packedPath) != 0, "miniz compress_file failed"
 assert miniz.compress_file_level(srcPath, packedLevelPath, 1) != 0, "miniz compress_file_level failed"
+assert miniz.compress_file(srcPath, packedLevelPath, 1) != 0, "miniz compress_file level alias failed"
 assert miniz.decompress_file(packedLevelPath, outPath) != 0, "miniz decompress_file failed"
 assert file.readText(outPath) == sample, "miniz file round trip mismatch"
 assert miniz.zip_write_text(zipPath, "hello.txt", sample) != 0, "miniz zip_write_text failed"

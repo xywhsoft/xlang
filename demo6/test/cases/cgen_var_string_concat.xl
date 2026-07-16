@@ -36,6 +36,10 @@ var dynamicRight = "id"
 var rightValue = staticLeft + dynamicRight
 assert string(rightValue) == "a.id", "string + var string should concatenate"
 
+var dynamicRecord = {"func": "COUNT", "arg": "*"}
+string dynamicHeader = dynamicRecord["func"] + "(" + dynamicRecord["arg"] + ")"
+assert dynamicHeader == "COUNT(*)", "dynamic index values should support chained string concatenation"
+
 var bothLeft = "a."
 var bothRight = "id"
 string bothResult = string(bothLeft + bothRight)

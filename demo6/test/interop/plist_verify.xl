@@ -1,0 +1,25 @@
+import plist
+
+
+
+func main(...) as int
+    var xmlValue = plist.load("tmp/python_interop.plist")
+    assert xmlValue["name"] == "python 你好" and xmlValue["count"] == -7, "Python XML plist scalars"
+    assert type(xmlValue["created"]) == time, "Python XML plist date"
+    Buffer xmlData = xmlValue["payload"] as Buffer
+    assert xmlData.len() == 4 and xmlData[0] == 0 and xmlData[3] == 255, "Python XML plist data"
+
+    var binaryValue = null
+    try
+        binaryValue = plist.load("tmp/python_interop.bplist")
+    catch e
+        println("plist offset=" + string(plist.errorOffset()) + " message=" + e.message)
+        return 2
+    end
+    assert binaryValue["none"] == null, "Python binary plist null"
+    assert plist.isUid(binaryValue["uid"]), "Python binary plist UID type"
+    assert plist.uidValue(binaryValue["uid"]) == uint64(18446744073709551615), "Python binary plist UID value"
+    Buffer binaryData = binaryValue["payload"] as Buffer
+    assert binaryData.len() == 4 and binaryData[2] == 254, "Python binary plist data"
+    return 0
+end

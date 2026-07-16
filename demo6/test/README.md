@@ -36,8 +36,9 @@ test\suites\02_language_frontend.bat
 - `05_semantics_exceptions_concurrency_base.bat`：类型语义负例、异常/#doc、sync/thread/async 基础运行与生成形态守门。
 - `06_task_api_spawn.bat`：future/task API、task.spawn、task.all/race/cancel、任务边界和重复运行稳定性。
 - `07_async_generator_channel_docs.bat`：async class await、async generator、generator、channel、并发负例、文档注释和 f-string/语法负例。
-- `08_stdlib_extended.bat`：JSON/XSON、codec/hash/crypto、URL/query、log/template/regex/process/http.server 等扩展标准库。
+- `08_stdlib_extended.bat`：JSON/XSON、codec/hash/crypto、URL/query、log/template/regex/process 等扩展标准库；HTTP client/server 当前随 XRT 网络层更新暂缓，默认跳过，设置 `XL6_ENABLE_DEFERRED_HTTP=1` 可显式运行。
 - `09_artifact_closure.bat`：负例诊断产物和 `build\tmp` 文本产物收口检查，通常作为 `test.bat` 全量调度的最后一步运行。
+- `10_format_extlibs.bat`：gzip/bz2/zip/tar、CSV/INI/TOML/plist/netrc/XML 的 xlang/C 双语测试、Python 双向互操作、严格编译、私有依赖裁剪与按需链接守门。
 
 ## fixtures
 
@@ -48,6 +49,7 @@ test\suites\02_language_frontend.bat
 以下前缀来自 `test/cases` 下递归发现的 `.xl` 用例。新增新前缀时，必须同步更新本节，避免测试资产变成只有批处理知道。
 
 <!-- case-prefix-index:start -->
+- `runtime`: runtime type and dynamic value cases.
 - `anonymous`：匿名函数基础用例。
 - `c`：C ABI 类型用例。
 - `call`：调用参数、默认参数和命名参数用例。
@@ -60,6 +62,7 @@ test\suites\02_language_frontend.bat
 - `containers`：容器基础语义用例。
 - `control`：控制流用例。
 - `export`：xlang 导出 C ABI 用例。
+- `extlib`：随发布包扩展库的 xlang 回归用例。
 - `extern`：C extern 函数/变量用例。
 - `function`：function 类型基础用例。
 - `generic`：泛型类型基础用例。

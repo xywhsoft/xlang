@@ -114,7 +114,7 @@ end
 
 func fmtMs(int ms) as string
     if ms < 1000 then return string(ms) + " ms" end
-    return string.formatFloat(float(ms) / 1000.0, ".3") + " s"
+    return float.format(float(ms) / 1000.0, ".3") + " s"
 end
 
 func fmtDur(int t) as string
@@ -217,7 +217,7 @@ func strVal(var v) as string
         return "false"
     end
     if v is int then return string(int(v)) end
-    if v is float then return string.formatFloat(float(v), ".6") end
+    if v is float then return float.format(float(v), ".6") end
     if v is string then return string(v) end
     return json.stringify(v)
 end
@@ -444,7 +444,7 @@ class Rng
         self.counter += uint64(1)
         // Mix the counter and tag through a stable hash. The textual key fully
         // determines the output, guaranteeing reproducibility.
-        string key = self.tag + ":" + string.formatUInt(self.counter, "x")
+        string key = self.tag + ":" + int.format(self.counter, "x")
         return hash.u64(key)
     end
 
@@ -661,12 +661,7 @@ end
 func namedBool(var named, string key, bool def) as bool
     if not (key in named) then return def end
     var v = named[key]
-    // NOTE: in this dialect the `is bool` predicate is unreliable on values read
-    // back out of a dict (it always reports false), so a stored bool literal
-    // never matched the first branch and namedBool silently returned its
-    // default. That made `policy fair=true` a no-op (fairness was dead) and
-    // mis-read any explicit `valid=false`. Int/float/string predicates DO work,
-    // so dispatch on those first and recover a bool by stringifying the value.
+    if v is bool then return bool(v) end
     if v is int then return int(v) != 0 end
     if v is float then return float(v) != 0.0 end
     string s = lowerStr(string(v))
@@ -2936,15 +2931,15 @@ end
 // ---- Human-readable reports ------------------------------------------------
 
 func pct(float f) as string
-    return string.formatFloat(f * 100.0, ".2") + "%"
+    return float.format(f * 100.0, ".2") + "%"
 end
 
 func pctRaw(float f) as string
-    return string.formatFloat(f, ".4")
+    return float.format(f, ".4")
 end
 
 func fmtPctile(float f) as string
-    return string.formatFloat(f, ".1")
+    return float.format(f, ".1")
 end
 
 func formatSummary(var scenario, var state, var metrics) as string
@@ -2957,7 +2952,7 @@ func formatSummary(var scenario, var state, var metrics) as string
     lines.append("completed: " + string(int(c[ST_DONE])) + "   failed: " + string(int(c[ST_FAILED])) + "   timeout: " + string(int(c[ST_TIMEOUT])))
     lines.append("cancelled: " + string(int(c[ST_CANCELLED])) + "   blocked: " + string(int(c[ST_BLOCKED])))
     lines.append("success rate: " + pct(float(metrics["successRate"])))
-    lines.append("throughput: " + string.formatFloat(float(metrics["throughputPer1k"]), ".4") + " jobs / 1000 " + string(scenario["meta"]["unit"]))
+    lines.append("throughput: " + float.format(float(metrics["throughputPer1k"]), ".4") + " jobs / 1000 " + string(scenario["meta"]["unit"]))
     lines.append("total attempts: " + string(int(metrics["totalAttempts"])) + "   cache hits: " + string(int(metrics["totalCacheHits"])))
     lines.append("completion pct: p50=" + fmtPctile(float(metrics["p50Completion"])) + " p90=" + fmtPctile(float(metrics["p90Completion"])) + " p95=" + fmtPctile(float(metrics["p95Completion"])) + " p99=" + fmtPctile(float(metrics["p99Completion"])) + " max=" + string(int(metrics["maxCompletion"])))
     lines.append("queue    pct: p50=" + fmtPctile(float(metrics["p50Queue"])) + " p90=" + fmtPctile(float(metrics["p90Queue"])) + " p99=" + fmtPctile(float(metrics["p99Queue"])) + " mean=" + fmtPctile(float(metrics["meanQueue"])))
@@ -3142,10 +3137,6 @@ func runInvariants(var scenario, var state, var metrics) as var
     end
     return viol
 end
-
-
-// (temp main removed; real entry point defined in the CLI section below)
-// placeholder-noop
 
 
 // ============================================================================
@@ -3822,7 +3813,7 @@ func scenarioToText(var scenario) as string
             var rule = scenario["failRules"][ri]
             string rl = "fail " + string(rule["kind"])
             if string(rule["kind"]) != FR_RANDOM then rl = rl + " " + string(rule["target"]) end
-            rl = rl + " rate=" + string.formatFloat(float(rule["rate"]), ".4")
+            rl = rl + " rate=" + float.format(float(rule["rate"]), ".4")
             if string(rule["effect"]) == "timeout" then rl = rl + " effect=timeout" end
             lines.append(rl)
             ri += 1
@@ -4294,7 +4285,7 @@ func cmdReport(var arg) as int
         println("")
     end
     if m["queueTimes"].length > 0 then
-        println("queue-time Jain fairness index: " + string.formatFloat(queueFairness(m), ".4") + " (1.0 = perfectly fair)")
+        println("queue-time Jain fairness index: " + float.format(queueFairness(m), ".4") + " (1.0 = perfectly fair)")
     end
     println("")
     println("event log (first 40 rows):")
@@ -5092,10 +5083,10 @@ func test30FairnessHistogram()
     sectionT("[test 30] Jain fairness index + histogram")
     var perfect = [5, 5, 5, 5]
     var skewed = [0, 0, 0, 10]
-    checkEqInt(int(jainsIndex(perfect) * 10000), 10000, "Jain index of equal values is 1.0")
+    checkEqInt(int(jainsIndex(perfect) * 10000.0), 10000, "Jain index of equal values is 1.0")
     // skewed: (10)^2 / (4 * (0+0+0+100)) = 0.25
-    checkEqInt(int(jainsIndex(skewed) * 100), 25, "Jain index of [0,0,0,10] is 0.25")
-    checkEqInt(int(jainsIndex([]) * 10000), 10000, "Jain index of empty input is 1.0")
+    checkEqInt(int(jainsIndex(skewed) * 100.0), 25, "Jain index of [0,0,0,10] is 0.25")
+    checkEqInt(int(jainsIndex([]) * 10000.0), 10000, "Jain index of empty input is 1.0")
     var vals = [0, 10, 20, 30, 40, 50]
     var h = histogram(vals, 5)
     int total = 0
@@ -5211,7 +5202,7 @@ func test33ReportDeterminism()
     float qf1 = queueFairness(computeMetrics(st1))
     float qf2 = queueFairness(computeMetrics(st2))
     checkT(qf1 >= 0.0 and qf1 <= 1.0, "queue fairness index in [0,1]")
-    checkEqInt(int(qf1 * 1000000), int(qf2 * 1000000), "fairness index is stable across runs")
+    checkEqInt(int(qf1 * 1000000.0), int(qf2 * 1000000.0), "fairness index is stable across runs")
     // Generated scenarios: serializer round-trips for a couple of seeds.
     int gseed = 0
     int okRT = 0

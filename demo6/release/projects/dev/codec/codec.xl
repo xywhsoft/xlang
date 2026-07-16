@@ -20,9 +20,7 @@
 //   hex:    codec.hexEncode / codec.hexDecode
 //   base64: codec.base64Encode / codec.base64Decode
 //   percent:codec.percentEncode / codec.percentDecode
-// (Earlier B14/B15/B16 workarounds that hand-rolled hex/base64/percent are no
-//  longer needed; the codec.* functions now work alongside crypto.* under both
-//  `xl run` and `xl build`.)
+// `xl run` 与 `xl build` 共用同一组 codec/crypto 标准库入口。
 // ---------------------------------------------------------------------------
 
 func readInput(bool fromFile, string fileSource, string inlineText) as string

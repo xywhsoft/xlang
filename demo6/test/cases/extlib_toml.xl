@@ -1,0 +1,44 @@
+import toml
+
+
+
+func main(...) as int
+    string source = "title = \"xlang\"\ncount = 42\nactive = true\ndate = 2026-07-16\nlocal = 2026-07-16T12:34:56.123456\nprecise = 2026-07-16T12:34:56.25+08:00\n\n[server]\nhost = \"localhost\"\nports = [8080, 8081]\n\n[[users]]\nname = \"alice\"\n\n[[users]]\nname = \"bob\"\n"
+    var document = toml.parse(source)
+    assert document["title"] == "xlang", "TOML string"
+    assert document["count"] == 42 and document["active"], "TOML primitive values"
+    assert document["server"]["host"] == "localhost", "TOML nested table"
+    assert document["users"].length == 2 and document["users"][1]["name"] == "bob", "TOML array tables"
+    assert toml.isLocalDate(document["date"]), "TOML local date type"
+    assert toml.isLocalDateTime(document["local"]), "TOML local datetime type"
+    assert toml.dateTimePart(document["local"], 6) == 123456, "TOML microsecond precision"
+    assert toml.isOffsetDateTime(document["precise"]), "TOML fractional offset type"
+
+    string encoded = toml.stringify(document)
+    var roundTrip = toml.parse(encoded)
+    assert roundTrip["count"] == 42 and roundTrip["users"].length == 2, "TOML round trip"
+
+    var generated = dict{
+        "name": "demo",
+        "created": toml.localDate(2026, 7, 16),
+        "values": array[1, 2, 3]
+    }
+    string generatedText = toml.stringify(generated)
+    assert string.contains(generatedText, "created = 2026-07-16"), "TOML date constructor"
+
+    bool malformed = false
+    try
+        toml.parse("a = [1,")
+    catch TomlError e
+        malformed = true
+    end
+    assert malformed and toml.errorCode() != 0 and toml.errorLine() == 1, "TOML typed parse error"
+    bool invalidDate = false
+    try
+        toml.localDate(100000, 1, 1)
+    catch ValueError e
+        invalidDate = true
+    end
+    assert invalidDate, "TOML date validates before narrowing"
+    return 0
+end

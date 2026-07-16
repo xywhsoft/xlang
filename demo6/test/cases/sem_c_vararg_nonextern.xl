@@ -1,0 +1,3 @@
+func bad(c_vararg) as int
+    return 0
+end

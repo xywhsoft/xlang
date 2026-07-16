@@ -5,7 +5,7 @@
 //   radix ascii <char>                       字符 -> ASCII 码
 //   radix chr <code>                         ASCII 码 -> 字符
 //   radix batch <from> <to> <v1> <v2> ...    批量转换
-//   radix probe                              探测 string.formatInt 行为
+//   radix probe                              探测 int.format 行为
 //   radix -h | --help                        帮助
 //
 // 支持的进制：2、8、10、16
@@ -14,13 +14,8 @@
 //   - parseRadix 手写源进制解析（验证 *、+、字符串字节处理）。
 //   - formatRadix 手写目标进制格式化（验证 %、/ 截断除法，正确处理负数）。
 //   - formatBinaryBitwise 用 & 1、>> 1 逐位剥离（验证位运算）。
-//   - 同时调用 string.formatInt(value, format) 做交叉对照，发现 formatInt
-//     对负数非十进制格式丢符号的 BUG（见 BUGS.md）。
+//   - 同时调用 int.format(value, format) 做交叉对照。
 //   - 输入 hex 大小写均可；输出 hex 统一大写。
-
-// 可打印 ASCII 表（码点 32..126），用于 chr 命令。
-// formatInt 的 "c" 不是字符格式，故用查表方式实现 code -> char。
-string ASCII_TABLE = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
 
 // 单个字符字节值 -> 数码值；非法字符返回 -1。
 func byteToDigit(int b) as int
@@ -63,7 +58,7 @@ func parseRadix(string s, int base) as int64
             throw "invalid character '" + string.charAt(s, i) + "'"
         end
         if v >= base then
-            throw "digit " + string.charAt(s, i) + " not valid for base " + string.formatInt(base, "")
+            throw "digit " + string.charAt(s, i) + " not valid for base " + int.format(base, "")
         end
         result = result * base + v
         i += 1
@@ -131,7 +126,7 @@ func validBase(int b) as bool
     return b == 2 or b == 8 or b == 10 or b == 16
 end
 
-// 取目标进制对应的 string.formatInt format 串（用于交叉对照）。
+// 取目标进制对应的 int.format format 串（用于交叉对照）。
 func formatTag(int base) as string
     if base == 2 then
         return "b"
@@ -152,7 +147,7 @@ func printUsage()
     println("  radix ascii <char>                       char -> ASCII code")
     println("  radix chr <code>                         ASCII code -> char")
     println("  radix batch <from> <to> <v1> <v2> ...    batch convert")
-    println("  radix probe                              probe string.formatInt")
+    println("  radix probe                              probe int.format")
     println("  radix -h | --help                        this help")
     println("Examples:")
     println("  radix 255 10 16        -> FF")
@@ -165,7 +160,7 @@ func printUsage()
     println("  radix batch 10 16 1 2 3 4 5   -> 1,2,3,4,5")
 end
 
-// 核心转换单值：输出主结果，再用 formatInt 交叉对照。
+// 核心转换单值：输出主结果，再用 int.format 交叉对照。
 func cmdConvert(string value, int fromBase, int toBase) as int
     int64 v = parseRadix(value, fromBase)
     string mine = formatRadix(v, toBase)
@@ -173,11 +168,11 @@ func cmdConvert(string value, int fromBase, int toBase) as int
         mine = formatBinaryBitwise(v)
     end
     println(mine)
-    // 交叉对照 string.formatInt
+    // 交叉对照 int.format
     string tag = formatTag(toBase)
-    string theirs = string.formatInt(v, tag)
+    string theirs = int.format(v, tag)
     if theirs != mine then
-        println("  [note] formatInt(v, \"" + tag + "\") = \"" + theirs + "\" ; hand-rolled = \"" + mine + "\"")
+        println("  [note] int.format(v, \"" + tag + "\") = \"" + theirs + "\" ; hand-rolled = \"" + mine + "\"")
     end
     return 0
 end
@@ -189,18 +184,17 @@ func cmdAscii(string s) as int
     end
     string c = string.charAt(s, 0)
     int b = string.byteAt(s, 0)
-    println("char='" + c + "'  decimal=" + string.formatInt(b, "") + "  hex=" + string.formatInt(b, "X") + "  binary=" + string.formatInt(b, "b"))
+    println("char='" + c + "'  decimal=" + int.format(b, "") + "  hex=" + int.format(b, "X") + "  binary=" + int.format(b, "b"))
     return 0
 end
 
 func cmdChr(string codeText) as int
     int code = int(codeText)
     if code < 32 or code > 126 then
-        println("code " + string.formatInt(code, "") + " is outside printable ASCII (32..126); no glyph")
+        println("code " + int.format(code, "") + " is outside printable ASCII (32..126); no glyph")
         return 0
     end
-    string c = string.slice(ASCII_TABLE, code - 32, 1)
-    println(c)
+    println(int.format(code, "c"))
     return 0
 end
 
@@ -208,27 +202,27 @@ func cmdProbe() as int
     int64 v = 255
     string fmts = ",x,X,o,b,B,c,C,08,08X,x4,4X,#x"
     array fs = string.split(fmts, ",")
-    println("string.formatInt(255, format) behavior:")
+    println("int.format(255, format) behavior:")
     int i = 0
     while i < fs.length do
         string f = string(fs[i])
-        string out = ""
+        string outputValue = ""
         try
-            out = string.formatInt(v, f)
+            outputValue = int.format(v, f)
         catch e
-            out = "<err: " + e.message + ">"
+            outputValue = "<err: " + e.message + ">"
         end
-        println("  '" + f + "' -> '" + out + "'")
+        println("  '" + f + "' -> '" + outputValue + "'")
         i += 1
     end
-    println("negative handling (BUG: non-decimal drops sign):")
-    println("  formatInt(-255, \"\")  = '" + string.formatInt(-255, "") + "'")
-    println("  formatInt(-255, \"X\") = '" + string.formatInt(-255, "X") + "'")
-    println("  formatInt(-255, \"b\") = '" + string.formatInt(-255, "b") + "'")
+    println("negative handling:")
+    println("  int.format(-255, \"\")  = '" + int.format(-255, "") + "'")
+    println("  int.format(-255, \"X\") = '" + int.format(-255, "X") + "'")
+    println("  int.format(-255, \"b\") = '" + int.format(-255, "b") + "'")
     println("int64 max:")
     int64 big = 9223372036854775807
-    println("  formatInt(MAX, \"\")  = '" + string.formatInt(big, "") + "'")
-    println("  formatInt(MAX, \"X\") = '" + string.formatInt(big, "X") + "'")
+    println("  int.format(MAX, \"\")  = '" + int.format(big, "") + "'")
+    println("  int.format(MAX, \"X\") = '" + int.format(big, "X") + "'")
     return 0
 end
 

@@ -14,6 +14,10 @@ assert string.len(screen.error()) >= 0, "opencv Image.error failed"
 assert screen.width() > 0, "opencv Image.width failed"
 assert screen.height() > 0, "opencv Image.height failed"
 assert screen.channels() > 0, "opencv Image.channels failed"
+assert screen.area() == screen.width() * screen.height(), "opencv Image.area failed"
+assert screen.aspect() > 0.0, "opencv Image.aspect failed"
+assert string.contains(screen.shape_json(), "\"width\""), "opencv Image.shape_json failed"
+assert string.contains(opencv.shape_json(screen), "\"channels\""), "opencv shape_json failed"
 
 string sourcePath = "examples_out/opencv_extlib_source.png"
 string outputPath = "examples_out/opencv_extlib_output.png"
@@ -21,10 +25,15 @@ dir.createAll(path.dir(sourcePath))
 assert screen.save(sourcePath) == true, "opencv Image.save failed"
 
 auto color = opencv.imread(sourcePath)
+auto colorByRead = opencv.read(sourcePath)
 auto gray = opencv.imread_flags(sourcePath, 0)
+auto grayByRead = opencv.read_flags(sourcePath, 0)
 assert color.empty() == false, "opencv imread default failed"
+assert colorByRead.empty() == false, "opencv read default failed"
 assert gray.empty() == false, "opencv imread flags failed"
+assert grayByRead.empty() == false, "opencv read flags failed"
 assert opencv.imwrite(outputPath, color) == true, "opencv imwrite failed"
+assert opencv.write(outputPath, color) == true, "opencv write failed"
 
 auto resized = opencv.resize(color, 32, 32)
 auto methodResized = color.resize(32, 32)
@@ -106,7 +115,9 @@ assert methodCropped.release() == true, "opencv methodCropped release failed"
 assert cropped.release() == true, "opencv cropped release failed"
 assert methodResized.release() == true, "opencv methodResized release failed"
 assert resized.release() == true, "opencv resized release failed"
+assert grayByRead.release() == true, "opencv grayByRead release failed"
 assert gray.release() == true, "opencv gray release failed"
+assert colorByRead.release() == true, "opencv colorByRead release failed"
 assert color.release() == true, "opencv color release failed"
 assert screen.release() == true, "opencv screen release failed"
 

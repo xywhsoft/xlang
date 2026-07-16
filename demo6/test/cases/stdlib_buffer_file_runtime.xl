@@ -69,7 +69,7 @@ end
 assert missingRejected, "file.readText should reject missing files"
 
 uint64 u = uint64(255)
-assert string.formatUInt(u, "X") == "FF", "string.formatUInt should format uint64"
+assert int.format(u, "X") == "FF", "int.format should format uint64"
 assert string.format(u, "X") == "FF", "string.format should dispatch uint64 overload"
 assert string.format(42, "04") == "0042", "string.format should dispatch int overload"
 assert string.format(0.125, ".1%") == "12.5%", "string.format should dispatch float overload"

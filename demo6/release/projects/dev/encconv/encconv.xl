@@ -321,7 +321,6 @@ end
 
 // 用例 13: detectBytes / isUtf8Bytes 对合法 UTF-8 字节流的识别
 //   （与用例 5 的「非法字节 -> oem」互补：合法 UTF-8 字节应被识别为 utf8）
-//   注：toBytes(charset + encoding.bom) 存在返回空缓冲的 BUG（见 BUGS.md
 func testDetectValidUtf8Bytes() as bool
     string text = "你好"
     Buffer utf8 = encoding.toBytes(text, encoding.utf8)
@@ -332,6 +331,15 @@ func testDetectValidUtf8Bytes() as bool
         return false
     end
     return true
+end
+
+// 用例 14: UTF-8 BOM 编码应产生 EF BB BF 前缀，并保留正文。
+func testUtf8Bom() as bool
+    Buffer bytes = encoding.toBytes("hi", encoding.utf8 + encoding.bom)
+    if bytes.len() != 5 then
+        return false
+    end
+    return bytes.byteAt(0) == 0xEF and bytes.byteAt(1) == 0xBB and bytes.byteAt(2) == 0xBF and bytes.byteAt(3) == 0x68 and bytes.byteAt(4) == 0x69
 end
 
 // ============================================================
@@ -431,6 +439,13 @@ func runSelfTest() as int
     bool r13 = testDetectValidUtf8Bytes()
     println(pf2(r13) + string(total) + ". detectBytes/isUtf8Bytes 合法 UTF-8 字节 -> utf8")
     if r13 then
+        pass += 1
+    end
+
+    total += 1
+    bool r14 = testUtf8Bom()
+    println(pf2(r14) + string(total) + ". encoding.toBytes UTF-8 BOM 前缀与正文")
+    if r14 then
         pass += 1
     end
 
@@ -574,13 +589,13 @@ func main(...) as int
         int fromCs = parseCharset(fromName)
         int toCs = parseCharset(toName)
         Buffer bytes = codec.hexDecodeBytes(hex)
-        Buffer out = encoding.convertBytes(bytes.data(), c_size(bytes.len()), fromCs, toCs)
-        string hexOut = codec.hexEncodeBytes(out.data(), c_size(out.len()))
+        Buffer outputValue = encoding.convertBytes(bytes.data(), c_size(bytes.len()), fromCs, toCs)
+        string hexOut = codec.hexEncodeBytes(outputValue.data(), c_size(outputValue.len()))
         println(fromName + " -> " + toName)
         println("in  (" + string(bytes.len()) + " B): " + hex)
-        println("out (" + string(out.len()) + " B): " + hexOut)
+        println("out (" + string(outputValue.len()) + " B): " + hexOut)
         if toCs == encoding.utf8 then
-            println("text: " + out.text())
+            println("text: " + outputValue.text())
         end
         return 0
     end
@@ -642,16 +657,16 @@ func main(...) as int
         int fromCs = parseCharset(fromName)
         int toCs = parseCharset(toName)
         Buffer data = file.readBytes(path)
-        Buffer out = encoding.convertBytes(data.data(), c_size(data.len()), fromCs, toCs)
-        int outLen = out.len()
+        Buffer outputValue = encoding.convertBytes(data.data(), c_size(data.len()), fromCs, toCs)
+        int outLen = outputValue.len()
         if hasOut then
-            file.writeBytes(outPath, out)
+            file.writeBytes(outPath, outputValue)
             println("written: " + outPath + " (" + string(outLen) + " bytes, " + toName + ")")
         else
             if toCs == encoding.utf8 then
-                println(out.text())
+                println(outputValue.text())
             else
-                println(codec.hexEncodeBytes(out.data(), c_size(out.len())))
+                println(codec.hexEncodeBytes(outputValue.data(), c_size(outputValue.len())))
             end
         end
         return 0

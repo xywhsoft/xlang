@@ -81,24 +81,24 @@ end
 
 // ---- expand an array of 16-bit opcodes into an array<int> of bytes ----
 func expandBytes(array<int> words) as array<int>
-    array<int> out = makeArray(words.length * 2, 0)
+    array<int> outputValue = makeArray(words.length * 2, 0)
     int i = 0
     while i < words.length do
-        out[i * 2]     = (words[i] >> 8) & 0xFF
-        out[i * 2 + 1] = words[i] & 0xFF
+        outputValue[i * 2]     = (words[i] >> 8) & 0xFF
+        outputValue[i * 2 + 1] = words[i] & 0xFF
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // ---- 2-digit lowercase hex of a byte (0..255) ----
 func hexByte(int b) as string
-    return string.formatInt(b & 0xFF, "x2")
+    return int.format(b & 0xFF, "x2")
 end
 
 // ---- 4-digit uppercase hex of a 16-bit word ----
 func hexWord(int w) as string
-    return string.formatInt(w & 0xFFFF, "X4")
+    return int.format(w & 0xFFFF, "X4")
 end
 
 
@@ -492,18 +492,18 @@ func decodeOp(int op) as string
     elseif first == 0x2 then
         return "CALL " + hexWord(nnn)
     elseif first == 0x3 then
-        return "SE  V" + string.formatInt(x, "X") + ", #" + hexByte(nn)
+        return "SE  V" + int.format(x, "X") + ", #" + hexByte(nn)
     elseif first == 0x4 then
-        return "SNE V" + string.formatInt(x, "X") + ", #" + hexByte(nn)
+        return "SNE V" + int.format(x, "X") + ", #" + hexByte(nn)
     elseif first == 0x5 then
         if n == 0 then
-            return "SE  V" + string.formatInt(x, "X") + ", V" + string.formatInt(y, "X")
+            return "SE  V" + int.format(x, "X") + ", V" + int.format(y, "X")
         end
         return "??? " + hexWord(op)
     elseif first == 0x6 then
-        return "LD  V" + string.formatInt(x, "X") + ", #" + hexByte(nn)
+        return "LD  V" + int.format(x, "X") + ", #" + hexByte(nn)
     elseif first == 0x7 then
-        return "ADD V" + string.formatInt(x, "X") + ", #" + hexByte(nn)
+        return "ADD V" + int.format(x, "X") + ", #" + hexByte(nn)
     elseif first == 0x8 then
         string name = ""
         if n == 0x0 then
@@ -527,10 +527,10 @@ func decodeOp(int op) as string
         else
             return "??? " + hexWord(op)
         end
-        return name + " V" + string.formatInt(x, "X") + ", V" + string.formatInt(y, "X")
+        return name + " V" + int.format(x, "X") + ", V" + int.format(y, "X")
     elseif first == 0x9 then
         if n == 0 then
-            return "SNE V" + string.formatInt(x, "X") + ", V" + string.formatInt(y, "X")
+            return "SNE V" + int.format(x, "X") + ", V" + int.format(y, "X")
         end
         return "??? " + hexWord(op)
     elseif first == 0xA then
@@ -538,44 +538,44 @@ func decodeOp(int op) as string
     elseif first == 0xB then
         return "JP  V0, " + hexWord(nnn)
     elseif first == 0xC then
-        return "RND V" + string.formatInt(x, "X") + ", #" + hexByte(nn)
+        return "RND V" + int.format(x, "X") + ", #" + hexByte(nn)
     elseif first == 0xD then
-        return "DRW V" + string.formatInt(x, "X") + ", V" + string.formatInt(y, "X") + ", " + string.formatInt(n, "D")
+        return "DRW V" + int.format(x, "X") + ", V" + int.format(y, "X") + ", " + int.format(n, "D")
     elseif first == 0xE then
         if nn == 0x9E then
-            return "SKP V" + string.formatInt(x, "X")
+            return "SKP V" + int.format(x, "X")
         end
         if nn == 0xA1 then
-            return "SKNP V" + string.formatInt(x, "X")
+            return "SKNP V" + int.format(x, "X")
         end
         return "??? " + hexWord(op)
     elseif first == 0xF then
         if nn == 0x07 then
-            return "LD  V" + string.formatInt(x, "X") + ", DT"
+            return "LD  V" + int.format(x, "X") + ", DT"
         end
         if nn == 0x0A then
-            return "LD  V" + string.formatInt(x, "X") + ", K"
+            return "LD  V" + int.format(x, "X") + ", K"
         end
         if nn == 0x15 then
-            return "LD  DT, V" + string.formatInt(x, "X")
+            return "LD  DT, V" + int.format(x, "X")
         end
         if nn == 0x18 then
-            return "LD  ST, V" + string.formatInt(x, "X")
+            return "LD  ST, V" + int.format(x, "X")
         end
         if nn == 0x1E then
-            return "ADD I, V" + string.formatInt(x, "X")
+            return "ADD I, V" + int.format(x, "X")
         end
         if nn == 0x29 then
-            return "LD  F, V" + string.formatInt(x, "X")
+            return "LD  F, V" + int.format(x, "X")
         end
         if nn == 0x33 then
-            return "LD  B, V" + string.formatInt(x, "X")
+            return "LD  B, V" + int.format(x, "X")
         end
         if nn == 0x55 then
-            return "LD  [I], V" + string.formatInt(x, "X")
+            return "LD  [I], V" + int.format(x, "X")
         end
         if nn == 0x65 then
-            return "LD  V" + string.formatInt(x, "X") + ", [I]"
+            return "LD  V" + int.format(x, "X") + ", [I]"
         end
         return "??? " + hexWord(op)
     end

@@ -4,7 +4,7 @@
 //   virtfs test       内置自测：多层目录+文件，验证 CRUD + 路径解析 + 权限 + inode + 挂载 + 序列化 roundtrip
 //   virtfs help       帮助
 //
-// 设计要点（结合 dev/README.md 与 BUGS.md，参考 btree/skiplist 的节点池模式）：
+// 设计要点（参考 btree/skiplist 的节点池模式）：
 //   - 节点池：VFS.nodes 为 var 数组（index = node id），节点按 id 引用（不持指针）。
 //   - VNode 单一 class（type 字段区分 FILE/DIR），derive value（值语义 write-back）。
 //     getNode/setNode/allocNode 值语义访问，与 btree/skiplist 探针一致（write-back 持久）。
@@ -17,12 +17,9 @@
 //     子树根 isMount=true；unmount 摘除挂载（子树节点成为孤立，保留在池中不挪动 id）。
 //   - find 用显式 var 数组栈迭代 DFS，避免递归中分配 dict。
 //   - dumpTree 为纯字符串递归（不分配 dict），安全。
-//   - class 方法不接收 array<int> / Buffer 形参，全用 int/string 标量参数。
-//   - 不直接 return self.field.length，先落局部 int。
 //   - 避开 stdlib 命名空间同名局部变量：用 p / pathStr 而非 path/dir。
-//   - 不用 set/get/let 作方法名（BUG-RAS1）：用 putChild / dropChild / hasChild。
-//   - 复合赋值 += 仅用于标量。
-//   - 顶层函数名避开 C 标准库保留名（BUG-CL2）。
+//   - putChild / dropChild / hasChild 用动词明确表达目录关系的修改方向。
+//   - 顶层函数使用 VFS 领域前缀，避免和标准库入口混淆。
 //   - 序列化：手动遍历节点池构造 var 结构 + json.stringify。
 
 const int NT_FILE = 0
@@ -53,10 +50,9 @@ func isAbsolutePath(string p) as bool
     return false
 end
 
-// 把路径拆成父目录路径 + 末段名，返回 var 数组 [parent, name]。
+// 把路径拆成父目录路径 + 末段名。
 //   "/a/b/c" -> ["/a/b", "c"]   "a/b" -> ["a", "b"]   "c" -> ["", "c"]   "/" -> ["", ""]
-// 用 var 数组单返回值（btree insertInto 同款），规避 class 方法内多返回解构的不确定性。
-func splitParentName(string p) as var
+func splitParentName(string p) as (string, string)
     int lastSlash = -1
     int n = string.len(p)
     int i = 0
@@ -75,8 +71,7 @@ func splitParentName(string p) as var
         parent = string.mid(p, 0, lastSlash)
         fname = string.mid(p, lastSlash + 1, n - lastSlash - 1)
     end
-    var result = [parent, fname]
-    return result
+    return parent, fname
 end
 
 // 规范化路径：消解 "." / ".."，折叠多余 "/"。绝对路径以 "/" 开头，空栈返回 "/" 或 "."。
@@ -366,9 +361,9 @@ class VFS
 
     // 创建目录（含中间路径不自动创建）。返回 true=新建，false=已存在或父缺失或无权限。
     func mkdir(string p, int perm) as bool
-        var parts = splitParentName(p)
-        string parentPath = string(parts[0])
-        string fname = string(parts[1])
+        string parentPath
+        string fname
+        parentPath, fname = splitParentName(p)
         if string.len(fname) == 0 then
             return false
         end
@@ -546,9 +541,9 @@ class VFS
 
     // 创建空文件。返回 true=新建，false=已存在/父缺失/无权限。
     func createFile(string p, int perm) as bool
-        var parts = splitParentName(p)
-        string parentPath = string(parts[0])
-        string fname = string(parts[1])
+        string parentPath
+        string fname
+        parentPath, fname = splitParentName(p)
         if string.len(fname) == 0 then
             return false
         end
@@ -611,9 +606,9 @@ class VFS
             self.setNode(id, n)
             return true
         end
-        var parts = splitParentName(p)
-        string parentPath = string(parts[0])
-        string fname = string(parts[1])
+        string parentPath
+        string fname
+        parentPath, fname = splitParentName(p)
         if string.len(fname) == 0 then
             return false
         end
@@ -866,10 +861,10 @@ class VFS
     // ---- 序列化 / 反序列化（手动遍历，compact 保序）----
 
     func serialize() as string
-        var out = {}
-        out["rootId"] = self.rootId
-        out["cwdId"] = self.cwdId
-        out["nextInode"] = self.nextInode
+        var outputValue = {}
+        outputValue["rootId"] = self.rootId
+        outputValue["cwdId"] = self.cwdId
+        outputValue["nextInode"] = self.nextInode
         var ns = []
         int total = self.nodes.length
         int i = 0
@@ -895,7 +890,7 @@ class VFS
             ns.push(nd)
             i = i + 1
         end
-        out["nodes"] = ns
+        outputValue["nodes"] = ns
         var mrs = []
         int mn = self.mountRoots.length
         int mi = 0
@@ -903,8 +898,8 @@ class VFS
             mrs.push(self.mountRoots[mi])
             mi = mi + 1
         end
-        out["mountRoots"] = mrs
-        return json.stringify(out)
+        outputValue["mountRoots"] = mrs
+        return json.stringify(outputValue)
     end
 
     func deserialize(string text) as bool

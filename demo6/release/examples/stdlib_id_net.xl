@@ -1,43 +1,51 @@
+func require(string name, bool condition)
+    if not condition then
+        println("FAILED: " + name)
+        assert false
+    end
+end
+
 string requestId = id.xid()
 
-assert string.len(requestId) == 32, "xid length mismatch"
+require("xid_length", string.len(requestId) == 32)
 
 Xid original = id.make()
 string encoded = id.encode(original)
 Xid decoded = id.decode(encoded)
-assert original.valid and decoded.valid, "xid object should be valid"
-assert original == decoded, "xid object roundtrip mismatch"
-assert id.compare(original, decoded), "id.compare should use XID value equality"
-assert not id.decode("invalid").valid, "invalid xid should be rejected"
+require("xid_valid", original.valid and decoded.valid)
+require("xid_roundtrip", original == decoded)
+require("xid_compare", id.compare(original, decoded))
+require("xid_invalid", not id.decode("invalid").valid)
 
 string localIP = net.localIP()
 string localMAC = net.localMAC()
 string localName = net.localName()
 
-assert string.len(localIP) >= 0, "localIP should return a string"
-assert string.len(localMAC) >= 0, "localMAC should return a string"
-assert string.len(localName) >= 0, "localName should return a string"
+require("local_ip", string.len(localIP) >= 0)
+require("local_mac", string.len(localMAC) >= 0)
+require("local_name", string.len(localName) >= 0)
 
 NetAddress resolved = net.resolve("localhost", 80)
-assert resolved.port == 80 and resolved.text() != ""
+require("resolve", resolved.port == 80 and resolved.text() != "")
 
 NetProxy noProxy = net.proxy(net.proxyNone, "127.0.0.1", 0)
 NetProxy socksProxy = net.proxy(net.proxySocks5, "127.0.0.1", 1080)
 NetProxy httpProxy = net.proxy(net.proxyHttpConnect, "127.0.0.1", 8080)
-assert noProxy.type == net.proxyNone
-assert socksProxy.type == net.proxySocks5
-assert httpProxy.type == net.proxyHttpConnect
+require("proxy_none", noProxy.type == net.proxyNone)
+require("proxy_socks", socksProxy.type == net.proxySocks5)
+require("proxy_http", httpProxy.type == net.proxyHttpConnect)
 
 TcpConnectConfig connectConfig = tcp.connectConfig("127.0.0.1", 65535)
-assert connectConfig.flags(tcp.connectNoDelay + tcp.connectKeepAlive)
+require("connect_flags", connectConfig.flags(tcp.connectNoDelay + tcp.connectKeepAlive))
 TcpListenConfig listenConfig = tcp.listenConfig(0, "127.0.0.1")
-assert listenConfig.flags(tcp.listenReuseAddr + tcp.listenReusePort + tcp.listenNoDelay + tcp.listenKeepAlive)
+require("listen_flags", listenConfig.flags(tcp.listenReuseAddr + tcp.listenReusePort + tcp.listenNoDelay + tcp.listenKeepAlive))
 UdpConfig udpConfig = udp.config(0, "127.0.0.1")
-assert udpConfig.flags(udp.reuseAddr + udp.reusePort)
+require("udp_flags", udpConfig.flags(udp.reuseAddr + udp.reusePort))
 
-assert net.closeAbort + net.closeGraceful + net.closeWaitPeer == 7
-NetEngine engine = net.engine(1, net.engineAutoWorkers)
-assert engine.start()
+require("close_flags", net.closeAbort + net.closeGraceful + net.closeWaitPeer == 7)
+require("engine_auto_workers", net.engineAutoWorkers == 1)
+NetEngine engine = net.engine(1, 0)
+require("engine_start", engine.start())
 engine.stop()
 
 println("id_net=ok")

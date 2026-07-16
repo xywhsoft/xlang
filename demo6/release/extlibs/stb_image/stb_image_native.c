@@ -126,6 +126,7 @@ XSTBI_EXPORT int xstbi_is_hdr(const char* path)
 
 XSTBI_EXPORT const char* xstbi_info_json(const char* path)
 {
+	char* json;
 	int width = 0;
 	int height = 0;
 	int channels = 0;
@@ -139,9 +140,10 @@ XSTBI_EXPORT const char* xstbi_info_json(const char* path)
 		xstbi_set_error(stbi_failure_reason());
 		return "{\"ok\":false,\"width\":0,\"height\":0,\"channels\":0}";
 	}
-	snprintf(g_xstbi_json, sizeof(g_xstbi_json), "{\"ok\":true,\"width\":%d,\"height\":%d,\"channels\":%d}", width, height, channels);
+	json = g_xstbi_json[g_xstbi_json_index++ % XSTBI_JSON_SLOTS];
+	snprintf(json, sizeof(g_xstbi_json[0]), "{\"ok\":true,\"width\":%d,\"height\":%d,\"channels\":%d}", width, height, channels);
 	xstbi_set_error("");
-	return g_xstbi_json;
+	return json;
 }
 
 XSTBI_EXPORT int xstbi_image_valid(void* handle)

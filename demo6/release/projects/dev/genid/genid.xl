@@ -40,8 +40,13 @@ func currentMs() as int64
 end
 
 // 生成一个 UUID v4 字符串（8-4-4-4-12）。
+func randomHex8() as string
+    // u32 同时可拓宽到多个整数重载，显式选择无符号 64 位格式化入口。
+    return int.format(uint64(random.u32()), "x8")
+end
+
 func genUuid() as string
-    string all = string.formatInt(random.u32(), "x8") + string.formatInt(random.u32(), "x8") + string.formatInt(random.u32(), "x8") + string.formatInt(random.u32(), "x8")
+    string all = randomHex8() + randomHex8() + randomHex8() + randomHex8()
     string p1 = string.left(all, 8)
     string p2 = string.mid(all, 8, 4)
     string p3 = "4" + string.mid(all, 13, 3)

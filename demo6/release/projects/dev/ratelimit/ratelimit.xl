@@ -35,7 +35,7 @@
 // ============================== shared state ===============================
 
 mutex g_mu = mutex()        // guards all RateLimiter state
-RateLimiter g_rl            // the single shared limiter (configured per command)
+RateLimiter g_rl = RateLimiter()  // the single shared limiter (configured per command)
 
 // test bookkeeping
 int g_pass = 0
@@ -115,8 +115,8 @@ class RateLimiter
         end
         clients.append(id)
         cTokens.append(float(capacity))
-        cLast.append(0)
-        cLevel.append(0)
+        cLast.append(0.0)
+        cLevel.append(0.0)
         cWinCount.append(0)
         int s = 0
         while s < capacity do

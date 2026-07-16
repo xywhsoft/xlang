@@ -31,7 +31,7 @@
 //   * Byte-order handling: DNS is network byte order (big-endian); xlang int
 //     is used with explicit shifts and masks.
 //
-// Design constraints honored (see dev/README.md + dev/BUGS.md):
+// Design constraints:
 //   * portscan BUG: `point is null` is always false; we compare against a
 //     default-initialized `point ZERO` to detect failed recv.
 //   * int(): defensive parsing of arg strings.

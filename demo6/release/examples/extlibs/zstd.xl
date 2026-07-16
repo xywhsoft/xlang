@@ -17,12 +17,19 @@ file.delete(outPath)
 assert string.len(zstd.version()) > 0, "zstd version missing"
 string packedHex = zstd.compress_hex(sample)
 string packedLevelHex = zstd.compress_hex_level(sample, 1)
+string packedAliasHex = zstd.compress(sample)
+string packedLevelAliasHex = zstd.compress(sample, 1)
 assert string.len(packedHex) > 0, "zstd compress_hex failed"
 assert string.len(packedLevelHex) > 0, "zstd compress_hex_level failed"
+assert string.len(packedAliasHex) > 0, "zstd compress alias failed"
+assert string.len(packedLevelAliasHex) > 0, "zstd compress level alias failed"
 assert zstd.decompress_hex(packedHex) == sample, "zstd decompress_hex mismatch"
 assert zstd.decompress_hex(packedLevelHex) == sample, "zstd decompress_hex_level mismatch"
+assert zstd.decompress(packedAliasHex) == sample, "zstd decompress alias mismatch"
+assert zstd.decompress(packedLevelAliasHex) == sample, "zstd decompress level alias mismatch"
 assert zstd.compress_file(srcPath, packedPath) != 0, "zstd compress_file failed"
 assert zstd.compress_file_level(srcPath, packedLevelPath, 1) != 0, "zstd compress_file_level failed"
+assert zstd.compress_file(srcPath, packedLevelPath, 1) != 0, "zstd compress_file level alias failed"
 assert zstd.decompress_file(packedLevelPath, outPath) != 0, "zstd decompress_file failed"
 assert file.readText(outPath) == sample, "zstd file round trip mismatch"
 assert string.len(zstd.last_error()) >= 0, "zstd last_error should return a string"

@@ -15,14 +15,63 @@
 //   - 同一行内迭代找全部匹配 (用 compiled.match(line, charPos) 推进 .end)
 //
 // 实现要点:
-//   - Regex 是 native-backed 不可复制类型, 不能按值传给函数, 故匹配逻辑内联在 main.
+//   - Regex / RegexMatch 是受管理的 native-backed class，可作为参数和返回值复用。
 //   - 收集每行匹配用 while + re.match(line, charPos); 空匹配 (start==end) 跳过并推进一位,
 //     否则会死循环.
 //   - re.match 的 startPos 形参是字符偏移, 故全程用 mm.end 推进.
-//   - -i 传 regex.ignoreCase; 注意交替组折叠后重复会触发引擎断言崩溃 (BUG-28, 不可 catch).
+//   - -i 传 regex.ignoreCase。
 //   - 读文件包 try/catch, 失败给出错误信息.
 
+// 返回指定位置之后的第一个非空匹配；到达文本末尾时可能返回空匹配，
+// 调用方将它视为终止标记。这样既保留引擎原始结果，也保证游标始终前进。
+func nextNonEmptyMatch(Regex re, string line, int charPos) as RegexMatch
+    int lineLen = string.len(line)
+    int pos = charPos
+    while pos <= lineLen do
+        RegexMatch match = re.match(line, pos)
+        if not match.ok or match.start != match.end then
+            return match
+        end
+        if match.end >= lineLen then
+            return match
+        end
+        pos = match.end + 1
+    end
+    return re.match(line, lineLen + 1)
+end
+
+func countLineMatches(Regex re, string line) as int
+    int count = 0
+    int charPos = 0
+    while charPos <= string.len(line) do
+        RegexMatch match = nextNonEmptyMatch(re, line, charPos)
+        if not match.ok or match.start == match.end then break end
+        count += 1
+        charPos = match.end
+    end
+    return count
+end
+
+func runSelfTest() as int
+    Regex words = regex.compile("a+", 0)
+    if countLineMatches(words, "aa b aaa") != 2 then
+        println("rxgrep self-test: expected two matches")
+        return 1
+    end
+    Regex empty = regex.compile("a*", 0)
+    if countLineMatches(empty, "bbb") != 0 then
+        println("rxgrep self-test: empty matches must be skipped")
+        return 1
+    end
+    println("rxgrep self-test: ok")
+    return 0
+end
+
 func main(...) as int
+    if arg.length >= 2 and string(arg[1]) == "test" then
+        return runSelfTest()
+    end
+
     string pattern = ""
     string target = ""
     bool hasPattern = false
@@ -113,23 +162,16 @@ func main(...) as int
         int lineNo = li + 1
         li += 1
 
-        // ===== 核心: 同一行内用 compiled.match(line, charPos) 迭代找全部匹配 =====
-        // Regex 不可按值传参, 这段逻辑必须内联.
+        // ===== 核心: 同一行内迭代查找全部非空匹配 =====
         int charPos = 0
         int lineMatchCount = 0
         int lineLen = string.len(line)
         bool headerPrinted = false
 
         while charPos <= lineLen do
-            RegexMatch mm = re.match(line, charPos)
-            if not mm.ok then
+            RegexMatch mm = nextNonEmptyMatch(re, line, charPos)
+            if not mm.ok or mm.start == mm.end then
                 break
-            end
-
-            // 空匹配 (start==end): 跳过并推进一位, 防止死循环.
-            if mm.start == mm.end then
-                charPos = mm.end + 1
-                continue
             end
 
             lineMatchCount += 1

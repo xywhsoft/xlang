@@ -105,7 +105,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_future_catch_signature.xl > build\test\sem_future_catch_signature.err.txt 2>&1
 if not errorlevel 1 exit /b 1
-findstr /C:"future.catch named callback must match func(string) as T" build\test\sem_future_catch_signature.err.txt >nul
+findstr /C:"future.catch named callback must match func(error) as T" build\test\sem_future_catch_signature.err.txt >nul
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_future_finally_param.xl > build\test\sem_future_finally_param.err.txt 2>&1

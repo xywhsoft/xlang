@@ -63,11 +63,11 @@ end
 // Map 阶段上下文：mapper 通过 ctx.emit 把 (key,value) 写入本地缓冲。
 // 每个 map task 创建独立 ctx，单 worker 单线程写入，无竞争。
 class MapContext
-    array<KV> out = array[]
+    array<KV> outputValue = array[]
 
     func emit(string k, string v)
         KV p = makeKV(k, v)
-        self.out.append(p)
+        self.outputValue.append(p)
     end
 
     func emitInt(string k, int v)
@@ -75,17 +75,17 @@ class MapContext
     end
 
     func size() as int
-        return self.out.length
+        return self.outputValue.length
     end
 end
 
 // Reduce 阶段上下文：reducer 通过 ctx.emit 写最终结果。
 class ReduceContext
-    array<KV> out = array[]
+    array<KV> outputValue = array[]
 
     func emit(string k, string v)
         KV p = makeKV(k, v)
-        self.out.append(p)
+        self.outputValue.append(p)
     end
 
     func emitInt(string k, int v)
@@ -93,7 +93,7 @@ class ReduceContext
     end
 
     func size() as int
-        return self.out.length
+        return self.outputValue.length
     end
 end
 
@@ -225,10 +225,10 @@ func splitWords(string line, bool lower) as array<string>
         bool digit = (b >= 48 and b <= 57)
         bool under = (b == 95)
         if letter or digit or under then
-            string ch = string.formatInt(b, "c")
+            string ch = int.format(b, "c")
             if lower and (b >= 65 and b <= 90) then
                 // A-Z -> a-z
-                ch = string.formatInt(b + 32, "c")
+                ch = int.format(b + 32, "c")
             end
             cur = cur + ch
         else
@@ -407,48 +407,48 @@ end
 // =============================================================================
 
 // 按 g_job.kind 分派到具体 mapper。mapper 对 (source, line) 调用 ctx.emit。
-func dispatchMap(string kind, string source, string line, array<KV> out) as bool
+func dispatchMap(string kind, string source, string line, array<KV> outputValue) as bool
     if kind == "wordcount" then
-        wcMap(source, line, out)
+        wcMap(source, line, outputValue)
         return true
     elseif kind == "inverted-index" then
-        iiMap(source, line, out)
+        iiMap(source, line, outputValue)
         return true
     elseif kind == "sort" then
-        sortMap(source, line, out)
+        sortMap(source, line, outputValue)
         return true
     elseif kind == "dedup" then
-        dedupMap(source, line, out)
+        dedupMap(source, line, outputValue)
         return true
     end
     return false
 end
 
 // 按 kind 分派到 combiner；返回 false 表示该 kind 无 combiner（跳过）。
-func dispatchCombine(string kind, string key, array<string> values, array<KV> out) as bool
+func dispatchCombine(string kind, string key, array<string> values, array<KV> outputValue) as bool
     if kind == "wordcount" then
-        wcCombine(key, values, out)
+        wcCombine(key, values, outputValue)
         return true
     elseif kind == "dedup" then
-        dedupCombine(key, values, out)
+        dedupCombine(key, values, outputValue)
         return true
     end
     return false
 end
 
 // 按 kind 分派到 reducer。
-func dispatchReduce(string kind, string key, array<string> values, array<KV> out) as bool
+func dispatchReduce(string kind, string key, array<string> values, array<KV> outputValue) as bool
     if kind == "wordcount" then
-        wcReduce(key, values, out)
+        wcReduce(key, values, outputValue)
         return true
     elseif kind == "inverted-index" then
-        iiReduce(key, values, out)
+        iiReduce(key, values, outputValue)
         return true
     elseif kind == "sort" then
-        sortReduce(key, values, out)
+        sortReduce(key, values, outputValue)
         return true
     elseif kind == "dedup" then
-        dedupReduce(key, values, out)
+        dedupReduce(key, values, outputValue)
         return true
     end
     return false
@@ -789,21 +789,21 @@ end
 
 // 把单个分区的 reduce 输出 KV 列表格式化成多行文本（每行一条）。
 // 不同 kind 可有不同格式（见下方 sortReduce 的降序处理）。
-func formatReduceOutput(string kind, array<KV> out) as string
+func formatReduceOutput(string kind, array<KV> outputValue) as string
     string text = ""
-    int n = out.length
+    int n = outputValue.length
     int i = 0
     while i < n do
         if kind == "wordcount" then
-            text = text + out[i].key + "\t" + out[i].value + "\n"
+            text = text + outputValue[i].key + "\t" + outputValue[i].value + "\n"
         elseif kind == "inverted-index" then
-            text = text + out[i].key + "\t" + out[i].value + "\n"
+            text = text + outputValue[i].key + "\t" + outputValue[i].value + "\n"
         elseif kind == "sort" then
-            text = text + out[i].key + "\n"
+            text = text + outputValue[i].key + "\n"
         elseif kind == "dedup" then
-            text = text + out[i].key + "\n"
+            text = text + outputValue[i].key + "\n"
         else
-            text = text + out[i].key + "\t" + out[i].value + "\n"
+            text = text + outputValue[i].key + "\t" + outputValue[i].value + "\n"
         end
         i += 1
     end
@@ -1123,13 +1123,13 @@ end
 // =============================================================================
 
 // map: line -> 对每个词 emit(word, "1")。大小写不敏感（统一小写）。
-func wcMap(string source, string line, array<KV> out)
+func wcMap(string source, string line, array<KV> outputValue)
     array<string> words = splitWords(line, true)
     int i = 0
     int n = words.length
     while i < n do
         if string.len(words[i]) > 0 then
-            out.append(makeKV(words[i], "1"))
+            outputValue.append(makeKV(words[i], "1"))
         end
         i += 1
     end
@@ -1137,7 +1137,7 @@ end
 
 // combiner: 本地把 word 的若干 "1" 求和 emit(word, partialSum)。
 // 必须与 reducer 同态（输入输出都是 (word, 数值串)），才能安全替换。
-func wcCombine(string key, array<string> values, array<KV> out)
+func wcCombine(string key, array<string> values, array<KV> outputValue)
     int sum = 0
     int i = 0
     int n = values.length
@@ -1145,11 +1145,11 @@ func wcCombine(string key, array<string> values, array<KV> out)
         sum += int(values[i])
         i += 1
     end
-    out.append(makeKV(key, string(sum)))
+    outputValue.append(makeKV(key, string(sum)))
 end
 
 // reduce: word -> sum(values) emit(word, total)。
-func wcReduce(string key, array<string> values, array<KV> out)
+func wcReduce(string key, array<string> values, array<KV> outputValue)
     int sum = 0
     int i = 0
     int n = values.length
@@ -1157,7 +1157,7 @@ func wcReduce(string key, array<string> values, array<KV> out)
         sum += int(values[i])
         i += 1
     end
-    out.append(makeKV(key, string(sum)))
+    outputValue.append(makeKV(key, string(sum)))
 end
 
 // 把 wordcount 原始输出按 count 降序重排（保持同 count 按字典序）。
@@ -1182,14 +1182,14 @@ func sortWordCountOutput(string text) as string
     end
     // 按 count 数值降序（key 存的是 count）。
     sortNumericKV(rows, false)
-    string out = ""
+    string outputValue = ""
     int j = 0
     int rn = rows.length
     while j < rn do
-        out = out + rows[j].value + "\t" + rows[j].key + "\n"
+        outputValue = outputValue + rows[j].value + "\t" + rows[j].key + "\n"
         j += 1
     end
-    return out
+    return outputValue
 end
 
 // =============================================================================
@@ -1198,21 +1198,21 @@ end
 
 // map: (file, line) -> 对每个词 emit(word, filename)。
 // filename 用 path 的 basename（去掉目录），便于阅读。
-func iiMap(string source, string line, array<KV> out)
+func iiMap(string source, string line, array<KV> outputValue)
     string name = path.nameExt(source)
     array<string> words = splitWords(line, true)
     int i = 0
     int n = words.length
     while i < n do
         if string.len(words[i]) > 0 then
-            out.append(makeKV(words[i], name))
+            outputValue.append(makeKV(words[i], name))
         end
         i += 1
     end
 end
 
 // reduce: word -> 出现在哪些文件（去重 + 排序） emit(word, "f1,f2,...")。
-func iiReduce(string key, array<string> values, array<KV> out)
+func iiReduce(string key, array<string> values, array<KV> outputValue)
     // 去重（保留首次出现顺序）。
     array<string> files = array[]
     int i = 0
@@ -1235,7 +1235,7 @@ func iiReduce(string key, array<string> values, array<KV> out)
         joined = joined + files[j]
         j += 1
     end
-    out.append(makeKV(key, joined))
+    outputValue.append(makeKV(key, joined))
 end
 
 // 字符串数组原地升序排序（选择排序）。
@@ -1266,16 +1266,16 @@ end
 
 // map: line -> emit(line, "")（key 是要排序的内容，trim 后非空才发）。
 // sort 使用 R=1（单分区）保证全局有序；多分区时 collectSortOutput 会再归并。
-func sortMap(string source, string line, array<KV> out)
+func sortMap(string source, string line, array<KV> outputValue)
     string s = string.trim(line)
     if string.len(s) > 0 then
-        out.append(makeKV(s, ""))
+        outputValue.append(makeKV(s, ""))
     end
 end
 
 // reduce: 顺序输出即可（shuffle 已排序）。
-func sortReduce(string key, array<string> values, array<KV> out)
-    out.append(makeKV(key, ""))
+func sortReduce(string key, array<string> values, array<KV> outputValue)
+    outputValue.append(makeKV(key, ""))
 end
 
 // =============================================================================
@@ -1283,21 +1283,21 @@ end
 // =============================================================================
 
 // map: line -> emit(line, "")。
-func dedupMap(string source, string line, array<KV> out)
+func dedupMap(string source, string line, array<KV> outputValue)
     string s = string.trim(line)
     if string.len(s) > 0 then
-        out.append(makeKV(s, ""))
+        outputValue.append(makeKV(s, ""))
     end
 end
 
 // combiner: 本地把同 key 折叠成一条。
-func dedupCombine(string key, array<string> values, array<KV> out)
-    out.append(makeKV(key, ""))
+func dedupCombine(string key, array<string> values, array<KV> outputValue)
+    outputValue.append(makeKV(key, ""))
 end
 
 // reduce: 同 key 只输出一条。
-func dedupReduce(string key, array<string> values, array<KV> out)
-    out.append(makeKV(key, ""))
+func dedupReduce(string key, array<string> values, array<KV> outputValue)
+    outputValue.append(makeKV(key, ""))
 end
 
 // =============================================================================

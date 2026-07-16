@@ -1,0 +1,13 @@
+import netrc
+
+
+
+func main(...) as int
+    string source = "machine api.example.com login agent password token-123\ndefault login guest password guest\n"
+    auto credentials = netrc.parse(source)
+    var auth = credentials.authenticators("api.example.com")
+    println(auth["login"] + "@api.example.com")
+    println(credentials.stringify())
+    println("netrc example: PASS")
+    return 0
+end

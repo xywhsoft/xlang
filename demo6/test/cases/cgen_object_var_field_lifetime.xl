@@ -1,0 +1,55 @@
+class Actor extends object
+    derive value
+
+    int id = 0
+    string name = ""
+
+    create(int id, string name)
+        self.id = id
+        self.name = name
+    end
+end
+
+Actor actor = Actor(7, "hero")
+actor.score = 42
+actor["level"] = 3
+println("object-var: initialized")
+
+var boxed = actor
+assert int(boxed.id) == 7, "boxed class static int field"
+println("object-var: static int")
+assert string(boxed.name) == "hero", "boxed class static string field"
+println("object-var: static string")
+assert int(boxed["id"]) == 7, "boxed class static index field"
+println("object-var: static index")
+assert int(boxed.score) == 42, "boxed class dynamic dot field"
+println("object-var: dynamic dot")
+assert int(boxed["level"]) == 3, "boxed class dynamic index field"
+println("object-var: dynamic index")
+
+boxed.boost = 9
+boxed["rank"] = 11
+boxed.items = [1, 2, 3]
+boxed.meta = {"name": "xlang", "version": 6}
+assert int(boxed.boost) == 9, "boxed class dynamic dot write"
+println("object-var: dynamic dot write")
+assert int(boxed["rank"]) == 11, "boxed class dynamic index write"
+println("object-var: dynamic index write")
+
+var items = boxed.items
+assert int(items[0]) == 1, "boxed dynamic array first item"
+assert int(items[2]) == 3, "boxed dynamic array last item"
+var meta = boxed.meta
+assert string(meta["name"]) == "xlang", "boxed dynamic dict text item"
+assert int(meta["version"]) == 6, "boxed dynamic dict integer item"
+println("object-var: dynamic containers")
+
+assert int(actor.boost) == 9, "boxed class preserves object identity"
+println("object-var: done")
+
+string text = json.stringify(actor)
+Actor restored = json.parse::<Actor>(text)
+assert restored.id == 7, "object JSON restores static field"
+assert int(restored.score) == 42, "object JSON restores dynamic field"
+assert int(restored.boost) == 9, "object JSON restores boxed write"
+println("object-var: json done")

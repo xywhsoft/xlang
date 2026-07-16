@@ -26,7 +26,7 @@ static void xlcShellPrintHelp(void)
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl cgen <file.xl> [--emit output.c] [--emit-header output.h] [--dump-dir dir]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl abi <file.xl> [--json] [--emit output.abi.txt]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl|file.c|file.xlp> [helper.c ...] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll] [-- <args>...]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o <output.exe|dll>] [-shared] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o <output.exe|dll>] [-shared] [--res file.json|file.xson] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl impdef <file.dll> -o <output.def>\n");
 }
 
@@ -392,6 +392,12 @@ static int xlcShellIsProjectPath(const char* path)
     return xlcShellHasExtensionNoCase(path, ".xlp");
 }
 
+static int xlcShellIsResourceConfigPath(const char* path)
+{
+    return xlcShellHasExtensionNoCase(path, ".json") ||
+           xlcShellHasExtensionNoCase(path, ".xson");
+}
+
 typedef struct XLC_ShellJson {
     const char* text;
     size_t len;
@@ -409,6 +415,7 @@ typedef struct XLC_ShellProject {
     char* entry;
     char dir[512];
     XLC_ShellStringList cSources;
+    XLC_ShellStringList resources;
 } XLC_ShellProject;
 
 static char* xlcShellDupText(const char* text)
@@ -468,6 +475,7 @@ static void xlcShellProjectInit(XLC_ShellProject* project)
     if ( project != NULL ) {
         memset(project, 0, sizeof(*project));
         xlcShellStringListInit(&project->cSources);
+        xlcShellStringListInit(&project->resources);
     }
 }
 
@@ -480,6 +488,7 @@ static void xlcShellProjectFree(XLC_ShellProject* project)
     xrtFree(project->kind);
     xrtFree(project->entry);
     xlcShellStringListFree(&project->cSources);
+    xlcShellStringListFree(&project->resources);
     memset(project, 0, sizeof(*project));
 }
 
@@ -735,6 +744,11 @@ static int xlcShellProjectParseRoot(XLC_ShellJson* json, XLC_ShellProject* proje
                 xrtFree(key);
                 return 0;
             }
+        } else if ( strcmp(key, "resources") == 0 ) {
+            if ( !xlcShellJsonReadStringArray(json, &project->resources) ) {
+                xrtFree(key);
+                return 0;
+            }
         } else if ( !xlcShellJsonSkipValue(json) ) {
             xrtFree(key);
             return 0;
@@ -781,6 +795,12 @@ static int xlcShellProjectValidate(const char* path, const XLC_ShellProject* pro
     for ( i = 0; i < project->cSources.count; ++i ) {
         if ( !xlcShellIsCSourcePath(project->cSources.items[i]) ) {
             xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp cSources only accepts C source files: %s\n", project->cSources.items[i]);
+            return 0;
+        }
+    }
+    for ( i = 0; i < project->resources.count; ++i ) {
+        if ( !xlcShellIsResourceConfigPath(project->resources.items[i]) ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp resources only accepts json/xson resource configs: %s\n", project->resources.items[i]);
             return 0;
         }
     }
@@ -864,7 +884,8 @@ static int xlcShellProjectLoad(const char* path, XLC_ShellProject* project)
 
 static int xlcShellOptionTakesValue(const char* arg);
 
-#define XLC_SHELL_MAX_C_INPUTS 64
+/* 与 DLL 编译 API 保持一致，允许直接编译官方库的完整源文件清单。 */
+#define XLC_SHELL_MAX_C_INPUTS 256
 
 static int xlcShellCollectCInputs(int argc, char** argv, const char** inputs, int maxInputs, int* outCount)
 {
@@ -987,6 +1008,7 @@ static int xlcShellOptionTakesValue(const char* arg)
            xlcShellTextEquals(arg, "--inc-path") ||
            xlcShellTextEquals(arg, "--lib-path") ||
            xlcShellTextEquals(arg, "--link") ||
+           xlcShellTextEquals(arg, "--res") ||
            xlcShellTextEquals(arg, "--loadlib") ||
            xlcShellTextEquals(arg, "--break") ||
            xlcShellTextEquals(arg, "--commands") ||
@@ -1023,6 +1045,10 @@ static int xlcShellApplyContextOptions(XLC_Context* ctx, int argc, char** argv)
                 continue;
             }
             if ( !xlcAddLinkLibrary(ctx, argv[i]) ) {
+                return 0;
+            }
+        } else if ( i + 1 < argc && xlcShellTextEquals(argv[i], "--res") ) {
+            if ( !xlcAddResourceFile(ctx, argv[++i]) ) {
                 return 0;
             }
         } else if ( i + 1 < argc && xlcShellTextEquals(argv[i], "--loadlib") ) {
@@ -1130,6 +1156,18 @@ static int xlcShellAddProject(XLC_Context* ctx, const char* file)
             break;
         }
         if ( !xlcAddCSourceFile(ctx, path) ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "%s\n", xlcGetLastError(ctx));
+            ok = 0;
+            break;
+        }
+    }
+    for ( i = 0; ok && i < project.resources.count; ++i ) {
+        if ( !xlcShellProjectResolvePath(path, sizeof(path), &project, project.resources.items[i]) ) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp resources path is too long: %s\n", project.resources.items[i]);
+            ok = 0;
+            break;
+        }
+        if ( !xlcAddResourceFile(ctx, path) ) {
             xl6ConsolePrintf(XL6_CONSOLE_STDERR, "%s\n", xlcGetLastError(ctx));
             ok = 0;
             break;

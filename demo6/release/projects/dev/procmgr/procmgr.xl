@@ -32,15 +32,15 @@
 
 // ============================== 状态常量 ===================================
 
-int STATUS_PENDING   = 0   // 已注册尚未启动
-int STATUS_RUNNING   = 1   // 进程运行中
-int STATUS_RESTARTING = 2  // 退出后等待退避重启
-int STATUS_STOPPED   = 3   // 干净退出且不再重启（终态）
-int STATUS_CRASHED   = 4   // 失败退出且不再重启（终态）
+int PROCESS_STATUS_PENDING = 0     // 已注册尚未启动
+int PROCESS_STATUS_RUNNING = 1     // 进程运行中
+int PROCESS_STATUS_RESTARTING = 2  // 退出后等待退避重启
+int PROCESS_STATUS_STOPPED = 3     // 干净退出且不再重启（终态）
+int PROCESS_STATUS_CRASHED = 4     // 失败退出且不再重启（终态）
 
-string POLICY_ALWAYS     = "always"
-string POLICY_ON_FAILURE = "on-failure"
-string POLICY_NEVER      = "never"
+string RESTART_ALWAYS = "always"
+string RESTART_ON_FAILURE = "on-failure"
+string RESTART_NEVER = "never"
 
 
 // ============================== 全局注册表 =================================
@@ -72,11 +72,11 @@ int    g_backoffCap  = 30000  // 指数退避上限（毫秒）
 // ============================== 工具函数 ===================================
 
 func pmStatusName(int s) as string
-    if s == STATUS_PENDING    then return "pending"    end
-    if s == STATUS_RUNNING    then return "running"    end
-    if s == STATUS_RESTARTING then return "restarting" end
-    if s == STATUS_STOPPED    then return "stopped"    end
-    if s == STATUS_CRASHED    then return "crashed"    end
+    if s == PROCESS_STATUS_PENDING then return "pending" end
+    if s == PROCESS_STATUS_RUNNING then return "running" end
+    if s == PROCESS_STATUS_RESTARTING then return "restarting" end
+    if s == PROCESS_STATUS_STOPPED then return "stopped" end
+    if s == PROCESS_STATUS_CRASHED then return "crashed" end
     return "unknown"
 end
 
@@ -158,7 +158,7 @@ func registerProc(string name, string command, string policy, int maxRetries, st
     g_pMaxRetries.push(maxRetries)
     g_pHealthCheck.push(healthCheck)
     g_pHealthInterval.push(healthInterval)
-    g_pStatus.push(STATUS_PENDING)
+    g_pStatus.push(PROCESS_STATUS_PENDING)
     g_pRestarts.push(0)
     g_pExitCode.push(-1)
     g_pStartTime.push(0.0)
@@ -186,10 +186,10 @@ end
 // 规范化策略字面量：忽略大小写，未知值退化为 on-failure。
 func pmNormalizePolicy(string raw) as string
     string low = string.lower(string.trim(raw))
-    if low == "always" then return POLICY_ALWAYS end
-    if low == "never"  then return POLICY_NEVER  end
-    if low == "on-failure" then return POLICY_ON_FAILURE end
-    return POLICY_ON_FAILURE
+    if low == "always" then return RESTART_ALWAYS end
+    if low == "never" then return RESTART_NEVER end
+    if low == "on-failure" then return RESTART_ON_FAILURE end
+    return RESTART_ON_FAILURE
 end
 
 // 可选字符串字段，缺失 / null 时返回默认值。
@@ -246,7 +246,7 @@ func loadConfig(string cfgPath) as bool
             println("Error: process '" + name + "' missing 'command'")
             return false
         end
-        string policy = pmNormalizePolicy(optStr(spec, "restartPolicy", POLICY_ON_FAILURE))
+        string policy = pmNormalizePolicy(optStr(spec, "restartPolicy", RESTART_ON_FAILURE))
         int maxRetries = optInt(spec, "maxRetries", 3)
         string healthCheck = string.trim(optStr(spec, "healthCheck", ""))
         int healthInterval = optInt(spec, "healthInterval", 1000)
@@ -268,7 +268,7 @@ func runOnce(int idx) as int
     Process proc = process.start(cmd)
     g_lock.lock()
     g_pStartTime[idx] = time.timer()
-    g_pStatus[idx] = STATUS_RUNNING
+    g_pStatus[idx] = PROCESS_STATUS_RUNNING
     g_pExitCode[idx] = -1
     g_lock.unlock()
     pmLog(idx, "started: " + cmd)
@@ -338,9 +338,9 @@ func monitorBody(int idx) as int
         bool failed = (code != 0 or g_pHealthFail[idx] == 1)
 
         bool shouldRestart = false
-        if policy == POLICY_ALWAYS then
+    if policy == RESTART_ALWAYS then
             shouldRestart = true
-        elseif policy == POLICY_ON_FAILURE then
+    elseif policy == RESTART_ON_FAILURE then
             shouldRestart = failed
         else
             shouldRestart = false
@@ -354,9 +354,9 @@ func monitorBody(int idx) as int
         if not shouldRestart then
             g_lock.lock()
             if failed then
-                g_pStatus[idx] = STATUS_CRASHED
+        g_pStatus[idx] = PROCESS_STATUS_CRASHED
             else
-                g_pStatus[idx] = STATUS_STOPPED
+        g_pStatus[idx] = PROCESS_STATUS_STOPPED
             end
             g_lock.unlock()
             pmLog(idx, "terminal: " + pmStatusName(g_pStatus[idx]) + " restarts=" + string(g_pRestarts[idx]))
@@ -366,7 +366,7 @@ func monitorBody(int idx) as int
         g_lock.lock()
         g_pRestarts[idx] = g_pRestarts[idx] + 1
         int attempt = g_pRestarts[idx]
-        g_pStatus[idx] = STATUS_RESTARTING
+    g_pStatus[idx] = PROCESS_STATUS_RESTARTING
         g_lock.unlock()
 
         int backoff = pmExpBackoff(attempt)
@@ -401,7 +401,7 @@ func printStatus()
     while i < g_pCount do
         string nm = g_pName[i]
         float up = 0.0
-        if g_pStatus[i] == STATUS_RUNNING and g_pStartTime[i] > 0.0 then
+        if g_pStatus[i] == PROCESS_STATUS_RUNNING and g_pStartTime[i] > 0.0 then
             up = time.timer() - g_pStartTime[i]
         end
         println("  " + pmPad(nm, 16) +
@@ -510,7 +510,7 @@ func runTest() as int
     bool loaded = loadConfig(samplePath)
     pass, fail = pmCheck("loadConfig parses sample.json", loaded and g_pCount == 1, pass, fail)
     pass, fail = pmCheck("loadConfig read name=s1", g_pName[0] == "s1", pass, fail)
-    pass, fail = pmCheck("loadConfig normalized NEVER -> never", g_pPolicy[0] == POLICY_NEVER, pass, fail)
+    pass, fail = pmCheck("loadConfig normalized NEVER -> never", g_pPolicy[0] == RESTART_NEVER, pass, fail)
     pass, fail = pmCheck("loadConfig read maxRetries=7", g_pMaxRetries[0] == 7, pass, fail)
     pmResetRegistry()
 
@@ -523,12 +523,12 @@ func runTest() as int
     g_backoffBase = 20
     g_backoffCap  = 100
 
-    registerProc("clean",        "cmd /c echo clean-ok& exit /b 0",          POLICY_NEVER,      0, "",                       200)
-    registerProc("crash-never",  "cmd /c echo bye-now& exit /b 3",           POLICY_NEVER,      0, "",                       200)
-    registerProc("retry-giveup", "cmd /c exit /b 1",                         POLICY_ON_FAILURE, 2, "",                       200)
-    registerProc("always-cap",   "cmd /c exit /b 0",                         POLICY_ALWAYS,     2, "",                       200)
-    registerProc("health-ok",    "cmd /c ping -n 2 127.0.0.1 > nul",         POLICY_NEVER,      0, "cmd /c exit /b 0",       200)
-    registerProc("health-fail",  "cmd /c ping -n 10 127.0.0.1 > nul",        POLICY_ON_FAILURE, 1, "cmd /c exit /b 1",       100)
+    registerProc("clean",        "cmd /c echo clean-ok& exit /b 0",          RESTART_NEVER,      0, "",                       200)
+    registerProc("crash-never",  "cmd /c echo bye-now& exit /b 3",           RESTART_NEVER,      0, "",                       200)
+    registerProc("retry-giveup", "cmd /c exit /b 1",                         RESTART_ON_FAILURE, 2, "",                       200)
+    registerProc("always-cap",   "cmd /c exit /b 0",                         RESTART_ALWAYS,     2, "",                       200)
+    registerProc("health-ok",    "cmd /c ping -n 2 127.0.0.1 > nul",         RESTART_NEVER,      0, "cmd /c exit /b 0",       200)
+    registerProc("health-fail",  "cmd /c ping -n 10 127.0.0.1 > nul",        RESTART_ON_FAILURE, 1, "cmd /c exit /b 1",       100)
 
     println("[live] running " + string(g_pCount) + " monitor lifecycles sequentially (fast backoff)")
     int i = 0
@@ -541,14 +541,14 @@ func runTest() as int
     printStatus()
 
     println("[verify] outcomes")
-    pass, fail = pmCheck("clean -> stopped (exit 0, no restart)", g_pStatus[0] == STATUS_STOPPED and g_pExitCode[0] == 0 and g_pRestarts[0] == 0, pass, fail)
-    pass, fail = pmCheck("crash-never -> crashed (exit 3, no restart)", g_pStatus[1] == STATUS_CRASHED and g_pExitCode[1] == 3 and g_pRestarts[1] == 0, pass, fail)
-    pass, fail = pmCheck("retry-giveup -> crashed after retries", g_pStatus[2] == STATUS_CRASHED, pass, fail)
+    pass, fail = pmCheck("clean -> stopped (exit 0, no restart)", g_pStatus[0] == PROCESS_STATUS_STOPPED and g_pExitCode[0] == 0 and g_pRestarts[0] == 0, pass, fail)
+    pass, fail = pmCheck("crash-never -> crashed (exit 3, no restart)", g_pStatus[1] == PROCESS_STATUS_CRASHED and g_pExitCode[1] == 3 and g_pRestarts[1] == 0, pass, fail)
+    pass, fail = pmCheck("retry-giveup -> crashed after retries", g_pStatus[2] == PROCESS_STATUS_CRASHED, pass, fail)
     pass, fail = pmCheck("retry-giveup restarts capped at maxRetries=2", g_pRestarts[2] == 2, pass, fail)
-    pass, fail = pmCheck("always-cap -> stopped (restart even on success)", g_pStatus[3] == STATUS_STOPPED, pass, fail)
+    pass, fail = pmCheck("always-cap -> stopped (restart even on success)", g_pStatus[3] == PROCESS_STATUS_STOPPED, pass, fail)
     pass, fail = pmCheck("always-cap restarts capped at maxRetries=2", g_pRestarts[3] == 2, pass, fail)
-    pass, fail = pmCheck("health-ok -> stopped (health passed, exit 0)", g_pStatus[4] == STATUS_STOPPED and g_pExitCode[4] == 0, pass, fail)
-    pass, fail = pmCheck("health-fail -> crashed (health failed)", g_pStatus[5] == STATUS_CRASHED, pass, fail)
+    pass, fail = pmCheck("health-ok -> stopped (health passed, exit 0)", g_pStatus[4] == PROCESS_STATUS_STOPPED and g_pExitCode[4] == 0, pass, fail)
+    pass, fail = pmCheck("health-fail -> crashed (health failed)", g_pStatus[5] == PROCESS_STATUS_CRASHED, pass, fail)
     pass, fail = pmCheck("health-fail restarts == maxRetries=1", g_pRestarts[5] == 1, pass, fail)
 
     println("[verify] log collection")
@@ -591,10 +591,20 @@ func main(...) as int
     end
 
     string scriptPath = string(arg[0])
+    string cmd = string(arg[1])
+
+    if cmd == "test" then
+        // 自测日志写入独立临时目录，不污染项目内的运行日志。
+        g_logDir = path.join(path.temp(), path.random("procmgr_", ""))
+        dir.createAll(g_logDir)
+        int rc = runTest()
+        dir.clean(g_logDir)
+        dir.delete(g_logDir)
+        return rc
+    end
+
     g_logDir = path.join(path.dir(scriptPath), "logs")
     dir.createAll(g_logDir)
-
-    string cmd = string(arg[1])
 
     if cmd == "run" then
         if arg.length < 3 then
@@ -607,10 +617,6 @@ func main(...) as int
         if arg.length >= 4 then duration = int(arg[3]) end
         if duration < 0 then duration = 0 end
         return runWithConfig(cfgPath, duration)
-    end
-
-    if cmd == "test" then
-        return runTest()
     end
 
     println("Error: unknown command '" + cmd + "'")

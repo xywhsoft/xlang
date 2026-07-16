@@ -13,7 +13,7 @@
 //     and consumers are therefore spawned fire-and-forget and tracked through
 //     a global active-count polled under a mutex (main pre-seeds the counts
 //     before spawning, eliminating the startup race).
-//   - channel<T> only allows value types (int used here).
+//   - int is the natural payload for this bounded-queue demonstration.
 //   - Item ids are handed out from a single shared counter under g_lock, so the
 //     total produced always equals `items` regardless of producer count.
 

@@ -22,13 +22,13 @@ func test_approx_equal()
 end
 
 func test_assert_throws()
-    var boom = func() as int
+    func() as int boom = func() as int
         throw "kaboom"
         return 0
     end
     assertThrows(boom)
     // 直接抛断言失败 -> assertThrows 应捕获
-    var fail = func() as int
+    func() as int fail = func() as int
         assertEqual(1, 2, "intentional")
         return 0
     end

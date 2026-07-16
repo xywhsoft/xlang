@@ -321,11 +321,11 @@ func padL(string s, int w) as string
 end
 
 func fmtMs(float s) as string
-    return string.formatFloat(s * 1000.0, ".3")
+    return float.format(s * 1000.0, ".3")
 end
 
 func fmtSec(float s) as string
-    return string.formatFloat(s, ".3") + "s"
+    return float.format(s, ".3") + "s"
 end
 
 // ===== 定位 xl.exe =====
@@ -334,6 +334,7 @@ func findXl() as string
     array<string> cands = []
     cands.push(path.join(path.appDir(), "xl.exe"))
     cands.push(path.join(path.cwd(), "xl.exe"))
+    cands.push(path.join(path.cwd(), "release", "xl.exe"))
     if string.len(g_scriptPath) > 0 then
         string d0 = path.dir(g_scriptPath)
         cands.push(path.join(path.join(d0, "..", "..", ".."), "xl.exe"))
@@ -344,14 +345,13 @@ func findXl() as string
             return c
         end
     end
-    return ""
+    return "xl"
 end
 
 // ===== 通过 xl parse 取 AST =====
 
 func parseAst(string xl, string absFile) as var
-    string cmd = xl + " parse " + absFile + " --format json"
-    ProcessResult r = process.run(cmd, 60000)
+    ProcessResult r = process.runFile(xl, ["parse", absFile, "--format", "json"], 60000)
     if not r.success or string.len(string.trim(r.stdout)) == 0 then
         println("xprof: xl parse failed: " + string.trim(r.stderr))
         return null
@@ -404,10 +404,10 @@ func findFuncEnd(array<string> lines, int startLine1) as int
 end
 
 // 收集函数自身作用域内的 return 行（不进入嵌套函数体）。
-func collectReturns(var node, array<int> out)
+func collectReturns(var node, array<int> outputValue)
     string k = nk(node)
     if k == "return" then
-        out.push(nodeLine(node))
+        outputValue.push(nodeLine(node))
         return
     end
     // 嵌套函数（具名/匿名/构造/属性访问器）的 return 属于它们自己，不收。
@@ -416,7 +416,7 @@ func collectReturns(var node, array<int> out)
     end
     var ch = nch(node)
     for c in ch
-        collectReturns(c, out)
+        collectReturns(c, outputValue)
     end
 end
 
@@ -465,13 +465,13 @@ func makeFuncInfo(var node, string cls, array<string> lines) as FuncInfo
     return fi
 end
 
-func collectFuncs(var node, string cls, array<string> lines, array<FuncInfo> out)
+func collectFuncs(var node, string cls, array<string> lines, array<FuncInfo> outputValue)
     if node is null then return end
     string k = nk(node)
     if isFuncKind(k) then
         FuncInfo fi = makeFuncInfo(node, cls, lines)
         if fi.ok then
-            out.push(fi)
+            outputValue.push(fi)
         end
     end
     if k == "class" then
@@ -479,7 +479,7 @@ func collectFuncs(var node, string cls, array<string> lines, array<FuncInfo> out
     end
     var ch = nch(node)
     for c in ch
-        collectFuncs(c, cls, lines, out)
+        collectFuncs(c, cls, lines, outputValue)
     end
 end
 
@@ -544,32 +544,33 @@ func instrumentFile(string src, var root) as string
         end
     end
 
-    string out = XP_RUNTIME + "\n"
+    string outputValue = XP_RUNTIME + "\n"
     int i = 1
     while i <= lines.length do
         string key = string(i)
         if ins.contains(key) then
             var arr = ins[key]
             for tl in arr
-                out = out + string(tl) + "\n"
+                outputValue = outputValue + string(tl) + "\n"
             end
         end
-        out = out + lines[i - 1] + "\n"
+        outputValue = outputValue + lines[i - 1] + "\n"
         i += 1
     end
 
     // 无 main 的脚本：在文件末尾追加一次 dump
     if not hasMain then
-        out = out + "\n__xprof_dump()\n"
+        outputValue = outputValue + "\n__xprof_dump()\n"
     end
-    return out
+    return outputValue
 end
 
 // 给 test 用：把 src 写到临时文件，parse 后插桩
 func instrumentSource(string src, string tmpPath) as string
-    file.writeText(tmpPath, src)
+    if not file.writeText(tmpPath, src) then
+        return ""
+    end
     string xl = findXl()
-    if string.len(xl) == 0 then return "" end
     var root = parseAst(xl, path.abs(tmpPath))
     if root is null then return "" end
     return instrumentFile(src, root)
@@ -593,7 +594,7 @@ end
 // ===== analyze：热点表 + 调用图 =====
 
 func renderHotspots(var root) as string
-    string out = ""
+    string outputValue = ""
     array<HotRow> rows = []
     var funcs = root["functions"]
     int nfunc = 0
@@ -639,11 +640,11 @@ func renderHotspots(var root) as string
         end
     end
 
-    out = out + "=== xprof analyze ===\n"
-    out = out + "functions: " + string(nfunc) + "    wall time: " + fmtSec(wall) + "\n"
-    out = out + "\n"
-    out = out + "Hotspots (by self time):\n"
-    out = out + "  #  function                            calls    total(ms)   self(ms)   avg(us)\n"
+    outputValue = outputValue + "=== xprof analyze ===\n"
+    outputValue = outputValue + "functions: " + string(nfunc) + "    wall time: " + fmtSec(wall) + "\n"
+    outputValue = outputValue + "\n"
+    outputValue = outputValue + "Hotspots (by self time):\n"
+    outputValue = outputValue + "  #  function                            calls    total(ms)   self(ms)   avg(us)\n"
     int idx = 0
     for r in rows
         idx += 1
@@ -651,7 +652,7 @@ func renderHotspots(var root) as string
         if r.calls > 0 then
             avgUs = r.selft * 1000000.0 / float(r.calls)
         end
-        out = out + "  " + padL(string(idx), 2) + "  " + padR(r.name, 34) + padL(string(r.calls), 9) + padL(fmtMs(r.total), 12) + padL(fmtMs(r.selft), 11) + padL(string.formatFloat(avgUs, ".1"), 9) + "\n"
+        outputValue = outputValue + "  " + padL(string(idx), 2) + "  " + padR(r.name, 34) + padL(string(r.calls), 9) + padL(fmtMs(r.total), 12) + padL(fmtMs(r.selft), 11) + padL(float.format(avgUs, ".1"), 9) + "\n"
     end
 
     // 调用图：由采样栈重建 caller -> callee 边
@@ -706,16 +707,16 @@ func renderHotspots(var root) as string
         ea += 1
     end
 
-    out = out + "\n"
-    out = out + "Call graph (from " + string(nsamp) + " samples):\n"
-    out = out + "  caller                              -> callee                                 samples\n"
+    outputValue = outputValue + "\n"
+    outputValue = outputValue + "Call graph (from " + string(nsamp) + " samples):\n"
+    outputValue = outputValue + "  caller                              -> callee                                 samples\n"
     for e in eds
-        out = out + "  " + padR(e.caller, 34) + " -> " + padR(e.callee, 38) + padL(string(e.count), 7) + "\n"
+        outputValue = outputValue + "  " + padR(e.caller, 34) + " -> " + padR(e.callee, 38) + padL(string(e.count), 7) + "\n"
     end
     if eds.length == 0 then
-        out = out + "  (no edges; samples too few)\n"
+        outputValue = outputValue + "  (no edges; samples too few)\n"
     end
-    return out
+    return outputValue
 end
 
 // ===== flame：ASCII 火焰图 =====
@@ -769,16 +770,16 @@ func flameBox(string name, int w) as string
 end
 
 func renderFlame(var root) as string
-    string out = ""
+    string outputValue = ""
     var samps = root["samples"]
     int nsamp = 0
     if samps is array then nsamp = samps.length end
 
-    out = out + "=== xprof flame ===\n"
+    outputValue = outputValue + "=== xprof flame ===\n"
     if nsamp == 0 then
-        out = out + "no samples available (program too short or sampler disabled).\n"
-        out = out + "tip: timing/call-count data is still in the profile; flame needs stack samples.\n"
-        return out
+        outputValue = outputValue + "no samples available (program too short or sampler disabled).\n"
+        outputValue = outputValue + "tip: timing/call-count data is still in the profile; flame needs stack samples.\n"
+        return outputValue
     end
 
     // 聚合采样栈为火焰树：sample[0] = 最外层
@@ -823,8 +824,8 @@ func renderFlame(var root) as string
     flameLay(rows, treeRoot, 0)
 
     int totalCnt = int(treeRoot["count"])
-    out = out + "samples: " + string(nsamp) + "    depth levels: " + string(rows.length) + "\n"
-    out = out + "\n"
+    outputValue = outputValue + "samples: " + string(nsamp) + "    depth levels: " + string(rows.length) + "\n"
+    outputValue = outputValue + "\n"
     int W = 80
     int maxD = rows.length - 1
     if maxD > 25 then maxD = 25 end
@@ -839,12 +840,12 @@ func renderFlame(var root) as string
             line = line + flameBox(string(nd["name"]), w)
             ri += 1
         end
-        out = out + padL(string(d), 2) + " | " + line + "\n"
+        outputValue = outputValue + padL(string(d), 2) + " | " + line + "\n"
         d += 1
     end
-    out = out + "\n"
-    out = out + "box width ~ proportional to sample count; '.' / '[]' = too narrow to label.\n"
-    return out
+    outputValue = outputValue + "\n"
+    outputValue = outputValue + "box width ~ proportional to sample count; '.' / '[]' = too narrow to label.\n"
+    return outputValue
 end
 
 // ===== 命令实现 =====
@@ -862,13 +863,13 @@ func cmdInstrument(string inFile, string outFile) as int
     string src = file.readText(inFile)
     var root = parseAst(xl, path.abs(inFile))
     if root is null then return 1 end
-    string out = instrumentFile(src, root)
-    bool ok = file.writeText(outFile, out)
+    string outputValue = instrumentFile(src, root)
+    bool ok = file.writeText(outFile, outputValue)
     if not ok then
         println("xprof: failed to write " + outFile)
         return 1
     end
-    array<string> ol = splitLinesSafe(out)
+    array<string> ol = splitLinesSafe(outputValue)
     println("xprof: instrumented " + inFile + " -> " + outFile)
     println("  lines: " + string(ol.length) + "    instrumented functions: " + string(g_lastInstrumented))
     println("  run it: xl run " + outFile + "    (writes xprof_profile.json)")
@@ -902,10 +903,6 @@ func tcheck(bool ok, string label, string detail)
         if string.len(detail) > 0 then extra = "  " + detail end
         println("  [FAIL] " + label + extra)
     end
-end
-
-func tskip(string label)
-    println("  [SKIP] " + label)
 end
 
 func makeSampleProfile() as string
@@ -958,10 +955,10 @@ func cmdTest() as int
 
     // --- 2. 插桩（需要 xl.exe）---
     string sample = "func add(int a, int b) as int\n    return a + b\nend\n\nfunc main(...) as int\n    int s = 0\n    int i = 0\n    while i < 5 do\n        s = s + add(i, i)\n        i += 1\n    end\n    return 0\nend\n"
-    string tmpXl = path.join(g_toolDir, "xprof_tmp_sample.xl")
+    string tmpXl = path.join(path.temp(), path.random("xprof_", ".xl"))
     string out2 = instrumentSource(sample, tmpXl)
     if string.len(out2) == 0 then
-        tskip("instrument: xl.exe not available")
+        tcheck(false, "instrument: parse and rewrite sample", "compiler invocation failed")
     else
         tcheck(string.contains(out2, "__xprof_enter(\"add\")"), "instrument: inserts __xprof_enter(\"add\")", "")
         tcheck(string.contains(out2, "__xprof_exit(\"add\")"), "instrument: inserts __xprof_exit(\"add\")", "")
@@ -973,10 +970,10 @@ func cmdTest() as int
     if file.exists(tmpXl) then file.delete(tmpXl) end
 
     // --- 3. analyze（合成 profile）---
-    string profPath = path.join(g_toolDir, "xprof_tmp_profile.json")
-    file.writeText(profPath, makeSampleProfile())
+    string profPath = path.join(path.temp(), path.random("xprof_", ".json"))
+    bool profileWritten = file.writeText(profPath, makeSampleProfile())
     var root3 = loadProfile(profPath)
-    if root3 is null then
+    if not profileWritten or root3 is null then
         tcheck(false, "analyze: load synthetic profile", "load failed")
     else
         string a3 = renderHotspots(root3)

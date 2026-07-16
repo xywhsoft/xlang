@@ -20,10 +20,18 @@ extern "xlz4_compress_hex" func __xl6_native_lz4_compress_hex(string text) as st
 export func compress_hex(string text) as string
     return __xl6_native_lz4_compress_hex(text)
 end
+
+export func compress(string text) as string
+    return compress_hex(text)
+end
 extern "xlz4_decompress_hex" func __xl6_native_lz4_decompress_hex(string hex_text) as string
 
 export func decompress_hex(string hex_text) as string
     return __xl6_native_lz4_decompress_hex(hex_text)
+end
+
+export func decompress(string hex_text) as string
+    return decompress_hex(hex_text)
 end
 extern "xlz4_compress_file" func __xl6_native_lz4_compress_file(string input_path, string output_path) as c_int
 

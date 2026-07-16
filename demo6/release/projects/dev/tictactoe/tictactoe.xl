@@ -10,12 +10,9 @@
 //   - 棋盘用 array<int> 长度 9（0=空 1=X 2=O），用 Board class 封装
 //     （place / unset / checkWin / isFull / clone / render / signature 等）。
 //   - 最优 AI 用 negamax（minimax 的对称写法），在 self 上 make/undo，无需克隆。
-//   - analyze 用 clone() 生成子局面、set<string> 按棋盘签名去重，
+//   - analyze 用标准库 clone() 生成子局面、set<string> 按棋盘签名去重，
 //     统计可达互异局面数（经典结果：5478）。
 //   - 随机种子固定，保证输出可复现。
-//
-// 已知限制绕过（见 README.md / BUGS.md）：
-//   - 方法名不能取 set / get（属性访问关键字）；故访问器叫 cell，清子叫 unset。
 
 set<string> visited = set<string>{}
 
@@ -29,6 +26,8 @@ end
 
 
 class Board
+    derive clone
+
     array<int> cells
 
     create()
@@ -111,17 +110,6 @@ class Board
         return true
     end
 
-    // 克隆当前棋盘（返回独立副本）。
-    func clone() as Board
-        Board b = Board()
-        int i = 0
-        while i < 9 do
-            b.cells[i] = self.cells[i]
-            i += 1
-        end
-        return b
-    end
-
     // 棋盘的 9 位数字签名（用于去重）。
     func signature() as string
         string s = ""
@@ -144,7 +132,7 @@ class Board
 
     // 渲染棋盘为多行字符串（X / O / .）。
     func render() as string
-        string out = ""
+        string outputValue = ""
         int row = 0
         while row < 3 do
             int base = row * 3
@@ -154,13 +142,13 @@ class Board
             string s0 = self.symbol(v0)
             string s1 = self.symbol(v1)
             string s2 = self.symbol(v2)
-            out = out + " " + s0 + " | " + s1 + " | " + s2
+            outputValue = outputValue + " " + s0 + " | " + s1 + " | " + s2
             if row < 2 then
-                out = out + "\n"
+                outputValue = outputValue + "\n"
             end
             row += 1
         end
-        return out
+        return outputValue
     end
 
     // 打印棋盘（验证：class 方法内调用 println(self.render()) 正常）。
@@ -207,17 +195,17 @@ class Board
         end
         int opponent = 3 - player
         int best = -100
-        array<int> empties = self.emptyCells()
-        int k = 0
-        while k < empties.length do
-            int pos = empties[k]
-            self.cells[pos] = player
-            int score = 0 - self.minimax(opponent)
-            self.cells[pos] = 0
-            if score > best then
-                best = score
+        int pos = 0
+        while pos < 9 do
+            if self.cells[pos] == 0 then
+                self.cells[pos] = player
+                int score = 0 - self.minimax(opponent)
+                self.cells[pos] = 0
+                if score > best then
+                    best = score
+                end
             end
-            k += 1
+            pos += 1
         end
         return best
     end
@@ -227,21 +215,21 @@ class Board
         int opponent = 3 - player
         int bestScore = -100
         int bestPos = -1
-        array<int> empties = self.emptyCells()
-        int k = 0
-        while k < empties.length do
-            int pos = empties[k]
-            if bestPos == -1 then
-                bestPos = pos
+        int pos = 0
+        while pos < 9 do
+            if self.cells[pos] == 0 then
+                if bestPos == -1 then
+                    bestPos = pos
+                end
+                self.cells[pos] = player
+                int score = 0 - self.minimax(opponent)
+                self.cells[pos] = 0
+                if score > bestScore then
+                    bestScore = score
+                    bestPos = pos
+                end
             end
-            self.cells[pos] = player
-            int score = 0 - self.minimax(opponent)
-            self.cells[pos] = 0
-            if score > bestScore then
-                bestScore = score
-                bestPos = pos
-            end
-            k += 1
+            pos += 1
         end
         return bestPos
     end
@@ -281,7 +269,7 @@ func explore(Board b)
     int k = 0
     while k < empties.length do
         int pos = empties[k]
-        Board child = b.clone()
+        Board child = clone(b)
         child.place(pos, nextPlayer)
         explore(child)
         k += 1
@@ -370,6 +358,7 @@ end
 
 
 func cmdAnalyze()
+    visited.clear()
     Board root = Board()
     explore(root)
     int positions = visited.length
@@ -428,7 +417,12 @@ func main(...) as int
             println("Error: 'tournament' needs <N>")
             return 1
         end
-        cmdTournament(int(arg[2]))
+        int games = int(arg[2])
+        if games <= 0 then
+            println("Error: <N> must be greater than zero")
+            return 1
+        end
+        cmdTournament(games)
         return 0
     end
 

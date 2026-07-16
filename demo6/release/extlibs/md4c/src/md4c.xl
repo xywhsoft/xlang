@@ -55,3 +55,8 @@ extern "xmd4c_verbatim_entities_flag" func __xl6_native_md4c_verbatim_entities_f
 export func verbatim_entities_flag() as c_int
     return __xl6_native_md4c_verbatim_entities_flag()
 end
+extern "xmd4c_no_html_flag" func __xl6_native_md4c_no_html_flag() as c_int
+
+export func no_html_flag() as c_int
+    return __xl6_native_md4c_no_html_flag()
+end

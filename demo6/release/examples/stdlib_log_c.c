@@ -26,6 +26,21 @@ static int text_contains(str text, const char* needle)
     return text != NULL && needle != NULL && strstr((const char*)text, needle) != NULL;
 }
 
+typedef struct log_capture_state {
+    int count;
+    char last[128];
+} log_capture_state;
+
+static void capture_log(const xlogevent* event, ptr userData)
+{
+    log_capture_state* state = (log_capture_state*)userData;
+    if ( state == NULL || event == NULL || event->sMessage == NULL ) {
+        return;
+    }
+    state->count += 1;
+    snprintf(state->last, sizeof(state->last), "%s", event->sMessage);
+}
+
 int main(void)
 {
     str tempDir;
@@ -39,7 +54,9 @@ int main(void)
     str text;
     xlogger* logger;
     xlogger* rolling;
+    xlogger* customLogger;
     xlogappender* appender;
+    log_capture_state capture;
     int i;
 
     xrtInit();
@@ -109,6 +126,26 @@ int main(void)
     xlogDestroy(rolling);
 
     require_line("rolling", xrtFileExists(rollingPath) && xrtFileExists(rollingBackup));
+
+    memset(&capture, 0, sizeof(capture));
+    customLogger = xlogCreate((str)"custom-example");
+    require_ok("createCustom", customLogger != NULL);
+    xlogSetLevel(customLogger, XLOG_TRACE);
+    appender = xlogAddCustom(customLogger, (str)"capture", XLOG_INFO, capture_log, &capture);
+    require_ok("customAppender", appender != NULL);
+    require_ok("customName", xrtStrComp(xlogAppenderName(appender), (str)"capture", 0, FALSE) == 0);
+    xlogAppenderSetFormat(appender, XLOG_FORMAT_JSON);
+    require_ok("customFormat", xlogAppenderGetFormat(appender) == XLOG_FORMAT_JSON);
+    xlogAppenderSetColor(appender, FALSE);
+    require_ok("customColor", !xlogAppenderGetColor(appender));
+    xloggerInfo(customLogger, "captured");
+    xlogFlush(customLogger);
+    require_ok("customCaptured", capture.count == 1 && strcmp(capture.last, "captured") == 0);
+    require_ok("customRemove", xlogRemoveAppender(customLogger, appender));
+    xloggerInfo(customLogger, "ignored");
+    xlogFlush(customLogger);
+    require_line("custom", capture.count == 1);
+    xlogDestroy(customLogger);
 
     xrtFree(tempDir);
     xrtFree(baseDir);

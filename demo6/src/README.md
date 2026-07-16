@@ -13,6 +13,7 @@ This directory contains the DEMO6 compiler, CLI, DLL runtime API, and supporting
 - `cgen`: C code generator shards. Rule docs must stay aligned with `../cgenrule/README.md`.
 - `abi`: ABI dump and callable metadata.
 - `package`: package manifest, resolver, and import dependency handling.
+- `resource`: Windows-only resource config compiler for version, icon, and manifest output.
 - `compile`: compile-unit orchestration and import/stdlib expansion.
 - `backend`: build backend and toolchain boundary.
 - `stdlib`: default standard-library registration wrappers; prefer XRT-backed functions.

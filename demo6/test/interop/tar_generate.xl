@@ -1,0 +1,12 @@
+import tar
+
+
+
+func main(...) as int
+    auto writer = tar.create("tmp/xlang_interop.tar")
+    writer.mkdir("目录")
+    writer.add("目录/内容.txt", "xlang TAR")
+    writer.add("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.txt", "long path")
+    writer.close()
+    return 0
+end

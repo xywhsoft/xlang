@@ -312,6 +312,10 @@ static void xl6CgenHeaderParamDecl(XL6_Output* out, const XL6_AstNode* root, con
 {
     const XL6_AstNode* typeNode = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
 
+    if ( typeNode != NULL && xl6CgenHeaderTextEquals(typeNode->text, "c_vararg") ) {
+        xl6OutputPuts("...", out);
+        return;
+    }
     xl6OutputPuts(xl6CgenHeaderTypeName(root, typeNode), out);
     if ( param != NULL && (param->flags & (XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT)) != 0 ) {
         xl6OutputPutc('*', out);

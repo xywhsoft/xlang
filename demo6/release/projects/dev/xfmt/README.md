@@ -59,8 +59,8 @@ envinfo / genid / hashcalc / geo / diff / mdtoc / bigint / timer / cal / guess /
 contacts / codec / csvjson / duptop / jq / httpreq / psearch / portscan / sudoku /
 xlint（1000+ 行，最复杂）。
 
-唯一无法 round-trip 的是 `matrix.xl`，原因是其源码本身违反 BUG-RAS1
-（`set` 作为 class 方法名被 xl check 拒绝），与 xfmt 无关。
+`matrix.xl` 已使用当前属性/方法命名口径，可正常参与 round-trip；格式化器自测同时
+覆盖幂等性、`--check`、`--write` 和格式化后 `xl check`。
 
 ## 幂等性
 

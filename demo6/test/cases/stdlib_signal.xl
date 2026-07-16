@@ -1,0 +1,77 @@
+signal.clear(signal.INT)
+signal.clear(signal.TERM)
+
+assert signal.supported(signal.INT), "SIGINT should be supported"
+assert signal.name(signal.INT) != "", "signal name should not be empty"
+assert signal.name(signal.HUP) != "", "SIGHUP name should not be empty"
+assert signal.name(signal.TERM) != "", "SIGTERM name should not be empty"
+assert signal.name(signal.BREAK) != "", "SIGBREAK name should not be empty"
+assert signal.name(signal.CLOSE) != "", "console close name should not be empty"
+assert signal.name(signal.LOGOFF) != "", "console logoff name should not be empty"
+assert signal.name(signal.SHUTDOWN) != "", "console shutdown name should not be empty"
+
+int hits = 0
+func(var) onInt = func(var event)
+    hits = hits + int(event["code"])
+end
+
+func() onceInt = func()
+    hits = hits + 100
+end
+
+SignalHandle direct = signal.on(signal.INT, onInt)
+SignalHandle once = signal.once(signal.INT, onceInt)
+
+channel<var> events = channel::<var>(2)
+SignalHandle routed = signal.sendTo(events, signal.INT)
+TaskGroup cancelGroup = task.group()
+SignalHandle cancelHandle = signal.cancelOn(cancelGroup, signal.TERM)
+
+assert direct.active, "direct signal handle should be active"
+assert routed.active, "channel signal handle should be active"
+assert cancelHandle.active, "cancel signal handle should be active"
+assert routed.code == signal.INT, "signal handle code mismatch"
+assert signal.raise(signal.INT), "signal raise failed"
+assert signal.raise(signal.TERM), "SIGTERM raise failed"
+
+var event = null
+bool got = false
+for i in range(0, 100)
+    if events.tryRecvInto(event) then
+        got = true
+        break
+    end
+    time.sleep(10)
+end
+
+assert got, "signal channel did not receive an event"
+assert int(event["code"]) == signal.INT, "signal event code mismatch"
+assert string(event["name"]) == "INT", "signal event name mismatch"
+
+for i in range(0, 100)
+    if hits >= signal.INT + 100 then
+        break
+    end
+    time.sleep(10)
+end
+
+assert hits >= signal.INT + 100, "signal callbacks did not run"
+assert signal.count(signal.INT) >= 1, "signal count mismatch"
+assert signal.received(signal.INT), "signal received flag mismatch"
+assert signal.received(signal.TERM), "SIGTERM received flag mismatch"
+
+assert direct.close(), "direct signal close failed"
+assert routed.close(), "routed signal close failed"
+assert cancelHandle.close(), "cancel signal close failed"
+once.close()
+events.close()
+cancelGroup.close()
+
+signal.clear(signal.INT)
+signal.clear(signal.TERM)
+assert signal.count(signal.INT) == 0, "signal clear failed"
+signal.restore(signal.INT)
+signal.restore(signal.TERM)
+signal.reset()
+
+println("signal stdlib ok")

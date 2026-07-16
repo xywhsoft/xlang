@@ -21,7 +21,7 @@
 //
 // Stress points: TCP protocol state machine, Base64, string processing, MIME.
 //
-// Design constraints honored (see dev/README.md "当前限制" + dev/BUGS.md):
+// Design constraints:
 
 const int DEFAULT_TIMEOUT = 15000
 const int SEND_RETRY_TRIES = 40
@@ -216,7 +216,7 @@ end
 
 // Wrap a base64 blob into 76-column lines joined by CRLF.
 func wrapBase64Lines(string b64) as string
-    string out = ""
+    string outputValue = ""
     int total = string.len(b64)
     int i = 0
     while i < total do
@@ -225,13 +225,13 @@ func wrapBase64Lines(string b64) as string
         if remaining < take then
             take = remaining
         end
-        if out != "" then
-            out = out + "\r\n"
+        if outputValue != "" then
+            outputValue = outputValue + "\r\n"
         end
-        out = out + string.slice(b64, i, take)
+        outputValue = outputValue + string.slice(b64, i, take)
         i = i + take
     end
-    return out
+    return outputValue
 end
 
 // Normalize all line endings to CRLF.
@@ -319,7 +319,7 @@ func prepareDataPayload(string message) as string
         lines.remove(n - 1)
         n = n - 1
     end
-    string out = ""
+    string outputValue = ""
     int i = 0
     while i < n do
         string ln = string(lines[i])
@@ -327,12 +327,12 @@ func prepareDataPayload(string message) as string
             ln = "." + ln
         end
         if i > 0 then
-            out = out + "\r\n"
+            outputValue = outputValue + "\r\n"
         end
-        out = out + ln
+        outputValue = outputValue + ln
         i = i + 1
     end
-    return out + "\r\n.\r\n"
+    return outputValue + "\r\n.\r\n"
 end
 
 // Extract "<addr>" for SMTP envelope commands from a display header value.
@@ -574,7 +574,7 @@ end
 // Runs in main; server runs in a worker thread (closure captures port).
 // ============================================================
 func runSelfTest(int port) as int
-    string attachFile = path.join(path.temp(), "xlang_smtpcli_test_attach.bin")
+    string attachFile = path.join(path.temp(), path.random("smtpcli_", ".bin"))
 
     // retry-connect: the server thread may not have called accept yet
     point cp = ZERO
@@ -676,7 +676,7 @@ func runSelfTest(int port) as int
     check(string.contains(gReceivedMail, "boundary=\"" + BOUNDARY + "\""), "23. boundary marker", "mail=" + gReceivedMail)
     check(string.contains(gReceivedMail, "Content-Transfer-Encoding: base64"), "24. attachment base64 transfer-encoding", "mail=" + gReceivedMail)
     check(string.contains(gReceivedMail, expectedB64), "25. attachment base64 content present", "expected b64=" + expectedB64)
-    check(string.contains(gReceivedMail, "filename=\"xlang_smtpcli_test_attach.bin\""), "26. attachment filename", "mail=" + gReceivedMail)
+    check(string.contains(gReceivedMail, "filename=\"" + path.nameExt(attachFile) + "\""), "26. attachment filename", "mail=" + gReceivedMail)
     check(string.contains(gReceivedMail, "Hello SMTP."), "27. body text present", "mail=" + gReceivedMail)
 
     // dot-stuffing: original ".secret line..." was stuffed to "..secret line..." on the wire

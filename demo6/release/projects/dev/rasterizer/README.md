@@ -75,30 +75,13 @@ P3
 
 PPM 文件可用 GIMP / ImageMagick (`magick out.ppm out.png`) / 在线 PPM 查看器打开。
 
-## 重要实现说明（BUG 绕过）
+## 重要实现说明
 
-经实战验证，xlang 当前存在以下限制（详见根目录 `BUGS.md`），本程序已绕过：
-
-1. **`set`/`get`/`let` 不能作为 class 成员方法名**（新发现 BUG-RAS1）：
-   `func set(...)` → `[sem] get/let/set cannot be used as class member names`。
-   绕过：Mat4 的元素写入方法命名为 `setCell`（实际未使用，构造器直接写 `r.m[i]=...`）。
-
-2. **链式方法调用在临时返回值上失败**（BUG-RT4 族）：
-   `tr.mul(scl).mul(rotX)` → `[checked] 找不到 class 方法`。
-   绕过：拆成独立语句 `Mat4 a = tr.mul(scl); Mat4 m = a.mul(rotX)`。
-
-3. **class 构造表达式作为方法实参被拒**（BUG-RT4）：
-   `s.transformPoint(Vec3(1,1,1))` → `[checked] class constructor expression requires statement-level lowering`。
-   绕过：先 `Vec3 p = Vec3(...)`，再 `s.transformPoint(p)`。
-
-4. **`array<float>` 不能作为 class 方法的形参**（BUG-C1）：
-   绕过：所有 `array<float>` 读写都在 `self.m` / `self.verts` 等 class 字段上，
-   或在**全局函数**里通过 Mat4/Mesh/RenderTarget 实例的 `.m`/`.verts`/`.fb` 字段间接访问。
-
-5. **`math.abs(int)` 重载解析失败**（BUG-XL4）：绕过：自写 `absF(float)`。
-
-6. **`xl run file.xl test`（无 `--`）**：位置参数被当作 C helper 源文件，
-   报 `cannot add link library: test`。绕过：用 `xl run file.xl -- test`。
+- `Mat4`、`Mesh` 与 `RenderTarget` 直接以 `array<float>` / `array<int>` 保存连续数据。
+- 矩阵、顶点和帧缓冲通过静态泛型数组传递与修改，不使用动态 `var` 作为数值热路径。
+- 浮点绝对值与范围限制直接调用 `math.abs`、`math.clamp`。
+- class 临时值、构造表达式实参和方法链均按当前正式语义生成，不需要兼容性写法。
+- 运行程序参数放在 `--` 之后，例如 `xl run ... -- test`。
 
 ## 验证
 

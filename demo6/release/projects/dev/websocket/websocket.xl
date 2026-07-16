@@ -134,7 +134,7 @@ end
 
 // Copy the last-parsed frame's payload into `out` (appended), applying the XOR
 // mask when the frame is masked.  Verifies payload bytes are present.
-func copyPayload(Buffer buf, Buffer out) as bool
+func copyPayload(Buffer buf, Buffer outputValue) as bool
     int64 L = g_payloadLen
     if int64(g_payloadOffset) + L > int64(buf.len()) then
         return false
@@ -158,12 +158,12 @@ func copyPayload(Buffer buf, Buffer out) as bool
             else
                 b = b ^ m3
             end
-            out.appendByte(b & 0xFF)
+            outputValue.appendByte(b & 0xFF)
             i += 1
         end
     else
         while int64(i) < L do
-            out.appendByte(buf.byteAt(base + i) & 0xFF)
+            outputValue.appendByte(buf.byteAt(base + i) & 0xFF)
             i += 1
         end
     end
@@ -176,70 +176,70 @@ end
 // returns a Buffer.
 
 // Server -> client frame: FIN/opcode, NO mask.
-func appendServerFrame(Buffer out, int opcode, bool fin, Buffer payload)
+func appendServerFrame(Buffer outputValue, int opcode, bool fin, Buffer payload)
     int b0 = opcode & 0x0F
     if fin then
         b0 = b0 | 0x80
     end
-    out.appendByte(b0)
+    outputValue.appendByte(b0)
     int n = payload.len()
     if n < 126 then
-        out.appendByte(n)                 // no MASK bit for server frames
+        outputValue.appendByte(n)                 // no MASK bit for server frames
     elseif n <= 0xFFFF then
-        out.appendByte(126)
-        out.appendByte((n >> 8) & 0xFF)
-        out.appendByte(n & 0xFF)
+        outputValue.appendByte(126)
+        outputValue.appendByte((n >> 8) & 0xFF)
+        outputValue.appendByte(n & 0xFF)
     else
-        out.appendByte(127)
-        out.appendByte(0)
-        out.appendByte(0)
-        out.appendByte(0)
-        out.appendByte(0)
-        out.appendByte((n >> 24) & 0xFF)
-        out.appendByte((n >> 16) & 0xFF)
-        out.appendByte((n >> 8) & 0xFF)
-        out.appendByte(n & 0xFF)
+        outputValue.appendByte(127)
+        outputValue.appendByte(0)
+        outputValue.appendByte(0)
+        outputValue.appendByte(0)
+        outputValue.appendByte(0)
+        outputValue.appendByte((n >> 24) & 0xFF)
+        outputValue.appendByte((n >> 16) & 0xFF)
+        outputValue.appendByte((n >> 8) & 0xFF)
+        outputValue.appendByte(n & 0xFF)
     end
     int i = 0
     while i < n do
-        out.appendByte(payload.byteAt(i) & 0xFF)
+        outputValue.appendByte(payload.byteAt(i) & 0xFF)
         i += 1
     end
 end
 
 // Client -> server frame: FIN/opcode, WITH mask (maskKey must be 4 bytes).
-func appendClientFrame(Buffer out, int opcode, bool fin, Buffer payload, array<int> maskKey)
+func appendClientFrame(Buffer outputValue, int opcode, bool fin, Buffer payload, array<int> maskKey)
     int b0 = opcode & 0x0F
     if fin then
         b0 = b0 | 0x80
     end
-    out.appendByte(b0)
+    outputValue.appendByte(b0)
     int n = payload.len()
     if n < 126 then
-        out.appendByte(n | 0x80)          // MASK bit set
+        outputValue.appendByte(n | 0x80)          // MASK bit set
     elseif n <= 0xFFFF then
-        out.appendByte(126 | 0x80)
-        out.appendByte((n >> 8) & 0xFF)
-        out.appendByte(n & 0xFF)
+        outputValue.appendByte(126 | 0x80)
+        outputValue.appendByte((n >> 8) & 0xFF)
+        outputValue.appendByte(n & 0xFF)
     else
-        out.appendByte(127 | 0x80)
-        out.appendByte(0)
-        out.appendByte(0)
-        out.appendByte(0)
-        out.appendByte(0)
-        out.appendByte((n >> 24) & 0xFF)
-        out.appendByte((n >> 16) & 0xFF)
-        out.appendByte((n >> 8) & 0xFF)
-        out.appendByte(n & 0xFF)
+        outputValue.appendByte(127 | 0x80)
+        outputValue.appendByte(0)
+        outputValue.appendByte(0)
+        outputValue.appendByte(0)
+        outputValue.appendByte(0)
+        outputValue.appendByte((n >> 24) & 0xFF)
+        outputValue.appendByte((n >> 16) & 0xFF)
+        outputValue.appendByte((n >> 8) & 0xFF)
+        outputValue.appendByte(n & 0xFF)
     end
-    out.appendByte(maskKey[0] & 0xFF)
-    out.appendByte(maskKey[1] & 0xFF)
-    out.appendByte(maskKey[2] & 0xFF)
-    out.appendByte(maskKey[3] & 0xFF)
+    outputValue.appendByte(maskKey[0] & 0xFF)
+    outputValue.appendByte(maskKey[1] & 0xFF)
+    outputValue.appendByte(maskKey[2] & 0xFF)
+    outputValue.appendByte(maskKey[3] & 0xFF)
     int i = 0
     while i < n do
         int b = (payload.byteAt(i) ^ maskKey[i & 3]) & 0xFF
-        out.appendByte(b)
+        outputValue.appendByte(b)
         i += 1
     end
 end

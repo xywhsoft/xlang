@@ -1,0 +1,15 @@
+import toml
+
+
+
+func main(...) as int
+    var value = dict{
+        "title": "xlang",
+        "count": 42,
+        "enabled": true,
+        "local": toml.localDateTime(2026, 7, 16, 12, 34, 56, 123456),
+        "items": array["alpha", "beta"]
+    }
+    toml.save("tmp/xlang_interop.toml", value)
+    return 0
+end

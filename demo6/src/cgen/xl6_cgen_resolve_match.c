@@ -216,6 +216,7 @@ static int xl6CgenFuncMatchesCallEx(
     int fixedCount;
     int hasArrayVararg;
     int hasDictVararg;
+    int hasCVararg;
     int positionalIndex;
     int seenNamed;
     int* provided;
@@ -231,6 +232,7 @@ static int xl6CgenFuncMatchesCallEx(
     fixedCount = xl6CgenFixedParamCount(params);
     hasArrayVararg = params != NULL && params->childCount > (size_t)fixedCount && xl6CgenParamIsArrayVararg(params->children[fixedCount]);
     hasDictVararg = params != NULL && params->childCount > (size_t)fixedCount && xl6CgenParamIsDictVararg(params->children[fixedCount]);
+    hasCVararg = params != NULL && params->childCount > (size_t)fixedCount && xl6CgenParamIsCVararg(params->children[fixedCount]);
     provided = fixedCount > 0 ? (int*)xrtCalloc((size_t)fixedCount, sizeof(int)) : NULL;
     inferredTypes = typeParams != NULL && typeParams->childCount > 0 ?
                     (XL6_AstNode**)xrtCalloc(typeParams->childCount, sizeof(XL6_AstNode*)) : NULL;
@@ -297,7 +299,7 @@ static int xl6CgenFuncMatchesCallEx(
                     }
                     provided[positionalIndex] = 1;
                     positionalIndex += 1;
-                } else if ( !hasArrayVararg ) {
+                } else if ( !hasArrayVararg && !hasCVararg ) {
                     ok = 0;
                 } else {
                     cost += 200;
@@ -372,6 +374,7 @@ static int xl6CgenFuncMatchesExplicitGenericCall(
     int fixedCount;
     int hasArrayVararg;
     int hasDictVararg;
+    int hasCVararg;
     int positionalIndex;
     int seenNamed;
     int* provided;
@@ -389,6 +392,7 @@ static int xl6CgenFuncMatchesExplicitGenericCall(
     fixedCount = xl6CgenFixedParamCount(params);
     hasArrayVararg = params != NULL && params->childCount > (size_t)fixedCount && xl6CgenParamIsArrayVararg(params->children[fixedCount]);
     hasDictVararg = params != NULL && params->childCount > (size_t)fixedCount && xl6CgenParamIsDictVararg(params->children[fixedCount]);
+    hasCVararg = params != NULL && params->childCount > (size_t)fixedCount && xl6CgenParamIsCVararg(params->children[fixedCount]);
     provided = fixedCount > 0 ? (int*)xrtCalloc((size_t)fixedCount, sizeof(int)) : NULL;
     positionalIndex = 0;
     seenNamed = 0;
@@ -453,7 +457,7 @@ static int xl6CgenFuncMatchesExplicitGenericCall(
                     }
                     provided[positionalIndex] = 1;
                     positionalIndex += 1;
-                } else if ( !hasArrayVararg ) {
+                } else if ( !hasArrayVararg && !hasCVararg ) {
                     ok = 0;
                 } else {
                     cost += 200;

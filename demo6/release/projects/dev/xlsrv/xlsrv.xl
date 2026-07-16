@@ -9,7 +9,7 @@
 //   5. 悬停提示: 函数签名 + 文档注释
 //   6. 跳转定义: 函数/变量声明位置
 //   7. 引用查找: 全文件搜索符号
-//   8. 诊断: 调用 process.run("xl check") 获取错误
+//   8. 诊断: 调用 process.runFile 执行 xl check 获取错误
 //
 // 用法:
 //   xlsrv analyze <file.xl>          分析单个文件，输出符号表 + 诊断
@@ -1049,20 +1049,19 @@ func loadAst(string filePath) as var
         return null
     end
     string absFile = path.abs(filePath)
-    string cmd = g_xl + " parse " + absFile + " --format json"
-    ProcessResult r = process.run(cmd, 60000)
+    ProcessResult r = process.runFile(g_xl, ["parse", absFile, "--format", "json"], 60000)
     if not r.success then
         return null
     end
-    string out = string.trim(r.stdout)
-    if string.len(out) == 0 then
+    string outputValue = string.trim(r.stdout)
+    if string.len(outputValue) == 0 then
         return null
     end
-    if not json.valid(out) then
+    if not json.valid(outputValue) then
         return null
     end
     try
-        return json.parse(out)
+        return json.parse(outputValue)
     catch e
         return null
     end
@@ -1544,8 +1543,7 @@ func runXlCheck(string filePath) as array
     if not file.exists(filePath) then
         return result
     end
-    string cmd = g_xl + " check " + path.abs(filePath)
-    ProcessResult r = process.run(cmd, 60000)
+    ProcessResult r = process.runFile(g_xl, ["check", path.abs(filePath)], 60000)
     // xl check 返回非零表示有错误
     string output = ""
     if string.len(string.trim(r.stderr)) > 0 then
@@ -2419,7 +2417,8 @@ func outputAnalysisText(string filePath)
     else
         for d in diags
             string sev = sevName(d.severity)
-            println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + d.message)
+            string message = string(d.message)
+            println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + message)
         end
     end
     println("")
@@ -2485,9 +2484,9 @@ func outputAnalysisJson(string filePath)
     end
     root["diagnostics"] = diagArr
 
-    string out = json.stringify(root, pretty = true)
-    out = string.replace(out, "\t", "  ")
-    println(out)
+    string outputValue = json.stringify(root, pretty = true)
+    outputValue = string.replace(outputValue, "\t", "  ")
+    println(outputValue)
 end
 
 func sevName(int severity) as string
@@ -2580,7 +2579,9 @@ func cmdCheck(string filePath) as int
     int errors = 0
     for d in diags
         string sev = sevName(d.severity)
-        println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + d.source + ": " + d.message)
+        string source = string(d.source)
+        string message = string(d.message)
+        println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + source + ": " + message)
         if d.severity == DS_ERROR then
             errors += 1
         end
@@ -3051,7 +3052,7 @@ func testAnalyzeCommand()
     println("[Test] analyze command integration")
     // 用内联源码写临时文件测试
     string tmpDir = path.temp()
-    string tmpFile = path.join(tmpDir, "xlsrv_test_analyze.xl")
+    string tmpFile = path.join(tmpDir, path.random("xlsrv_", ".xl"))
     string src = testSource()
     file.writeText(tmpFile, src)
 

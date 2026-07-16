@@ -1,0 +1,296 @@
+extern "xrtGetError" func __zip_error() as string
+
+
+
+func __zip_method(string method) as int
+    if method == "default" then
+        return -1
+    elseif method == "store" then
+        return 0
+    elseif method == "deflate" then
+        return 8
+    end
+    throw ValueError "ZIP method must be default, store, or deflate"
+end
+
+func __zip_mode(string mode) as int
+    if mode == "r" then
+        return 0
+    elseif mode == "w" then
+        return 1
+    elseif mode == "a" then
+        return 2
+    elseif mode == "x" then
+        return 3
+    end
+    throw ValueError "ZIP mode must be r, w, a, or x"
+end
+
+func __zip_check_level(int level)
+    if level < 0 or level > 9 then
+        throw ValueError "ZIP compression level must be 0..9"
+    end
+end
+
+func __zip_check_entry_level(int level)
+    if level < -1 or level > 9 then
+        throw ValueError "ZIP entry compression level must be -1 or 0..9"
+    end
+end
+
+
+
+class ZipInfo
+    string name
+    int size
+    int compressedSize
+    int mtime
+    int crc32
+    int method
+    bool directory
+    string comment
+
+    create(string name, int size, int compressedSize, int mtime,
+        int crc32, int method, bool directory, string comment)
+        self.name = name
+        self.size = size
+        self.compressedSize = compressedSize
+        self.mtime = mtime
+        self.crc32 = crc32
+        self.method = method
+        self.directory = directory
+        self.comment = comment
+    end
+end
+
+
+
+class ZipArchive
+    native point handle
+    extern "xzip_archive_create" create(c_int method, c_int level,
+        c_ulonglong maxInput, c_ulonglong maxOutput, c_ulonglong maxItem,
+        c_ulonglong maxEntries, c_uint maxRatio)
+    extern "xzip_archive_open_memory" create(point data, c_size size, c_bool writable,
+        c_int method, c_int level, c_ulonglong maxInput, c_ulonglong maxOutput,
+        c_ulonglong maxItem, c_ulonglong maxEntries, c_uint maxRatio)
+    extern "xzip_archive_open_file" create(string path, c_int mode, c_int method,
+        c_int level, c_ulonglong maxInput, c_ulonglong maxOutput, c_ulonglong maxItem,
+        c_ulonglong maxEntries, c_uint maxRatio)
+    extern "xzip_archive_destroy" destroy()
+
+    extern "xzip_archive_is_memory" func memoryNative() as bool
+    extern "xzip_archive_is_open" func openNative() as bool
+    extern "xzip_archive_count" func countNative() as int
+    extern "xzip_archive_locate" func locateNative(string name) as int
+    extern "xzip_archive_name_at" func nameNative(int index) as point
+    extern "xzip_archive_size_at" func sizeNative(int index) as int
+    extern "xzip_archive_compressed_size_at" func compressedSizeNative(int index) as int
+    extern "xzip_archive_mtime_at" func mtimeNative(int index) as int
+    extern "xzip_archive_crc_at" func crcNative(int index) as int
+    extern "xzip_archive_method_at" func methodNative(int index) as int
+    extern "xzip_archive_directory_at" func directoryNative(int index) as bool
+    extern "xzip_archive_comment_at" func commentNative(int index) as point
+    extern "xzip_archive_read_at" func readNative(int index) as point
+    extern "xzip_archive_add" func addNative(string name, point data, c_size size,
+        c_bool overwrite, c_int method, c_int level) as bool
+    extern "xzip_archive_add_file" func addFileNative(string name, string path,
+        c_bool overwrite, c_int method, c_int level) as bool
+    extern "xzip_archive_add_directory" func mkdirNative(string name) as bool
+    extern "xzip_archive_delete" func removeNative(string name) as bool
+    extern "xzip_archive_rename" func renameNative(string oldName, string newName) as bool
+    extern "xzip_archive_set_comment" func setCommentNative(string comment) as bool
+    extern "xzip_archive_set_entry_comment" func setEntryCommentNative(string name, string comment) as bool
+    extern "xzip_archive_extract_all" func extractAllNative(string destination, c_bool overwrite) as bool
+    extern "xzip_archive_close" func closeNative() as bool
+    extern "xzip_archive_take_buffer" func takeBufferNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get isOpen() as bool
+        return self.openNative()
+    end
+
+    get isMemory() as bool
+        return self.memoryNative()
+    end
+
+    get count() as int
+        return self.countNative()
+    end
+
+    func contains(string name) as bool
+        return self.locateNative(name) >= 0
+    end
+
+    func nameAt(int index) as string
+        point result = self.nameNative(index)
+        if result == null then
+            throw ArchiveError __zip_error()
+        end
+        return __xl_std_runtime_take_cstr(result)
+    end
+
+    func info(int index) as ZipInfo
+        string name = self.nameAt(index)
+        point commentResult = self.commentNative(index)
+        if commentResult == null then
+            throw ArchiveError __zip_error()
+        end
+        string comment = __xl_std_runtime_take_cstr(commentResult)
+        return ZipInfo(name, self.sizeNative(index), self.compressedSizeNative(index),
+            self.mtimeNative(index), self.crcNative(index), self.methodNative(index),
+            self.directoryNative(index), comment)
+    end
+
+    func names() as array<string>
+        array<string> result = array<string>[]
+        int i = 0
+        while i < self.count do
+            result.append(self.nameAt(i))
+            i += 1
+        end
+        return result
+    end
+
+    func read(int index) as Buffer
+        point result = self.readNative(index)
+        if result == null then
+            throw ArchiveError __zip_error()
+        end
+        return Buffer(result)
+    end
+
+    func read(string name) as Buffer
+        int index = self.locateNative(name)
+        if index < 0 then
+            throw KeyError "ZIP entry does not exist: " + name
+        end
+        return self.read(index)
+    end
+
+    func readText(string name) as string
+        return self.read(name).text()
+    end
+
+    func add(string name, Buffer data, bool overwrite = false,
+        string method = "default", int level = -1)
+        __zip_check_entry_level(level)
+        if not self.addNative(name, data.data(), c_size(data.len()), c_bool(overwrite),
+            c_int(__zip_method(method)), c_int(level)) then
+            throw ArchiveError __zip_error()
+        end
+    end
+
+    func add(string name, string text, bool overwrite = false,
+        string method = "default", int level = -1)
+        Buffer data = Buffer()
+        data.append(text)
+        self.add(name, data, overwrite, method, level)
+    end
+
+    func addFile(string name, string path, bool overwrite = false,
+        string method = "default", int level = -1)
+        __zip_check_entry_level(level)
+        if not self.addFileNative(name, path, c_bool(overwrite),
+            c_int(__zip_method(method)), c_int(level)) then
+            throw ArchiveError __zip_error()
+        end
+    end
+
+    func mkdir(string name)
+        if not self.mkdirNative(name) then
+            throw ArchiveError __zip_error()
+        end
+    end
+
+    func remove(string name)
+        if not self.removeNative(name) then
+            throw ArchiveError __zip_error()
+        end
+    end
+
+    func rename(string oldName, string newName)
+        if not self.renameNative(oldName, newName) then
+            throw ArchiveError __zip_error()
+        end
+    end
+
+    func setComment(string comment)
+        if not self.setCommentNative(comment) then
+            throw ArchiveError __zip_error()
+        end
+    end
+
+    func setEntryComment(string name, string comment)
+        if not self.setEntryCommentNative(name, comment) then
+            throw ArchiveError __zip_error()
+        end
+    end
+
+    func extractAll(string destination, bool overwrite = false)
+        if not self.extractAllNative(destination, c_bool(overwrite)) then
+            throw ArchiveError __zip_error()
+        end
+    end
+
+    func close()
+        if self.isOpen and not self.closeNative() then
+            throw ArchiveError __zip_error()
+        end
+    end
+
+    func finish() as Buffer
+        if not self.isMemory then
+            throw RuntimeError "only a memory ZIP archive can return a Buffer"
+        end
+        self.close()
+        point result = self.takeBufferNative()
+        if result == null then
+            throw ArchiveError __zip_error()
+        end
+        return Buffer(result)
+    end
+end
+
+
+
+export func create(string method = "deflate", int level = 6,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxItem = 268435456, int maxEntries = 100000, int maxRatio = 1000) as ZipArchive
+    __zip_check_level(level)
+    ZipArchive result = ZipArchive(c_int(__zip_method(method)), c_int(level),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_ulonglong(maxItem),
+        c_ulonglong(maxEntries), c_uint(maxRatio))
+    if not result.valid then
+        throw ArchiveError __zip_error()
+    end
+    return result
+end
+
+export func open(Buffer data, bool writable = false, string method = "deflate", int level = 6,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxItem = 268435456, int maxEntries = 100000, int maxRatio = 1000) as ZipArchive
+    __zip_check_level(level)
+    ZipArchive result = ZipArchive(data.data(), c_size(data.len()), c_bool(writable),
+        c_int(__zip_method(method)), c_int(level), c_ulonglong(maxInput),
+        c_ulonglong(maxOutput), c_ulonglong(maxItem), c_ulonglong(maxEntries), c_uint(maxRatio))
+    if not result.valid then
+        throw ArchiveError __zip_error()
+    end
+    return result
+end
+
+export func open(string path, string mode = "r", string method = "deflate", int level = 6,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxItem = 268435456, int maxEntries = 100000, int maxRatio = 1000) as ZipArchive
+    __zip_check_level(level)
+    ZipArchive result = ZipArchive(path, c_int(__zip_mode(mode)), c_int(__zip_method(method)),
+        c_int(level), c_ulonglong(maxInput), c_ulonglong(maxOutput), c_ulonglong(maxItem),
+        c_ulonglong(maxEntries), c_uint(maxRatio))
+    if not result.valid then
+        throw ArchiveError __zip_error()
+    end
+    return result
+end

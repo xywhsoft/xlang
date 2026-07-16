@@ -29,23 +29,27 @@ const int DEFAULT_TIMEOUT = 10000
 const string SEPARATOR = "----------------------------------------"
 
 // 拆 "Name:Value" 为 name/value 两段（用 array<string>[0]/[1] 回传）。
-// 不把 HttpClientRequest 作参数传（native-backed class 不可按值复制）。
 func parseHeaderPair(string pair) as array<string>
-    array<string> out = array[]
+    array<string> outputValue = array[]
     int colon = string.indexOf(pair, ":")
     if colon <= 0 then
-        out.append("")
-        out.append("")
-        return out
+        outputValue.append("")
+        outputValue.append("")
+        return outputValue
     end
-    out.append(string.trim(string.left(pair, colon)))
-    out.append(string.trim(string.mid(pair, colon + 1)))
-    return out
+    outputValue.append(string.trim(string.left(pair, colon)))
+    outputValue.append(string.trim(string.mid(pair, colon + 1)))
+    return outputValue
 end
 
-// API 不支持枚举响应头，只能按名查询；以下在 main 内对 resp 实例
-// 直接调用 resp.header(name)（native-backed class 不能按值传给函数，
-// 只能在持有实例的作用域里以 self 方法形式调用）。
+// API 不支持枚举响应头，因此只输出常用字段。native-backed class 也是
+// 受管理引用，可以直接作为参数传递，不需要把对象操作全部挤在 main 中。
+func printResponseHeader(HttpClientResponse resp, string name)
+    string value = resp.header(name)
+    if value != "" then
+        println(name + ": " + value)
+    end
+end
 
 func printUsage()
     println("httpreq - HTTP request tester (curl-lite)")
@@ -175,22 +179,10 @@ func main(...) as int
         println("HTTP/1.1 " + string(code))
     end
 
-    string hCt = resp.header("Content-Type")
-    if hCt != "" then
-        println("Content-Type: " + hCt)
-    end
-    string hCl = resp.header("Content-Length")
-    if hCl != "" then
-        println("Content-Length: " + hCl)
-    end
-    string hSv = resp.header("Server")
-    if hSv != "" then
-        println("Server: " + hSv)
-    end
-    string hDt = resp.header("Date")
-    if hDt != "" then
-        println("Date: " + hDt)
-    end
+    printResponseHeader(resp, "Content-Type")
+    printResponseHeader(resp, "Content-Length")
+    printResponseHeader(resp, "Server")
+    printResponseHeader(resp, "Date")
 
     println(SEPARATOR)
 

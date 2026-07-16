@@ -68,16 +68,27 @@ func findXl() as string
     if file.exists(c1) then
         return c1
     end
-    string c2 = path.join(path.appDir(), "xl.exe")
+    string c2 = path.join(path.cwd(), "release", "xl.exe")
     if file.exists(c2) then
         return c2
     end
-    string c3 = path.join(path.appDir(), "..", "..", "..")
-    c3 = path.join(c3, "xl.exe")
+    string c3 = path.join(path.appDir(), "xl.exe")
     if file.exists(c3) then
         return c3
     end
-    return ""
+    return "xl"
+end
+
+func findCasesDir() as string
+    string c1 = path.join(path.cwd(), "projects", "dev", "docgen", "cases")
+    if dir.exists(c1) then
+        return c1
+    end
+    string c2 = path.join(path.cwd(), "release", "projects", "dev", "docgen", "cases")
+    if dir.exists(c2) then
+        return c2
+    end
+    return path.join(path.appDir(), "cases")
 end
 
 // ====================================================================
@@ -359,24 +370,14 @@ end
 // 用 xl check 子进程验证 cases/<name>.xl 编译失败且诊断含 expectedDiag。
 // 若找不到 xl.exe，跳过且不计入 fail。
 func negativeCheck(string fileName, string expectedDiag)
-    if string.len(g_xl) == 0 then
-        println("  [SKIP] " + fileName + " (xl.exe not found)")
-        return
-    end
-
-    string casesDir = path.join(path.cwd(), "projects", "dev", "docgen")
-    casesDir = path.join(casesDir, "cases")
-    if not dir.exists(casesDir) then
-        casesDir = path.join(path.appDir(), "cases")
-    end
+    string casesDir = findCasesDir()
     string filePath = path.join(casesDir, fileName)
     if not file.exists(filePath) then
         bad(fileName, "case file not found at " + filePath)
         return
     end
 
-    string cmd = g_xl + " check " + filePath
-    ProcessResult r = process.run(cmd, 15000)
+    ProcessResult r = process.runFile(g_xl, ["check", filePath], 15000)
 
     if r.exitCode == 0 then
         bad(fileName, "expected compile error but xl check succeeded")
@@ -411,11 +412,7 @@ func main(...) as int
     println("")
 
     g_xl = findXl()
-    if string.len(g_xl) > 0 then
-        println("(xl.exe found at " + g_xl + ")")
-    else
-        println("(xl.exe not found; negative checks will be skipped)")
-    end
+    println("(compiler: " + g_xl + ")")
     println("")
 
     testVarConst()
@@ -429,5 +426,5 @@ func main(...) as int
 
     println("")
     println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
-    return 0
+    return g_fail
 end

@@ -28,15 +28,14 @@
 //   applies its strategy: RESTART (drain+reset+respawn), RESUME (drain+keep
 //   state+respawn), or STOP (mark permanently stopped).
 //
-// xlang constraints worked around:
-//   - channel<T> only supports value types (int/bool/float); no string.
-//     All mailboxes are channel<int> with an int message protocol.
+// Runtime design:
+//   - Mailboxes use compact integer opcodes because this actor example only
+//     needs commands and counters; channel<string> is available for text data.
 //   - channel<T> and thread are non-copyable; cannot be stored in typed
 //     arrays. Mailboxes are pre-declared global channels; threads are
 //     fire-and-forget (spawned via thread(closure), not stored).
-//   - Global containers accessed by worker threads must be initialized at
-//     declaration and never re-bound. Registry uses parallel
-//     global arrays (array[]) populated via push() before threads spawn.
+//   - Registry arrays are populated before worker startup, then guarded by the
+//     actor state mutex during concurrent access.
 //   - Actor threads capture their slot index (int, by value) via a closure
 //     factory makeActorBody(idx), mirroring the proven prodcon pattern.
 

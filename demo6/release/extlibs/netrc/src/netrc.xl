@@ -1,0 +1,126 @@
+extern "xnetrc_error_code" func __netrc_error_code() as int
+extern "xnetrc_error_line" func __netrc_error_line() as int
+extern "xnetrc_error_column" func __netrc_error_column() as int
+extern "xnetrc_error_offset" func __netrc_error_offset() as int
+extern "xnetrc_error_message" func __netrc_error_message() as point
+extern "xnetrc_parse" func __netrc_parse(point data, c_ulonglong size,
+    c_bool strict, c_ulonglong maxInput, c_ulonglong maxOutput,
+    c_ulonglong maxItem, c_ulonglong maxEntries, c_ulonglong maxNodes) as var
+extern "xnetrc_load" func __netrc_load(string path, c_bool strict,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_ulonglong maxItem,
+    c_ulonglong maxEntries, c_ulonglong maxNodes) as var
+extern "xnetrc_stringify" func __netrc_stringify(var value,
+    c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
+    c_ulonglong maxNodes) as point
+extern "xnetrc_save" func __netrc_save(string path, var value,
+    c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
+    c_ulonglong maxNodes) as bool
+
+
+
+func __netrc_error() as string
+    return __xl_std_runtime_take_cstr(__netrc_error_message())
+end
+
+
+
+class Netrc
+    var document = null
+
+    create(var value)
+        self.document = value
+    end
+
+    get hosts() as var
+        return self.document["hosts"]
+    end
+
+    get macros() as var
+        return self.document["macros"]
+    end
+
+    func authenticators(string host) as var
+        var values = self.hosts
+        if host in values then return values[host] end
+        if "default" in values then return values["default"] end
+        return null
+    end
+
+    func hostNames() as array<string>
+        array<string> result = array<string>[]
+        for key, value in self.hosts
+            result.append(string(key))
+        end
+        return result
+    end
+
+    func macroNames() as array<string>
+        array<string> result = array<string>[]
+        for key, value in self.macros
+            result.append(string(key))
+        end
+        return result
+    end
+
+    func stringify(int maxOutput = 536870912, int maxItem = 268435456,
+        int maxEntries = 100000, int maxNodes = 1000000) as string
+        point result = __netrc_stringify(self.document,
+            c_ulonglong(maxOutput), c_ulonglong(maxItem),
+            c_ulonglong(maxEntries), c_ulonglong(maxNodes))
+        if result == null then throw ConfigError __netrc_error() end
+        Buffer data = Buffer(result)
+        return data.text()
+    end
+
+    func save(string path, int maxOutput = 536870912,
+        int maxItem = 268435456, int maxEntries = 100000,
+        int maxNodes = 1000000)
+        if not __netrc_save(path, self.document, c_ulonglong(maxOutput),
+            c_ulonglong(maxItem), c_ulonglong(maxEntries),
+            c_ulonglong(maxNodes)) then
+            throw ConfigError __netrc_error()
+        end
+    end
+end
+
+
+
+export func errorCode() as int
+    return __netrc_error_code()
+end
+
+export func errorLine() as int
+    return __netrc_error_line()
+end
+
+export func errorColumn() as int
+    return __netrc_error_column()
+end
+
+export func errorOffset() as int
+    return __netrc_error_offset()
+end
+
+export func parse(string text, bool strict = true,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxItem = 268435456, int maxEntries = 100000,
+    int maxNodes = 1000000) as Netrc
+    Buffer data = Buffer()
+    data.append(text)
+    var result = __netrc_parse(data.data(), c_ulonglong(data.len()),
+        c_bool(strict), c_ulonglong(maxInput), c_ulonglong(maxOutput),
+        c_ulonglong(maxItem), c_ulonglong(maxEntries), c_ulonglong(maxNodes))
+    if result == null then throw ConfigError __netrc_error() end
+    return Netrc(result)
+end
+
+export func load(string path, bool strict = true,
+    int maxInput = 268435456, int maxOutput = 536870912,
+    int maxItem = 268435456, int maxEntries = 100000,
+    int maxNodes = 1000000) as Netrc
+    var result = __netrc_load(path, c_bool(strict), c_ulonglong(maxInput),
+        c_ulonglong(maxOutput), c_ulonglong(maxItem),
+        c_ulonglong(maxEntries), c_ulonglong(maxNodes))
+    if result == null then throw ConfigError __netrc_error() end
+    return Netrc(result)
+end

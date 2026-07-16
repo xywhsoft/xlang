@@ -1,0 +1,14 @@
+import toml
+
+
+
+func main(...) as int
+    var config = toml.parse("title = \"xlang service\"\nstarted = 2026-07-16T08:30:00Z\n\n[server]\nhost = \"127.0.0.1\"\nport = 8080\n")
+    println(config["title"])
+    println(config["server"]["host"])
+
+    config["released"] = toml.localDate(2026, 7, 16)
+    println(toml.stringify(config))
+    println("toml example: PASS")
+    return 0
+end

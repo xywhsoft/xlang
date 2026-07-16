@@ -1,0 +1,57 @@
+import gzip
+
+func main(...) as int
+    Buffer source = Buffer()
+    source.append("abc")
+    source.appendByte(0)
+    source.appendByte(255)
+    Buffer packed = gzip.compress(source)
+    Buffer plain = gzip.decompress(packed)
+    if not (plain == source) or plain != source then
+        return 1
+    end
+
+    auto encoder = gzip.compressor()
+    encoder.update("left")
+    encoder.update("right")
+    Buffer incremental = encoder.finish()
+    auto decoder = gzip.decompressor()
+    decoder.update(incremental)
+    if decoder.finish().text() != "leftright" then
+        return 2
+    end
+
+    bool rejected = false
+    incremental[incremental.len() - 1] = incremental[incremental.len() - 1] ^ 1
+    try
+        gzip.decompress(incremental)
+    catch CompressionError e
+        rejected = true
+    end
+    if not rejected then
+        return 3
+    end
+
+    string sourcePath = "tmp/extlib_gzip_source.bin"
+    string packedPath = "tmp/extlib_gzip_stream.gz"
+    string plainPath = "tmp/extlib_gzip_plain.bin"
+    file.writeBytes(sourcePath, source)
+    gzip.compressFile(sourcePath, packedPath)
+    gzip.decompressFile(packedPath, plainPath)
+    if file.readBytes(plainPath) != source then
+        return 4
+    end
+    bool overwriteRejected = false
+    try
+        gzip.compressFile(sourcePath, packedPath, overwrite = false)
+    catch CompressionError e
+        overwriteRejected = true
+    end
+    if not overwriteRejected then
+        return 5
+    end
+    file.delete(sourcePath)
+    file.delete(packedPath)
+    file.delete(plainPath)
+    return 0
+end

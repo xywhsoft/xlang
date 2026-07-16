@@ -24,20 +24,13 @@
 //   * XOR stream cipher + simple password -> 256-byte keystream derivation
 //
 // ---------------------------------------------------------------------------
-// xlang design constraints respected (see dev/README.md "design limits" and
-// dev/BUGS.md):
-//   * native-backed Buffer cannot be RETURNED from a user function as a named
-//     value -> we convert Buffer <-> array<int> immediately; user code only
-//     returns array<int> (basic, returnable).
-//   * class methods cannot safely take array<int> / Buffer params -> all
-//     codec/decode functions are STANDALONE funcs taking array<int>.
-//   * no `+=` / `-=` / `<<=` on class FIELDS -> expanded to `a = a + b`.
-//   * `derive value` on classes that carry an array<int> field (ArchiveEntry,
-//     BitReader, HuffTable) to allow value copy / return.
-//   * no virtual methods on classes returned from functions (BitReader is only
-//     consumed locally; ArchiveEntry/HuffTable are pure value types).
-//   * manual integer parsing (int("abc") returns 0 silently) -> parseOctal /
-//     parsePosInt validate digits first.
+// Implementation notes:
+//   * archive payloads use array<int> as an owned, easy-to-inspect byte model;
+//     Buffer is kept at file and codec boundaries.
+//   * codec/decode routines are standalone pure helpers, while ArchiveEntry,
+//     BitReader and HuffTable hold the related state.
+//   * parseOctal / parsePosInt validate digits so malformed archive metadata is
+//     rejected with a useful error instead of becoming zero silently.
 //   * shifts use `<<` / `>>`; large constants masked with `& 0xFFFFFFFF` /
 //     `& 0xFF` because xlang int is 64-bit signed.
 // ---------------------------------------------------------------------------
@@ -53,20 +46,20 @@ const int TAR_BLOCK  = 512     // TAR header / data block size
 // ===========================================================================
 
 func hexByte(int b) as string
-    return string.formatInt(b & 0xFF, "x2")
+    return int.format(b & 0xFF, "x2")
 end
 
 func hexWord(int w) as string
-    return string.formatInt(w & 0xFFFF, "x4")
+    return int.format(w & 0xFFFF, "x4")
 end
 
 func hexDword(int d) as string
-    return string.formatInt(d & 0xFFFFFFFF, "x8")
+    return int.format(d & 0xFFFFFFFF, "x8")
 end
 
 // 2-digit hex of an integer, used for terse trace output.
 func hex2(int v) as string
-    string s = string.formatInt(v & 0xFF, "x2")
+    string s = int.format(v & 0xFF, "x2")
     return s
 end
 
@@ -80,12 +73,12 @@ func formatSize(int bytes) as string
         return string(bytes) + " B"
     end
     if absBytes < 1048576 then
-        return string.formatFloat(float(bytes) / 1024.0, ".2") + " KB"
+        return float.format(float(bytes) / 1024.0, ".2") + " KB"
     end
     if absBytes < 1073741824 then
-        return string.formatFloat(float(bytes) / 1048576.0, ".2") + " MB"
+        return float.format(float(bytes) / 1048576.0, ".2") + " MB"
     end
-    return string.formatFloat(float(bytes) / 1073741824.0, ".2") + " GB"
+    return float.format(float(bytes) / 1073741824.0, ".2") + " GB"
 end
 
 // Pad a string to a fixed column width (used by `list` output).
@@ -195,14 +188,14 @@ end
 
 // Copy every byte of a Buffer into a fresh array<int>.
 func bufferToArray(Buffer buf) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int n = buf.len()
     int i = 0
     while i < n do
-        out.push(buf.byteAt(i))
+        outputValue.push(buf.byteAt(i))
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 // Copy an array<int> (each entry 0..255) into a fresh Buffer.
@@ -261,17 +254,17 @@ func readU32BE(array<int> data, int off) as int
 end
 
 // Append a 16-bit little-endian value to a byte array.
-func pushU16LE(array<int> out, int v)
-    out.push(v & 0xFF)
-    out.push((v >> 8) & 0xFF)
+func pushU16LE(array<int> outputValue, int v)
+    outputValue.push(v & 0xFF)
+    outputValue.push((v >> 8) & 0xFF)
 end
 
 // Append a 32-bit little-endian value to a byte array.
-func pushU32LE(array<int> out, int v)
-    out.push(v & 0xFF)
-    out.push((v >> 8) & 0xFF)
-    out.push((v >> 16) & 0xFF)
-    out.push((v >> 24) & 0xFF)
+func pushU32LE(array<int> outputValue, int v)
+    outputValue.push(v & 0xFF)
+    outputValue.push((v >> 8) & 0xFF)
+    outputValue.push((v >> 16) & 0xFF)
+    outputValue.push((v >> 24) & 0xFF)
 end
 
 // ===========================================================================
@@ -597,7 +590,7 @@ end
 // block (BFINAL == 1).
 // ===========================================================================
 
-func decodeStoredBlock(BitReader br, array<int> out) as bool
+func decodeStoredBlock(BitReader br, array<int> outputValue) as bool
     int bfinal = br.bit()
     br.bits(1)  // discard btype (should be 00)
     br.alignToByte()
@@ -607,15 +600,15 @@ func decodeStoredBlock(BitReader br, array<int> out) as bool
     if (len ^ 0xFFFF) != nlen then
         throw "DEFLATE: stored block LEN/NLEN mismatch"
     end
-    br.copyBytes(out, len)
+    br.copyBytes(outputValue, len)
     return bfinal == 1
 end
 
-func decodeBlockBody(BitReader br, HuffTable litLen, HuffTable dist, array<int> out)
+func decodeBlockBody(BitReader br, HuffTable litLen, HuffTable dist, array<int> outputValue)
     while true do
         int sym = br.huffDecode(litLen)
         if sym < 256 then
-            out.push(sym)
+            outputValue.push(sym)
         elseif sym == END_OF_BLK then
             return
         else
@@ -632,25 +625,25 @@ func decodeBlockBody(BitReader br, HuffTable litLen, HuffTable dist, array<int> 
             end
             int dlen = DIST_BASE[dsym] + br.bits(DIST_EXTRA[dsym])
             // back-reference copy (LZ77), byte by byte to allow overlap
-            int srcPos = out.length - dlen
+            int srcPos = outputValue.length - dlen
             if srcPos < 0 then
                 throw "DEFLATE: distance too far back"
             end
             int k = 0
             while k < len do
-                out.push(out[srcPos + k])
+                outputValue.push(outputValue[srcPos + k])
                 k = k + 1
             end
         end
     end
 end
 
-func decodeFixedBlock(BitReader br, array<int> out) as bool
+func decodeFixedBlock(BitReader br, array<int> outputValue) as bool
     int bfinal = br.bit()
     br.bits(1)  // discard btype (should be 01)
     HuffTable lit = huffBuild(fixedLitLenLengths())
     HuffTable dist = huffBuild(fixedDistLengths())
-    decodeBlockBody(br, lit, dist, out)
+    decodeBlockBody(br, lit, dist, outputValue)
     return bfinal == 1
 end
 
@@ -714,7 +707,7 @@ func expandCodeLens(BitReader br, HuffTable clTable, int total) as array<int>
     return result
 end
 
-func decodeDynamicBlock(BitReader br, array<int> out) as bool
+func decodeDynamicBlock(BitReader br, array<int> outputValue) as bool
     int bfinal = br.bit()
     br.bits(1)  // discard btype (should be 10)
     int hlit = br.bits(5) + 257
@@ -738,22 +731,22 @@ func decodeDynamicBlock(BitReader br, array<int> out) as bool
     end
     HuffTable lit = huffBuild(llLens)
     HuffTable dist = huffBuild(dLens)
-    decodeBlockBody(br, lit, dist, out)
+    decodeBlockBody(br, lit, dist, outputValue)
     return bfinal == 1
 end
 
 // Inflate a complete DEFLATE stream (one or more blocks) into `out`.
-func inflateStream(BitReader br, array<int> out)
+func inflateStream(BitReader br, array<int> outputValue)
     bool done = false
     while not done do
         int bfinal = br.bit()
         int btype = br.bits(2)
         if btype == 0 then
-            done = decodeStoredBlock(br, out)
+            done = decodeStoredBlock(br, outputValue)
         elseif btype == 1 then
-            done = decodeFixedBlock(br, out)
+            done = decodeFixedBlock(br, outputValue)
         elseif btype == 2 then
-            done = decodeDynamicBlock(br, out)
+            done = decodeDynamicBlock(br, outputValue)
         else
             throw "DEFLATE: reserved block type 3"
         end
@@ -765,10 +758,10 @@ end
 
 // Convenience: inflate an array<int> raw deflate stream into a fresh array<int>.
 func inflate(array<int> src) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     BitReader br = BitReader(src)
-    inflateStream(br, out)
-    return out
+    inflateStream(br, outputValue)
+    return outputValue
 end
 
 // ===========================================================================
@@ -909,13 +902,13 @@ func readZipEntryPayload(array<int> data, ZipEntry e) as array<int>
     if dataStart + n > data.length then
         n = data.length - dataStart
     end
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int i = 0
     while i < n do
-        out.push(data[dataStart + i] & 0xFF)
+        outputValue.push(data[dataStart + i] & 0xFF)
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 // Extract (decompress) a single ZIP entry's payload. Returns the data array
@@ -1069,17 +1062,17 @@ end
 // to e.data); xlang value-copies class parameters, so we cannot mutate `e`
 // inside this function and have it visible to the caller.
 func readTarEntry(array<int> data, TarEntry e) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int n = e.size
     if n > data.length - e.dataOffset then
         n = data.length - e.dataOffset
     end
     int i = 0
     while i < n do
-        out.push(data[e.dataOffset + i] & 0xFF)
+        outputValue.push(data[e.dataOffset + i] & 0xFF)
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 // ===========================================================================
@@ -1087,14 +1080,14 @@ end
 // ===========================================================================
 
 // Append an ASCII string into `out`, NUL-padded to `fieldLen` bytes.
-func pushTarField(array<int> out, string s, int fieldLen)
+func pushTarField(array<int> outputValue, string s, int fieldLen)
     int sl = string.len(s)
     int i = 0
     while i < fieldLen do
         if i < sl then
-            out.push(string.byteAt(s, i) & 0xFF)
+            outputValue.push(string.byteAt(s, i) & 0xFF)
         else
-            out.push(0)
+            outputValue.push(0)
         end
         i = i + 1
     end
@@ -1102,7 +1095,7 @@ end
 
 // Append an octal-ASCII numeric field NUL-terminated and right-padded to
 // `fieldLen` bytes (TAR convention: leading zeros, trailing NUL + space).
-func pushTarOctal(array<int> out, int v, int fieldLen)
+func pushTarOctal(array<int> outputValue, int v, int fieldLen)
     // render as octal with no leading 0o prefix
     string s = ""
     int x = v
@@ -1138,18 +1131,18 @@ func pushTarOctal(array<int> out, int v, int fieldLen)
     end
     int i = 0
     while i < need do
-        out.push(string.byteAt(s, i) & 0xFF)
+        outputValue.push(string.byteAt(s, i) & 0xFF)
         i = i + 1
     end
-    out.push(0)
+    outputValue.push(0)
 end
 
 // Pack a single file's bytes into a 512-byte header + payload + zero pad.
-func tarAddFile(array<int> out, string name, array<int> bytes, int mtime, int mode)
-    int headerStart = out.length
+func tarAddFile(array<int> outputValue, string name, array<int> bytes, int mtime, int mode)
+    int headerStart = outputValue.length
     int i = 0
     while i < 512 do
-        out.push(0)
+        outputValue.push(0)
         i = i + 1
     end
     // name (100), mode (8), uid (8), gid (8), size (12), mtime (12),
@@ -1162,7 +1155,7 @@ func tarAddFile(array<int> out, string name, array<int> bytes, int mtime, int mo
     end
     int ni = 0
     while ni < nameLen do
-        out[p + ni] = string.byteAt(name, ni) & 0xFF
+        outputValue[p + ni] = string.byteAt(name, ni) & 0xFF
         ni = ni + 1
     end
     // mode field @ +100
@@ -1170,7 +1163,7 @@ func tarAddFile(array<int> out, string name, array<int> bytes, int mtime, int mo
     pushTarOctal(modeBuf, mode, 8)
     int mi = 0
     while mi < 8 do
-        out[p + 100 + mi] = modeBuf[mi]
+        outputValue[p + 100 + mi] = modeBuf[mi]
         mi = mi + 1
     end
     // uid / gid @ +108 / +116
@@ -1178,8 +1171,8 @@ func tarAddFile(array<int> out, string name, array<int> bytes, int mtime, int mo
     pushTarOctal(uidBuf, 0, 8)
     int ui = 0
     while ui < 8 do
-        out[p + 108 + ui] = uidBuf[ui]
-        out[p + 116 + ui] = uidBuf[ui]
+        outputValue[p + 108 + ui] = uidBuf[ui]
+        outputValue[p + 116 + ui] = uidBuf[ui]
         ui = ui + 1
     end
     // size @ +124
@@ -1187,7 +1180,7 @@ func tarAddFile(array<int> out, string name, array<int> bytes, int mtime, int mo
     pushTarOctal(sizeBuf, bytes.length, 12)
     int si = 0
     while si < 12 do
-        out[p + 124 + si] = sizeBuf[si]
+        outputValue[p + 124 + si] = sizeBuf[si]
         si = si + 1
     end
     // mtime @ +136
@@ -1195,31 +1188,31 @@ func tarAddFile(array<int> out, string name, array<int> bytes, int mtime, int mo
     pushTarOctal(mtBuf, mtime, 12)
     int ti = 0
     while ti < 12 do
-        out[p + 136 + ti] = mtBuf[ti]
+        outputValue[p + 136 + ti] = mtBuf[ti]
         ti = ti + 1
     end
     // checksum placeholder @ +148 (8 spaces)
     int ci = 0
     while ci < 8 do
-        out[p + 148 + ci] = 32
+        outputValue[p + 148 + ci] = 32
         ci = ci + 1
     end
     // typeflag @ +156 = '0' (regular file)
-    out[p + 156] = 48
+    outputValue[p + 156] = 48
     // magic "ustar" + NUL @ +257, version "00" @ +263
-    out[p + 257] = 117
-    out[p + 258] = 115
-    out[p + 259] = 116
-    out[p + 260] = 97
-    out[p + 261] = 114
-    out[p + 262] = 0
-    out[p + 263] = 48
-    out[p + 264] = 48
+    outputValue[p + 257] = 117
+    outputValue[p + 258] = 115
+    outputValue[p + 259] = 116
+    outputValue[p + 260] = 97
+    outputValue[p + 261] = 114
+    outputValue[p + 262] = 0
+    outputValue[p + 263] = 48
+    outputValue[p + 264] = 48
     // compute checksum over the whole header with placeholder spaces
     int sum = 0
     int hi = 0
     while hi < 512 do
-        sum = sum + (out[p + hi] & 0xFF)
+        sum = sum + (outputValue[p + hi] & 0xFF)
         hi = hi + 1
     end
     // write checksum as octal, NUL+space terminated
@@ -1256,16 +1249,16 @@ func tarAddFile(array<int> out, string name, array<int> bytes, int mtime, int mo
     end
     int xi = 0
     while xi < 6 do
-        out[p + 148 + xi] = string.byteAt(cs, xi) & 0xFF
+        outputValue[p + 148 + xi] = string.byteAt(cs, xi) & 0xFF
         xi = xi + 1
     end
-    out[p + 148 + 6] = 0
-    out[p + 148 + 7] = 32
+    outputValue[p + 148 + 6] = 0
+    outputValue[p + 148 + 7] = 32
     // append payload
     int bi = 0
     int bn = bytes.length
     while bi < bn do
-        out.push(bytes[bi] & 0xFF)
+        outputValue.push(bytes[bi] & 0xFF)
         bi = bi + 1
     end
     // pad payload to 512
@@ -1274,17 +1267,17 @@ func tarAddFile(array<int> out, string name, array<int> bytes, int mtime, int mo
         int padN = 512 - rem
         int qi = 0
         while qi < padN do
-            out.push(0)
+            outputValue.push(0)
             qi = qi + 1
         end
     end
 end
 
 // Append the two trailing zero blocks that mark end-of-archive.
-func tarAddTrailer(array<int> out)
+func tarAddTrailer(array<int> outputValue)
     int i = 0
     while i < 1024 do
-        out.push(0)
+        outputValue.push(0)
         i = i + 1
     end
 end
@@ -1331,14 +1324,14 @@ end
 
 // XOR a byte stream with the keystream (index = byte position mod 256).
 func xorCrypt(array<int> data, array<int> ks) as array<int>
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int n = data.length
     int i = 0
     while i < n do
-        out.push((data[i] ^ ks[i & 0xFF]) & 0xFF)
+        outputValue.push((data[i] ^ ks[i & 0xFF]) & 0xFF)
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 // Encrypt + decrypt share the same XOR routine (XOR is symmetric).
@@ -1513,7 +1506,7 @@ func cmdListTar(array<int> data) as int
     int i = 0
     while i < n do
         TarEntry e = entries[i]
-        println(padField(tarTypeToName(e.typeFlag), 9) + padField(string.formatInt(e.mode, "o"), 8) + padField(formatSize(e.size), 11) + padField(string(e.mtime), 12) + e.name)
+        println(padField(tarTypeToName(e.typeFlag), 9) + padField(int.format(e.mode, "o"), 8) + padField(formatSize(e.size), 11) + padField(string(e.mtime), 12) + e.name)
         i = i + 1
     end
     println(string.repeat("-", 78))
@@ -1655,7 +1648,7 @@ func cmdCreate(string outPath, array<string> files) as int
         println("xarchive: 'create' needs at least one input file")
         return 1
     end
-    array<int> out = array[]
+    array<int> outputValue = array[]
     int added = 0
     int totalBytes = 0
     int i = 0
@@ -1681,7 +1674,7 @@ func cmdCreate(string outPath, array<string> files) as int
                 if slash >= 0 then
                     baseName = string.slice(src, slash + 1)
                 end
-                tarAddFile(out, baseName, bytes, 0, 644)
+                tarAddFile(outputValue, baseName, bytes, 0, 644)
                 added = added + 1
                 totalBytes = totalBytes + bytes.length
                 println("  [add ] " + baseName + "  (" + formatSize(bytes.length) + ")")
@@ -1691,13 +1684,13 @@ func cmdCreate(string outPath, array<string> files) as int
         end
         i = i + 1
     end
-    tarAddTrailer(out)
-    bool w = writeFileBytes(outPath, out)
+    tarAddTrailer(outputValue)
+    bool w = writeFileBytes(outPath, outputValue)
     if not w then
         println("xarchive: failed to write " + outPath)
         return 1
     end
-    println("created " + outPath + ": " + string(added) + " files, " + formatSize(totalBytes) + " raw, " + formatSize(out.length) + " packed")
+    println("created " + outPath + ": " + string(added) + " files, " + formatSize(totalBytes) + " raw, " + formatSize(outputValue.length) + " packed")
     return 0
 end
 
@@ -1974,21 +1967,21 @@ func testTarRoundtrip() as bool
         body.push(string.byteAt(content, ci))
         ci = ci + 1
     end
-    array<int> out = array[]
-    tarAddFile(out, "note.txt", body, 1700000000, 644)
-    tarAddTrailer(out)
-    bool ok = check("size == 512 + payload-padded + 1024 trailer", out.length == 512 + 512 + 1024)
-    ok = check("checksum at block 0 valid", tarCheckChecksum(out, 0)) and ok
-    ok = check("format detected as tar", detectFormat(out) == FMT_TAR) and ok
+    array<int> outputValue = array[]
+    tarAddFile(outputValue, "note.txt", body, 1700000000, 644)
+    tarAddTrailer(outputValue)
+    bool ok = check("size == 512 + payload-padded + 1024 trailer", outputValue.length == 512 + 512 + 1024)
+    ok = check("checksum at block 0 valid", tarCheckChecksum(outputValue, 0)) and ok
+    ok = check("format detected as tar", detectFormat(outputValue) == FMT_TAR) and ok
     try
-        array<TarEntry> entries = parseTar(out)
+        array<TarEntry> entries = parseTar(outputValue)
         ok = check("1 entry parsed", entries.length == 1) and ok
         if entries.length == 1 then
             TarEntry e = entries[0]
             ok = check("name is note.txt", e.name == "note.txt") and ok
             ok = check("size matches body", e.size == body.length) and ok
             ok = check("typeFlag is '0' (file)", e.typeFlag == 48) and ok
-            e.data = readTarEntry(out, e)
+            e.data = readTarEntry(outputValue, e)
             ok = check("body matches", bytesEqual(e.data, body)) and ok
         end
     catch err
@@ -2050,9 +2043,9 @@ func testInflateStored() as bool
         src.push(body[bi])
         bi = bi + 1
     end
-    array<int> out = inflate(src)
-    bool ok = check("inflated length == 5", out.length == 5)
-    ok = check("inflated bytes == \"hello\"", bytesEqual(out, body)) and ok
+    array<int> outputValue = inflate(src)
+    bool ok = check("inflated length == 5", outputValue.length == 5)
+    ok = check("inflated bytes == \"hello\"", bytesEqual(outputValue, body)) and ok
     return ok
 end
 
@@ -2066,18 +2059,18 @@ func testTarVerifyFlow() as bool
         body.push((i * 13 + 7) & 0xFF)
         i = i + 1
     end
-    array<int> out = array[]
-    tarAddFile(out, "bytes.bin", body, 0, 644)
-    tarAddTrailer(out)
+    array<int> outputValue = array[]
+    tarAddFile(outputValue, "bytes.bin", body, 0, 644)
+    tarAddTrailer(outputValue)
     bool ok = true
     try
         // emulate cmdVerifyTar without printing every row
-        array<TarEntry> entries = parseTar(out)
+        array<TarEntry> entries = parseTar(outputValue)
         ok = check("1 entry parsed", entries.length == 1)
         if entries.length == 1 then
             TarEntry e = entries[0]
-            ok = check("checksum ok", tarCheckChecksum(out, 0)) and ok
-            e.data = readTarEntry(out, e)
+            ok = check("checksum ok", tarCheckChecksum(outputValue, 0)) and ok
+            e.data = readTarEntry(outputValue, e)
             int crc = crc32(e.data)
             ok = check("size matches", e.size == body.length) and ok
             ok = check("body matches", bytesEqual(e.data, body)) and ok
@@ -2164,11 +2157,11 @@ func testDetectFormat() as bool
     bool ok = check("PK\\x03\\x04 -> zip", detectFormat(fakeZip) == FMT_ZIP)
     array<int> empty = array[]
     ok = check("empty -> unknown", detectFormat(empty) == FMT_UNKNOWN) and ok
-    array<int> out = array[]
+    array<int> outputValue = array[]
     array<int> body = array[]
     body.push(65)
-    tarAddFile(out, "x", body, 0, 644)
-    ok = check("synthetic tar -> tar", detectFormat(out) == FMT_TAR) and ok
+    tarAddFile(outputValue, "x", body, 0, 644)
+    ok = check("synthetic tar -> tar", detectFormat(outputValue) == FMT_TAR) and ok
     return ok
 end
 

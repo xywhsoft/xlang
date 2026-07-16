@@ -29,7 +29,7 @@ func fmtNum(float v) as string
     if v == math.floor(v) and math.abs(v) < 1e15 then
         return string(int(v))
     end
-    string s = string.formatFloat(v, ".2")
+    string s = float.format(v, ".2")
     if string.contains(s, ".") then
         while string.endsWith(s, "0") do
             s = string.slice(s, 0, string.len(s) - 1)
@@ -45,27 +45,27 @@ end
 // ---------------------------------------------------------------- xmlEscape
 // Escape text for safe inclusion in SVG XML text content / attributes.
 func xmlEscape(string s) as string
-    string out = ""
+    string outputValue = ""
     int n = string.len(s)
     int i = 0
     while i < n do
         string c = string.charAt(s, i)
         if c == "&" then
-            out = out + "&amp;"
+            outputValue = outputValue + "&amp;"
         elseif c == "<" then
-            out = out + "&lt;"
+            outputValue = outputValue + "&lt;"
         elseif c == ">" then
-            out = out + "&gt;"
+            outputValue = outputValue + "&gt;"
         elseif c == "\"" then
-            out = out + "&quot;"
+            outputValue = outputValue + "&quot;"
         elseif c == "'" then
-            out = out + "&apos;"
+            outputValue = outputValue + "&apos;"
         else
-            out = out + c
+            outputValue = outputValue + c
         end
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -675,17 +675,17 @@ func main(...) as int
     string cmd = string(arg[1])
 
     if cmd == "demo" then
-        string out = ""
+        string outputValue = ""
         if arg.length >= 3 then
-            out = string(arg[2])
+            outputValue = string(arg[2])
         end
-        return emit(genDemo(), out)
+        return emit(genDemo(), outputValue)
     elseif cmd == "test" then
-        string out = ""
+        string outputValue = ""
         if arg.length >= 3 then
-            out = string(arg[2])
+            outputValue = string(arg[2])
         end
-        return emit(genTest(), out)
+        return emit(genTest(), outputValue)
     elseif cmd == "chart" then
         if arg.length < 5 then
             println("Usage: svggen chart <bar|pie|line> <data.json> <out.svg>")

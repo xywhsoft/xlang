@@ -6,7 +6,7 @@
 //   * 泛型/数值计算（差速运动学、Bresenham、A*、RRT、势场）
 //   * 2D 数组（占据栅格地图 array<float>）
 //   * 二叉堆优先队列（A* 的 open set）
-//   * 多态存储（array<var> 承载派生 Controller 实例 + as 还原 vtable）
+//   * class 继承与动态派发（ControllerBase 承载具体控制器）
 //   * 完整命令行子命令、统计输出、ASCII 渲染
 //
 // 功能模块：
@@ -34,9 +34,8 @@
 //   xl run projects\dev\xrobot\xrobot.xl navigate astar
 //   xl build projects\dev\xrobot\xrobot.xl -o projects\dev\xrobot\xrobot.exe
 //
-// 设计要点（结合 dev/README.md 与 BUGS.md）：
-//   * 多态控制器：ControllerBase (virtual computeCommand) + 两个 override 子类，
-//     始终以具体子类实例调用，array<var> 承载（见 BUG-RT1/RT2 说明）。
+// 设计要点：
+//   * 多态控制器通过 ControllerBase 引用统一承载，virtual/override 完成动态派发。
 //   * 栅格地图用 1D array<float> 模拟 2D：cells[row * width + col]。
 //   * A* 的开放集用自定义二叉堆 MinHeap（O(log n) push/pop）。
 //   * 随机浮点用 random.u32()/2^32 包装，random.range 提供整数区间。
@@ -74,13 +73,7 @@ func randRange(float lo, float hi) as float
 end
 
 func clampF(float v, float lo, float hi) as float
-    if v < lo then
-        return lo
-    end
-    if v > hi then
-        return hi
-    end
-    return v
+    return math.clamp(v, lo, hi)
 end
 
 func clampI(int v, int lo, int hi) as int
@@ -284,7 +277,7 @@ class Vec2
     end
 
     func __toString() as string
-        return "(" + string.formatFloat(self.x, ".2") + "," + string.formatFloat(self.y, ".2") + ")"
+        return "(" + float.format(self.x, ".2") + "," + float.format(self.y, ".2") + ")"
     end
 end
 
@@ -353,7 +346,7 @@ class Pose
     end
 
     func __toString() as string
-        return "(" + string.formatFloat(self.x, ".2") + "," + string.formatFloat(self.y, ".2") + "," + string.formatFloat(radToDeg(self.theta), ".1") + ")"
+        return "(" + float.format(self.x, ".2") + "," + float.format(self.y, ".2") + "," + float.format(radToDeg(self.theta), ".1") + ")"
     end
 end
 
@@ -448,16 +441,16 @@ end
 // ============================================================================
 
 class World
-    array<var> walls = array[]
-    array<var> circles = array[]
+    array<LineSeg> walls = array<LineSeg>[]
+    array<Circle> circles = array<Circle>[]
     float minX = 0.0
     float minY = 0.0
     float maxX = 10.0
     float maxY = 10.0
 
     create()
-        self.walls = array[]
-        self.circles = array[]
+        self.walls = array<LineSeg>[]
+        self.circles = array<Circle>[]
         self.minX = 0.0
         self.minY = 0.0
         self.maxX = 10.0
@@ -465,8 +458,8 @@ class World
     end
 
     create(float minX, float minY, float maxX, float maxY)
-        self.walls = array[]
-        self.circles = array[]
+        self.walls = array<LineSeg>[]
+        self.circles = array<Circle>[]
         self.minX = minX
         self.minY = minY
         self.maxX = maxX
@@ -515,8 +508,7 @@ class World
         int i = 0
         int n = self.walls.length
         while i < n do
-            var wv = self.walls[i]
-            LineSeg w = wv as LineSeg
+            LineSeg w = self.walls[i]
             bool h
             float t
             h, t = rayVsSegment(ox, oy, dx, dy, w.x1, w.y1, w.x2, w.y2)
@@ -529,8 +521,7 @@ class World
         int j = 0
         int m = self.circles.length
         while j < m do
-            var cv = self.circles[j]
-            Circle c = cv as Circle
+            Circle c = self.circles[j]
             bool h
             float t
             h, t = rayVsCircle(ox, oy, dx, dy, c.cx, c.cy, c.radius)
@@ -552,8 +543,7 @@ class World
         int i = 0
         int n = self.walls.length
         while i < n do
-            var wv = self.walls[i]
-            LineSeg w = wv as LineSeg
+            LineSeg w = self.walls[i]
             float d = pointSegDist(px, py, w.x1, w.y1, w.x2, w.y2)
             if d < best then
                 best = d
@@ -563,8 +553,7 @@ class World
         int j = 0
         int m = self.circles.length
         while j < m do
-            var cv = self.circles[j]
-            Circle c = cv as Circle
+            Circle c = self.circles[j]
             float dx = px - c.cx
             float dy = py - c.cy
             float d = math.sqrt(dx * dx + dy * dy) - c.radius
@@ -873,8 +862,7 @@ class GridMap
         int i = 0
         int n = w.walls.length
         while i < n do
-            var wv = w.walls[i]
-            LineSeg seg = wv as LineSeg
+            LineSeg seg = w.walls[i]
             self.bakeSegment(seg.x1, seg.y1, seg.x2, seg.y2)
             i = i + 1
         end
@@ -882,8 +870,7 @@ class GridMap
         int j = 0
         int m = w.circles.length
         while j < m do
-            var cv = w.circles[j]
-            Circle c = cv as Circle
+            Circle c = w.circles[j]
             self.bakeCircle(c.cx, c.cy, c.radius)
             j = j + 1
         end
@@ -1008,7 +995,7 @@ class GridMap
 
     // 计算前沿（free-unknown 边界的 unknown 格）作为探索目标候选
     func computeFrontiers() as array<int>
-        array<int> out = array[]
+        array<int> outputValue = array[]
         int cy = 1
         while cy < self.height - 1 do
             int cx = 1
@@ -1031,8 +1018,8 @@ class GridMap
                         end
                         float nv = self.cells[ny * self.width + nx]
                         if nv < EPS then
-                            out.push(nx)
-                            out.push(ny)
+                            outputValue.push(nx)
+                            outputValue.push(ny)
                         end
                         k = k + 1
                     end
@@ -1041,7 +1028,7 @@ class GridMap
             end
             cy = cy + 1
         end
-        return out
+        return outputValue
     end
 
     // 渲染整张地图为多行字符串。marks 为长度=width*height 的 array<string>，
@@ -1104,10 +1091,10 @@ class HeapItem
 end
 
 class MinHeap
-    array<var> data = array[]
+    array<HeapItem> data = array<HeapItem>[]
 
     create()
-        self.data = array[]
+        self.data = array<HeapItem>[]
     end
 
     func size() as int
@@ -1130,13 +1117,13 @@ class MinHeap
         if n == 0 then
             return false, 0.0, 0
         end
-        var topVar = self.data[0]
-        HeapItem top = topVar as HeapItem
+        HeapItem top = self.data[0]
         float pr = top.priority
         int cid = top.cellId
-        var lastVar = self.data.pop()
+        var lastValue = self.data.pop()
+        HeapItem lastItem = lastValue as HeapItem
         if self.data.length > 0 then
-            self.data[0] = lastVar
+            self.data[0] = lastItem
             self.siftDown(0)
         end
         return true, pr, cid
@@ -1145,13 +1132,11 @@ class MinHeap
     func siftUp(int i)
         while i > 0 do
             int parent = (i - 1) / 2
-            var iv = self.data[i]
-            var pv = self.data[parent]
-            HeapItem ii = iv as HeapItem
-            HeapItem pp = pv as HeapItem
+            HeapItem ii = self.data[i]
+            HeapItem pp = self.data[parent]
             if ii.priority < pp.priority then
-                self.data[i] = pv
-                self.data[parent] = iv
+                self.data[i] = pp
+                self.data[parent] = ii
                 i = parent
             else
                 return
@@ -1167,19 +1152,15 @@ class MinHeap
             int right = 2 * i + 2
             int smallest = i
             if left < n then
-                var sv = self.data[smallest]
-                var lv = self.data[left]
-                HeapItem si = sv as HeapItem
-                HeapItem li = lv as HeapItem
+                HeapItem si = self.data[smallest]
+                HeapItem li = self.data[left]
                 if li.priority < si.priority then
                     smallest = left
                 end
             end
             if right < n then
-                var sv = self.data[smallest]
-                var rv = self.data[right]
-                HeapItem si = sv as HeapItem
-                HeapItem ri = rv as HeapItem
+                HeapItem si = self.data[smallest]
+                HeapItem ri = self.data[right]
                 if ri.priority < si.priority then
                     smallest = right
                 end
@@ -1187,7 +1168,7 @@ class MinHeap
             if smallest == i then
                 done = true
             else
-                var tmp = self.data[i]
+                HeapItem tmp = self.data[i]
                 self.data[i] = self.data[smallest]
                 self.data[smallest] = tmp
                 i = smallest
@@ -1196,7 +1177,7 @@ class MinHeap
     end
 
     func clear()
-        self.data = array[]
+        self.data = array<HeapItem>[]
     end
 end
 
@@ -1437,14 +1418,13 @@ class RRTPlanner
         self.maxY = w.maxY
     end
 
-    func nearestNode(array<var> nodes, float x, float y) as int
+    func nearestNode(array<RRTNode> nodes, float x, float y) as int
         int best = 0
         float bestD2 = INF
         int n = nodes.length
         int i = 0
         while i < n do
-            var nv = nodes[i]
-            RRTNode nn = nv as RRTNode
+            RRTNode nn = nodes[i]
             float dx = nn.x - x
             float dy = nn.y - y
             float d2 = dx * dx + dy * dy
@@ -1460,7 +1440,7 @@ class RRTPlanner
     func plan(float sx, float sy, float gx, float gy, int maxIter) as RRTResult
         RRTResult result = RRTResult()
         float t0 = time.timer()
-        array<var> nodes = array[]
+        array<RRTNode> nodes = array<RRTNode>[]
 
         if not worldSegmentFree(self.world, sx, sy, sx, sy, self.robotRadius) then
             result.elapsed = time.timer() - t0
@@ -1487,8 +1467,7 @@ class RRTPlanner
                     ry = randRange(self.minY, self.maxY)
                 end
                 int nearId = self.nearestNode(nodes, rx, ry)
-                var nv = nodes[nearId]
-                RRTNode nearNode = nv as RRTNode
+                RRTNode nearNode = nodes[nearId]
                 float dx = rx - nearNode.x
                 float dy = ry - nearNode.y
                 float dlen = math.sqrt(dx * dx + dy * dy)
@@ -1532,8 +1511,7 @@ class RRTPlanner
             int cur = nodes.length - 1
             bool backDone = false
             while not backDone do
-                var cv = nodes[cur]
-                RRTNode cn = cv as RRTNode
+                RRTNode cn = nodes[cur]
                 revX.push(cn.x)
                 revY.push(cn.y)
                 if cn.parentId < 0 then
@@ -1557,9 +1535,8 @@ class RRTPlanner
 end
 
 // ============================================================================
-// 避障控制器基类（virtual computeCommand）
-//   多态存储说明：与 raytrace 同样，子类实例统一通过 array<var> 承载，
-//   取出后用 as ControllerBase 还原以触发 vtable 派发。
+// 避障控制器基类（virtual computeCommand）。派生控制器可直接赋给
+// ControllerBase 引用，调用时按对象的动态类型派发。
 // ============================================================================
 
 class ControllerBase
@@ -2006,14 +1983,14 @@ class Robot
 
     // 返回当前激光扫描的副本
     func rangesCopy() as array<float>
-        array<float> out = array[]
+        array<float> outputValue = array[]
         int n = self.ranges.length
         int i = 0
         while i < n do
-            out.push(self.ranges[i])
+            outputValue.push(self.ranges[i])
             i = i + 1
         end
-        return out
+        return outputValue
     end
 
     // 取最小前方距离（前向 ±30° 范围）
@@ -2292,16 +2269,13 @@ func cmdExplore(int maxSteps, string controllerName) as int
     r.maxLin = 0.5
     r.maxAng = 1.0
 
-    // 选控制器：用 var 承载多态实例再 as Base 还原 vtable（参考 raytrace BUG-RT1/RT2 处理）
-    var ctrlVar = null
+    // 选择控制器：基类引用直接持有具体控制器。
+    ControllerBase ctrl = null
     if controllerName == "potential" then
-        PotentialController pc = PotentialController(0.5, 1.0)
-        ctrlVar = pc
+        ctrl = PotentialController(0.5, 1.0)
     else
-        VFHController vc = VFHController(0.5, 1.0)
-        ctrlVar = vc
+        ctrl = VFHController(0.5, 1.0)
     end
-    ControllerBase ctrl = ctrlVar as ControllerBase
 
     Pose init = r.pose()
     SlamSystem slam = SlamSystem(m, init)
@@ -2322,7 +2296,7 @@ func cmdExplore(int maxSteps, string controllerName) as int
     float startY = r.y
 
     println("[explore] world=" + string(w.wallCount()) + " walls, " + string(w.circleCount()) + " circles")
-    println("[explore] controller=" + ctrl.describe() + " steps=" + string(maxSteps) + " dt=" + string.formatFloat(dt, ".2") + "s")
+    println("[explore] controller=" + ctrl.describe() + " steps=" + string(maxSteps) + " dt=" + float.format(dt, ".2") + "s")
 
     while step < maxSteps do
         // 选前沿目标
@@ -2383,7 +2357,7 @@ func cmdExplore(int maxSteps, string controllerName) as int
             float knownPct = float(m.knownCount) / float(m.sizeCells()) * 100.0
             println("  step " + string(step) + "/" + string(maxSteps) +
                     "  pose=" + slam.estPose.__toString() +
-                    "  known=" + string.formatFloat(knownPct, ".1") + "%" +
+                    "  known=" + float.format(knownPct, ".1") + "%" +
                     "  bumps=" + string(bumpCount))
         end
     end
@@ -2413,13 +2387,13 @@ func cmdExplore(int maxSteps, string controllerName) as int
     println("[explore] summary:")
     println("  steps           = " + string(step))
     println("  scans           = " + string(slam.scanCount))
-    println("  distance driven = " + string.formatFloat(totalDist, ".2") + " m")
-    println("  displacement    = " + string.formatFloat(pathLen, ".2") + " m")
+    println("  distance driven = " + float.format(totalDist, ".2") + " m")
+    println("  displacement    = " + float.format(pathLen, ".2") + " m")
     println("  bumps           = " + string(bumpCount))
-    println("  map known       = " + string(m.knownCount) + "/" + string(m.sizeCells()) + " cells (" + string.formatFloat(float(m.knownCount) / float(m.sizeCells()) * 100.0, ".1") + "%)")
+    println("  map known       = " + string(m.knownCount) + "/" + string(m.sizeCells()) + " cells (" + float.format(float(m.knownCount) / float(m.sizeCells()) * 100.0, ".1") + "%)")
     println("  map free        = " + string(m.freeCount))
     println("  map occupied    = " + string(m.occupiedCount))
-    println("  est pose drift  = " + string.formatFloat(math.sqrt(squareF(slam.estPose.x - r.x) + squareF(slam.estPose.y - r.y)), ".3") + " m")
+    println("  est pose drift  = " + float.format(math.sqrt(squareF(slam.estPose.x - r.x) + squareF(slam.estPose.y - r.y)), ".3") + " m")
     return 0
 end
 
@@ -2436,7 +2410,7 @@ func cmdNavigate(string plannerName) as int
     m.bakeWorld(w)
     m.recount()
 
-    println("[navigate] planner=" + plannerName + " map=" + string(m.width) + "x" + string(m.height) + "@" + string.formatFloat(res, ".2") + "m")
+    println("[navigate] planner=" + plannerName + " map=" + string(m.width) + "x" + string(m.height) + "@" + float.format(res, ".2") + "m")
     println("[navigate] world walls=" + string(w.wallCount()) + " circles=" + string(w.circleCount()))
 
     // 起点 / 终点（世界坐标）
@@ -2534,11 +2508,11 @@ func cmdNavigate(string plannerName) as int
     int pathLen = pathX.length
     float cellsToMeters = float(pathLen) * res
     if plannerName == "astar" then
-        println("[navigate] A* found path: " + string(pathLen) + " cells, cost=" + string.formatFloat(planCost, ".2") + ", visited=" + string(planVisited) + " in " + string.formatFloat(planTime * 1000.0, ".1") + "ms")
+        println("[navigate] A* found path: " + string(pathLen) + " cells, cost=" + float.format(planCost, ".2") + ", visited=" + string(planVisited) + " in " + float.format(planTime * 1000.0, ".1") + "ms")
     else
-        println("[navigate] RRT found path: " + string(pathLen) + " waypoints, nodes=" + string(planNodes) + " in " + string.formatFloat(planTime * 1000.0, ".1") + "ms")
+        println("[navigate] RRT found path: " + string(pathLen) + " waypoints, nodes=" + string(planNodes) + " in " + float.format(planTime * 1000.0, ".1") + "ms")
     end
-    println("[navigate] approx path length = " + string.formatFloat(cellsToMeters, ".2") + " m")
+    println("[navigate] approx path length = " + float.format(cellsToMeters, ".2") + " m")
 
     // 沿路径行进
     Robot r = Robot(sx, sy, 0.0)
@@ -2570,7 +2544,7 @@ func cmdNavigate(string plannerName) as int
     end
 
     float finalErr = math.sqrt(squareF(r.x - gx) + squareF(r.y - gy))
-    println("[navigate] simulation steps=" + string(simStep) + " driven=" + string.formatFloat(totalDriven, ".2") + "m bumps=" + string(bumpCount) + " final_error=" + string.formatFloat(finalErr, ".2") + "m")
+    println("[navigate] simulation steps=" + string(simStep) + " driven=" + float.format(totalDriven, ".2") + "m bumps=" + string(bumpCount) + " final_error=" + float.format(finalErr, ".2") + "m")
 
     // 渲染地图 + 路径 + 机器人
     array<string> marks = buildMarksForMap(m, r, pathX, pathY, sxCell, syCell, gxCell, gyCell, true)
@@ -2604,10 +2578,10 @@ func checkApproxFloat(float actual, float expected, float tol, string name)
     end
     if d < tol then
         g_testPass = g_testPass + 1
-        println("  [PASS] " + name + " (got=" + string.formatFloat(actual, ".4") + ")")
+        println("  [PASS] " + name + " (got=" + float.format(actual, ".4") + ")")
     else
         g_testFail = g_testFail + 1
-        println("  [FAIL] " + name + " got=" + string.formatFloat(actual, ".4") + " expected=" + string.formatFloat(expected, ".4"))
+        println("  [FAIL] " + name + " got=" + float.format(actual, ".4") + " expected=" + float.format(expected, ".4"))
     end
 end
 
@@ -2986,7 +2960,7 @@ func cmdBenchmark() as int
     if dt1 > EPS then
         rps = float(rays) / dt1
     end
-    println("ray cast:    " + string(rays) + " rays in " + string.formatFloat(dt1 * 1000.0, ".1") + "ms (" + string.formatFloat(rps, ",.0") + " rays/s)")
+    println("ray cast:    " + string(rays) + " rays in " + float.format(dt1 * 1000.0, ".1") + "ms (" + float.format(rps, ",.0") + " rays/s)")
 
     // 2) 栅格更新吞吐
     GridMap m = worldToMap(w, 0.15)
@@ -3001,7 +2975,7 @@ func cmdBenchmark() as int
         iter2 = iter2 + 1
     end
     float dt2 = time.timer() - t1
-    println("map update:  " + string(scans) + " scans in " + string.formatFloat(dt2 * 1000.0, ".1") + "ms (" + string.formatFloat(float(scans) / dt2, ".1") + " scans/s)")
+    println("map update:  " + string(scans) + " scans in " + float.format(dt2 * 1000.0, ".1") + "ms (" + float.format(float(scans) / dt2, ".1") + " scans/s)")
     m.recount()
     println("             map known=" + string(m.knownCount) + "/" + string(m.sizeCells()))
 
@@ -3038,7 +3012,7 @@ func cmdBenchmark() as int
         end
         k = k + 1
     end
-    println("A*:          " + string.formatFloat(bestT * 1000.0, ".2") + "ms  path=" + string(bestLen) + " cells  cost=" + string.formatFloat(bestCost, ".2") + "  visited=" + string(bestVisited))
+    println("A*:          " + float.format(bestT * 1000.0, ".2") + "ms  path=" + string(bestLen) + " cells  cost=" + float.format(bestCost, ".2") + "  visited=" + string(bestVisited))
 
     // 4) RRT 规划时间
     RRTPlanner rrt = RRTPlanner(w)
@@ -3059,7 +3033,7 @@ func cmdBenchmark() as int
         k2 = k2 + 1
     end
     if rrtBestT < INF then
-        println("RRT:         " + string.formatFloat(rrtBestT * 1000.0, ".2") + "ms  nodes=" + string(rrtBestNodes) + " iters=" + string(rrtBestIter) + " path=" + string(rrtBestLen))
+        println("RRT:         " + float.format(rrtBestT * 1000.0, ".2") + "ms  nodes=" + string(rrtBestNodes) + " iters=" + string(rrtBestIter) + " path=" + string(rrtBestLen))
     else
         println("RRT:         failed")
     end
@@ -3078,7 +3052,7 @@ func cmdBenchmark() as int
         citer = citer + 1
     end
     float dt3 = time.timer() - t2
-    println("VFH cmd:     " + string(citer) + " calls in " + string.formatFloat(dt3 * 1000.0, ".1") + "ms (" + string.formatFloat(float(citer) / dt3, ",.0") + " calls/s)")
+    println("VFH cmd:     " + string(citer) + " calls in " + float.format(dt3 * 1000.0, ".1") + "ms (" + float.format(float(citer) / dt3, ",.0") + " calls/s)")
     println("================================================================")
     return 0
 end

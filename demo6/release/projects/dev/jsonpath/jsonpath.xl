@@ -94,39 +94,39 @@ func hexByte(int v) as string
 end
 
 func escapeStr(string s) as string
-    string out = ""
+    string outputValue = ""
     int n = string.len(s)
     int i = 0
     while i < n do
         string c = string.charAt(s, i)
         int blen = string.byteLen(c)
         if c == "\"" then
-            out = out + "\\\""
+            outputValue = outputValue + "\\\""
         elseif c == "\\" then
-            out = out + "\\\\"
+            outputValue = outputValue + "\\\\"
         elseif c == "\n" then
-            out = out + "\\n"
+            outputValue = outputValue + "\\n"
         elseif c == "\r" then
-            out = out + "\\r"
+            outputValue = outputValue + "\\r"
         elseif c == "\t" then
-            out = out + "\\t"
+            outputValue = outputValue + "\\t"
         elseif c == "\b" then
-            out = out + "\\b"
+            outputValue = outputValue + "\\b"
         elseif c == "\f" then
-            out = out + "\\f"
+            outputValue = outputValue + "\\f"
         elseif blen == 1 then
             int code = string.byteAt(c, 0)
             if code < 0x20 then
-                out = out + "\\u00" + hexByte(code)
+                outputValue = outputValue + "\\u00" + hexByte(code)
             else
-                out = out + c
+                outputValue = outputValue + c
             end
         else
-            out = out + c
+            outputValue = outputValue + c
         end
         i += 1
     end
-    return out
+    return outputValue
 end
 
 func quoteStr(string s) as string
@@ -149,16 +149,16 @@ func stringifyValue(var v, bool pretty, int indent) as string
         if pretty then pad = string.repeat("  ", indent) end
         string childPad = ""
         if pretty then childPad = string.repeat("  ", indent + 1) end
-        string out = "["
+        string outputValue = "["
         int i = 0
         while i < n do
-            if i > 0 then out = out + "," end
-            if pretty then out = out + "\n" + childPad end
-            out = out + stringifyValue(v[i], pretty, indent + 1)
+            if i > 0 then outputValue = outputValue + "," end
+            if pretty then outputValue = outputValue + "\n" + childPad end
+            outputValue = outputValue + stringifyValue(v[i], pretty, indent + 1)
             i += 1
         end
-        if pretty then out = out + "\n" + pad end
-        return out + "]"
+        if pretty then outputValue = outputValue + "\n" + pad end
+        return outputValue + "]"
     end
     if isDict(v) then
         int n = v.length
@@ -167,18 +167,18 @@ func stringifyValue(var v, bool pretty, int indent) as string
         if pretty then pad = string.repeat("  ", indent) end
         string childPad = ""
         if pretty then childPad = string.repeat("  ", indent + 1) end
-        string out = "{"
+        string outputValue = "{"
         bool first = true
         for key, val in v
-            if not first then out = out + "," end
+            if not first then outputValue = outputValue + "," end
             first = false
-            if pretty then out = out + "\n" + childPad end
-            out = out + quoteStr(string(key)) + ":"
-            if pretty then out = out + " " end
-            out = out + stringifyValue(val, pretty, indent + 1)
+            if pretty then outputValue = outputValue + "\n" + childPad end
+            outputValue = outputValue + quoteStr(string(key)) + ":"
+            if pretty then outputValue = outputValue + " " end
+            outputValue = outputValue + stringifyValue(val, pretty, indent + 1)
         end
-        if pretty then out = out + "\n" + pad end
-        return out + "}"
+        if pretty then outputValue = outputValue + "\n" + pad end
+        return outputValue + "}"
     end
     return "null"
 end
@@ -934,24 +934,24 @@ end
 
 // 递归下降：把 node 自身和所有后代收集到 out（var 数组）。
 // 不在递归帧分配 dict，只用局部 push。
-func collectAll(var node, var out)
-    out.push(node)
+func collectAll(var node, var outputValue)
+    outputValue.push(node)
     if isArr(node) then
         int i = 0
         int n = node.length
         while i < n do
-            collectAll(node[i], out)
+            collectAll(node[i], outputValue)
             i += 1
         end
     elseif isDict(node) then
         for key, val in node
-            collectAll(val, out)
+            collectAll(val, outputValue)
         end
     end
 end
 
 // 对单个候选节点应用单下标段，结果 push 到 out
-func applyIndex(int idx, var node, var out)
+func applyIndex(int idx, var node, var outputValue)
     if not isArr(node) then return end
     int n = node.length
     int real = idx
@@ -959,11 +959,11 @@ func applyIndex(int idx, var node, var out)
         real = n + idx
     end
     if real < 0 or real >= n then return end
-    out.push(node[real])
+    outputValue.push(node[real])
 end
 
 // 应用切片段
-func applySlice(int startv, int endv, bool hasStart, bool hasEnd, var node, var out)
+func applySlice(int startv, int endv, bool hasStart, bool hasEnd, var node, var outputValue)
     if not isArr(node) then return end
     int n = node.length
     int realStart = 0
@@ -986,30 +986,30 @@ func applySlice(int startv, int endv, bool hasStart, bool hasEnd, var node, var 
     end
     int i = realStart
     while i < realEnd do
-        out.push(node[i])
+        outputValue.push(node[i])
         i += 1
     end
 end
 
 // 应用单个 segment 到单个节点，结果 push 到 out
-func applySegment(var node, var seg, var root, var out)
+func applySegment(var node, var seg, var root, var outputValue)
     string kind = string(seg["kind"])
     if kind == "root" then
-        out.push(root)
+        outputValue.push(root)
         return
     end
     if kind == "child" then
         string name = string(seg["name"])
         if isDict(node) then
             if node.contains(name) then
-                out.push(node[name])
+                outputValue.push(node[name])
             end
         end
         return
     end
     if kind == "index" then
         int idx = int(seg["idx"])
-        applyIndex(idx, node, out)
+        applyIndex(idx, node, outputValue)
         return
     end
     if kind == "wildcard" then
@@ -1017,12 +1017,12 @@ func applySegment(var node, var seg, var root, var out)
             int i = 0
             int n = node.length
             while i < n do
-                out.push(node[i])
+                outputValue.push(node[i])
                 i += 1
             end
         elseif isDict(node) then
             for key, val in node
-                out.push(val)
+                outputValue.push(val)
             end
         end
         return
@@ -1032,7 +1032,7 @@ func applySegment(var node, var seg, var root, var out)
         int endv = int(seg["end"])
         bool hasStart = bool(seg["hasStart"])
         bool hasEnd = bool(seg["hasEnd"])
-        applySlice(startv, endv, hasStart, hasEnd, node, out)
+        applySlice(startv, endv, hasStart, hasEnd, node, outputValue)
         return
     end
     if kind == "multindex" then
@@ -1040,7 +1040,7 @@ func applySegment(var node, var seg, var root, var out)
         int i = 0
         int n = idxs.length
         while i < n do
-            applyIndex(int(idxs[i]), node, out)
+            applyIndex(int(idxs[i]), node, outputValue)
             i += 1
         end
         return
@@ -1053,7 +1053,7 @@ func applySegment(var node, var seg, var root, var out)
             while i < n do
                 string nm = string(names[i])
                 if node.contains(nm) then
-                    out.push(node[nm])
+                    outputValue.push(node[nm])
                 end
                 i += 1
             end
@@ -1067,14 +1067,14 @@ func applySegment(var node, var seg, var root, var out)
             int n = node.length
             while i < n do
                 if evalFilter(ast, node[i], root) then
-                    out.push(node[i])
+                    outputValue.push(node[i])
                 end
                 i += 1
             end
         elseif isDict(node) then
             for key, val in node
                 if evalFilter(ast, val, root) then
-                    out.push(val)
+                    outputValue.push(val)
                 end
             end
         end
@@ -1315,19 +1315,19 @@ end
 
 // 取结果中所有指定字段的值（用于断言）
 func pluck(var results, string field) as var
-    var out = []
+    var outputValue = []
     int i = 0
     int n = results.length
     while i < n do
         var item = results[i]
         if isDict(item) then
             if item.contains(field) then
-                out.push(item[field])
+                outputValue.push(item[field])
             end
         end
         i += 1
     end
-    return out
+    return outputValue
 end
 
 // 断言结果数量

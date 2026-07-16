@@ -144,10 +144,10 @@ func saRun(SAConfig cfg, SAProblem p, bool verbose) as SAResult
         if verbose then
             if step % 25 == 1 or T <= cfg.Tmin then
                 float rate = float(stepAccepts) / float(cfg.itersPerTemp)
-                println("  T=" + string.formatFloat(T, ".5") +
-                        "  cur=" + string.formatFloat(e, ".5") +
-                        "  best=" + string.formatFloat(bestE, ".5") +
-                        "  accept=" + string.formatFloat(rate, ".3"))
+                println("  T=" + float.format(T, ".5") +
+                        "  cur=" + float.format(e, ".5") +
+                        "  best=" + float.format(bestE, ".5") +
+                        "  accept=" + float.format(rate, ".3"))
             end
         end
     end
@@ -262,7 +262,7 @@ func printVector(var c)
         if i > 0 then
             print(", ")
         end
-        print(string.formatFloat(float(c[i]), ".4"))
+        print(float.format(float(c[i]), ".4"))
         i += 1
     end
     println("]")
@@ -477,7 +477,7 @@ class TSPProblem extends SAProblem
 end
 
 func runTSP(array<float> coords, int ncities, SAConfig cfg, bool verbose) as SAResult
-    TSPProblem tp
+    TSPProblem tp = TSPProblem()
     tp.n = ncities
     tp.dist = buildDistMatrix(coords, ncities)
     var p = tp
@@ -548,7 +548,7 @@ class ColoringProblem extends SAProblem
 end
 
 func runColoring(array<int> edges, int nverts, int kcolors, SAConfig cfg, bool verbose) as SAResult
-    ColoringProblem cp
+    ColoringProblem cp = ColoringProblem()
     cp.n = nverts
     cp.k = kcolors
     cp.edges = edges
@@ -626,7 +626,7 @@ class FuncProblem extends SAProblem
 end
 
 func runFunc(int dim, float lo, float hi, SAConfig cfg, bool verbose) as SAResult
-    FuncProblem fp
+    FuncProblem fp = FuncProblem()
     fp.D = dim
     fp.lower = lo
     fp.upper = hi
@@ -673,8 +673,8 @@ func runTests() as int
     float saLen = tourLength(tr.state, tdist, tn)
     bool valid = isValidPermutation(tr.state, tn)
     println("TSP n=" + string(tn) +
-            "  brute-optimal=" + string.formatFloat(optimal, ".4") +
-            "  SA-len=" + string.formatFloat(saLen, ".4") +
+            "  brute-optimal=" + float.format(optimal, ".4") +
+            "  SA-len=" + float.format(saLen, ".4") +
             "  valid=" + string(valid) +
             "  iters=" + string(tr.iters))
     if not valid then
@@ -703,7 +703,7 @@ func runTests() as int
     println("Coloring vertices=" + string(nv) +
             "  colors=" + string(kcolors) +
             "  conflicts=" + string(conflicts) +
-            "  energy=" + string.formatFloat(cr.energy, ".0") +
+            "  energy=" + float.format(cr.energy, ".0") +
             "  iters=" + string(cr.iters))
     if conflicts == 0 then
         pass("Graph coloring reaches 0 conflicts")
@@ -779,7 +779,7 @@ func main(...) as int
         SAResult r = runTSP(coords, n, cfg, true)
         array<float> dist = buildDistMatrix(coords, n)
         float len = tourLength(r.state, dist, n)
-        println("Best tour length: " + string.formatFloat(len, ".4") +
+        println("Best tour length: " + float.format(len, ".4") +
                 "  (iters=" + string(r.iters) + ", accepts=" + string(r.accepts) + ")")
         printRoute(r.state, n)
         return 0
@@ -857,7 +857,7 @@ func main(...) as int
         println("FuncOpt  Rastrigin  D=" + string(D) +
                 "  xi in [-5.12, 5.12]  iters=" + string(totalIters))
         SAResult r = runFunc(D, -5.12, 5.12, cfg, true)
-        println("Best f(x): " + string.formatFloat(r.energy, ".6") +
+        println("Best f(x): " + float.format(r.energy, ".6") +
                 "  (iters=" + string(r.iters) + ", accepts=" + string(r.accepts) + ")")
         printVector(r.state)
         return 0

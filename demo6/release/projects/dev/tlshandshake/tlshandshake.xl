@@ -22,20 +22,11 @@
 //     -> FinishedState
 //     -> EstablishedState
 //
-// xlang constraints worked around:
-//   - class param shallow-copy loses scalar writes: the engine mutates
-//     self.ctx (field access, never a param); state describe() methods are READ-ONLY
-//     on ctx (shallow copy of same values is harmless for reads).
-//   - array<Base> silently drops derived (BUG-RT1): vtable polymorphism test uses a
-//     var array + `as HandshakeState` downcast (vtable preserved per shapes.xl SH1).
-//   - returning a class-with-virtual from a function loses vtable: every
-//     state instance is constructed locally at its use site, never returned.
-//   - var + string garbles: all hex values stored as typed `string`.
-//   - `return self.field.length` rejected: cached into a local int first.
-//   - class method cannot safely receive array<T> param: describe reads
-//     only scalar string/int fields from ctx (cipher lists are pre-joined to a string
-//     field by the engine before dispatch).
-//   - program always returns 0 (EXIT=0 for xl run / xl build).
+// 设计要点：
+//   - HandshakeEngine 持有共享 TlsContext，状态对象只读取上下文。
+//   - array<HandshakeState> 直接保存九种派生状态，虚函数按动态类型派发。
+//   - 密钥和摘要使用明确的 string 类型，长度统一按十六进制字符数检查。
+//   - test 命令会执行全部断言，并在存在失败时返回非零退出码。
 
 // ============================== constants ==================================
 
@@ -387,7 +378,7 @@ class HandshakeEngine
         self.savedMasterSecret = ""
     end
 
-    func setClientOfferings(string sni, var ciphers)
+    func setClientOfferings(string sni, array<string> ciphers)
         self.ctx.sni = sni
         for c in ciphers
             self.ctx.clientCiphers.push(string(c))
@@ -676,7 +667,7 @@ func check(string label, bool ok)
     end
 end
 
-func runTests()
+func runTests() as int
     println("==== tlshandshake test suite ====")
     println("")
 
@@ -734,10 +725,10 @@ func runTests()
     string prfOut = tlsPRF("s", "master secret", "abc", 32)
     check("first PRF block matches HMAC(secret, A(1)+seed)", string.left(prfOut, 64) == block1)
 
-    // ---- TEST 6: vtable dispatch via var array (BUG-RT1 workaround) ----
+    // ---- TEST 6: typed base-class container + vtable dispatch ----
     println("")
-    println("[6] vtable dispatch: 9 state subclasses via var array + as HandshakeState")
-    var states = []
+    println("[6] vtable dispatch: 9 state subclasses via array<HandshakeState>")
+    array<HandshakeState> states = array<HandshakeState>[]
     states.push(ClientHelloState())
     states.push(ServerHelloState())
     states.push(CertificateState())
@@ -751,8 +742,7 @@ func runTests()
     bool allDistinct = true
     array<string> seenNames = array[]
     for st in states
-        HandshakeState hs = st as HandshakeState
-        string nm = hs.name()
+        string nm = st.name()
         dispatchCount = dispatchCount + 1
         int k = 0
         while k < seenNames.length do
@@ -766,9 +756,9 @@ func runTests()
     check("all 9 virtual name() calls dispatched", dispatchCount == 9)
     check("all 9 names are distinct", allDistinct)
     // verify specific typeNum dispatch
-    HandshakeState first = states[0] as HandshakeState
+    HandshakeState first = states[0]
     check("states[0].typeNum() == ST_CLIENT_HELLO", first.typeNum() == ST_CLIENT_HELLO)
-    HandshakeState last = states[8] as HandshakeState
+    HandshakeState last = states[8]
     check("states[8].typeNum() == ST_ESTABLISHED", last.typeNum() == ST_ESTABLISHED)
 
     // ---- TEST 7: describe() virtual dispatch reads ctx ----
@@ -813,6 +803,10 @@ func runTests()
     else
         println("RESULT: " + string(g_fail) + " TEST(S) FAILED")
     end
+    if g_fail > 0 then
+        return 1
+    end
+    return 0
 end
 
 // ============================== entry point ================================
@@ -864,10 +858,9 @@ func main(...) as int
         return 0
     end
     if cmd == "test" then
-        runTests()
-        return 0
+        return runTests()
     end
     println("Error: unknown command '" + cmd + "'")
     printUsage()
-    return 0
+    return 1
 end

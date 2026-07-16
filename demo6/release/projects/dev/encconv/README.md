@@ -81,10 +81,6 @@ xl run  projects\dev\encconv\encconv.xl                 # EXIT=0
 xl build projects\dev\encconv\encconv.xl -o projects\dev\encconv\encconv.exe   # EXIT=0
 ```
 
-selftest 输出 `13/13 passed`。
-
-## 发现的 BUG
-
-见 `../BUGS.md` 的 **BUG-E1**：`encoding.toBytes(text, charset + encoding.bom)`
-对任意 charset 都返回空 `Buffer`（`len()==0`）。`bom` 常量与 `name()` 配合正常，
-但 `toBytes` 没有处理 `bom` flag 位，静默产出空结果。
+selftest 输出 `14/14 passed`。第 14 项直接验证
+`encoding.toBytes("hi", encoding.utf8 + encoding.bom)` 产生
+`EF BB BF 68 69`，覆盖 BOM 前缀和正文保留。

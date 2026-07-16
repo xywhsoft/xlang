@@ -44,7 +44,7 @@
 //   * Bitwise: & | ^ << >> with 0xFF / 0x7F / 0xFFFF masking (frame header packing)
 //   * codec.hexEncodeBytes / hexDecodeBytes     hex <-> binary
 //   * json.parse / json.stringify               header set JSON I/O
-//   * string.bytes / string.formatInt           byte extraction / hex formatting
+//   * string.bytes / int.format                 byte extraction / hex formatting
 //   * class (Frame / Header / HpackEncoder / HpackDecoder / Stream / Connection)
 //   * Multi-return values + destructuring (auto a, b = f())
 //   * Native-backed-class rule: Buffer always passed as borrowed param, never
@@ -163,45 +163,45 @@ end
 // ============================== Byte write helpers ==============================
 // Append big-endian integers into a Buffer (borrowed out param, native-backed rule).
 
-func putBe16(Buffer out, int v)
-    out.appendByte((v >> 8) & 0xFF)
-    out.appendByte(v & 0xFF)
+func putBe16(Buffer outputValue, int v)
+    outputValue.appendByte((v >> 8) & 0xFF)
+    outputValue.appendByte(v & 0xFF)
 end
 
-func putBe24(Buffer out, int v)
-    out.appendByte((v >> 16) & 0xFF)
-    out.appendByte((v >> 8) & 0xFF)
-    out.appendByte(v & 0xFF)
+func putBe24(Buffer outputValue, int v)
+    outputValue.appendByte((v >> 16) & 0xFF)
+    outputValue.appendByte((v >> 8) & 0xFF)
+    outputValue.appendByte(v & 0xFF)
 end
 
-func putBe31(Buffer out, int v)
+func putBe31(Buffer outputValue, int v)
     // 31-bit value: high bit of first byte is reserved (always 0)
-    out.appendByte((v >> 24) & 0x7F)
-    out.appendByte((v >> 16) & 0xFF)
-    out.appendByte((v >> 8) & 0xFF)
-    out.appendByte(v & 0xFF)
+    outputValue.appendByte((v >> 24) & 0x7F)
+    outputValue.appendByte((v >> 16) & 0xFF)
+    outputValue.appendByte((v >> 8) & 0xFF)
+    outputValue.appendByte(v & 0xFF)
 end
 
-func putBe32(Buffer out, int v)
-    out.appendByte((v >> 24) & 0xFF)
-    out.appendByte((v >> 16) & 0xFF)
-    out.appendByte((v >> 8) & 0xFF)
-    out.appendByte(v & 0xFF)
+func putBe32(Buffer outputValue, int v)
+    outputValue.appendByte((v >> 24) & 0xFF)
+    outputValue.appendByte((v >> 16) & 0xFF)
+    outputValue.appendByte((v >> 8) & 0xFF)
+    outputValue.appendByte(v & 0xFF)
 end
 
-func putBe64(Buffer out, int64 v)
+func putBe64(Buffer outputValue, int64 v)
     int i = 7
     while i >= 0 do
-        out.appendByte(int((v >> (i * 8)) & 0xFF))
+        outputValue.appendByte(int((v >> (i * 8)) & 0xFF))
         i -= 1
     end
 end
 
-func putText(Buffer out, string s)
+func putText(Buffer outputValue, string s)
     array bs = string.bytes(s)
     int i = 0
     while i < bs.length do
-        out.appendByte(int(bs[i]) & 0xFF)
+        outputValue.appendByte(int(bs[i]) & 0xFF)
         i += 1
     end
 end
@@ -218,7 +218,7 @@ end
 // ============================== Hex / formatting helpers ==============================
 
 func hexByte(int b) as string
-    return string.formatInt(b & 0xFF, "x2")
+    return int.format(b & 0xFF, "x2")
 end
 
 func bufHex(Buffer buf) as string
@@ -379,122 +379,114 @@ end
 // ============================== Frame header encode ==============================
 // Write the 9-byte frame header into borrowed Buffer `out`.
 
-func appendFrameHeader(Buffer out, int length, int ftype, int flags, int streamId)
-    putBe24(out, length)
-    out.appendByte(ftype & 0xFF)
-    out.appendByte(flags & 0xFF)
-    putBe31(out, streamId)
+func appendFrameHeader(Buffer outputValue, int length, int ftype, int flags, int streamId)
+    putBe24(outputValue, length)
+    outputValue.appendByte(ftype & 0xFF)
+    outputValue.appendByte(flags & 0xFF)
+    putBe31(outputValue, streamId)
 end
 
 // Write a complete frame: header + payload bytes from borrowed `payload` Buffer.
 
-func appendFrame(Buffer out, int ftype, int flags, int streamId, Buffer payload)
+func appendFrame(Buffer outputValue, int ftype, int flags, int streamId, Buffer payload)
     int n = payload.len()
-    appendFrameHeader(out, n, ftype, flags, streamId)
+    appendFrameHeader(outputValue, n, ftype, flags, streamId)
     int i = 0
     while i < n do
-        out.appendByte(payload.byteAt(i))
+        outputValue.appendByte(payload.byteAt(i))
         i += 1
     end
 end
 
 // Write a DATA frame (type=0x00).
 
-func appendDataFrame(Buffer out, int streamId, int flags, Buffer data)
-    appendFrame(out, FT_DATA, flags, streamId, data)
+func appendDataFrame(Buffer outputValue, int streamId, int flags, Buffer data)
+    appendFrame(outputValue, FT_DATA, flags, streamId, data)
 end
 
 // Write a SETTINGS frame (type=0x04) from a flat [id0,val0, id1,val1, ...] array.
 
-func appendSettingsFrame(Buffer out, int flags, array<int> settings)
+func appendSettingsFrame(Buffer outputValue, int flags, array<int> settings)
     int nPairs = settings.length / 2
     int payloadLen = nPairs * 6
-    appendFrameHeader(out, payloadLen, FT_SETTINGS, flags, 0)
+    appendFrameHeader(outputValue, payloadLen, FT_SETTINGS, flags, 0)
     int i = 0
     while i < nPairs do
         int sid = settings[i * 2]
         int sval = settings[i * 2 + 1]
-        putBe16(out, sid)
-        putBe32(out, sval)
+        putBe16(outputValue, sid)
+        putBe32(outputValue, sval)
         i += 1
     end
 end
 
 // Write a SETTINGS ACK frame (empty payload, ACK flag).
 
-func appendSettingsAck(Buffer out)
-    appendFrameHeader(out, 0, FT_SETTINGS, FH_ACK, 0)
+func appendSettingsAck(Buffer outputValue)
+    appendFrameHeader(outputValue, 0, FT_SETTINGS, FH_ACK, 0)
 end
 
 // Write a PING frame (type=0x06) with 8 bytes of opaque data.
 
-func appendPingFrame(Buffer out, int flags, int64 opaqueData)
-    appendFrameHeader(out, 8, FT_PING, flags, 0)
-    putBe64(out, opaqueData)
+func appendPingFrame(Buffer outputValue, int flags, int64 opaqueData)
+    appendFrameHeader(outputValue, 8, FT_PING, flags, 0)
+    putBe64(outputValue, opaqueData)
 end
 
 // Write a PING ACK frame.
 
-func appendPingAck(Buffer out, int64 opaqueData)
-    appendPingFrame(out, FH_ACK, opaqueData)
+func appendPingAck(Buffer outputValue, int64 opaqueData)
+    appendPingFrame(outputValue, FH_ACK, opaqueData)
 end
 
 // Write a GOAWAY frame (type=0x07).
 
-func appendGoawayFrame(Buffer out, int lastStreamId, int errorCode, string debugData)
+func appendGoawayFrame(Buffer outputValue, int lastStreamId, int errorCode, string debugData)
     int debugLen = string.len(debugData)
-    appendFrameHeader(out, 8 + debugLen, FT_GOAWAY, 0, 0)
-    putBe31(out, lastStreamId)
-    putBe32(out, errorCode)
+    appendFrameHeader(outputValue, 8 + debugLen, FT_GOAWAY, 0, 0)
+    putBe31(outputValue, lastStreamId)
+    putBe32(outputValue, errorCode)
     if debugLen > 0 then
-        putText(out, debugData)
+        putText(outputValue, debugData)
     end
 end
 
 // Write a WINDOW_UPDATE frame (type=0x08).
 
-func appendWindowUpdateFrame(Buffer out, int streamId, int increment)
-    appendFrameHeader(out, 4, FT_WINDOW_UPDATE, 0, streamId)
-    putBe31(out, increment)
+func appendWindowUpdateFrame(Buffer outputValue, int streamId, int increment)
+    appendFrameHeader(outputValue, 4, FT_WINDOW_UPDATE, 0, streamId)
+    putBe31(outputValue, increment)
 end
 
 // Write a RST_STREAM frame (type=0x03).
 
-func appendRstStreamFrame(Buffer out, int streamId, int errorCode)
-    appendFrameHeader(out, 4, FT_RST_STREAM, 0, streamId)
-    putBe32(out, errorCode)
+func appendRstStreamFrame(Buffer outputValue, int streamId, int errorCode)
+    appendFrameHeader(outputValue, 4, FT_RST_STREAM, 0, streamId)
+    putBe32(outputValue, errorCode)
 end
 
 // Write a PRIORITY frame (type=0x02): 5 bytes payload.
 //   1-bit exclusive + 31-bit dependency + 8-bit weight
 
-func appendPriorityFrame(Buffer out, int streamId, bool exclusive, int dependency, int weight)
-    appendFrameHeader(out, 5, FT_PRIORITY, 0, streamId)
+func appendPriorityFrame(Buffer outputValue, int streamId, bool exclusive, int dependency, int weight)
+    appendFrameHeader(outputValue, 5, FT_PRIORITY, 0, streamId)
     int depWord = dependency & 0x7FFFFFFF
     if exclusive then
         depWord = depWord | 0x80000000
     end
-    putBe32(out, depWord)
-    out.appendByte(weight & 0xFF)
+    putBe32(outputValue, depWord)
+    outputValue.appendByte(weight & 0xFF)
 end
 
 
 // ============================== Frame header decode ==============================
-// Parse a 9-byte frame header at `offset`. Fills `out` Frame fields.
-// Returns the offset just past the full frame (header + payload), or -1 if
-// the buffer lacks a complete frame.
-
-func parseFrameRemovedPlaceholder()
-end
-
-
 // ============================== Frame pretty-print ==============================
 // Decode and print a single frame including type-specific payload fields.
 
 func printFrame(Buffer buf, Frame f, int frameOffset)
     println("  [" + string(frameOffset) + "] " + frameTypeName(f.frameType)
          + "  len=" + string(f.length)
-         + "  flags=0x" + string.formatInt(f.flags, "x2")
+         + "  flags=0x" + int.format(f.flags, "x2")
          + " (" + flagString(f.frameType, f.flags) + ")"
          + "  stream=" + string(f.streamId))
 
@@ -521,8 +513,8 @@ func printFrame(Buffer buf, Frame f, int frameOffset)
         if (f.flags & FH_ACK) != 0 then
             ackStr = " (ACK)"
         end
-        println("        opaque data: 0x" + string.formatInt(int((data >> 32) & 0xFFFFFFFF), "x8")
-            + string.formatInt(int(data & 0xFFFFFFFF), "x8") + ackStr)
+        println("        opaque data: 0x" + int.format(int((data >> 32) & 0xFFFFFFFF), "x8")
+            + int.format(int(data & 0xFFFFFFFF), "x8") + ackStr)
     elseif f.frameType == FT_GOAWAY and f.length >= 8 then
         int lastSid = rdU31BE(buf, f.payloadOffset)
         int ec = rdU32BE(buf, f.payloadOffset + 4)
@@ -724,18 +716,18 @@ end
 // `prefixFlags` holds the bits ABOVE the prefix (e.g. 0x80 for indexed, 0x40
 // for literal-with-indexing, 0x00 for literal-without-indexing).
 
-func hpackEncInt(Buffer out, int value, int prefixBits, int prefixFlags)
+func hpackEncInt(Buffer outputValue, int value, int prefixBits, int prefixFlags)
     int maxVal = (1 << prefixBits) - 1
     if value < maxVal then
-        out.appendByte((prefixFlags | value) & 0xFF)
+        outputValue.appendByte((prefixFlags | value) & 0xFF)
     else
-        out.appendByte((prefixFlags | maxVal) & 0xFF)
+        outputValue.appendByte((prefixFlags | maxVal) & 0xFF)
         value = value - maxVal
         while value >= 128 do
-            out.appendByte(((value & 0x7F) | 0x80) & 0xFF)
+            outputValue.appendByte(((value & 0x7F) | 0x80) & 0xFF)
             value = value >> 7
         end
-        out.appendByte(value & 0xFF)
+        outputValue.appendByte(value & 0xFF)
     end
 end
 
@@ -773,13 +765,13 @@ end
 // by returning the raw bytes (not Huffman-decoded), which is valid for our
 // own roundtrip since the encoder always uses H=0.
 
-func hpackEncStr(Buffer out, string s)
+func hpackEncStr(Buffer outputValue, string s)
     array bs = string.bytes(s)
     int n = bs.length
-    hpackEncInt(out, n, 7, 0x00)
+    hpackEncInt(outputValue, n, 7, 0x00)
     int i = 0
     while i < n do
-        out.appendByte(int(bs[i]) & 0xFF)
+        outputValue.appendByte(int(bs[i]) & 0xFF)
         i += 1
     end
 end
@@ -879,15 +871,15 @@ class HpackEncoder
         self.curSize += entrySz
     end
 
-    func encodeOne(Buffer out, string name, string value)
+    func encodeOne(Buffer outputValue, string name, string value)
         int idx = findStaticExact(name, value)
         if idx > 0 then
-            hpackEncInt(out, idx, 7, 0x80)
+            hpackEncInt(outputValue, idx, 7, 0x80)
             return
         end
         idx = self.findDynamicExact(name, value)
         if idx > 0 then
-            hpackEncInt(out, idx, 7, 0x80)
+            hpackEncInt(outputValue, idx, 7, 0x80)
             return
         end
         int nameIdx = findStaticName(name)
@@ -896,21 +888,21 @@ class HpackEncoder
         end
         if useIndexing then
             if nameIdx > 0 then
-                hpackEncInt(out, nameIdx, 6, 0x40)
+                hpackEncInt(outputValue, nameIdx, 6, 0x40)
             else
-                hpackEncInt(out, 0, 6, 0x40)
-                hpackEncStr(out, name)
+                hpackEncInt(outputValue, 0, 6, 0x40)
+                hpackEncStr(outputValue, name)
             end
-            hpackEncStr(out, value)
+            hpackEncStr(outputValue, value)
             self.addToDynamic(name, value)
         else
             if nameIdx > 0 then
-                hpackEncInt(out, nameIdx, 4, 0x00)
+                hpackEncInt(outputValue, nameIdx, 4, 0x00)
             else
-                hpackEncInt(out, 0, 4, 0x00)
-                hpackEncStr(out, name)
+                hpackEncInt(outputValue, 0, 4, 0x00)
+                hpackEncStr(outputValue, name)
             end
-            hpackEncStr(out, value)
+            hpackEncStr(outputValue, value)
         end
     end
 end
@@ -918,9 +910,9 @@ end
 // Encode a JSON header dict into an HPACK block appended to `out`.
 // `headers` is a var dict from json.parse: {"name":"value", ...}.
 
-func encodeHeadersBlock(HpackEncoder enc, Buffer out, var headers)
+func encodeHeadersBlock(HpackEncoder enc, Buffer outputValue, var headers)
     for k, v in headers
-        enc.encodeOne(out, string(k), string(v))
+        enc.encodeOne(outputValue, string(k), string(v))
     end
 end
 
@@ -1049,7 +1041,7 @@ class HpackDecoder
                 result.append(Header(name, val))
             else
                 self.hasError = true
-                self.errorMsg = "unknown HPACK representation byte 0x" + string.formatInt(b, "x2")
+                self.errorMsg = "unknown HPACK representation byte 0x" + int.format(b, "x2")
                 break
             end
         end
@@ -1060,15 +1052,15 @@ end
 // Convenience: build an HPACK HEADERS frame from a JSON header dict.
 // Appends the complete frame (header + HPACK payload) to `out`.
 
-func appendHeadersFrame(Buffer out, int streamId, int flags, var headers)
+func appendHeadersFrame(Buffer outputValue, int streamId, int flags, var headers)
     Buffer hp = Buffer()
     HpackEncoder enc = HpackEncoder()
     encodeHeadersBlock(enc, hp, headers)
     int payloadLen = hp.len()
-    appendFrameHeader(out, payloadLen, FT_HEADERS, flags, streamId)
+    appendFrameHeader(outputValue, payloadLen, FT_HEADERS, flags, streamId)
     int i = 0
     while i < payloadLen do
-        out.appendByte(hp.byteAt(i))
+        outputValue.appendByte(hp.byteAt(i))
         i += 1
     end
 end
@@ -1354,7 +1346,7 @@ end
 // sends a pushed response on the promised (even-numbered) stream.
 // All frames are appended to `out`.
 
-func simulateServerPush(Buffer out, Connection conn, int parentStreamId,
+func simulateServerPush(Buffer outputValue, Connection conn, int parentStreamId,
                         int promisedStreamId, var requestHeaders,
                         var pushPromiseHeaders, var pushResponseHeaders,
                         string pushResponseData) as (int, Connection)
@@ -1377,11 +1369,11 @@ func simulateServerPush(Buffer out, Connection conn, int parentStreamId,
     HpackEncoder enc = HpackEncoder()
     encodeHeadersBlock(enc, hp, pushPromiseHeaders)
     int hpLen = hp.len()
-    appendFrameHeader(out, 4 + hpLen, FT_PUSH_PROMISE, FH_END_HEADERS, parentStreamId)
-    putBe31(out, promisedStreamId)
+    appendFrameHeader(outputValue, 4 + hpLen, FT_PUSH_PROMISE, FH_END_HEADERS, parentStreamId)
+    putBe31(outputValue, promisedStreamId)
     int i = 0
     while i < hpLen do
-        out.appendByte(hp.byteAt(i))
+        outputValue.appendByte(hp.byteAt(i))
         i += 1
     end
 
@@ -1392,7 +1384,7 @@ func simulateServerPush(Buffer out, Connection conn, int parentStreamId,
     pushStream.remoteClosed = true
 
     // 4. Send pushed response HEADERS on the push stream
-    appendHeadersFrame(out, promisedStreamId, FH_END_HEADERS, pushResponseHeaders)
+    appendHeadersFrame(outputValue, promisedStreamId, FH_END_HEADERS, pushResponseHeaders)
     pushStream.onSendHeaders(false)
 
     // 5. Send pushed response DATA on the push stream
@@ -1402,11 +1394,11 @@ func simulateServerPush(Buffer out, Connection conn, int parentStreamId,
     if dataLen > 0 then
         pushStream.onSendData(dataLen, true)
         conn.consumeSendCredit(promisedStreamId, dataLen)
-        appendDataFrame(out, promisedStreamId, FH_END_STREAM, dataPayload)
+        appendDataFrame(outputValue, promisedStreamId, FH_END_STREAM, dataPayload)
     else
         // No data: just send END_STREAM via empty HEADERS or a zero-length DATA
         Buffer empty = Buffer()
-        appendDataFrame(out, promisedStreamId, FH_END_STREAM, empty)
+        appendDataFrame(outputValue, promisedStreamId, FH_END_STREAM, empty)
     end
 
     // write back the mutated push stream (value semantics)
@@ -1433,15 +1425,15 @@ end
 
 // Write the client connection preface + initial SETTINGS frame into `out`.
 
-func appendConnectionPreface(Buffer out)
-    putText(out, H2_CLIENT_PREFACE)
+func appendConnectionPreface(Buffer outputValue)
+    putText(outputValue, H2_CLIENT_PREFACE)
     // Initial SETTINGS: HEADER_TABLE_SIZE=4096, ENABLE_PUSH=0, INITIAL_WINDOW_SIZE=65535
     array<int> settings = array[
         SET_HEADER_TABLE_SIZE, DEFAULT_HEADER_TABLE,
         SET_ENABLE_PUSH, 0,
         SET_INITIAL_WINDOW_SIZE, DEFAULT_WINDOW
     ]
-    appendSettingsFrame(out, 0, settings)
+    appendSettingsFrame(outputValue, 0, settings)
 end
 
 
@@ -1451,13 +1443,13 @@ end
 // already containing HEADERS + DATA for that stream. They are interleaved
 // round-robin (one frame at a time per stream) to demonstrate multiplexing.
 
-func interleaveFrames(Buffer out, array<Frame> frames)
+func interleaveFrames(Buffer outputValue, array<Frame> frames)
     // Simple round-robin: just append all frames in order. Real HTTP/2
     // interleaves at the frame level, so the caller decides ordering.
     int i = 0
     while i < frames.length do
         Frame f = frames[i]
-        appendFrameHeader(out, f.length, f.frameType, f.flags, f.streamId)
+        appendFrameHeader(outputValue, f.length, f.frameType, f.flags, f.streamId)
         // Caller must have already written payload to out separately.
         i += 1
     end
@@ -1467,7 +1459,7 @@ end
 // `streamIds` and `dataChunks` are parallel arrays: for each pair, a DATA
 // frame is appended to `out`, interleaved one chunk at a time.
 
-func buildInterleavedData(Buffer out, array<int> streamIds, array<string> dataChunks, bool endStream)
+func buildInterleavedData(Buffer outputValue, array<int> streamIds, array<string> dataChunks, bool endStream)
     int n = streamIds.length
     int i = 0
     while i < n do
@@ -1477,7 +1469,7 @@ func buildInterleavedData(Buffer out, array<int> streamIds, array<string> dataCh
         if endStream then
             flags = FH_END_STREAM
         end
-        appendDataFrame(out, streamIds[i], flags, payload)
+        appendDataFrame(outputValue, streamIds[i], flags, payload)
         i += 1
     end
 end
@@ -1719,19 +1711,19 @@ func testFrameCodec() as int
     section("Frame encode/decode roundtrip")
 
     // --- DATA frame ---
-    Buffer out = Buffer()
+    Buffer outputValue = Buffer()
     Buffer payload = Buffer()
     payload.append("Hello, HTTP/2!")
-    appendDataFrame(out, 1, FH_END_STREAM, payload)
-    check("DATA frame total len = 9 + 14 = 23", out.len() == 23)
+    appendDataFrame(outputValue, 1, FH_END_STREAM, payload)
+    check("DATA frame total len = 9 + 14 = 23", outputValue.len() == 23)
 
     Frame f = Frame()
-    int next = f.parse(out, 0)
+    int next = f.parse(outputValue, 0)
     bool dataOk = f.valid and f.frameType == FT_DATA and f.flags == FH_END_STREAM
     dataOk = dataOk and f.streamId == 1 and f.length == 14 and next == 23
     check("DATA frame parsed correctly", dataOk)
     check("DATA payload offset = 9", f.payloadOffset == 9)
-    check("DATA payload text", bytesToStr(out, f.payloadOffset, f.length) == "Hello, HTTP/2!")
+    check("DATA payload text", bytesToStr(outputValue, f.payloadOffset, f.length) == "Hello, HTTP/2!")
 
     // --- HEADERS frame with HPACK ---
     Buffer out2 = Buffer()
@@ -1869,28 +1861,28 @@ end
 func testFrameHeaderBits() as int
     section("Frame header bit packing (24-bit length, 31-bit stream ID)")
 
-    Buffer out = Buffer()
+    Buffer outputValue = Buffer()
     // Large length: 0x123456 (1193046), type=DATA, flags=0xFF, stream=0x7FFFFFFF
-    appendFrameHeader(out, 0x123456, FT_DATA, 0xFF, 0x7FFFFFFF)
-    check("header is 9 bytes", out.len() == 9)
+    appendFrameHeader(outputValue, 0x123456, FT_DATA, 0xFF, 0x7FFFFFFF)
+    check("header is 9 bytes", outputValue.len() == 9)
 
     // Verify each field
-    int len = rdU24BE(out, 0)
-    int typ = out.byteAt(3) & 0xFF
-    int flg = out.byteAt(4) & 0xFF
-    int sid = rdU31BE(out, 5)
+    int len = rdU24BE(outputValue, 0)
+    int typ = outputValue.byteAt(3) & 0xFF
+    int flg = outputValue.byteAt(4) & 0xFF
+    int sid = rdU31BE(outputValue, 5)
     check("length field = 0x123456", len == 0x123456)
     check("type field = DATA(0)", typ == FT_DATA)
     check("flags field = 0xFF", flg == 0xFF)
     check("stream ID = 0x7FFFFFFF (31-bit max)", sid == 0x7FFFFFFF)
 
     // Verify reserved bit (bit 0 of byte 5) is always 0
-    int rawByte5 = out.byteAt(5) & 0xFF
+    int rawByte5 = outputValue.byteAt(5) & 0xFF
     check("reserved bit is 0", (rawByte5 & 0x80) == 0)
 
     // Roundtrip: encode then parse
     Frame f = Frame()
-    f.parse(out, 0)
+    f.parse(outputValue, 0)
     check("roundtrip length", f.length == 0x123456)
     check("roundtrip type", f.frameType == FT_DATA)
     check("roundtrip flags", f.flags == 0xFF)
@@ -2183,16 +2175,16 @@ end
 func testConnectionPreface() as int
     section("HTTP/2 connection preface")
 
-    Buffer out = Buffer()
-    appendConnectionPreface(out)
+    Buffer outputValue = Buffer()
+    appendConnectionPreface(outputValue)
 
     // First 24 bytes should be the magic preface string
-    string preface = bytesToStr(out, 0, PREFACE_LEN)
+    string preface = bytesToStr(outputValue, 0, PREFACE_LEN)
     check("preface magic correct", preface == H2_CLIENT_PREFACE)
 
     // After preface, there should be a SETTINGS frame
     Frame f = Frame()
-    int r = f.parse(out, PREFACE_LEN)
+    int r = f.parse(outputValue, PREFACE_LEN)
     bool ok = r > 0 and f.frameType == FT_SETTINGS and f.streamId == 0
     check("SETTINGS frame follows preface", ok)
 
@@ -2201,7 +2193,7 @@ func testConnectionPreface() as int
     check("SETTINGS has 3 pairs", nPairs == 3)
 
     // skipPreface detection
-    int skip = skipPreface(out)
+    int skip = skipPreface(outputValue)
     check("skipPreface returns 24", skip == PREFACE_LEN)
 
     // Buffer without preface
@@ -2330,18 +2322,18 @@ end
 func testPriorityFrame() as int
     section("PRIORITY frame encode/decode")
 
-    Buffer out = Buffer()
+    Buffer outputValue = Buffer()
     // exclusive=true, dependency=5, weight=201
-    appendPriorityFrame(out, 3, true, 5, 201)
+    appendPriorityFrame(outputValue, 3, true, 5, 201)
     Frame f = Frame()
-    f.parse(out, 0)
+    f.parse(outputValue, 0)
 
     bool ok = f.valid and f.frameType == FT_PRIORITY and f.length == 5
     ok = ok and f.streamId == 3
-    int depWord = rdU32BE(out, f.payloadOffset)
+    int depWord = rdU32BE(outputValue, f.payloadOffset)
     bool excl = (depWord & 0x80000000) != 0
     int dep = depWord & 0x7FFFFFFF
-    int weight = out.byteAt(f.payloadOffset + 4) & 0xFF
+    int weight = outputValue.byteAt(f.payloadOffset + 4) & 0xFF
     ok = ok and excl and dep == 5 and weight == 201
     check("PRIORITY frame parsed (excl, dep=5, weight=201)", ok)
 
@@ -2436,10 +2428,10 @@ func cmdEncodeHeaders(string jsonStr) as int
         return 1
     end
     var headers = json.parse(jsonStr)
-    Buffer out = Buffer()
+    Buffer outputValue = Buffer()
     HpackEncoder enc = HpackEncoder()
-    encodeHeadersBlock(enc, out, headers)
-    println(codec.hexEncodeBytes(out.data(), c_size(out.len())))
+    encodeHeadersBlock(enc, outputValue, headers)
+    println(codec.hexEncodeBytes(outputValue.data(), c_size(outputValue.len())))
     return 0
 end
 
@@ -2478,7 +2470,7 @@ func cmdDecodeFrames(string path) as int
         println(frameTypeName(f.frameType)
              + "  len=" + string(f.length)
              + "  stream=" + string(f.streamId)
-             + "  flags=0x" + string.formatInt(f.flags, "x2"))
+             + "  flags=0x" + int.format(f.flags, "x2"))
         println("  " + flagString(f.frameType, f.flags))
 
         // Type-specific payload decoding
@@ -2496,8 +2488,8 @@ func cmdDecodeFrames(string path) as int
             println("    increment = " + string(inc))
         elseif f.frameType == FT_PING and f.length >= 8 then
             int64 data = rdU64BE(buf, f.payloadOffset)
-            println("    opaque = 0x" + string.formatInt(int((data >> 32) & 0xFFFFFFFF), "x8")
-                + string.formatInt(int(data & 0xFFFFFFFF), "x8"))
+            println("    opaque = 0x" + int.format(int((data >> 32) & 0xFFFFFFFF), "x8")
+                + int.format(int(data & 0xFFFFFFFF), "x8"))
         elseif f.frameType == FT_GOAWAY and f.length >= 8 then
             int lastSid = rdU31BE(buf, f.payloadOffset)
             int ec = rdU32BE(buf, f.payloadOffset + 4)

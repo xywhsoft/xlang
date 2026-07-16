@@ -82,7 +82,6 @@ extern "abidemo_extern_fn" func xlExternFn(int a, int b) as int
 
 int g_pass = 0
 int g_fail = 0
-int g_skip = 0
 string g_xl = ""
 string g_selfSource = ""
 
@@ -94,11 +93,6 @@ end
 func bad(string label, string detail)
     g_fail += 1
     println("  [FAIL] " + label + " :: " + detail)
-end
-
-func skip(string label, string reason)
-    g_skip += 1
-    println("  [SKIP] " + label + " (" + reason + ")")
 end
 
 func expectEq(int got, int want, string label)
@@ -123,11 +117,15 @@ func findXl() as string
     if file.exists(c1) then
         return c1
     end
-    string c2 = path.join(path.appDir(), "xl.exe")
+    string c2 = path.join(path.cwd(), "release", "xl.exe")
     if file.exists(c2) then
         return c2
     end
-    return ""
+    string c3 = path.join(path.appDir(), "xl.exe")
+    if file.exists(c3) then
+        return c3
+    end
+    return "xl"
 end
 
 // 定位被测源码 abidemo.xl：
@@ -141,6 +139,10 @@ func findSelfSource(string arg0) as string
     string rel = path.join(path.cwd(), r"projects\dev\abidemo\abidemo.xl")
     if file.exists(rel) then
         return rel
+    end
+    string fromDemo = path.join(path.cwd(), r"release\projects\dev\abidemo\abidemo.xl")
+    if file.exists(fromDemo) then
+        return fromDemo
     end
     string beside = path.join(path.appDir(), "abidemo.xl")
     if file.exists(beside) then
@@ -171,57 +173,63 @@ func findSymByCExport(var symbols, string cName) as var
 end
 
 func runAbiJson() as string
-    if string.len(g_xl) == 0 or string.len(g_selfSource) == 0 then
+    if string.len(g_selfSource) == 0 then
+        bad("ABI JSON generation", "abidemo.xl source not found")
         return ""
     end
-    string outPath = path.join(path.temp(), "abidemo.abi.json")
-    string cmd = g_xl + " abi " + g_selfSource + " --json --emit " + outPath
-    ProcessResult r = process.run(cmd, 30000)
+    string outPath = path.join(path.temp(), path.random("abidemo_", ".abi.json"))
+    ProcessResult r = process.runFile(g_xl, ["abi", g_selfSource, "--json", "--emit", outPath], 30000)
     if r.exitCode != 0 then
-        println("  [WARN] xl abi --json exit=" + string(r.exitCode) + " stderr=" + string.trim(r.stderr))
+        bad("ABI JSON generation", "exit=" + string(r.exitCode) + " stderr=" + string.trim(r.stderr))
         return ""
     end
     if not file.exists(outPath) then
-        println("  [WARN] xl abi --json did not emit " + outPath)
+        bad("ABI JSON generation", "output file was not created")
         return ""
     end
-    return file.readText(outPath)
+    string text = file.readText(outPath)
+    file.delete(outPath)
+    return text
 end
 
 func runAbiTxt() as string
-    if string.len(g_xl) == 0 or string.len(g_selfSource) == 0 then
+    if string.len(g_selfSource) == 0 then
+        bad("ABI text generation", "abidemo.xl source not found")
         return ""
     end
-    string outPath = path.join(path.temp(), "abidemo.abi.txt")
-    string cmd = g_xl + " abi " + g_selfSource + " --emit " + outPath
-    ProcessResult r = process.run(cmd, 30000)
+    string outPath = path.join(path.temp(), path.random("abidemo_", ".abi.txt"))
+    ProcessResult r = process.runFile(g_xl, ["abi", g_selfSource, "--emit", outPath], 30000)
     if r.exitCode != 0 then
-        println("  [WARN] xl abi exit=" + string(r.exitCode) + " stderr=" + string.trim(r.stderr))
+        bad("ABI text generation", "exit=" + string(r.exitCode) + " stderr=" + string.trim(r.stderr))
         return ""
     end
     if not file.exists(outPath) then
-        println("  [WARN] xl abi did not emit " + outPath)
+        bad("ABI text generation", "output file was not created")
         return ""
     end
-    return file.readText(outPath)
+    string text = file.readText(outPath)
+    file.delete(outPath)
+    return text
 end
 
 func runHeader() as string
-    if string.len(g_xl) == 0 or string.len(g_selfSource) == 0 then
+    if string.len(g_selfSource) == 0 then
+        bad("C header generation", "abidemo.xl source not found")
         return ""
     end
-    string outPath = path.join(path.temp(), "abidemo.h")
-    string cmd = g_xl + " cgen " + g_selfSource + " --emit-header " + outPath
-    ProcessResult r = process.run(cmd, 30000)
+    string outPath = path.join(path.temp(), path.random("abidemo_", ".h"))
+    ProcessResult r = process.runFile(g_xl, ["cgen", g_selfSource, "--emit-header", outPath], 30000)
     if r.exitCode != 0 then
-        println("  [WARN] xl cgen --emit-header exit=" + string(r.exitCode) + " stderr=" + string.trim(r.stderr))
+        bad("C header generation", "exit=" + string(r.exitCode) + " stderr=" + string.trim(r.stderr))
         return ""
     end
     if not file.exists(outPath) then
-        println("  [WARN] xl cgen --emit-header did not emit " + outPath)
+        bad("C header generation", "output file was not created")
         return ""
     end
-    return file.readText(outPath)
+    string text = file.readText(outPath)
+    file.delete(outPath)
+    return text
 end
 
 // 单个符号的 JSON 字段断言
@@ -241,7 +249,7 @@ end
 func testAbiJson(string abiJson)
     println("[9] ABI JSON metadata")
     if string.byteLen(abiJson) == 0 then
-        skip("ABI JSON", "xl.exe or source not available")
+        bad("ABI JSON", "metadata is empty")
         return
     end
 
@@ -353,7 +361,7 @@ end
 func testAbiTxt(string abiTxt)
     println("[10] ABI TXT metadata")
     if string.byteLen(abiTxt) == 0 then
-        skip("ABI TXT", "xl.exe or source not available")
+        bad("ABI TXT", "metadata is empty")
         return
     end
 
@@ -424,7 +432,7 @@ end
 func testHeader(string header)
     println("[11] C header (--emit-header)")
     if string.byteLen(header) == 0 then
-        skip("C header", "xl.exe or source not available")
+        bad("C header", "header is empty")
         return
     end
 
@@ -553,13 +561,9 @@ func main(...) as int
     end
     g_selfSource = findSelfSource(arg0)
 
-    if string.len(g_xl) == 0 then
-        println("[WARN] xl.exe not found; ABI metadata tests will be skipped")
-    else
-        println("  xl.exe      = " + g_xl)
-    end
+    println("  compiler    = " + g_xl)
     if string.len(g_selfSource) == 0 then
-        println("[WARN] abidemo.xl source not found; ABI metadata tests will be skipped")
+        bad("source discovery", "abidemo.xl source not found")
     else
         println("  source      = " + g_selfSource)
     end
@@ -583,8 +587,7 @@ func main(...) as int
 
     println("")
     println("=== abidemo done: passed=" + string(g_pass) +
-            " failed=" + string(g_fail) +
-            " skipped=" + string(g_skip) + " ===")
+            " failed=" + string(g_fail) + " ===")
     if g_fail == 0 then
         println("ALL CHECKS PASSED")
     end

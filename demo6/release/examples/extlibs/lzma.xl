@@ -17,12 +17,19 @@ file.delete(outPath)
 assert lzma.version() == "lzma 0.1.0", "lzma version mismatch"
 string packedHex = lzma.compress_hex(sample)
 string packedLevelHex = lzma.compress_hex_level(sample, 1)
+string packedAliasHex = lzma.compress(sample)
+string packedLevelAliasHex = lzma.compress(sample, 1)
 assert string.len(packedHex) > 0, "lzma compress_hex failed"
 assert string.len(packedLevelHex) > 0, "lzma compress_hex_level failed"
+assert string.len(packedAliasHex) > 0, "lzma compress alias failed"
+assert string.len(packedLevelAliasHex) > 0, "lzma compress level alias failed"
 assert lzma.decompress_hex(packedHex) == sample, "lzma decompress_hex mismatch"
 assert lzma.decompress_hex(packedLevelHex) == sample, "lzma decompress_hex_level mismatch"
+assert lzma.decompress(packedAliasHex) == sample, "lzma decompress alias mismatch"
+assert lzma.decompress(packedLevelAliasHex) == sample, "lzma decompress level alias mismatch"
 assert lzma.compress_file(srcPath, packedPath) != 0, "lzma compress_file failed"
 assert lzma.compress_file_level(srcPath, packedLevelPath, 1) != 0, "lzma compress_file_level failed"
+assert lzma.compress_file(srcPath, packedLevelPath, 1) != 0, "lzma compress_file level alias failed"
 assert lzma.decompress_file(packedLevelPath, outPath) != 0, "lzma decompress_file failed"
 assert file.readText(outPath) == sample, "lzma file round trip mismatch"
 assert string.len(lzma.last_error()) >= 0, "lzma last_error should return a string"

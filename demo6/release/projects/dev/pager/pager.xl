@@ -38,7 +38,7 @@
 // 通用格式化
 // ============================================================
 func fmt2(float v) as string
-    return string.formatFloat(v, ".2")
+    return float.format(v, ".2")
 end
 
 // 百分比: part/total, total=0 时显示 0.00%.
@@ -179,14 +179,14 @@ class PageTable
 
     // 返回当前驻留页号集合的拷贝 (供置换算法遍历).
     func residentPages() as array<int>
-        array<int> out = array[]
+        array<int> outputValue = array[]
         int n = self.pages.length
         int i = 0
         while i < n do
-            out.append(self.pages[i])
+            outputValue.append(self.pages[i])
             i += 1
         end
-        return out
+        return outputValue
     end
 
     // 当前有效的页目录项数 (至少有一个驻留页的目录槽个数).

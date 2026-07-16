@@ -18,6 +18,8 @@ int main(void)
 {
     xtstack stack = NULL;
     xtavltree tree = NULL;
+    xtqueue spsc = NULL;
+    xtqueue mpsc = NULL;
     xtqueue queue = NULL;
     xtqueue waits = NULL;
     xtarray keys = NULL;
@@ -50,9 +52,27 @@ int main(void)
         strcmp(*(const char**)xrtTypedArrayGet(keys, 1u), "a") == 0 &&
         strcmp(*(const char**)xrtTypedArrayGet(keys, 2u), "b") == 0);
 
+    spsc = xrtTypedQueueCreate(XRT_TYPED_QUEUE_SPSC, xrtTypeInt(), 4u);
+    value = 0;
+    require_line(
+        "spsc",
+        spsc != NULL &&
+        xrtTypedQueueTryPush(spsc, &first) == XQUEUE_OK &&
+        xrtTypedQueueTryPop(spsc, &value) == XQUEUE_OK &&
+        value == first);
+
+    mpsc = xrtTypedQueueCreate(XRT_TYPED_QUEUE_MPSC, xrtTypeInt(), 4u);
+    value = 0;
+    require_line(
+        "mpsc",
+        mpsc != NULL &&
+        xrtTypedQueueTryPush(mpsc, &second) == XQUEUE_OK &&
+        xrtTypedQueueTryPop(mpsc, &value) == XQUEUE_OK &&
+        value == second);
+
     queue = xrtTypedQueueCreate(XRT_TYPED_QUEUE_MPMC, xrtTypeString(), 8u);
     require_line(
-        "queue",
+        "mpmc",
         queue != NULL &&
         xrtTypedQueueTryPush(queue, &hello) == XQUEUE_OK &&
         xrtTypedQueueTryPop(queue, &text) == XQUEUE_OK &&
@@ -69,6 +89,8 @@ int main(void)
 
     xrtTypedQueueRelease(waits);
     xrtTypedQueueRelease(queue);
+    xrtTypedQueueRelease(mpsc);
+    xrtTypedQueueRelease(spsc);
     xrtTypedArrayRelease(keys);
     xrtTypedAvlTreeRelease(tree);
     xrtTypedStackRelease(stack);

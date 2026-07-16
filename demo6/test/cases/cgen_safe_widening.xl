@@ -20,6 +20,12 @@ float wideFloat = f32
 int boolInt = true
 float boolFloat = false
 
+int64 arithmeticBase = 7
+int64 arithmeticAdd = arithmeticBase + 2
+int64 arithmeticMixed = arithmeticBase * wideInt
+int64 arithmeticShift = arithmeticBase << 3
+uint64 arithmeticMask = u64 & 0x07
+
 expect(i16, -8)
 expect(i32, -8)
 expect(i64, -8)
@@ -33,3 +39,7 @@ expect(f64 == 1.5, 1)
 expect(wideFloat == 1.5, 1)
 expect(boolInt, 1)
 expect(boolFloat == 0.0, 1)
+expect(arithmeticAdd, 9)
+expect(arithmeticMixed, -56)
+expect(arithmeticShift, 56)
+expect(int(arithmeticMask), 0)

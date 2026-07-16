@@ -5,7 +5,7 @@
 //   xl run stats.xl -- 1 2 3 4 5 6 7 8 9 10
 //   xl run stats.xl -- -f data.txt
 //
-// 数字一律按 float 收集 (list<float> + 索引赋值扩容)。
+// 数字一律按 float 收集到静态泛型数组。
 // math 标准库没有 sum/mean，所有聚合手写循环。
 
 // 把 float 格式化为人类友好字符串：整数落点显示为整数，否则原样。
@@ -22,7 +22,7 @@ func line(string label, string value) as string
 end
 
 // 选择排序 (原地, 升序)。
-func sortFloats(list<float> data)
+func sortFloats(array<float> data)
     int n = data.length
     int i = 0
     while i < n do
@@ -50,8 +50,7 @@ func main(...) as int
         return 1
     end
 
-    list<float> data
-    int count = 0
+    array<float> data = array<float>[]
     string first = string(arg[1])
 
     if first == "-f" then
@@ -70,20 +69,19 @@ func main(...) as int
         while li < lines.length do
             string s = string.trim(string(lines[li]))
             if string.len(s) > 0 then
-                data[count] = float(s)
-                count += 1
+                data.push(float(s))
             end
             li += 1
         end
     else
         int ai = 1
         while ai < arg.length do
-            data[count] = float(string(arg[ai]))
-            count += 1
+            data.push(float(string(arg[ai])))
             ai += 1
         end
     end
 
+    int count = data.length
     if count == 0 then
         println("error: no numbers to compute")
         return 1

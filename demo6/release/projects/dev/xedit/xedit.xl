@@ -48,8 +48,8 @@
 //   quit                         停止执行脚本
 //
 // 设计说明：
-//   - EditOp / TextBuffer 用 class + derive value：值语义，函数间传递为副本。
-//   - 多缓冲区用 array<TextBuffer> 全局池 + g_currentIdx 索引；修改时取出副本、改完写回。
+//   - EditOp / TextBuffer 使用受管理 class 引用；所有实例都显式构造。
+//   - 多缓冲区用 array<TextBuffer> 全局池 + g_currentIdx 索引，当前缓冲区直接原地修改。
 //   - 撤销/重做：每个编辑操作构造 EditOp 入 undoStack；undo 弹栈执行逆操作并入 redoStack。
 //   - 正则搜索：regex.isMatch 逐行匹配；替换用 regex.match 定位、手动拼接重建字符串。
 //   - 语法高亮：逐行扫描，识别注释/字符串/数字/关键字/类型名，输出 ANSI SGR 着色文本。
@@ -89,9 +89,9 @@ string C_GRAY = "\x1b[90m"
 // 语法高亮关键字表
 // ============================================================================
 
-string g_xlangKeywords = " func end if then elseif else for while do return class create base and or not in is as break continue try catch finally throw assert const derive typedef union export extern import package let get new enum switch case default public private protected static virtual override final property "
+string g_xlangKeywords = " func const var auto typedef as if then else elseif end for in is while do break continue return async await yield try catch finally throw assert import export extern include define class extends union derive get let public private protected static native virtual override final byval byref out and or not self base create destroy "
 
-string g_xlangTypes = " int float string bool void array dict set list var auto uint64 point "
+string g_xlangTypes = " bool int int8 uint8 int16 uint16 int32 uint32 int64 uint64 float float32 float64 string time point func array list set dict type object "
 
 string g_xlangLiterals = " true false null "
 
@@ -452,8 +452,6 @@ end
 // ============================================================================
 
 class TextBuffer
-    derive value
-
     array<string> lines = array[]
     int cursorRow = 0
     int cursorCol = 0
@@ -613,7 +611,7 @@ class TextBuffer
     // ===== 带撤销的编辑操作 =====
 
     func insertLine(int idx, string text)
-        EditOp op
+        EditOp op = EditOp()
         op.opType = OP_INSERT_LINE
         op.row = idx
         op.col = 0
@@ -629,7 +627,7 @@ class TextBuffer
             return ""
         end
         string text = self.lines[idx]
-        EditOp op
+        EditOp op = EditOp()
         op.opType = OP_DELETE_LINE
         op.row = idx
         op.col = 0
@@ -649,7 +647,7 @@ class TextBuffer
         if old == text then
             return
         end
-        EditOp op
+        EditOp op = EditOp()
         op.opType = OP_REPLACE
         op.row = idx
         op.col = 0
@@ -665,7 +663,7 @@ class TextBuffer
         if string.isEmpty(ch) then
             return
         end
-        EditOp op
+        EditOp op = EditOp()
         op.opType = OP_INSERT_CHAR
         op.row = row
         op.col = col
@@ -681,7 +679,7 @@ class TextBuffer
         if string.isEmpty(deleted) then
             return ""
         end
-        EditOp op
+        EditOp op = EditOp()
         op.opType = OP_DELETE_CHAR
         op.row = row
         op.col = col
@@ -1086,18 +1084,6 @@ func curBuffer() as TextBuffer
     return g_buffers[g_currentIdx]
 end
 
-func putBuffer(TextBuffer buf)
-    if g_buffers.length == 0 then
-        g_buffers.push(buf)
-        g_currentIdx = 0
-        return
-    end
-    if g_currentIdx < 0 or g_currentIdx >= g_buffers.length then
-        g_currentIdx = 0
-    end
-    g_buffers[g_currentIdx] = buf
-end
-
 func newBufferWithName(string name) as int
     TextBuffer buf = TextBuffer()
     buf.filename = name
@@ -1208,7 +1194,6 @@ func cmdSave(array<string> args) as int
         return 1
     end
     if buf.saveAs(target) then
-        putBuffer(buf)
         println("saved " + string(buf.lineCount()) + " lines to " + target)
         return 0
     else
@@ -1241,7 +1226,6 @@ func cmdInsert(array<string> args) as int
         idx = buf.lineCount()
     end
     buf.insertLine(idx, text)
-    putBuffer(buf)
     println("inserted at line " + string(lineNum) + ": " + text)
     return 0
 end
@@ -1257,7 +1241,6 @@ func cmdAppend(array<string> args) as int
     TextBuffer buf = curBuffer()
     int idx = buf.lineCount()
     buf.insertLine(idx, text)
-    putBuffer(buf)
     println("appended: " + text)
     return 0
 end
@@ -1283,7 +1266,6 @@ func cmdDelete(array<string> args) as int
         return 1
     end
     string deleted = buf.deleteLine(idx)
-    putBuffer(buf)
     println("deleted line " + string(lineNum) + ": " + deleted)
     return 0
 end
@@ -1310,7 +1292,6 @@ func cmdSet(array<string> args) as int
         return 1
     end
     buf.setLine(idx, text)
-    putBuffer(buf)
     println("set line " + string(lineNum) + ": " + text)
     return 0
 end
@@ -1360,7 +1341,6 @@ func cmdReplace(array<string> args) as int
     string to = args[start + 1]
     TextBuffer buf = curBuffer()
     int count = buf.replaceAllPattern(from, to, ignoreCase)
-    putBuffer(buf)
     println(string(count) + " line(s) replaced")
     return 0
 end
@@ -1384,7 +1364,6 @@ func cmdReplaceOne(array<string> args) as int
     string to = args[start + 1]
     TextBuffer buf = curBuffer()
     int count = buf.replaceFirstPattern(from, to, ignoreCase)
-    putBuffer(buf)
     println(string(count) + " line(s) replaced (first match per line)")
     return 0
 end
@@ -1398,7 +1377,6 @@ func cmdUndo(array<string> args) as int
         return 0
     end
     buf.undo()
-    putBuffer(buf)
     println("undo (" + string(buf.undoCount()) + " remaining)")
     return 0
 end
@@ -1412,7 +1390,6 @@ func cmdRedo(array<string> args) as int
         return 0
     end
     buf.redo()
-    putBuffer(buf)
     println("redo (" + string(buf.redoCount()) + " remaining)")
     return 0
 end
@@ -1514,7 +1491,6 @@ func cmdGoto(array<string> args) as int
         idx = buf.lineCount() - 1
     end
     buf.cursorGoto(idx, 0)
-    putBuffer(buf)
     println("cursor at line " + string(idx + 1))
     return 0
 end
@@ -1537,7 +1513,6 @@ func cmdCursor(array<string> args) as int
     end
     TextBuffer buf = curBuffer()
     buf.cursorGoto(r, c)
-    putBuffer(buf)
     println("cursor at row=" + string(r) + " col=" + string(c))
     return 0
 end
@@ -1603,7 +1578,6 @@ func cmdClearHistory(array<string> args) as int
     int u = buf.undoCount()
     int r = buf.redoCount()
     buf.clearHistory()
-    putBuffer(buf)
     println("cleared " + string(u) + " undo + " + string(r) + " redo entries")
     return 0
 end
@@ -1632,7 +1606,6 @@ func cmdCursorMove(string direction) as int
         println("error: unknown cursor direction: " + direction)
         return 1
     end
-    putBuffer(buf)
     println("cursor at row=" + string(buf.cursorRow) + " col=" + string(buf.cursorCol))
     return 0
 end
@@ -2145,7 +2118,7 @@ func testHighlight()
     testAssert("empty line empty", hl5 == "")
 
     string hl6 = highlightLine("var data = 42")
-    testAssert("var typed as type word", string.contains(hl6, C_BLUE))
+    testAssert("var colored as keyword", string.contains(hl6, C_CYAN))
 
     string hl7 = highlightLine("if x == true then")
     testAssert("true colored as literal", string.contains(hl7, C_MAGENTA))

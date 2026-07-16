@@ -415,8 +415,19 @@ static void xl6CgenFuncSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
 
 static void xl6CgenFunctionValueSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode, const char* suffix)
 {
+    const XL6_AstNode* nameNode;
+    const XL6_AstNode* params;
+    const XL6_AstNode* returns;
+
     xl6OutputPuts("xl6_fnvalue_", ctx->out);
     xl6CgenFuncSymbol(ctx, funcNode);
+    nameNode = funcNode != NULL && funcNode->childCount > 0 ? funcNode->children[0] : NULL;
+    if ( nameNode != NULL && nameNode->text != NULL && strncmp(nameNode->text, "__xl_std_", 9) == 0 ) {
+        /* 标准库函数可重载；签名后缀保证其 function adapter 不共享 C 符号。 */
+        params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
+        returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
+        xl6OutputPrintf(ctx->out, "_sig%016llX", xl6CgenFunctionSignatureId(ctx, params, returns));
+    }
     xl6OutputPuts(suffix != NULL ? suffix : "", ctx->out);
 }
 
@@ -437,8 +448,21 @@ static void xl6CgenCallableTargetSymbol(XL6_CgenContext* ctx, const XL6_AstNode*
 
 static void xl6CgenFunctionValueAdapterSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode, int paramCount, int includeVararg, const char* suffix)
 {
+    const XL6_AstNode* nameNode;
+    const XL6_AstNode* params;
+    const XL6_AstNode* returns;
+
     xl6OutputPuts("xl6_fnvalue_", ctx->out);
     xl6CgenFuncSymbol(ctx, funcNode);
+    nameNode = funcNode != NULL && funcNode->childCount > 0 ? funcNode->children[0] : NULL;
+    if ( nameNode != NULL && nameNode->text != NULL && strncmp(nameNode->text, "__xl_std_", 9) == 0 ) {
+        params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
+        returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
+        xl6OutputPrintf(
+            ctx->out,
+            "_sig%016llX",
+            xl6CgenFunctionSignatureIdForPrefix(ctx, params, returns, (size_t)paramCount, includeVararg));
+    }
     xl6OutputPrintf(ctx->out, "_arity%d", paramCount);
     if ( includeVararg ) {
         xl6OutputPuts("_vararg", ctx->out);

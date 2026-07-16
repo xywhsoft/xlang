@@ -1,6 +1,6 @@
 import stb_image
 
-string imagePath = "release/examples/extlibs/assets/tiny.png"
+string imagePath = "examples/extlibs/assets/tiny.png"
 
 assert stb_image.available(), "stb_image available failed"
 assert stb_image.version() == "stb_image 2.30", "stb_image version mismatch"

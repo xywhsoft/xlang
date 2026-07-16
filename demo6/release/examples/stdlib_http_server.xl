@@ -192,9 +192,9 @@ file.writeText("examples_out/example_http_static/index.txt", "static from xlang"
 file.writeText("examples_out/example_http_static/home.txt", "static ex from xlang")
 
 point server = http.server.create(0, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 1)
-point tlsProbe = http.server.createTls("release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem", 0)
+point tlsProbe = http.server.createTls("examples/fixtures/tls_cert.pem", "examples/fixtures/tls_key.pem", 0)
 assert tlsProbe != null, "createTls should create an HTTPS-capable server"
-assert http.server.tlsHost(tlsProbe, "127.0.0.1", "release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem"), "tlsHost should register an SNI certificate"
+assert http.server.tlsHost(tlsProbe, "127.0.0.1", "examples/fixtures/tls_cert.pem", "examples/fixtures/tls_key.pem"), "tlsHost should register an SNI certificate"
 assert http.server.removeTlsHost(tlsProbe, "127.0.0.1"), "removeTlsHost should remove an SNI certificate"
 http.server.destroy(tlsProbe)
 int staticFlags = http.server.allowDotfiles + http.server.allowBackslash

@@ -727,7 +727,7 @@ func emitIf(var s, int level) as string
         end
     end
 
-    var lines = []
+    array<string> lines = []
     lines.push(ind(level) + "if " + emitExpr(cond) + " then")
     appendBlockLines(lines, thenBlk, level + 1)
 
@@ -756,7 +756,7 @@ func emitWhile(var s, int level) as string
     var ch = nch(s)
     var cond = ch[0]
     var blk = ch[1]
-    var lines = []
+    array<string> lines = []
     lines.push(ind(level) + "while " + emitExpr(cond) + " do")
     appendBlockLines(lines, blk, level + 1)
     lines.push(ind(level) + "end")
@@ -767,7 +767,7 @@ func emitDoWhile(var s, int level) as string
     var ch = nch(s)
     var blk = ch[0]
     var cond = ch[1]
-    var lines = []
+    array<string> lines = []
     lines.push(ind(level) + "do")
     appendBlockLines(lines, blk, level + 1)
     lines.push(ind(level) + "while " + emitExpr(cond))
@@ -780,7 +780,7 @@ func emitFor(var s, int level) as string
     var iter = ch[1]
     var blk = ch[2]
     string ts = emitForTargets(targets)
-    var lines = []
+    array<string> lines = []
     lines.push(ind(level) + "for " + ts + " in " + emitExpr(iter))
     appendBlockLines(lines, blk, level + 1)
     lines.push(ind(level) + "end")
@@ -817,7 +817,7 @@ func emitTry(var s, int level) as string
         end
     end
 
-    var lines = []
+    array<string> lines = []
     lines.push(ind(level) + "try")
     appendBlockLines(lines, tryBlk, level + 1)
 
@@ -838,7 +838,7 @@ func emitTry(var s, int level) as string
 end
 
 // 把 block 下所有语句追加到 lines。
-func appendBlockLines(var lines, var blk, int level)
+func appendBlockLines(array<string> lines, var blk, int level)
     if blk is null then return end
     var ch = nch(blk)
     for st in ch
@@ -851,7 +851,7 @@ end
 
 // 发出 block（顶层调用）；返回多行字符串。
 func emitBlock(var blk, int level) as string
-    var lines = []
+    array<string> lines = []
     appendBlockLines(lines, blk, level)
     return string.join(lines, "\n")
 end
@@ -866,18 +866,18 @@ func emitDocStr(var d, int level) as string
     string raw = ndoc(d)
     if string.len(raw) == 0 then return "" end
     array<string> ds = splitLinesSafe(raw)
-    array<string> out = []
+    array<string> outputValue = []
     for ln in ds
-        out.push(ind(level) + ln)
+        outputValue.push(ind(level) + ln)
     end
-    return string.join(out, "\n")
+    return string.join(outputValue, "\n")
 end
 
 // 把 block 下所有语句发出为多行字符串。
 func emitBlockStr(var blk, int level) as string
     if blk is null then return "" end
     var ch = nch(blk)
-    var lines = []
+    array<string> lines = []
     for st in ch
         string s = emitStmt(st, level)
         if string.len(s) > 0 then lines.push(s) end
@@ -983,7 +983,7 @@ func emitFuncLike(var f, int level) as string
         end
     end
 
-    var lines = []
+    array<string> lines = []
     string docStr = emitDocStr(f, level)
     if string.len(docStr) > 0 then lines.push(docStr) end
 
@@ -1028,7 +1028,7 @@ func emitClassLike(var c, int level) as string
     string name = nt(c)
     var tp = childK(c, "type_params")
 
-    var lines = []
+    array<string> lines = []
     string docStrC = emitDocStr(c, level)
     if string.len(docStrC) > 0 then lines.push(docStrC) end
 
@@ -1149,7 +1149,7 @@ end
 // ============================================================================
 
 func emitModule(var root) as string
-    var lines = []
+    array<string> lines = []
     var ch = nch(root)
     int i = 0
     for d in ch
@@ -1188,12 +1188,11 @@ end
 func findXl() as string
     string c1 = path.join(path.cwd(), "xl.exe")
     if file.exists(c1) then return c1 end
-    string c2 = path.join(path.appDir(), "xl.exe")
+    string c2 = path.join(path.cwd(), "release", "xl.exe")
     if file.exists(c2) then return c2 end
-    string c3 = path.join(path.appDir(), "..", "..", "..")
-    c3 = path.join(c3, "xl.exe")
+    string c3 = path.join(path.appDir(), "xl.exe")
     if file.exists(c3) then return c3 end
-    return ""
+    return "xl"
 end
 
 // 对一个 .xl 文件取 AST 并重新格式化。失败返回 "" 并打印错误。
@@ -1207,11 +1206,8 @@ func formatFile(string filePath) as string
         return ""
     end
 
-    // BUG-XL6: process.run 不剥离命令中的引号，故使用绝对路径并避免加引号。
-    // BUG-XL6 描述只影响含空格路径；这里直接传 path.abs。
     string absFile = path.abs(filePath)
-    string cmd = g_xl + " parse " + absFile + " --format json"
-    ProcessResult r = process.run(cmd, 60000)
+    ProcessResult r = process.runFile(g_xl, ["parse", absFile, "--format", "json"], 60000)
     if not r.success or string.len(string.trim(r.stdout)) == 0 then
         println("xfmt: xl parse failed: " + string.trim(r.stderr))
         return ""
@@ -1260,6 +1256,10 @@ func runSelfTest() as int
     string casesDir = path.join(path.cwd(), "projects", "dev")
     casesDir = path.join(casesDir, "xfmt", "cases")
     if not dir.exists(casesDir) then
+        casesDir = path.join(path.cwd(), "release", "projects", "dev")
+        casesDir = path.join(casesDir, "xfmt", "cases")
+    end
+    if not dir.exists(casesDir) then
         casesDir = path.join(path.appDir(), "cases")
     end
     if not dir.exists(casesDir) then
@@ -1271,14 +1271,11 @@ func runSelfTest() as int
     println("")
 
     // ----- 1. 解析单测：基本运算符空格 -----
-    string src1 = "func f(int a, int b) as int\n    return a + b * 2\nend\n"
-    string want1 = "func f(int a, int b) as int\n    return a + b * 2\nend\n"
-    string out1 = ""
-    if file.exists(path.join(casesDir, "spaces.xl")) then
-        out1 = formatFile(path.join(casesDir, "spaces.xl"))
-    end
+    string spacesFile = path.join(casesDir, "spaces.xl")
+    string out1 = formatFile(spacesFile)
     if string.len(out1) == 0 then
-        println("  [SKIP] operator spacing (no fixture)")
+        fail += 1
+        println("  [FAIL] operator spacing (fixture could not be formatted)")
     elseif out1 == "func add(int a, int b) as int\n    return a + b * 2\nend\n" then
         pass += 1
         println("  [PASS] operator spacing (fixture)")
@@ -1288,11 +1285,7 @@ func runSelfTest() as int
     end
 
     // ----- 2. 缩进对齐单测：if / end -----
-    string ifSrc = "func g(int n) as int\n    if n > 0 then\n        return n\n    else\n        return -n\n    end\nend\n"
-    string ifOut = ""
-    if file.exists(path.join(casesDir, "indent.xl")) then
-        ifOut = formatFile(path.join(casesDir, "indent.xl"))
-    end
+    string ifOut = formatFile(path.join(casesDir, "indent.xl"))
     if string.len(ifOut) > 0 then
         bool okIf = string.contains(ifOut, "    if n > 0 then")
         if okIf then okIf = string.contains(ifOut, "        return n") end
@@ -1305,18 +1298,21 @@ func runSelfTest() as int
             println("  [FAIL] indent/end alignment (fixture)")
         end
     else
-        println("  [SKIP] indent/end alignment (no fixture)")
+        fail += 1
+        println("  [FAIL] indent/end alignment (fixture could not be formatted)")
     end
 
     // ----- 3. 幂等：格式化一次 = 格式化两次 -----
     string idemFile = path.join(casesDir, "messy.xl")
     if file.exists(idemFile) then
         string once = formatFile(idemFile)
-        // 把 once 写到临时文件再格式化一次
-        string tmpPath = path.join(casesDir, "_idem_tmp.xl")
-        file.writeText(tmpPath, once)
-        string twice = formatFile(tmpPath)
-        if once == twice then
+        string tmpPath = path.join(path.temp(), path.random("xfmt_", ".xl"))
+        bool wrote = string.len(once) > 0 and file.writeText(tmpPath, once)
+        string twice = ""
+        if wrote then
+            twice = formatFile(tmpPath)
+        end
+        if wrote and string.len(twice) > 0 and once == twice then
             pass += 1
             println("  [PASS] idempotent (format == format^2)")
         else
@@ -1335,7 +1331,8 @@ func runSelfTest() as int
         end
         file.delete(tmpPath)
     else
-        println("  [SKIP] idempotent (no messy.xl fixture)")
+        fail += 1
+        println("  [FAIL] idempotent (messy.xl fixture not found)")
     end
 
     println("")

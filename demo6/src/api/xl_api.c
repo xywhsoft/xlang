@@ -14,6 +14,7 @@
 #include "src/diag/xl6_diag.h"
 #include "src/ir/xl6_ir_dump.h"
 #include "src/lexer/xl6_lexer_api.h"
+#include "src/resource/xl6_win_resource.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +23,7 @@
 typedef int (*XL_XlangMainProc)(xvalue arg);
 typedef int (*XL_CMainProc)(int argc, char** argv);
 typedef int (*XL_ScriptHasErrorProc)(void);
+typedef int (*XL_ScriptModuleInitProc)(xvalue arg);
 typedef void (*XL_ScriptVoidProc)(void);
 
 #if defined(CONFIG_TCC_STATIC) && !defined(XL_STATIC_TCC)
@@ -90,6 +92,7 @@ struct XL_Context {
     XL_StringList includePaths;
     XL_StringList libraryPaths;
     XL_StringList linkLibraries;
+    XL_StringList resourceFiles;
     XL_CSymbol* symbols;
     size_t symbolCount;
     XL_LoadedLibrary* loadedLibraries;
@@ -101,6 +104,7 @@ struct XL_Context {
 struct XL_Module {
     TCCState* state;
     int ownsRuntimeRef;
+    int activated;
     XL_LoadedLibrary* loadedLibraries;
     size_t loadedLibraryCount;
     unsigned int activeCalls;
@@ -138,6 +142,7 @@ XL_API int xlcSetSaveTemps(XLC_Context* ctx, int enabled);
 XL_API int xlcAddIncludePath(XLC_Context* ctx, const char* path);
 XL_API int xlcAddLibraryPath(XLC_Context* ctx, const char* path);
 XL_API int xlcAddLinkLibrary(XLC_Context* ctx, const char* nameOrPath);
+XL_API int xlcAddResourceFile(XLC_Context* ctx, const char* path);
 XL_API int xlcAddCSourceFile(XLC_Context* ctx, const char* path);
 XL_API int xlcLoadDependencyLibrary(XLC_Context* ctx, const char* path);
 XL_API int xlcRegisterCFunction(XLC_Context* ctx, const char* symbolName, void* fn);
@@ -183,7 +188,9 @@ static int xl__runtimeContextCount = 0;
 #define XL_TCC_VFS_C_MODULE_C "__xlvfs__/c_module.c"
 #define XL_TCC_VFS_RUNTIME_C "__xlvfs__/runtime.c"
 #define XL_TCC_VFS_XRT_C "__xlvfs__/xrt_impl.c"
-#define XLC_MAX_C_SOURCE_FILES 32
+/* 官方大型 C 库通常包含上百个独立编译单元，限制只负责阻止异常输入。 */
+#define XLC_MAX_C_SOURCE_FILES 256
+#define XLC_MAX_RESOURCE_FILES 32
 
 /* DLL API 会修改全局 TCC 状态和进程 cwd，公开入口必须串行化。 */
 #ifdef _WIN32
@@ -1494,6 +1501,27 @@ static int xlMountDynamicTccText(XL_Context* ctx, const char* virtualPath, const
 #endif
 }
 
+static int xlMountDynamicTccBinary(XL_Context* ctx, const char* virtualPath, const void* data, size_t size)
+{
+#ifdef XL_STATIC_TCC_VFS
+    if ( virtualPath == NULL || virtualPath[0] == '\0' || (data == NULL && size != 0) ) {
+        xlSetError(ctx, "dynamic TCC VFS binary input is empty");
+        return 0;
+    }
+    if ( !tcc_vfs_mount_memory(virtualPath, data, size) ) {
+        xlSetError2(ctx, "cannot mount dynamic TCC VFS binary", virtualPath);
+        return 0;
+    }
+    return 1;
+#else
+    (void)virtualPath;
+    (void)data;
+    (void)size;
+    xlSetError(ctx, "dynamic TCC VFS is not available");
+    return 0;
+#endif
+}
+
 static int xlOutputNormalizedCIncludePath(XL_Context* ctx, XL6_Output* out, const char* path)
 {
     size_t i;
@@ -1691,6 +1719,54 @@ static int xlCompileAdditionalCSourceFiles(XL_Context* ctx, TCCState* s, XL6_Com
     return xlCompileAdditionalCSourceFilesVfs(ctx, s, unit, cSourceFiles);
 #else
     return xlCompileAdditionalCSourceFilesDisk(ctx, s, unit, cSourceFiles);
+#endif
+}
+
+static int xlAddResourceFilesToTcc(XL_Context* ctx, TCCState* s)
+{
+    size_t i;
+
+    if ( ctx == NULL || ctx->resourceFiles.count == 0 ) {
+        return 1;
+    }
+    if ( s == NULL ) {
+        xlSetError(ctx, "TCC state is empty");
+        return 0;
+    }
+#if defined(_WIN32)
+    if ( ctx->resourceFiles.count > XLC_MAX_RESOURCE_FILES ) {
+        xlSetError(ctx, "too many resource config files");
+        return 0;
+    }
+    for ( i = 0; i < ctx->resourceFiles.count; ++i ) {
+        void* objectData;
+        size_t objectSize;
+        char virtualPath[96];
+        char error[512];
+
+        objectData = NULL;
+        objectSize = 0;
+        error[0] = '\0';
+        if ( !xl6WinResourceConfigToCoffMemory(ctx->resourceFiles.items[i], &objectData, &objectSize, error, sizeof(error)) ) {
+            xlSetError2(ctx, "cannot build Windows resource", error[0] != '\0' ? error : ctx->resourceFiles.items[i]);
+            xrtFree(objectData);
+            return 0;
+        }
+        snprintf(virtualPath, sizeof(virtualPath), "__xlvfs__/resource_%u.obj", (unsigned int)i);
+        if ( !xlMountDynamicTccBinary(ctx, virtualPath, objectData, objectSize) ) {
+            xrtFree(objectData);
+            return 0;
+        }
+        xrtFree(objectData);
+        if ( xl__tcc.tcc_add_file(s, virtualPath) != 0 ) {
+            xlSetError2(ctx, "cannot add Windows resource object", virtualPath);
+            return 0;
+        }
+    }
+    return 1;
+#else
+    xlSetError(ctx, "windows resources are only supported on Windows");
+    return 0;
 #endif
 }
 
@@ -2067,6 +2143,9 @@ static int xlCompileUnitToExternalOutputWithC(
     if ( !xlAddDependenciesToTcc(ctx, s, unit) ) {
         goto cleanup;
     }
+    if ( !xlAddResourceFilesToTcc(ctx, s) ) {
+        goto cleanup;
+    }
     if ( !xlAddEmbeddedTccRuntimeSources(ctx, s, unit) ) {
         goto cleanup;
     }
@@ -2346,11 +2425,19 @@ static XL_Module* xlCreateModuleFromState(XL_Context* ctx, TCCState* s)
 static void xlDestroyModuleUnlocked(XL_Module* module)
 {
     XL_ScriptVoidProc errorUnit;
+    XL_ScriptVoidProc moduleUnit;
 
     if ( module == NULL ) {
         return;
     }
     if ( module->state != NULL ) {
+        if ( module->activated ) {
+            module->activated = 0;
+            moduleUnit = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(module->state, "xl_script_module_unit");
+            if ( moduleUnit != NULL ) {
+                moduleUnit();
+            }
+        }
         errorUnit = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(module->state, "xl_script_error_unit");
         if ( errorUnit != NULL ) {
             errorUnit();
@@ -2600,6 +2687,10 @@ static int xlRunModuleMainUnlocked(XL_Context* ctx, XL_Module* module, xvalue su
         xlSetError(ctx, "module is empty");
         return 0;
     }
+    if ( module->activated ) {
+        xlSetError(ctx, "active module cannot run as a one-shot script");
+        return 0;
+    }
     entry = (XL_XlangMainProc)xl__tcc.tcc_get_symbol(module->state, "xlang_main");
     if ( entry == NULL ) {
         xlSetError(ctx, "script entry xlang_main not found");
@@ -2624,6 +2715,67 @@ static int xlRunModuleMainUnlocked(XL_Context* ctx, XL_Module* module, xvalue su
     }
     ctx->lastExitCode = rc;
     return 1;
+}
+
+static int xlActivateModuleUnlocked(XL_Context* ctx, XL_Module* module, xvalue suppliedArg)
+{
+    XL_ScriptModuleInitProc entry;
+    xvalue runArg;
+    int result;
+
+    if ( ctx == NULL || module == NULL || module->state == NULL ) {
+        xlSetError(ctx, "module is empty");
+        return 0;
+    }
+    if ( module->activated ) {
+        return 1;
+    }
+    entry = (XL_ScriptModuleInitProc)xl__tcc.tcc_get_symbol(module->state, "xl_script_module_init");
+    if ( entry == NULL ) {
+        module->activated = 1;
+        return 1;
+    }
+    runArg = NULL;
+    if ( !xlPrepareRuntimeArg(ctx, suppliedArg, &runArg) ) {
+        return 0;
+    }
+    xlApiUnlock();
+    result = entry(runArg);
+    xlApiLock();
+    if ( runArg != NULL ) {
+        xvoUnref(runArg);
+    }
+    if ( xlCheckScriptActiveError(ctx, module->state) ) {
+        return 0;
+    }
+    if ( !result ) {
+        xlSetError(ctx, "module initialization failed");
+        return 0;
+    }
+    module->activated = 1;
+    return 1;
+}
+
+static int xlDeactivateModuleUnlocked(XL_Context* ctx, XL_Module* module)
+{
+    XL_ScriptVoidProc entry;
+
+    if ( ctx == NULL || module == NULL || module->state == NULL ) {
+        xlSetError(ctx, "module is empty");
+        return 0;
+    }
+    if ( !module->activated ) {
+        return 1;
+    }
+    module->activated = 0;
+    entry = (XL_ScriptVoidProc)xl__tcc.tcc_get_symbol(module->state, "xl_script_module_unit");
+    if ( entry == NULL ) {
+        return 1;
+    }
+    xlApiUnlock();
+    entry();
+    xlApiLock();
+    return !xlCheckScriptActiveError(ctx, module->state);
 }
 
 static int xlRunCModuleMainUnlocked(XL_Context* ctx, XL_Module* module, int argc, char** argv)
@@ -2851,6 +3003,7 @@ static void xlDestroyContextUnlocked(XL_Context* ctx)
     xlStringListFree(&ctx->includePaths);
     xlStringListFree(&ctx->libraryPaths);
     xlStringListFree(&ctx->linkLibraries);
+    xlStringListFree(&ctx->resourceFiles);
     xlFreeSymbols(ctx);
     xlLoadedLibrariesFree(ctx);
     xrtFree(ctx);
@@ -3067,6 +3220,35 @@ int xlAddLinkLibrary(XL_Context* ctx, const char* nameOrPath)
     xrtFree(snapshot);
     if ( !ok ) {
         xlSetError(ctx, "cannot add link library");
+    }
+    xlApiUnlock();
+    return ok;
+}
+
+int xlAddResourceFile(XL_Context* ctx, const char* path)
+{
+    char* snapshot;
+    int ok;
+
+    if ( ctx == NULL ) {
+        return 0;
+    }
+    xlApiLock();
+    if ( path == NULL || path[0] == '\0' ) {
+        xlSetError(ctx, "resource config path is empty");
+        xlApiUnlock();
+        return 0;
+    }
+    if ( ctx->resourceFiles.count >= XLC_MAX_RESOURCE_FILES ) {
+        xlSetError(ctx, "too many resource config files");
+        xlApiUnlock();
+        return 0;
+    }
+    snapshot = xlPathSnapshotFromCurrentDir(ctx, path, "cannot snapshot resource config");
+    ok = snapshot != NULL && xlStringListAppend(&ctx->resourceFiles, snapshot);
+    xrtFree(snapshot);
+    if ( !ok ) {
+        xlSetError(ctx, "cannot add resource config");
     }
     xlApiUnlock();
     return ok;
@@ -3423,6 +3605,56 @@ int xlRunModuleMain(XL_Context* ctx, XL_Module* module, xvalue arg)
     return ok;
 }
 
+int xlActivateModule(XL_Context* ctx, XL_Module* module, xvalue arg)
+{
+    int ok;
+    int hasContextLease;
+
+    if ( ctx == NULL ) {
+        return 0;
+    }
+    xlApiLock();
+    hasContextLease = xlContextBeginCallUnlocked(ctx);
+    if ( !hasContextLease || !xlModuleBeginCallUnlocked(module) ) {
+        if ( hasContextLease ) {
+            xlContextEndCallUnlocked(ctx);
+        }
+        xlApiUnlock();
+        return 0;
+    }
+    xlClearLastErrorUnlocked(ctx);
+    ok = xlActivateModuleUnlocked(ctx, module, arg);
+    xlModuleEndCallUnlocked(module);
+    xlContextEndCallUnlocked(ctx);
+    xlApiUnlock();
+    return ok;
+}
+
+int xlDeactivateModule(XL_Context* ctx, XL_Module* module)
+{
+    int ok;
+    int hasContextLease;
+
+    if ( ctx == NULL ) {
+        return 0;
+    }
+    xlApiLock();
+    hasContextLease = xlContextBeginCallUnlocked(ctx);
+    if ( !hasContextLease || !xlModuleBeginCallUnlocked(module) ) {
+        if ( hasContextLease ) {
+            xlContextEndCallUnlocked(ctx);
+        }
+        xlApiUnlock();
+        return 0;
+    }
+    xlClearLastErrorUnlocked(ctx);
+    ok = xlDeactivateModuleUnlocked(ctx, module);
+    xlModuleEndCallUnlocked(module);
+    xlContextEndCallUnlocked(ctx);
+    xlApiUnlock();
+    return ok;
+}
+
 void* xlModuleGetSymbol(XL_Module* module, const char* symbolName)
 {
     void* symbol;
@@ -3579,6 +3811,7 @@ static int xlCompileCSourceFilesToExternalOutput(
     ok = s != NULL &&
          xlAddCSourceFilesToTcc(ctx, s, paths, pathCount) &&
          xlAddDependenciesToTcc(ctx, s, NULL) &&
+         xlAddResourceFilesToTcc(ctx, s) &&
          xlTccCompileSourceText(ctx, s, XL_TCC_VFS_XRT_C,
              "#define XRT_IMPLEMENTATION\n"
              "#include \"xrt.h\"\n",
@@ -3781,6 +4014,11 @@ XL_API int xlcAddLibraryPath(XLC_Context* ctx, const char* path)
 XL_API int xlcAddLinkLibrary(XLC_Context* ctx, const char* nameOrPath)
 {
     return ctx != NULL ? xlAddLinkLibrary(ctx->runtime, nameOrPath) : 0;
+}
+
+XL_API int xlcAddResourceFile(XLC_Context* ctx, const char* path)
+{
+    return ctx != NULL ? xlAddResourceFile(ctx->runtime, path) : 0;
 }
 
 XL_API int xlcAddCSourceFile(XLC_Context* ctx, const char* path)

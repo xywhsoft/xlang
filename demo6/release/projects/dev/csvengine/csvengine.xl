@@ -1070,7 +1070,7 @@ func groupKeyOf(var groupby, var row) as string
 end
 
 
-func updateAggregates(var rec, var q, var row)
+func updateAggregates(var rec, var q, var row) as var
     rec["count"] = int(rec["count"]) + 1
     var sels = q["select"]
     int si = 0
@@ -1115,9 +1115,15 @@ func updateAggregates(var rec, var q, var row)
             else
                 maxs[arg] = cell
             end
+            // 从动态字典取出的复合值需要显式写回，避免更新停留在局部副本。
+            rec["sum"] = sums
+            rec["ncnt"] = ncnts
+            rec["min"] = mins
+            rec["max"] = maxs
         end
         si = si + 1
     end
+    return rec
 end
 
 
@@ -1137,7 +1143,8 @@ func buildGroups(var q)
             gGroups[key] = rec
             gGroupOrder.append(key)
         end
-        updateAggregates(rec, q, row)
+        rec = updateAggregates(rec, q, row)
+        gGroups[key] = rec
         ri = ri + 1
     end
 end
@@ -1146,7 +1153,7 @@ end
 // project one grouped output row
 func projectGroup(var rec, var q) as var
     var sels = q["select"]
-    var out = []
+    var outputValue = []
     var groupby = q["groupby"]
     int si = 0
     while si < sels.length do
@@ -1159,26 +1166,26 @@ func projectGroup(var rec, var q) as var
             bool found = false
             while gi < groupby.length do
                 if colShortName(string(groupby[gi])) == short then
-                    out.append(string(rec["gcols"][gi]))
+                    outputValue.append(string(rec["gcols"][gi]))
                     found = true
                     break
                 end
                 gi = gi + 1
             end
             if not found then
-                out.append("")
+                outputValue.append("")
             end
         elseif kind == "agg" then
             string fn = string(item["func"])
             string arg = string(item["arg"])
             if fn == "COUNT" then
-                out.append(string(int(rec["count"])))
+                outputValue.append(string(int(rec["count"])))
             elseif fn == "SUM" then
                 var sums = rec["sum"]
                 if arg in sums then
-                    out.append(fmtNum(float(sums[arg])))
+                    outputValue.append(fmtNum(float(sums[arg])))
                 else
-                    out.append("0")
+                    outputValue.append("0")
                 end
             elseif fn == "AVG" then
                 var sums = rec["sum"]
@@ -1186,41 +1193,41 @@ func projectGroup(var rec, var q) as var
                 if arg in ncnts then
                     int cnt = int(ncnts[arg])
                     if cnt > 0 then
-                        out.append(fmtNum(float(sums[arg]) / float(cnt)))
+                        outputValue.append(fmtNum(float(sums[arg]) / float(cnt)))
                     else
-                        out.append("0")
+                        outputValue.append("0")
                     end
                 else
-                    out.append("0")
+                    outputValue.append("0")
                 end
             elseif fn == "MIN" then
                 var mins = rec["min"]
                 if arg in mins then
-                    out.append(string(mins[arg]))
+                    outputValue.append(string(mins[arg]))
                 else
-                    out.append("")
+                    outputValue.append("")
                 end
             elseif fn == "MAX" then
                 var maxs = rec["max"]
                 if arg in maxs then
-                    out.append(string(maxs[arg]))
+                    outputValue.append(string(maxs[arg]))
                 else
-                    out.append("")
+                    outputValue.append("")
                 end
             else
-                out.append("")
+                outputValue.append("")
             end
         end
         si = si + 1
     end
-    return out
+    return outputValue
 end
 
 
 // project one plain (non-grouped) output row
 func projectRow(var row, var q) as var
     var sels = q["select"]
-    var out = []
+    var outputValue = []
     int si = 0
     while si < sels.length do
         var item = sels[si]
@@ -1229,17 +1236,17 @@ func projectRow(var row, var q) as var
             int hi = 0
             while hi < gHeaders.length do
                 string h = string(gHeaders[hi])
-                out.append(getCell(row, h))
+                outputValue.append(getCell(row, h))
                 hi = hi + 1
             end
         elseif kind == "col" then
-            out.append(getCell(row, string(item["col"])))
+            outputValue.append(getCell(row, string(item["col"])))
         else
-            out.append("")
+            outputValue.append("")
         end
         si = si + 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1401,56 +1408,56 @@ end
 
 
 func jsonEscape(string s) as string
-    string out = ""
+    string outputValue = ""
     int n = string.len(s)
     int i = 0
     while i < n do
         string c = string.charAt(s, i)
         if c == "\"" then
-            out = out + "\\\""
+            outputValue = outputValue + "\\\""
         elseif c == "\\" then
-            out = out + "\\\\"
+            outputValue = outputValue + "\\\\"
         elseif c == "\n" then
-            out = out + "\\n"
+            outputValue = outputValue + "\\n"
         elseif c == "\r" then
-            out = out + "\\r"
+            outputValue = outputValue + "\\r"
         elseif c == "\t" then
-            out = out + "\\t"
+            outputValue = outputValue + "\\t"
         else
-            out = out + c
+            outputValue = outputValue + c
         end
         i = i + 1
     end
-    return out
+    return outputValue
 end
 
 
 func formatCsv(var headers, var rows, string delim) as string
-    string out = ""
+    string outputValue = ""
     int h = 0
     while h < headers.length do
         if h > 0 then
-            out = out + delim
+            outputValue = outputValue + delim
         end
-        out = out + csvQuote(string(headers[h]))
+        outputValue = outputValue + csvQuote(string(headers[h]))
         h = h + 1
     end
-    out = out + "\n"
+    outputValue = outputValue + "\n"
     int r = 0
     while r < rows.length do
         var row = rows[r]
         int c = 0
         while c < row.length do
             if c > 0 then
-                out = out + delim
+                outputValue = outputValue + delim
             end
-            out = out + csvQuote(string(row[c]))
+            outputValue = outputValue + csvQuote(string(row[c]))
             c = c + 1
         end
-        out = out + "\n"
+        outputValue = outputValue + "\n"
         r = r + 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1481,7 +1488,7 @@ end
 
 
 func prettyJson(string compact) as string
-    string out = ""
+    string outputValue = ""
     int n = string.len(compact)
     int indent = 0
     bool inStr = false
@@ -1489,10 +1496,10 @@ func prettyJson(string compact) as string
     while i < n do
         string c = string.charAt(compact, i)
         if inStr then
-            out = out + c
+            outputValue = outputValue + c
             if c == "\\" then
                 if i + 1 < n then
-                    out = out + string.charAt(compact, i + 1)
+                    outputValue = outputValue + string.charAt(compact, i + 1)
                     i = i + 2
                     continue
                 end
@@ -1505,16 +1512,16 @@ func prettyJson(string compact) as string
         end
         if c == "\"" then
             inStr = true
-            out = out + c
+            outputValue = outputValue + c
             i = i + 1
             continue
         elseif c == "{" or c == "[" then
-            out = out + c
+            outputValue = outputValue + c
             if i + 1 < n then
                 string nc = string.charAt(compact, i + 1)
                 if nc != "}" and nc != "]" then
                     indent = indent + 1
-                    out = out + "\n" + string.repeat("  ", indent)
+                    outputValue = outputValue + "\n" + string.repeat("  ", indent)
                 end
             end
             i = i + 1
@@ -1524,28 +1531,28 @@ func prettyJson(string compact) as string
                 string pc = string.charAt(compact, i - 1)
                 if pc != "{" and pc != "[" then
                     indent = indent - 1
-                    out = out + "\n" + string.repeat("  ", indent)
+                    outputValue = outputValue + "\n" + string.repeat("  ", indent)
                 end
             end
-            out = out + c
+            outputValue = outputValue + c
             i = i + 1
             continue
         elseif c == "," then
-            out = out + c
-            out = out + "\n" + string.repeat("  ", indent)
+            outputValue = outputValue + c
+            outputValue = outputValue + "\n" + string.repeat("  ", indent)
             i = i + 1
             continue
         elseif c == ":" then
-            out = out + ": "
+            outputValue = outputValue + ": "
             i = i + 1
             continue
         else
-            out = out + c
+            outputValue = outputValue + c
             i = i + 1
             continue
         end
     end
-    return out
+    return outputValue
 end
 
 
@@ -1579,36 +1586,36 @@ func formatTable(var headers, var rows) as string
         sep = sep + string.repeat("-", int(widths[c2]) + 2)
         c2 = c2 + 1
     end
-    string out = sep + "\n"
+    string outputValue = sep + "\n"
     int c3 = 0
     while c3 < nc do
         if c3 > 0 then
-            out = out + "|"
+            outputValue = outputValue + "|"
         end
-        out = out + " " + string.padRight(string(headers[c3]), int(widths[c3])) + " "
+        outputValue = outputValue + " " + string.padRight(string(headers[c3]), int(widths[c3])) + " "
         c3 = c3 + 1
     end
-    out = out + "\n" + sep + "\n"
+    outputValue = outputValue + "\n" + sep + "\n"
     int r2 = 0
     while r2 < rows.length do
         var row = rows[r2]
         int c4 = 0
         while c4 < nc do
             if c4 > 0 then
-                out = out + "|"
+                outputValue = outputValue + "|"
             end
             string cellv = ""
             if c4 < row.length then
                 cellv = string(row[c4])
             end
-            out = out + " " + string.padRight(cellv, int(widths[c4])) + " "
+            outputValue = outputValue + " " + string.padRight(cellv, int(widths[c4])) + " "
             c4 = c4 + 1
         end
-        out = out + "\n"
+        outputValue = outputValue + "\n"
         r2 = r2 + 1
     end
-    out = out + sep + "\n"
-    return out
+    outputValue = outputValue + sep + "\n"
+    return outputValue
 end
 
 
@@ -1747,9 +1754,9 @@ func columnStats(string text, string delim) as string
         end
     end
 
-    string out = ""
-    out = out + "rows: " + string(nr) + "  columns: " + string(nc) + "\n"
-    out = out + string.repeat("-", 64) + "\n"
+    string outputValue = ""
+    outputValue = outputValue + "rows: " + string(nr) + "  columns: " + string(nc) + "\n"
+    outputValue = outputValue + string.repeat("-", 64) + "\n"
     int c2 = 0
     while c2 < nc do
         string h = string(gHeaders[c2])
@@ -1762,15 +1769,15 @@ func columnStats(string text, string delim) as string
         if h in colMax then
             mx = string(colMax[h])
         end
-        out = out + string.padRight(h, 16) + " " + string.padRight(t, 8)
-        out = out + "uniq=" + string.padRight(string(int(uniqCount[c2])), 8)
-        out = out + "empty=" + string.padRight(string(int(colEmpty[c2])), 6)
-        out = out + "min=" + string.padRight(mn, 14)
-        out = out + "max=" + mx
-        out = out + "\n"
+        outputValue = outputValue + string.padRight(h, 16) + " " + string.padRight(t, 8)
+        outputValue = outputValue + "uniq=" + string.padRight(string(int(uniqCount[c2])), 8)
+        outputValue = outputValue + "empty=" + string.padRight(string(int(colEmpty[c2])), 6)
+        outputValue = outputValue + "min=" + string.padRight(mn, 14)
+        outputValue = outputValue + "max=" + mx
+        outputValue = outputValue + "\n"
         c2 = c2 + 1
     end
-    return out
+    return outputValue
 end
 
 
@@ -1794,17 +1801,29 @@ end
 
 
 func checkHas(string got, string needle, string label)
-    check(string.contains(got, needle), label + "  (missing '" + needle + "')")
+    if string.contains(got, needle) then
+        check(true, label)
+    else
+        check(false, label + "  missing='" + needle + "' got='" + got + "'")
+    end
 end
 
 
 func checkNotHas(string got, string needle, string label)
-    check(not string.contains(got, needle), label + "  (unexpected '" + needle + "')")
+    if string.contains(got, needle) then
+        check(false, label + "  unexpected='" + needle + "' got='" + got + "'")
+    else
+        check(true, label)
+    end
 end
 
 
 func checkEq(string got, string want, string label)
-    check(got == want, label + "  got='" + got + "' want='" + want + "'")
+    if got == want then
+        check(true, label)
+    else
+        check(false, label + "  got='" + got + "' want='" + want + "'")
+    end
 end
 
 
@@ -1834,11 +1853,11 @@ end
 func testSelectWhere()
     println("[2] SELECT * / WHERE / projection")
     string t = "name,age,dept\nAlice,30,eng\nBob,25,eng\nCarol,40,sales\nDave,35,sales\n"
-    string out = executeQueryText(t, "", "data", "data.csv", "SELECT * FROM data WHERE age > 28", "table")
-    checkHas(out, "Alice", "WHERE age>28 has Alice")
-    checkNotHas(out, "Bob", "WHERE age>28 excludes Bob (25)")
-    checkHas(out, "Carol", "WHERE age>28 has Carol")
-    checkHas(out, "Dave", "WHERE age>28 has Dave")
+    string outputValue = executeQueryText(t, "", "data", "data.csv", "SELECT * FROM data WHERE age > 28", "table")
+    checkHas(outputValue, "Alice", "WHERE age>28 has Alice")
+    checkNotHas(outputValue, "Bob", "WHERE age>28 excludes Bob (25)")
+    checkHas(outputValue, "Carol", "WHERE age>28 has Carol")
+    checkHas(outputValue, "Dave", "WHERE age>28 has Dave")
 
     string out2 = executeQueryText(t, "", "data", "data.csv", "SELECT name, age FROM data WHERE age > 25", "csv")
     checkHas(out2, "name,age", "csv header")
@@ -1877,10 +1896,10 @@ end
 func testGroupAgg()
     println("[5] GROUP BY + aggregates")
     string t = "name,age,salary,dept\nAlice,30,100,eng\nBob,25,90,eng\nCarol,40,200,sales\nDave,35,180,sales\n"
-    string out = executeQueryText(t, "", "data", "data.csv", "SELECT dept, COUNT(*) FROM data GROUP BY dept", "csv")
-    checkHas(out, "dept,COUNT(*)", "group header")
-    checkHas(out, "eng,2", "eng count 2")
-    checkHas(out, "sales,2", "sales count 2")
+    string outputValue = executeQueryText(t, "", "data", "data.csv", "SELECT dept, COUNT(*) FROM data GROUP BY dept", "csv")
+    checkHas(outputValue, "dept,COUNT(*)", "group header")
+    checkHas(outputValue, "eng,2", "eng count 2")
+    checkHas(outputValue, "sales,2", "sales count 2")
 
     string out2 = executeQueryText(t, "", "data", "data.csv", "SELECT dept, SUM(salary), AVG(age), MIN(age), MAX(age) FROM data GROUP BY dept", "csv")
     checkHas(out2, "eng,190,27.5,25,30", "eng agg row (sum190 avg27.5 min25 max30)")
@@ -1906,12 +1925,12 @@ func testJoin(string tmpDir)
     file.writeText(empPath, empText)
     file.writeText(deptPath, deptText)
 
-    string out = executeQueryText(empText, tmpDir, "emp", "emp.csv", "SELECT a.name, b.salary FROM emp a JOIN dept b ON a.dept = b.id", "csv")
-    checkHas(out, "name,salary", "join header (short names)")
-    checkHas(out, "Alice,100", "Alice dept10 -> 100")
-    checkHas(out, "Bob,80", "Bob dept20 -> 80")
-    checkHas(out, "Carol,100", "Carol dept10 -> 100")
-    checkNotHas(out, "Charlie", "no phantom rows")
+    string outputValue = executeQueryText(empText, tmpDir, "emp", "emp.csv", "SELECT a.name, b.salary FROM emp a JOIN dept b ON a.dept = b.id", "csv")
+    checkHas(outputValue, "name,salary", "join header (short names)")
+    checkHas(outputValue, "Alice,100", "Alice dept10 -> 100")
+    checkHas(outputValue, "Bob,80", "Bob dept20 -> 80")
+    checkHas(outputValue, "Carol,100", "Carol dept10 -> 100")
+    checkNotHas(outputValue, "Charlie", "no phantom rows")
 
     // JOIN + WHERE
     string out2 = executeQueryText(empText, tmpDir, "emp", "emp.csv", "SELECT a.name FROM emp a JOIN dept b ON a.dept = b.id WHERE b.salary > 90", "csv")
@@ -1947,13 +1966,13 @@ func formatJsonWithConvert(string text, string mainFile) as string
     int ri = 0
     while ri < gRows.length do
         var row = gRows[ri]
-        var out = []
+        var outputValue = []
         int hi = 0
         while hi < headers.length do
-            out.append(string(row[string(headers[hi])]))
+            outputValue.append(string(row[string(headers[hi])]))
             hi = hi + 1
         end
-        rows.append(out)
+        rows.append(outputValue)
         ri = ri + 1
     end
     gOutHeaders = headers
@@ -1965,13 +1984,13 @@ end
 func testStats()
     println("[8] stats")
     string t = "name,age,score\nAlice,30,9.5\nBob,25,8.0\nCarol,30,7.5\n"
-    string out = columnStats(t, ",")
-    checkHas(out, "rows: 3", "stats row count")
-    checkHas(out, "age", "stats age col")
-    checkHas(out, "int", "stats int type detected")
-    checkHas(out, "float", "stats float type detected")
-    checkHas(out, "string", "stats string type detected")
-    checkHas(out, "uniq=2", "stats age unique=2 (30,25)")
+    string outputValue = columnStats(t, ",")
+    checkHas(outputValue, "rows: 3", "stats row count")
+    checkHas(outputValue, "age", "stats age col")
+    checkHas(outputValue, "int", "stats int type detected")
+    checkHas(outputValue, "float", "stats float type detected")
+    checkHas(outputValue, "string", "stats string type detected")
+    checkHas(outputValue, "uniq=2", "stats age unique=2 (30,25)")
 end
 
 
@@ -1983,9 +2002,9 @@ func testLargeStream()
         t = t + string(i) + "," + string(i * 2) + "\n"
         i = i + 1
     end
-    string out = executeQueryText(t, "", "data", "data.csv", "SELECT COUNT(*) FROM data WHERE val > 1990", "csv")
+    string outputValue = executeQueryText(t, "", "data", "data.csv", "SELECT COUNT(*) FROM data WHERE val > 1990", "csv")
     // val = i*2 > 1990 means i > 995 -> i in {996..999} = 4 rows
-    checkHas(out, "4", "stream count val>1990 == 4")
+    checkHas(outputValue, "4", "stream count val>1990 == 4")
     check(gRows.length <= 5, "stream kept only matching rows")
 
     // ordered by val desc -> first data row should be 999,1998
@@ -2072,8 +2091,8 @@ func main(...) as int
             return 1
         end
         string text = file.readText(fpath)
-        string out = executeQueryText(text, path.dir(fpath), path.name(fpath), fpath, sql, format)
-        println(out)
+        string outputValue = executeQueryText(text, path.dir(fpath), path.name(fpath), fpath, sql, format)
+        println(outputValue)
         return 0
     end
 
@@ -2105,13 +2124,13 @@ func main(...) as int
         int ri = 0
         while ri < gRows.length do
             var row = gRows[ri]
-            var out = []
+            var outputValue = []
             int hi = 0
             while hi < headers.length do
-                out.append(getCell(row, string(headers[hi])))
+                outputValue.append(getCell(row, string(headers[hi])))
                 hi = hi + 1
             end
-            rows.append(out)
+            rows.append(outputValue)
             ri = ri + 1
         end
         gOutHeaders = headers
@@ -2133,8 +2152,8 @@ func main(...) as int
             return 1
         end
         string text = file.readText(fpath)
-        string out = columnStats(text, delimForFile(fpath))
-        println(out)
+        string outputValue = columnStats(text, delimForFile(fpath))
+        println(outputValue)
         return 0
     end
 

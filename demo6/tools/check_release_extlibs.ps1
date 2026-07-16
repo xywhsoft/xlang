@@ -106,6 +106,10 @@ function Should-CheckReleaseText($file)
     if ( $file.FullName.IndexOf("\third_party\", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 ) {
         return $false
     }
+    if ( $file.Name.Equals("README.md", [System.StringComparison]::OrdinalIgnoreCase) -and
+         $file.Directory.Name.StartsWith("_", [System.StringComparison]::Ordinal) ) {
+        return $false
+    }
     return $true
 }
 
@@ -336,11 +340,19 @@ foreach ( $pkg in $packages ) {
     $manifestsByPackage[$name] = $manifest
     $dirsByPackage[$name] = $pkg
 
+    $isPrivate = [string]$manifest.kind -eq "demo6-private-extlib"
+
     if ( $manifest.format -ne "xlang-package-1" ) {
         Add-Failure "release extlib manifest format mismatch: $name"
     }
-    if ( $manifest.kind -ne "demo6-extlib" ) {
+    if ( ! $isPrivate -and $manifest.kind -ne "demo6-extlib" ) {
         Add-Failure "release extlib manifest kind mismatch: $name"
+    }
+    if ( $isPrivate -and ! $name.StartsWith("_", [System.StringComparison]::Ordinal) ) {
+        Add-Failure "private release extlib package name must start with underscore: $name"
+    }
+    if ( ! $isPrivate -and $name.StartsWith("_", [System.StringComparison]::Ordinal) ) {
+        Add-Failure "underscore release extlib package must use private manifest kind: $name"
     }
     if ( [string]$manifest.name -ne $name ) {
         Add-Failure "release extlib manifest name must match directory: $name"
@@ -361,7 +373,7 @@ foreach ( $pkg in $packages ) {
 
     $manifestXlSources = String-Array $manifest.artifact.xlSources
     $manifestCSources = String-Array $manifest.artifact.cSources
-    if ( $manifestXlSources.Count -eq 0 ) {
+    if ( ! $isPrivate -and $manifestXlSources.Count -eq 0 ) {
         Add-Failure "release extlib xlSources must not be empty: $name"
     }
     Validate-RelativeFileList $pkg $manifestRel $manifestXlSources "xlSources" ".xl"
@@ -393,6 +405,10 @@ foreach ( $name in $manifestsByPackage.Keys ) {
 foreach ( $name in $manifestsByPackage.Keys ) {
     $manifest = $manifestsByPackage[$name]
     $pkg = $dirsByPackage[$name]
+
+    if ( [string]$manifest.kind -eq "demo6-private-extlib" ) {
+        continue
+    }
 
     if ( ! $importsByPackage.ContainsKey($name) ) {
         Add-Failure "release extlib has no example importing it: $name"

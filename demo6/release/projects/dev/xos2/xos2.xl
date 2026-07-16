@@ -1,4 +1,4 @@
-﻿// =============================================================================
+// =============================================================================
 // xos2.xl - Complete Operating System Simulator
 // =============================================================================
 // A from-scratch, single-file OS simulator written in xlang.
@@ -353,15 +353,15 @@ func b2s(bool b) as string
 end
 
 func hex2(int b) as string
-    return string.formatInt(b & 0xFF, "x2")
+    return int.format(b & 0xFF, "x2")
 end
 
 func hex4(int w) as string
-    return string.formatInt(w & 0xFFFF, "x4")
+    return int.format(w & 0xFFFF, "x4")
 end
 
 func hex8(int w) as string
-    return string.formatInt(w & 0xFFFFFFFF, "x8")
+    return int.format(w & 0xFFFFFFFF, "x8")
 end
 
 func startsWithP(string s, string pre) as bool

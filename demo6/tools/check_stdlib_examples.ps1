@@ -1,5 +1,6 @@
 param(
-    [string]$Root = ""
+    [string]$Root = "",
+    [switch]$SkipDeferred
 )
 
 $ErrorActionPreference = "Stop"
@@ -18,6 +19,21 @@ if ( !(Test-Path $xl) ) {
 }
 
 $examples = @(Get-ChildItem -Path $exampleDir -Filter "stdlib_*.xl" -File | Sort-Object Name)
+
+if ( $SkipDeferred ) {
+    $deferred = @("stdlib_http*.xl", "stdlib_websocket*.xl")
+    $skipped = @()
+    foreach ( $pattern in $deferred ) {
+        $skipped += @($examples | Where-Object { $_.Name -like $pattern })
+    }
+    $examples = @($examples | Where-Object {
+        $name = $_.Name
+        -not ($deferred | Where-Object { $name -like $_ })
+    })
+    if ( $skipped.Count -gt 0 ) {
+        Write-Host "Skipping deferred examples: $((@($skipped | Sort-Object Name | ForEach-Object { $_.Name })) -join ', ')"
+    }
+}
 
 if ( $examples.Count -eq 0 ) {
     Write-Host "No standard library examples found."

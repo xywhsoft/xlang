@@ -23,12 +23,10 @@
 //   - 序列化：save/load 权重为 JSON。
 //   - 数据集：XOR / 螺旋分类 / sin 回归 / MNIST-style 简化数据。
 //
-// 关键工程要点（绕开当前 xl.exe 的限制，参考 dev/README.md 限制表）：
-//   (L1) 多态层用 array<var> + `as Layer` 还原 vtable，避免 typed array 切片。
-//   (L2) Tensor 等持有其他 class 字段的 class 加 `derive value` 注解，
-//        满足持久化检查。
-//   (L3) 不使用 string.formatFloat 在闭包内（部分版本会触发 xrtNumFormat 冲突）。
-//   (L4) 自实现 sigmoid/tanh/sinh/cosh（math 标准库未导出这些）。
+// 关键工程要点：
+//   (L1) 多态层使用 array<Layer>，向上转型保留对象身份和 vtable。
+//   (L2) Tensor 等数据 class 使用 derive value 提供持久化能力。
+//   (L3) 训练循环复用 Tensor 缓冲与显式梯度状态，避免无意义的动态值转换。
 //   (L5) 嵌套数组赋值走 get/modify/put；普通 array<float> 单层赋值正常。
 //
 // 运行与验证：
@@ -38,9 +36,6 @@
 //   projects\dev\mlplatform\mlplatform.exe xor
 //   projects\dev\mlplatform\mlplatform.exe spiral
 //   projects\dev\mlplatform\mlplatform.exe regression
-//
-// 注意：当前 xl.exe（2026/7/13 构建）的 `xl run` 路径存在 xvoCreateObject
-// 符号未导出的回归（class 创建会失败），故采用 `xl build` 路径验证。详见 BUGS.md。
 // ============================================================================
 
 // ============================================================================
@@ -57,20 +52,11 @@ float MLP_NEG_INF = -1e30
 // ============================================================================
 
 func clampF(float x, float lo, float hi) as float
-    if x < lo then
-        return lo
-    end
-    if x > hi then
-        return hi
-    end
-    return x
+    return math.clamp(x, lo, hi)
 end
 
 func absF(float x) as float
-    if x < 0.0 then
-        return -x
-    end
-    return x
+    return math.abs(x)
 end
 
 func safeExp(float x) as float
@@ -165,7 +151,7 @@ func relError(float a, float b) as float
     return absF(a - b) / denom
 end
 
-// 浮点格式化为字符串（不依赖 string.formatFloat 以避免某些版本的冲突）。
+// 浮点格式化为字符串（使用 float.format，避免依赖旧格式化入口）。
 func fmtF(float v) as string
     if math.isNaN(v) then
         return "nan"
@@ -1862,7 +1848,7 @@ end
 //   backward(Tensor gradOutput) -> Tensor   返回 gradInput
 //   params() -> array<Tensor>        返回可训练参数列表
 //   paramGrads() -> array<Tensor>    返回对应梯度列表
-// 多态存储：Sequential.layers 使用 array<var>，调用时用 `as Layer` 还原。
+// 多态存储：Sequential.layers 使用 array<Layer>，按动态类型调用虚方法。
 // ============================================================================
 
 class Layer
@@ -3343,10 +3329,10 @@ end
 class Sequential
     derive value
 
-    array<var> layers = array[]
+    array<Layer> layers = array<Layer>[]
 
     create()
-        self.layers = array[]
+        self.layers = array<Layer>[]
     end
 
     func add(Layer lyr)
@@ -3357,8 +3343,7 @@ class Sequential
         Tensor cur = x
         int i = 0
         while i < self.layers.length do
-            var v = self.layers[i]
-            Layer lyr = v as Layer
+            Layer lyr = self.layers[i]
             cur = lyr.forward(cur)
             i += 1
         end
@@ -3369,8 +3354,7 @@ class Sequential
         Tensor cur = grad
         int i = self.layers.length - 1
         while i >= 0 do
-            var v = self.layers[i]
-            Layer lyr = v as Layer
+            Layer lyr = self.layers[i]
             cur = lyr.backward(cur)
             i -= 1
         end
@@ -3381,8 +3365,7 @@ class Sequential
         array<Tensor> all = array[]
         int i = 0
         while i < self.layers.length do
-            var v = self.layers[i]
-            Layer lyr = v as Layer
+            Layer lyr = self.layers[i]
             array<Tensor> ps = lyr.params()
             int j = 0
             while j < ps.length do
@@ -3398,8 +3381,7 @@ class Sequential
         array<Tensor> all = array[]
         int i = 0
         while i < self.layers.length do
-            var v = self.layers[i]
-            Layer lyr = v as Layer
+            Layer lyr = self.layers[i]
             array<Tensor> ps = lyr.paramGrads()
             int j = 0
             while j < ps.length do
@@ -3414,8 +3396,7 @@ class Sequential
     func resetGrads()
         int i = 0
         while i < self.layers.length do
-            var v = self.layers[i]
-            Layer lyr = v as Layer
+            Layer lyr = self.layers[i]
             lyr.resetState()
             i += 1
         end
@@ -3424,8 +3405,7 @@ class Sequential
     func setTraining(bool mode)
         int i = 0
         while i < self.layers.length do
-            var v = self.layers[i]
-            Layer lyr = v as Layer
+            Layer lyr = self.layers[i]
             lyr.setTraining(mode)
             i += 1
         end
@@ -3436,16 +3416,14 @@ class Sequential
     end
 
     func layerAt(int i) as Layer
-        var v = self.layers[i]
-        return v as Layer
+        return self.layers[i]
     end
 
     func describe() as string
         string s = "Sequential (" + string(self.layers.length) + " layers):\n"
         int i = 0
         while i < self.layers.length do
-            var v = self.layers[i]
-            Layer lyr = v as Layer
+            Layer lyr = self.layers[i]
             s = s + "  [" + string(i) + "] " + lyr.name + "\n"
             i += 1
         end
@@ -4606,8 +4584,7 @@ func saveModel(Sequential model, string path) as bool
     var layersList = array[]
     int i = 0
     while i < model.layers.length do
-        var v = model.layers[i]
-        Layer lyr = v as Layer
+        Layer lyr = model.layers[i]
         var info = dict{}
         info["name"] = lyr.name
         var paramList = array[]
@@ -5390,8 +5367,8 @@ func testSerialization()
     // 改一下权重
     d1.W.data[0] = 0.123
     d1.W.data[5] = -0.456
-    string path = "projects/dev/mlplatform/_test_model.json"
-    bool saved = saveModel(model, path)
+    string modelPath = path.join(path.temp(), path.random("mlplatform_", ".json"))
+    bool saved = saveModel(model, modelPath)
     expectTrue(saved, "saveModel")
 
     // 创建新模型，加载
@@ -5401,10 +5378,11 @@ func testSerialization()
     ReLU r2 = ReLU()
     model2.add(d2)
     model2.add(r2)
-    bool loaded = loadModel(model2, path)
+    bool loaded = loadModel(model2, modelPath)
     expectTrue(loaded, "loadModel")
     expectF(d2.W.data[0], 0.123, 1e-6, "loaded W[0]")
     expectF(d2.W.data[5], -0.456, 1e-6, "loaded W[5]")
+    if file.exists(modelPath) then file.delete(modelPath) end
 end
 
 func testGradientClipping()
@@ -5560,10 +5538,6 @@ func main(...) as int
 
     return 0
 end
-
-
-
-
 
 
 

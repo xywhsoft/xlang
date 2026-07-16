@@ -1,0 +1,173 @@
+extern "xetree_parse" func __etree_parse(point data, c_ulonglong size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_ulonglong maxItem,
+    c_ulonglong maxEntries, c_ulonglong maxNodes, c_uint maxDepth) as point
+extern "xetree_load" func __etree_load(string path, c_ulonglong maxInput,
+    c_ulonglong maxOutput, c_ulonglong maxItem, c_ulonglong maxEntries,
+    c_ulonglong maxNodes, c_uint maxDepth) as point
+extern "xetree_error_code" func __etree_error_code() as int
+extern "xetree_error_line" func __etree_error_line() as int
+extern "xetree_error_column" func __etree_error_column() as int
+extern "xetree_error_offset" func __etree_error_offset() as int
+extern "xetree_error_message" func __etree_error_message() as point
+
+func __etree_error() as string
+    return __xl_std_runtime_take_cstr(__etree_error_message())
+end
+
+class Element
+    native point handle
+    extern "xetree_adopt" create(point handle)
+    extern "xetree_create" create(string name)
+    extern "xetree_release" destroy()
+    extern "xetree_kind" func kindNative() as int
+    extern "xetree_name" func nameNative() as point
+    extern "xetree_local_name" func localNameNative() as point
+    extern "xetree_namespace_uri" func namespaceUriNative() as point
+    extern "xetree_prefix" func prefixNative() as point
+    extern "xetree_text" func textNative() as point
+    extern "xetree_tail" func tailNative() as point
+    extern "xetree_set_text" func setTextNative(string value) as bool
+    extern "xetree_set_tail" func setTailNative(string value) as bool
+    extern "xetree_child_count" func childCountNative() as int
+    extern "xetree_child" func childNative(c_uint index) as point
+    extern "xetree_append" func appendNative(string name) as point
+    extern "xetree_get_attribute" func getAttributeNative(string name) as point
+    extern "xetree_set_attribute" func setAttributeNative(string name,
+        string value) as bool
+    extern "xetree_remove_attribute" func removeAttribute(string name) as bool
+    extern "xetree_attributes" func attributes() as var
+    extern "xetree_find" func findNative(string path) as point
+    extern "xetree_find_all" func findAllNative(string path) as var
+    extern "xetree_stringify" func stringifyNative(c_bool pretty,
+        c_uint indent, c_bool declaration, c_ulonglong maxOutput) as point
+    extern "xetree_save" func saveNative(string path, c_bool pretty,
+        c_uint indent, c_bool declaration, c_ulonglong maxOutput) as bool
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get kind() as int
+        return self.kindNative()
+    end
+    get name() as string
+        return __xl_std_runtime_take_cstr(self.nameNative())
+    end
+    get localName() as string
+        return __xl_std_runtime_take_cstr(self.localNameNative())
+    end
+    get namespaceUri() as string
+        return __xl_std_runtime_take_cstr(self.namespaceUriNative())
+    end
+    get prefix() as string
+        return __xl_std_runtime_take_cstr(self.prefixNative())
+    end
+    get text() as string
+        return __xl_std_runtime_take_cstr(self.textNative())
+    end
+    let text(string value)
+        if not self.setTextNative(value) then throw XmlError "could not set XML text" end
+    end
+    get tail() as string
+        return __xl_std_runtime_take_cstr(self.tailNative())
+    end
+    let tail(string value)
+        if not self.setTailNative(value) then throw XmlError "could not set XML tail" end
+    end
+    get childCount() as int
+        return self.childCountNative()
+    end
+
+    func child(int index) as Element
+        if index < 0 or index >= self.childCount then throw IndexError "XML child index out of range" end
+        return Element(self.childNative(c_uint(index)))
+    end
+
+    func append(string name) as Element
+        point result = self.appendNative(name)
+        if result == null then throw XmlError "could not append XML element" end
+        return Element(result)
+    end
+
+    func get(string name, string defaultValue = "") as string
+        point result = self.getAttributeNative(name)
+        if result == null then return defaultValue end
+        return __xl_std_runtime_take_cstr(result)
+    end
+
+    func set(string name, string value)
+        if not self.setAttributeNative(name, value) then throw XmlError "could not set XML attribute" end
+    end
+
+    func find(string path) as Element
+        point result = self.findNative(path)
+        return Element(result)
+    end
+
+    func findAll(string path) as array<Element>
+        var handles = self.findAllNative(path)
+        array<Element> result = array<Element>[]
+        for handle in handles
+            result.append(Element(point(handle)))
+        end
+        return result
+    end
+
+    func stringify(bool pretty = false, int indent = 2,
+        bool declaration = false, int maxOutput = 536870912) as string
+        point result = self.stringifyNative(c_bool(pretty), c_uint(indent),
+            c_bool(declaration), c_ulonglong(maxOutput))
+        if result == null then throw XmlError __etree_error() end
+        Buffer data = Buffer(result)
+        return data.text()
+    end
+
+    func save(string path, bool pretty = false, int indent = 2,
+        bool declaration = false, int maxOutput = 536870912)
+        if not self.saveNative(path, c_bool(pretty), c_uint(indent),
+            c_bool(declaration), c_ulonglong(maxOutput)) then
+            throw XmlError __etree_error()
+        end
+    end
+end
+
+export func errorCode() as int
+    return __etree_error_code()
+end
+export func errorLine() as int
+    return __etree_error_line()
+end
+export func errorColumn() as int
+    return __etree_error_column()
+end
+export func errorOffset() as int
+    return __etree_error_offset()
+end
+
+export func create(string name) as Element
+    return Element(name)
+end
+
+export func parse(string text, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxItem = 268435456,
+    int maxEntries = 100000, int maxNodes = 1000000,
+    int maxDepth = 128) as Element
+    Buffer data = Buffer()
+    data.append(text)
+    point result = __etree_parse(data.data(), c_ulonglong(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_ulonglong(maxItem),
+        c_ulonglong(maxEntries), c_ulonglong(maxNodes), c_uint(maxDepth))
+    if result == null then throw XmlError __etree_error() end
+    return Element(result)
+end
+
+export func load(string path, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxItem = 268435456,
+    int maxEntries = 100000, int maxNodes = 1000000,
+    int maxDepth = 128) as Element
+    point result = __etree_load(path, c_ulonglong(maxInput),
+        c_ulonglong(maxOutput), c_ulonglong(maxItem),
+        c_ulonglong(maxEntries), c_ulonglong(maxNodes), c_uint(maxDepth))
+    if result == null then throw XmlError __etree_error() end
+    return Element(result)
+end

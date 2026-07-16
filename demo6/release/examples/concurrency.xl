@@ -850,6 +850,16 @@ assert nonblockingTryLater == 42, "nonblocking tryRecv later value failed"
 nonblockingTryChannel.close()
 assert nonblockingTryChannel.isClosed(), "nonblocking tryRecv channel close failed"
 
+channel<int> timeoutChannel = channel::<int>(1)
+int timeoutValue = 0
+assert not timeoutChannel.recvTimeoutInto(timeoutValue, 10), "empty timeout channel should time out"
+assert timeoutValue == 0, "timeout receive should not change output value"
+assert timeoutChannel.send(88), "timeout channel send failed"
+assert timeoutChannel.recvTimeoutInto(timeoutValue, 100), "timeout receive should get sent value"
+assert timeoutValue == 88, "timeout channel value failed"
+timeoutChannel.close()
+assert not timeoutChannel.recvTimeoutInto(timeoutValue, 0), "closed timeout channel should not receive"
+
 int missingThreadState = 0
 try
     thread missingThread = thread(missingThreadWorker)

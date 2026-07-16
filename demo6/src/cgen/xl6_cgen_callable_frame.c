@@ -49,6 +49,8 @@ static void xl6CgenEmitVarInvokeValueExpr(XL6_CgenContext* ctx, const XL6_AstNod
         xl6OutputPrintf(ctx->out, "((%s)xvoGetHandleData(%s))",
                         xl6CgenValueStorageCType(ctx, concreteType),
                         valueExpr != NULL ? valueExpr : "0");
+    } else if ( xl6CTextEquals(typeName, "error") ) {
+        xl6OutputPrintf(ctx->out, "((XL6_Error*)xvoGetHandleData(%s))", valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CgenIsIntegerTypeName(typeName) ) {
         xl6OutputPrintf(ctx->out, "((%s)xvoGetInt(%s))", xl6CgenTypeName(ctx, concreteType), valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CgenIsFloatTypeName(typeName) ) {
@@ -254,7 +256,13 @@ static void xl6CgenEmitXCallTypeChecks(XL6_CgenContext* ctx, const XL6_AstNode* 
         const XL6_AstNode* param = params->children[i];
         const XL6_AstNode* paramType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
         const char* runtimeType = xl6CgenXValueRuntimeTypeConst(ctx, paramType);
-        if ( xl6CgenIsSpecialCollectionType(ctx, paramType) ) {
+        if ( xl6CTextEquals(paramType != NULL ? paramType->text : NULL, "error") ) {
+            xl6OutputPrintf(ctx->out,
+                "    if (__xl6_arg_%u != 0 && (xvoType(__xl6_arg_%u) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_arg_%u) != xrtTypeHandle())) {\n",
+                (unsigned)i, (unsigned)i, (unsigned)i);
+            xl6OutputPuts("        return false;\n", ctx->out);
+            xl6OutputPuts("    }\n", ctx->out);
+        } else if ( xl6CgenIsSpecialCollectionType(ctx, paramType) ) {
             xl6OutputPrintf(ctx->out,
                 "    if (__xl6_arg_%u != 0 && (xvoType(__xl6_arg_%u) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_arg_%u) != ",
                 (unsigned)i, (unsigned)i, (unsigned)i);
@@ -309,6 +317,18 @@ static void xl6CgenEmitXCallVarargCleanup(XL6_CgenContext* ctx, int hasArrayVara
     }
 }
 
+static void xl6CgenEmitCallableBridgeErrorReturn(XL6_CgenContext* ctx, int hasArrayVararg, int hasDictVararg, const char* returnValue)
+{
+    xl6OutputPuts("    if ( xl6_error_has() ) {\n", ctx->out);
+    if ( hasArrayVararg || hasDictVararg ) {
+        xl6OutputPuts("        if (__xl6_vararg != 0) { xvoUnref(__xl6_vararg); __xl6_vararg = 0; }\n", ctx->out);
+    }
+    xl6OutputPuts("        return ", ctx->out);
+    xl6OutputPuts(returnValue != NULL ? returnValue : "0", ctx->out);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6OutputPuts("    }\n", ctx->out);
+}
+
 static void xl6CgenEmitXCallSetResult(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, unsigned index, const char* exprText, int hasArrayVararg, int hasDictVararg)
 {
     xl6OutputPrintf(ctx->out, "    __xl6_value = ");
@@ -351,7 +371,19 @@ static void xl6CgenEmitVarInvokeTypeChecks(XL6_CgenContext* ctx, const XL6_AstNo
         const XL6_AstNode* param = params->children[i];
         const XL6_AstNode* paramType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
         const char* runtimeType = xl6CgenXValueRuntimeTypeConst(ctx, paramType);
-        if ( xl6CgenIsSpecialCollectionType(ctx, paramType) ) {
+        if ( xl6CTextEquals(paramType != NULL ? paramType->text : NULL, "error") ) {
+            if ( (int)i >= requiredCount ) {
+                xl6OutputPrintf(ctx->out,
+                    "    if (__xl6_argc > %u && (xvoType(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_argv[%u]) != xrtTypeHandle())) {\n",
+                    (unsigned)i, (unsigned)i, (unsigned)i);
+            } else {
+                xl6OutputPrintf(ctx->out,
+                    "    if ((xvoType(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_argv[%u]) != xrtTypeHandle())) {\n",
+                    (unsigned)i, (unsigned)i);
+            }
+            xl6OutputPuts("        xl6_function_fatal(3);\n", ctx->out);
+            xl6OutputPuts("    }\n", ctx->out);
+        } else if ( xl6CgenIsSpecialCollectionType(ctx, paramType) ) {
             if ( (int)i >= requiredCount ) {
                 xl6OutputPrintf(ctx->out,
                     "    if (__xl6_argc > %u && (xvoType(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_argv[%u]) != ",
@@ -496,6 +528,7 @@ static void xl6CgenEmitAnonVarInvoke(XL6_CgenContext* ctx, const XL6_CgenAnonFun
     xl6OutputPrintf(ctx->out, "xl6_anon_%d_invoke(__xl6_env", info->id);
     xl6CgenEmitVarInvokeCallArgs(ctx, params, fixedCount, hasArrayVararg);
     xl6OutputPuts(");\n", ctx->out);
+    xl6CgenEmitCallableBridgeErrorReturn(ctx, hasArrayVararg, 0, "0");
 
     if ( returns != NULL && returns->childCount == 1 ) {
         if ( xl6CgenIsSpecialCollectionType(ctx, returns->children[0]) ) {
@@ -548,6 +581,7 @@ static void xl6CgenEmitAnonXCall(XL6_CgenContext* ctx, const XL6_CgenAnonFunc* i
         xl6OutputPrintf(ctx->out, " __xl6_multi = xl6_anon_%d_invoke(__xl6_env", info->id);
         xl6CgenEmitXCallCallArgs(ctx, params, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(");\n", ctx->out);
+        xl6CgenEmitCallableBridgeErrorReturn(ctx, hasArrayVararg, hasDictVararg, "false");
         for ( i = 0; i < returns->childCount; ++i ) {
             char exprText[96];
             snprintf(exprText, sizeof(exprText), "__xl6_multi.value%u", (unsigned)i);
@@ -559,11 +593,13 @@ static void xl6CgenEmitAnonXCall(XL6_CgenContext* ctx, const XL6_CgenAnonFunc* i
         xl6OutputPrintf(ctx->out, " __xl6_single = xl6_anon_%d_invoke(__xl6_env", info->id);
         xl6CgenEmitXCallCallArgs(ctx, params, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(");\n", ctx->out);
+        xl6CgenEmitCallableBridgeErrorReturn(ctx, hasArrayVararg, hasDictVararg, "false");
         xl6CgenEmitXCallSetResult(ctx, returns->children[0], 0u, "__xl6_single", hasArrayVararg, hasDictVararg);
     } else {
         xl6OutputPrintf(ctx->out, "    xl6_anon_%d_invoke(__xl6_env", info->id);
         xl6CgenEmitXCallCallArgs(ctx, params, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(");\n", ctx->out);
+        xl6CgenEmitCallableBridgeErrorReturn(ctx, hasArrayVararg, hasDictVararg, "false");
     }
 
     (void)hasArrayVararg;

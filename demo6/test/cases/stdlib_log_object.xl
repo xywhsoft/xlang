@@ -37,5 +37,8 @@ assert lastMessage == "nested"
 
 Logger wrapped = log.default()
 assert wrapped.getLevel() == log.traceLevel
+assert wrapped.removeAppender(appender)
+assert not wrapped.removeAppender(appender)
+log.info("after-remove")
+assert eventCount == 2
 wrapped.flush()
-

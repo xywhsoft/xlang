@@ -13,7 +13,7 @@ overload.exe
 
 三条路径都必须 EXIT=0。
 
-## 覆盖范围（40 条断言，全部 PASS）
+## 覆盖范围
 
 | 类别 | 被测写法 | 说明 |
 |---|---|---|
@@ -25,19 +25,18 @@ overload.exe
 | `__call__` 重载 | `Dispatch(int)` / `Dispatch(string)` / `Dispatch(int,int)` | 三签名调用 |
 | 解析精度 | `kind(int)` / `kind(int64)` / `kind(float)` | int / int64 / float 字面量与变量 |
 | 综合场景 | `Point`: 2 ctor + 重载 `distance` + 重载 `__call__` + `__eq__` | 多重重载并存 |
+| 管理值返回 | `RowLookup.__item__(int|string) as array<int>` | 协议重载返回静态泛型容器 |
+| 属性重载 | `Meter.value` / `Meter.value[int]` | 零维与一维属性同名重载 |
 
-## 发现的 BUG（未执行，仅记录）
+## 重载解析边界
 
-本工具只执行「编译且运行都正确」的重载路径。下列重载有编译器缺陷，执行会导致编译失败或运行期硬崩溃，
-因此未纳入可执行测试，只在结尾以 `NOTE` 形式打印。完整复现见上级 `../BUGS.md`：
+重载在编译期按静态类型解析：
 
-- **BUG-O1**: `var` 实参无法分派到重载函数（编译期 `[sem] 没有匹配的函数重载`）
-- **BUG-O2**: `__item__ as array<int>` 重载在运行期硬崩溃 `0xC0000005`（阻塞「返回整行」模式）
-- **BUG-O3**: `get` 属性 0 维 + 1 维重载，访问 0 维版本报 `[checked] 找不到 class 方法`
-- **LIMIT-O1**: `f(T)` + `f(T, U=默认)` 因「必选参数数相同」被判为歧义重载（限制，非崩溃）
+- `var` 不参与运行时重载搜索；先写 `value as int` 等 checked downcast，再调用目标重载。
+- `f(T)` 与 `f(T, U=默认)` 在单参数调用时都是同等候选，编译器应报告歧义；调用方需要补齐参数或调整 API。
 
 ## 设计要点
 
 - 测试框架与 `vops` 一致：`g_pass` / `g_fail` 计数 + `ok` / `bad` / `expectI` / `expectF` / `expectS`。
 - 每条断言包在 `try/catch` 内，单条失败不中断整体。
-- `main(...)` 始终返回 0，保证 `xl run` / `xl build` 双路径 EXIT=0。
+- `main(...)` 返回失败数，便于脚本和 CI 识别回归。

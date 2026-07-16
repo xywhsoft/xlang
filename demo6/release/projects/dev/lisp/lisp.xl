@@ -125,12 +125,24 @@ class Sym
 end
 
 // 闭包：参数名表 + 函数体表达式列表 + 捕获环境。
+// 词法环境帧必须拥有稳定身份。闭包捕获后，后续 define/set! 仍应修改
+// 同一个环境对象；若直接捕获 var 数组，写时复制会让递归绑定不可见。
+class EnvFrame
+    EnvFrame parent
+    array<string> names = array<string>[]
+    array<var> values = array<var>[]
+
+    func bind(string name, var value)
+        self.names.append(name)
+        self.values.append(value)
+    end
+end
+
 class Closure
-    derive value
     var params = null
     var body = null
-    var env = null
-    create(var p, var b, var e)
+    EnvFrame env
+    create(var p, var b, EnvFrame e)
         self.params = p
         self.body = b
         self.env = e
@@ -199,12 +211,12 @@ class Reader
     // 读取一个字符串字面量（调用者已定位到起始引号）。返回解码后内容。
     func readString() as var
         self.pos += 1
-        string out = ""
+        string outputValue = ""
         while self.pos < self.len do
             string c = string.charAt(self.src, self.pos)
             if c == "\"" then
                 self.pos += 1
-                return out
+                return outputValue
             end
             if c == "\\" then
                 self.pos += 1
@@ -213,21 +225,21 @@ class Reader
                 end
                 string e = string.charAt(self.src, self.pos)
                 if e == "n" then
-                    out = out + "\n"
+                    outputValue = outputValue + "\n"
                 elseif e == "t" then
-                    out = out + "\t"
+                    outputValue = outputValue + "\t"
                 elseif e == "r" then
-                    out = out + "\r"
+                    outputValue = outputValue + "\r"
                 elseif e == "\\" then
-                    out = out + "\\"
+                    outputValue = outputValue + "\\"
                 elseif e == "\"" then
-                    out = out + "\""
+                    outputValue = outputValue + "\""
                 else
-                    out = out + e
+                    outputValue = outputValue + e
                 end
                 self.pos += 1
             else
-                out = out + c
+                outputValue = outputValue + c
                 self.pos += 1
             end
         end
@@ -323,119 +335,84 @@ end
 
 
 // ====================== 环境 ======================
-// 环境用 var 数组表示（避免 dict 的 GC 二次方劣化 —— 见 BUGS）。
-// 布局：env = [parent, key1, val1, key2, val2, ...]
-//   env[0]           = 父环境（或 null）
-//   env[1],env[2]    = 第一对 (key, value)
-//   env[3],env[4]    = 第二对 (key, value)
-//   ...
-// 查找从每帧末尾向前扫描（后入先出，保证 shadow / 重定义正确）。
-// var 数组以引用共享方式传递，故在函数内就地修改对调用方可见。
-
-func envChild(var parent) as var
-    var e = [parent]
-    return e
+// 每帧使用两个紧凑数组保存名字和值；父环境使用 class 引用连接。
+// 查找从当前帧末尾向前扫描，保证同一作用域内后定义的名字优先。
+func envChild(EnvFrame parent) as EnvFrame
+    EnvFrame child = EnvFrame()
+    child.parent = parent
+    return child
 end
 
 // 向上查找变量；找不到抛异常。
-func envLookup(var env, string name) as var
-    var e = env
-    while e is array<var> do
-        int len = e.length
-        int i = len - 2
-        while i >= 1 do
-            if e[i] == name then
-                return e[i + 1]
+func envLookup(EnvFrame env, string name) as var
+    EnvFrame frame = env
+    while frame != null do
+        int i = frame.names.length - 1
+        while i >= 0 do
+            if frame.names[i] == name then
+                return frame.values[i]
             end
-            i -= 2
+            i -= 1
         end
-        e = e[0]
+        frame = frame.parent
     end
     throw "lisp: unbound symbol: " + name
 end
 
 // set!：找到已有绑定并更新；找不到抛异常。
-func envSet(var env, string name, var val)
-    var e = env
-    while e is array<var> do
-        int len = e.length
-        int i = len - 2
-        while i >= 1 do
-            if e[i] == name then
-                e[i + 1] = val
+func envSet(EnvFrame env, string name, var val)
+    EnvFrame frame = env
+    while frame != null do
+        int i = frame.names.length - 1
+        while i >= 0 do
+            if frame.names[i] == name then
+                frame.values[i] = val
                 return
             end
-            i -= 2
+            i -= 1
         end
-        e = e[0]
+        frame = frame.parent
     end
     throw "lisp: set!: unbound symbol: " + name
 end
 
-func makeGlobalEnv() as var
-    var g = [null]
-    g.push("+")
-    g.push(Builtin("+"))
-    g.push("-")
-    g.push(Builtin("-"))
-    g.push("*")
-    g.push(Builtin("*"))
-    g.push("/")
-    g.push(Builtin("/"))
-    g.push("=")
-    g.push(Builtin("="))
-    g.push("<")
-    g.push(Builtin("<"))
-    g.push(">")
-    g.push(Builtin(">"))
-    g.push("<=")
-    g.push(Builtin("<="))
-    g.push(">=")
-    g.push(Builtin(">="))
-    g.push("car")
-    g.push(Builtin("car"))
-    g.push("cdr")
-    g.push(Builtin("cdr"))
-    g.push("cons")
-    g.push(Builtin("cons"))
-    g.push("list")
-    g.push(Builtin("list"))
-    g.push("null?")
-    g.push(Builtin("null?"))
-    g.push("pair?")
-    g.push(Builtin("pair?"))
-    g.push("number?")
-    g.push(Builtin("number?"))
-    g.push("display")
-    g.push(Builtin("display"))
-    g.push("newline")
-    g.push(Builtin("newline"))
-    g.push("map")
-    g.push(Builtin("map"))
-    g.push("filter")
-    g.push(Builtin("filter"))
-    g.push("reduce")
-    g.push(Builtin("reduce"))
-    g.push("length")
-    g.push(Builtin("length"))
-    g.push("append")
-    g.push(Builtin("append"))
-    g.push("reverse")
-    g.push(Builtin("reverse"))
-    g.push("not")
-    g.push(Builtin("not"))
-    g.push("eq?")
-    g.push(Builtin("eq?"))
-    g.push("equal?")
-    g.push(Builtin("equal?"))
-    g.push("boolean?")
-    g.push(Builtin("boolean?"))
-    g.push("string?")
-    g.push(Builtin("string?"))
-    g.push("symbol?")
-    g.push(Builtin("symbol?"))
-    g.push("zero?")
-    g.push(Builtin("zero?"))
+func addBuiltin(EnvFrame env, string name)
+    env.bind(name, Builtin(name))
+end
+
+func makeGlobalEnv() as EnvFrame
+    EnvFrame g = EnvFrame()
+    addBuiltin(g, "+")
+    addBuiltin(g, "-")
+    addBuiltin(g, "*")
+    addBuiltin(g, "/")
+    addBuiltin(g, "=")
+    addBuiltin(g, "<")
+    addBuiltin(g, ">")
+    addBuiltin(g, "<=")
+    addBuiltin(g, ">=")
+    addBuiltin(g, "car")
+    addBuiltin(g, "cdr")
+    addBuiltin(g, "cons")
+    addBuiltin(g, "list")
+    addBuiltin(g, "null?")
+    addBuiltin(g, "pair?")
+    addBuiltin(g, "number?")
+    addBuiltin(g, "display")
+    addBuiltin(g, "newline")
+    addBuiltin(g, "map")
+    addBuiltin(g, "filter")
+    addBuiltin(g, "reduce")
+    addBuiltin(g, "length")
+    addBuiltin(g, "append")
+    addBuiltin(g, "reverse")
+    addBuiltin(g, "not")
+    addBuiltin(g, "eq?")
+    addBuiltin(g, "equal?")
+    addBuiltin(g, "boolean?")
+    addBuiltin(g, "string?")
+    addBuiltin(g, "symbol?")
+    addBuiltin(g, "zero?")
     return g
 end
 
@@ -443,28 +420,28 @@ end
 // ====================== 显示 / 序列化 ======================
 
 func quoteStr(string s) as string
-    string out = "\""
+    string outputValue = "\""
     int n = string.len(s)
     int i = 0
     while i < n do
         string c = string.charAt(s, i)
         if c == "\"" then
-            out = out + "\\\""
+            outputValue = outputValue + "\\\""
         elseif c == "\\" then
-            out = out + "\\\\"
+            outputValue = outputValue + "\\\\"
         elseif c == "\n" then
-            out = out + "\\n"
+            outputValue = outputValue + "\\n"
         elseif c == "\t" then
-            out = out + "\\t"
+            outputValue = outputValue + "\\t"
         elseif c == "\r" then
-            out = out + "\\r"
+            outputValue = outputValue + "\\r"
         else
-            out = out + c
+            outputValue = outputValue + c
         end
         i += 1
     end
-    out = out + "\""
-    return out
+    outputValue = outputValue + "\""
+    return outputValue
 end
 
 func listToStr(var lst, bool useWrite) as string
@@ -472,17 +449,17 @@ func listToStr(var lst, bool useWrite) as string
     if n == 0 then
         return "nil"
     end
-    string out = "("
+    string outputValue = "("
     int i = 0
     while i < n do
         if i > 0 then
-            out = out + " "
+            outputValue = outputValue + " "
         end
-        out = out + displayStr(lst[i], useWrite)
+        outputValue = outputValue + displayStr(lst[i], useWrite)
         i += 1
     end
-    out = out + ")"
-    return out
+    outputValue = outputValue + ")"
+    return outputValue
 end
 
 // 将 Lisp 值转为字符串。useWrite=true 时字符串带引号（write 语义）。
@@ -540,7 +517,7 @@ func isTruthy(var v) as bool
 end
 
 // 求值序列中 [start,end) 的表达式，返回最后一个值。
-func evalSeq(var seq, int start, int endIdx, var env) as var
+func evalSeq(var seq, int start, int endIdx, EnvFrame env) as var
     var result = null
     int i = start
     while i < endIdx do
@@ -551,7 +528,7 @@ func evalSeq(var seq, int start, int endIdx, var env) as var
 end
 
 // 从参数名表（Sym 列表）+ 函数体 + 捕获环境构造闭包。
-func makeClosure(var paramsRaw, var body, var env) as var
+func makeClosure(var paramsRaw, var body, EnvFrame env) as var
     var names = []
     int i = 0
     int n = 0
@@ -567,7 +544,7 @@ func makeClosure(var paramsRaw, var body, var env) as var
     return c
 end
 
-func evalIf(var expr, var env) as var
+func evalIf(var expr, EnvFrame env) as var
     var test = eval(expr[1], env)
     if isTruthy(test) then
         return eval(expr[2], env)
@@ -578,13 +555,12 @@ func evalIf(var expr, var env) as var
     return null
 end
 
-func evalDefine(var expr, var env) as var
+func evalDefine(var expr, EnvFrame env) as var
     var target = expr[1]
     if target is Sym then
         Sym t = target as Sym
         var val = eval(expr[2], env)
-        env.push(t.name)
-        env.push(val)
+        env.bind(t.name, val)
         return null
     end
     // (define (name args...) body...)
@@ -605,21 +581,20 @@ func evalDefine(var expr, var env) as var
             k += 1
         end
         var lam = makeClosure(pnames, body, env)
-        env.push(fname.name)
-        env.push(lam)
+        env.bind(fname.name, lam)
         return null
     end
     throw "lisp: define: bad form"
 end
 
-func evalSet(var expr, var env) as var
+func evalSet(var expr, EnvFrame env) as var
     Sym s = expr[1] as Sym
     var val = eval(expr[2], env)
     envSet(env, s.name, val)
     return null
 end
 
-func evalLambda(var expr, var env) as var
+func evalLambda(var expr, EnvFrame env) as var
     var paramsRaw = expr[1]
     var body = []
     int k = 2
@@ -631,9 +606,9 @@ func evalLambda(var expr, var env) as var
     return makeClosure(paramsRaw, body, env)
 end
 
-func evalLet(var expr, var env) as var
+func evalLet(var expr, EnvFrame env) as var
     var bindings = expr[1]
-    var newEnv = envChild(env)
+    EnvFrame newEnv = envChild(env)
     int nb = 0
     if bindings is array<var> then
         nb = bindings.length
@@ -643,14 +618,13 @@ func evalLet(var expr, var env) as var
         var binding = bindings[b]
         Sym vn = binding[0] as Sym
         var vv = eval(binding[1], env)
-        newEnv.push(vn.name)
-        newEnv.push(vv)
+        newEnv.bind(vn.name, vv)
         b += 1
     end
     return evalSeq(expr, 2, expr.length, newEnv)
 end
 
-func evalCond(var expr, var env) as var
+func evalCond(var expr, EnvFrame env) as var
     int c = 1
     int n = expr.length
     while c < n do
@@ -678,7 +652,7 @@ func evalCond(var expr, var env) as var
     return null
 end
 
-func evalAnd(var expr, var env) as var
+func evalAnd(var expr, EnvFrame env) as var
     int n = expr.length
     if n == 1 then
         return true
@@ -697,7 +671,7 @@ func evalAnd(var expr, var env) as var
     return result
 end
 
-func evalOr(var expr, var env) as var
+func evalOr(var expr, EnvFrame env) as var
     int n = expr.length
     int i = 1
     while i < n do
@@ -711,7 +685,7 @@ func evalOr(var expr, var env) as var
 end
 
 // 核心：递归求值。热路径：先判断列表（函数调用）与符号（变量引用）。
-func eval(var expr, var env) as var
+func eval(var expr, EnvFrame env) as var
     // 列表：特殊形式或函数应用（执行期最高频）
     if expr is array<var> then
         int n = expr.length
@@ -758,7 +732,7 @@ func eval(var expr, var env) as var
         // 闭包快速路径：直接把实参求值进调用环境，省去 args 数组
         if fn is Closure then
             Closure c = fn as Closure
-            var callEnv = envChild(c.env)
+            EnvFrame callEnv = envChild(c.env)
             var params = c.params
             int np = params.length
             int ai = 1
@@ -766,11 +740,9 @@ func eval(var expr, var env) as var
             while pi < np do
                 string pname = string(params[pi])
                 if ai < n then
-                    callEnv.push(pname)
-                    callEnv.push(eval(expr[ai], env))
+                    callEnv.bind(pname, eval(expr[ai], env))
                 else
-                    callEnv.push(pname)
-                    callEnv.push(null)
+                    callEnv.bind(pname, null)
                 end
                 pi += 1
                 ai += 1
@@ -823,7 +795,7 @@ end
 // ====================== apply / 内建函数 ======================
 
 func applyClosure(Closure c, var args) as var
-    var callEnv = envChild(c.env)
+    EnvFrame callEnv = envChild(c.env)
     var params = c.params
     int np = params.length
     int na = args.length
@@ -831,11 +803,9 @@ func applyClosure(Closure c, var args) as var
     while i < np do
         string pname = string(params[i])
         if i < na then
-            callEnv.push(pname)
-            callEnv.push(args[i])
+            callEnv.bind(pname, args[i])
         else
-            callEnv.push(pname)
-            callEnv.push(null)
+            callEnv.bind(pname, null)
         end
         i += 1
     end
@@ -1334,7 +1304,7 @@ func applyBuiltin(string name, var args) as var
     end
 
     if name == "append" then
-        var out = []
+        var outputValue = []
         int i = 0
         while i < n do
             var a = args[i]
@@ -1342,7 +1312,7 @@ func applyBuiltin(string name, var args) as var
                 int m = a.length
                 int j = 0
                 while j < m do
-                    out.push(a[j])
+                    outputValue.push(a[j])
                     j += 1
                 end
             elseif a is null then
@@ -1352,10 +1322,10 @@ func applyBuiltin(string name, var args) as var
             end
             i += 1
         end
-        if out.length == 0 then
+        if outputValue.length == 0 then
             return null
         end
-        return out
+        return outputValue
     end
 
     if name == "reverse" then
@@ -1365,13 +1335,13 @@ func applyBuiltin(string name, var args) as var
         end
         if lst is array<var> then
             int m = lst.length
-            var out = []
+            var outputValue = []
             int i = m - 1
             while i >= 0 do
-                out.push(lst[i])
+                outputValue.push(lst[i])
                 i -= 1
             end
-            return out
+            return outputValue
         end
         throw "lisp: reverse: not a list"
     end
@@ -1386,16 +1356,16 @@ func applyBuiltin(string name, var args) as var
             return null
         end
         if lst is array<var> then
-            var out = []
+            var outputValue = []
             int m = lst.length
             int i = 0
             while i < m do
                 var one = []
                 one.push(lst[i])
-                out.push(apply(f, one))
+                outputValue.push(apply(f, one))
                 i += 1
             end
-            return out
+            return outputValue
         end
         throw "lisp: map: not a list"
     end
@@ -1410,7 +1380,7 @@ func applyBuiltin(string name, var args) as var
             return null
         end
         if lst is array<var> then
-            var out = []
+            var outputValue = []
             int m = lst.length
             int i = 0
             while i < m do
@@ -1418,11 +1388,11 @@ func applyBuiltin(string name, var args) as var
                 one.push(lst[i])
                 var keep = apply(f, one)
                 if isTruthy(keep) then
-                    out.push(lst[i])
+                    outputValue.push(lst[i])
                 end
                 i += 1
             end
-            return out
+            return outputValue
         end
         throw "lisp: filter: not a list"
     end
@@ -1465,7 +1435,7 @@ func printUsage()
 end
 
 // 执行源码字符串中的全部顶层形式。
-func runSource(string src, var env)
+func runSource(string src, EnvFrame env)
     Reader r = Reader(src)
     var forms = r.readAll()
     int n = forms.length
@@ -1482,7 +1452,7 @@ func cmdRun(string path) as int
         return 1
     end
     string src = file.readText(path)
-    var env = makeGlobalEnv()
+    EnvFrame env = makeGlobalEnv()
     try
         runSource(src, env)
     catch e
@@ -1493,7 +1463,7 @@ func cmdRun(string path) as int
 end
 
 // 求值单个表达式字符串，返回结果。
-func evalOne(string src, var env) as var
+func evalOne(string src, EnvFrame env) as var
     Reader r = Reader(src)
     var forms = r.readAll()
     if forms.length == 0 then
@@ -1503,7 +1473,7 @@ func evalOne(string src, var env) as var
 end
 
 // 校验：求值 src，把结果 displayStr 与 expected 比较，打印 PASS/FAIL。
-func runCheck(string label, string src, string expected, var env) as bool
+func runCheck(string label, string src, string expected, EnvFrame env) as bool
     var r = evalOne(src, env)
     string got = displayStr(r, false)
     if got == expected then
@@ -1516,7 +1486,7 @@ end
 
 func cmdTest() as int
     println("=== lisp built-in test suite ===")
-    var env = makeGlobalEnv()
+    EnvFrame env = makeGlobalEnv()
     int passed = 0
     int failed = 0
 
@@ -1689,7 +1659,7 @@ func cmdTest() as int
             failed += 1
         end
         float t1 = time.timer()
-        println("; stress (fact20 + fib25) took " + string.formatFloat((t1 - t0) * 1000.0, ".3") + " ms")
+        println("; stress (fact20 + fib25) took " + float.format((t1 - t0) * 1000.0, ".3") + " ms")
 
         // ---- set! 与闭包状态（make-counter）----
         runSource("(define (make-counter) (define n 0) (lambda () (set! n (+ n 1)) n))", env)

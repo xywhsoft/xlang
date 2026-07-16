@@ -9,7 +9,7 @@
 //   6. vtable 动态派发（向上转型 Shape s = Circle(...)；基类方法内 self.xxx() 内部派发）
 //   7. destroy 析构生命周期
 //
-// 程序始终返回 0（即使发现 BUG 也只 [FAIL] 不中断），保证 xl run / xl build 双路径 EXIT=0。
+// 测试会运行全部用例；只要存在失败，进程就返回非零退出码。
 //
 // 设计说明（重要）：
 //   xlang 现已支持派生类实例向基类类型的隐式向上转型（SH2 已修复）：
@@ -17,13 +17,8 @@
 //     - `func f(Base b)` 传 Derived    -> 合法，函数体内 b.virtualMethod() 派发到 override（SH3 已修复）
 //   因此 vtable 动态派发的验证改回正常的「向上转型」+「函数参数多态」写法。
 //
-//   注意：带 destroy 的 class（Shape/Circle/Cylinder）被视为不可按值复制的资源，
-//   不能按值传入/传出函数，也不能直接装箱进 var。所以：
-//     - 向上转型赋值（Shape s = Circle）可用，但 printArea(Shape s) 这类按值形参
-//       不适用于带 destroy 的类型。
-//     - 「函数参数多态」与「var 装箱 downcast」两条 vtable 路径改由一对无 destroy 的
-//       ProbeBase / ProbeDerived 镜像层级承载（SH1 已修复：var->as Base->virtualMethod
-//       保留 vtable 派发）。
+//   class 使用受管理引用语义。带 destroy 的 Shape 层级可以直接作为参数、返回值和
+//   var 装箱值使用；这些操作传递同一对象引用，不会隐式复制资源对象。
 //
 // 用法：
 //   xl run projects\dev\shapes\shapes.xl
@@ -56,7 +51,7 @@ func expectF(float got, float want, string label)
     if math.abs(got - want) < 0.001 then
         ok(label)
     else
-        bad(label, "got " + string.formatFloat(got, ".4") + " want " + string.formatFloat(want, ".4"))
+        bad(label, "got " + float.format(got, ".4") + " want " + float.format(want, ".4"))
     end
 end
 
@@ -108,7 +103,7 @@ class Shape
     // 基类方法：内部通过 self.type / self.area() 调用，
     // 实际运行时按实例真实类型派发到 override。
     func describe() as string
-        return self.type + " area=" + string.formatFloat(self.area(), ".4")
+        return self.type + " area=" + float.format(self.area(), ".4")
     end
 
     func idOf() as int
@@ -414,63 +409,46 @@ func testDestroyLifecycle()
 end
 
 // ============================================================
-// 镜像层级（无 destroy）：用于 vtable 的「函数参数多态」与「var 装箱 downcast」探针。
-//   带 destroy 的 class（Shape/Circle/Cylinder）被视为不可复制资源，既不能按值
-//   传入函数（func f(Shape s) 非法），也不能装箱进 var；故另建一对无 destroy 的
-//   ProbeBase / ProbeDerived 来承载这两条 vtable 派发路径。
+// 函数参数多态：形参为基类 Shape，可接收任意派生类并保留 vtable 派发。
 // ============================================================
-class ProbeBase
-    virtual func area() as float
-        return 0.0
-    end
-end
-
-class ProbeDerived extends ProbeBase
-    float radius = 2.0
-    override func area() as float
-        return 3.14159 * self.radius * self.radius
-    end
-end
-
-// 函数参数多态：形参为基类 ProbeBase，可接收 ProbeDerived 实参并保留 vtable 派发。
-func probeArea(ProbeBase b) as float
-    return b.area()
+func shapeArea(Shape shape) as float
+    return shape.area()
 end
 
 // ============================================================
 // 用例 9：函数参数多态 + var 装箱 downcast 的派发验证
-//   (a) func probeArea(ProbeBase b) 传 ProbeDerived -> b.area() 派发到 override
-//   (b) ProbeDerived 装入 var 后 is ProbeBase 成立、as ProbeBase 成功，
-//       并且通过 ProbeBase 类型变量调用 virtual area() 仍派发到派生类实现。
+//   (a) func shapeArea(Shape) 传 Circle -> shape.area() 派发到 override
+//   (b) Circle 装入 var 后 is Shape 成立、as Shape 成功，并保留对象身份与动态类型。
 // ============================================================
 func testPolymorphismDispatch()
     println("[9] function-param polymorphism + var-box downcast dispatch")
     try
-        ProbeBase base = ProbeBase()
-        ProbeDerived d = ProbeDerived()
+        Shape base = Shape("base")
+        Circle circle = Circle("boxed", 2.0)
 
         // 直接类型化调用：派发正确（控制组）
-        float direct = d.area()
-        expectF(direct, 12.5664, "typed ProbeDerived.area() direct dispatch (control)")
+        float direct = circle.area()
+        expectF(direct, 12.5664, "typed Circle.area() direct dispatch (control)")
 
         // (a) 函数参数多态：传派生类实参给基类形参，调用 override
-        expectF(probeArea(base), 0.0, "probeArea(ProbeBase) -> base area")
-        expectF(probeArea(d), 12.5664, "probeArea(ProbeDerived) -> override area (param polymorphism)")
+        expectF(shapeArea(base), 0.0, "shapeArea(Shape) -> base area")
+        expectF(shapeArea(circle), 12.5664, "shapeArea(Circle) -> override area")
 
-        // (b) 装入 var（无 destroy 的 class 允许装箱）
-        var boxed = d
+        // (b) 带 destroy 的受管理 class 可直接装箱，取回后仍是同一对象。
+        var boxed = circle
         bool isBase = false
-        if boxed is ProbeBase then
+        if boxed is Shape then
             isBase = true
-            ProbeBase b = boxed as ProbeBase
+            Shape b = boxed as Shape
             float viaBase = b.area()
-            // SH1 已修复：经 var 往返后 vtable 派发仍保留，返回 override 值
-            expectF(viaBase, 12.5664, "var -> as ProbeBase -> b.area() preserves override (SH1 fixed)")
+            expectF(viaBase, 12.5664, "var -> as Shape preserves Circle dispatch")
+            b.tag = "same-object"
+            expectS(circle.tag, "same-object", "var roundtrip preserves object identity")
         else
-            bad("boxed is ProbeBase", "downcast precondition failed")
+            bad("boxed is Shape", "runtime type check failed")
         end
         if isBase then
-            println("  [PASS] var->ProbeBase downcast preserves vtable dispatch")
+            println("  [PASS] managed Shape survives var roundtrip with identity intact")
         end
     catch e
         bad("polymorphism dispatch", e.message)
@@ -497,9 +475,12 @@ func main(...) as int
     println("")
     println("--- polymorphism paths ---")
     println("upcast:        Shape s = Circle(...) -> s.area() dispatches to override")
-    println("func param:    func f(ProbeBase b); f(ProbeDerived) -> dispatches to override")
-    println("var downcast:  var -> as ProbeBase -> b.virtualMethod() preserves override")
+    println("func param:    func f(Shape s); f(Circle) -> dispatches to override")
+    println("var downcast:  Circle -> var -> as Shape preserves identity and override")
     println("")
     println("total passed=" + string(g_pass) + " failed=" + string(g_fail))
+    if g_fail > 0 then
+        return 1
+    end
     return 0
 end
