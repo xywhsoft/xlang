@@ -1133,7 +1133,7 @@ if errorlevel 1 (
     echo stdlib_websocket_http_upgrade.c missing shared HTTP Upgrade bridge.
     exit /b 1
 )
-findstr /C:"xrtWebServerCreateHostFullEx((xnetengine*)engine" build\test\stdlib_websocket_http_upgrade.c >nul
+findstr /C:"xrtWebServerCreateHostFullEx(engine" build\test\stdlib_websocket_http_upgrade.c >nul
 if errorlevel 1 (
     echo stdlib_websocket_http_upgrade.c missing shared NetEngine HTTP server path.
     exit /b 1

@@ -110,11 +110,25 @@ foreach ($rawLine in [System.IO.File]::ReadAllLines($Manifest)) {
     if ($kind -eq "dir") {
         $virtualPrefix = Normalize-VirtualName $parts[1]
         $sourceDir = Resolve-ManifestPath $parts[2].Trim()
+        $patterns = @()
+        if ($parts.Count -ge 4 -and -not [string]::IsNullOrWhiteSpace($parts[3])) {
+            $patterns = @($parts[3].Split(";", [System.StringSplitOptions]::RemoveEmptyEntries) | ForEach-Object { $_.Trim() })
+        }
         if (-not (Test-Path -LiteralPath $sourceDir -PathType Container)) {
             throw "missing VFS resource directory: $sourceDir"
         }
         $baseLen = $sourceDir.TrimEnd("\", "/").Length + 1
-        Get-ChildItem -LiteralPath $sourceDir -Recurse -File | Sort-Object FullName | ForEach-Object {
+        Get-ChildItem -LiteralPath $sourceDir -Recurse -File | Where-Object {
+            if ($patterns.Count -eq 0) {
+                return $true
+            }
+            foreach ($pattern in $patterns) {
+                if ($_.Name -like $pattern) {
+                    return $true
+                }
+            }
+            return $false
+        } | Sort-Object FullName | ForEach-Object {
             $relative = $_.FullName.Substring($baseLen).Replace("\", "/")
             Add-Resource $resources $seen ($virtualPrefix + "/" + $relative) $_.FullName
         }

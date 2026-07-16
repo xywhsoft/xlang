@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-07-17 02:34:53
+    Generated: 2026-07-17 03:01:03
 
     MIT License
 
@@ -62531,7 +62531,7 @@ static bool __xnetStreamSubmitSocketNotice(xnetstream* pStream, uint16 iOpType, 
 // 内部函数：__xnetStreamArmRecvWatch
 static bool __xnetStreamArmRecvWatch(xnetstream* pStream)
 {
-	if ( !pStream || pStream->bClosing || !__xnetSocketIsValid(pStream->hSocket) ) { return false; }
+	if ( !__xnetStreamCanArmRecv(pStream) || !__xnetSocketIsValid(pStream->hSocket) ) { return false; }
 	if ( __xnetAtomicCompareExchange32(&pStream->bRecvArmed, 1, 0) != 0 ) { return false; }
 	if ( !__xnetStreamSubmitSocketNotice(pStream, XNET_PORT_OP_RECV, pStream->hSocket) ) {
 		(void)__xnetAtomicExchange32(&pStream->bRecvArmed, 0);
@@ -63026,7 +63026,7 @@ static void __xnetStreamAsyncTask(xnetworker* pWorker, ptr pArg)
 			// 分发已缓存的接收数据给上层
 			__xnetStreamDispatchRecv(pStream);
 			// 分发后如果接收链已空，根据状态继续挂起接收或驱动 TLS
-			if ( pStream && !__xnetStreamReadPaused(pStream) && !pStream->bClosing &&
+			if ( __xnetStreamCanArmRecv(pStream) && !__xnetStreamReadPaused(pStream) &&
 				__xnetStreamRxBytes(pStream) == 0 &&
 				__xnetSocketIsValid(pStream->hSocket) && !__xnetStreamRecvArmed(pStream) ) {
 				if ( pStream->pProxyState ) {
@@ -90897,6 +90897,17 @@ static xnet_result __xwsPostClose(xnetstream* pStream, bool bMask, uint16 iCode,
 		return XRT_NET_ERROR;
 	}
 	XNET_FREE(pPayload);
+	/* Receive callbacks already run on the stream owner. Queue the close frame and
+	 * enter WAIT_PEER before another receive completion can observe peer EOF. */
+	if ( __xnetEngineIsCurrentWorker(pStream->pWorker) ) {
+		if ( !__xwsStreamQueueOwnedBytesDirectEx(pStream, pFrame, iFrameLen, true) ) {
+			return XRT_NET_ERROR;
+		}
+		if ( bCloseStream ) {
+			xrtNetStreamClose(pStream, XNET_CLOSE_F_GRACEFUL | XNET_CLOSE_F_WAIT_PEER);
+		}
+		return XRT_NET_OK;
+	}
 	// 创建异步关闭任务并投递到工作线程
 	pTask = (__xws_close_task*)XNET_ALLOC(sizeof(__xws_close_task));
 	if ( !pTask ) {
@@ -91237,10 +91248,18 @@ static xnetstream* __xwsClientAcquireStream(const xwsclient* pClient)
 static void __xwsClientCloseCurrentStream(xwsclient* pClient,
 	xnetstream* pStream, uint32 iFlags)
 {
+	bool bCurrent = false;
 	if ( !pClient || !pStream ) { return; }
 	__xwsLock(&pClient->iSendLock);
-	if ( pClient->pStream == pStream ) { xrtNetStreamClose(pStream, iFlags); }
+	if ( pClient->pStream == pStream ) {
+		__xnetStreamAddAsyncHold(pStream);
+		bCurrent = true;
+	}
 	__xwsUnlock(&pClient->iSendLock);
+	if ( bCurrent ) {
+		xrtNetStreamClose(pStream, iFlags);
+		__xnetStreamReleaseAsyncHold(pStream);
+	}
 }
 static xnet_result __xwsClientQueueControlDirect(xwsclient* pClient,
 	xnetstream* pStream, uint8 iOpcode, const void* pData, size_t iLen)
@@ -91796,10 +91815,18 @@ static xnetstream* __xwsConnAcquireStream(const xwsconn* pConn)
 static void __xwsConnCloseCurrentStream(xwsconn* pConn,
 	xnetstream* pStream, uint32 iFlags)
 {
+	bool bCurrent = false;
 	if ( !pConn || !pStream ) { return; }
 	__xwsLock(&pConn->iSendLock);
-	if ( pConn->pStream == pStream ) { xrtNetStreamClose(pStream, iFlags); }
+	if ( pConn->pStream == pStream ) {
+		__xnetStreamAddAsyncHold(pStream);
+		bCurrent = true;
+	}
 	__xwsUnlock(&pConn->iSendLock);
+	if ( bCurrent ) {
+		xrtNetStreamClose(pStream, iFlags);
+		__xnetStreamReleaseAsyncHold(pStream);
+	}
 }
 static xnet_result __xwsConnQueueControlDirect(xwsconn* pConn,
 	xnetstream* pStream, uint8 iOpcode, const void* pData, size_t iLen)

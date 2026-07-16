@@ -4,10 +4,13 @@
 #   file|virtual-name|source-file
 #
 # xl.dll only needs enough resources to compile and relocate generated C inside
-# the host process. XRT functions are provided by tcc_add_symbol, so xrt.h/xrt.o
-# and executable import libraries stay in the compiler-capable manifest.
+# the host process. XRT functions are provided by tcc_add_symbol; xrt.h only
+# supplies public declarations, while xrt.o and executable import libraries
+# stay in the compiler-capable manifest.
 
 dir|include|%XL6_EMBED_TCC_DIST_X64%\include
 
+file|include/xl.h|%XL6_ROOT%\release\include\xl.h
 file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h
 file|lib/libtcc1.a|%XL6_EMBED_TCC_DIST_X64%\lib\libtcc1.a
+file|lib/xrt/xrt.h|%XL6_ROOT%\lib\xrt\xrt.h
