@@ -188,6 +188,7 @@ static int xl__runtimeContextCount = 0;
 #define XL_TCC_VFS_C_MODULE_C "__xlvfs__/c_module.c"
 #define XL_TCC_VFS_RUNTIME_C "__xlvfs__/runtime.c"
 #define XL_TCC_VFS_XRT_C "__xlvfs__/xrt_impl.c"
+#define XL_TCC_VFS_COMPILER_SOURCE_ROOT "__xl_compiler"
 /* 官方大型 C 库通常包含上百个独立编译单元，上限只负责阻止异常输入。 */
 #ifndef XLC_MAX_C_SOURCE_FILES
 #define XLC_MAX_C_SOURCE_FILES 256
@@ -1138,6 +1139,9 @@ static int xlConfigureTccStateEnvironment(XL_Context* ctx, TCCState* s, int outp
 #if !XL_ENABLE_EXE_COMPILER
     (void)xl__tcc.tcc_set_options(s, "-DXL_RUNTIME_ONLY_DLL");
 #endif
+#ifdef XL_STATIC_EMBED
+    (void)xl__tcc.tcc_set_options(s, "-DXL_STATIC_EMBED");
+#endif
     (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->baseDir != NULL ? ctx->baseDir : ".");
     xlAddDefaultProjectToolchainPaths(s);
     (void)xl__tcc.tcc_add_include_path(s, "src");
@@ -1772,13 +1776,61 @@ static int xlAddResourceFilesToTcc(XL_Context* ctx, TCCState* s)
 #endif
 }
 
+static void xlAddEmbeddedSourceIncludePaths(TCCState* s)
+{
+    if ( s == NULL ) {
+        return;
+    }
+    (void)xl__tcc.tcc_add_include_path(s, XL_TCC_VFS_COMPILER_SOURCE_ROOT);
+    (void)xl__tcc.tcc_add_include_path(s, XL_TCC_VFS_COMPILER_SOURCE_ROOT "/src");
+    (void)xl__tcc.tcc_add_include_path(s, XL_TCC_VFS_COMPILER_SOURCE_ROOT "/lib/tcc");
+    (void)xl__tcc.tcc_add_include_path(s, XL_TCC_VFS_COMPILER_SOURCE_ROOT "/lib/lzma");
+    (void)xl__tcc.tcc_add_include_path(s, XL_TCC_VFS_COMPILER_SOURCE_ROOT "/release");
+}
+
+static int xlEmbeddedSourcePath(char* out, size_t outSize, const char* relativePath)
+{
+    char root[512];
+    char externalPath[1536];
+    size_t i;
+    int written;
+
+    if ( out == NULL || outSize == 0 || relativePath == NULL || relativePath[0] == '\0' ) {
+        return 0;
+    }
+
+    /* 开发目录存在源码时优先使用外部最新版；发布环境回落到只读静态 VFS。 */
+    if ( xlGetProjectRoot(root, sizeof(root)) &&
+         xlJoinPathBuffer(externalPath, sizeof(externalPath), root, relativePath) &&
+         xrtFileExists((str)externalPath) ) {
+        return xlCopyToBuffer(out, outSize, externalPath);
+    }
+
+    written = snprintf(out, outSize, "%s/%s", XL_TCC_VFS_COMPILER_SOURCE_ROOT, relativePath);
+    if ( written <= 0 || (size_t)written >= outSize ) {
+        return 0;
+    }
+    for ( i = 0; out[i] != '\0'; ++i ) {
+        if ( out[i] == '\\' ) {
+            out[i] = '/';
+        }
+    }
+    return 1;
+}
+
 static int xlAddTccSourceFile(XL_Context* ctx, TCCState* s, const char* path)
 {
+    char resolvedPath[2048];
+
     if ( path == NULL || path[0] == '\0' ) {
         xlSetError(ctx, "embedded TCC source path is empty");
         return 0;
     }
-    if ( xl__tcc.tcc_add_file(s, path) != 0 ) {
+    if ( !xlEmbeddedSourcePath(resolvedPath, sizeof(resolvedPath), path) ) {
+        xlSetError2(ctx, "cannot resolve embedded source", path);
+        return 0;
+    }
+    if ( xl__tcc.tcc_add_file(s, resolvedPath) != 0 ) {
         if ( ctx->lastError == NULL ) {
             xlSetError2(ctx, "cannot compile embedded TCC source", path);
         }
@@ -1787,7 +1839,11 @@ static int xlAddTccSourceFile(XL_Context* ctx, TCCState* s, const char* path)
     return 1;
 }
 
-static int xlAddEmbeddedTccRuntimeSources(XL_Context* ctx, TCCState* s, const XL6_CompileUnit* unit)
+static int xlAddEmbeddedTccRuntimeSources(
+    XL_Context* ctx,
+    TCCState* s,
+    const XL6_CompileUnit* unit,
+    int outputType)
 {
     unsigned int features;
 
@@ -1805,11 +1861,15 @@ static int xlAddEmbeddedTccRuntimeSources(XL_Context* ctx, TCCState* s, const XL
      * 这些宏描述“被编进用户产物里的 libtcc”。它们只在产物需要脚本能力时启用，
      * 普通 xlang 程序不会携带 TCC 源码和内置 VFS 资源。
      */
-    (void)xl__tcc.tcc_set_options(s, "-DXL_STATIC_TCC -DLIBTCC_AS_DLL -DCONFIG_TCC_STATIC");
+    (void)xl__tcc.tcc_set_options(s, "-DXL_STATIC_TCC -DCONFIG_TCC_STATIC");
+    if ( outputType == TCC_OUTPUT_DLL ) {
+        (void)xl__tcc.tcc_set_options(s, "-DLIBTCC_AS_DLL");
+    }
     (void)xl__tcc.tcc_add_include_path(s, "lib\\tcc");
     (void)xl__tcc.tcc_add_include_path(s, "lib\\lzma");
     (void)xl__tcc.tcc_add_include_path(s, "release");
     (void)xl__tcc.tcc_add_include_path(s, "release\\include");
+    xlAddEmbeddedSourceIncludePaths(s);
 
     if ( !xlAddTccSourceFile(ctx, s, "lib\\tcc\\libtcc.c") ||
          !xlAddTccSourceFile(ctx, s, "lib\\tcc\\tcctools.c") ||
@@ -1822,7 +1882,11 @@ static int xlAddEmbeddedTccRuntimeSources(XL_Context* ctx, TCCState* s, const XL
     return 1;
 }
 
-static int xlAddEmbeddedXlangRuntimeSources(XL_Context* ctx, TCCState* s, const XL6_CompileUnit* unit)
+static int xlAddEmbeddedXlangRuntimeSources(
+    XL_Context* ctx,
+    TCCState* s,
+    const XL6_CompileUnit* unit,
+    int outputType)
 {
     static const char* runtimeSources[] = {
         "src\\api\\xl_api.c",
@@ -1882,7 +1946,12 @@ static int xlAddEmbeddedXlangRuntimeSources(XL_Context* ctx, TCCState* s, const 
      * 普通运行能力只开启 runtime-only 口径；只有 import xlang.compiler 才携带
      * 外部 exe/dll/obj 输出和调试 dump 相关源码。
      */
-    (void)xl__tcc.tcc_set_options(s, "-DXL_BUILD_DLL -DXL_STATIC_TCC -DLIBTCC_AS_DLL -DCONFIG_TCC_STATIC");
+    (void)xl__tcc.tcc_set_options(s, "-DXL_STATIC_TCC -DCONFIG_TCC_STATIC");
+    if ( outputType == TCC_OUTPUT_DLL ) {
+        (void)xl__tcc.tcc_set_options(s, "-DXL_BUILD_DLL -DLIBTCC_AS_DLL");
+    } else {
+        (void)xl__tcc.tcc_set_options(s, "-DXL_STATIC_EMBED");
+    }
     if ( (features & XL6_IMPORT_FEATURE_XLANG_COMPILER) == 0 ) {
         (void)xl__tcc.tcc_set_options(s, "-DXL_RUNTIME_ONLY_DLL -DXL_RUNTIME_ONLY_API");
     }
@@ -1892,6 +1961,7 @@ static int xlAddEmbeddedXlangRuntimeSources(XL_Context* ctx, TCCState* s, const 
     (void)xl__tcc.tcc_add_include_path(s, "release\\include");
     (void)xl__tcc.tcc_add_include_path(s, "lib\\tcc");
     (void)xl__tcc.tcc_add_include_path(s, "lib\\lzma");
+    xlAddEmbeddedSourceIncludePaths(s);
 
     for ( i = 0; i < sizeof(runtimeSources) / sizeof(runtimeSources[0]); ++i ) {
         if ( !xlAddTccSourceFile(ctx, s, runtimeSources[i]) ) {
@@ -2148,10 +2218,10 @@ static int xlCompileUnitToExternalOutputWithC(
     if ( !xlAddResourceFilesToTcc(ctx, s) ) {
         goto cleanup;
     }
-    if ( !xlAddEmbeddedTccRuntimeSources(ctx, s, unit) ) {
+    if ( !xlAddEmbeddedTccRuntimeSources(ctx, s, unit, outputType) ) {
         goto cleanup;
     }
-    if ( !xlAddEmbeddedXlangRuntimeSources(ctx, s, unit) ) {
+    if ( !xlAddEmbeddedXlangRuntimeSources(ctx, s, unit, outputType) ) {
         goto cleanup;
     }
     if ( !xl6XrtTrimBuildImplementationSourceWithGeneratedSource(unit->parse.root, &unit->importDeps, cText, &xrtText) ) {

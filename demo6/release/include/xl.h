@@ -6,7 +6,9 @@ extern "C" {
 #endif
 
 #if defined(_WIN32)
-# if defined(XL_BUILD_DLL)
+# if defined(XL_STATIC_EMBED)
+#  define XL_API
+# elif defined(XL_BUILD_DLL)
 #  define XL_API __declspec(dllexport)
 # else
 #  define XL_API __declspec(dllimport)

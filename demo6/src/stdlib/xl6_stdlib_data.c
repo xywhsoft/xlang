@@ -1375,7 +1375,6 @@ const char* xl6StdlibHttpServerClassSource =
     "    extern \"xl6_xrt_http_response_file\" func fileNative(string path, c_size chunkSize) as bool\n"
     "    extern \"xl6_xrt_http_response_file_range\" func fileRangeNative(string path, int offset, int length, c_size chunkSize) as bool\n"
     "    extern \"xl6_xrt_http_response_redirect\" func redirectNative(string url, int code) as bool\n"
-    "    extern \"xl6_xrt_http_response_upgrade_websocket\" func upgradeWebSocketNative(point server) as bool\n"
     "\n"
     "    func status(int code, string reason = \"\")\n"
     "        self.statusNative(code, reason)\n"
@@ -1443,6 +1442,8 @@ const char* xl6StdlibHttpServerClassSource =
     "\n";
 
 const char* xl6StdlibHttpServerWebSocketMethodSource =
+    "\n"
+    "    extern \"xl6_xrt_http_response_upgrade_websocket\" func upgradeWebSocketNative(point server) as bool\n"
     "\n"
     "    func upgradeWebSocket(WebSocketServer server) as bool\n"
     "        return self.upgradeWebSocketNative(server.nativeHandle())\n"

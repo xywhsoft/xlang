@@ -1,7 +1,7 @@
 #include "handler_generation.h"
 
 #include "../include/xs_handler.h"
-#include "../../../include/xl.h"
+#include "xl.h"
 #include "xrt.h"
 
 #include <string.h>

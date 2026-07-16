@@ -2,6 +2,7 @@
 setlocal
 cd /d "%~dp0\..\..\.."
 
+call projects\xs\start.bat --check || exit /b 1
 xl.exe run projects\xs\src\config_test.xl || exit /b 1
 xl.exe run projects\xs\src\config_reload_test.xl || exit /b 1
 xl.exe run projects\xs\src\handler_runtime_test.xl || exit /b 1

@@ -324,6 +324,9 @@ if ( $failures.Count -eq 0 ) {
     if ( $header -notmatch '#define\s+XL_API_VERSION\s+1u' ) {
         Add-Failure "release/include/xl.h must keep XL_API_VERSION at 1u for current RC boundary"
     }
+    if ( $header -notmatch '(?s)defined\(XL_STATIC_EMBED\).*?#\s*define\s+XL_API\s*(?:\r?\n)' ) {
+        Add-Failure "release/include/xl.h must keep XL_API undecorated for statically embedded EXE runtimes"
+    }
 
     if ( $api -match 'xl__runtimeCount' ) {
         Add-Failure "xl.dll runtime lifecycle must keep manual/context reference counts separated"
@@ -467,19 +470,25 @@ if ( $failures.Count -eq 0 ) {
     if ( ! (Test-ManifestEntry $runtimeManifestEntries "file" "lib/libtcc1.a") ) {
         Add-Failure "runtime VFS manifest must include lib/libtcc1.a"
     }
+    if ( ! (Test-ManifestEntry $runtimeManifestEntries "file" "include/xl.h") ) {
+        Add-Failure "runtime VFS manifest must expose the public xl.h header"
+    }
+    if ( ! (Test-ManifestEntry $runtimeManifestEntries "file" "lib/xrt/xrt.h") ) {
+        Add-Failure "runtime VFS manifest must expose XRT declarations for C scripts"
+    }
     if ( ! (Test-ManifestEntry $runtimeManifestEntries "file" "include/__xl_runtime/xl_runtime.h") ) {
         Add-Failure "runtime VFS manifest must include xl_runtime.h under the private __xl_runtime path"
     }
     if ( Test-ManifestVirtual $runtimeManifestEntries "include/xl_runtime.h" ) {
         Add-Failure "runtime VFS manifest must not expose xl_runtime.h under the public include path"
     }
-    foreach ( $forbidden in @("lib/xrt/xrt.h", "lib/xrt/xrt.o", "lib/kernel32.def", "lib/msvcrt.def", "lib/user32.def", "lib/gdi32.def", "lib/ws2_32.def", "lib/shell32.def") ) {
+    foreach ( $forbidden in @("include/xlc.h", "__xl_compiler/src", "__xl_compiler/lib/tcc", "__xl_compiler/lib/lzma", "lib/xrt/xrt.o", "lib/kernel32.def", "lib/msvcrt.def", "lib/user32.def", "lib/gdi32.def", "lib/ws2_32.def", "lib/shell32.def") ) {
         if ( Test-ManifestVirtual $runtimeManifestEntries $forbidden ) {
             Add-Failure "runtime VFS manifest must not carry compiler/exe resource: $forbidden"
         }
     }
 
-    foreach ( $required in @("include", "include/__xl_runtime/xl_runtime.h", "lib/libtcc1.a", "lib/kernel32.def", "lib/msvcrt.def", "lib/user32.def", "lib/gdi32.def", "lib/ws2_32.def", "lib/shell32.def", "lib/xrt/xrt.h") ) {
+    foreach ( $required in @("include", "include/xl.h", "include/xlc.h", "include/__xl_runtime/xl_runtime.h", "lib/libtcc1.a", "lib/kernel32.def", "lib/msvcrt.def", "lib/user32.def", "lib/gdi32.def", "lib/ws2_32.def", "lib/shell32.def", "lib/xrt/xrt.h", "__xl_compiler/src", "__xl_compiler/lib/tcc", "__xl_compiler/lib/tcc/libtcc.c", "__xl_compiler/lib/tcc/stab.def", "__xl_compiler/lib/lzma", "__xl_compiler/lib/lzma/lzmadec.c", "__xl_compiler/build/tmp/tcc_builtin_resources_runtime.c") ) {
         if ( ! (Test-ManifestVirtual $compilerManifestEntries $required) ) {
             Add-Failure "compiler VFS manifest missing required resource: $required"
         }

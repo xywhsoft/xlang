@@ -1,6 +1,7 @@
 # Compiler-capable TCC builtin VFS manifest for demo6 Windows x64 xlc.dll.
 # Format:
 #   dir|virtual-prefix|source-directory
+#   dir|virtual-prefix|source-directory|optional-file-patterns
 #   file|virtual-name|source-file
 #
 # xlc.dll compiles executable output with the XRT single-header implementation,
@@ -8,6 +9,8 @@
 
 dir|include|%XL6_EMBED_TCC_DIST_X64%\include
 
+file|include/xl.h|%XL6_ROOT%\release\include\xl.h
+file|include/xlc.h|%XL6_ROOT%\release\include\xlc.h
 file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h
 file|lib/libtcc1.a|%XL6_EMBED_TCC_DIST_X64%\lib\libtcc1.a
 file|lib/kernel32.def|%XL6_EMBED_TCC_DIST_X64%\lib\kernel32.def
@@ -18,3 +21,26 @@ file|lib/ws2_32.def|%XL6_EMBED_TCC_DIST_X64%\lib\ws2_32.def
 file|lib/shell32.def|%XL6_EMBED_TCC_DIST_X64%\lib\shell32.def
 
 file|lib/xrt/xrt.h|%XL6_ROOT%\lib\xrt\xrt.h
+
+# `import xlang` 生成的独立程序需要把运行版编译器编进最终产物。
+# 源码使用保留虚拟根，避免用户项目中的 src/ 或 lib/ 意外遮蔽编译器源码。
+dir|__xl_compiler/src|%XL6_ROOT%\src|*.c;*.h;*.inc
+dir|__xl_compiler/lib/tcc|%XL6_ROOT%\lib\tcc|*.h
+file|__xl_compiler/lib/tcc/stab.def|%XL6_ROOT%\lib\tcc\stab.def
+file|__xl_compiler/lib/tcc/libtcc.c|%XL6_ROOT%\lib\tcc\libtcc.c
+file|__xl_compiler/lib/tcc/tccpp.c|%XL6_ROOT%\lib\tcc\tccpp.c
+file|__xl_compiler/lib/tcc/tccgen.c|%XL6_ROOT%\lib\tcc\tccgen.c
+file|__xl_compiler/lib/tcc/tccdbg.c|%XL6_ROOT%\lib\tcc\tccdbg.c
+file|__xl_compiler/lib/tcc/tccasm.c|%XL6_ROOT%\lib\tcc\tccasm.c
+file|__xl_compiler/lib/tcc/tccelf.c|%XL6_ROOT%\lib\tcc\tccelf.c
+file|__xl_compiler/lib/tcc/tccrun.c|%XL6_ROOT%\lib\tcc\tccrun.c
+file|__xl_compiler/lib/tcc/x86_64-gen.c|%XL6_ROOT%\lib\tcc\x86_64-gen.c
+file|__xl_compiler/lib/tcc/x86_64-link.c|%XL6_ROOT%\lib\tcc\x86_64-link.c
+file|__xl_compiler/lib/tcc/i386-asm.c|%XL6_ROOT%\lib\tcc\i386-asm.c
+file|__xl_compiler/lib/tcc/tccpe.c|%XL6_ROOT%\lib\tcc\tccpe.c
+file|__xl_compiler/lib/tcc/tcctools.c|%XL6_ROOT%\lib\tcc\tcctools.c
+file|__xl_compiler/lib/tcc/tcc_builtin_vfs.c|%XL6_ROOT%\lib\tcc\tcc_builtin_vfs.c
+file|__xl_compiler/lib/tcc/tcc_utf8_io.c|%XL6_ROOT%\lib\tcc\tcc_utf8_io.c
+dir|__xl_compiler/lib/lzma|%XL6_ROOT%\lib\lzma|*.h
+file|__xl_compiler/lib/lzma/LzmaDec.c|%XL6_ROOT%\lib\lzma\LzmaDec.c
+file|__xl_compiler/build/tmp/tcc_builtin_resources_runtime.c|%XL6_ROOT%\build\tmp\tcc_builtin_resources_runtime.c

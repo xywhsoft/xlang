@@ -3,6 +3,7 @@ $ErrorActionPreference = "Stop"
 $project = $PSScriptRoot
 $release = Resolve-Path (Join-Path $project "..\..")
 $xl = Join-Path $release "xl.exe"
+$xs = Join-Path $project "xs.xl"
 $outDir = Join-Path $project "run"
 $outLog = Join-Path $outDir "xs_smoke.out.log"
 $errLog = Join-Path $outDir "xs_smoke.err.log"
@@ -43,8 +44,8 @@ function Wait-HttpReady {
 }
 
 $proc = Start-Process -FilePath $xl `
-    -ArgumentList @("run", "projects\xs\xs.xl", "--", "--duration", "12000") `
-    -WorkingDirectory $release `
+    -ArgumentList @("run", $xs, "--", "--duration", "12000") `
+    -WorkingDirectory $project `
     -RedirectStandardOutput $outLog `
     -RedirectStandardError $errLog `
     -PassThru
