@@ -170,6 +170,61 @@ group.waitTimeout(5000)
 group.close()
 ```
 
+## 信号处理
+
+`signal` 标准库由 XRT signal 运行时提供。Windows 接入 console control handler；POSIX 使用系统 signal handler 与后台分发线程。信号回调应保持轻量，服务端和任务系统建议优先使用 `signal.sendTo(...)` 或 `signal.cancelOn(...)` 做 graceful shutdown。
+
+```xlang
+println(signal.name(signal.HUP))
+println(signal.name(signal.INT))
+println(signal.name(signal.TERM))
+println(signal.name(signal.BREAK))
+println(signal.name(signal.CLOSE))
+println(signal.name(signal.LOGOFF))
+println(signal.name(signal.SHUTDOWN))
+
+bool ok = signal.supported(signal.INT)
+
+func(var) onSignal = func(var event)
+    println(event["name"], event["count"])
+end
+
+func() onOnce = func()
+    println("only once")
+end
+
+SignalHandle direct = signal.on(signal.INT, onSignal)
+SignalHandle once = signal.once(signal.INT, onOnce)
+
+channel<var> events = channel::<var>(2)
+SignalHandle route = signal.sendTo(events, signal.INT)
+
+signal.raise(signal.INT)
+
+var event = null
+events.recvInto(event)
+
+bool received = signal.received(signal.INT)
+int count = signal.count(signal.INT)
+signal.clear(signal.INT)
+
+TaskGroup group = task.group()
+SignalHandle cancel = signal.cancelOn(group, signal.TERM)
+
+direct.close()
+once.close()
+route.close()
+cancel.close()
+group.close()
+events.close()
+
+signal.restore(signal.INT)
+signal.restore(signal.TERM)
+signal.reset()
+```
+
+`signal.on(code, handler)` 和 `signal.once(code, handler)` 支持 `func()` 与 `func(var)` 两种 handler。`func(var)` 收到的事件字典包含 `code`、`platformCode`、`count`、`time`、`name`。`signal.sendTo(channel<var>, code)` 会把事件字典送入 `channel<var>`，发送前会提升为 XRT shared 模式，适合和主循环、任务组、服务端 drain/stop 逻辑协同。`SignalHandle.close()` 取消注册，`active` 和 `code` 可用于检查句柄状态。`signal.restore(code)` 恢复指定信号默认行为；`signal.reset()` 恢复全部 signal 默认行为。
+
 ## 进程状态与终端
 
 `process.terminalSupported()` 查询当前平台是否能创建伪终端。标准流编号为 `process.stdin`、`process.stdout`、`process.stderr`；重定向模式为 `process.stdioInherit`、`process.stdioPipe`、`process.stdioNull`。

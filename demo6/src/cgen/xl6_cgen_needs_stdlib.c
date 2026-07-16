@@ -55,6 +55,51 @@ int xl6CgenNodeNeedsLogObjectRuntime(const XL6_AstNode* node)
     return 0;
 }
 
+int xl6CgenNodeNeedsSignalRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsSignalClass(node) ) {
+        return 1;
+    }
+    if ( xl6CgenNeedsBasicIsSignalRuntimeCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsSignalRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsSignalChannelRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+    const XL6_AstNode* callee;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( node->kind == XL6_AST_CALL && node->childCount > 0 ) {
+        callee = node->children[0];
+        if ( callee != NULL &&
+             callee->kind == XL6_AST_NAME &&
+             xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_signal_send_to") ) {
+            return 1;
+        }
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsSignalChannelRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int xl6CgenNodeNeedsTemplateRuntime(const XL6_AstNode* node)
 {
     size_t i;
@@ -133,6 +178,31 @@ int xl6CgenNodeNeedsSpecialCollectionRuntime(const XL6_AstNode* node)
     }
     for ( i = 0; i < node->childCount; ++i ) {
         if ( xl6CgenNodeNeedsSpecialCollectionRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsOsRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+    const XL6_AstNode* callee;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( node->kind == XL6_AST_CALL && node->childCount > 0 ) {
+        callee = node->children[0];
+        if ( callee != NULL &&
+             callee->kind == XL6_AST_NAME &&
+             callee->text != NULL &&
+             xl6CgenNeedsBasicTextStartsWith(callee->text, "__xl_std_runtime_os_") ) {
+            return 1;
+        }
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsOsRuntime(node->children[i]) ) {
             return 1;
         }
     }

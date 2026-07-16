@@ -168,7 +168,7 @@ $consts = New-Object System.Collections.Generic.List[string]
 $failures = New-Object System.Collections.Generic.List[string]
 $paramArrayCounts = @{}
 $paramArrayMatches = [regex]::Matches($stdlib, '(?s)static const XL6_StdlibParam\s+(\w+)\[\]\s*=\s*\{(.*?)\};')
-$registrationMatches = [regex]::Matches($stdlib, '\{"([^"]+)",\s*"([^"]+)",\s*"([^"]+)",\s*("[^"]+"|NULL),\s*([^,]+),\s*([0-9]+),\s*"([^"]*)",\s*([^,\}\s]+)')
+$registrationMatches = [regex]::Matches($stdlib, '\{"([^"]*)",\s*"([^"]+)",\s*"([^"]+)",\s*("[^"]+"|NULL),\s*([^,]+),\s*([0-9]+),\s*"([^"]*)",\s*([^,\}\s]+)')
 $constMatches = [regex]::Matches($stdlib, '\{"([^"]+)",\s*"([^"]+)",\s*XL6_AST_[A-Z_]+,\s*"([^"]+)"\}')
 $publicKeys = New-Object System.Collections.Generic.HashSet[string]
 $publicFunctionKeys = New-Object System.Collections.Generic.HashSet[string]

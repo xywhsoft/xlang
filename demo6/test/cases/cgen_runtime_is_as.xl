@@ -18,11 +18,14 @@ func inc(int value) as int
 end
 
 var boxedInt = 42
+var boxedBool = true
 var boxedFloat = 1.5
 var boxedText = "hello"
 var boxedNull = null
 
 expect(boxedInt is int, 1)
+expect(boxedBool is bool, 1)
+expect(boxedBool is int, 0)
 expect(boxedInt is float, 0)
 expect(boxedInt is null, 0)
 expect(boxedFloat is float, 1)
@@ -31,10 +34,12 @@ expect(boxedNull is null, 1)
 expect(boxedNull is int, 0)
 
 int castInt = boxedInt as int
+bool castBool = boxedBool as bool
 float castFloat = boxedFloat as float
 string castText = boxedText as string
 
 expect(castInt, 42)
+expect(castBool, 1)
 expect(castFloat > 1.0, 1)
 expect(castText == "hello", 1)
 expect((boxedInt as int) < 50, 1)

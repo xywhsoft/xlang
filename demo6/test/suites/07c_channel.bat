@@ -55,9 +55,19 @@ if errorlevel 1 (
     echo cgen_channel.c missing send helper.
     exit /b 1
 )
+findstr /C:"xl6_channel_send_xvalue" build\test\cgen_channel.c >nul
+if errorlevel 1 (
+    echo cgen_channel.c missing var channel send helper.
+    exit /b 1
+)
 findstr /C:"xl6_channel_recv_into" build\test\cgen_channel.c >nul
 if errorlevel 1 (
     echo cgen_channel.c missing recv helper.
+    exit /b 1
+)
+findstr /C:"xl6_channel_recv_xvalue" build\test\cgen_channel.c >nul
+if errorlevel 1 (
+    echo cgen_channel.c missing var channel recv helper.
     exit /b 1
 )
 findstr /C:"xrtChannelTryRecv" build\test\cgen_channel.c >nul
@@ -90,7 +100,7 @@ if errorlevel 1 (
     echo cgen_channel.c missing blocking channel wakeup guard lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_channel.c',[System.Text.Encoding]::UTF8); $checks=@('nonblockingTryThreadCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','xl6_channel_recv_into(nonblockingTryThreadCh, &got, sizeof(long long), 0','(int)xrtThreadGetExitCode(nonblockingTryThread) == 31LL','xl6_channel_send_value(nonblockingTryThreadCh, &(long long){42LL}, sizeof(long long)','xl6_channel_recv_into(nonblockingTryThreadCh, &nonblockingTryLater, sizeof(long long), 1','xrtChannelClose(nonblockingTryThreadCh)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_channel.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_channel.c',[System.Text.Encoding]::UTF8); $checks=@('nonblockingTryThreadCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','xl6_channel_recv_into(nonblockingTryThreadCh, &got, sizeof(long long), 0','(int)xrtThreadGetExitCode(nonblockingTryThread) == 31LL','xl6_channel_send_value(nonblockingTryThreadCh, &(long long){42LL}, sizeof(long long)','xl6_channel_recv_into(nonblockingTryThreadCh, &nonblockingTryLater, sizeof(long long), 1','xrtChannelClose(nonblockingTryThreadCh)','timeoutCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','xl6_channel_recv_into_timeout(timeoutCh, &timeoutValue, sizeof(long long), 10LL','xl6_channel_recv_into_timeout(timeoutCh, &timeoutValue, sizeof(long long), 100LL','xl6_channel_recv_into_timeout(timeoutCh, &timeoutValue, sizeof(long long), 0LL'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_channel.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_channel.c missing captured tryRecvInto nonblocking guard lowering.
     exit /b 1
@@ -124,20 +134,14 @@ if errorlevel 1 (
     echo cgen_channel_string.c missing string receive copy helper.
     exit /b 1
 )
+findstr /C:"xl6_channel_recv_string_timeout" build\test\cgen_channel_string.c >nul
+if errorlevel 1 (
+    echo cgen_channel_string.c missing string timeout receive helper.
+    exit /b 1
+)
 findstr /C:"xl6_channel_destroy(pendingCh)" build\test\cgen_channel_string.c >nul
 if errorlevel 1 (
     echo cgen_channel_string.c missing buffered message cleanup.
-    exit /b 1
-)
-
-release\xl.exe check test\cases\sem_channel_var_element.xl >nul 2> build\test\sem_channel_var_element.err.txt
-if not errorlevel 1 (
-    echo sem_channel_var_element.xl should fail.
-    exit /b 1
-)
-findstr /C:"channel<T>" build\test\sem_channel_var_element.err.txt >nul
-if errorlevel 1 (
-    echo sem_channel_var_element.xl missing channel element diagnostic.
     exit /b 1
 )
 
@@ -251,6 +255,28 @@ if errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_channel_recv_timeout_named_argument.xl >nul 2> build\test\sem_channel_recv_timeout_named_argument.err.txt
+if not errorlevel 1 (
+    echo sem_channel_recv_timeout_named_argument.xl should fail.
+    exit /b 1
+)
+findstr /C:"channel.recvTimeoutInto" build\test\sem_channel_recv_timeout_named_argument.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_recv_timeout_named_argument.xl missing channel recvTimeoutInto named argument diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_recv_timeout_type.xl >nul 2> build\test\sem_channel_recv_timeout_type.err.txt
+if not errorlevel 1 (
+    echo sem_channel_recv_timeout_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"timeoutMs" build\test\sem_channel_recv_timeout_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_recv_timeout_type.xl missing channel recvTimeoutInto timeout diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_channel_unknown_method.xl >nul 2> build\test\sem_channel_unknown_method.err.txt
 if not errorlevel 1 (
     echo sem_channel_unknown_method.xl should fail.
@@ -281,6 +307,22 @@ if not errorlevel 1 (
 findstr /C:"target int, value float" build\test\sem_channel_recv_target_type.err.txt >nul
 if errorlevel 1 (
     echo sem_channel_recv_target_type.xl missing channel recv target type context.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_channel_recv_timeout_target_type.xl >nul 2> build\test\sem_channel_recv_timeout_target_type.err.txt
+if not errorlevel 1 (
+    echo sem_channel_recv_timeout_target_type.xl should fail.
+    exit /b 1
+)
+findstr /C:"channel.recvTimeoutInto" build\test\sem_channel_recv_timeout_target_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_recv_timeout_target_type.xl missing channel recvTimeoutInto target type method.
+    exit /b 1
+)
+findstr /C:"target int, value float" build\test\sem_channel_recv_timeout_target_type.err.txt >nul
+if errorlevel 1 (
+    echo sem_channel_recv_timeout_target_type.xl missing channel recvTimeoutInto target type context.
     exit /b 1
 )
 

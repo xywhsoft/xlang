@@ -16,6 +16,9 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_standalone_compiler_vfs.ps1
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_dev_projects.ps1 -Mode check -KeepGoing
+if errorlevel 1 exit /b 1
+
 release\xl.exe build release\examples\hello.xl -o build\test\trim_hello.exe
 if errorlevel 1 exit /b 1
 build\test\trim_hello.exe
@@ -67,6 +70,23 @@ if errorlevel 1 exit /b 1
 findstr /C:"hello from nested xlang" build\test\trim_script_embed_xlang.out >nul
 if errorlevel 1 exit /b 1
 findstr /C:"script_embed_xlang=ok" build\test\trim_script_embed_xlang.out >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe build test\fixtures\win_resource\main.xl --res test\fixtures\win_resource\app.res.json -o build\test\win_resource_cli.exe
+if errorlevel 1 exit /b 1
+build\test\win_resource_cli.exe
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$v=[System.Diagnostics.FileVersionInfo]::GetVersionInfo('build\test\win_resource_cli.exe'); if($v.FileVersion -notlike '1.2.3.4*'){ Write-Host ('win_resource_cli.exe FileVersion mismatch: '+$v.FileVersion); exit 1 }; if($v.ProductName -ne 'xlang resource smoke'){ Write-Host ('win_resource_cli.exe ProductName mismatch: '+$v.ProductName); exit 1 }"
+if errorlevel 1 exit /b 1
+
+release\xl.exe build test\fixtures\win_resource\app.xlp -o build\test\win_resource_xlp.exe
+if errorlevel 1 exit /b 1
+build\test\win_resource_xlp.exe
+if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$v=[System.Diagnostics.FileVersionInfo]::GetVersionInfo('build\test\win_resource_xlp.exe'); if($v.FileVersion -notlike '1.2.3.4*'){ Write-Host ('win_resource_xlp.exe FileVersion mismatch: '+$v.FileVersion); exit 1 }; if($v.ProductName -ne 'xlang resource smoke'){ Write-Host ('win_resource_xlp.exe ProductName mismatch: '+$v.ProductName); exit 1 }"
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$left=@(Get-ChildItem -LiteralPath 'build\test' -Filter 'resource_*.obj' -File -Recurse -ErrorAction SilentlyContinue); if($left.Count -ne 0){$left | ForEach-Object { Write-Host ('unexpected resource object on disk: '+$_.FullName) }; exit 1}"
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$items=@(Get-ChildItem -LiteralPath 'release\tmp' -Force); if($items.Count -ne 0){$items | ForEach-Object { Write-Host ('unexpected release/tmp artifact: ' + $_.FullName) }; exit 1}"

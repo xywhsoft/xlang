@@ -1,0 +1,33 @@
+import plist
+
+
+
+func main(...) as int
+    Buffer payload = Buffer()
+    payload.appendByte(0)
+    payload.appendByte(255)
+    payload.append("XL")
+    var xmlValue = {
+        "name": "xlang 你好",
+        "count": 42,
+        "ratio": 1.25,
+        "enabled": true,
+        "created": #2026-07-16 08:09:10#,
+        "payload": payload,
+        "items": ["alpha", "beta"]
+    }
+    plist.dump("tmp/xlang_interop.plist", xmlValue, "xml", true, true)
+    var binaryValue = {
+        "name": "xlang 你好",
+        "count": 42,
+        "ratio": 1.25,
+        "enabled": true,
+        "created": #2026-07-16 08:09:10#,
+        "payload": payload,
+        "items": ["alpha", "beta"],
+        "uid": plist.uid(uint64(18446744073709551615)),
+        "none": null
+    }
+    plist.dump("tmp/xlang_interop.bplist", binaryValue, "binary", false, true)
+    return 0
+end

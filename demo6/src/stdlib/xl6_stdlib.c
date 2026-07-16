@@ -629,10 +629,14 @@ static int xl6StdlibRewriteRefsScoped(
     }
     if ( node->kind == XL6_AST_CATCH && node->childCount > 1 ) {
         XL6_StdlibNameScope catchScope;
+        const XL6_AstNode* catchName;
+        XL6_AstNode* catchBlock;
 
         xl6StdlibScopeInit(&catchScope, scope);
-        ok = xl6StdlibScopeAdd(&catchScope, node->children[0] != NULL ? node->children[0]->text : NULL) &&
-             xl6StdlibRewriteRefsScoped(node->children[1], used, diags, &catchScope);
+        catchName = node->childCount == 3 ? node->children[1] : node->children[0];
+        catchBlock = node->childCount == 3 ? node->children[2] : node->children[1];
+        ok = xl6StdlibScopeAdd(&catchScope, catchName != NULL ? catchName->text : NULL) &&
+             xl6StdlibRewriteRefsScoped(catchBlock, used, diags, &catchScope);
         xl6StdlibScopeFree(&catchScope);
         return ok;
     }
@@ -980,6 +984,17 @@ static int xl6StdlibNeedsLoggerClass(const XL6_AstNode* root, const int* used)
     return 0;
 }
 
+static int xl6StdlibNeedsSignalClass(const XL6_AstNode* root, const int* used)
+{
+    if ( xl6StdlibNodeUsesTypeName(root, "SignalHandle") ) {
+        return 1;
+    }
+    return xl6StdlibFuncUsed(used, "signal", "on") ||
+           xl6StdlibFuncUsed(used, "signal", "once") ||
+           xl6StdlibFuncUsed(used, "signal", "sendTo") ||
+           xl6StdlibFuncUsed(used, "signal", "cancelOn");
+}
+
 static int xl6StdlibNeedsTemplateClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
@@ -1241,6 +1256,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsProcessClass;
     int needsTaskGroupClass;
     int needsLoggerClass;
+    int needsSignalClass;
     int needsTemplateClass;
     int needsCryptoClass;
     int needsHttpServerClass;
@@ -1258,6 +1274,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( !ok ) {
         return 0;
     }
+    xl6StdlibApplyDeps(used);
     needsRandomClass = xl6StdlibNeedsRandomClass(root, used);
     needsXidClass = xl6StdlibNeedsXidClass(root, used);
     needsHttpServerClass = xl6StdlibNeedsHttpServerClass(root, used);
@@ -1272,6 +1289,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsProcessClass = xl6StdlibNeedsProcessClass(root, used);
     needsTaskGroupClass = xl6StdlibNeedsTaskGroupClass(root, used);
     needsLoggerClass = xl6StdlibNeedsLoggerClass(root, used);
+    needsSignalClass = xl6StdlibNeedsSignalClass(root, used);
     needsTemplateClass = xl6StdlibNeedsTemplateClass(root, used);
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
     needsBufferClass = xl6StdlibNeedsBufferClass(root, used) || needsNetClass || needsHttpServerClass || needsHttpClientClass || needsFileClass || needsAsyncFileClass || needsCryptoClass || needsProcessClass;
@@ -1293,6 +1311,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "netEnginePost");
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "netEnginePostDelayed");
     }
+    if ( xl6StdlibFuncUsed(used, "signal", "cancelOn") ) {
+        needsTaskGroupClass = 1;
+    }
     if ( needsRandomClass || needsXidClass || needsBufferClass || needsNetClass || needsFileClass || needsRegexClass || needsJsonClass || needsProcessClass || needsLoggerClass || needsHttpServerClass || needsHttpClientClass || needsTemplateClass || needsCryptoClass || needsXlangClass ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
     }
@@ -1312,6 +1333,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsLoggerClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibLoggerClassSource);
+    }
+    if ( needsSignalClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibSignalClassSource);
     }
     if ( needsTaskGroupClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTaskGroupClassSource);

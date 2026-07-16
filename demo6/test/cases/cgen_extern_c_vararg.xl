@@ -1,0 +1,9 @@
+extern "printf" func printf(string fmt, c_vararg) as c_int
+
+func main(...) as int
+    c_int n = printf("c_vararg:%d:%s\n", c_int(42), "ok")
+    if n <= 0 then
+        return 1
+    end
+    return 0
+end

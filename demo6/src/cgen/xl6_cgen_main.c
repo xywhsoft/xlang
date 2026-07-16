@@ -105,76 +105,18 @@ static void xl6CgenEmitArgvArrayHelper(XL6_Output* out)
     xl6OutputPuts("}\n\n", out);
 }
 
-static void xl6CgenEmitMainLikeWrapper(XL6_CgenContext* ctx, const char* symbolName)
-{
-    xl6OutputPuts("int ", ctx->out);
-    xl6OutputPuts(symbolName != NULL ? symbolName : "main", ctx->out);
-    xl6OutputPuts("(int argc, char** argv)\n{\n", ctx->out);
-    xl6OutputPuts("    XL_InitOptions __xl6_options = xlInitOptions(argc, argv);\n", ctx->out);
-    xl6OutputPuts("    xvalue __xl6_arg;\n", ctx->out);
-    xl6OutputPuts("    int __xl6_code;\n", ctx->out);
-    xl6OutputPuts("\n", ctx->out);
-    xl6OutputPuts("    if ( !xlInit(&__xl6_options) ) {\n", ctx->out);
-    xl6OutputPuts("        return 1;\n", ctx->out);
-    xl6OutputPuts("    }\n", ctx->out);
-    xl6OutputPuts("    __xl6_arg = xl6_command_argv_to_arg(argc, argv);\n", ctx->out);
-    xl6OutputPuts("    if ( __xl6_arg == 0 ) {\n", ctx->out);
-    xl6OutputPuts("        xlUnit();\n", ctx->out);
-    xl6OutputPuts("        return 1;\n", ctx->out);
-    xl6OutputPuts("    }\n", ctx->out);
-    xl6OutputPuts("    __xl6_code = xlang_main(__xl6_arg);\n", ctx->out);
-    if ( ctx->needsErrorRuntime ) {
-        xl6OutputPuts("    if ( xl6_error_has() ) {\n", ctx->out);
-        xl6OutputPuts("        xl6_error_print_uncaught();\n", ctx->out);
-        xl6OutputPuts("        xl6_error_clear();\n", ctx->out);
-        xl6OutputPuts("        xl6_error_tls_unit();\n", ctx->out);
-        xl6OutputPuts("        xvoUnref(__xl6_arg);\n", ctx->out);
-        xl6OutputPuts("        xlUnit();\n", ctx->out);
-        xl6OutputPuts("        return 1;\n", ctx->out);
-        xl6OutputPuts("    }\n", ctx->out);
-    }
-    xl6OutputPuts("    xvoUnref(__xl6_arg);\n", ctx->out);
-    if ( ctx->needsErrorRuntime ) {
-        xl6OutputPuts("    xl6_error_tls_unit();\n", ctx->out);
-    }
-    xl6OutputPuts("    xlUnit();\n", ctx->out);
-    xl6OutputPuts("    return __xl6_code;\n", ctx->out);
-    xl6OutputPuts("}\n", ctx->out);
-}
-
-static void xl6CgenEmitMainWrapper(XL6_CgenContext* ctx)
-{
-    xl6CgenEmitMainLikeWrapper(ctx, "main");
-}
-
-static void xl6CgenEmitScriptErrorBridge(XL6_CgenContext* ctx)
-{
-    if ( !ctx->needsErrorRuntime ) {
-        return;
-    }
-
-    xl6OutputPuts("int xl_script_has_error(void)\n{\n", ctx->out);
-    xl6OutputPuts("    return xl6_error_has();\n", ctx->out);
-    xl6OutputPuts("}\n\n", ctx->out);
-    xl6OutputPuts("void xl_script_print_uncaught(void)\n{\n", ctx->out);
-    xl6OutputPuts("    xl6_error_print_uncaught();\n", ctx->out);
-    xl6OutputPuts("}\n\n", ctx->out);
-    xl6OutputPuts("void xl_script_clear_error(void)\n{\n", ctx->out);
-    xl6OutputPuts("    xl6_error_clear();\n", ctx->out);
-    xl6OutputPuts("}\n\n", ctx->out);
-    xl6OutputPuts("void xl_script_error_unit(void)\n{\n", ctx->out);
-    xl6OutputPuts("    xl6_error_clear();\n", ctx->out);
-    xl6OutputPuts("    xl6_error_tls_unit();\n", ctx->out);
-    xl6OutputPuts("}\n\n", ctx->out);
-}
-
 static int xl6CgenIsModuleGlobalDecl(const XL6_AstNode* node)
 {
     return node != NULL &&
            (node->kind == XL6_AST_VAR_DECL ||
             node->kind == XL6_AST_CONST_DECL ||
             ((node->kind == XL6_AST_EXPORT_VAR || node->kind == XL6_AST_EXPORT_CONST) &&
-             !xl6CgenExternalVarHasCSymbol(node)));
+              !xl6CgenExternalVarHasCSymbol(node)));
+}
+
+static int xl6CgenIsModuleGlobalMultiDecl(const XL6_AstNode* node)
+{
+    return node != NULL && node->kind == XL6_AST_MULTI_VAR_DECL;
 }
 
 static const char* xl6CgenModuleGlobalName(const XL6_AstNode* node)
@@ -210,6 +152,43 @@ static const XL6_AstNode* xl6CgenModuleGlobalInitExpr(const XL6_AstNode* node)
     return node->childCount > 1 ? node->children[1] : NULL;
 }
 
+static XL6_AstNode* xl6CgenModuleGlobalMultiReturnTypes(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* expr;
+    const XL6_AstNode* func;
+    const XL6_AstNode* functionType;
+    const XL6_AstNode* classMethod;
+    const XL6_AstNode* ownerClass;
+    const XL6_AstNode* receiverType;
+    const XL6_AstNode* returns;
+    XL6_AstNode* ownedFunctionType;
+    XL6_AstNode* ownedFuncTypeArgs;
+    XL6_AstNode* ownedReturns;
+
+    if ( ctx == NULL || !xl6CgenIsModuleGlobalMultiDecl(node) ) {
+        return NULL;
+    }
+
+    expr = node->childCount > 1 ? node->children[1] : NULL;
+    ownedFunctionType = NULL;
+    ownedFuncTypeArgs = NULL;
+    functionType = xl6CgenResolveMultiReturnFunctionType(ctx, expr, &ownedFunctionType);
+    func = functionType == NULL ? xl6CgenResolveMultiReturnCall(ctx, expr, &ownedFuncTypeArgs) : NULL;
+    ownerClass = NULL;
+    receiverType = NULL;
+    classMethod = (functionType == NULL && func == NULL) ?
+        xl6CgenResolveMultiReturnClassMethod(ctx, expr, &ownerClass, &receiverType) :
+        NULL;
+    returns = functionType != NULL ? xl6CgenFunctionReturnTypes(functionType) :
+              (func != NULL ? func->children[2] :
+              (classMethod != NULL && classMethod->childCount > 2 ? classMethod->children[2] : NULL));
+    ownedReturns = xl6CgenConcreteMultiReturnTypes(
+        ctx, returns, func, ownedFuncTypeArgs, classMethod, ownerClass, receiverType);
+    xl6AstFree(ownedFunctionType);
+    xl6AstFree(ownedFuncTypeArgs);
+    return ownedReturns;
+}
+
 static const XL6_AstNode* xl6CgenModuleGlobalType(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* typeNode;
@@ -234,7 +213,8 @@ static int xl6CgenHasModuleGlobalDecl(const XL6_AstNode* root)
         return 0;
     }
     for ( i = 0; i < root->childCount; ++i ) {
-        if ( xl6CgenIsModuleGlobalDecl(root->children[i]) ) {
+        if ( xl6CgenIsModuleGlobalDecl(root->children[i]) ||
+             xl6CgenIsModuleGlobalMultiDecl(root->children[i]) ) {
             return 1;
         }
     }
@@ -269,6 +249,31 @@ static void xl6CgenRegisterModuleGlobalTypes(XL6_CgenContext* ctx, const XL6_Ast
         const XL6_AstNode* initExpr;
         const char* name;
         unsigned int flags;
+
+        if ( xl6CgenIsModuleGlobalMultiDecl(node) ) {
+            const XL6_AstNode* names = node->childCount > 0 ? node->children[0] : NULL;
+            XL6_AstNode* returns = xl6CgenModuleGlobalMultiReturnTypes(ctx, node);
+            size_t j;
+
+            if ( names == NULL || returns == NULL || names->childCount != returns->childCount ) {
+                xl6AstFree(returns);
+                continue;
+            }
+            for ( j = 0; j < names->childCount; ++j ) {
+                const XL6_AstNode* item = names->children[j];
+                typeNode = returns->children[j];
+                if ( item == NULL || item->text == NULL || xl6CTextEquals(item->text, "_") || typeNode == NULL ) {
+                    continue;
+                }
+                flags = XL6_CGEN_VAR_MODULE_GLOBAL;
+                if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+                    flags |= XL6_CGEN_VAR_TYPED_CONTAINER;
+                }
+                xl6CgenAddVarTypeWithFlags(ctx, item->text, typeNode, flags);
+            }
+            xl6CgenOwnTypeNode(ctx, returns);
+            continue;
+        }
 
         if ( !xl6CgenIsModuleGlobalDecl(node) ) {
             continue;
@@ -311,6 +316,41 @@ static void xl6CgenEmitModuleGlobalDeclsEx(
         const XL6_AstNode* typeNode;
         const char* name;
 
+        if ( xl6CgenIsModuleGlobalMultiDecl(node) ) {
+            const XL6_AstNode* names = node->childCount > 0 ? node->children[0] : NULL;
+            XL6_AstNode* returns = xl6CgenModuleGlobalMultiReturnTypes(ctx, node);
+            size_t j;
+
+            if ( names == NULL || returns == NULL || names->childCount != returns->childCount ) {
+                xl6AstFree(returns);
+                continue;
+            }
+            for ( j = 0; j < names->childCount; ++j ) {
+                const XL6_AstNode* item = names->children[j];
+                unsigned int flags;
+
+                if ( item == NULL || item->text == NULL || xl6CTextEquals(item->text, "_") ) {
+                    continue;
+                }
+                name = item->text;
+                typeNode = returns->children[j];
+                flags = xl6CgenFindTrackedVarFlags(ctx, name);
+                if ( forwardOnly ) {
+                    xl6OutputPuts("extern ", ctx->out);
+                }
+                if ( (flags & XL6_CGEN_VAR_TYPED_CONTAINER) != 0 ) {
+                    xl6OutputPuts(xl6CgenTypedContainerCType(ctx, typeNode), ctx->out);
+                } else {
+                    xl6OutputPuts(xl6CgenTypeName(ctx, typeNode), ctx->out);
+                }
+                xl6OutputPutc(' ', ctx->out);
+                xl6CgenFputsCIdent(ctx->out, name);
+                xl6OutputPuts(";\n", ctx->out);
+            }
+            xl6AstFree(returns);
+            continue;
+        }
+
         if ( !xl6CgenIsModuleGlobalDecl(node) ) {
             continue;
         }
@@ -329,6 +369,40 @@ static void xl6CgenEmitModuleGlobalDeclsEx(
         xl6OutputPuts(";\n", ctx->out);
     }
     xl6OutputPutc('\n', ctx->out);
+}
+
+static void xl6CgenAddModuleGlobalMultiCleanups(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    const XL6_AstNode* names;
+    XL6_AstNode* returns;
+    size_t i;
+
+    if ( ctx == NULL || !xl6CgenIsModuleGlobalMultiDecl(node) ) {
+        return;
+    }
+    names = node->childCount > 0 ? node->children[0] : NULL;
+    returns = xl6CgenModuleGlobalMultiReturnTypes(ctx, node);
+    if ( names == NULL || returns == NULL || names->childCount != returns->childCount ) {
+        xl6AstFree(returns);
+        return;
+    }
+    for ( i = 0; i < names->childCount; ++i ) {
+        const XL6_AstNode* item = names->children[i];
+        const XL6_AstNode* typeNode;
+
+        if ( item == NULL || item->text == NULL || xl6CTextEquals(item->text, "_") ) {
+            continue;
+        }
+        typeNode = xl6CgenFindVarType(ctx, item->text);
+        if ( typeNode == NULL ) {
+            typeNode = returns->children[i];
+        }
+        if ( typeNode == NULL ) {
+            continue;
+        }
+        xl6CgenAddManagedCleanupForType(ctx, item->text, typeNode);
+    }
+    xl6AstFree(returns);
 }
 
 static void xl6CgenEmitModuleGlobalForwardDecls(XL6_CgenContext* ctx, const XL6_AstNode* root)
@@ -956,28 +1030,88 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
     }
 }
 
+/*
+ * 模块初始化成功后，全局值必须一直存活到显式卸载。
+ * 普通错误作用域会在正常路径末尾释放全部值，因此这里仅生成失败路径清理，
+ * 正常路径的清理由 xl_script_module_unit 统一生成。
+ */
+static void xl6CgenCloseModuleInitErrorScope(
+    XL6_CgenContext* ctx,
+    size_t cleanupMark,
+    const char* errorLabel)
+{
+    XL6_CgenErrorScope scope;
+    size_t i;
+    size_t lowerMark;
+
+    if ( ctx == NULL || ctx->errorScopeCount == 0 ) {
+        return;
+    }
+
+    scope = ctx->errorScopes[ctx->errorScopeCount - 1];
+    ctx->errorScopeCount -= 1;
+    if ( scope.cleanupMark != cleanupMark || scope.checkpointCount == 0 ) {
+        xrtFree(scope.checkpoints);
+        return;
+    }
+
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "goto __xl6_cleanup_done_%d;\n", scope.checkpoints[scope.checkpointCount - 1].id);
+    for ( i = scope.checkpointCount; i > 0; --i ) {
+        XL6_CgenErrorCheckpoint* checkpoint = &scope.checkpoints[i - 1];
+
+        lowerMark = i > 1 ? scope.checkpoints[i - 2].cleanupCount : cleanupMark;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "__xl6_cleanup_error_%d:\n", checkpoint->id);
+        xl6CgenEmitCleanupRange(ctx, lowerMark, checkpoint->cleanupCount);
+        xl6CgenIndent(ctx);
+        if ( i > 1 ) {
+            xl6OutputPrintf(ctx->out, "goto __xl6_cleanup_error_%d;\n", scope.checkpoints[i - 2].id);
+        } else {
+            xl6OutputPrintf(ctx->out, "goto %s;\n", errorLabel);
+        }
+    }
+
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "__xl6_cleanup_done_%d:\n", scope.checkpoints[scope.checkpointCount - 1].id);
+    xrtFree(scope.checkpoints);
+}
+
 static void xl6CgenEmitTopLevelXlangMain(
     XL6_CgenContext* ctx,
     XL6_AstNode* root,
     const XL6_AstNode* mainFunc,
     int hasErrorRuntime,
-    int hasAsyncRuntime)
+    int hasAsyncRuntime,
+    int hasOsRuntime)
 {
     const char* oldErrorExitLabel;
+    size_t cleanupMark;
     size_t i;
 
     oldErrorExitLabel = ctx->currentErrorExitLabel;
-    xl6OutputPuts("int xlang_main(xvalue arg)\n{\n", ctx->out);
+    cleanupMark = ctx->cleanupCount;
+    xl6OutputPuts("static int __xl6_module_initialized = 0;\n\n", ctx->out);
+    xl6OutputPuts("int xl_script_module_init(xvalue arg)\n{\n", ctx->out);
+    xl6OutputPuts("    if ( __xl6_module_initialized ) {\n", ctx->out);
+    xl6OutputPuts("        return 1;\n", ctx->out);
+    xl6OutputPuts("    }\n", ctx->out);
     xl6OutputPuts("    (void)arg;\n", ctx->out);
-    xl6OutputPuts("    xrtTempScope __xl6_temp_scope_main = xrtTempScopeBegin();\n", ctx->out);
-    if ( mainFunc != NULL ) {
-        xl6OutputPuts("    int __xl6_main_code = 0;\n", ctx->out);
+    xl6OutputPuts("    xrtTempScope __xl6_temp_scope_module = xrtTempScopeBegin();\n", ctx->out);
+    if ( hasOsRuntime ) {
+        xl6OutputPuts("    xl6_xrt_os_set_args(arg);\n", ctx->out);
     }
     ctx->indent = 1;
-    ctx->currentErrorExitLabel = "__xl6_script_error";
-    xl6CgenPushErrorScope(ctx, 0);
+    ctx->currentErrorExitLabel = "__xl6_module_init_error";
+    xl6CgenPushErrorScope(ctx, cleanupMark);
     for ( i = 0; i < root->childCount; ++i ) {
-        if ( xl6CgenIsModuleGlobalDecl(root->children[i]) ) {
+        if ( xl6CgenIsModuleGlobalMultiDecl(root->children[i]) ) {
+            xl6CgenAddModuleGlobalMultiCleanups(ctx, root->children[i]);
+            xl6CgenMultiAssign(ctx, root->children[i]);
+            if ( xl6CgenNodeMayRaise(root->children[i]) ) {
+                xl6CgenEmitExceptionPropagate(ctx, root->children[i]);
+            }
+        } else if ( xl6CgenIsModuleGlobalDecl(root->children[i]) ) {
             xl6CgenEmitModuleGlobalInit(ctx, root->children[i]);
         } else if ( xl6CgenIsTopLevelRuntimeStmt(root->children[i]) ) {
             xl6CgenStmt(ctx, root->children[i]);
@@ -988,45 +1122,67 @@ static void xl6CgenEmitTopLevelXlangMain(
         ctx->indent += 1;
         if ( !xl6CgenEmitCurrentErrorScopeJump(ctx) ) {
             xl6CgenIndent(ctx);
-            xl6OutputPuts("goto __xl6_script_error;\n", ctx->out);
+            xl6OutputPuts("goto __xl6_module_init_error;\n", ctx->out);
         }
         ctx->indent -= 1;
         xl6OutputPuts("    }\n", ctx->out);
     }
+    xl6CgenCloseModuleInitErrorScope(ctx, cleanupMark, "__xl6_module_init_error");
+    xl6OutputPuts("    __xl6_module_initialized = 1;\n", ctx->out);
+    xl6OutputPuts("    xrtTempScopeEnd(&__xl6_temp_scope_module);\n", ctx->out);
+    xl6OutputPuts("    return 1;\n", ctx->out);
+    xl6OutputPuts("__xl6_module_init_error:\n", ctx->out);
+    if ( hasAsyncRuntime ) {
+        xl6OutputPuts("    xl6_async_wait_idle();\n", ctx->out);
+    }
+    if ( hasOsRuntime ) {
+        xl6OutputPuts("    xl6_xrt_os_clear_args();\n", ctx->out);
+    }
+    xl6OutputPuts("    xrtTempScopeEnd(&__xl6_temp_scope_module);\n", ctx->out);
+    xl6OutputPuts("    return 0;\n", ctx->out);
+    xl6OutputPuts("}\n\n", ctx->out);
+
+    xl6OutputPuts("void xl_script_module_unit(void)\n{\n", ctx->out);
+    xl6OutputPuts("    if ( !__xl6_module_initialized ) {\n", ctx->out);
+    xl6OutputPuts("        return;\n", ctx->out);
+    xl6OutputPuts("    }\n", ctx->out);
+    xl6OutputPuts("    __xl6_module_initialized = 0;\n", ctx->out);
+    ctx->indent = 1;
+    if ( hasAsyncRuntime ) {
+        xl6OutputPuts("    xl6_async_wait_idle();\n", ctx->out);
+    }
+    xl6CgenEmitCleanupsSince(ctx, cleanupMark);
+    xl6CgenFreeCleanupsSince(ctx, cleanupMark);
+    if ( hasOsRuntime ) {
+        xl6OutputPuts("    xl6_xrt_os_clear_args();\n", ctx->out);
+    }
+    xl6OutputPuts("}\n\n", ctx->out);
+
+    xl6OutputPuts("int xlang_main(xvalue arg)\n{\n", ctx->out);
+    if ( mainFunc != NULL ) {
+        xl6OutputPuts("    int __xl6_main_code = 0;\n", ctx->out);
+    }
+    xl6OutputPuts("    if ( !xl_script_module_init(arg) ) {\n", ctx->out);
+    xl6OutputPuts("        return 0;\n", ctx->out);
+    xl6OutputPuts("    }\n", ctx->out);
     if ( mainFunc != NULL ) {
         xl6OutputPuts("    __xl6_main_code = ", ctx->out);
         xl6CgenUserMainSymbol(ctx->out);
         xl6OutputPuts("(arg);\n", ctx->out);
         if ( hasErrorRuntime ) {
             xl6OutputPuts("    if ( xl6_error_has() ) {\n", ctx->out);
-            ctx->indent += 1;
-            if ( !xl6CgenEmitCurrentErrorScopeJump(ctx) ) {
-                xl6CgenIndent(ctx);
-                xl6OutputPuts("goto __xl6_script_error;\n", ctx->out);
-            }
-            ctx->indent -= 1;
+            xl6OutputPuts("        goto __xl6_script_error;\n", ctx->out);
             xl6OutputPuts("    }\n", ctx->out);
         }
-        xl6CgenCloseErrorScope(ctx, 0);
-        if ( hasAsyncRuntime ) {
-            xl6OutputPuts("    xl6_async_wait_idle();\n", ctx->out);
-        }
-        xl6OutputPuts("    xrtTempScopeEnd(&__xl6_temp_scope_main);\n", ctx->out);
+        xl6OutputPuts("    xl_script_module_unit();\n", ctx->out);
         xl6OutputPuts("    return __xl6_main_code;\n", ctx->out);
     } else {
-        xl6CgenCloseErrorScope(ctx, 0);
-        if ( hasAsyncRuntime ) {
-            xl6OutputPuts("    xl6_async_wait_idle();\n", ctx->out);
-        }
-        xl6OutputPuts("    xrtTempScopeEnd(&__xl6_temp_scope_main);\n", ctx->out);
+        xl6OutputPuts("    xl_script_module_unit();\n", ctx->out);
         xl6OutputPuts("    return 0;\n", ctx->out);
     }
     if ( hasErrorRuntime ) {
         xl6OutputPuts("__xl6_script_error:\n", ctx->out);
-        if ( hasAsyncRuntime ) {
-            xl6OutputPuts("    xl6_async_wait_idle();\n", ctx->out);
-        }
-        xl6OutputPuts("    xrtTempScopeEnd(&__xl6_temp_scope_main);\n", ctx->out);
+        xl6OutputPuts("    xl_script_module_unit();\n", ctx->out);
         xl6OutputPuts("    return 0;\n", ctx->out);
     }
     xl6OutputPuts("}\n\n", ctx->out);

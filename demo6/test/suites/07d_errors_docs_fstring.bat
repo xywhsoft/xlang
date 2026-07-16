@@ -28,6 +28,28 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe check test\cases\sem_throw_unknown_error_kind.xl >nul 2> build\test\sem_throw_unknown_error_kind.err.txt
+if not errorlevel 1 (
+    echo sem_throw_unknown_error_kind.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[sem]" build\test\sem_throw_unknown_error_kind.err.txt >nul
+if errorlevel 1 (
+    echo sem_throw_unknown_error_kind.err.txt missing sem diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_catch_unknown_error_kind.xl >nul 2> build\test\sem_catch_unknown_error_kind.err.txt
+if not errorlevel 1 (
+    echo sem_catch_unknown_error_kind.xl should fail.
+    exit /b 1
+)
+findstr /L /C:"[sem]" build\test\sem_catch_unknown_error_kind.err.txt >nul
+if errorlevel 1 (
+    echo sem_catch_unknown_error_kind.err.txt missing sem diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_error_unknown_member.xl >nul 2> build\test\sem_error_unknown_member.err.txt
 if not errorlevel 1 (
     echo sem_error_unknown_member.xl should fail.
@@ -55,6 +77,14 @@ if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_try_finally_pending_async.xl -o build\test\cgen_try_finally_pending_async.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_try_finally_pending_async.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_error_model.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_error_model.xl -o build\test\cgen_error_model.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_error_model.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\error_model.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_try_finally_pending_control.xl --emit build\test\cgen_try_finally_pending_control.c
 if errorlevel 1 exit /b 1

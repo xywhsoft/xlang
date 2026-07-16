@@ -6,6 +6,8 @@ typedef struct xvalue_struct* xvalue;
 
 xvalue xvoCreateInt(long long iVal);
 long long xvoGetInt(xvalue pVal);
+unsigned int xvoArrayItemCount(xvalue pArr);
+unsigned int xvoTableItemCount(xvalue pTbl);
 
 static long long g_nc_probe_count = 0;
 static long long g_recorded_xvalue = 0;
@@ -56,6 +58,18 @@ void record_xvalue(xvalue value)
 long long recorded_xvalue(void)
 {
     return g_recorded_xvalue;
+}
+
+long long xvalue_vararg_count(const char* tag, xvalue arg)
+{
+    (void)tag;
+    return (long long)xvoArrayItemCount(arg);
+}
+
+long long xvalue_kw_count(const char* tag, xvalue arg)
+{
+    (void)tag;
+    return (long long)xvoTableItemCount(arg);
 }
 
 void* native_handle(long long value)

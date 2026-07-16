@@ -226,7 +226,13 @@ int xl6TypeTextIsDictVararg(const char* text)
     return xl6TypeTextEquals(text, "dict<var>");
 }
 
+int xl6TypeTextIsCVararg(const char* text)
+{
+    return xl6TypeTextEquals(text, "c_vararg");
+}
+
 int xl6TypeTextIsVararg(const char* text)
 {
-    return xl6TypeTextIsArrayVararg(text) || xl6TypeTextIsDictVararg(text);
+    return xl6TypeTextIsArrayVararg(text) || xl6TypeTextIsDictVararg(text) ||
+           xl6TypeTextIsCVararg(text);
 }

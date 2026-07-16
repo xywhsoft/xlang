@@ -62,6 +62,7 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_KW_FINAL: return "KW_FINAL";
     case XL6_KW_VIRTUAL: return "KW_VIRTUAL";
     case XL6_KW_NATIVE: return "KW_NATIVE";
+    case XL6_KW_C_VARARG: return "KW_C_VARARG";
     case XL6_KW_BYVAL: return "KW_BYVAL";
     case XL6_KW_BYREF: return "KW_BYREF";
     case XL6_KW_OUT: return "KW_OUT";

@@ -253,6 +253,28 @@ static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6
     return 0;
 }
 
+static int xl6CgenExprIsTypedContainerCopyBuiltin(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    const XL6_AstNode* callee;
+    const XL6_AstNode* args;
+    const XL6_AstNode* argNode;
+
+    if ( ctx == NULL || expr == NULL || expr->kind != XL6_AST_CALL || expr->childCount == 0 ) {
+        return 0;
+    }
+    callee = expr->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ||
+         !xl6CgenIsCopyBuiltinName(callee->text) ||
+         xl6CgenCopyBuiltinNameIsShadowed(ctx, callee->text) ||
+         xl6CgenFindExternFunc(ctx, callee->text) != NULL ||
+         xl6CgenFindExportFunc(ctx, callee->text) != NULL ) {
+        return 0;
+    }
+    args = expr->childCount > 1 ? expr->children[1] : NULL;
+    argNode = args != NULL && args->childCount == 1 ? args->children[0] : NULL;
+    return argNode != NULL && argNode->kind != XL6_AST_NAMED_ARG;
+}
+
 static int xl6CgenExprIsTypedContainerProtocolIndexReturn(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode,
@@ -314,6 +336,8 @@ static int xl6CgenTypedContainerCanMoveFromExpr(XL6_CgenContext* ctx, const XL6_
         }
     } else if ( xl6CgenExprIsTypedContainerProtocolIndexReturn(ctx, typeNode, initExpr) ) {
         return 1;
+    } else if ( xl6CgenExprIsTypedContainerCopyBuiltin(ctx, initExpr) ) {
+        return xl6CgenTypedContainerExprTypeMatches(ctx, typeNode, initExpr);
     } else if ( !xl6CgenExprIsTypedContainerReturnCall(ctx, initExpr) ) {
         return 0;
     }

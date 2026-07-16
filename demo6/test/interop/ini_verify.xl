@@ -1,0 +1,13 @@
+import ini
+
+
+
+func main(...) as int
+    auto config = ini.load("tmp/python_interop.ini")
+    assert config.get("Main", "Name") == "xlang", "Python INI string"
+    assert config.getBool("Main", "Enabled"), "Python INI bool"
+    assert config.getInt("Main", "Count") == 42, "Python INI int"
+    assert config.get("路径", "Value") == "中文/目录", "Python INI UTF-8"
+    println("ini interop: PASS")
+    return 0
+end

@@ -48,8 +48,13 @@ static void xl6CgenEmitFunctionRuntime(XL6_Output* out)
     xl6OutputPuts("const struct xrt_type_desc* xrtTypeList(void);\n", out);
     xl6OutputPuts("const struct xrt_type_desc* xrtTypeSet(void);\n", out);
     xl6OutputPuts("const struct xrt_type_desc* xrtTypeDict(void);\n", out);
+    xl6OutputPuts("const struct xrt_type_desc* xrtTypeHandle(void);\n", out);
     xl6OutputPuts("const struct xrt_type_desc* xrtTypeValue(void);\n", out);
     xl6OutputPuts("const struct xrt_type_desc* xrtTypeType(void);\n", out);
+    xl6OutputPuts("int xvoType(xvalue pVal);\n", out);
+    xl6OutputPuts("const struct xrt_type_desc* xvoTypeDesc(xvalue value);\n", out);
+    xl6OutputPuts("void* xvoGetHandleData(xvalue value);\n", out);
+    xl6OutputPuts("xvalue xvoCreateHandle(const struct xrt_type_desc* pType, void* pHandle, unsigned int iFlags);\n", out);
     xl6OutputPuts("#ifndef XL6_FUNCTION_TYPEDEF\n", out);
     xl6OutputPuts("#define XL6_FUNCTION_TYPEDEF\n", out);
     xl6OutputPuts("typedef struct XL6_Function {\n", out);

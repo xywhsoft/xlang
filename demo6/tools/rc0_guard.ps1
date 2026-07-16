@@ -272,7 +272,8 @@ Invoke-GuardStep "required files" {
 }
 
 Invoke-GuardStep "static output boundary" {
-    Assert-NoPattern "removed custom source model" @("src") "\b(custom|[A-Za-z_]*Custom[A-Za-z_]*)\b" -CaseSensitive
+    # 只拦截旧 custom 语言模型相关符号；XRT 自身允许存在 Custom 命名的普通 C API。
+    Assert-NoPattern "removed custom source model" @("src") "\b(KW_CUSTOM|XL6_AST_[A-Z0-9_]*CUSTOM|XL6_[A-Za-z0-9_]*CUSTOM|custom\s+[A-Za-z_])\b" -CaseSensitive
     Assert-NoPattern "removed output compat header" @("src") "xl6_output_compat"
     Assert-NoPattern "codegen and dump CRT text output" @("src\cgen", "src\common", "src\abi", "src\ast", "src\ir") "\b(fputc|fputs|fprintf)\s*\("
     # stdout/stderr 作为保留标识符文本是合法的，只禁止真实的 C 标识符引用。
@@ -319,11 +320,13 @@ Invoke-GuardStep "static wiring guards" {
         "check_c_fixture_wiring.ps1",
         "check_package_fixtures.ps1",
         "check_release_extlibs.ps1",
+        "check_format_extlibs.ps1",
         "check_package_xrt_symbols.ps1",
         "check_stdlib_coverage.ps1",
         "check_stdlib_test_wiring.ps1",
         "check_stdlib_dll_symbols.ps1",
         "check_tcc_export_environment.ps1",
+        "check_tcc_xrt_contract.ps1",
         "check_release_tmp_artifacts.ps1",
         "check_negative_diagnostics.ps1"
     )
@@ -339,6 +342,14 @@ Invoke-GuardStep "handwritten C safety" {
 
 Invoke-GuardStep "build" {
     Invoke-Cmd "cmd.exe" @("/c", "build.bat")
+}
+
+Invoke-GuardStep "standalone compiler VFS" {
+    Invoke-CheckScript "check_standalone_compiler_vfs.ps1"
+}
+
+Invoke-GuardStep "dev project syntax boundary" {
+    Invoke-Cmd "powershell.exe" @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tools\check_dev_projects.ps1", "-Mode", "check", "-KeepGoing")
 }
 
 Invoke-GuardStep "command surface" {

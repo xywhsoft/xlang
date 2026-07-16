@@ -1,0 +1,19 @@
+import csv
+
+
+
+func main(...) as int
+    auto reader = csv.open("tmp/python_interop.csv")
+    assert reader.next(), "Python CSV header row"
+    array<string> header = reader.row()
+    assert header[0] == "name", "Python CSV header"
+    assert reader.next(), "Python CSV UTF-8 row"
+    array<string> second = reader.row()
+    assert second[0] == "测试" and second[1] == "a,b" and second[2] == "", "Python CSV UTF-8 values"
+    assert reader.next(), "Python CSV quoted row"
+    array<string> third = reader.row()
+    assert third[1] == "q\"q" and third[2] == "line1\r\nline2", "Python CSV quoting"
+    assert not reader.next() and reader.eof, "Python CSV EOF"
+    println("csv interop: PASS")
+    return 0
+end

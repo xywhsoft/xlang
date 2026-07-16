@@ -1,0 +1,13 @@
+import netrc
+
+
+
+func main(...) as int
+    auto value = netrc.load("tmp/python_interop.netrc")
+    var auth = value.authenticators("python.example")
+    assert auth["login"] == "bob" and auth["account"] == "qa", "Python netrc account"
+    assert auth["password"] == "p a s s", "Python netrc quoted password"
+    assert value.authenticators("missing")["login"] == "fallback", "Python netrc default"
+    assert value.macros["release"].length == 2, "Python netrc macro"
+    return 0
+end

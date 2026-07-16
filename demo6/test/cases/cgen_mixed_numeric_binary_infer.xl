@@ -1,0 +1,7 @@
+func roundScaled(int value, float scale) as int
+    int result = int(value * scale + 0.5)
+    return result
+end
+
+assert roundScaled(21, 1.5) == 32, "mixed numeric binary infer failed"
+println("mixed numeric binary infer ok")

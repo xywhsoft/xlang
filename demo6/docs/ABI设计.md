@@ -104,6 +104,8 @@ native:<module>.<Type>.<name>(<param-types>) as <return-types>
 - 参数列表只记录类型，不记录参数名。
 - 可选参数默认值不进入 signature id。
 - 可变参数进入 signature id，例如 `(...array<var>)` 或 `(...dict<var>)`。
+- xlang `...` / `***` 跨 C 边界时仍是 xlang/xcall 风格，生成 C 参数为 `xvalue arg`，由 XRT `xvalue` API 读取数组或字典参数包。
+- C 原生 ellipsis 不复用 `...`，使用专用 ABI 标记 `c_vararg`：`extern "printf" func printf(string fmt, c_vararg) as c_int`。`c_vararg` 只能用于顶层 `extern C` 声明，必须位于最后一个参数，不进入普通函数值签名。
 - 泛型函数声明使用规范化类型参数名，例如 `T0`、`T1`。
 - 泛型实例使用实例化后的真实类型。
 

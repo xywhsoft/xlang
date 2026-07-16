@@ -14,6 +14,7 @@ end
 
 class UpcastHolder
     UpcastBase item
+    array<UpcastBase> items = array[]
 end
 
 func takeBase(UpcastBase value) as int
@@ -37,5 +38,14 @@ func main(...) as int
     holder.item = derived
     assert holder.item.value() == 2
     assert holder.item is UpcastDerived
+
+    // var 动态字段桥接必须保留兼容的 class 句柄，不能把对象误当持久化数据重建。
+    var boxedHolder = holder
+    var dynamicItems = []
+    dynamicItems.append(derived)
+    boxedHolder["items"] = dynamicItems
+    assert holder.items.length == 1
+    assert holder.items[0].value() == 2
+    assert holder.items[0] is UpcastDerived
     return 0
 end

@@ -1,6 +1,6 @@
 ﻿# P2 runtime helper 细则
 
-本文细化 `xl6_cgen_runtime.c`、`xl6_cgen_lifecycle.c`、`xl6_cgen_main.c`、`xl6_cgen_xvalue_runtime.c` 和 `xl6_cgen_xvalue_runtime_index_ops.c`。这些规则多数不是单一语法节点本体，而是为了表达式、动态值、脚本入口和生命周期生成额外 C helper。`xl6_cgen_xvalue_runtime*.c` 中的 emitter 是 `static`，通过 `xl6_cgen.c` 的分片 include 顺序进入同一个翻译单元，由 `xl6_cgen_module.c` 调用。
+本文细化 `xl6_cgen_runtime.c`、`xl6_cgen_lifecycle.c`、`xl6_cgen_main.c`、`xl6_cgen_main_wrapper.c`、`xl6_cgen_xvalue_runtime.c` 和 `xl6_cgen_xvalue_runtime_index_ops.c`。这些规则多数不是单一语法节点本体，而是为了表达式、动态值、脚本入口和生命周期生成额外 C helper。相关 emitter 是 `static`，通过 `xl6_cgen.c` 的分片 include 顺序进入同一个翻译单元，由 `xl6_cgen_module.c` 调用。
 
 ## CGEN-RTH-001 `~=` 近似比较原型注入
 
@@ -164,7 +164,7 @@
 |---|---|
 | xlang 写法 | `func main(...) ... end` |
 | 生成规则描述 | 生成 `int main(int argc, char** argv)`，先创建 `XL_InitOptions` 并调用 `xlInit`；失败返回 1。然后调用 `xl6_argv_to_arg` 构造 `__xl6_arg`，失败时调用 `xlUnit` 并返回 1。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main.c:33` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main_wrapper.c:1-17` |
 | 对应生成的 C 代码 | `XL_InitOptions __xl6_options = xlInitOptions(argc, argv); if(!xlInit(...)) return 1; __xl6_arg = xl6_argv_to_arg(...);` |
 | 中间形态伪代码 | `init runtime; arg = argvToArg(); if fail unit and return 1` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要在 main 开头显式初始化 runtime 和参数数组。 |
@@ -176,7 +176,7 @@
 |---|---|
 | xlang 写法 | `func main(...) int ... end` |
 | 生成规则描述 | wrapper 调用固定入口 `xlang_main(__xl6_arg)`，保存为 `__xl6_code`。如果错误 runtime 启用且存在未清错误，则先输出未捕获错误诊断，再清理错误、释放 `__xl6_arg`、调用 `xlUnit`、返回 1；否则释放 `__xl6_arg`、调用 `xlUnit` 并返回 `__xl6_code`。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main.c:40`、`demo6/src/cgen/xl6_cgen_main.c:45`、`demo6/src/cgen/xl6_cgen_main.c:50` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main_wrapper.c:18-35` |
 | 对应生成的 C 代码 | `__xl6_code = xlang_main(__xl6_arg); if (xl6_error_has()) { xl6_error_print_uncaught(); xl6_error_clear(); xvoUnref(__xl6_arg); xlUnit(); return 1; } xvoUnref(__xl6_arg); xlUnit(); return __xl6_code;` |
 | 中间形态伪代码 | `code = main(arg); if error: printUncaught(); clear/unit/return 1; unit; return code` |
 | 实现同等功能手写的 C 代码 | 手写 C main 需要手动把语言 main 返回值映射为进程退出码。 |
@@ -188,7 +188,7 @@
 |---|---|
 | xlang 写法 | `func main(...) ... end` 无返回类型 |
 | 生成规则描述 | `main` 固定暴露为 `int xlang_main(xvalue arg)`。当 xlang main 未显式返回时，函数体清理局部资源后补 `return 0;`，wrapper 仍按统一 int 入口调用。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_decl_proto.c:10`、`demo6/src/cgen/xl6_cgen_func.c:36`、`demo6/src/cgen/xl6_cgen_main.c:40` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_decl_proto.c:10`、`demo6/src/cgen/xl6_cgen_func.c:36`、`demo6/src/cgen/xl6_cgen_main_wrapper.c:18` |
 | 对应生成的 C 代码 | `int xlang_main(xvalue arg) { ... return 0; }` 与 `__xl6_code = xlang_main(__xl6_arg); ... return __xl6_code;` |
 | 中间形态伪代码 | `code = xlang_main(arg); if error: printUncaught(); clear/releaseArg/unit/return 1; releaseArg; unit; return code` |
 | 实现同等功能手写的 C 代码 | 手写 C main 需要自己约定无返回语言入口的退出码。 |

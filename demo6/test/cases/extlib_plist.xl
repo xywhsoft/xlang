@@ -1,0 +1,43 @@
+import plist
+
+
+
+func main(...) as int
+    Buffer payload = Buffer()
+    payload.appendByte(0)
+    payload.appendByte(255)
+    payload.append("XL")
+
+    var xmlValue = {
+        "name": "xlang 你好",
+        "count": 6,
+        "ratio": 1.5,
+        "enabled": true,
+        "created": #2026-06-18 12:34:56#,
+        "payload": payload,
+        "items": ["a", "b"]
+    }
+    string xml = plist.stringify(xmlValue, true, true)
+    assert string.contains(xml, "<!DOCTYPE plist PUBLIC"), "plist XML declaration"
+    var parsedXml = plist.loads(xml)
+    assert parsedXml["name"] == "xlang 你好" and parsedXml["count"] == 6, "plist XML values"
+    assert type(parsedXml["created"]) == time and parsedXml["created"] == #2026-06-18 12:34:56#, "plist XML date"
+    assert parsedXml["payload"] is Buffer, "plist XML data becomes Buffer"
+    Buffer xmlPayload = parsedXml["payload"] as Buffer
+    assert xmlPayload.len() == 4 and xmlPayload[0] == 0 and xmlPayload[1] == 255, "plist XML binary data"
+
+    var binaryValue = {
+        "null": null,
+        "uid": plist.uid(uint64(18446744073709551615)),
+        "payload": payload,
+        "nested": [1, false, "你好"]
+    }
+    Buffer binary = plist.dumps(binaryValue, "binary")
+    assert binary.len() > 40 and binary[0] == 98 and binary[1] == 112, "binary plist header"
+    var parsedBinary = plist.loads(binary)
+    assert parsedBinary["null"] == null and plist.isUid(parsedBinary["uid"]), "binary plist null and UID"
+    assert plist.uidValue(parsedBinary["uid"]) == uint64(18446744073709551615), "binary plist uint64 UID"
+    Buffer binaryPayload = parsedBinary["payload"] as Buffer
+    assert binaryPayload.len() == 4 and binaryPayload[3] == 76, "binary plist data"
+    return 0
+end

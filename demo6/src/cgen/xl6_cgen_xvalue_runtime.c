@@ -455,6 +455,7 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("const xrt_type_desc* xrtTypeList(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeSet(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeDict(void);\n", out);
+    xl6OutputPuts("const xrt_type_desc* xrtTypeHandle(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeValue(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeType(void);\n", out);
     xl6OutputPuts("bool xrtTypeSame(const xrt_type_desc* pA, const xrt_type_desc* pB);\n", out);
@@ -602,6 +603,17 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("        size -= (size_t)written;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void xl6_xrt_write(const char* text)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xl6_xrt_stdout_write(text != 0 ? text : \"\", (size_t)-1);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("void xl6_xrt_writeln(const char* text)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xl6_xrt_write(text);\n", out);
+    xl6OutputPuts("    xl6_xrt_stdout_write(\"\\n\", 1u);\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static void xl6_xrt_print_owned_text(void* text, size_t size, const char* fallback)\n", out);

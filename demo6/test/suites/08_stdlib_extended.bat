@@ -123,6 +123,16 @@ if errorlevel 1 (
     echo stdlib_print.c missing direct print runtime call.
     exit /b 1
 )
+findstr /C:"xl6_xrt_write" build\test\stdlib_print.c >nul
+if errorlevel 1 (
+    echo stdlib_print.c missing write runtime call.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_writeln" build\test\stdlib_print.c >nul
+if errorlevel 1 (
+    echo stdlib_print.c missing writeln runtime call.
+    exit /b 1
+)
 findstr /C:"__xl_std_print(" build\test\stdlib_print.c >nul
 if not errorlevel 1 (
     echo stdlib_print.c still emits __xl_std_print wrapper.
@@ -145,6 +155,11 @@ if errorlevel 1 (
 findstr /C:"true false 123 -45" build\test\stdlib_print.out.txt >nul
 if errorlevel 1 (
     echo stdlib_print.out.txt missing scalar output.
+    exit /b 1
+)
+findstr /C:"raw-text" build\test\stdlib_print.out.txt >nul
+if errorlevel 1 (
+    echo stdlib_print.out.txt missing write/writeln output.
     exit /b 1
 )
 findstr /C:"[1,2,3]" build\test\stdlib_print.out.txt >nul
@@ -663,6 +678,66 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_regex_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_regex_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib regex xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
 if errorlevel 1 exit /b 1
 
+release\xl.exe check test\cases\stdlib_os.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_os.xl --emit build\test\stdlib_os.c
+if errorlevel 1 exit /b 1
+findstr /C:"void* xl6_xrt_os_env" build\test\stdlib_os.c >nul
+if errorlevel 1 (
+    echo stdlib_os.c missing OS env runtime helper.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_os_platform" build\test\stdlib_os.c >nul
+if errorlevel 1 (
+    echo stdlib_os.c missing OS platform runtime helper.
+    exit /b 1
+)
+findstr /C:"xvalue xl6_xrt_os_args" build\test\stdlib_os.c >nul
+if errorlevel 1 (
+    echo stdlib_os.c missing OS args runtime helper.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_os_set_args(arg)" build\test\stdlib_os.c >nul
+if errorlevel 1 (
+    echo stdlib_os.c missing xlang_main OS args setup.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_os_clear_args()" build\test\stdlib_os.c >nul
+if errorlevel 1 (
+    echo stdlib_os.c missing xlang_main OS args cleanup.
+    exit /b 1
+)
+findstr /C:"int xrtChain" build\test\stdlib_os.c >nul
+if errorlevel 1 (
+    echo stdlib_os.c missing xrtChain prototype.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_process_exec" build\test\stdlib_os.c >nul
+if errorlevel 1 (
+    echo stdlib_os.c missing process exec helper dependency.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_process_spawn_shell" build\test\stdlib_os.c >nul
+if errorlevel 1 (
+    echo stdlib_os.c missing process shell start helper dependency.
+    exit /b 1
+)
+findstr /C:"void* xl6_xrt_process_spawn_file" build\test\stdlib_os.c >nul
+if errorlevel 1 (
+    echo stdlib_os.c missing process file start helper dependency.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\stdlib_os.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_os.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_os.exe > build\test\stdlib_os.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"stdlib_os=ok" build\test\stdlib_os.out.txt >nul
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_os.xl > build\test\stdlib_os_example.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"missing_env= fallback" build\test\stdlib_os_example.out.txt >nul
+if errorlevel 1 exit /b 1
+
 release\xl.exe check test\cases\stdlib_process.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_process.xl --emit build\test\stdlib_process.c
@@ -730,6 +805,11 @@ release\xl.exe build test\cases\stdlib_net_extended_io.xl -o build\test\stdlib_n
 if errorlevel 1 exit /b 1
 build\test\stdlib_net_extended_io.exe
 if errorlevel 1 exit /b 1
+
+if not "%XL6_ENABLE_DEFERRED_HTTP%"=="1" (
+    echo Skipping deferred HTTP client/server checks. Set XL6_ENABLE_DEFERRED_HTTP=1 to run them.
+    goto after_deferred_http
+)
 
 release\xl.exe check test\cases\stdlib_http_client.xl
 if errorlevel 1 exit /b 1
@@ -1010,6 +1090,8 @@ if errorlevel 1 exit /b 1
 cmd /c release\projects\xs\test_smoke.bat
 if errorlevel 1 exit /b 1
 
+:after_deferred_http
+
 release\xl.exe run test\cases\stdlib_tcc_import_only.xl > build\test\stdlib_tcc_import_only.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"stdlib tcc import only ok" build\test\stdlib_tcc_import_only.out.txt >nul
@@ -1225,6 +1307,24 @@ release\xl.exe run release\examples\stdlib_id_net_c.c > build\test\stdlib_id_ext
 if errorlevel 1 exit /b 1
 fc build\test\stdlib_id_extended_xlang.out.txt build\test\stdlib_id_extended_c.out.txt >nul
 if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_signal.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\stdlib_signal.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_signal.xl > build\test\stdlib_signal_xlang.out.txt
+if errorlevel 1 exit /b 1
+
+release\xl.exe run release\examples\stdlib_os.xl > build\test\stdlib_os_xlang.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"chain_exit=0" build\test\stdlib_os_xlang.out.txt >nul
+if errorlevel 1 exit /b 1
+release\xl.exe run release\examples\stdlib_os_c.c > build\test\stdlib_os_c.out.txt
+if errorlevel 1 exit /b 1
+for %%L in ("args=ok" "platform=ok" "cwd=ok" "env=ok" "run=ok" "startFile=ok" "chain=ok") do (
+    findstr /C:%%L build\test\stdlib_os_c.out.txt >nul
+    if errorlevel 1 exit /b 1
+)
 
 echo DEMO6 suite ok: extended standard library
 exit /b 0

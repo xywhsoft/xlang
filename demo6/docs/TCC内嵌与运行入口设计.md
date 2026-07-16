@@ -127,10 +127,11 @@ TCC 通过 `open/read/lseek/close/fopen/fclose` 适配层访问文件。DEMO6 �
 ```
 
 动态 VFS：
-- 保存本次编译生成的中间文件，例如 `__xlvfs__/module.c`、`__xlvfs__/runtime.c`。
+- 保存本次编译生成的中间文件，例如 `__xlvfs__/module.c`、`__xlvfs__/runtime.c`、`__xlvfs__/resource_0.obj`。
 - 生命周期跟一次编译或运行调用绑定，进入 TCC 前挂载，调用结束后清空。
 - 优先级高于外部文件系统，因为它表达的是当前编译上下文刚刚生成的权威内容。
 - 只作为读路径参与 TCC 编译，不承接 exe/dll/header 等最终输出写入。
+- Windows 资源配置生成的 COFF `.rsrc` 对象必须进入动态 VFS 后参与链接，不能落盘生成临时 `.obj`，以避免文件访问冲突和无效中间文件残留。
 
 外部文件系统：
 - 用户真实提供的 `.c`、`.h`、`.a`、`.def`、`.dll` 等文件仍可被 TCC 正常读取。

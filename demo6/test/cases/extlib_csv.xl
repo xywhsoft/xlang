@@ -1,0 +1,44 @@
+import csv
+
+
+
+func main(...) as int
+    auto rows = csv.parse("name,note,empty\r\n张三,\"a,b\",\"\"\r\nline,\"one\ntwo\",ok\r\n")
+    assert rows.length == 3, "CSV parse row count"
+    assert rows[0].length == 3 and rows[0][0] == "name", "CSV header"
+    assert rows[1][0] == "张三" and rows[1][1] == "a,b" and rows[1][2] == "", "CSV quoted row"
+    assert rows[2][1] == "one\ntwo", "CSV embedded newline"
+
+    array<array<string>> outputRows = array[]
+    outputRows.append(array["name", "value"])
+    outputRows.append(array["alpha", "1,2"])
+    string text = csv.stringify(outputRows, ",", "\"", "crlf")
+    assert text == "name,value\r\nalpha,\"1,2\"\r\n", "CSV stringify"
+
+    array<string> headers = array["name", "score"]
+    auto dictWriter = csv.createDict(headers)
+    dict<string> first = dict{"name": "alice", "score": "91"}
+    dict<string> second = dict{"name": "bob", "score": "88"}
+    dictWriter.write(first)
+    dictWriter.write(second)
+    Buffer dictionaryData = dictWriter.finish()
+
+    auto dictReader = csv.openDict(dictionaryData)
+    assert dictReader.headers.length == 2 and dictReader.headers[0] == "name", "CSV dictionary header"
+    assert dictReader.next(), "CSV first dictionary row"
+    dict<string> firstResult = dictReader.row()
+    assert firstResult["name"] == "alice" and firstResult["score"] == "91", "CSV first dictionary value"
+    assert dictReader.next(), "CSV second dictionary row"
+    dict<string> secondResult = dictReader.row()
+    assert secondResult["name"] == "bob" and secondResult["score"] == "88", "CSV second dictionary value"
+    assert not dictReader.next() and dictReader.eof, "CSV dictionary EOF"
+
+    bool malformed = false
+    try
+        csv.parse("\"unterminated")
+    catch CsvError e
+        malformed = true
+    end
+    assert malformed, "CSV malformed quote must throw CsvError"
+    return 0
+end

@@ -1,0 +1,10 @@
+import xml.dom
+
+
+
+func main(...) as int
+    string source = "<?tool xlang?><root xmlns:p=\"urn:test\" id=\"7\">head<p:item key=\"a\">你好</p:item><!--note--></root>"
+    auto document = xml.dom.parse(source)
+    document.save("tmp/xlang_interop.xml", true, 2, true)
+    return 0
+end

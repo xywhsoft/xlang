@@ -21,6 +21,11 @@ expect(valuesCopy[1], 8)
 expect(20 in values, 1)
 expect(7 in values, 0)
 
+array<int> independentValues = clone(values)
+independentValues[0] = 99
+expect(values[0], 10)
+expect(independentValues[0], 99)
+
 list<string> names = list[0: "a", 2: "b"]
 list<string> namesCopy = names
 
@@ -37,6 +42,11 @@ expect(namesCopy.length, 1)
 expectStr(namesCopy[5], "five")
 expect("c" in names, 1)
 expect("five" in names, 0)
+
+list<string> independentNames = copy(names)
+independentNames[0] = "copy"
+expectStr(names[0], "z")
+expectStr(independentNames[0], "copy")
 
 set<int> ids = set{1, 2}
 set<int> idsCopy = ids

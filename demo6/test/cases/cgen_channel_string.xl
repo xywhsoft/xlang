@@ -23,4 +23,14 @@ assert not textCh.send("after close"), "closed string channel send should fail"
 channel<string> pendingCh = channel::<string>(2)
 assert pendingCh.send("pending"), "pending string send failed"
 
+channel<string> timeoutTextCh = channel::<string>(1)
+string timeoutText = ""
+assert not timeoutTextCh.recvTimeoutInto(timeoutText, 1), "empty string recvTimeoutInto should time out"
+assert timeoutText == "", "string recvTimeoutInto timeout should not modify target"
+assert timeoutTextCh.send("waited"), "string recvTimeoutInto send setup failed"
+assert timeoutTextCh.recvTimeoutInto(timeoutText, 100), "string recvTimeoutInto should receive"
+assert timeoutText == "waited", "string recvTimeoutInto value mismatch"
+timeoutTextCh.close()
+assert not timeoutTextCh.recvTimeoutInto(timeoutText, 0), "closed string recvTimeoutInto should fail"
+
 println("channel string ok")

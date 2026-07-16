@@ -77,6 +77,9 @@ static int xl6CgenTypeSupportsVarInvokeValue(XL6_CgenContext* ctx, const XL6_Ast
     if ( xl6CTextEquals(concreteType->text, "var") ) {
         return 1;
     }
+    if ( xl6CTextEquals(concreteType->text, "error") ) {
+        return 1;
+    }
     /*
         专用数据结构通过 XRT typed handle 进入 xvalue。
         它们不是 array/list 这类普通 typed container，动态调用时使用运行时类型描述符校验。

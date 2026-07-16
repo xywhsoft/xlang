@@ -64,16 +64,16 @@ assert await file.writeBytesAsync(binaryPath, binary)
 Buffer binaryRead = await file.readBytesAsync(binaryPath)
 assert binaryRead == binary, "binary async roundtrip mismatch"
 
-// AsyncFile 覆盖随机读写、刷新、截断、共享标志和显式关闭。
+// AsyncFile 覆盖随机 readAt/writeAt、刷新、截断、共享标志和显式关闭。
 int openFlags = file.asyncRead + file.asyncWrite + file.asyncCreate + file.asyncTruncate
 int shareFlags = file.shareRead + file.shareWrite + file.shareDelete
 AsyncFile asyncFile = file.openAsync(handlePath, openFlags, shareFlags)
-assert await asyncFile.write(0, binary) == binary.len()
+assert await asyncFile.writeAt(0, binary) == binary.len()
 assert await asyncFile.flush()
 assert await asyncFile.size() == binary.len()
-Buffer handleRead = Buffer(await asyncFile.read(0, binary.len()))
+Buffer handleRead = Buffer(await asyncFile.readAt(0, binary.len()))
 assert handleRead == binary
-assert await asyncFile.resize(2)
+assert await asyncFile.setSize(2)
 assert await asyncFile.size() == 2
 assert asyncFile.close()
 

@@ -780,6 +780,17 @@ static void xl6CgenPowExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
     xl6OutputPutc(')', ctx->out);
 }
 
+static void xl6CgenStringConcatOperandExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    if ( xl6CgenBinaryArithmeticIsXValue(ctx, node) ) {
+        xl6OutputPuts("xl6_xrt_value_to_string_release(", ctx->out);
+        xl6CgenExpr(ctx, node);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+    xl6CgenExpr(ctx, node);
+}
+
 static void xl6CgenStringConcatExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* left;
@@ -789,9 +800,9 @@ static void xl6CgenStringConcatExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
     right = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
 
     xl6OutputPuts("xl6_xrt_str_concat(", ctx->out);
-    xl6CgenExpr(ctx, left);
+    xl6CgenStringConcatOperandExpr(ctx, left);
     xl6OutputPuts(", ", ctx->out);
-    xl6CgenExpr(ctx, right);
+    xl6CgenStringConcatOperandExpr(ctx, right);
     xl6OutputPutc(')', ctx->out);
 }
 

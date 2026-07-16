@@ -1,0 +1,38 @@
+import zip
+
+
+
+func main(...) as int
+    auto archive = zip.create()
+    archive.add("a.txt", "alpha")
+    archive.add("b.txt", "beta", false, "store", 0)
+    archive.rename("b.txt", "c.txt")
+    Buffer packed = archive.finish()
+
+    auto reader = zip.open(packed)
+    if reader.count != 2 then
+        return 1
+    end
+    if reader.readText("a.txt") != "alpha" then
+        return 2
+    end
+    if reader.readText("c.txt") != "beta" then
+        return 3
+    end
+    if not reader.contains("c.txt") then
+        return 4
+    end
+    reader.close()
+
+    bool rejected = false
+    try
+        auto unsafe = zip.create()
+        unsafe.add("../escape.txt", "bad")
+    catch ArchiveError e
+        rejected = true
+    end
+    if not rejected then
+        return 5
+    end
+    return 0
+end

@@ -1,0 +1,51 @@
+import tar
+
+
+
+func main(...) as int
+    auto writer = tar.create()
+    writer.add("a.txt", "alpha")
+    writer.add("b.txt", "beta")
+    Buffer packed = writer.finish()
+
+    auto reader = tar.open(packed)
+    if not reader.next() then
+        return 1
+    end
+    if reader.info().name != "a.txt" or reader.readText() != "alpha" then
+        return 2
+    end
+    if not reader.next() then
+        return 3
+    end
+    if reader.info().name != "b.txt" or reader.readText() != "beta" then
+        return 4
+    end
+    if reader.next() or not reader.eof then
+        return 5
+    end
+
+    bool rejected = false
+    try
+        auto unsafe = tar.create()
+        unsafe.add("../escape.txt", "bad")
+    catch ArchiveError e
+        rejected = true
+    end
+    if not rejected then
+        return 6
+    end
+
+    auto specialWriter = tar.create(allowSpecialFiles = true)
+    specialWriter.fifo("pipe")
+    Buffer specialPacked = specialWriter.finish()
+    auto specialReader = tar.open(specialPacked, allowSpecialFiles = true)
+    if not specialReader.next() or specialReader.info().kind != "fifo" then
+        return 7
+    end
+    specialReader.skip()
+    if specialReader.next() or not specialReader.eof then
+        return 8
+    end
+    return 0
+end

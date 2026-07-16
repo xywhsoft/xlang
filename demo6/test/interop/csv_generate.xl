@@ -1,0 +1,20 @@
+import csv
+
+
+
+func main(...) as int
+    try
+        auto writer = csv.createFile("tmp/xlang_interop.csv", ",", "\"", "crlf", false, true)
+        array<string> header = array["name", "city", "note"]
+        array<string> alice = array["Alice", "上海", "comma, quote \" and newline\nare safe"]
+        array<string> bob = array["Bob", "深圳", ""]
+        writer.write(header)
+        writer.write(alice)
+        writer.write(bob)
+        writer.close()
+    catch e
+        println(e.message)
+        return 1
+    end
+    return 0
+end

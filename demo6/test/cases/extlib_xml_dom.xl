@@ -1,0 +1,33 @@
+import xml.dom
+
+
+
+func main(...) as int
+    string source = "<?app mode?><root xmlns:p=\"urn:test\" id=\"7\">head<p:item>one</p:item><!--note--></root>"
+    auto document = xml.dom.parse(source)
+    assert document.nodeType == 9 and document.childCount == 2, "DOM document and PI"
+    auto root = document.documentElement
+    assert root.valid and root.name == "root" and root.getAttribute("id") == "7", "DOM root"
+    assert root.childCount == 3 and root.textContent == "headone", "DOM explicit child nodes"
+    auto item = root.child(1)
+    assert item.namespaceUri == "urn:test" and item.localName == "item", "DOM namespace"
+    item.child(0).value = "changed & safe"
+    item.setAttribute("quote", "a\"b")
+    string encoded = document.stringify(true, 2, true)
+    assert string.contains(encoded, "changed &amp; safe"), "DOM text escaping"
+    assert string.contains(encoded, "quote=\"a&quot;b\""), "DOM attribute escaping"
+
+    auto created = xml.dom.createDocument()
+    auto createdRoot = created.createElement("catalog")
+    auto child = created.createElement("book")
+    auto text = created.createText("XLang")
+    created.appendChild(createdRoot)
+    createdRoot.appendChild(child)
+    child.appendChild(text)
+    assert created.documentElement.name == "catalog" and child.textContent == "XLang", "DOM construction"
+    auto comment = created.createComment("kept")
+    createdRoot.appendChild(comment)
+    createdRoot.removeChild(comment)
+    assert createdRoot.childCount == 1 and not comment.parent.valid, "DOM detach"
+    return 0
+end

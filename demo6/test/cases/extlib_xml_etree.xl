@@ -1,0 +1,28 @@
+import xml.etree
+
+
+
+func main(...) as int
+    string source = "<root xmlns:p=\"urn:test\" id=\"7\">head<p:item key=\"a\">one</p:item>tail<p:item key=\"b\">two</p:item><!--note--></root>"
+    auto root = xml.etree.parse(source)
+    assert root.name == "root" and root.get("id") == "7", "ElementTree root and attribute"
+    assert root.text == "head" and root.child(0).tail == "tail", "ElementTree text and tail"
+    auto items = root.findAll("//p:item")
+    assert items.length == 2 and items[0].text == "one" and items[1].get("key") == "b", "ElementTree findAll"
+    auto first = root.find("p:item")
+    assert first.valid and first.namespaceUri == "urn:test", "ElementTree namespace"
+    first.text = "changed & safe"
+    first.set("extra", "a\"b")
+    string encoded = root.stringify()
+    assert string.contains(encoded, "xmlns:p=\"urn:test\"") and string.contains(encoded, "changed &amp; safe"), "ElementTree serialization"
+    assert string.contains(encoded, "extra=\"a&quot;b\""), "ElementTree attribute escaping"
+    auto roundTrip = xml.etree.parse(encoded)
+    assert roundTrip.find("p:item").text == "changed & safe", "ElementTree round trip"
+
+    auto created = xml.etree.create("catalog")
+    auto book = created.append("book")
+    book.set("id", "xlang")
+    book.text = "XLang"
+    assert created.childCount == 1 and created.child(0).text == "XLang", "ElementTree construction"
+    return 0
+end

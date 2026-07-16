@@ -886,16 +886,51 @@ static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* pa
     xl6CgenFixedTypeArgExpr(ctx, targetType, expr);
 }
 
+static void xl6CgenCVarargTailArgs(XL6_CgenContext* ctx, const XL6_AstNode* args, int fixedCount, int* wroteAny)
+{
+    size_t i;
+    int positionalIndex;
+
+    positionalIndex = 0;
+    if ( args == NULL ) {
+        return;
+    }
+    for ( i = 0; i < args->childCount; ++i ) {
+        const XL6_AstNode* arg = args->children[i];
+        const XL6_AstNode* expr;
+
+        if ( arg == NULL ) {
+            continue;
+        }
+        if ( arg->kind == XL6_AST_NAMED_ARG ) {
+            continue;
+        }
+        expr = xl6CgenArgExpr(arg);
+        if ( positionalIndex >= fixedCount ) {
+            if ( wroteAny != NULL && *wroteAny ) {
+                xl6OutputPuts(", ", ctx->out);
+            }
+            xl6CgenExpr(ctx, expr);
+            if ( wroteAny != NULL ) {
+                *wroteAny = 1;
+            }
+        }
+        positionalIndex += 1;
+    }
+}
+
 static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* args)
 {
     const XL6_AstNode* params;
     int fixedCount;
     int hasVararg;
+    int wroteAny;
     int i;
 
     params = func->childCount > 1 ? func->children[1] : NULL;
     fixedCount = xl6CgenFixedParamCount(params);
     hasVararg = params != NULL && params->childCount > (size_t)fixedCount;
+    wroteAny = 0;
 
     for ( i = 0; i < fixedCount; ++i ) {
         const XL6_AstNode* param = params->children[i];
@@ -912,10 +947,15 @@ static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, 
             xl6CgenError(ctx, param, "missing required argument for parameter");
             xl6OutputPuts("0", ctx->out);
         }
+        wroteAny = 1;
     }
     if ( hasVararg ) {
         const XL6_AstNode* vararg = params->children[fixedCount];
-        if ( fixedCount > 0 ) {
+        if ( xl6CgenParamIsCVararg(vararg) ) {
+            xl6CgenCVarargTailArgs(ctx, args, fixedCount, &wroteAny);
+            return;
+        }
+        if ( wroteAny ) {
             xl6OutputPuts(", ", ctx->out);
         }
         if ( xl6CgenIsArrayXValueType(vararg->children[0]) ) {

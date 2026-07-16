@@ -1,0 +1,51 @@
+import tar
+
+
+
+func verifyUstar() as bool
+    auto reader = tar.open("tmp/python_ustar.tar")
+    if not reader.next() then
+        return false
+    end
+    auto info = reader.info()
+    return info.name == "plain.txt" and reader.readText() == "ustar" and not reader.next() and reader.eof
+end
+
+func verifyGnu() as bool
+    string longName = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.txt"
+    auto reader = tar.open("tmp/python_gnu.tar")
+    if not reader.next() then
+        return false
+    end
+    auto first = reader.info()
+    if first.name != longName or reader.readText() != "gnu long" then
+        return false
+    end
+    if not reader.next() then
+        return false
+    end
+    auto link = reader.info()
+    if link.kind != "symlink" or link.linkName != longName then
+        return false
+    end
+    reader.skip()
+    return not reader.next() and reader.eof
+end
+
+func verifyPax() as bool
+    string longName = "目录/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.txt"
+    auto reader = tar.open("tmp/python_pax.tar")
+    if not reader.next() then
+        return false
+    end
+    auto info = reader.info()
+    return info.name == longName and info.uid == 1073741824 and reader.readText() == "pax" and not reader.next() and reader.eof
+end
+
+func main(...) as int
+    assert verifyUstar(), "Python USTAR interoperability failed"
+    assert verifyGnu(), "Python GNU TAR interoperability failed"
+    assert verifyPax(), "Python PAX interoperability failed"
+    println("tar interop: PASS")
+    return 0
+end

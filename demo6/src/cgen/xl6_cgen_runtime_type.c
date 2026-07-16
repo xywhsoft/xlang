@@ -2,6 +2,22 @@ static void xl6CgenEmitRuntimeTypeCastHelpers(XL6_CgenContext* ctx);
 static void xl6CgenEmitRuntimeTypeClassRecordCastHelper(XL6_CgenContext* ctx, const XL6_AstNode* targetType);
 static unsigned long long xl6CgenTypeIdForTypeNode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 
+/*
+    xlang 的 bool 在普通 C 表达式中使用 int 承载，因此静态 ABI 描述符是 bool32。
+    xvalue 则保存 XRT 原生 bool；运行时 is/as 必须使用原生描述符进行比较。
+*/
+static void xl6CgenEmitRuntimeValueTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concreteType;
+
+    concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
+    if ( concreteType != NULL && xl6CTextEquals(concreteType->text, "bool") ) {
+        xl6OutputPuts("xrtTypeBool()", ctx->out);
+        return;
+    }
+    xl6CgenEmitXrtTypeDescRef(ctx, typeNode);
+}
+
 static void xl6CgenEmitProgramTypeNameCase(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode,
@@ -556,7 +572,7 @@ static void xl6CgenRuntimeTypeIsExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
     xl6OutputPuts("xl6_runtime_value_is(", ctx->out);
     xl6CgenExpr(ctx, value);
     xl6OutputPuts(", ", ctx->out);
-    xl6CgenEmitXrtTypeDescRef(ctx, target);
+    xl6CgenEmitRuntimeValueTypeDescRef(ctx, target);
     xl6OutputPuts(xl6CgenExprIsXValueBorrow(ctx, value) ? ", false)" : ", true)", ctx->out);
     xl6AstFree(valueType);
 }
@@ -598,7 +614,7 @@ static int xl6CgenRuntimeTypeAsScalarExpr(XL6_CgenContext* ctx, const XL6_AstNod
     xl6OutputPrintf(ctx->out, "((%s)%s(", cType, helper);
     xl6CgenExpr(ctx, value);
     xl6OutputPuts(", ", ctx->out);
-    xl6CgenEmitXrtTypeDescRef(ctx, concreteTarget);
+    xl6CgenEmitRuntimeValueTypeDescRef(ctx, concreteTarget);
     xl6OutputPuts(xl6CgenExprIsXValueBorrow(ctx, value) ? ", false))" : ", true))", ctx->out);
     return 1;
 }

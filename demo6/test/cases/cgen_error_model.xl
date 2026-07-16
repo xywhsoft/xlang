@@ -1,0 +1,100 @@
+func failValue() as int
+    throw ValueError "bad value"
+    return 0
+end
+
+func failRange()
+    throw RangeError "bad range"
+end
+
+func failFile()
+    throw FileError "missing file"
+end
+
+func failType()
+    throw TypeError "bad type"
+end
+
+func futureFail() as int
+    throw "task boom"
+    return 0
+end
+
+func recoverFuture(error e) as int
+    if e.kind != "AsyncError" then
+        return 71
+    end
+    if e.message != "task boom" then
+        return 72
+    end
+    return 77
+end
+
+int typedState = 0
+try
+    int ignored = failValue()
+catch FileError e
+    typedState = 1
+catch ValueError e
+    assert e.kind == "ValueError"
+    assert e.message == "bad value"
+    assert e.line > 0
+    typedState = 2
+catch e
+    typedState = 3
+end
+assert typedState == 2
+
+int parentState = 0
+try
+    failRange()
+catch TypeError e
+    parentState = 1
+catch ValueError e
+    assert e.kind == "RangeError"
+    assert e.message == "bad range"
+    parentState = 2
+end
+assert parentState == 2
+
+int propagateState = 0
+try
+    try
+        failFile()
+    catch ValueError e
+        propagateState = 10
+    end
+catch IOError e
+    assert e.kind == "FileError"
+    propagateState = 20
+end
+assert propagateState == 20
+
+int rethrowState = 0
+try
+    try
+        failType()
+    catch e
+        assert e.kind == "TypeError"
+        throw
+    end
+catch TypeError e
+    rethrowState = 30
+end
+assert rethrowState == 30
+
+int assertState = 0
+try
+    assert false, "assert boom"
+catch AssertionError e
+    assert e.message == "assert boom"
+    assertState = 40
+end
+assert assertState == 40
+
+func() as int futureWorker = futureFail
+future<int> recovered = task.spawn(futureWorker).catch(recoverFuture)
+int recoveredValue = await recovered
+assert recoveredValue == 77, string(recoveredValue)
+
+println("error model ok")

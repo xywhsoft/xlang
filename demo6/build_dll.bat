@@ -195,6 +195,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\parser\xl6_parser.c ^
     src\parser\xl6_parser_api.c ^
     src\package\xl6_package.c ^
+    src\resource\xl6_win_resource.c ^
     src\stdlib\xl6_stdlib.c ^
     src\stdlib\xl6_stdlib_data.c ^
     src\type\xl6_type_model.c ^

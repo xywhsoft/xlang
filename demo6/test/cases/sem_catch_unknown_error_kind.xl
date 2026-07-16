@@ -1,0 +1,5 @@
+try
+    throw "boom"
+catch UnknownError e
+    print(e.message)
+end

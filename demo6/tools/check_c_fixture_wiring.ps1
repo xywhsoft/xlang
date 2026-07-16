@@ -207,8 +207,9 @@ foreach ( $packageDir in $packageDirs ) {
     foreach ( $asset in $packageAssets ) {
         $relative = $asset.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
         $assetFullPath = [System.IO.Path]::GetFullPath($asset.FullName)
-        if ( ! $packageDeclaredSources.ContainsKey($assetFullPath.ToLowerInvariant()) ) {
-            Add-Failure "package C fixture is not declared by package metadata: $relative"
+        if ( ! $packageDeclaredSources.ContainsKey($assetFullPath.ToLowerInvariant()) -and
+            ! (Test-DirectReference $entryText $relative) ) {
+            Add-Failure "package C source is neither declared by metadata nor wired as a test: $relative"
         }
     }
 }

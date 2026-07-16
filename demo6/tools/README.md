@@ -21,9 +21,11 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 - `check_cgenrule_docs.ps1`
 - `check_cli_temp_cleanup.ps1`
 - `check_debugger_not_released.ps1`
+- `check_dev_projects.ps1`
 - `check_dll_api_boundary.ps1`
 - `check_docs_index.ps1`
 - `check_example_wiring.ps1`
+- `check_format_extlibs.ps1`
 - `check_frontend_fuzz.ps1`
 - `check_markdown_links.ps1`
 - `check_negative_diagnostics.ps1`
@@ -34,11 +36,13 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 - `check_risk_ledger.ps1`
 - `check_source_encoding.ps1`
 - `check_source_wiring.ps1`
+- `check_standalone_compiler_vfs.ps1`
 - `check_stdlib_coverage.ps1`
 - `check_stdlib_dll_symbols.ps1`
 - `check_stdlib_examples.ps1`
 - `check_stdlib_test_wiring.ps1`
 - `check_tcc_export_environment.ps1`
+- `check_tcc_xrt_contract.ps1`
 - `check_test_case_wiring.ps1`
 - `check_test_data_wiring.ps1`
 - `check_tool_wiring.ps1`

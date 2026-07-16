@@ -599,7 +599,17 @@ if not errorlevel 1 (
     echo cgen_deepcopy_removed.xl should fail because deepcopy is not a builtin alias.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$bytes=[System.IO.File]::ReadAllBytes('build\test\cgen_deepcopy_removed.err.txt'); $enc=New-Object System.Text.UTF8Encoding($false,$true); $text=$enc.GetString($bytes); $expected=([char]0x6682)+([char]0x4E0D)+([char]0x652F)+([char]0x6301); if($text.IndexOf($expected) -lt 0){ Write-Host 'cgen_deepcopy_removed.err.txt missing unsupported diagnostic.'; exit 1 }"
+findstr /C:"undeclared identifier 'deepcopy'" build\test\cgen_deepcopy_removed.err.txt >nul
+if errorlevel 1 (
+    echo cgen_deepcopy_removed.err.txt missing removed deepcopy diagnostic.
+    exit /b 1
+)
+
+release\xl.exe cgen test\cases\cgen_object_var_field_lifetime.xl --emit build\test\cgen_object_var_field_lifetime.c
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_object_var_field_lifetime.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_object_var_field_lifetime.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_object_var_field_lifetime.exe
 if errorlevel 1 exit /b 1
 
 

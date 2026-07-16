@@ -18,6 +18,7 @@ const char* xl6CallableVarargModeName(XL6_CallableVarargMode mode)
     switch ( mode ) {
     case XL6_CALLABLE_VARARG_ARRAY: return "array";
     case XL6_CALLABLE_VARARG_DICT: return "dict";
+    case XL6_CALLABLE_VARARG_C: return "c_vararg";
     case XL6_CALLABLE_VARARG_NONE:
     default:
         return "none";
@@ -38,9 +39,17 @@ int xl6CallableParamIsDictVararg(const XL6_AstNode* param)
            xl6TypeTextIsDictVararg(param->children[0]->text);
 }
 
+int xl6CallableParamIsCVararg(const XL6_AstNode* param)
+{
+    return param != NULL && param->childCount > 0 &&
+           param->children[0] != NULL &&
+           xl6TypeTextIsCVararg(param->children[0]->text);
+}
+
 int xl6CallableParamIsVararg(const XL6_AstNode* param)
 {
-    return xl6CallableParamIsArrayVararg(param) || xl6CallableParamIsDictVararg(param);
+    return xl6CallableParamIsArrayVararg(param) || xl6CallableParamIsDictVararg(param) ||
+           xl6CallableParamIsCVararg(param);
 }
 
 XL6_CallableVarargMode xl6CallableDetectVarargMode(const XL6_AstNode* params)
@@ -58,6 +67,9 @@ XL6_CallableVarargMode xl6CallableDetectVarargMode(const XL6_AstNode* params)
     }
     if ( xl6CallableParamIsDictVararg(param) ) {
         return XL6_CALLABLE_VARARG_DICT;
+    }
+    if ( xl6CallableParamIsCVararg(param) ) {
+        return XL6_CALLABLE_VARARG_C;
     }
     return XL6_CALLABLE_VARARG_NONE;
 }

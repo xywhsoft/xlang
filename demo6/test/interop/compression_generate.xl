@@ -1,0 +1,22 @@
+import gzip
+import bz2
+import zip
+
+
+
+func main(...) as int
+    Buffer payload = Buffer()
+    payload.append("xlang compression interop")
+    payload.appendByte(0)
+    payload.appendByte(255)
+
+    assert file.writeBytes("tmp/xlang_interop.gz", gzip.compress(payload, 9))
+    assert file.writeBytes("tmp/xlang_interop.bz2", bz2.compress(payload, 9))
+
+    auto archive = zip.create()
+    archive.mkdir("docs")
+    archive.add("docs/hello.txt", "hello from xlang")
+    archive.add("payload.bin", payload, false, "store", 0)
+    assert file.writeBytes("tmp/xlang_interop.zip", archive.finish())
+    return 0
+end

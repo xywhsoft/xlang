@@ -46,7 +46,7 @@ expect(string.contains(objectText, "object-error"), 1)
 Logger rolling = Logger("rolling")
 expect(rolling.addRollingFile(rollingPath, 96, 2, log.traceLevel, log.simpleFormat), 1)
 for i in range(0, 8)
-    rolling.info("rolling-line-" + string.formatInt(i, "00"))
+    rolling.info("rolling-line-" + int.format(i, "00"))
 end
 rolling.flush()
 

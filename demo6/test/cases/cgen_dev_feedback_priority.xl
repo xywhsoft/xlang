@@ -76,9 +76,9 @@ swapNames[1] = saved
 assert swapNames[0] == "beta", "list<string> swap should write second value into first slot"
 assert swapNames[1] == "alpha", "list<string> element read should copy, not alias internal storage"
 
-assert string.formatInt(-255, "X") == "-FF", "negative hex format should keep sign"
-assert string.formatInt(-9, "b") == "-1001", "negative binary format should keep sign"
-assert string.formatInt(-8, "o") == "-10", "negative octal format should keep sign"
+assert int.format(-255, "X") == "-FF", "negative hex format should keep sign"
+assert int.format(-9, "b") == "-1001", "negative binary format should keep sign"
+assert int.format(-8, "o") == "-10", "negative octal format should keep sign"
 
 var boxed = boxFloat()
 assert float(boxed) == 1.5, "returning scalar expression from var function should box value"

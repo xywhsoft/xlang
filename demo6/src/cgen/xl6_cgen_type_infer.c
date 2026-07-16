@@ -197,6 +197,7 @@ static XL6_AstNode* xl6CgenChannelMethodType(XL6_CgenContext* ctx, const XL6_Ast
          xl6CTextEquals(member->text, "trySend") ||
          xl6CTextEquals(member->text, "recvInto") ||
          xl6CTextEquals(member->text, "tryRecvInto") ||
+         xl6CTextEquals(member->text, "recvTimeoutInto") ||
          xl6CTextEquals(member->text, "isClosed") ) {
         result = xl6CgenNewSimpleType("bool", call);
     } else if ( xl6CTextEquals(member->text, "count") ) {

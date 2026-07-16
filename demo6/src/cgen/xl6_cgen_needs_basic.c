@@ -39,7 +39,11 @@ static int xl6CgenNeedsBasicIsPrintIntrinsicCall(const XL6_AstNode* node)
     return callee != NULL &&
            callee->kind == XL6_AST_NAME &&
            (xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_print") ||
-            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_println"));
+            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_println") ||
+            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_write") ||
+            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_writeln") ||
+            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_write") ||
+            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_writeln"));
 }
 
 static int xl6CgenNeedsBasicIsArrayXValueType(const XL6_AstNode* typeNode)
@@ -186,6 +190,7 @@ static int xl6CgenNeedsBasicIsJsonClass(const XL6_AstNode* node)
            node->kind == XL6_AST_CLASS &&
            node->text != NULL &&
            (xl6CgenNeedsBasicTextEquals(node->text, "JsonWriter") ||
+            xl6CgenNeedsBasicTextEquals(node->text, "XsonWriter") ||
             xl6CgenNeedsBasicTextEquals(node->text, "XsonOptions"));
 }
 
@@ -227,6 +232,14 @@ static int xl6CgenNeedsBasicIsLoggerClass(const XL6_AstNode* node)
            node->text != NULL &&
            (xl6CgenNeedsBasicTextEquals(node->text, "Logger") ||
             xl6CgenNeedsBasicTextEquals(node->text, "LogAppender"));
+}
+
+static int xl6CgenNeedsBasicIsSignalClass(const XL6_AstNode* node)
+{
+    return node != NULL &&
+           node->kind == XL6_AST_CLASS &&
+           node->text != NULL &&
+           xl6CgenNeedsBasicTextEquals(node->text, "SignalHandle");
 }
 
 static int xl6CgenNeedsBasicIsHttpServerClass(const XL6_AstNode* node)
@@ -472,7 +485,8 @@ static int xl6CgenNeedsBasicIsJsonRuntimeCall(const XL6_AstNode* node)
            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_xson_valid_options") ||
            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_xson_read_options") ||
            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_xson_stringify_options") ||
-           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_xson_write_options");
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_xson_write_options") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_xson_visit_options");
 }
 
 static int xl6CgenNeedsBasicIsProcessRuntimeCall(const XL6_AstNode* node)
@@ -515,6 +529,30 @@ static int xl6CgenNeedsBasicIsLogRuntimeCall(const XL6_AstNode* node)
            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_log_default_write") ||
            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_log_default_flush") ||
            xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_log_level_name");
+}
+
+static int xl6CgenNeedsBasicIsSignalRuntimeCall(const XL6_AstNode* node)
+{
+    const XL6_AstNode* callee;
+
+    if ( node == NULL || node->kind != XL6_AST_CALL || node->childCount == 0 ) {
+        return 0;
+    }
+    callee = node->children[0];
+    if ( callee == NULL || callee->kind != XL6_AST_NAME ) {
+        return 0;
+    }
+    return xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_signal_on0") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_signal_on1") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_signal_supported") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_signal_name") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_signal_restore") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_signal_reset") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_signal_send_to") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_signal_raise") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_signal_count") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_signal_received") ||
+           xl6CgenNeedsBasicTextEquals(callee->text, "__xl_std_runtime_signal_clear");
 }
 
 static int xl6CgenNeedsBasicIsEncodingRuntimeCall(const XL6_AstNode* node)
@@ -1105,82 +1143,5 @@ int xl6CgenNodeNeedsPathRuntime(const XL6_AstNode* node)
     return 0;
 }
 
-int xl6CgenNodeNeedsHttpServerRuntime(const XL6_AstNode* node)
-{
-    size_t i;
-
-    if ( node == NULL ) {
-        return 0;
-    }
-    if ( xl6CgenNeedsBasicIsHttpServerClass(node) ) {
-        return 1;
-    }
-    if ( xl6CgenNeedsBasicIsHttpServerRuntimeCall(node) ) {
-        return 1;
-    }
-    for ( i = 0; i < node->childCount; ++i ) {
-        if ( xl6CgenNodeNeedsHttpServerRuntime(node->children[i]) ) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int xl6CgenNodeNeedsHttpClientRuntime(const XL6_AstNode* node)
-{
-    size_t i;
-
-    if ( node == NULL ) {
-        return 0;
-    }
-    if ( xl6CgenNeedsBasicIsHttpClientClass(node) ) {
-        return 1;
-    }
-    if ( xl6CgenNeedsBasicIsHttpClientRuntimeCall(node) ) {
-        return 1;
-    }
-    for ( i = 0; i < node->childCount; ++i ) {
-        if ( xl6CgenNodeNeedsHttpClientRuntime(node->children[i]) ) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int xl6CgenNodeNeedsBufferRuntime(const XL6_AstNode* node)
-{
-    size_t i;
-
-    if ( node == NULL ) {
-        return 0;
-    }
-    if ( xl6CgenNeedsBasicIsBufferClass(node) ) {
-        return 1;
-    }
-    for ( i = 0; i < node->childCount; ++i ) {
-        if ( xl6CgenNodeNeedsBufferRuntime(node->children[i]) ) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int xl6CgenNodeNeedsTlsRuntime(const XL6_AstNode* node)
-{
-    size_t i;
-
-    if ( node == NULL ) {
-        return 0;
-    }
-    if ( xl6CgenNeedsBasicIsTlsClass(node) ) {
-        return 1;
-    }
-    for ( i = 0; i < node->childCount; ++i ) {
-        if ( xl6CgenNodeNeedsTlsRuntime(node->children[i]) ) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
+#include "src/cgen/xl6_cgen_needs_network.c"
 #include "src/cgen/xl6_cgen_needs_stdlib.c"

@@ -103,7 +103,7 @@ $diagTypeCompareValue = Join-CodePoints @(0x0074, 0x0079, 0x0070, 0x0065, 0x0020
 $diagTypeLiteralEqualityOnly = Join-CodePoints @(0x7C7B, 0x578B, 0x5B57, 0x9762, 0x91CF, 0x53EA, 0x80FD, 0x7528, 0x4E8E, 0x0020, 0x0074, 0x0079, 0x0070, 0x0065, 0x0020, 0x76F8, 0x7B49, 0x6027, 0x6BD4, 0x8F83)
 $diagTypeCallArity = Join-CodePoints @(0x0074, 0x0079, 0x0070, 0x0065, 0x0028, 0x002E, 0x002E, 0x002E, 0x0029, 0x0020, 0x5FC5, 0x987B, 0x63A5, 0x6536, 0x4E00, 0x4E2A, 0x8868, 0x8FBE, 0x5F0F, 0x53C2, 0x6570)
 $diagRangeStepZero = Join-CodePoints @(0x0072, 0x0061, 0x006E, 0x0067, 0x0065, 0x0020, 0x0073, 0x0074, 0x0065, 0x0070, 0x0020, 0x4E0D, 0x80FD, 0x662F, 0x0020, 0x0030)
-$diagImportOverloadMissing = Join-CodePoints @(0x627E, 0x4E0D, 0x5230, 0x5339, 0x914D, 0x7684, 0x91CD, 0x8F7D, 0x51FD, 0x6570)
+$diagImportNoGlobalPollution = "undeclared identifier 'counterAdd'"
 
 $requiredArtifactSubstrings = @{
     "sem_break_outside_loop.err.txt" = "break/continue " + (Join-CodePoints @(0x5FC5, 0x987B, 0x4F4D, 0x4E8E, 0x5FAA, 0x73AF, 0x4F53, 0x5185))
@@ -221,11 +221,10 @@ $requiredArtifactSubstrings = @{
     "sem_channel_class_element.err.txt" = $diagChannelPlainValueElement
     "sem_channel_function_element.err.txt" = $diagChannelPlainValueElement
     "sem_channel_generator_element.err.txt" = $diagChannelPlainValueElement
-    "sem_channel_string_element.err.txt" = $diagChannelPlainValueElement
     "sem_channel_typed_array_element.err.txt" = $diagChannelPlainValueElement
-    "sem_channel_var_element.err.txt" = $diagChannelPlainValueElement
     "sem_channel_recv_target_type.err.txt" = $diagChannelRecvTargetType
     "sem_channel_try_recv_target_type.err.txt" = $diagChannelTryRecvTargetType
+    "sem_channel_recv_timeout_target_type.err.txt" = "channel.recvTimeoutInto"
     "sem_channel_recv_captured_target.err.txt" = $diagClosureCaptureReadonly
     "sem_channel_try_recv_captured_target.err.txt" = $diagClosureCaptureReadonly
     "sem_channel_recv_const_target.err.txt" = $diagConstAssign
@@ -234,6 +233,8 @@ $requiredArtifactSubstrings = @{
     "sem_channel_send_named_argument.err.txt" = "channel.send"
     "sem_channel_recv_named_argument.err.txt" = "channel.recvInto"
     "sem_channel_try_recv_named_argument.err.txt" = "channel.tryRecvInto"
+    "sem_channel_recv_timeout_named_argument.err.txt" = "channel.recvTimeoutInto"
+    "sem_channel_recv_timeout_type.err.txt" = "timeoutMs"
     "sem_channel_receiver_expr.err.txt" = $diagChannelNamedReceiver
     "sem_channel_unknown_method.err.txt" = "unknown channel method"
     "sem_generator_class_element.err.txt" = $diagGeneratorPlainValueElement
@@ -351,7 +352,7 @@ $requiredArtifactSubstrings = @{
     "sem_type_call_arity.err.txt" = $diagTypeCallArity
     "sem_union_top_anon.err.txt" = "top-level union must have a name"
     "sem_range_step_zero.err.txt" = $diagRangeStepZero
-    "import_no_global_pollution.err.txt" = $diagImportOverloadMissing
+    "import_no_global_pollution.err.txt" = $diagImportNoGlobalPollution
     "build_missing_output.err.txt" = "build requires -o <output.exe>"
     "run_bad_script.err.txt" = "time literal format must be #yyyy-mm-dd#, #hh:mm:ss# or #yyyy-mm-dd hh:mm:ss#"
 }
@@ -362,9 +363,7 @@ $maxArtifactLineCounts = @{
     "sem_channel_class_element.err.txt" = 1
     "sem_channel_function_element.err.txt" = 1
     "sem_channel_generator_element.err.txt" = 1
-    "sem_channel_string_element.err.txt" = 1
     "sem_channel_typed_array_element.err.txt" = 1
-    "sem_channel_var_element.err.txt" = 1
     "sem_task_spawn_return_channel.err.txt" = 1
     "sem_task_spawn_return_future.err.txt" = 1
     "sem_task_spawn_return_sync.err.txt" = 1
@@ -384,6 +383,7 @@ $maxArtifactLineCounts = @{
     "sem_class_property_vararg.err.txt" = 2
     "sem_container_literal_target_item_mismatch.err.txt" = 4
     "sem_param_modes_invalid.err.txt" = 2
+    "sem_c_vararg_export.err.txt" = 2
     "sem_async_return_channel.err.txt" = 1
     "sem_async_return_future.err.txt" = 1
     "sem_async_return_sync.err.txt" = 1
@@ -429,6 +429,7 @@ $allowedMultiLineArtifacts.Add("sem_var_to_concrete_implicit.err.txt") | Out-Nul
 $allowedMultiLineArtifacts.Add("sem_class_property_vararg.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_container_literal_target_item_mismatch.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_param_modes_invalid.err.txt") | Out-Null
+$allowedMultiLineArtifacts.Add("sem_c_vararg_export.err.txt") | Out-Null
 
 function Add-Failure($message)
 {

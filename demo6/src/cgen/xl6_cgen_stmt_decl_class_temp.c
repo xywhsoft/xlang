@@ -8,7 +8,10 @@ static int xl6CgenDeclTemporaryClassFieldTypeIsPlain(XL6_CgenContext* ctx, const
     }
 
     /*
-        褰撳墠鍙帴绠℃櫘閫氭寜鍊煎瓧娈点€俧unction銆乧lass銆乶ative-backed class銆乿ar銆?        瀹瑰櫒鍜屽苟鍙戝彞鏌勫瓧娈垫秹鍙婂€熺敤/淇濈暀璇箟锛屽繀椤荤敱涓撻棬璺緞澶勭悊锛?        閬垮厤浠庝复鏃?class 涓€熷嚭鎮┖鍊笺€?    */
+        当前只接管普通按值字段。function、class、native-backed class、var、
+        容器和并发句柄字段涉及借用或保留语义，必须由专门路径处理，
+        避免从临时 class 中借出悬空值。
+    */
     if ( xl6CgenIsXValueType(concreteType) ||
          xl6CgenIsFunctionType(concreteType) ||
          xl6CgenIsClassType(ctx, concreteType) ||
@@ -503,9 +506,14 @@ static void xl6CgenDeclEmitKnownCallArgsWithClassTemps(
                 xl6OutputPuts(temps[i].valueName, ctx->out);
             }
         } else if ( expr != NULL ) {
-            xl6CgenExpr(ctx, expr);
+            /*
+                同一次调用中只要有一个 class 参数需要语句级临时量，其余参数
+                仍必须走普通固定参数规则。直接生成表达式会漏掉 class/var 的
+                owned 引用、上转型以及动态值到静态类型的转换。
+            */
+            xl6CgenFixedParamArgExpr(ctx, param, expr);
         } else if ( param != NULL && param->childCount > 1 ) {
-            xl6CgenExpr(ctx, param->children[1]);
+            xl6CgenFixedParamArgExpr(ctx, param, param->children[1]);
         } else {
             xl6CgenError(ctx, param, "missing required argument for parameter");
             xl6OutputPuts("0", ctx->out);

@@ -538,6 +538,8 @@ release\xl.exe run release\examples\generic_class_iter.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\runtime_type.xl
 if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\runtime_var_bool_type.xl
+if errorlevel 1 exit /b 1
 
 release\xl.exe check release\examples\native_counter.xl
 if errorlevel 1 exit /b 1
@@ -963,6 +965,39 @@ release\xl.exe check release\examples\second_stage.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\second_stage.xl %XL6_XL_DEFAULT_LINK_ARGS%
 if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\sem_undeclared_identifier.xl > build\test\sem_undeclared_identifier.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_undeclared_identifier.xl should fail.
+    exit /b 1
+)
+findstr /C:"test\cases\sem_undeclared_identifier.xl:2:19: [sem] undeclared identifier 'missingValue'" build\test\sem_undeclared_identifier.err.txt >nul
+if errorlevel 1 (
+    echo sem_undeclared_identifier.err.txt missing source diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_fstring_undeclared_identifier.xl > build\test\sem_fstring_undeclared_identifier.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_fstring_undeclared_identifier.xl should fail.
+    exit /b 1
+)
+findstr /C:"test\cases\sem_fstring_undeclared_identifier.xl:2:28: [sem] undeclared identifier 'missingValue'" build\test\sem_fstring_undeclared_identifier.err.txt >nul
+if errorlevel 1 (
+    echo sem_fstring_undeclared_identifier.err.txt missing rebased source diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_fstring_multiline_undeclared_identifier.xl > build\test\sem_fstring_multiline_undeclared_identifier.err.txt 2>&1
+if not errorlevel 1 (
+    echo sem_fstring_multiline_undeclared_identifier.xl should fail.
+    exit /b 1
+)
+findstr /C:"test\cases\sem_fstring_multiline_undeclared_identifier.xl:3:8: [sem] undeclared identifier 'missingValue'" build\test\sem_fstring_multiline_undeclared_identifier.err.txt >nul
+if errorlevel 1 (
+    echo sem_fstring_multiline_undeclared_identifier.err.txt missing multiline rebased diagnostic.
+    exit /b 1
+)
 
 release\xl.exe run release\examples\top_level_main.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\top_level_main.out.txt
 if errorlevel 1 exit /b 1

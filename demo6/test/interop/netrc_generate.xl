@@ -1,0 +1,10 @@
+import netrc
+
+
+
+func main(...) as int
+    string source = "machine api.example.com login alice account ops password \"s3cr et\"\ndefault login guest password guest\nmacdef deploy\n echo deploy\n echo done\n\n"
+    auto value = netrc.parse(source)
+    value.save("tmp/xlang_interop.netrc")
+    return 0
+end

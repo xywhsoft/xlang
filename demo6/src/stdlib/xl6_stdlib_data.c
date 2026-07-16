@@ -124,6 +124,10 @@ const char* xl6StdlibBufferClassSource =
     "        end\n"
     "        return true\n"
     "    end\n"
+    "\n"
+    "    func __ne__(Buffer other) as bool\n"
+    "        return not self.__eq__(other)\n"
+    "    end\n"
     "end\n";
 
 const char* xl6StdlibXidClassSource =
@@ -163,6 +167,7 @@ const char* xl6StdlibLoggerClassSource =
     "    native point handle\n"
     "    extern \"xl6_xrt_log_appender_wrap_handle\" create(point handle)\n"
     "    extern \"xl6_xrt_log_appender_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_log_appender_native\" func nativeHandle() as point\n"
     "    extern \"xl6_xrt_log_appender_name\" func nameNative() as point\n"
     "    extern \"xl6_xrt_log_appender_set_level\" func setLevel(int level)\n"
     "    extern \"xl6_xrt_log_appender_get_level\" func getLevel() as int\n"
@@ -191,6 +196,7 @@ const char* xl6StdlibLoggerClassSource =
     "    extern \"xl6_xrt_log_file_appender\" func fileAppenderNative(string path, int level, int format) as point\n"
     "    extern \"xl6_xrt_log_rolling_file_appender\" func rollingFileAppenderNative(string path, int maxSize, int maxBackup, int level, int format) as point\n"
     "    extern \"xl6_xrt_log_custom_appender\" func __xl_std_runtime_log_custom_appender(string name, func(var) handler, int level) as point\n"
+    "    extern \"xl6_xrt_log_remove_appender\" func removeAppenderNative(point appender) as bool\n"
     "    extern \"xl6_xrt_log_write\" func write(int level, string message)\n"
     "    extern \"xl6_xrt_log_flush\" func flush()\n"
     "\n"
@@ -222,6 +228,10 @@ const char* xl6StdlibLoggerClassSource =
     "        return LogAppender(self.__xl_std_runtime_log_custom_appender(name, handler, level))\n"
     "    end\n"
     "\n"
+    "    func removeAppender(LogAppender appender) as bool\n"
+    "        return self.removeAppenderNative(appender.nativeHandle())\n"
+    "    end\n"
+    "\n"
     "    func trace(string message)\n"
     "        self.write(0, message)\n"
     "    end\n"
@@ -245,6 +255,16 @@ const char* xl6StdlibLoggerClassSource =
     "    func fatal(string message)\n"
     "        self.write(5, message)\n"
     "    end\n"
+    "end\n";
+
+const char* xl6StdlibSignalClassSource =
+    "class SignalHandle\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_signal_handle_wrap\" create(point handle)\n"
+    "    extern \"xl6_xrt_signal_handle_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_signal_handle_close\" func close() as bool\n"
+    "    extern \"xl6_xrt_signal_handle_active\" get active() as bool\n"
+    "    extern \"xl6_xrt_signal_handle_code\" get code() as int\n"
     "end\n";
 
 const char* xl6StdlibTemplateClassSource =
@@ -1113,10 +1133,12 @@ const char* xl6StdlibNetTlsClassSource =
     "    extern \"xl6_xrt_tls_config_destroy\" destroy()\n"
     "    extern \"xl6_xrt_tls_config_native\" func nativeHandle() as point\n"
     "    extern \"xl6_xrt_tls_config_host\" func host(string name) as bool\n"
+    "    extern \"xl6_xrt_tls_config_alpn\" func alpn(string protocols) as bool\n"
     "    extern \"xl6_xrt_tls_config_cert\" func certificate(string certFile, string keyFile) as bool\n"
     "    extern \"xl6_xrt_tls_config_ca\" func ca(string caFile) as bool\n"
     "    extern \"xl6_xrt_tls_config_crl\" func crl(string crlFile) as bool\n"
     "    extern \"xl6_xrt_tls_config_verify\" func verifyPeer(bool enabled)\n"
+    "    extern \"xl6_xrt_tls_config_verify_callback\" func __xl_std_runtime_tls_config_verify_callback(func(var) as bool handler) as bool\n"
     "    extern \"xl6_xrt_tls_config_allow_ed25519\" func allowTls12Ed25519(bool enabled)\n"
     "    extern \"xl6_xrt_tls_config_max_version\" func maxVersion(int version)\n"
     "    extern \"xl6_xrt_tls_config_cert_data\" func certificateDataNative(point cert, c_size certSize, point key, c_size keySize) as bool\n"
@@ -1133,6 +1155,10 @@ const char* xl6StdlibNetTlsClassSource =
     "\n"
     "    func crlData(Buffer data) as bool\n"
     "        return self.crlDataNative(data.data(), c_size(data.len()))\n"
+    "    end\n"
+    "\n"
+    "    func verifyCallback(func(var) as bool handler) as bool\n"
+    "        return self.__xl_std_runtime_tls_config_verify_callback(handler)\n"
     "    end\n"
     "\n"
     "    func session(bool server = false) as TlsSession\n"
@@ -1162,6 +1188,8 @@ const char* xl6StdlibNetTlsClassSource =
     "    extern \"xl6_xrt_tls_session_read_plain\" func readNative(int maxBytes) as point\n"
     "    extern \"xl6_xrt_tls_session_close\" func close() as int\n"
     "    extern \"xl6_xrt_tls_session_sni\" func sniNative() as point\n"
+    "    extern \"xl6_xrt_tls_session_alpn\" func alpnNative() as point\n"
+    "    extern \"xl6_xrt_tls_session_peer_cert\" func peerCertNative() as point\n"
     "    extern \"xl6_xrt_tls_session_export_resume\" func exportResumeNative() as point\n"
     "    extern \"xl6_xrt_tls_session_set_cert\" func certificate(string certFile, string keyFile) as bool\n"
     "    extern \"xl6_xrt_tls_session_set_cert_data\" func certificateDataNative(point cert, c_size certSize, point key, c_size keySize) as bool\n"
@@ -1185,6 +1213,14 @@ const char* xl6StdlibNetTlsClassSource =
     "\n"
     "    func sni() as string\n"
     "        return __xl_std_runtime_take_cstr(self.sniNative())\n"
+    "    end\n"
+    "\n"
+    "    func alpn() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.alpnNative())\n"
+    "    end\n"
+    "\n"
+    "    func peerCert() as Buffer\n"
+    "        return Buffer(point(self.peerCertNative()))\n"
     "    end\n"
     "\n"
     "    func exportResume() as TlsResume\n"
@@ -1373,8 +1409,20 @@ const char* xl6StdlibAsyncFileClassSource =
     "        return self.readNative(offset, size)\n"
     "    end\n"
     "\n"
+    "    func readAt(int offset, int size) as future<point>\n"
+    "        return self.readNative(offset, size)\n"
+    "    end\n"
+    "\n"
     "    func write(int offset, Buffer data) as future<int>\n"
     "        return self.writeNative(offset, data.data(), c_size(data.len()))\n"
+    "    end\n"
+    "\n"
+    "    func writeAt(int offset, Buffer data) as future<int>\n"
+    "        return self.writeNative(offset, data.data(), c_size(data.len()))\n"
+    "    end\n"
+    "\n"
+    "    func setSize(int size) as future<bool>\n"
+    "        return self.resize(size)\n"
     "    end\n"
     "end\n";
 
@@ -1627,6 +1675,68 @@ const char* xl6StdlibJsonClassSource =
     "    extern \"xl6_xrt_json_writer_value\" func writeValue(var value) as bool\n"
     "    extern \"xl6_xrt_json_writer_value_key\" func writeValue(string key, var value) as bool\n"
     "    extern \"xl6_xrt_json_writer_finish\" func finishNative() as point\n"
+    "\n"
+    "    func finish() as string\n"
+    "        return __xl_std_runtime_take_cstr(self.finishNative())\n"
+    "    end\n"
+    "end\n"
+    "\n"
+    "class XsonWriter\n"
+    "    native point handle\n"
+    "    extern \"xl6_xrt_xson_writer_create_default\" create()\n"
+    "    extern \"xl6_xrt_xson_writer_create_pretty\" create(bool pretty)\n"
+    "    extern \"xl6_xrt_xson_writer_create_options\" create(bool pretty, bool ignoreUnsupportedEncode, bool ignoreUnsupportedDecode)\n"
+    "    extern \"xl6_xrt_xson_writer_destroy\" destroy()\n"
+    "    extern \"xl6_xrt_xson_writer_begin_array\" func beginArray() as bool\n"
+    "    extern \"xl6_xrt_xson_writer_begin_array_key\" func beginArray(string key) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_begin_array_index\" func beginArray(int index) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_end_array\" func endArray() as bool\n"
+    "    extern \"xl6_xrt_xson_writer_begin_list\" func beginList() as bool\n"
+    "    extern \"xl6_xrt_xson_writer_begin_list_key\" func beginList(string key) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_begin_list_index\" func beginList(int index) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_end_list\" func endList() as bool\n"
+    "    extern \"xl6_xrt_xson_writer_begin_dict\" func beginDict() as bool\n"
+    "    extern \"xl6_xrt_xson_writer_begin_dict_key\" func beginDict(string key) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_begin_dict_index\" func beginDict(int index) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_end_dict\" func endDict() as bool\n"
+    "    extern \"xl6_xrt_xson_writer_begin_set\" func beginSet() as bool\n"
+    "    extern \"xl6_xrt_xson_writer_begin_set_key\" func beginSet(string key) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_begin_set_index\" func beginSet(int index) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_end_set\" func endSet() as bool\n"
+    "    extern \"xl6_xrt_xson_writer_null\" func writeNull() as bool\n"
+    "    extern \"xl6_xrt_xson_writer_null_key\" func writeNull(string key) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_null_index\" func writeNull(int index) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_bool\" func writeBool(bool value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_bool_key\" func writeBool(string key, bool value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_bool_index\" func writeBool(int index, bool value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_int\" func writeInt(int value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_int_key\" func writeInt(string key, int value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_int_index\" func writeInt(int index, int value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_float\" func writeFloat(float value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_float_key\" func writeFloat(string key, float value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_float_index\" func writeFloat(int index, float value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_string\" func writeString(string value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_string_key\" func writeString(string key, string value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_string_index\" func writeString(int index, string value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_time\" func writeTimeRaw(int value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_time_key\" func writeTimeRaw(string key, int value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_time_index\" func writeTimeRaw(int index, int value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_value\" func writeValue(var value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_value_key\" func writeValue(string key, var value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_value_index\" func writeValue(int index, var value) as bool\n"
+    "    extern \"xl6_xrt_xson_writer_finish\" func finishNative() as point\n"
+    "\n"
+    "    func writeTime(time value) as bool\n"
+    "        return self.writeTimeRaw(int(value))\n"
+    "    end\n"
+    "\n"
+    "    func writeTime(string key, time value) as bool\n"
+    "        return self.writeTimeRaw(key, int(value))\n"
+    "    end\n"
+    "\n"
+    "    func writeTime(int index, time value) as bool\n"
+    "        return self.writeTimeRaw(index, int(value))\n"
+    "    end\n"
     "\n"
     "    func finish() as string\n"
     "        return __xl_std_runtime_take_cstr(self.finishNative())\n"
@@ -2295,6 +2405,47 @@ static const XL6_StdlibParam xl6StdRuntimeLogWriteParams[] = {
     {"string", "message"}
 };
 
+static const XL6_StdlibParam xl6StdRuntimeSignalCodeParams[] = {
+    {"int", "code"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeSignalOn0Params[] = {
+    {"int", "code"},
+    {"func()", "handler"},
+    {"bool", "once"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeSignalOn1Params[] = {
+    {"int", "code"},
+    {"func(var)", "handler"},
+    {"bool", "once"}
+};
+
+static const XL6_StdlibParam xl6StdRuntimeSignalSendToParams[] = {
+    {"int", "code"},
+    {"channel<var>", "ch"}
+};
+
+static const XL6_StdlibParam xl6StdSignalOn0Params[] = {
+    {"int", "code"},
+    {"func()", "handler"}
+};
+
+static const XL6_StdlibParam xl6StdSignalOn1Params[] = {
+    {"int", "code"},
+    {"func(var)", "handler"}
+};
+
+static const XL6_StdlibParam xl6StdSignalSendToParams[] = {
+    {"channel<var>", "ch"},
+    {"int", "code"}
+};
+
+static const XL6_StdlibParam xl6StdSignalCancelOnParams[] = {
+    {"TaskGroup", "group"},
+    {"int", "code"}
+};
+
 static const XL6_StdlibParam xl6StdTemplateCompileParams[] = {
     {"string", "text"},
     {"string", "bracket"}
@@ -2820,6 +2971,16 @@ static const XL6_StdlibParam xl6StdPathUnaryParams[] = {
     {"string", "path"}
 };
 
+static const XL6_StdlibParam xl6StdOsEnvParams[] = {
+    {"string", "name"},
+    {"string", "defaultValue"}
+};
+
+static const XL6_StdlibParam xl6StdOsChainParams[] = {
+    {"string", "command"},
+    {"c_size", "size"}
+};
+
 static const XL6_StdlibParam xl6StdXrtPathIsAbsParams[] = {
     {"string", "path"},
     {"c_size", "size"}
@@ -3004,6 +3165,14 @@ static const XL6_StdlibParam xl6StdJsonVisitRuntimeParams[] = {
 
 static const XL6_StdlibParam xl6StdXsonTextOptionsRuntimeParams[] = {
     {"string", "text"},
+    {"bool", "pretty"},
+    {"bool", "ignoreUnsupportedEncode"},
+    {"bool", "ignoreUnsupportedDecode"}
+};
+
+static const XL6_StdlibParam xl6StdXsonVisitOptionsRuntimeParams[] = {
+    {"string", "text"},
+    {"func(var) as bool", "visitor"},
     {"bool", "pretty"},
     {"bool", "ignoreUnsupportedEncode"},
     {"bool", "ignoreUnsupportedDecode"}
@@ -3218,18 +3387,18 @@ static const char xl6StdStringIsUtf8Body[] =
     "    return __xl_std_xrt_is_utf8(text, 0)\n"
     "end\n";
 
-static const char xl6StdStringFormatIntBody[] =
-    "func __xl_std_string_format_int(int value, string format = \"\") as string\n"
+static const char xl6StdIntFormatBody[] =
+    "func __xl_std_int_format(int value, string format = \"\") as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_int_format(value, format))\n"
     "end\n";
 
-static const char xl6StdStringFormatUIntBody[] =
-    "func __xl_std_string_format_uint(uint64 value, string format = \"\") as string\n"
+static const char xl6StdIntFormatUIntBody[] =
+    "func __xl_std_int_format(uint64 value, string format = \"\") as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_uint_format(value, format))\n"
     "end\n";
 
-static const char xl6StdStringFormatFloatBody[] =
-    "func __xl_std_string_format_float(float value, string format = \"\") as string\n"
+static const char xl6StdFloatFormatBody[] =
+    "func __xl_std_float_format(float value, string format = \"\") as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_num_format(value, format))\n"
     "end\n";
 
@@ -3589,6 +3758,79 @@ static const char xl6StdLogFatalBody[] =
 static const char xl6StdLogFlushBody[] =
     "func __xl_std_log_flush()\n"
     "    __xl_std_runtime_log_default_flush()\n"
+    "end\n";
+
+static const char xl6StdSignalOn0Body[] =
+    "func __xl_std_signal_on(int code, func() handler) as SignalHandle\n"
+    "    return SignalHandle(__xl_std_runtime_signal_on0(code, handler, false))\n"
+    "end\n";
+
+static const char xl6StdSignalOn1Body[] =
+    "func __xl_std_signal_on(int code, func(var) handler) as SignalHandle\n"
+    "    return SignalHandle(__xl_std_runtime_signal_on1(code, handler, false))\n"
+    "end\n";
+
+static const char xl6StdSignalOnce0Body[] =
+    "func __xl_std_signal_once(int code, func() handler) as SignalHandle\n"
+    "    return SignalHandle(__xl_std_runtime_signal_on0(code, handler, true))\n"
+    "end\n";
+
+static const char xl6StdSignalOnce1Body[] =
+    "func __xl_std_signal_once(int code, func(var) handler) as SignalHandle\n"
+    "    return SignalHandle(__xl_std_runtime_signal_on1(code, handler, true))\n"
+    "end\n";
+
+static const char xl6StdSignalSupportedBody[] =
+    "func __xl_std_signal_supported(int code) as bool\n"
+    "    return __xl_std_runtime_signal_supported(code)\n"
+    "end\n";
+
+static const char xl6StdSignalNameBody[] =
+    "func __xl_std_signal_name(int code) as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_signal_name(code))\n"
+    "end\n";
+
+static const char xl6StdSignalRestoreBody[] =
+    "func __xl_std_signal_restore(int code) as bool\n"
+    "    return __xl_std_runtime_signal_restore(code)\n"
+    "end\n";
+
+static const char xl6StdSignalResetBody[] =
+    "func __xl_std_signal_reset()\n"
+    "    __xl_std_runtime_signal_reset()\n"
+    "end\n";
+
+static const char xl6StdSignalRaiseBody[] =
+    "func __xl_std_signal_raise(int code) as bool\n"
+    "    return __xl_std_runtime_signal_raise(code)\n"
+    "end\n";
+
+static const char xl6StdSignalCountBody[] =
+    "func __xl_std_signal_count(int code = 0) as int\n"
+    "    return __xl_std_runtime_signal_count(code)\n"
+    "end\n";
+
+static const char xl6StdSignalReceivedBody[] =
+    "func __xl_std_signal_received(int code) as bool\n"
+    "    return __xl_std_runtime_signal_received(code)\n"
+    "end\n";
+
+static const char xl6StdSignalClearBody[] =
+    "func __xl_std_signal_clear(int code = 0)\n"
+    "    __xl_std_runtime_signal_clear(code)\n"
+    "end\n";
+
+static const char xl6StdSignalSendToBody[] =
+    "func __xl_std_signal_send_to(channel<var> ch, int code) as SignalHandle\n"
+    "    return SignalHandle(__xl_std_runtime_signal_send_to(code, ch))\n"
+    "end\n";
+
+static const char xl6StdSignalCancelOnBody[] =
+    "func __xl_std_signal_cancel_on(TaskGroup group, int code) as SignalHandle\n"
+    "    func() cancel = func()\n"
+    "        group.cancel()\n"
+    "    end\n"
+    "    return SignalHandle(__xl_std_runtime_signal_on0(code, cancel, false))\n"
     "end\n";
 
 static const char xl6StdTemplateCompileBody[] =
@@ -4050,6 +4292,56 @@ static const char xl6StdPathSetCwdBody[] =
     "    return __xl_std_xrt_path_set_cwd(path)\n"
     "end\n";
 
+static const char xl6StdOsEnvBody[] =
+    "func __xl_std_os_env(string name, string defaultValue = \"\") as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_os_env(name, defaultValue))\n"
+    "end\n";
+
+static const char xl6StdOsPlatformBody[] =
+    "func __xl_std_os_platform() as string\n"
+    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_os_platform())\n"
+    "end\n";
+
+static const char xl6StdOsArgsBody[] =
+    "func __xl_std_os_args() as array\n"
+    "    return array(__xl_std_runtime_os_args())\n"
+    "end\n";
+
+static const char xl6StdOsCwdBody[] =
+    "func __xl_std_os_cwd() as string\n"
+    "    return __xl_std_path_cwd()\n"
+    "end\n";
+
+static const char xl6StdOsSetCwdBody[] =
+    "func __xl_std_os_set_cwd(string path) as bool\n"
+    "    return __xl_std_path_set_cwd(path)\n"
+    "end\n";
+
+static const char xl6StdOsExecBody[] =
+    "func __xl_std_os_exec(string command, int timeoutMs = 0) as string\n"
+    "    return __xl_std_process_exec(command, timeoutMs)\n"
+    "end\n";
+
+static const char xl6StdOsRunBody[] =
+    "func __xl_std_os_run(string command, int timeoutMs = 0) as ProcessResult\n"
+    "    return __xl_std_process_run(command, timeoutMs)\n"
+    "end\n";
+
+static const char xl6StdOsStartBody[] =
+    "func __xl_std_os_start(string command) as Process\n"
+    "    return __xl_std_process_start(command)\n"
+    "end\n";
+
+static const char xl6StdOsStartFileBody[] =
+    "func __xl_std_os_start_file(string program, array args = []) as Process\n"
+    "    return __xl_std_process_start_file(program, args)\n"
+    "end\n";
+
+static const char xl6StdOsChainBody[] =
+    "func __xl_std_os_chain(string command) as int\n"
+    "    return int(__xl_std_runtime_os_chain(command, 0))\n"
+    "end\n";
+
 static const char xl6StdPathHomeBody[] =
     "func __xl_std_path_home() as string\n"
     "    return __xl_std_runtime_take_cstr(__xl_std_xrt_path_home())\n"
@@ -4363,6 +4655,16 @@ static const char xl6StdJsonWriterBody[] =
     "    return JsonWriter(pretty)\n"
     "end\n";
 
+static const char xl6StdXsonWriterBody[] =
+    "func __xl_std_xson_writer(bool pretty = false) as XsonWriter\n"
+    "    return XsonWriter(pretty)\n"
+    "end\n";
+
+static const char xl6StdXsonWriterOptionsBody[] =
+    "func __xl_std_xson_writer(XsonOptions options) as XsonWriter\n"
+    "    return XsonWriter(options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode)\n"
+    "end\n";
+
 static const char xl6StdJsonVisitBody[] =
     "func __xl_std_json_visit(string text, func(var) as bool visitor) as int\n"
     "    return int(__xl_std_runtime_json_visit(text, visitor))\n"
@@ -4421,6 +4723,16 @@ static const char xl6StdXsonWriteBody[] =
 static const char xl6StdXsonWriteOptionsBody[] =
     "func __xl_std_xson_write(string path, var value, XsonOptions options) as bool\n"
     "    return __xl_std_runtime_xson_write_options(path, value, options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode)\n"
+    "end\n";
+
+static const char xl6StdXsonVisitBody[] =
+    "func __xl_std_xson_visit(string text, func(var) as bool visitor) as int\n"
+    "    return __xl_std_runtime_xson_visit_options(text, visitor, false, false, false)\n"
+    "end\n";
+
+static const char xl6StdXsonVisitOptionsBody[] =
+    "func __xl_std_xson_visit(string text, func(var) as bool visitor, XsonOptions options) as int\n"
+    "    return __xl_std_runtime_xson_visit_options(text, visitor, options.pretty, options.ignoreUnsupportedEncode, options.ignoreUnsupportedDecode)\n"
     "end\n";
 
 static const char xl6StdXsonOptionsBody[] =
@@ -5504,6 +5816,16 @@ static const char xl6StdPrintlnBody[] =
     "    __xl_std_runtime_print(arg, true)\n"
     "end\n";
 
+static const char xl6StdWriteBody[] =
+    "func __xl_std_write(string text)\n"
+    "    __xl_std_runtime_write(text)\n"
+    "end\n";
+
+static const char xl6StdWritelnBody[] =
+    "func __xl_std_writeln(string text = \"\")\n"
+    "    __xl_std_runtime_writeln(text)\n"
+    "end\n";
+
 static const char xl6StdTccContextBody[] =
     "func __xl_std_tcc_context() as TccContext\n"
     "    return TccContext()\n"
@@ -5597,6 +5919,9 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
     {"json", "visitComplete", XL6_AST_INT, "0"},
     {"json", "visitStopped", XL6_AST_INT, "1"},
     {"json", "visitInvalid", XL6_AST_INT, "-1"},
+    {"xson", "visitComplete", XL6_AST_INT, "0"},
+    {"xson", "visitStopped", XL6_AST_INT, "1"},
+    {"xson", "visitInvalid", XL6_AST_INT, "-1"},
     {"file", "seekSet", XL6_AST_INT, "0"},
     {"file", "seekCur", XL6_AST_INT, "1"},
     {"file", "seekEnd", XL6_AST_INT, "2"},
@@ -5679,13 +6004,22 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
     {"http", "errorTimeoutIdle", XL6_AST_INT, "9"},
     {"http", "errorCancelled", XL6_AST_INT, "10"},
     {"http", "errorConnectionClosed", XL6_AST_INT, "11"},
-    {"http", "errorTransport", XL6_AST_INT, "12"}
+    {"http", "errorTransport", XL6_AST_INT, "12"},
+    {"signal", "HUP", XL6_AST_INT, "1"},
+    {"signal", "INT", XL6_AST_INT, "2"},
+    {"signal", "TERM", XL6_AST_INT, "15"},
+    {"signal", "BREAK", XL6_AST_INT, "1001"},
+    {"signal", "CLOSE", XL6_AST_INT, "1002"},
+    {"signal", "LOGOFF", XL6_AST_INT, "1003"},
+    {"signal", "SHUTDOWN", XL6_AST_INT, "1004"}
 };
 
 const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__crt_string", "strlen", "__xl_std_crt_strlen", "strlen", xl6StdStringLenParams, 1, "c_size", NULL},
     {"__xl_runtime", "takeCstr", "__xl_std_runtime_take_cstr", "xl6_xrt_take_cstr", xl6StdRuntimeTakeCstrParams, 1, "string", NULL},
     {"__xl_runtime", "print", "__xl_std_runtime_print", "xl6_xrt_print", xl6StdRuntimePrintParams, 2, "", NULL},
+    {"__xl_runtime", "write", "__xl_std_runtime_write", "xl6_xrt_write", xl6StdRuntimeStringTextParams, 1, "", NULL},
+    {"__xl_runtime", "writeln", "__xl_std_runtime_writeln", "xl6_xrt_writeln", xl6StdRuntimeStringTextParams, 1, "", NULL},
     {"__xl_runtime", "stringSplit", "__xl_std_runtime_string_split", "xl6_xrt_string_split", xl6StdRuntimeStringSplitParams, 2, "var", NULL},
     {"__xl_runtime", "stringChars", "__xl_std_runtime_string_chars", "xl6_xrt_string_chars", xl6StdRuntimeStringTextParams, 1, "var", NULL},
     {"__xl_runtime", "stringBytes", "__xl_std_runtime_string_bytes", "xl6_xrt_string_bytes", xl6StdRuntimeStringTextParams, 1, "var", NULL},
@@ -5790,6 +6124,17 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "logDefaultWrite", "__xl_std_runtime_log_default_write", "xl6_xrt_log_default_write", xl6StdRuntimeLogWriteParams, 2, "", NULL},
     {"__xl_runtime", "logDefaultFlush", "__xl_std_runtime_log_default_flush", "xl6_xrt_log_default_flush", NULL, 0, "", NULL},
     {"__xl_runtime", "logLevelName", "__xl_std_runtime_log_level_name", "xl6_xrt_log_level_name", xl6StdRuntimeLogLevelParams, 1, "point", NULL},
+    {"__xl_runtime", "signalOn0", "__xl_std_runtime_signal_on0", "xl6_xrt_signal_on0", xl6StdRuntimeSignalOn0Params, 3, "point", NULL},
+    {"__xl_runtime", "signalOn1", "__xl_std_runtime_signal_on1", "xl6_xrt_signal_on1", xl6StdRuntimeSignalOn1Params, 3, "point", NULL},
+    {"__xl_runtime", "signalSendTo", "__xl_std_runtime_signal_send_to", "xl6_xrt_signal_send_to", xl6StdRuntimeSignalSendToParams, 2, "point", NULL},
+    {"__xl_runtime", "signalSupported", "__xl_std_runtime_signal_supported", "xl6_xrt_signal_supported", xl6StdRuntimeSignalCodeParams, 1, "bool", NULL},
+    {"__xl_runtime", "signalName", "__xl_std_runtime_signal_name", "xl6_xrt_signal_name", xl6StdRuntimeSignalCodeParams, 1, "point", NULL},
+    {"__xl_runtime", "signalRestore", "__xl_std_runtime_signal_restore", "xl6_xrt_signal_restore", xl6StdRuntimeSignalCodeParams, 1, "bool", NULL},
+    {"__xl_runtime", "signalReset", "__xl_std_runtime_signal_reset", "xl6_xrt_signal_reset", NULL, 0, "", NULL},
+    {"__xl_runtime", "signalRaise", "__xl_std_runtime_signal_raise", "xl6_xrt_signal_raise", xl6StdRuntimeSignalCodeParams, 1, "bool", NULL},
+    {"__xl_runtime", "signalCount", "__xl_std_runtime_signal_count", "xl6_xrt_signal_count", xl6StdRuntimeSignalCodeParams, 1, "int", NULL},
+    {"__xl_runtime", "signalReceived", "__xl_std_runtime_signal_received", "xl6_xrt_signal_received", xl6StdRuntimeSignalCodeParams, 1, "bool", NULL},
+    {"__xl_runtime", "signalClear", "__xl_std_runtime_signal_clear", "xl6_xrt_signal_clear", xl6StdRuntimeSignalCodeParams, 1, "", NULL},
     {"__xl_runtime", "encodingCharSize", "__xl_std_runtime_encoding_char_size", "xl6_xrt_encoding_char_size", xl6StdRuntimeEncodingCharsetParams, 1, "int", NULL},
     {"__xl_runtime", "encodingIsUtf8Text", "__xl_std_runtime_encoding_is_utf8_text", "xl6_xrt_encoding_is_utf8_text", xl6StdRuntimeEncodingTextParams, 1, "bool", NULL},
     {"__xl_runtime", "encodingIsUtf8Bytes", "__xl_std_runtime_encoding_is_utf8_bytes", "xl6_xrt_encoding_is_utf8_bytes", xl6StdRuntimeEncodingBytesParams, 2, "bool", NULL},
@@ -5979,6 +6324,10 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_path", "appDir", "__xl_std_xrt_path_app_dir", "xrtPathAppDir", NULL, 0, "point", NULL},
     {"__xrt_path", "withExt", "__xl_std_xrt_path_with_ext", "xrtPathWithExt", xl6StdPathWithExtParams, 2, "point", NULL},
     {"__xrt_path", "withName", "__xl_std_xrt_path_with_name", "xrtPathWithName", xl6StdPathWithNameParams, 2, "point", NULL},
+    {"__xl_runtime", "osEnv", "__xl_std_runtime_os_env", "xl6_xrt_os_env", xl6StdOsEnvParams, 2, "point", NULL},
+    {"__xl_runtime", "osPlatform", "__xl_std_runtime_os_platform", "xl6_xrt_os_platform", NULL, 0, "point", NULL},
+    {"__xl_runtime", "osArgs", "__xl_std_runtime_os_args", "xl6_xrt_os_args", NULL, 0, "var", NULL},
+    {"__xl_runtime", "osChain", "__xl_std_runtime_os_chain", "xrtChain", xl6StdOsChainParams, 2, "c_int", NULL},
     {"__xrt_file", "exists", "__xl_std_xrt_file_exists", "xrtFileExists", xl6StdPathUnaryParams, 1, "c_bool", NULL},
     {"__xrt_file", "getSize", "__xl_std_xrt_file_get_size", "xrtFileGetSize", xl6StdPathUnaryParams, 1, "c_size", NULL},
     {"__xrt_file", "setSize", "__xl_std_xrt_file_set_size", "xrtFileSetSize", xl6StdXrtFileSetSizeParams, 2, "c_bool", NULL},
@@ -6020,6 +6369,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__runtime", "xsonReadOptions", "__xl_std_runtime_xson_read_options", "xl6_xrt_xson_read_options", xl6StdXsonTextOptionsRuntimeParams, 4, "var", NULL},
     {"__runtime", "xsonStringifyOptions", "__xl_std_runtime_xson_stringify_options", "xl6_xrt_xson_stringify_options", xl6StdXsonValueOptionsRuntimeParams, 4, "point", NULL},
     {"__runtime", "xsonWriteOptions", "__xl_std_runtime_xson_write_options", "xl6_xrt_xson_write_options", xl6StdXsonWriteOptionsRuntimeParams, 5, "bool", NULL},
+    {"__runtime", "xsonVisitOptions", "__xl_std_runtime_xson_visit_options", "xl6_xrt_xson_visit_options", xl6StdXsonVisitOptionsRuntimeParams, 5, "c_int", NULL},
     {"__xrt_codec", "hexEncode", "__xl_std_xrt_hex_encode", "xl6_xrt_hex_encode_text", xl6StdXrtCodecTextParams, 2, "point", NULL},
     {"__xrt_codec", "hexDecode", "__xl_std_xrt_hex_decode", "xrtHexDecode", xl6StdXrtCodecTextParams, 2, "point", NULL},
     {"__xrt_codec", "base64Encode", "__xl_std_xrt_base64_encode", "xl6_xrt_base64_encode_text", xl6StdXrtCodecBase64Params, 3, "point", NULL},
@@ -6058,6 +6408,8 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
 
     {"", "print", "__xl_std_print", NULL, NULL, 0, "", xl6StdPrintBody},
     {"", "println", "__xl_std_println", NULL, NULL, 0, "", xl6StdPrintlnBody},
+    {"", "write", "__xl_std_write", NULL, NULL, 0, "", xl6StdWriteBody},
+    {"", "writeln", "__xl_std_writeln", NULL, NULL, 0, "", xl6StdWritelnBody},
 
     {"math", "sin", "__xl_std_math_sin", "sin", xl6StdMathUnaryFloatParams, 1, "float", NULL},
     {"math", "cos", "__xl_std_math_cos", "cos", xl6StdMathUnaryFloatParams, 1, "float", NULL},
@@ -6110,9 +6462,9 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"string", "approx", "__xl_std_string_approx", NULL, NULL, 0, "bool", xl6StdStringApproxBody},
     {"string", "sim", "__xl_std_string_sim", NULL, NULL, 0, "float", xl6StdStringSimBody},
     {"string", "isUtf8", "__xl_std_string_is_utf8", NULL, NULL, 0, "bool", xl6StdStringIsUtf8Body},
-    {"string", "formatInt", "__xl_std_string_format_int", NULL, NULL, 0, "string", xl6StdStringFormatIntBody},
-    {"string", "formatUInt", "__xl_std_string_format_uint", NULL, NULL, 0, "string", xl6StdStringFormatUIntBody},
-    {"string", "formatFloat", "__xl_std_string_format_float", NULL, NULL, 0, "string", xl6StdStringFormatFloatBody},
+    {"int", "format", "__xl_std_int_format", NULL, NULL, 0, "string", xl6StdIntFormatBody},
+    {"int", "format", "__xl_std_int_format", NULL, NULL, 0, "string", xl6StdIntFormatUIntBody},
+    {"float", "format", "__xl_std_float_format", NULL, NULL, 0, "string", xl6StdFloatFormatBody},
     {"string", "format", "__xl_std_string_format", NULL, NULL, 0, "string", xl6StdStringFormatBodyInt},
     {"string", "format", "__xl_std_string_format", NULL, NULL, 0, "string", xl6StdStringFormatBodyUInt},
     {"string", "format", "__xl_std_string_format", NULL, NULL, 0, "string", xl6StdStringFormatBodyFloat},
@@ -6239,6 +6591,17 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"path", "withExt", "__xl_std_path_with_ext", NULL, NULL, 0, "string", xl6StdPathWithExtBody},
     {"path", "withName", "__xl_std_path_with_name", NULL, NULL, 0, "string", xl6StdPathWithNameBody},
 
+    {"os", "env", "__xl_std_os_env", NULL, xl6StdOsEnvParams, 2, "string", xl6StdOsEnvBody},
+    {"os", "platform", "__xl_std_os_platform", NULL, NULL, 0, "string", xl6StdOsPlatformBody},
+    {"os", "args", "__xl_std_os_args", NULL, NULL, 0, "array", xl6StdOsArgsBody},
+    {"os", "cwd", "__xl_std_os_cwd", NULL, NULL, 0, "string", xl6StdOsCwdBody},
+    {"os", "setCwd", "__xl_std_os_set_cwd", NULL, xl6StdPathUnaryParams, 1, "bool", xl6StdOsSetCwdBody},
+    {"os", "exec", "__xl_std_os_exec", NULL, NULL, 0, "string", xl6StdOsExecBody},
+    {"os", "run", "__xl_std_os_run", NULL, NULL, 0, "ProcessResult", xl6StdOsRunBody},
+    {"os", "start", "__xl_std_os_start", NULL, xl6StdPathUnaryParams, 1, "Process", xl6StdOsStartBody},
+    {"os", "startFile", "__xl_std_os_start_file", NULL, NULL, 0, "Process", xl6StdOsStartFileBody},
+    {"os", "chain", "__xl_std_os_chain", NULL, NULL, 0, "int", xl6StdOsChainBody},
+
     {"file", "exists", "__xl_std_file_exists", NULL, NULL, 0, "bool", xl6StdFileExistsBody},
     {"file", "size", "__xl_std_file_size", NULL, NULL, 0, "int", xl6StdFileSizeBody},
     {"file", "setSize", "__xl_std_file_set_size", NULL, NULL, 0, "bool", xl6StdFileSetSizeBody},
@@ -6315,6 +6678,10 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"xson", "stringify", "__xl_std_xson_stringify", NULL, NULL, 0, "string", xl6StdXsonStringifyOptionsBody},
     {"xson", "write", "__xl_std_xson_write", NULL, NULL, 0, "bool", xl6StdXsonWriteBody},
     {"xson", "write", "__xl_std_xson_write", NULL, NULL, 0, "bool", xl6StdXsonWriteOptionsBody},
+    {"xson", "writer", "__xl_std_xson_writer", NULL, NULL, 0, "XsonWriter", xl6StdXsonWriterBody},
+    {"xson", "writer", "__xl_std_xson_writer", NULL, NULL, 0, "XsonWriter", xl6StdXsonWriterOptionsBody},
+    {"xson", "visit", "__xl_std_xson_visit", NULL, NULL, 0, "int", xl6StdXsonVisitBody},
+    {"xson", "visit", "__xl_std_xson_visit", NULL, NULL, 0, "int", xl6StdXsonVisitOptionsBody},
     {"xson", "options", "__xl_std_xson_options", NULL, NULL, 0, "XsonOptions", xl6StdXsonOptionsBody},
 
     {"codec", "hexEncode", "__xl_std_codec_hex_encode", NULL, NULL, 0, "string", xl6StdCodecHexEncodeBody},
@@ -6512,6 +6879,21 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"log", "error", "__xl_std_log_error", NULL, NULL, 0, "", xl6StdLogErrorBody},
     {"log", "fatal", "__xl_std_log_fatal", NULL, NULL, 0, "", xl6StdLogFatalBody},
     {"log", "flush", "__xl_std_log_flush", NULL, NULL, 0, "", xl6StdLogFlushBody},
+
+    {"signal", "on", "__xl_std_signal_on", NULL, xl6StdSignalOn0Params, 2, "SignalHandle", xl6StdSignalOn0Body},
+    {"signal", "on", "__xl_std_signal_on", NULL, xl6StdSignalOn1Params, 2, "SignalHandle", xl6StdSignalOn1Body},
+    {"signal", "once", "__xl_std_signal_once", NULL, xl6StdSignalOn0Params, 2, "SignalHandle", xl6StdSignalOnce0Body},
+    {"signal", "once", "__xl_std_signal_once", NULL, xl6StdSignalOn1Params, 2, "SignalHandle", xl6StdSignalOnce1Body},
+    {"signal", "supported", "__xl_std_signal_supported", NULL, xl6StdRuntimeSignalCodeParams, 1, "bool", xl6StdSignalSupportedBody},
+    {"signal", "name", "__xl_std_signal_name", NULL, xl6StdRuntimeSignalCodeParams, 1, "string", xl6StdSignalNameBody},
+    {"signal", "restore", "__xl_std_signal_restore", NULL, xl6StdRuntimeSignalCodeParams, 1, "bool", xl6StdSignalRestoreBody},
+    {"signal", "reset", "__xl_std_signal_reset", NULL, NULL, 0, "", xl6StdSignalResetBody},
+    {"signal", "raise", "__xl_std_signal_raise", NULL, xl6StdRuntimeSignalCodeParams, 1, "bool", xl6StdSignalRaiseBody},
+    {"signal", "count", "__xl_std_signal_count", NULL, xl6StdRuntimeSignalCodeParams, 1, "int", xl6StdSignalCountBody},
+    {"signal", "received", "__xl_std_signal_received", NULL, xl6StdRuntimeSignalCodeParams, 1, "bool", xl6StdSignalReceivedBody},
+    {"signal", "clear", "__xl_std_signal_clear", NULL, xl6StdRuntimeSignalCodeParams, 1, "", xl6StdSignalClearBody},
+    {"signal", "sendTo", "__xl_std_signal_send_to", NULL, xl6StdSignalSendToParams, 2, "SignalHandle", xl6StdSignalSendToBody},
+    {"signal", "cancelOn", "__xl_std_signal_cancel_on", NULL, xl6StdSignalCancelOnParams, 2, "SignalHandle", xl6StdSignalCancelOnBody},
 
     {"template", "compile", "__xl_std_template_compile", NULL, xl6StdTemplateCompileParams, 2, "Template", xl6StdTemplateCompileBody},
     {"template", "engine", "__xl_std_template_engine", NULL, NULL, 0, "TemplateEngine", xl6StdTemplateEngineBody},

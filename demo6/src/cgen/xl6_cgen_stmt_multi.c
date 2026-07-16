@@ -565,6 +565,8 @@ static void xl6CgenXValueFromTypedCExpr(XL6_CgenContext* ctx, const XL6_AstNode*
         xl6CgenTypedContainerStorageToXValueExpr(ctx, concreteType, exprText);
     } else if ( xl6CgenIsXValueType(concreteType) ) {
         xl6OutputPuts(exprText != NULL ? exprText : "xvoCreateNull()", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "error") ) {
+        xl6OutputPrintf(ctx->out, "xvoCreateHandle(xrtTypeHandle(), (void*)(%s), 0x00000002u | 0x00000004u)", exprText != NULL ? exprText : "0");
     } else if ( xl6CgenIsIntegerTypeName(typeName) ) {
         xl6OutputPrintf(ctx->out, "xvoCreateInt((long long)(%s))", exprText != NULL ? exprText : "0");
     } else if ( xl6CgenIsFloatTypeName(typeName) ) {

@@ -199,6 +199,7 @@ $files = @(
             $relative = $_.FullName.Substring($rootFullPath.Length + 1).Replace("\", "/")
             ($_.Extension -eq ".c" -or $_.Extension -eq ".h") -and
             ($generatedFiles -notcontains $_.Name) -and
+            ($relative -notmatch '^release/extlibs/_[^/]+/') -and
             ($relative -notmatch '^release/extlibs/[^/]+/third_party/')
         }
     }

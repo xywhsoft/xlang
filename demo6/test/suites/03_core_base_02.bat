@@ -315,6 +315,13 @@ if errorlevel 1 exit /b 1
 build\test\cgen_safe_widening.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_mixed_numeric_binary_infer.xl --emit build\test\cgen_mixed_numeric_binary_infer.c
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_mixed_numeric_binary_infer.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_mixed_numeric_binary_infer.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_mixed_numeric_binary_infer.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_containers.xl --emit build\test\cgen_containers.c
 if errorlevel 1 exit /b 1
 findstr /C:"emptyArray = xvoCreateArray();" build\test\cgen_containers.c >nul

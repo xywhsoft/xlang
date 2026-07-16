@@ -1,0 +1,5 @@
+func main(...) as int
+    string text = f"""first line
+value={missingValue}"""
+    return 0
+end

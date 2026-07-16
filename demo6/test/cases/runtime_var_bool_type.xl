@@ -1,0 +1,13 @@
+func main(...) as int
+    var value = true
+    if not (value is bool) then
+        println("var bool type check failed")
+        return 1
+    end
+    if type(value) != bool then
+        println("var bool type value failed")
+        return 2
+    end
+    println("runtime var bool type ok")
+    return 0
+end

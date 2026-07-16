@@ -27,6 +27,21 @@ extern "errno" int errno
 extern type HANDLE = point
 ```
 
+C 原生可变参数使用 `c_vararg` 标记，不使用 xlang 的 `...`：
+
+```xlang
+extern "printf" func printf(string fmt, c_vararg) as c_int
+```
+
+规则：
+
+- `c_vararg` 只能用于顶层 `extern "c_symbol" func`。
+- `c_vararg` 必须是最后一个参数。
+- `c_vararg` 不生成 `xvalue arg`，而是直接生成 C `...` 原生调用。
+- 调用方必须显式使用 `c_int`、`c_double` 等 ABI 类型保证 C vararg 宽度正确。
+
+xlang 自身的 `...` / `***` 仍然可以进入 C 边界，但它们表示 xlang/xcall 风格的参数包：C 侧函数会收到一个 `xvalue arg`，分别承载 `array<var>` 或 `dict<var>`。
+
 含义：
 
 - 字符串是 C 侧真实符号名。
