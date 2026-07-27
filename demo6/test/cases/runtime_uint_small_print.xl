@@ -1,0 +1,14 @@
+uint8 u8 = 255
+uint16 u16 = 65535
+uint32 u32 = 4294967295
+
+assert string(u8) == "255", "uint8 to string"
+assert string(u16) == "65535", "uint16 to string"
+assert string(u32) == "4294967295", "uint32 to string"
+assert f"{u8}-{u16}-{u32}" == "255-65535-4294967295", "f-string uint values"
+
+uint32 computed = 4294967294
+computed += 1
+assert string(computed) == "4294967295", "runtime computed uint32 print"
+
+println("runtime_uint_small_print ok")

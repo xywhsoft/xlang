@@ -91,3 +91,27 @@ var boxedValues = values
 
 expect(boxedValues is array<int>, 1)
 expect(boxedValues is array<string>, 0)
+
+int failedCastCount = 0
+try
+    string invalidText = boxedInt as string
+catch e
+    expect(e.kind == "TypeError", 1)
+    failedCastCount += 1
+end
+
+try
+    int invalidNull = boxedNull as int
+catch e
+    expect(e.kind == "TypeError", 1)
+    failedCastCount += 1
+end
+
+try
+    Child invalidChild = boxedBase as Child
+catch e
+    expect(e.kind == "TypeError", 1)
+    failedCastCount += 1
+end
+
+expect(failedCastCount, 3)

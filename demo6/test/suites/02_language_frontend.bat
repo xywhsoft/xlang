@@ -12,32 +12,32 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_numeric_literals.xl --emit build\test\cgen_numeric_literals.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long dec;" build\test\cgen_numeric_literals.c >nul
+findstr /C:"long long __xl6_user_global_dec;" build\test\cgen_numeric_literals.c >nul
 if errorlevel 1 (
     echo cgen_numeric_literals.c missing decimal global declaration.
     exit /b 1
 )
-findstr /C:"dec = 1000000LL;" build\test\cgen_numeric_literals.c >nul
+findstr /C:"__xl6_user_global_dec = 1000000LL;" build\test\cgen_numeric_literals.c >nul
 if errorlevel 1 (
     echo cgen_numeric_literals.c missing decimal literal normalization.
     exit /b 1
 )
-findstr /C:"hexA = 42LL;" build\test\cgen_numeric_literals.c >nul
+findstr /C:"__xl6_user_global_hexA = 42LL;" build\test\cgen_numeric_literals.c >nul
 if errorlevel 1 (
     echo cgen_numeric_literals.c missing hex literal normalization.
     exit /b 1
 )
-findstr /C:"octA = 42LL;" build\test\cgen_numeric_literals.c >nul
+findstr /C:"__xl6_user_global_octA = 42LL;" build\test\cgen_numeric_literals.c >nul
 if errorlevel 1 (
     echo cgen_numeric_literals.c missing oct literal normalization.
     exit /b 1
 )
-findstr /C:"binA = 42LL;" build\test\cgen_numeric_literals.c >nul
+findstr /C:"__xl6_user_global_binA = 42LL;" build\test\cgen_numeric_literals.c >nul
 if errorlevel 1 (
     echo cgen_numeric_literals.c missing bin literal normalization.
     exit /b 1
 )
-findstr /C:"sci = 12.5e1;" build\test\cgen_numeric_literals.c >nul
+findstr /C:"__xl6_user_global_sci = 12.5e1;" build\test\cgen_numeric_literals.c >nul
 if errorlevel 1 (
     echo cgen_numeric_literals.c missing float underscore normalization.
     exit /b 1
@@ -108,32 +108,32 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_case_sensitive.xl --emit build\test\cgen_case_sensitive.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long Name;" build\test\cgen_case_sensitive.c >nul
+findstr /C:"long long __xl6_user_global_Name;" build\test\cgen_case_sensitive.c >nul
 if errorlevel 1 (
     echo cgen_case_sensitive.c missing upper-case Name.
     exit /b 1
 )
-findstr /C:"Name = 1LL;" build\test\cgen_case_sensitive.c >nul
+findstr /C:"__xl6_user_global_Name = 1LL;" build\test\cgen_case_sensitive.c >nul
 if errorlevel 1 (
     echo cgen_case_sensitive.c missing upper-case Name init.
     exit /b 1
 )
-findstr /C:"long long name;" build\test\cgen_case_sensitive.c >nul
+findstr /C:"long long __xl6_user_global_name;" build\test\cgen_case_sensitive.c >nul
 if errorlevel 1 (
     echo cgen_case_sensitive.c missing lower-case name.
     exit /b 1
 )
-findstr /C:"name = 2LL;" build\test\cgen_case_sensitive.c >nul
+findstr /C:"__xl6_user_global_name = 2LL;" build\test\cgen_case_sensitive.c >nul
 if errorlevel 1 (
     echo cgen_case_sensitive.c missing lower-case name init.
     exit /b 1
 )
-findstr /C:"long long NAME;" build\test\cgen_case_sensitive.c >nul
+findstr /C:"long long __xl6_user_global_NAME;" build\test\cgen_case_sensitive.c >nul
 if errorlevel 1 (
     echo cgen_case_sensitive.c missing all-caps NAME.
     exit /b 1
 )
-findstr /C:"NAME = 3LL;" build\test\cgen_case_sensitive.c >nul
+findstr /C:"__xl6_user_global_NAME = 3LL;" build\test\cgen_case_sensitive.c >nul
 if errorlevel 1 (
     echo cgen_case_sensitive.c missing all-caps NAME init.
     exit /b 1
@@ -145,32 +145,32 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_context_keywords.xl --emit build\test\cgen_context_keywords.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long self;" build\test\cgen_context_keywords.c >nul
+findstr /C:"long long __xl6_user_global_self;" build\test\cgen_context_keywords.c >nul
 if errorlevel 1 (
     echo cgen_context_keywords.c missing ordinary self variable.
     exit /b 1
 )
-findstr /C:"self = 1LL;" build\test\cgen_context_keywords.c >nul
+findstr /C:"__xl6_user_global_self = 1LL;" build\test\cgen_context_keywords.c >nul
 if errorlevel 1 (
     echo cgen_context_keywords.c missing ordinary self init.
     exit /b 1
 )
-findstr /C:"long long base;" build\test\cgen_context_keywords.c >nul
+findstr /C:"long long __xl6_user_global_base;" build\test\cgen_context_keywords.c >nul
 if errorlevel 1 (
     echo cgen_context_keywords.c missing ordinary base variable.
     exit /b 1
 )
-findstr /C:"base = 2LL;" build\test\cgen_context_keywords.c >nul
+findstr /C:"__xl6_user_global_base = 2LL;" build\test\cgen_context_keywords.c >nul
 if errorlevel 1 (
     echo cgen_context_keywords.c missing ordinary base init.
     exit /b 1
 )
-findstr /C:"long long xl_kw_static;" build\test\cgen_context_keywords.c >nul
+findstr /C:"long long __xl6_user_global_static;" build\test\cgen_context_keywords.c >nul
 if errorlevel 1 (
     echo cgen_context_keywords.c missing escaped static context identifier.
     exit /b 1
 )
-findstr /C:"xl_kw_static = 8LL;" build\test\cgen_context_keywords.c >nul
+findstr /C:"__xl6_user_global_static = 8LL;" build\test\cgen_context_keywords.c >nul
 if errorlevel 1 (
     echo cgen_context_keywords.c missing escaped static context identifier init.
     exit /b 1
@@ -204,7 +204,7 @@ if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded unicode parameter name.
     exit /b 1
 )
-findstr /C:"long long _u7ED3__u679C_" build\test\cgen_unicode_identifiers.c >nul
+findstr /C:"long long __xl6_user_global__u7ED3__u679C_" build\test\cgen_unicode_identifiers.c >nul
 if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded unicode variable name.
     exit /b 1

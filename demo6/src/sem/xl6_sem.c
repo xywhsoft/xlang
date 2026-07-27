@@ -3,6 +3,7 @@
 #include "src/sem/xl6_sem_field_attrs.h"
 #include "src/sem/xl6_protocol.h"
 #include "src/sem/xl6_type_registry.h"
+#include "src/stdlib/xl6_stdlib.h"
 
 #include <limits.h>
 #include <stddef.h>
@@ -143,6 +144,8 @@ static int xl6SemTypeUsesClassReferenceSemantics(XL6_SemContext* ctx, const XL6_
 static int xl6SemIsIntegerTypeName(const char* name);
 static int xl6SemIsFloatTypeName(const char* name);
 static int xl6SemIsBoolTypeName(const char* name);
+static int xl6SemExprIntegerLiteralValue(const XL6_AstNode* expr, uint64* outMagnitude, int* outNegative);
+static int xl6SemExprIntegerLiteralFitsType(const XL6_AstNode* expr, const char* targetType);
 static int xl6SemCheckGenericConstraintDecl(XL6_SemContext* ctx, const XL6_AstNode* param);
 static int xl6SemCheckGenericConstraints(
     XL6_SemContext* ctx,
@@ -1364,6 +1367,10 @@ static int xl6SemExprCanBoxToVar(XL6_SemContext* ctx, const XL6_AstNode* expr)
 
     if ( expr == NULL ) {
         return 1;
+    }
+    if ( xl6SemExprIntegerLiteralValue(expr, NULL, NULL) ) {
+        /* var 的整数槽固定为有符号 int64，不能静默截断 uint64 字面量。 */
+        return xl6SemExprIntegerLiteralFitsType(expr, "int");
     }
 
     typeNode = xl6SemInferAutoTypeNode(ctx, (XL6_AstNode*)expr);
@@ -2835,6 +2842,21 @@ static int xl6SemExprParamMatchCost(XL6_SemContext* ctx, const XL6_AstNode* expr
           expr->kind == XL6_AST_SET_LITERAL || expr->kind == XL6_AST_DICT_LITERAL) &&
          typeNode->childCount > 0 ) {
         return xl6SemContainerLiteralMatchesType(ctx, expr, typeNode) ? 5 : -1;
+    }
+
+    if ( expr != NULL && xl6SemExprIntegerLiteralValue(expr, NULL, NULL) &&
+         (xl6SemIsIntegerTypeName(targetType) || xl6SemIsFloatTypeName(targetType)) ) {
+        /*
+            字面量必须先按目标类型校验，不能被默认推断出的 int 走“同类型”捷径。
+            同时保留重载优先级：默认推断类型最优，整数拓宽次之，整数转浮点最后。
+        */
+        if ( !xl6SemExprIntegerLiteralFitsType(expr, targetType) ) {
+            return -1;
+        }
+        if ( exprType != NULL && xl6TextEquals(exprType, targetType) ) {
+            return 0;
+        }
+        return xl6SemIsFloatTypeName(targetType) ? 20 : 1;
     }
 
     exprTypeNode = xl6SemInferAutoTypeNode(ctx, (XL6_AstNode*)expr);
@@ -6762,6 +6784,7 @@ static int xl6SemCopyBuiltinIsShadowed(XL6_SemContext* ctx, XL6_AstNode* node)
 static int xl6SemCheckCopyBuiltinCall(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     XL6_AstNode* arg;
+    XL6_AstNode* argType;
     int ok;
 
     if ( node == NULL ||
@@ -6784,9 +6807,17 @@ static int xl6SemCheckCopyBuiltinCall(XL6_SemContext* ctx, XL6_AstNode* node)
         ok = 0;
     }
     arg = xl6SemCallArgExprAt(node, 0);
-    if ( arg != NULL &&
-         !xl6SemCheckCopyableExpr(ctx, arg, 1, "不可复制类型不能调用 copy/clone") ) {
-        ok = 0;
+    if ( arg != NULL ) {
+        /*
+            class 句柄可以赋值和传参，只表示共享同一对象，并不代表对象可复制。
+            copy/clone 是显式复制操作，必须严格检查复制协议，不能复用引用赋值规则。
+        */
+        argType = xl6SemInferAutoTypeNode(ctx, arg);
+        if ( argType != NULL && !xl6SemTypeCanCopy(ctx, argType) ) {
+            xl6SemErrorNode(ctx, arg, "不可复制类型不能调用 copy/clone");
+            ok = 0;
+        }
+        xl6AstFree(argType);
     }
     return ok;
 }
@@ -7810,9 +7841,96 @@ static int xl6SemCheckContainerMethodCall(XL6_SemContext* ctx, XL6_AstNode* node
     return ok;
 }
 
+/*
+    将基础类型的隐性类方法规范化为标准库函数调用。
+    改写发生在类型已可推断、正式调用检查之前，因此不会抢占用户 class 的同名方法。
+*/
+static int xl6SemRewriteImplicitStdlibMethodCall(XL6_SemContext* ctx, XL6_AstNode* call)
+{
+    XL6_AstNode* member;
+    XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+    const XL6_AstNode* concreteType;
+    const char* internalName;
+    XL6_AstNode* args;
+    XL6_AstNode* receiverArg;
+    XL6_AstNode* nameNode;
+    size_t oldArgCount;
+
+    if ( ctx == NULL || call == NULL || call->kind != XL6_AST_CALL || call->childCount == 0 ) {
+        return 0;
+    }
+    member = call->children[0];
+    if ( member == NULL || member->kind != XL6_AST_MEMBER || member->childCount == 0 ) {
+        return 0;
+    }
+    receiver = member->children[0];
+    if ( receiver != NULL && receiver->kind == XL6_AST_CALL ) {
+        int nestedRewrite = xl6SemRewriteImplicitStdlibMethodCall(ctx, receiver);
+        if ( nestedRewrite < 0 ) {
+            return -1;
+        }
+    }
+    receiverType = xl6SemInferAutoTypeNode(ctx, receiver);
+    concreteType = xl6SemResolveAliasType(ctx, receiverType);
+    internalName = concreteType != NULL ?
+        xl6StdlibImplicitMethodInternalName(concreteType->text, member->text) : NULL;
+    xl6AstFree(receiverType);
+    if ( internalName == NULL ) {
+        return 0;
+    }
+
+    args = call->childCount > 1 ? call->children[1] : NULL;
+    if ( args == NULL || args->kind != XL6_AST_LIST ) {
+        xl6SemErrorNode(ctx, call, "invalid implicit method argument list");
+        return -1;
+    }
+
+    nameNode = xl6AstNewText(XL6_AST_NAME, internalName, strlen(internalName), NULL);
+    receiverArg = xl6AstNew(XL6_AST_ARG, NULL);
+    if ( nameNode == NULL || receiverArg == NULL ) {
+        xl6AstFree(nameNode);
+        xl6AstFree(receiverArg);
+        xl6SemErrorNode(ctx, call, "out of memory while lowering implicit method");
+        return -1;
+    }
+    nameNode->line = member->line;
+    nameNode->column = member->column;
+    receiverArg->line = receiver != NULL ? receiver->line : member->line;
+    receiverArg->column = receiver != NULL ? receiver->column : member->column;
+
+    member->children[0] = NULL;
+    xl6AstAddChild(receiverArg, receiver);
+    if ( receiverArg->childCount != 1 ) {
+        member->children[0] = receiver;
+        xl6AstFree(nameNode);
+        xl6AstFree(receiverArg);
+        xl6SemErrorNode(ctx, call, "out of memory while lowering implicit method receiver");
+        return -1;
+    }
+
+    oldArgCount = args->childCount;
+    xl6AstAddChild(args, receiverArg);
+    if ( args->childCount != oldArgCount + 1 ) {
+        receiverArg->children[0] = NULL;
+        member->children[0] = receiver;
+        xl6AstFree(nameNode);
+        xl6AstFree(receiverArg);
+        xl6SemErrorNode(ctx, call, "out of memory while lowering implicit method arguments");
+        return -1;
+    }
+    memmove(args->children + 1, args->children, oldArgCount * sizeof(XL6_AstNode*));
+    args->children[0] = receiverArg;
+
+    call->children[0] = nameNode;
+    xl6AstFree(member);
+    return 1;
+}
+
 static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     int ok;
+    int implicitMethodRewrite;
     int channelOk;
     int specialCollectionOk;
     int syncOk;
@@ -7823,6 +7941,10 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
     XL6_AstNode* func;
     XL6_Symbol* sym;
 
+    implicitMethodRewrite = xl6SemRewriteImplicitStdlibMethodCall(ctx, node);
+    if ( implicitMethodRewrite < 0 ) {
+        return 0;
+    }
     if ( xl6SemIsImplicitToStringCall(ctx, node) ) {
         XL6_AstNode* callee = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
         XL6_AstNode* receiver = callee != NULL && callee->childCount > 0 ? callee->children[0] : NULL;
@@ -12020,9 +12142,11 @@ static int xl6SemDeclareVarWithKind(
     XL6_AstNode* inferredType;
     int ok;
     int declaredTypeOk;
+    int literalRangeError;
 
     ok = 1;
     declaredTypeOk = 1;
+    literalRangeError = 0;
     nameNode = xl6SemVarDeclNameNode(node);
     declaredType = xl6SemVarDeclTypeNode(node);
     symbolType = declaredType;
@@ -12040,6 +12164,12 @@ static int xl6SemDeclareVarWithKind(
         if ( xl6TextEquals(declaredType->text, "auto") && initExpr != NULL ) {
             inferredType = xl6SemInferAutoTypeNode(ctx, initExpr);
             if ( inferredType != NULL ) {
+                if ( xl6SemExprIntegerLiteralValue(initExpr, NULL, NULL) &&
+                     !xl6SemExprIntegerLiteralFitsType(initExpr, inferredType->text) ) {
+                    xl6SemErrorNode(ctx, initExpr, "整数字面量超出 auto 推断类型的表示范围");
+                    ok = 0;
+                    literalRangeError = 1;
+                }
                 if ( xl6SemOwnTypeNode(ctx, inferredType) ) {
                     symbolType = inferredType;
                 } else {
@@ -12065,6 +12195,18 @@ static int xl6SemDeclareVarWithKind(
         ok = 0;
     }
     if ( initExpr != NULL && declaredType != NULL && declaredTypeOk &&
+         !xl6TextEquals(declaredType->text, "auto") &&
+         xl6SemExprIntegerLiteralValue(initExpr, NULL, NULL) &&
+         ((xl6TextEquals(declaredType->text, "var") &&
+           !xl6SemExprIntegerLiteralFitsType(initExpr, "int")) ||
+          ((xl6SemIsIntegerTypeName(declaredType->text) || xl6SemIsFloatTypeName(declaredType->text)) &&
+           !xl6SemExprIntegerLiteralFitsType(initExpr, declaredType->text))) ) {
+        xl6SemErrorNode(ctx, initExpr, "整数字面量超出声明类型的表示范围");
+        ok = 0;
+        literalRangeError = 1;
+    }
+    if ( initExpr != NULL && declaredType != NULL && declaredTypeOk &&
+         !literalRangeError &&
          !xl6TextEquals(declaredType->text, "auto") &&
          !xl6SemExprCanMatchParamType(ctx, initExpr, declaredType) ) {
         if ( !xl6SemExprFunctionValueMatchAlreadyDiagnosed(ctx, initExpr, declaredType) ) {
@@ -13119,6 +13261,7 @@ static int xl6SemIsErrorKindName(const char* name)
     static const char* const kinds[] = {
         "Error",
         "RuntimeError", "AssertionError", "NullReferenceError", "NotImplementedError", "NativeError",
+        "ArithmeticError", "ZeroDivisionError", "OverflowError",
         "TypeError",
         "ValueError", "RangeError",
         "LookupError", "IndexError", "KeyError", "AttributeError", "NameError",
@@ -13559,16 +13702,27 @@ static XL6_AstNode* xl6SemCloneForTargetType(XL6_SemContext* ctx, XL6_AstNode* i
 
 static int xl6SemDeclareForTargetType(XL6_SemContext* ctx, XL6_AstNode* target, XL6_AstNode* typeNode)
 {
+    XL6_AstNode* inferredType;
+
     if ( target == NULL || typeNode == NULL ) {
         xl6AstFree(typeNode);
         return 0;
     }
     typeNode->line = target->line;
     typeNode->column = target->column;
+    inferredType = xl6SemCloneTypeNode(typeNode);
+    if ( inferredType == NULL ) {
+        xl6AstFree(typeNode);
+        xl6SemErrorNode(ctx, target, "记录 for 迭代变量类型时内存不足");
+        return 0;
+    }
     if ( !xl6SemOwnTypeNode(ctx, typeNode) ) {
+        xl6AstFree(inferredType);
         xl6AstFree(typeNode);
         return 0;
     }
+    xl6AstFree(target->inferredType);
+    target->inferredType = inferredType;
     /* `_` 是丢弃绑定：保留推断出的类型供后续检查，但不进入作用域。 */
     if ( xl6TextEquals(target->text, "_") ) {
         return 1;

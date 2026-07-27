@@ -97,6 +97,10 @@ static void xl6CgenXValueWriteReceiverExpr(XL6_CgenContext* ctx, const XL6_AstNo
 #include "src/cgen/xl6_cgen_class_property_compound.c"
 #include "src/cgen/xl6_cgen_stmt_branch.c"
 #include "src/cgen/xl6_cgen_stmt_loop_while.c"
+#include "src/cgen/xl6_cgen_stmt_loop_range.c"
+static int xl6CgenIsClassProtocolIterableType(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* iterableType);
 #include "src/cgen/xl6_cgen_stmt_loop.c"
 #include "src/cgen/xl6_cgen_stmt_loop_string.c"
 #include "src/cgen/xl6_cgen_stmt_loop_protocol.c"

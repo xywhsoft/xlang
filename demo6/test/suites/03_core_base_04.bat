@@ -6,17 +6,17 @@ echo Running DEMO6 suite: core C generation and runtime baseline 4/10...
 
 release\xl.exe cgen test\cases\cgen_typed_container_index_assign.xl --emit build\test\cgen_typed_container_index_assign.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_array_set_at(values" build\test\cgen_typed_container_index_assign.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(__xl6_user_global_values" build\test\cgen_typed_container_index_assign.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign.c missing typed array index assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedListSetValue(names" build\test\cgen_typed_container_index_assign.c >nul
+findstr /C:"xrtTypedListSetValue(__xl6_user_global_names" build\test\cgen_typed_container_index_assign.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign.c missing typed list index assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedDictSetValue(scores" build\test\cgen_typed_container_index_assign.c >nul
+findstr /C:"xrtTypedDictSetValue(__xl6_user_global_scores" build\test\cgen_typed_container_index_assign.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign.c missing typed dict index assignment.
     exit /b 1
@@ -48,82 +48,82 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_index_assign_objects_functions.xl --emit build\test\cgen_typed_container_index_assign_objects_functions.c
 if errorlevel 1 exit /b 1
-findstr /C:"xrtTypedListSetValue(pairList" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xrtTypedListSetValue(__xl6_user_global_pairList" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed class list assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedDictSetValue(pairDict" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xrtTypedDictSetValue(__xl6_user_global_pairDict" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed class dict assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedDictSetValue(pairDict, xvoGetText(__xl6_dict_key_" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xrtTypedDictSetValue(__xl6_user_global_pairDict, xvoGetText(__xl6_dict_key_" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed class dynamic dict assignment.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_set_at(payloadArray" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(__xl6_user_global_payloadArray" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed union array assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedListSetValue(payloadList" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xrtTypedListSetValue(__xl6_user_global_payloadList" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed union list assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedDictSetValue(payloadDict, xvoGetText(__xl6_dict_key_" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xrtTypedDictSetValue(__xl6_user_global_payloadDict, xvoGetText(__xl6_dict_key_" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed union dynamic dict assignment.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_set_at(nativeArray" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(__xl6_user_global_nativeArray" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed native-backed class array assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedListSetValue(nativeList" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xrtTypedListSetValue(__xl6_user_global_nativeList" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed native-backed class list assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedDictSetValue(nativeDict" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xrtTypedDictSetValue(__xl6_user_global_nativeDict" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed native-backed class dict assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedDictSetValue(nativeDict, xvoGetText(__xl6_dict_key_" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xrtTypedDictSetValue(__xl6_user_global_nativeDict, xvoGetText(__xl6_dict_key_" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed native-backed class dynamic dict assignment.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_set_at(funcs" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(__xl6_user_global_funcs" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed function array assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedListSetValue(listedFuncs" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xrtTypedListSetValue(__xl6_user_global_listedFuncs" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed function list assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedDictSetValue(table, xvoGetText(__xl6_dict_key_" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xrtTypedDictSetValue(__xl6_user_global_table, xvoGetText(__xl6_dict_key_" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed function dynamic dict assignment.
     exit /b 1
 )
-findstr /C:"xl6_function_to_xvalue(next)" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xl6_function_to_xvalue(__xl6_user_global_next)" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing function boxing for typed assignment.
     exit /b 1
 )
-findstr /C:"xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xrtTypedListGet(listedFuncs" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xrtTypedListGet(__xl6_user_global_listedFuncs" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing guarded typed function list get lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_dict_get_var_key(table" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_dict_get_var_key(__xl6_user_global_table" build\test\cgen_typed_container_index_assign_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_index_assign_objects_functions.c missing typed function dynamic dict get lowering.
     exit /b 1
@@ -135,17 +135,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_multi_assign_index.xl --emit build\test\cgen_typed_container_multi_assign_index.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_array_set_at(values" build\test\cgen_typed_container_multi_assign_index.c >nul
+findstr /C:"xl6_xrt_typed_array_set_at(__xl6_user_global_values" build\test\cgen_typed_container_multi_assign_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing typed array multi assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedDictSetValue(scores" build\test\cgen_typed_container_multi_assign_index.c >nul
+findstr /C:"xrtTypedDictSetValue(__xl6_user_global_scores" build\test\cgen_typed_container_multi_assign_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing typed dict multi assignment.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_typed_container_multi_assign_index.c' -Raw; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = __xl6_multi_\d+\.value0;[\s\S]*?xl6_xrt_typed_array_set_at\(pairs,[^\r\n]*\1'){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_typed_container_multi_assign_index.c' -Raw; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = __xl6_multi_\d+\.value0;[\s\S]*?xl6_xrt_typed_array_set_at\(__xl6_user_global_pairs,[^\r\n]*\1'){exit 1}"
 if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing class handle multi assignment.
     exit /b 1
@@ -155,7 +155,7 @@ if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing union multi assignment boxing.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_typed_container_multi_assign_index.c' -Raw; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = __xl6_multi_\d+\.value0;[\s\S]*?xrtTypedDictSetValue\(natives,[\s\S]*?\1'){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_typed_container_multi_assign_index.c' -Raw; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = __xl6_multi_\d+\.value0;[\s\S]*?xrtTypedDictSetValue\(__xl6_user_global_natives,[\s\S]*?\1'){exit 1}"
 if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing native-backed class handle multi assignment.
     exit /b 1
@@ -165,22 +165,22 @@ if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing function multi assignment boxing.
     exit /b 1
 )
-findstr /C:"xrtTypedListSetValue(payloads" build\test\cgen_typed_container_multi_assign_index.c >nul
+findstr /C:"xrtTypedListSetValue(__xl6_user_global_payloads" build\test\cgen_typed_container_multi_assign_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing typed list multi assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedDictSetValue(natives, xvoGetText(__xl6_dict_key_" build\test\cgen_typed_container_multi_assign_index.c >nul
+findstr /C:"xrtTypedDictSetValue(__xl6_user_global_natives, xvoGetText(__xl6_dict_key_" build\test\cgen_typed_container_multi_assign_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing native-backed class dynamic dict multi assignment.
     exit /b 1
 )
-findstr /C:"xrtTypedDictSetValue(table, xvoGetText(__xl6_dict_key_" build\test\cgen_typed_container_multi_assign_index.c >nul
+findstr /C:"xrtTypedDictSetValue(__xl6_user_global_table, xvoGetText(__xl6_dict_key_" build\test\cgen_typed_container_multi_assign_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing function dynamic dict multi assignment.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_typed_container_multi_assign_index.c' -Raw; $fail='(?:xl6_runtime_fatal\(3\)|xl6_error_raise\([^;]+;)'; $simple=[regex]::Matches($t,'xvalue (__xl6_multi_index_\d+) = (?:xvoCreateInt|__xl6_multi_\d+\.value\d+|xl6_box_XL_Union_Payload|xl6_function_to_xvalue)[^;]*;\s*if \(!(?:xl6_xrt_typed_array_set_at|xrtTyped(?:List|Dict)SetValue)\([^\n]*\1\)\) \{\s*' + $fail + '\s*\}\s*xvoUnref\(\1\);',[Text.RegularExpressions.RegexOptions]::Singleline); if($simple.Count -lt 6){exit 1}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = __xl6_multi_\d+\.value0;[\s\S]*?xrtTypedDictSetValue\(natives,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 2}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_function_to_xvalue\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(table,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 3}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_typed_container_multi_assign_index.c' -Raw; $fail='(?:xl6_runtime_fatal\(3\)|xl6_error_raise\([^;]+;)'; $simple=[regex]::Matches($t,'xvalue (__xl6_multi_index_\d+) = (?:xvoCreateInt|__xl6_multi_\d+\.value\d+|xl6_box_XL_Union_Payload|xl6_function_to_xvalue)[^;]*;\s*if \(!(?:xl6_xrt_typed_array_set_at|xrtTyped(?:List|Dict)SetValue)\([^\n]*\1\)\) \{\s*' + $fail + '\s*\}\s*xvoUnref\(\1\);',[Text.RegularExpressions.RegexOptions]::Singleline); if($simple.Count -lt 6){exit 1}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = __xl6_multi_\d+\.value0;[\s\S]*?xrtTypedDictSetValue\(__xl6_user_global_natives,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 2}; if($t -notmatch 'xvalue (__xl6_multi_index_\d+) = xl6_function_to_xvalue\(__xl6_multi_[^;]+;[\s\S]*?xrtTypedDictSetValue\(__xl6_user_global_table,[\s\S]*?\1[\s\S]*?xvoUnref\(\1\);'){exit 3}"
 if errorlevel 1 (
     echo cgen_typed_container_multi_assign_index.c missing multi-return typed index temp cleanup ordering.
     exit /b 1
@@ -229,22 +229,22 @@ if errorlevel 1 (
     echo type_values.c missing type value declaration.
     exit /b 1
 )
-findstr /C:"intOk = (valueType == 0x" build\test\type_values.c >nul
+findstr /C:"intOk = (__xl6_user_global_valueType == 0x" build\test\type_values.c >nul
 if errorlevel 1 (
     echo type_values.c missing type literal comparison.
     exit /b 1
 )
-findstr /C:"classOk = (boxType == 0x" build\test\type_values.c >nul
+findstr /C:"classOk = (__xl6_user_global_boxType == 0x" build\test\type_values.c >nul
 if errorlevel 1 (
     echo type_values.c missing class type literal comparison.
     exit /b 1
 )
-findstr /C:"arrayOk = (arrayType == 0x" build\test\type_values.c >nul
+findstr /C:"(__xl6_user_global_arrayType == 0x" build\test\type_values.c >nul
 if errorlevel 1 (
     echo type_values.c missing array type literal comparison.
     exit /b 1
 )
-findstr /C:"dictOk = (dictType == 0x" build\test\type_values.c >nul
+findstr /C:"(__xl6_user_global_dictType == 0x" build\test\type_values.c >nul
 if errorlevel 1 (
     echo type_values.c missing dict type literal comparison.
     exit /b 1
@@ -315,12 +315,12 @@ if errorlevel 1 (
 )
 release\xl.exe cgen test\cases\type_aliases.xl --emit build\test\type_aliases.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long value;" build\test\type_aliases.c >nul
+findstr /C:"long long __xl6_user_global_value;" build\test\type_aliases.c >nul
 if errorlevel 1 (
     echo type_aliases.c missing int alias lowering.
     exit /b 1
 )
-findstr /C:"void* handle;" build\test\type_aliases.c >nul
+findstr /C:"void* __xl6_user_global_handle;" build\test\type_aliases.c >nul
 if errorlevel 1 (
     echo type_aliases.c missing point alias lowering.
     exit /b 1
@@ -354,17 +354,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_string_compare.xl --emit build\test\cgen_string_compare.c
 if errorlevel 1 exit /b 1
-findstr /C:"xrtStrComp(left, same, 0, false) == 0" build\test\cgen_string_compare.c >nul
+findstr /C:"xrtStrComp(__xl6_user_global_left, __xl6_user_global_same, 0, false) == 0" build\test\cgen_string_compare.c >nul
 if errorlevel 1 (
     echo cgen_string_compare.c missing string equality lowering.
     exit /b 1
 )
-findstr /C:"xrtStrComp(left, right, 0, false) < 0" build\test\cgen_string_compare.c >nul
+findstr /C:"xrtStrComp(__xl6_user_global_left, __xl6_user_global_right, 0, false) < 0" build\test\cgen_string_compare.c >nul
 if errorlevel 1 (
     echo cgen_string_compare.c missing string ordered comparison lowering.
     exit /b 1
 )
-findstr /C:"xrtStrApprox(left, 0, same, 0)" build\test\cgen_string_compare.c >nul
+findstr /C:"xrtStrApprox(__xl6_user_global_left, 0, __xl6_user_global_same, 0)" build\test\cgen_string_compare.c >nul
 if errorlevel 1 (
     echo cgen_string_compare.c missing string approximate lowering.
     exit /b 1
@@ -376,12 +376,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_string_literals.xl --emit build\test\cgen_string_literals.c
 if errorlevel 1 exit /b 1
-findstr /C:"const char* single;" build\test\cgen_string_literals.c >nul
+findstr /C:"const char* __xl6_user_global_single;" build\test\cgen_string_literals.c >nul
 if errorlevel 1 (
     echo cgen_string_literals.c missing single quote string lowering.
     exit /b 1
 )
-findstr /C:"const char* rawPath;" build\test\cgen_string_literals.c >nul
+findstr /C:"const char* __xl6_user_global_rawPath;" build\test\cgen_string_literals.c >nul
 if errorlevel 1 (
     echo cgen_string_literals.c missing raw string lowering.
     exit /b 1
@@ -413,7 +413,7 @@ if errorlevel 1 (
     echo cgen_fstring.c missing int interpolation conversion.
     exit /b 1
 )
-findstr /C:"xl6_xrt_value_to_string(dynamic)" build\test\cgen_fstring.c >nul
+findstr /C:"xl6_xrt_value_to_string(__xl6_user_global_dynamic)" build\test\cgen_fstring.c >nul
 if errorlevel 1 (
     echo cgen_fstring.c missing var interpolation conversion.
     exit /b 1
@@ -445,7 +445,7 @@ if errorlevel 1 (
     echo cgen_time_literals.c missing time auto inference.
     exit /b 1
 )
-findstr /C:"xrtTimeApprox(both, xrtStrToTime(" build\test\cgen_time_literals.c >nul
+findstr /C:"xrtTimeApprox(__xl6_user_global_both, xrtStrToTime(" build\test\cgen_time_literals.c >nul
 if errorlevel 1 (
     echo cgen_time_literals.c missing time approximate lowering.
     exit /b 1
@@ -457,7 +457,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_auto_expressions.xl --emit build\test\cgen_auto_expressions.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue dynSum;" build\test\cgen_auto_expressions.c >nul
+findstr /C:"xvalue __xl6_user_global_dynSum;" build\test\cgen_auto_expressions.c >nul
 if errorlevel 1 (
     echo cgen_auto_expressions.c missing auto dynamic expression lowering.
     exit /b 1
@@ -472,12 +472,12 @@ if not errorlevel 1 (
     echo cgen_auto_expressions.c should not emit auto dynamic binary declaration statement expressions.
     exit /b 1
 )
-findstr /C:"long long sum;" build\test\cgen_auto_expressions.c >nul
+findstr /C:"long long __xl6_user_global_sum;" build\test\cgen_auto_expressions.c >nul
 if errorlevel 1 (
     echo cgen_auto_expressions.c missing auto integer expression inference.
     exit /b 1
 )
-findstr /C:"double floatSum;" build\test\cgen_auto_expressions.c >nul
+findstr /C:"double __xl6_user_global_floatSum;" build\test\cgen_auto_expressions.c >nul
 if errorlevel 1 (
     echo cgen_auto_expressions.c missing auto float expression inference.
     exit /b 1

@@ -378,7 +378,7 @@ static int xl6CgenTryInExprStmt(XL6_CgenContext* ctx, const XL6_AstNode* node, c
     right = node->childCount > 1 ? node->children[1] : NULL;
 
     {
-        XL6_AstNode* protocolReceiverType = right != NULL && right->kind == XL6_AST_NAME ?
+        XL6_AstNode* protocolReceiverType = right != NULL ?
                                             xl6CgenCloneExprTypeForInference(ctx, right) :
                                             NULL;
         XL6_AstNode* protocolCall = xl6CgenProtocolTempCallNew(node);
@@ -721,6 +721,27 @@ static void xl6CgenArrayVarargExpr(XL6_CgenContext* ctx, const XL6_AstNode* args
     xl6OutputPutc(')', ctx->out);
 }
 
+static void xl6CgenPrintArrayArgsExpr(XL6_CgenContext* ctx, const XL6_AstNode* args)
+{
+    size_t i;
+    int count;
+
+    count = xl6CgenArrayVarargCount(args, 0);
+    xl6OutputPrintf(ctx->out, "xl6_xrt_array_varargs(%d", count);
+    if ( args != NULL ) {
+        for ( i = 0; i < args->childCount; ++i ) {
+            const XL6_AstNode* arg = args->children[i];
+
+            if ( arg == NULL || arg->kind == XL6_AST_NAMED_ARG ) {
+                continue;
+            }
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenPrintXValueFromExpr(ctx, xl6CgenArgExpr(arg));
+        }
+    }
+    xl6OutputPutc(')', ctx->out);
+}
+
 static int xl6CgenDictVarargCount(const XL6_AstNode* params, const XL6_AstNode* args, int fixedCount)
 {
     size_t i;
@@ -831,8 +852,10 @@ static void xl6CgenStringSourceExpr(XL6_CgenContext* ctx, const XL6_AstNode* tar
 static void xl6CgenFixedTypeArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr)
 {
     XL6_AstNode* canonicalType;
+    XL6_AstNode* classNode;
 
     canonicalType = xl6CgenCloneCanonicalTypeNode(ctx, targetType);
+    classNode = NULL;
 
     if ( canonicalType != NULL &&
          xl6CgenIsTypedContainerType(ctx, canonicalType) &&
@@ -860,6 +883,15 @@ static void xl6CgenFixedTypeArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* tar
         return;
     }
     if ( xl6CgenFixedParamXValueConvertArgExpr(ctx, canonicalType, expr) ) {
+        xl6AstFree(canonicalType);
+        return;
+    }
+    classNode = xl6CgenClassNodeForType(ctx, canonicalType);
+    if ( classNode != NULL && !xl6CgenClassIsPureNativeHandle(classNode) ) {
+        /* managed class 形参持有独立引用，被调函数退出时会释放这一份所有权。 */
+        xl6OutputPuts("xl6_xrt_retain(", ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPutc(')', ctx->out);
         xl6AstFree(canonicalType);
         return;
     }

@@ -1,0 +1,13 @@
+func(int) as int inc = func(int value) as int => value + 1
+
+func twice(int x) as int
+    return x * 2
+end
+
+func(int) as int namedFn = twice
+
+assert inc(41) == 42, "top-level typed anonymous func value"
+assert namedFn(21) == 42, "top-level typed named func value"
+assert inc(0) + namedFn(1) == 3, "combined calls"
+
+println("cgen_toplevel_typed_func_value ok")

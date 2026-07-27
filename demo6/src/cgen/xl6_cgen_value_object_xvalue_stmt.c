@@ -270,6 +270,10 @@ static void xl6CgenXValueAssignStmt(
     if ( xl6CgenTrySpecialXValueAssignStmt(ctx, targetType, valueName, valueExpr) ) {
         return;
     }
+    if ( valueExpr != NULL && valueExpr->kind == XL6_AST_CALL &&
+         xl6CgenDeclEmitXValueCallExprWithArgTemps(ctx, targetType, valueExpr, valueName) ) {
+        return;
+    }
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s = ", valueName);
     xl6CgenXValueFromExprForTarget(ctx, targetType, valueExpr);

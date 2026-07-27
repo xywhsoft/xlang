@@ -1495,13 +1495,13 @@ else_opt(A) ::= KW_ELSE need_sep block(B). {
     A = B;
 }
 
-while_stmt(A) ::= KW_WHILE(W) expr(C) KW_DO need_sep block(B) KW_END. {
+while_stmt(A) ::= KW_WHILE(W) expr(C) need_sep block(B) KW_END. {
     A = xl6AstNew(XL6_AST_WHILE, &W);
     xl6AstAddChild(A, C);
     xl6AstAddChild(A, B);
 }
 
-do_while_stmt(A) ::= KW_DO(D) need_sep block(B) KW_WHILE expr(C) need_sep. {
+do_while_stmt(A) ::= KW_DO(D) need_sep block(B) POST_WHILE expr(C) KW_END need_sep. {
     A = xl6AstNew(XL6_AST_DO_WHILE, &D);
     xl6AstAddChild(A, B);
     xl6AstAddChild(A, C);

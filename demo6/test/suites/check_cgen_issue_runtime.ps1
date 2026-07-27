@@ -144,7 +144,25 @@ try {
     }
 }
 finally {
-    [System.IO.File]::Copy($runtimeHeaderBackup, $runtimeHeader, $true)
+    # 子进程退出后的短暂文件映射由有限重试吸收。
+    $restored = $false
+    $restoreError = $null
+    for ($attempt = 0; ($attempt -lt 30) -and (-not $restored); $attempt += 1) {
+        try {
+            [System.IO.File]::Copy($runtimeHeaderBackup, $runtimeHeader, $true)
+            $restored = $true
+        }
+        catch {
+            $restoreError = $_
+            Start-Sleep -Milliseconds 100
+        }
+    }
+    if (-not $restored) {
+        throw $restoreError
+    }
+    if ((Get-Item -LiteralPath $runtimeHeader).Length -ne (Get-Item -LiteralPath $runtimeHeaderBackup).Length) {
+        throw "xl_runtime.h restore verification failed"
+    }
 }
 if (-not $pollutionOk) {
     Write-Host "xl_runtime private VFS include pollution guard failed"

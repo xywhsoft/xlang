@@ -28,32 +28,32 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_in_containers.xl --emit build\test\cgen_in_containers.c
 if errorlevel 1 exit /b 1
-findstr /C:"xrtFindStr(text, 0, \"pha\", 0, false) != 0" build\test\cgen_in_containers.c >nul
+findstr /C:"xrtFindStr(__xl6_user_global_text, 0, \"pha\", 0, false) != 0" build\test\cgen_in_containers.c >nul
 if errorlevel 1 (
     echo cgen_in_containers.c missing string in lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_contains_value_release(values" build\test\cgen_in_containers.c >nul
+findstr /C:"xl6_xrt_typed_array_contains_value_release(__xl6_user_global_values" build\test\cgen_in_containers.c >nul
 if errorlevel 1 (
     echo cgen_in_containers.c missing typed array in lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_list_contains_value_release(sparse" build\test\cgen_in_containers.c >nul
+findstr /C:"xl6_xrt_typed_list_contains_value_release(__xl6_user_global_sparse" build\test\cgen_in_containers.c >nul
 if errorlevel 1 (
     echo cgen_in_containers.c missing typed list in lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_set_contains_value_release(unique" build\test\cgen_in_containers.c >nul
+findstr /C:"xl6_xrt_typed_set_contains_value_release(__xl6_user_global_unique" build\test\cgen_in_containers.c >nul
 if errorlevel 1 (
     echo cgen_in_containers.c missing typed set in lowering.
     exit /b 1
 )
-findstr /C:"xrtTypedDictExists(table, \"a\", 0)" build\test\cgen_in_containers.c >nul
+findstr /C:"xrtTypedDictExists(__xl6_user_global_table, \"a\", 0)" build\test\cgen_in_containers.c >nul
 if errorlevel 1 (
     echo cgen_in_containers.c missing typed dict in lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_value_contains(dynArray" build\test\cgen_in_containers.c >nul
+findstr /C:"xl6_xrt_value_contains(__xl6_user_global_dynArray" build\test\cgen_in_containers.c >nul
 if errorlevel 1 (
     echo cgen_in_containers.c missing dynamic var in lowering.
     exit /b 1
@@ -199,12 +199,12 @@ if errorlevel 1 (
     echo cgen_approx.c missing xrtIntApprox prototype.
     exit /b 1
 )
-findstr /C:"expect_i64(xrtIntApprox(a, b), 1LL);" build\test\cgen_approx.c >nul
+findstr /C:"expect_i64(xrtIntApprox(__xl6_user_global_a, __xl6_user_global_b), 1LL);" build\test\cgen_approx.c >nul
 if errorlevel 1 (
     echo cgen_approx.c missing int approx call.
     exit /b 1
 )
-findstr /C:"expect_i64(xrtNumApprox(x, y), 1LL);" build\test\cgen_approx.c >nul
+findstr /C:"expect_i64(xrtNumApprox(__xl6_user_global_x, __xl6_user_global_y), 1LL);" build\test\cgen_approx.c >nul
 if errorlevel 1 (
     echo cgen_approx.c missing num approx call.
     exit /b 1

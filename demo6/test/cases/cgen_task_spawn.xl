@@ -62,7 +62,7 @@ end
 func sumVariadic(int base, ...) as int
     int total = base
     int i = 0
-    while i < arg.length do
+    while i < arg.length
         total = total + int(arg[i])
         i = i + 1
     end
@@ -73,7 +73,7 @@ func slowSumVariadic(int base, ...) as int
     time.sleep(250)
     int total = base
     int i = 0
-    while i < arg.length do
+    while i < arg.length
         total = total + int(arg[i])
         i = i + 1
     end
@@ -1434,7 +1434,7 @@ if await task.spawn(varArgJob, true ? makeSpawnValue(1) : makeSpawnValue(0)) == 
 end
 assert conditionDynamicSpawnCount == 1, "task.spawn dynamic var argument should lower inside if conditions"
 int whileDynamicSpawnCount = 0
-while await task.spawn(varArgJob, true ? makeSpawnValue(0) : makeSpawnValue(9)) == 1 do
+while await task.spawn(varArgJob, true ? makeSpawnValue(0) : makeSpawnValue(9)) == 1
     whileDynamicSpawnCount = whileDynamicSpawnCount + 1
     if whileDynamicSpawnCount >= 2 then
         break
@@ -1444,7 +1444,7 @@ assert whileDynamicSpawnCount == 2, "task.spawn dynamic var argument should lowe
 int doDynamicSpawnCount = 0
 do
     doDynamicSpawnCount = doDynamicSpawnCount + 1
-while doDynamicSpawnCount < 2 and await task.spawn(varArgJob, makeSpawnValue(0) + makeSpawnValue(0)) == 1
+while doDynamicSpawnCount < 2 and await task.spawn(varArgJob, makeSpawnValue(0) + makeSpawnValue(0)) == 1 end
 assert doDynamicSpawnCount == 2, "task.spawn dynamic var argument should lower inside do while conditions"
 int rangeDynamicSpawnTotal = 0
 for i in range(

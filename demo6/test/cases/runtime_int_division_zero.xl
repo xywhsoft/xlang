@@ -1,0 +1,38 @@
+int caught = 0
+
+try
+    int a = 10
+    int b = 0
+    int c = a / b
+    println(c)
+catch e
+    assert e.kind == "ZeroDivisionError", "division by zero kind"
+    assert e.message == "integer division by zero", "division by zero message"
+    assert e.line > 0, "division by zero line"
+    caught += 1
+end
+
+try
+    int a = 10
+    int b = 0
+    int c = a % b
+    println(c)
+catch e
+    assert e.kind == "ZeroDivisionError", "modulo by zero kind"
+    assert e.message == "integer modulo by zero", "modulo by zero message"
+    caught += 1
+end
+
+try
+    int m = -9223372036854775808
+    int n = -1
+    println(m / n)
+catch e
+    assert e.kind == "OverflowError", "division overflow kind"
+    assert e.message == "integer division overflow", "division overflow message"
+    caught += 1
+end
+
+assert caught == 3, "all three integer division faults catchable"
+println("after")
+println("runtime_int_division_zero ok")

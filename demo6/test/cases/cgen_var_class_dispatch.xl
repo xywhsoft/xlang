@@ -1,0 +1,34 @@
+class DispatchBase
+    virtual func value() as int
+        return 1
+    end
+
+    virtual get label() as string
+        return "base"
+    end
+end
+
+class DispatchChild extends DispatchBase
+    override func value() as int
+        return 42
+    end
+
+    override get label() as string
+        return "child"
+    end
+end
+
+func verifyDispatch()
+    var boxed = DispatchChild()
+    var methodValue = boxed.value()
+    var propertyValue = boxed.label
+
+    assert int(methodValue) == 42, "var boxed class virtual method dispatch"
+    assert string(propertyValue) == "child", "var boxed class virtual property dispatch"
+
+    DispatchBase base = boxed as DispatchBase
+    assert base.value() == 42, "var boxed class cast keeps dynamic dispatch"
+end
+
+verifyDispatch()
+println("cgen_var_class_dispatch ok")

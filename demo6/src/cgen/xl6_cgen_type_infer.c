@@ -428,6 +428,14 @@ static XL6_AstNode* xl6CgenCloneClassMethodCallType(XL6_CgenContext* ctx, const 
     if ( receiver != NULL && receiver->kind == XL6_AST_NAME &&
          xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
         classNode = (XL6_AstNode*)ctx->currentClass;
+    } else if ( receiver != NULL && receiver->kind == XL6_AST_NAME &&
+                xl6CTextEquals(receiver->text, "base") && ctx->currentClass != NULL ) {
+        const XL6_AstNode* baseType = ctx->currentClass->childCount > 0
+            ? ctx->currentClass->children[0]
+            : NULL;
+
+        classNode = xl6CgenBaseClass(ctx, ctx->currentClass);
+        receiverType = xl6CgenCloneCanonicalTypeNode(ctx, baseType);
     } else {
         receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
         {
@@ -510,6 +518,12 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInferenceRaw(XL6_CgenContext* ctx, co
         return expr->childCount > 1 ? xl6CgenCloneTypeNode(expr->children[1]) : NULL;
     case XL6_AST_NAME:
         varType = xl6CgenFindVarType(ctx, expr->text);
+        if ( varType != NULL && xl6CgenIsXValueType(varType) ) {
+            const XL6_AstNode* narrowType = xl6CgenFindVarNarrowType(ctx, expr->text);
+            if ( narrowType != NULL ) {
+                return xl6CgenCloneCanonicalTypeNode(ctx, narrowType);
+            }
+        }
         if ( varType != NULL && !xl6CTextEquals(varType->text, "auto") ) {
             /*
                 泛型函数和泛型类的局部类型表保存声明形态，例如 T、array<T>。
@@ -760,7 +774,8 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInferenceRaw(XL6_CgenContext* ctx, co
             }
             return NULL;
         }
-        if ( xl6CgenIsXValueType(receiverType) ) {
+        if ( xl6CgenIsXValueType(receiverType) &&
+             xl6CgenClassHandleTargetType(ctx, receiverType) == NULL ) {
             int isLength = expr->text != NULL && xl6CTextEquals(expr->text, "length");
             int isDynamicKey = xl6CgenMemberKeyReceiverIsDynamic(ctx, receiverType);
             xl6AstFree(receiverType);
@@ -787,7 +802,8 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInferenceRaw(XL6_CgenContext* ctx, co
         return NULL;
     case XL6_AST_SAFE_MEMBER:
         receiverType = expr->childCount > 0 ? xl6CgenCloneExprTypeForInference(ctx, expr->children[0]) : NULL;
-        if ( xl6CgenIsXValueType(receiverType) ) {
+        if ( xl6CgenIsXValueType(receiverType) &&
+             xl6CgenClassHandleTargetType(ctx, receiverType) == NULL ) {
             int isLength = expr->text != NULL && xl6CTextEquals(expr->text, "length");
             int isAllowed = isLength || xl6CgenMemberKeyReceiverIsDynamic(ctx, receiverType);
             xl6AstFree(receiverType);
@@ -923,7 +939,8 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInferenceRaw(XL6_CgenContext* ctx, co
                                         xl6CTextEquals(callee->text, "reserve") ||
                                         xl6CTextEquals(callee->text, "swap") ||
                                         xl6CTextEquals(callee->text, "add") ||
-                                        xl6CTextEquals(callee->text, "contains");
+                                        xl6CTextEquals(callee->text, "contains") ||
+                                        xl6CTextEquals(callee->text, "indexOf");
                 } else if ( isArray ) {
                     isContainerMethod = xl6CTextEquals(callee->text, "push") ||
                                         xl6CTextEquals(callee->text, "append") ||
@@ -936,10 +953,10 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInferenceRaw(XL6_CgenContext* ctx, co
                                         xl6CTextEquals(callee->text, "reserve") ||
                                         xl6CTextEquals(callee->text, "swap") ||
                                         xl6CTextEquals(callee->text, "contains") ||
+                                        xl6CTextEquals(callee->text, "indexOf") ||
                                         (typedContainer != NULL &&
                                          xl6CTextEquals(typedContainer->text, "array") &&
-                                         (xl6CTextEquals(callee->text, "indexOf") ||
-                                          xl6CTextEquals(callee->text, "reverse")));
+                                         xl6CTextEquals(callee->text, "reverse"));
                 } else if ( isList ) {
                     isContainerMethod = xl6CTextEquals(callee->text, "remove") ||
                                         xl6CTextEquals(callee->text, "take") ||

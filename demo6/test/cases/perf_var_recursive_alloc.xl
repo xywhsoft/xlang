@@ -25,7 +25,7 @@ func main(...) as int
     int result = 0
     int index = 0
 
-    while index < repeats do
+    while index < repeats
         if mode == "array" then
             result = fibArray(n, null)
         else

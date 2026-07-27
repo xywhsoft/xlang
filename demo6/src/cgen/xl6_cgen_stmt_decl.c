@@ -20,6 +20,12 @@ static int xl6CgenDeclTryXValueConditionalInit(
     const XL6_AstNode* typeNode,
     const char* cName,
     const XL6_AstNode* initExpr);
+static int xl6CgenDeclTryStaticXValueScalarInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cType,
+    const char* cName,
+    const XL6_AstNode* initExpr);
 static int xl6CgenDeclTryXValueExprInit(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode,
@@ -188,12 +194,18 @@ static int xl6CgenDeclTryXValueBinaryInit(
         xl6CgenDeclEmitXValueExprInit(ctx, typeNode, rightName, right);
     }
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out,
-                    "%s = xl6_xrt_basic_binary(__xl6_bin_left_%d, __xl6_bin_right_%d, %d);\n",
-                    cName,
-                    id,
-                    id,
-                    xl6CgenXValueBinaryMode(initExpr->text));
+    {
+        int mode = xl6CgenXValueBinaryMode(initExpr->text);
+        if ( mode == 3 || mode == 4 || mode == 8 || mode == 9 ) {
+            xl6OutputPrintf(ctx->out,
+                            "%s = xl6_xrt_basic_binary_checked(__xl6_bin_left_%d, __xl6_bin_right_%d, %d, %d, %d);\n",
+                            cName, id, id, mode, initExpr->line, initExpr->column);
+        } else {
+            xl6OutputPrintf(ctx->out,
+                            "%s = xl6_xrt_basic_binary(__xl6_bin_left_%d, __xl6_bin_right_%d, %d);\n",
+                            cName, id, id, mode);
+        }
+    }
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (__xl6_bin_left_%d != 0) {\n", id);
     ctx->indent += 1;
@@ -279,6 +291,27 @@ static int xl6CgenDeclStaticBoolLikeType(const XL6_AstNode* typeNode)
            xl6CTextEquals(name, "uint32") ||
            xl6CTextEquals(name, "int64") ||
            xl6CTextEquals(name, "uint64");
+}
+
+static int xl6CgenDeclTryStaticXValueScalarInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cType,
+    const char* cName,
+    const XL6_AstNode* initExpr)
+{
+    if ( ctx == NULL || typeNode == NULL || cType == NULL || cName == NULL ||
+         !xl6CgenStaticScalarXValueExpr(ctx, typeNode, initExpr) ) {
+        return 0;
+    }
+
+    xl6OutputPrintf(ctx->out, "%s %s = ", cType, cName);
+    if ( !xl6CgenStaticScalarFromXValueExpr(ctx, typeNode, initExpr) ) {
+        xl6CgenError(ctx, initExpr, "xvalue scalar initializer lowering failed");
+        xl6CgenDefaultValue(ctx, typeNode);
+    }
+    xl6OutputPuts(";\n", ctx->out);
+    return 1;
 }
 
 static int xl6CgenDeclTryStaticXValueCompareInit(

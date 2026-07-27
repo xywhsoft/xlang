@@ -129,6 +129,9 @@ for value in prefixedArray
     prefixedArraySum = prefixedArraySum + int(value)
 end
 expect(prefixedArraySum, 19)
+expect(prefixedArray.indexOf(9), 0)
+expect(prefixedArray.indexOf(10), 1)
+expect(prefixedArray.indexOf(99), -1)
 
 int prefixedListIndexSum = 0
 string prefixedListLast = ""

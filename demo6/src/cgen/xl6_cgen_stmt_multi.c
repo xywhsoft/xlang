@@ -513,7 +513,7 @@ static void xl6CgenMultiDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenReleaseReturnedValuePath(ctx, typeNode, valuePath);
             continue;
         }
-        xl6CgenCIdentText(cName, sizeof(cName), name->text);
+        xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), name->text);
         xl6CgenIndent(ctx);
         xl6OutputPuts(xl6CgenValueStorageCType(ctx, typeNode), ctx->out);
         xl6OutputPrintf(ctx->out, " %s = ", cName);
@@ -714,7 +714,7 @@ static void xl6CgenMultiAssign(XL6_CgenContext* ctx, const XL6_AstNode* node)
             continue;
         }
         if ( target->kind == XL6_AST_NAME && xl6CgenIsXValueType(xl6CgenFindVarType(ctx, target->text)) ) {
-            xl6CgenCIdentText(cName, sizeof(cName), target->text);
+            xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), target->text);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", cName);
             ctx->indent += 1;
@@ -732,7 +732,7 @@ static void xl6CgenMultiAssign(XL6_CgenContext* ctx, const XL6_AstNode* node)
             unsigned int targetFlags = xl6CgenFindTrackedVarFlags(ctx, target->text);
             int targetBorrowed = (targetFlags & XL6_CGEN_VAR_BORROWED) != 0;
 
-            xl6CgenCIdentText(cName, sizeof(cName), target->text);
+            xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), target->text);
             if ( targetBorrowed ) {
                 char ownerName[512];
 
@@ -760,14 +760,14 @@ static void xl6CgenMultiAssign(XL6_CgenContext* ctx, const XL6_AstNode* node)
             continue;
         }
         if ( target->kind == XL6_AST_NAME && xl6CgenIsFunctionType(xl6CgenFindVarType(ctx, target->text)) ) {
-            xl6CgenCIdentText(cName, sizeof(cName), target->text);
+            xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), target->text);
             xl6CgenReleaseFunctionValue(ctx, target->text);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s = __xl6_multi_%d.value%u;\n", cName, id, (unsigned)i);
             continue;
         }
         if ( target->kind == XL6_AST_NAME && xl6CgenClassTypeNeedsFunctionFieldCleanup(ctx, xl6CgenFindVarType(ctx, target->text)) ) {
-            xl6CgenCIdentText(cName, sizeof(cName), target->text);
+            xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), target->text);
             xl6CgenReleaseClassFunctionFieldsForType(ctx, xl6CgenFindVarType(ctx, target->text), cName);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s = __xl6_multi_%d.value%u;\n", cName, id, (unsigned)i);

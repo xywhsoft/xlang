@@ -11,7 +11,7 @@ static int xl6CgenSimpleAssignTargetPath(XL6_CgenContext* ctx, const XL6_AstNode
         if ( xl6CgenImplicitSelfFieldPath(ctx, left->text, buffer, capacity) ) {
             return 1;
         }
-        xl6CgenCIdentText(buffer, capacity, left->text);
+        xl6CgenValueStorageNameText(ctx, buffer, capacity, left->text);
         return 1;
     }
     if ( left->kind != XL6_AST_MEMBER || left->childCount == 0 || left->children[0] == NULL ) {
@@ -25,7 +25,7 @@ static int xl6CgenSimpleAssignTargetPath(XL6_CgenContext* ctx, const XL6_AstNode
             return written > 0 && (size_t)written < capacity;
         }
 
-        xl6CgenCIdentText(receiver, sizeof(receiver), left->children[0]->text);
+        xl6CgenValueStorageNameText(ctx, receiver, sizeof(receiver), left->children[0]->text);
         written = snprintf(buffer, capacity, "%s.%s", receiver, field);
         return written > 0 && (size_t)written < capacity;
     }

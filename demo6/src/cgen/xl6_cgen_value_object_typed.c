@@ -1,5 +1,48 @@
 static void xl6CgenXValueFromExprForTarget(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr)
 {
+    if ( xl6CgenClassHandleTargetType(ctx, targetType) != NULL && expr != NULL ) {
+        XL6_AstNode* ctorClass = NULL;
+        XL6_AstNode* genericCtorType = NULL;
+        size_t replacementIndex;
+        int isCtor = xl6CgenCallIsClassCtor(ctx, expr, &ctorClass);
+
+        if ( !isCtor ) {
+            genericCtorType = xl6CgenGenericClassCtorType(ctx, expr, &ctorClass);
+            isCtor = genericCtorType != NULL && ctorClass != NULL;
+        }
+        if ( !isCtor ) {
+            for ( replacementIndex = 0; replacementIndex < ctx->exprReplacementCount; ++replacementIndex ) {
+                const XL6_CgenExprReplacement* replacement = &ctx->exprReplacements[replacementIndex];
+                if ( replacement->expr == expr && replacement->cName != NULL &&
+                     (replacement->flags & XL6_CGEN_EXPR_REPLACEMENT_XVALUE) != 0 ) {
+                    /* 语句级 class 临时量仍由外层清理，当前目标必须取得独立引用。 */
+                    xl6OutputPuts("xl6_xrt_retain(", ctx->out);
+                    xl6CgenExpr(ctx, expr);
+                    xl6OutputPutc(')', ctx->out);
+                    xl6AstFree(genericCtorType);
+                    return;
+                }
+            }
+            /*
+                普通 class 的 C 存储就是 xvalue 句柄。self 已在表达式层返回共享引用，
+                具名变量和字段则是借用值；二者都不能再次按透明结构体装箱。
+            */
+            if ( expr->kind != XL6_AST_NAME || !xl6CTextEquals(expr->text, "self") ) {
+                if ( xl6CgenExprIsXValueBorrow(ctx, expr) ) {
+                    xl6OutputPuts("xl6_xrt_retain(", ctx->out);
+                    xl6CgenExpr(ctx, expr);
+                    xl6OutputPutc(')', ctx->out);
+                } else {
+                    xl6CgenExpr(ctx, expr);
+                }
+            } else {
+                xl6CgenExpr(ctx, expr);
+            }
+            xl6AstFree(genericCtorType);
+            return;
+        }
+        xl6AstFree(genericCtorType);
+    }
     if ( xl6CgenIsRuntimeContainerTypeDesc(ctx, targetType) ) {
         xl6OutputPuts("xl6_xrt_bind_type(", ctx->out);
         xl6CgenXValueFromExpr(ctx, expr);
@@ -96,6 +139,33 @@ static void xl6CgenTypedContainerRetainExpr(
         return;
     }
     xl6CgenExpr(ctx, expr);
+    xl6OutputPutc(')', ctx->out);
+}
+
+static void xl6CgenTypedContainerRetainCExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cExpr)
+{
+    const XL6_AstNode* concreteType;
+    const char* typeName;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    if ( xl6CTextEquals(typeName, "array") ) {
+        xl6OutputPuts("xrtTypedArrayRetain(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "list") ) {
+        xl6OutputPuts("xrtTypedListRetain(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "set") ) {
+        xl6OutputPuts("xrtTypedSetRetain(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "dict") ) {
+        xl6OutputPuts("xrtTypedDictRetain(", ctx->out);
+    } else {
+        xl6CgenError(ctx, typeNode, "typed container retain requires array/list/set/dict");
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+    xl6OutputPuts(cExpr != NULL ? cExpr : "0", ctx->out);
     xl6OutputPutc(')', ctx->out);
 }
 

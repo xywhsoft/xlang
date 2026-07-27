@@ -55,7 +55,7 @@ static void xl6CgenIntLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         ++p;
     }
 
-    xl6OutputPrintf(ctx->out, "%lluLL", value);
+    xl6OutputPrintf(ctx->out, value > LLONG_MAX ? "%lluULL" : "%lluLL", value);
 }
 
 static void xl6CgenFloatLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
@@ -557,11 +557,11 @@ static void xl6CgenFunctionValueCName(XL6_CgenContext* ctx, const char* name, ch
     if ( cName == NULL || cNameSize == 0 ) {
         return;
     }
-    xl6CgenCIdentText(baseName, sizeof(baseName), name);
     if ( xl6CgenAnonCaptureIndex(ctx->currentAnonFunc, name) >= 0 ) {
+        xl6CgenCIdentText(baseName, sizeof(baseName), name);
         snprintf(cName, cNameSize, "__env->%s", baseName);
     } else {
-        snprintf(cName, cNameSize, "%s", baseName);
+        xl6CgenValueStorageNameText(ctx, cName, cNameSize, name);
     }
 }
 
@@ -1040,7 +1040,7 @@ static void xl6CgenVarFunctionInvoke(XL6_CgenContext* ctx, const char* name, con
     int positionalCount;
     char cName[512];
 
-    xl6CgenCIdentText(cName, sizeof(cName), name);
+    xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), name);
     namedCount = xl6CgenFunctionValueDictVarargCount(args);
     positionalCount = xl6CgenFunctionValuePositionalArgCount(args);
     if ( namedCount > 0 ) {

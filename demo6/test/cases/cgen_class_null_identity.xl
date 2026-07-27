@@ -16,3 +16,18 @@ assert null == empty
 assert first != null
 assert first == alias
 assert first != second
+
+func verifyLocalIdentity()
+    RefIdentity localEmpty = null
+    RefIdentity localFirst = RefIdentity(2)
+    RefIdentity localAlias = localFirst
+    RefIdentity localSecond = RefIdentity(2)
+
+    assert localEmpty == null
+    assert null == localEmpty
+    assert localFirst != null
+    assert localFirst == localAlias
+    assert localFirst != localSecond
+end
+
+verifyLocalIdentity()

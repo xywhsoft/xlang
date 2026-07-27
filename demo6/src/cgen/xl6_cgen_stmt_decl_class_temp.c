@@ -39,6 +39,8 @@ static void xl6CgenDeclDestroyTemporaryClassValue(XL6_CgenContext* ctx, const XL
     xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", tempName, tempName, tempName);
 }
 
+static int xl6CgenDeclExprHasReplacement(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+
 typedef struct XL6_CgenDeclClassArgTemp {
     int active;
     int isConstructor;
@@ -92,6 +94,11 @@ static int xl6CgenDeclPrepareClassArgTemp(
     temp->classNode = NULL;
     temp->valueName[0] = '\0';
     temp->functionName[0] = '\0';
+
+    /* 外层已经物化的表达式必须直接复用，禁止 class 专用路径再次求值。 */
+    if ( xl6CgenDeclExprHasReplacement(ctx, expr) ) {
+        return 0;
+    }
 
     functionType = xl6CgenCloneMemberFunctionCallTypeForStatementInvoke(ctx, expr);
     returnCanonical = NULL;

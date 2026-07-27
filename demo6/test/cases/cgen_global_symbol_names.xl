@@ -1,0 +1,18 @@
+int value = 1
+int list = 2
+int dict = 3
+int node = 4
+int ctx = 5
+int data = 6
+int result = 7
+int buffer = 8
+point ptr = null
+
+assert value + list + dict + node == 10, "runtime-like global names"
+assert ctx + data + result + buffer == 26, "context-like global names"
+assert ptr == null, "point global named ptr"
+
+int value2 = value * 10
+assert value2 == 10, "derived global init"
+
+println("cgen_global_symbol_names ok")

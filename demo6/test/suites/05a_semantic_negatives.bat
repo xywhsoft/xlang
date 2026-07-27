@@ -571,6 +571,25 @@ if errorlevel 1 (
     exit /b 1
 )
 
+for %%F in (
+    parse_removed_while_do
+    parse_removed_do_while_without_end
+    parse_do_while_split_end
+    parse_do_while_semicolon_end
+    parse_post_while_outside_do
+) do (
+    release\xl.exe check test\cases\%%F.xl >nul 2> build\test\%%F.err.txt
+    if not errorlevel 1 (
+        echo %%F.xl should fail.
+        exit /b 1
+    )
+    findstr /C:"[parse]" build\test\%%F.err.txt >nul
+    if errorlevel 1 (
+        echo %%F.err.txt missing syntax diagnostic.
+        exit /b 1
+    )
+)
+
 release\xl.exe check test\cases\sem_native_class_bad_special.xl >nul 2> build\test\sem_native_class_bad_special.err.txt
 if not errorlevel 1 (
     echo sem_native_class_bad_special.xl should fail.
@@ -685,6 +704,33 @@ findstr /C:"[sem]" build\test\sem_out_capture.err.txt >nul
 if errorlevel 1 (
     echo sem_out_capture.err.txt missing semantic diagnostic.
     exit /b 1
+)
+release\xl.exe check test\cases\sem_int_out_of_range_literal.xl >nul 2> build\test\sem_int_out_of_range_literal.err.txt
+if not errorlevel 1 (
+    echo sem_int_out_of_range_literal.xl should fail.
+    exit /b 1
+)
+findstr /C:"[sem]" build\test\sem_int_out_of_range_literal.err.txt >nul
+if errorlevel 1 (
+    echo sem_int_out_of_range_literal.err.txt missing out-of-range literal diagnostic.
+    exit /b 1
+)
+
+for %%F in (
+    sem_int64_positive_overflow
+    sem_var_int_overflow
+    sem_auto_int_overflow
+) do (
+    release\xl.exe check test\cases\%%F.xl >nul 2> build\test\%%F.err.txt
+    if not errorlevel 1 (
+        echo %%F.xl should fail.
+        exit /b 1
+    )
+    findstr /C:"[sem]" build\test\%%F.err.txt >nul
+    if errorlevel 1 (
+        echo %%F.err.txt missing semantic range diagnostic.
+        exit /b 1
+    )
 )
 
 echo DEMO6 suite ok: semantic negatives

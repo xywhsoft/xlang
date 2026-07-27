@@ -70,7 +70,7 @@ if errorlevel 1 (
     echo cgen_member_function_multi_return.c missing member multi-return struct.
     exit /b 1
 )
-findstr /C:".value0 = xl6_xrt_bind_type(xl6_xrt_retain(box)" build\test\cgen_member_function_multi_return.c >nul
+findstr /C:".value0 = xl6_xrt_retain(box)" build\test\cgen_member_function_multi_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_multi_return.c missing class handle return retain.
     exit /b 1
@@ -90,12 +90,12 @@ if not errorlevel 1 (
     echo cgen_member_function_multi_return.c should not retain function fields for multi-return rvalue assignment.
     exit /b 1
 )
-findstr /C:"if (assignedBox != 0)" build\test\cgen_member_function_multi_return.c >nul
+findstr /C:"if (__xl6_user_global_assignedBox != 0)" build\test\cgen_member_function_multi_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_multi_return.c missing previous class handle release before multi-assignment.
     exit /b 1
 )
-findstr /C:"assignedOp.release != 0" build\test\cgen_member_function_multi_return.c >nul
+findstr /C:"__xl6_user_global_assignedOp.release != 0" build\test\cgen_member_function_multi_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_multi_return.c missing function multi-assignment release.
     exit /b 1
@@ -167,42 +167,42 @@ if not errorlevel 1 (
     echo cgen_member_function_class_return.c should not use GNU statement expressions for class-return member function calls.
     exit /b 1
 )
-findstr /C:"madeText = xrtCopyStr(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"madeText = xrtCopyStr(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(__xl6_user_global_textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing string-return member function declaration conversion.
     exit /b 1
 )
-findstr /C:"textArgValue = xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"textArgValue = xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(__xl6_user_global_textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing string-return member function call argument conversion.
     exit /b 1
 )
-findstr /C:"textNestedValue = (xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"textNestedValue = (xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(__xl6_user_global_textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing nested string-return member function argument conversion.
     exit /b 1
 )
-findstr /C:"textTwoArgValue = xl_fn_joinTextScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"textTwoArgValue = xl_fn_joinTextScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(__xl6_user_global_textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing two string-return member function argument conversions.
     exit /b 1
 )
-findstr /C:"namedTextArgValue = xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"namedTextArgValue = xl_fn_textScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(__xl6_user_global_textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing named string-return member function argument conversion.
     exit /b 1
 )
-findstr /C:"namedTextTwoArgValue = xl_fn_joinTextScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"namedTextTwoArgValue = xl_fn_joinTextScore(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(__xl6_user_global_textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing reordered named string-return member function argument conversions.
     exit /b 1
 )
-findstr /C:"expect_i64(namedTextTwoArgValue, 22LL)" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"expect_i64(__xl6_user_global_namedTextTwoArgValue, 22LL)" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing named string-return member function runtime assertion.
     exit /b 1
 )
-findstr /C:"xrtCopyStr(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(textMaker" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"xrtCopyStr(xl6_xvalue_to_string_release(xl6_function_call_var((*((XL_Class_TextMaker*)xl6_class_data(__xl6_user_global_textMaker" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing discarded string-return member function conversion.
     exit /b 1
@@ -247,17 +247,17 @@ if errorlevel 1 (
     echo cgen_member_function_class_return.c missing expression-statement class argument call.
     exit /b 1
 )
-findstr /C:"nestedArgumentValue = (xl_fn_readPayload(xl6_xrt_bind_type(xl6_xrt_retain(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"nestedArgumentValue = (xl_fn_readPayload(xl6_xrt_retain(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing nested expression class argument temporary.
     exit /b 1
 )
-findstr /C:"expect_i64(nestedArgumentValue, 91LL)" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"expect_i64(__xl6_user_global_nestedArgumentValue, 91LL)" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing nested expression class argument expectation.
     exit /b 1
 )
-findstr /C:"expect_i64((xl_fn_readPayload(xl6_xrt_bind_type(xl6_xrt_retain(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"expect_i64((xl_fn_readPayload(xl6_xrt_retain(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing extern nested expression class argument temporary.
     exit /b 1
@@ -272,7 +272,7 @@ if errorlevel 1 (
     echo cgen_member_function_class_return.c missing extern two temporary class arguments with reverse cleanup.
     exit /b 1
 )
-findstr /C:"namedArgumentValue = xl_fn_readPayload(xl6_xrt_bind_type(xl6_xrt_retain(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
+findstr /C:"namedArgumentValue = xl_fn_readPayload(xl6_xrt_retain(__xl6_class_arg_" build\test\cgen_member_function_class_return.c >nul
 if errorlevel 1 (
     echo cgen_member_function_class_return.c missing named class argument temporary.
     exit /b 1
@@ -351,7 +351,7 @@ if errorlevel 1 (
     echo cgen_function_default.c missing function runtime.
     exit /b 1
 )
-findstr /C:"XL6_Function fn;" build\test\cgen_function_default.c >nul
+findstr /C:"XL6_Function __xl6_user_global_fn;" build\test\cgen_function_default.c >nul
 if errorlevel 1 (
     echo cgen_function_default.c missing function default init.
     exit /b 1

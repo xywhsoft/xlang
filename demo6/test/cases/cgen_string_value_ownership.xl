@@ -2,7 +2,7 @@ string globalText = "global"
 
 func rewrite(string text) as string
     int index = 0
-    while index < 3 do
+    while index < 3
         text = text + string(index)
         index += 1
     end
@@ -23,10 +23,35 @@ end
 func labels() as generator<string>
     string value = ""
     int index = 0
-    while index < 3 do
+    while index < 3
         value = "g" + string(index)
         yield value
         index += 1
+    end
+end
+
+func makeLastPicker() as func(array<string>) as string
+    return func(array<string> items) as string
+        string result = ""
+        int index = 0
+        while index < items.length
+            result = items[index]
+            index += 1
+        end
+        return result
+    end
+end
+
+class TextBuilder
+    string text = ""
+
+    func add(string value) as TextBuilder
+        self.text += value
+        return self
+    end
+
+    func get() as string
+        return self.text
     end
 end
 
@@ -44,6 +69,14 @@ func(string) as string append = makeAppender()
 assert append("A") == "prefix-A"
 assert append("B") == "prefix-B"
 
+array<string> pickerValues = array["first", "second", "third"]
+func(array<string>) as string pickLast = makeLastPicker()
+assert pickLast(pickerValues) == "third", "function value string result must outlive typed argument temporaries"
+
+TextBuilder builder = TextBuilder()
+string builtText = builder.add("left").add("-right").get()
+assert builtText == "left-right", "string result must outlive temporary class receiver scopes"
+
 string generated = ""
 for part in labels()
     generated += part
@@ -58,7 +91,7 @@ end
 assert keys == "alpha1beta2" or keys == "beta2alpha1"
 
 int whileIndex = 0
-while whileIndex < 2 do
+while whileIndex < 2
     globalText = "while-" + string(whileIndex)
     whileIndex += 1
 end
@@ -66,5 +99,5 @@ assert globalText == "while-1"
 
 do
     globalText = globalText + "-done"
-while false
+while false end
 assert globalText == "while-1-done"

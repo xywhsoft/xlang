@@ -129,7 +129,7 @@ assert(client.perMessageDeflate)
 assert(client.send("hello") == 0)
 
 int waitCount = 0
-while wsClientText == "" and waitCount < 500 do
+while wsClientText == "" and waitCount < 500
     time.sleep(10)
     waitCount = waitCount + 1
 end
@@ -147,7 +147,7 @@ WebSocketWriter textWriter = client.beginText()
 assert(textWriter.write("stream-") == 0)
 assert(textWriter.finish("message") == 0)
 waitCount = 0
-while wsClientText == "" and waitCount < 500 do
+while wsClientText == "" and waitCount < 500
     time.sleep(10)
     waitCount = waitCount + 1
 end
@@ -161,7 +161,7 @@ assert(binaryPayload.appendByte(2))
 assert(binaryPayload.appendByte(255))
 assert(client.send(binaryPayload) == 0)
 waitCount = 0
-while (not wsClientBinary) and waitCount < 500 do
+while (not wsClientBinary) and waitCount < 500
     time.sleep(10)
     waitCount = waitCount + 1
 end
@@ -169,7 +169,7 @@ assert(wsServerBinary)
 assert(wsClientBinary)
 assert(client.ping(binaryPayload) == 0)
 waitCount = 0
-while (not wsClientPong) and waitCount < 500 do
+while (not wsClientPong) and waitCount < 500
     time.sleep(10)
     waitCount = waitCount + 1
 end

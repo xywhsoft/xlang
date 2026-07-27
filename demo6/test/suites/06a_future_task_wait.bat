@@ -19,17 +19,17 @@ if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_future_task_wait.xl --emit build\test\cgen_future_task_wait.c
 if errorlevel 1 exit /b 1
 
-findstr /C:"xFutureWaitTimeout(pending" build\test\cgen_future_task_wait.c >nul
+findstr /C:"xFutureWaitTimeout(__xl6_user_global_pending" build\test\cgen_future_task_wait.c >nul
 if errorlevel 1 (
     echo cgen_future_task_wait.c missing future.waitTimeout lowering.
     exit /b 1
 )
-findstr /C:"xl6_future_error_text(failed)" build\test\cgen_future_task_wait.c >nul
+findstr /C:"xl6_future_error_text(__xl6_user_global_failed)" build\test\cgen_future_task_wait.c >nul
 if errorlevel 1 (
     echo cgen_future_task_wait.c missing future.error lowering.
     exit /b 1
 )
-findstr /C:"xl6_task_cancel_value(cancelMe, 0)" build\test\cgen_future_task_wait.c >nul
+findstr /C:"xl6_task_cancel_value(__xl6_user_global_cancelMe, 0)" build\test\cgen_future_task_wait.c >nul
 if errorlevel 1 (
     echo cgen_future_task_wait.c missing borrowed future.cancel lowering.
     exit /b 1
@@ -39,7 +39,7 @@ if errorlevel 1 (
     echo cgen_future_task_wait.c missing task.whenAny literal lowering.
     exit /b 1
 )
-findstr /C:"xl6_task_when_any_from_array((xtarray)(jobs)" build\test\cgen_future_task_wait.c >nul
+findstr /C:"xl6_task_when_any_from_array((xtarray)(__xl6_user_global_jobs)" build\test\cgen_future_task_wait.c >nul
 if errorlevel 1 (
     echo cgen_future_task_wait.c missing task.whenAny typed array lowering.
     exit /b 1

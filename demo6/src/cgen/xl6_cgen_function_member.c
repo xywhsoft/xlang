@@ -267,10 +267,20 @@ static void xl6CgenAnonMakeCall(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     xl6OutputPrintf(ctx->out, "xl6_anon_%d_make(", info->id);
     for ( i = 0; i < info->captureCount; ++i ) {
+        char captureName[512];
+
         if ( i > 0 ) {
             xl6OutputPuts(", ", ctx->out);
         }
-        xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
+        if ( xl6CgenIsTypedContainerType(ctx, info->captures[i].type) ) {
+            xl6OutputPutc('&', ctx->out);
+        }
+        xl6CgenFunctionValueCName(
+            ctx,
+            info->captures[i].name,
+            captureName,
+            sizeof(captureName));
+        xl6OutputPuts(captureName, ctx->out);
     }
     xl6OutputPutc(')', ctx->out);
 }

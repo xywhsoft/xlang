@@ -66,12 +66,12 @@ if errorlevel 1 (
     echo cgen_var_runtime_objects.c missing native-backed class handle type ops.
     exit /b 1
 )
-findstr /C:"xl6_var_call(boxedFn" build\test\cgen_var_runtime_objects.c >nul
+findstr /C:"xl6_var_call(__xl6_user_global_boxedFn" build\test\cgen_var_runtime_objects.c >nul
 if errorlevel 1 (
     echo cgen_var_runtime_objects.c missing dynamic var function call.
     exit /b 1
 )
-findstr /C:"xl6_var_call_kwargs(boxedOptions" build\test\cgen_var_runtime_objects.c >nul
+findstr /C:"xl6_var_call_kwargs(__xl6_user_global_boxedOptions" build\test\cgen_var_runtime_objects.c >nul
 if errorlevel 1 (
     echo cgen_var_runtime_objects.c missing dynamic var kwargs call.
     exit /b 1
@@ -94,4 +94,3 @@ if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: core C generation and runtime baseline 6/10
 exit /b 0
-

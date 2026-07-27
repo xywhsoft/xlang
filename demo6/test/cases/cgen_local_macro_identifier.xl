@@ -1,0 +1,16 @@
+func addPair(int EOF, int x) as int
+    int NULL = 9
+    return EOF + x + NULL
+end
+
+class Box
+    int INT8_MAX = 3
+end
+
+assert addPair(1, 2) == 12, "macro-named local and param"
+Box b = Box()
+assert b.INT8_MAX == 3, "macro-named class field"
+b.INT8_MAX = 4
+assert b.INT8_MAX == 4, "macro-named class field assignment"
+
+println("cgen_local_macro_identifier ok")

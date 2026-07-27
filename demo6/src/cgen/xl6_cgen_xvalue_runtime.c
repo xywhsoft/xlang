@@ -126,6 +126,24 @@ static void xl6CgenEmitTypeConvertRuntime(XL6_Output* out)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return value;\n", out);
     xl6OutputPuts("}\n", out);
+    xl6OutputPuts("\nstatic long long xl6_xrt_f64_to_i64_checked(double value, int bits, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    double limit = bits >= 64 ? 9223372036854775808.0 : (double)(1ULL << (bits - 1));\n", out);
+    xl6OutputPuts("    if ( value != value || value < -limit || value >= limit ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"RangeError\", \"float value is outside integer range\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return (long long)value;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static unsigned long long xl6_xrt_f64_to_u64_checked(double value, int bits, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    double limit = bits >= 64 ? 18446744073709551616.0 : (double)(1ULL << bits);\n", out);
+    xl6OutputPuts("    if ( value != value || value < 0.0 || value >= limit ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"RangeError\", \"float value is outside unsigned integer range\", file, line, column);\n", out);
+    xl6OutputPuts("        return 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return (unsigned long long)value;\n", out);
+    xl6OutputPuts("}\n", out);
     xl6OutputPuts("#endif\n\n", out);
 
     xl6OutputPuts("#ifndef XL6_XRT_TAKE_CSTR_HELPERS\n", out);
@@ -154,6 +172,7 @@ static void xl6CgenEmitTypeConvertRuntime(XL6_Output* out)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return text;\n", out);
     xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("#endif\n\n", out);
 
     xl6OutputPuts("void* xl6_xrt_hex_encode_text(const char* text, size_t size)\n", out);
@@ -176,6 +195,11 @@ static void xl6CgenEmitTypeConvertRuntime(XL6_Output* out)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    memcpy(text, buffer, (size_t)len + 1);\n", out);
     xl6OutputPuts("    return text;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static const char* xl6_xrt_u64_to_string(unsigned long long value)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xl6_xrt_take_cstr((void*)xrtFormat(\"%llu\", value));\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static const char* xl6_xrt_f64_to_string(double value)\n", out);
@@ -204,6 +228,7 @@ static void xl6CgenEmitTypeConvertRuntime(XL6_Output* out)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return text;\n", out);
     xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("#endif\n\n", out);
 
     xl6CgenEmitXValueReleaseConvertHelpers(out);
@@ -338,6 +363,7 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("#define XL6_XRT_TYPE_KIND_RECORD 13u\n", out);
     xl6OutputPuts("#define XL6_XRT_TYPE_KIND_HANDLE 14u\n", out);
     xl6OutputPuts("#define XL6_XRT_TYPE_KIND_CLASS 17u\n", out);
+    xl6OutputPuts("#define XL6_XRT_HANDLE_FLAG_OWNED 0x00000001u\n", out);
     xl6OutputPuts("#define XL6_XRT_HANDLE_FLAG_BORROWED 0x00000002u\n", out);
     xl6OutputPuts("#define XL6_XRT_HANDLE_FLAG_NULLABLE 0x00000004u\n", out);
     xl6OutputPuts("#ifndef XRT_OBJMODE_LOCAL\n", out);
@@ -472,16 +498,21 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("bool xrtTypedArrayRemove(xtarray pArray, unsigned int iPos, unsigned int iCount);\n", out);
     xl6OutputPuts("bool xrtTypedArrayClear(xtarray pArray);\n", out);
     xl6OutputPuts("bool xrtTypedArrayReverse(xtarray pArray);\n", out);
+    xl6OutputPuts("bool xrtTypedArraySwap(xtarray pArray, unsigned int iPosA, unsigned int iPosB);\n", out);
     xl6OutputPuts("long long xrtTypedArrayIndexOfValue(xtarray pArray, xvalue pVal);\n", out);
     xl6OutputPuts("bool xrtTypedArrayContainsValue(xtarray pArray, xvalue pVal);\n", out);
     xl6OutputPuts("unsigned int xrtTypedArrayCount(xtarray pArray);\n", out);
+    xl6OutputPuts("const xrt_type_desc* xrtTypedArrayItemType(xtarray pArray);\n", out);
     xl6OutputPuts("xtlist xrtTypedListCreate(const xrt_type_desc* pItemType, unsigned int iMode);\n", out);
     xl6OutputPuts("void xrtTypedListDestroy(xtlist pList);\n", out);
     xl6OutputPuts("bool xrtTypedListSetValue(xtlist pList, long long iKey, xvalue pVal);\n", out);
     xl6OutputPuts("void* xrtTypedListGet(xtlist pList, long long iKey);\n", out);
     xl6OutputPuts("void* xrtTypedListItemAt(xtlist pList, unsigned int iIndex, long long* pKey);\n", out);
     xl6OutputPuts("bool xrtTypedListRemove(xtlist pList, long long iKey);\n", out);
+    xl6OutputPuts("bool xrtTypedListContainsValue(xtlist pList, xvalue pVal);\n", out);
+    xl6OutputPuts("bool xrtTypedListClear(xtlist pList);\n", out);
     xl6OutputPuts("unsigned int xrtTypedListCount(xtlist pList);\n", out);
+    xl6OutputPuts("const xrt_type_desc* xrtTypedListItemType(xtlist pList);\n", out);
     xl6OutputPuts("xtset xrtTypedSetCreate(const xrt_type_desc* pItemType, unsigned int iMode);\n", out);
     xl6OutputPuts("void xrtTypedSetDestroy(xtset pSet);\n", out);
     xl6OutputPuts("bool xrtTypedSetAddValue(xtset pSet, xvalue pVal);\n", out);
@@ -490,6 +521,9 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("void* xrtTypedSetItemAt(xtset pSet, unsigned int iIndex);\n", out);
     xl6OutputPuts("unsigned int xrtTypedSetCount(xtset pSet);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypedSetItemType(xtset pSet);\n", out);
+    xl6OutputPuts("bool xrtTypedSetExistsValue(xtset pSet, xvalue pVal);\n", out);
+    xl6OutputPuts("bool xrtTypedSetRemoveValue(xtset pSet, xvalue pVal);\n", out);
+    xl6OutputPuts("bool xrtTypedSetClear(xtset pSet);\n", out);
     xl6OutputPuts("xtdict xrtTypedDictCreate(const xrt_type_desc* pItemType, unsigned int iMode);\n", out);
     xl6OutputPuts("void xrtTypedDictDestroy(xtdict pDict);\n", out);
     xl6OutputPuts("bool xrtTypedDictSetValue(xtdict pDict, const void* sKey, unsigned int iKeyLen, xvalue pVal);\n", out);
@@ -498,6 +532,10 @@ static void xl6CgenEmitXValueRuntime(XL6_CgenContext* ctx)
     xl6OutputPuts("unsigned int xrtTypedDictCount(xtdict pDict);\n", out);
     xl6OutputPuts("bool xrtTypedDictExists(xtdict pDict, const void* sKey, unsigned int iKeyLen);\n", out);
     xl6OutputPuts("bool xrtTypedDictRemove(xtdict pDict, const void* sKey, unsigned int iKeyLen);\n", out);
+    xl6OutputPuts("bool xrtTypedDictClear(xtdict pDict);\n", out);
+    xl6OutputPuts("const xrt_type_desc* xrtTypedDictItemType(xtdict pDict);\n", out);
+    xl6OutputPuts("xvalue xrtTypedListTakeValue(xtlist pList, long long iKey);\n", out);
+    xl6OutputPuts("xvalue xrtTypedDictTakeValue(xtdict pDict, const void* sKey, unsigned int iKeyLen);\n", out);
     xl6OutputPuts("bool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, void* pOut);\n", out);
     xl6OutputPuts("void xrtTypeDropValue(const xrt_type_desc* pType, void* pObj);\n", out);
     xl6OutputPuts("xrt_callable* xrtCallableCreate(const xrt_func_sig* pSig, void* pNativeEntry, unsigned int iNativeAbi, bool (*pXCallEntry)(xrt_call_frame* pFrame, xrt_call_result* pResult), void* pEnv, void (*pDropEnv)(void* pEnv));\n", out);

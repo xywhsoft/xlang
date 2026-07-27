@@ -1,0 +1,10 @@
+func show(int x)
+    println("int version")
+end
+func show(string s)
+    println("string version")
+end
+func main(...)
+    show(42)
+    show("hi")
+end

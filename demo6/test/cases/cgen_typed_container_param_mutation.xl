@@ -87,7 +87,7 @@ end
 assert nestedValue == 9, "if conditions should lower nested owned arguments"
 
 int loopCount = 0
-while loopCount < 2 and consumeArray(array[loopCount]) == 2 do
+while loopCount < 2 and consumeArray(array[loopCount]) == 2
     loopCount += 1
 end
 assert loopCount == 2, "while conditions should rebuild and release owned arguments per iteration"

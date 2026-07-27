@@ -49,7 +49,7 @@ func main(...) as int
     int iteration = 0
     float totalStart = time.timer()
 
-    while iteration < repeats do
+    while iteration < repeats
         float start = time.timer()
         var root = json.parse(source)
         int actual = walkAst(root, iteration)

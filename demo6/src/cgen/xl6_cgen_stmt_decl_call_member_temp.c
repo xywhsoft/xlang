@@ -16,6 +16,7 @@ static int xl6CgenDeclMemberFunctionTempReceiverCallInfo(
     XL6_AstNode* classNode;
     XL6_AstNode* targetCanonical;
     XL6_AstNode* returnCanonical;
+    size_t replacementIndex;
     int matches;
 
     if ( outReceiver != NULL ) {
@@ -48,6 +49,13 @@ static int xl6CgenDeclMemberFunctionTempReceiverCallInfo(
     receiver = callee->children[0];
     if ( receiver == NULL || receiver->kind != XL6_AST_CALL ) {
         return 0;
+    }
+    for ( replacementIndex = 0; replacementIndex < ctx->exprReplacementCount; ++replacementIndex ) {
+        if ( ctx->exprReplacements[replacementIndex].expr == receiver &&
+             ctx->exprReplacements[replacementIndex].cName != NULL ) {
+            /* 接收者已由外层语句级 lowering 物化，统一表达式路径会复用该句柄。 */
+            return 0;
+        }
     }
 
     receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);

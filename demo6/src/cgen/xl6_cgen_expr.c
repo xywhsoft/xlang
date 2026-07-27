@@ -139,6 +139,72 @@ static int xl6CgenTypedContainerBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNo
     return 0;
 }
 
+static int xl6CgenCheckedIntegerDivisionExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    XL6_AstNode* rawTypeNode;
+    const XL6_AstNode* typeNode;
+    const char* helper;
+    int isUnsigned;
+
+    if ( node == NULL || node->kind != XL6_AST_BINARY || node->childCount < 2 ||
+         (!xl6CTextEquals(node->text, "/") && !xl6CTextEquals(node->text, "%")) ) {
+        return 0;
+    }
+
+    rawTypeNode = xl6CgenCloneExprTypeForInference(ctx, node);
+    typeNode = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, rawTypeNode));
+    if ( typeNode == NULL || !xl6CgenIsIntegerTypeName(typeNode->text) ) {
+        xl6AstFree(rawTypeNode);
+        return 0;
+    }
+
+    isUnsigned = xl6CgenIsUnsignedIntegerTypeName(typeNode->text);
+    helper = xl6CTextEquals(node->text, "/") ?
+             (isUnsigned ? "xl6_u64_div_checked" : "xl6_i64_div_checked") :
+             (isUnsigned ? "xl6_u64_mod_checked" : "xl6_i64_mod_checked");
+    xl6OutputPrintf(ctx->out, "%s((%s)(", helper, isUnsigned ? "unsigned long long" : "long long");
+    xl6CgenExpr(ctx, node->children[0]);
+    xl6OutputPrintf(ctx->out, "), (%s)(", isUnsigned ? "unsigned long long" : "long long");
+    xl6CgenExpr(ctx, node->children[1]);
+    xl6OutputPrintf(ctx->out, "), %d, %d)", node->line, node->column);
+    xl6AstFree(rawTypeNode);
+    return 1;
+}
+
+static int xl6CgenCheckedIntegerShiftExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    XL6_AstNode* rawTypeNode;
+    const XL6_AstNode* typeNode;
+    const char* cType;
+    const char* helper;
+
+    if ( node == NULL || node->kind != XL6_AST_BINARY || node->childCount < 2 ||
+         (!xl6CTextEquals(node->text, "<<") && !xl6CTextEquals(node->text, ">>")) ) {
+        return 0;
+    }
+
+    rawTypeNode = xl6CgenCloneExprTypeForInference(ctx, node);
+    typeNode = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, rawTypeNode));
+    if ( typeNode == NULL || !xl6CgenIsIntegerTypeName(typeNode->text) ) {
+        xl6AstFree(rawTypeNode);
+        return 0;
+    }
+
+    cType = xl6CgenTypeName(ctx, typeNode);
+    helper = xl6CTextEquals(node->text, "<<") ? "xl6_u64_shl_checked" : "xl6_u64_shr_checked";
+    xl6OutputPrintf(ctx->out, "((%s)%s((unsigned long long)(", cType, helper);
+    xl6CgenExpr(ctx, node->children[0]);
+    xl6OutputPuts("), (long long)(", ctx->out);
+    xl6CgenExpr(ctx, node->children[1]);
+    xl6OutputPrintf(ctx->out,
+                    "), (unsigned int)(sizeof(%s) * 8u), %d, %d))",
+                    cType,
+                    node->line,
+                    node->column);
+    xl6AstFree(rawTypeNode);
+    return 1;
+}
+
 static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     size_t replacementIndex;
@@ -290,6 +356,12 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         }
         if ( xl6CgenBinaryArithmeticIsXValue(ctx, node) ) {
             xl6CgenXValueBinaryExpr(ctx, node);
+            break;
+        }
+        if ( xl6CgenCheckedIntegerDivisionExpr(ctx, node) ) {
+            break;
+        }
+        if ( xl6CgenCheckedIntegerShiftExpr(ctx, node) ) {
             break;
         }
         if ( xl6CTextEquals(node->text, "in") ) {

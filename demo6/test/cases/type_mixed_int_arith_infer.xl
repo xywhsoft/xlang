@@ -1,0 +1,26 @@
+int8 a = 10
+int8 b = 20
+var sameWidth = a + b
+assert type(sameWidth) == int, "int8 + int8 infers int"
+assert sameWidth == 30, "int8 + int8 value"
+
+int8 big = 100
+var noOverflow = big * big
+assert noOverflow == 10000, "int8 * int8 widened before multiply"
+
+int32 c = 100
+var mixed = a + c
+assert type(mixed) == int, "int8 + int32 infers int"
+assert mixed == 110, "int8 + int32 value"
+
+uint8 u = 5
+var signMixed = a + u
+assert type(signMixed) == int, "int8 + uint8 infers int"
+assert signMixed == 15, "int8 + uint8 value"
+
+float f = 1.5
+var withFloat = a + f
+assert type(withFloat) == float, "int8 + float infers float"
+assert withFloat == 11.5, "int8 + float value"
+
+println("type_mixed_int_arith_infer ok")

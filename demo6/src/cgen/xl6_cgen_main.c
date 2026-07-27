@@ -311,6 +311,7 @@ static void xl6CgenEmitModuleGlobalDeclsEx(
     if ( ctx == NULL || root == NULL ) {
         return;
     }
+    (void)forwardOnly;
     for ( i = 0; i < root->childCount; ++i ) {
         const XL6_AstNode* node = root->children[i];
         const XL6_AstNode* typeNode;
@@ -335,16 +336,14 @@ static void xl6CgenEmitModuleGlobalDeclsEx(
                 name = item->text;
                 typeNode = returns->children[j];
                 flags = xl6CgenFindTrackedVarFlags(ctx, name);
-                if ( forwardOnly ) {
-                    xl6OutputPuts("extern ", ctx->out);
-                }
+                xl6OutputPuts("static ", ctx->out);
                 if ( (flags & XL6_CGEN_VAR_TYPED_CONTAINER) != 0 ) {
                     xl6OutputPuts(xl6CgenTypedContainerCType(ctx, typeNode), ctx->out);
                 } else {
                     xl6OutputPuts(xl6CgenTypeName(ctx, typeNode), ctx->out);
                 }
                 xl6OutputPutc(' ', ctx->out);
-                xl6CgenFputsCIdent(ctx->out, name);
+                xl6CgenFputsValueStorageName(ctx, name);
                 xl6OutputPuts(";\n", ctx->out);
             }
             xl6AstFree(returns);
@@ -356,16 +355,14 @@ static void xl6CgenEmitModuleGlobalDeclsEx(
         }
         name = xl6CgenModuleGlobalName(node);
         typeNode = xl6CgenModuleGlobalType(ctx, node);
-        if ( forwardOnly ) {
-            xl6OutputPuts("extern ", ctx->out);
-        }
+        xl6OutputPuts("static ", ctx->out);
         if ( xl6CgenModuleGlobalUsesTypedContainerStorage(ctx, node, typeNode) ) {
             xl6OutputPuts(xl6CgenTypedContainerCType(ctx, typeNode), ctx->out);
         } else {
             xl6OutputPuts(xl6CgenTypeName(ctx, typeNode), ctx->out);
         }
         xl6OutputPutc(' ', ctx->out);
-        xl6CgenFputsCIdent(ctx->out, name);
+        xl6CgenFputsValueStorageName(ctx, name);
         xl6OutputPuts(";\n", ctx->out);
     }
     xl6OutputPutc('\n', ctx->out);
@@ -582,7 +579,10 @@ static int xl6CgenEmitModuleGlobalLoweredInit(
         }
         xl6AstFree(memberFunctionType);
     } else if ( xl6CgenIsXValueType(typeNode) ) {
-        if ( xl6CgenXValueExprNeedsSpecialStmt(ctx, initExpr) ) {
+        if ( initExpr->kind == XL6_AST_CALL && xl6CgenDeclExprNeedsCallArgTemps(ctx, initExpr) ) {
+            xl6CgenXValueLocalInitStmt(ctx, typeNode, tempName, initExpr);
+            emitted = 1;
+        } else if ( xl6CgenXValueExprNeedsSpecialStmt(ctx, initExpr) ) {
             xl6CgenXValueLocalInitStmt(ctx, typeNode, tempName, initExpr);
             emitted = 1;
         } else {
@@ -614,7 +614,7 @@ static int xl6CgenEmitModuleGlobalLoweredInit(
         xl6OutputPrintf(ctx->out, "%s = xl6_xrt_move_to_shared(%s);\n", tempName, tempName);
     }
     xl6CgenIndent(ctx);
-    xl6CgenFputsCIdent(ctx->out, name);
+    xl6CgenFputsValueStorageName(ctx, name);
     xl6OutputPuts(" = ", ctx->out);
     if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
         xl6OutputPuts("xrtCopyStr(", ctx->out);
@@ -626,7 +626,9 @@ static int xl6CgenEmitModuleGlobalLoweredInit(
     xl6OutputPuts(";\n", ctx->out);
     if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_runtime_fatal(3); }\n", name);
+        xl6OutputPuts("if (", ctx->out);
+        xl6CgenFputsValueStorageName(ctx, name);
+        xl6OutputPuts(" == 0) { xl6_runtime_fatal(3); }\n", ctx->out);
     }
     return 1;
 }
@@ -853,10 +855,12 @@ static int xl6CgenEmitModuleGlobalClassInit(
                 ctx->currentGenericArgs = prevArgs;
                 return 0;
             }
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = ", cName);
-            xl6CgenExpr(ctx, initExpr);
-            xl6OutputPuts(";\n", ctx->out);
+            if ( !xl6CgenDeclEmitXValueCallExprWithArgTemps(ctx, classTypeNode, initExpr, cName) ) {
+                xl6CgenIndent(ctx);
+                xl6OutputPrintf(ctx->out, "%s = ", cName);
+                xl6CgenExpr(ctx, initExpr);
+                xl6OutputPuts(";\n", ctx->out);
+            }
             xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, classTypeNode, cName, initExpr);
             xl6AstFree(initType);
             ctx->currentGenericParams = prevParams;
@@ -888,10 +892,12 @@ static int xl6CgenEmitModuleGlobalClassInit(
                 xl6CgenError(ctx, initExpr, "module global class upcast lowering failed");
             }
         } else {
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = ", cName);
-            xl6CgenExpr(ctx, initExpr);
-            xl6OutputPuts(";\n", ctx->out);
+            if ( !xl6CgenDeclEmitXValueCallExprWithArgTemps(ctx, classTypeNode, initExpr, cName) ) {
+                xl6CgenIndent(ctx);
+                xl6OutputPrintf(ctx->out, "%s = ", cName);
+                xl6CgenExpr(ctx, initExpr);
+                xl6OutputPuts(";\n", ctx->out);
+            }
             xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, classTypeNode, cName, initExpr);
         }
         xl6AstFree(initType);
@@ -950,7 +956,7 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
     name = xl6CgenModuleGlobalName(node);
     typeNode = xl6CgenModuleGlobalType(ctx, node);
     initExpr = xl6CgenModuleGlobalInitExpr(node);
-    xl6CgenCIdentText(cName, sizeof(cName), name);
+    xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), name);
     xl6CgenAddModuleGlobalCleanup(ctx, node, typeNode);
     if ( xl6CgenEmitModuleGlobalNativeClassInit(ctx, node, typeNode, initExpr, cName) ) {
         return;
@@ -976,7 +982,7 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
     }
     if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
         xl6CgenIndent(ctx);
-        xl6CgenFputsCIdent(ctx->out, name);
+        xl6CgenFputsValueStorageName(ctx, name);
         xl6OutputPuts(" = xrtCopyStr(", ctx->out);
         if ( initExpr != NULL ) {
             xl6CgenStringSourceExpr(ctx, typeNode, initExpr);
@@ -990,7 +996,7 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
     }
 
     xl6CgenIndent(ctx);
-    xl6CgenFputsCIdent(ctx->out, name);
+    xl6CgenFputsValueStorageName(ctx, name);
     xl6OutputPuts(" = ", ctx->out);
     if ( initExpr == NULL ) {
         if ( xl6CgenModuleGlobalUsesTypedContainerStorage(ctx, node, typeNode) ) {
@@ -1021,7 +1027,7 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
         if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) &&
              !xl6CgenSpecialCollectionExprIsOwned(ctx, initExpr) ) {
             xl6CgenIndent(ctx);
-            xl6CgenFputsCIdent(ctx->out, name);
+            xl6CgenFputsValueStorageName(ctx, name);
             xl6OutputPuts(" = ", ctx->out);
             xl6CgenSpecialCollectionRetainCExpr(ctx, typeNode, cName);
             xl6OutputPuts(";\n", ctx->out);

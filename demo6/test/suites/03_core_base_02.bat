@@ -253,52 +253,52 @@ if errorlevel 1 (
 
 release\xl.exe cgen test\cases\cgen_primitive_widths.xl --emit build\test\cgen_primitive_widths.c
 if errorlevel 1 exit /b 1
-findstr /C:"signed char i8" build\test\cgen_primitive_widths.c >nul
+findstr /C:"signed char __xl6_user_global_i8" build\test\cgen_primitive_widths.c >nul
 if errorlevel 1 (
     echo cgen_primitive_widths.c missing int8 C type.
     exit /b 1
 )
-findstr /C:"unsigned char u8" build\test\cgen_primitive_widths.c >nul
+findstr /C:"unsigned char __xl6_user_global_u8" build\test\cgen_primitive_widths.c >nul
 if errorlevel 1 (
     echo cgen_primitive_widths.c missing uint8 C type.
     exit /b 1
 )
-findstr /C:"short i16" build\test\cgen_primitive_widths.c >nul
+findstr /C:"short __xl6_user_global_i16" build\test\cgen_primitive_widths.c >nul
 if errorlevel 1 (
     echo cgen_primitive_widths.c missing int16 C type.
     exit /b 1
 )
-findstr /C:"unsigned short u16" build\test\cgen_primitive_widths.c >nul
+findstr /C:"unsigned short __xl6_user_global_u16" build\test\cgen_primitive_widths.c >nul
 if errorlevel 1 (
     echo cgen_primitive_widths.c missing uint16 C type.
     exit /b 1
 )
-findstr /C:"int i32" build\test\cgen_primitive_widths.c >nul
+findstr /C:"int __xl6_user_global_i32" build\test\cgen_primitive_widths.c >nul
 if errorlevel 1 (
     echo cgen_primitive_widths.c missing int32 C type.
     exit /b 1
 )
-findstr /C:"unsigned int u32" build\test\cgen_primitive_widths.c >nul
+findstr /C:"unsigned int __xl6_user_global_u32" build\test\cgen_primitive_widths.c >nul
 if errorlevel 1 (
     echo cgen_primitive_widths.c missing uint32 C type.
     exit /b 1
 )
-findstr /C:"long long i64" build\test\cgen_primitive_widths.c >nul
+findstr /C:"long long __xl6_user_global_i64" build\test\cgen_primitive_widths.c >nul
 if errorlevel 1 (
     echo cgen_primitive_widths.c missing int64 C type.
     exit /b 1
 )
-findstr /C:"unsigned long long u64" build\test\cgen_primitive_widths.c >nul
+findstr /C:"unsigned long long __xl6_user_global_u64" build\test\cgen_primitive_widths.c >nul
 if errorlevel 1 (
     echo cgen_primitive_widths.c missing uint64 C type.
     exit /b 1
 )
-findstr /C:"float f32" build\test\cgen_primitive_widths.c >nul
+findstr /C:"float __xl6_user_global_f32" build\test\cgen_primitive_widths.c >nul
 if errorlevel 1 (
     echo cgen_primitive_widths.c missing float32 C type.
     exit /b 1
 )
-findstr /C:"double f64" build\test\cgen_primitive_widths.c >nul
+findstr /C:"double __xl6_user_global_f64" build\test\cgen_primitive_widths.c >nul
 if errorlevel 1 (
     echo cgen_primitive_widths.c missing float64 C type.
     exit /b 1
@@ -389,7 +389,7 @@ if errorlevel 1 (
     echo cgen_containers.c missing typed dict iteration.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayDestroy(typedArray)" build\test\cgen_containers.c >nul
+findstr /C:"xrtTypedArrayDestroy(__xl6_user_global_typedArray)" build\test\cgen_containers.c >nul
 if errorlevel 1 (
     echo cgen_containers.c missing typed container cleanup.
     exit /b 1
@@ -455,12 +455,12 @@ if errorlevel 1 (
     echo xl_runtime.h is missing the atomic reference retain API.
     exit /b 1
 )
-findstr /C:"xl6_xrt_retain(values)" build\test\cgen_dynamic_container_reference.c >nul
+findstr /C:"xl6_xrt_retain(__xl6_user_global_values)" build\test\cgen_dynamic_container_reference.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_container_reference.c missing managed-reference assignment path.
     exit /b 1
 )
-findstr /C:"xvoIndexGetMutableKey(xvoIndexGetMutableI64(nestedAlias" build\test\cgen_dynamic_container_reference.c >nul
+findstr /C:"xvoIndexGetMutableKey(xvoIndexGetMutableI64(__xl6_user_global_nestedAlias" build\test\cgen_dynamic_container_reference.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_container_reference.c missing nested mutable access path.
     exit /b 1
@@ -473,32 +473,32 @@ if errorlevel 1 (
     echo cgen_static_typed_containers.c missing typed array create.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(values" build\test\cgen_static_typed_containers.c >nul
+findstr /C:"xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(__xl6_user_global_values" build\test\cgen_static_typed_containers.c >nul
 if errorlevel 1 (
     echo cgen_static_typed_containers.c missing guarded typed array index.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_require_item(xrtTypedListGet(names" build\test\cgen_static_typed_containers.c >nul
+findstr /C:"xl6_xrt_typed_require_item(xrtTypedListGet(__xl6_user_global_names" build\test\cgen_static_typed_containers.c >nul
 if errorlevel 1 (
     echo cgen_static_typed_containers.c missing guarded typed list index.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_require_item(xrtTypedDictGet(table" build\test\cgen_static_typed_containers.c >nul
+findstr /C:"xl6_xrt_typed_require_item(xrtTypedDictGet(__xl6_user_global_table" build\test\cgen_static_typed_containers.c >nul
 if errorlevel 1 (
     echo cgen_static_typed_containers.c missing guarded typed dict index.
     exit /b 1
 )
-findstr /C:"((int)(*(bool*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(flags" build\test\cgen_static_typed_containers.c >nul
+findstr /C:"((int)(*(bool*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(__xl6_user_global_flags" build\test\cgen_static_typed_containers.c >nul
 if errorlevel 1 (
     echo cgen_static_typed_containers.c missing language bool typed array read width normalization.
     exit /b 1
 )
-findstr /C:"((int)(*(bool*)xl6_xrt_typed_require_item(xrtTypedListGet(checks" build\test\cgen_static_typed_containers.c >nul
+findstr /C:"((int)(*(bool*)xl6_xrt_typed_require_item(xrtTypedListGet(__xl6_user_global_checks" build\test\cgen_static_typed_containers.c >nul
 if errorlevel 1 (
     echo cgen_static_typed_containers.c missing language bool typed list read width normalization.
     exit /b 1
 )
-findstr /C:"((int)(*(bool*)xl6_xrt_typed_require_item(xrtTypedDictGet(states" build\test\cgen_static_typed_containers.c >nul
+findstr /C:"((int)(*(bool*)xl6_xrt_typed_require_item(xrtTypedDictGet(__xl6_user_global_states" build\test\cgen_static_typed_containers.c >nul
 if errorlevel 1 (
     echo cgen_static_typed_containers.c missing language bool typed dict read width normalization.
     exit /b 1

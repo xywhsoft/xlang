@@ -204,21 +204,21 @@ expect(dynamicElseifSkip, 1)
 expect(probeCount(), 0)
 
 int dynamicWhileCompare = 0
-while makeValue(dynamicWhileCompare) < makeValue(2) do
+while makeValue(dynamicWhileCompare) < makeValue(2)
     dynamicWhileCompare = dynamicWhileCompare + 1
 end
 expect(dynamicWhileCompare, 2)
 
 int dynamicWhileLogical = 0
 var dynamicWhileGate = true
-while makeValue(1) and dynamicWhileGate do
+while makeValue(1) and dynamicWhileGate
     dynamicWhileLogical = dynamicWhileLogical + 1
     dynamicWhileGate = false
 end
 expect(dynamicWhileLogical, 1)
 
 int dynamicWhileApprox = 0
-while textBefore ~= "abc" do
+while textBefore ~= "abc"
     dynamicWhileApprox = dynamicWhileApprox + 1
     break
 end
@@ -227,7 +227,7 @@ expect(dynamicWhileApprox, 1)
 int dynamicDoCompare = 0
 do
     dynamicDoCompare = dynamicDoCompare + 1
-while makeValue(dynamicDoCompare) < makeValue(2)
+while makeValue(dynamicDoCompare) < makeValue(2) end
 expect(dynamicDoCompare, 2)
 
 int dynamicDoLogical = 0
@@ -235,18 +235,18 @@ var dynamicDoGate = true
 do
     dynamicDoLogical = dynamicDoLogical + 1
     dynamicDoGate = false
-while makeValue(1) and dynamicDoGate
+while makeValue(1) and dynamicDoGate end
 expect(dynamicDoLogical, 1)
 
 int dynamicDoApprox = 0
 do
     dynamicDoApprox = dynamicDoApprox + 1
-while textBefore ~= "nope"
+while textBefore ~= "nope" end
 expect(dynamicDoApprox, 1)
 
 int loopCount = 0
 var loopFlag = true
-while loopFlag do
+while loopFlag
     loopCount = loopCount + 1
     loopFlag = false
 end

@@ -1,0 +1,40 @@
+// 静态泛型容器进入 var 后保留原 XRT 句柄，不创建动态快照。
+
+array<int> values = array[1, 2]
+var boxedValues = values
+values[0] = 10
+assert int(boxedValues[0]) == 10, "var must observe typed array mutation"
+boxedValues[1] = 20
+assert values[1] == 20, "typed array must observe var mutation"
+boxedValues.push(30)
+assert values.length == 3 and values[2] == 30, "var push must update typed array"
+assert boxedValues.indexOf(20) == 1, "var indexOf must inspect typed array"
+boxedValues.swap(0, 2)
+assert values[0] == 30 and values[2] == 10, "var swap must update typed array"
+
+list<string> names = list[0: "a"]
+var boxedNames = names
+boxedNames[2] = "b"
+assert names.length == 2 and names[2] == "b", "var must update typed list"
+
+set<int> ids = set{1, 2}
+var boxedIds = ids
+boxedIds.add(3)
+boxedIds.remove(1)
+assert ids.length == 2, "var must update typed set length"
+assert 3 in ids and not (1 in ids), "var must update typed set contents"
+
+dict<int> scores = dict{"a": 1}
+var boxedScores = scores
+boxedScores["a"] = 10
+boxedScores["b"] = 2
+assert scores.length == 2, "var must update typed dict length"
+assert scores["a"] == 10 and scores["b"] == 2, "var must update typed dict values"
+
+int total = 0
+for value in boxedValues
+    total += int(value)
+end
+assert total == 60, "for-in must snapshot the current typed array contents"
+
+println("typed container var identity ok")

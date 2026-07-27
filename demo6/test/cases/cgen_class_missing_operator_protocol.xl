@@ -1,0 +1,18 @@
+class AddOnly
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+
+    func __add__(AddOnly other) as AddOnly
+        return AddOnly(self.value + other.value)
+    end
+end
+
+func main(...) as int
+    var left = AddOnly(4)
+    var right = AddOnly(2)
+    var invalid = left - right
+    return int(invalid)
+end

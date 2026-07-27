@@ -547,6 +547,24 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
     xl6AstFree(rawTypeNode);
 }
 
+static void xl6CgenPrintXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    XL6_AstNode* rawTypeNode;
+    const XL6_AstNode* typeNode;
+
+    rawTypeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
+    typeNode = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, rawTypeNode));
+    if ( typeNode != NULL && xl6CgenIsUnsignedIntegerTypeName(typeNode->text) ) {
+        /* xvalue 的 int 是有符号 int64；打印无符号整数时先保留完整文本。 */
+        xl6OutputPuts("xvoCreateText((void*)xl6_xrt_u64_to_string((unsigned long long)(", ctx->out);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPuts(")), 0, false)", ctx->out);
+    } else {
+        xl6CgenXValueFromExpr(ctx, expr);
+    }
+    xl6AstFree(rawTypeNode);
+}
+
 static int xl6CgenExprIsXValueResult(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
     XL6_AstNode* typeNode;
@@ -795,6 +813,7 @@ static void xl6CgenXValueBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
 {
     const XL6_AstNode* left;
     const XL6_AstNode* right;
+    int mode;
 
     if ( node == NULL || node->childCount < 2 ) {
         xl6OutputPuts("xvoCreateNull()", ctx->out);
@@ -803,11 +822,18 @@ static void xl6CgenXValueBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
 
     left = node->children[0];
     right = node->children[1];
-    xl6OutputPuts("xl6_xrt_basic_binary_release(", ctx->out);
+    mode = xl6CgenXValueBinaryMode(node->text);
+    xl6OutputPuts((mode == 3 || mode == 4 || mode == 8 || mode == 9) ?
+                  "xl6_xrt_basic_binary_release_checked(" :
+                  "xl6_xrt_basic_binary_release(", ctx->out);
     xl6CgenXValueFromExpr(ctx, left);
     xl6OutputPuts(", ", ctx->out);
     xl6CgenXValueFromExpr(ctx, right);
-    xl6OutputPrintf(ctx->out, ", %d)", xl6CgenXValueBinaryMode(node->text));
+    if ( mode == 3 || mode == 4 || mode == 8 || mode == 9 ) {
+        xl6OutputPrintf(ctx->out, ", %d, %d, %d)", mode, node->line, node->column);
+    } else {
+        xl6OutputPrintf(ctx->out, ", %d)", mode);
+    }
 }
 
 static int xl6CgenUnaryIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node)
@@ -1013,6 +1039,7 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
     const char* target;
     const char* source;
     int sourceIsXValue;
+    XL6_CgenIntTypeInfo targetInt;
 
     callee = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
     arg = xl6CgenTypeConvertArg(node);
@@ -1063,6 +1090,17 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
             xl6OutputPrintf(ctx->out, "xl6_xrt_str_to_i64_checked(");
             xl6CgenExpr(ctx, arg);
             xl6OutputPrintf(ctx->out, ", \"\", %d, %d)", node->line, node->column);
+        } else if ( xl6CgenIsFloatTypeName(source) && xl6CgenIntTypeInfo(target, &targetInt) ) {
+            xl6OutputPuts(targetInt.isSigned ?
+                              "xl6_xrt_f64_to_i64_checked((double)(" :
+                              "xl6_xrt_f64_to_u64_checked((double)(",
+                          ctx->out);
+            xl6CgenExpr(ctx, arg);
+            xl6OutputPrintf(ctx->out,
+                            "), %d, \"\", %d, %d)",
+                            targetInt.bits,
+                            node->line,
+                            node->column);
         } else if ( xl6CTextEquals(source, "null") ) {
             xl6OutputPuts("0", ctx->out);
         } else {
@@ -1095,7 +1133,9 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
         } else if ( xl6CTextEquals(source, "null") ) {
             xl6OutputPuts("\"\"", ctx->out);
         } else if ( xl6CgenIsIntegerTypeName(source) ) {
-            xl6OutputPuts("xl6_xrt_i64_to_string((long long)(", ctx->out);
+            xl6OutputPuts(xl6CgenIsUnsignedIntegerTypeName(source) ?
+                          "xl6_xrt_u64_to_string((unsigned long long)(" :
+                          "xl6_xrt_i64_to_string((long long)(", ctx->out);
             xl6CgenExpr(ctx, arg);
             xl6OutputPuts("))", ctx->out);
         } else if ( xl6CgenIsFloatTypeName(source) ) {

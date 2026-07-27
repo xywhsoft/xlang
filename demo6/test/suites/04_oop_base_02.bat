@@ -6,7 +6,7 @@ echo Running DEMO6 suite: OOP ABI export and interop baseline 2/8...
 
 release\xl.exe cgen test\cases\cgen_dynamic_member_access.xl --emit build\test\cgen_dynamic_member_access.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_record_field_get_owned(obj," build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_record_field_get_owned(__xl6_user_global_obj," build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing borrowed dynamic member access.
     exit /b 1
@@ -31,12 +31,12 @@ if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing dynamic member assignment temporary.
     exit /b 1
 )
-findstr /C:"xl6_record_field_set_borrow(obj," build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_record_field_set_borrow(__xl6_user_global_obj," build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing direct dynamic member assignment lowering.
     exit /b 1
 )
-findstr /C:"xl6_record_field_set_borrow(xl6_record_field_get_mutable(nested, \"inner\")," build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_record_field_set_borrow(xl6_record_field_get_mutable(__xl6_user_global_nested, \"inner\")," build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing nested dynamic member COW assignment lowering.
     exit /b 1
@@ -56,7 +56,7 @@ if not errorlevel 1 (
     echo cgen_dynamic_member_access.c should route declaration-level dynamic member through scalar temporary.
     exit /b 1
 )
-findstr /C:"declaredSafeMissing = __xl6_global_init_" build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"__xl6_user_global_declaredSafeMissing = __xl6_global_init_" build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing declaration-level dynamic member scalar handoff.
     exit /b 1
@@ -107,22 +107,22 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_safe_member.xl --emit build\test\cgen_safe_member.c
 if errorlevel 1 exit /b 1
-findstr /C:"valuesLength = xl6_xrt_move_to_shared(xvoCreateInt((long long)(xrtTypedArrayCount(values))))" build\test\cgen_safe_member.c >nul
+findstr /C:"__xl6_user_global_valuesLength = xl6_xrt_move_to_shared(xvoCreateInt((long long)(xrtTypedArrayCount(__xl6_user_global_values))))" build\test\cgen_safe_member.c >nul
 if errorlevel 1 (
     echo cgen_safe_member.c missing typed array safe member lowering.
     exit /b 1
 )
-findstr /C:"tableLength = xl6_xrt_move_to_shared(xvoCreateInt((long long)(xrtTypedDictCount(table))))" build\test\cgen_safe_member.c >nul
+findstr /C:"__xl6_user_global_tableLength = xl6_xrt_move_to_shared(xvoCreateInt((long long)(xrtTypedDictCount(__xl6_user_global_table))))" build\test\cgen_safe_member.c >nul
 if errorlevel 1 (
     echo cgen_safe_member.c missing typed dict safe member lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_member_safe_length(dynamicValues)" build\test\cgen_safe_member.c >nul
+findstr /C:"xl6_xrt_member_safe_length(__xl6_user_global_dynamicValues)" build\test\cgen_safe_member.c >nul
 if errorlevel 1 (
     echo cgen_safe_member.c missing dynamic array safe member lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_member_safe_length(missing)" build\test\cgen_safe_member.c >nul
+findstr /C:"xl6_xrt_member_safe_length(__xl6_user_global_missing)" build\test\cgen_safe_member.c >nul
 if errorlevel 1 (
     echo cgen_safe_member.c missing null safe member lowering.
     exit /b 1
@@ -157,12 +157,12 @@ if not errorlevel 1 (
     echo cgen_safe_member.c should route declaration-level safe member through scalar temporary.
     exit /b 1
 )
-findstr /C:"declaredLengthFallback = __xl6_global_init_" build\test\cgen_safe_member.c >nul
+findstr /C:"__xl6_user_global_declaredLengthFallback = __xl6_global_init_" build\test\cgen_safe_member.c >nul
 if errorlevel 1 (
     echo cgen_safe_member.c missing declaration-level safe member scalar handoff.
     exit /b 1
 )
-findstr /C:"declaredLengthFallback = ((long long)xl6_xrt_value_to_i64_release(({" build\test\cgen_safe_member.c >nul
+findstr /C:"__xl6_user_global_declaredLengthFallback = ((long long)xl6_xrt_value_to_i64_release(({" build\test\cgen_safe_member.c >nul
 if not errorlevel 1 (
     echo cgen_safe_member.c should not use statement expressions for declaration-level safe member fallback.
     exit /b 1
@@ -213,17 +213,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_assign_ops.xl --emit build\test\cgen_assign_ops.c
 if errorlevel 1 exit /b 1
-findstr /C:"a += 2LL;" build\test\cgen_assign_ops.c >nul
+findstr /C:"__xl6_user_global_a += 2LL;" build\test\cgen_assign_ops.c >nul
 if errorlevel 1 (
     echo cgen_assign_ops.c missing compound assignment.
     exit /b 1
 )
-findstr /C:"selected = (1 ? inverted : 1LL);" build\test\cgen_assign_ops.c >nul
+findstr /C:"__xl6_user_global_selected = (1 ? __xl6_user_global_inverted : 1LL);" build\test\cgen_assign_ops.c >nul
 if errorlevel 1 (
     echo cgen_assign_ops.c missing ternary expression.
     exit /b 1
 )
-findstr /C:"logicAnd = (1 && (!0));" build\test\cgen_assign_ops.c >nul
+findstr /C:"__xl6_user_global_logicAnd = (1 && (!0));" build\test\cgen_assign_ops.c >nul
 if errorlevel 1 (
     echo cgen_assign_ops.c missing logical expression.
     exit /b 1
@@ -245,7 +245,7 @@ if errorlevel 1 (
     echo cgen_null_coalesce.c missing var null coalesce fallback assignment.
     exit /b 1
 )
-findstr /C:"probed = __xl6_global_init_" build\test\cgen_null_coalesce.c >nul
+findstr /C:"__xl6_user_global_probed = __xl6_global_init_" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing single-evaluation null coalesce lowering.
     exit /b 1
@@ -280,17 +280,17 @@ if errorlevel 1 (
     echo cgen_null_coalesce.c missing static null coalesce call argument replacement.
     exit /b 1
 )
-findstr /C:"xvalue fallback = ({ xvalue __xl6_nc_" build\test\cgen_null_coalesce.c >nul
+findstr /C:"__xl6_user_global_fallback = ({ xvalue __xl6_nc_" build\test\cgen_null_coalesce.c >nul
 if not errorlevel 1 (
     echo cgen_null_coalesce.c still uses var null coalesce statement expression.
     exit /b 1
 )
-findstr /C:"xvalue probed = ({ xvalue __xl6_nc_" build\test\cgen_null_coalesce.c >nul
+findstr /C:"__xl6_user_global_probed = ({ xvalue __xl6_nc_" build\test\cgen_null_coalesce.c >nul
 if not errorlevel 1 (
     echo cgen_null_coalesce.c still uses probed null coalesce statement expression.
     exit /b 1
 )
-findstr /C:"long long staticProbed = ({ long long __xl6_nc_" build\test\cgen_null_coalesce.c >nul
+findstr /C:"__xl6_user_global_staticProbed = ({ long long __xl6_nc_" build\test\cgen_null_coalesce.c >nul
 if not errorlevel 1 (
     echo cgen_null_coalesce.c still uses static null coalesce statement expression.
     exit /b 1
@@ -300,17 +300,17 @@ if not errorlevel 1 (
     echo cgen_null_coalesce.c still uses call argument null coalesce statement expression.
     exit /b 1
 )
-findstr /C:"literal = xl6_xrt_move_to_shared(xvoCreateInt((long long)(7LL)));" build\test\cgen_null_coalesce.c >nul
+findstr /C:"__xl6_user_global_literal = xl6_xrt_move_to_shared(xvoCreateInt((long long)(7LL)));" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing literal null coalesce boxing.
     exit /b 1
 )
-findstr /C:"staticInt = 5LL;" build\test\cgen_null_coalesce.c >nul
+findstr /C:"__xl6_user_global_staticInt = 5LL;" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing static null coalesce inference.
     exit /b 1
 )
-findstr /C:"if (xvoIsNull(assigned))" build\test\cgen_null_coalesce.c >nul
+findstr /C:"if (xvoIsNull(__xl6_user_global_assigned))" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing var null assignment lowering.
     exit /b 1
@@ -327,12 +327,12 @@ if errorlevel 1 (
     echo cgen_pow.c missing int pow helper.
     exit /b 1
 )
-findstr /C:"rightAssoc = xl6_int_pow_i64(2LL, xl6_int_pow_i64(3LL, 2LL));" build\test\cgen_pow.c >nul
+findstr /C:"__xl6_user_global_rightAssoc = xl6_int_pow_i64(2LL, xl6_int_pow_i64(3LL, 2LL));" build\test\cgen_pow.c >nul
 if errorlevel 1 (
     echo cgen_pow.c missing right-associative pow lowering.
     exit /b 1
 )
-findstr /C:"value = xl6_int_pow_i64(value, 4LL);" build\test\cgen_pow.c >nul
+findstr /C:"__xl6_user_global_value = xl6_int_pow_i64(__xl6_user_global_value, 4LL);" build\test\cgen_pow.c >nul
 if errorlevel 1 (
     echo cgen_pow.c missing pow assignment lowering.
     exit /b 1
@@ -344,6 +344,11 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_native_class_lifecycle.xl --emit build\test\cgen_native_class_lifecycle.c
 if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_type_value_id(rejectedCopy, false)" build\test\cgen_native_class_lifecycle.c >nul
+if errorlevel 1 (
+    echo cgen_native_class_lifecycle.c must query var type at runtime.
+    exit /b 1
+)
 findstr /C:"struct XL_Class_Counter {" build\test\cgen_native_class_lifecycle.c >nul
 if errorlevel 1 (
     echo cgen_native_class_lifecycle.c missing native-backed class handle struct.
@@ -413,9 +418,9 @@ if errorlevel 1 (
     echo cgen_native_class_bind_point.c missing repeated empty point transfer.
     exit /b 1
 )
-powershell -NoProfile -Command "$count=(Select-String -Path 'build\test\cgen_native_class_bind_point.c' -SimpleMatch 'xl6_point_take((void**)&(raw))').Count; if ($count -lt 3) { exit 1 }"
+powershell -NoProfile -Command "$count=(Select-String -Path 'build\test\cgen_native_class_bind_point.c' -SimpleMatch 'xl6_point_take((void**)&(raw))').Count; if ($count -ne 3) { exit 1 }"
 if errorlevel 1 (
-    echo cgen_native_class_bind_point.c missing nested argument point transfer.
+    echo cgen_native_class_bind_point.c must transfer each point exactly once.
     exit /b 1
 )
 findstr /C:"if (empty != 0)" build\test\cgen_native_class_bind_point.c >nul
@@ -435,7 +440,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_native_class_field.xl --emit build\test\cgen_native_class_field.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_NativeBox__value(((XL_Class_NativeBox*)xl6_class_data(__xl6_call_receiver_" build\test\cgen_native_class_field.c >nul
+findstr /C:"xl_class_NativeBox__value(((XL_Class_NativeBox*)xl6_class_data(self->box" build\test\cgen_native_class_field.c >nul
 if errorlevel 1 (
     echo cgen_native_class_field.c missing managed native class field method call.
     exit /b 1

@@ -19,6 +19,92 @@ static int xl6CgenAssignStaticBoolLikeType(const XL6_AstNode* typeNode)
            xl6CTextEquals(name, "uint64");
 }
 
+static int xl6CgenStaticScalarXValueExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* targetType,
+    const XL6_AstNode* expr)
+{
+    XL6_AstNode* exprType;
+    const XL6_AstNode* concreteTarget;
+    const XL6_AstNode* concreteExpr;
+    const char* targetName;
+    int result;
+
+    if ( ctx == NULL || targetType == NULL || expr == NULL ) {
+        return 0;
+    }
+
+    concreteTarget = xl6CgenResolveAliasType(ctx, targetType);
+    targetName = concreteTarget != NULL ? concreteTarget->text : NULL;
+    if ( targetName == NULL ||
+         (!xl6CgenIsIntegerTypeName(targetName) &&
+          !xl6CgenIsFloatTypeName(targetName) &&
+          !xl6CgenIsBoolTypeName(targetName) &&
+          !xl6CTextEquals(targetName, "time") &&
+          !xl6CTextEquals(targetName, "point")) ) {
+        return 0;
+    }
+
+    exprType = xl6CgenCloneExprTypeForInference(ctx, expr);
+    concreteExpr = xl6CgenResolveAliasType(ctx, exprType);
+    result = xl6CgenIsXValueType(concreteExpr) ||
+             xl6CgenBinaryArithmeticIsXValue(ctx, expr) ||
+             xl6CgenConditionalIsXValue(ctx, expr);
+    xl6AstFree(exprType);
+    return result;
+}
+
+static int xl6CgenStaticScalarFromXValueExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* targetType,
+    const XL6_AstNode* expr)
+{
+    const XL6_AstNode* concreteTarget;
+    const char* targetName;
+
+    if ( !xl6CgenStaticScalarXValueExpr(ctx, targetType, expr) ) {
+        return 0;
+    }
+
+    concreteTarget = xl6CgenResolveAliasType(ctx, targetType);
+    targetName = concreteTarget != NULL ? concreteTarget->text : NULL;
+    if ( xl6CgenIsIntegerTypeName(targetName) ) {
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xvoGetInt", expr);
+    } else if ( xl6CgenIsFloatTypeName(targetName) ) {
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xvoGetFloat", expr);
+    } else if ( xl6CgenIsBoolTypeName(targetName) ) {
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xvoGetBool", expr);
+    } else if ( xl6CTextEquals(targetName, "time") ) {
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xvoGetTime", expr);
+    } else if ( xl6CTextEquals(targetName, "point") ) {
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xvoGetPoint", expr);
+    } else {
+        return 0;
+    }
+    return 1;
+}
+
+static int xl6CgenAssignTryStaticXValueScalarStmt(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* targetType,
+    const char* cName,
+    const XL6_AstNode* right)
+{
+    if ( ctx == NULL || targetType == NULL || cName == NULL ||
+         !xl6CgenStaticScalarXValueExpr(ctx, targetType, right) ) {
+        return 0;
+    }
+
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = ", cName);
+    if ( !xl6CgenStaticScalarFromXValueExpr(ctx, targetType, right) ) {
+        xl6CgenError(ctx, right, "xvalue scalar assignment lowering failed");
+        xl6CgenDefaultValue(ctx, targetType);
+    }
+    xl6OutputPuts(";\n", ctx->out);
+    return 1;
+}
+
 static void xl6CgenAssignEmitXValueTempCleanup(XL6_CgenContext* ctx, const char* prefix, int id)
 {
     xl6CgenIndent(ctx);
@@ -71,12 +157,18 @@ static int xl6CgenAssignTryXValueBinaryStmt(
         xl6CgenXValueLocalInitStmt(ctx, targetType, rightName, rightExpr);
     }
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out,
-                    "__xl6_assign_%d = xl6_xrt_basic_binary(__xl6_bin_left_%d, __xl6_bin_right_%d, %d);\n",
-                    id,
-                    id,
-                    id,
-                    xl6CgenXValueBinaryMode(right->text));
+    {
+        int mode = xl6CgenXValueBinaryMode(right->text);
+        if ( mode == 3 || mode == 4 || mode == 8 || mode == 9 ) {
+            xl6OutputPrintf(ctx->out,
+                            "__xl6_assign_%d = xl6_xrt_basic_binary_checked(__xl6_bin_left_%d, __xl6_bin_right_%d, %d, %d, %d);\n",
+                            id, id, id, mode, right->line, right->column);
+        } else {
+            xl6OutputPrintf(ctx->out,
+                            "__xl6_assign_%d = xl6_xrt_basic_binary(__xl6_bin_left_%d, __xl6_bin_right_%d, %d);\n",
+                            id, id, id, mode);
+        }
+    }
     xl6CgenAssignEmitXValueTempCleanup(ctx, "bin", id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);

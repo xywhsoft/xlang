@@ -1,0 +1,46 @@
+func main(...) as int
+    int zero = 0
+    bool caughtDivision = false
+    bool caughtModulo = false
+    bool caughtOverflow = false
+    bool caughtVarDivision = false
+
+    try
+        int value = 10 / zero
+        assert value == 0, "division must not continue"
+    catch ZeroDivisionError e
+        caughtDivision = e.kind == "ZeroDivisionError"
+    end
+
+    try
+        int value = 10 % zero
+        assert value == 0, "modulo must not continue"
+    catch ArithmeticError e
+        caughtModulo = e.kind == "ZeroDivisionError"
+    end
+
+    int minimum = -9223372036854775807 - 1
+    int negativeOne = -1
+    try
+        int value = minimum / negativeOne
+        assert value == 0, "overflow must not continue"
+    catch OverflowError e
+        caughtOverflow = e.kind == "OverflowError"
+    end
+
+    var dynamicLeft = 10
+    var dynamicRight = 0
+    try
+        var value = dynamicLeft / dynamicRight
+        assert value == null, "dynamic division must not continue"
+    catch ArithmeticError e
+        caughtVarDivision = e.kind == "ZeroDivisionError"
+    end
+
+    assert caughtDivision
+    assert caughtModulo
+    assert caughtOverflow
+    assert caughtVarDivision
+    println("cgen_integer_division_errors ok")
+    return 0
+end

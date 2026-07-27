@@ -192,7 +192,7 @@ if errorlevel 1 (
     echo cgen_class_methods.c missing create call.
     exit /b 1
 )
-findstr /C:"value = xl_class_Point__length2(((XL_Class_Point*)xl6_class_data(p" build\test\cgen_class_methods.c >nul
+findstr /C:"__xl6_user_global_value = xl_class_Point__length2(((XL_Class_Point*)xl6_class_data(__xl6_user_global_p" build\test\cgen_class_methods.c >nul
 if errorlevel 1 (
     echo cgen_class_methods.c missing method call.
     exit /b 1
@@ -211,7 +211,7 @@ if errorlevel 1 (
     echo cgen_class_method_multi_return.c missing class method multi-return struct.
     exit /b 1
 )
-findstr /C:"xl_class_Pairer__pair(((XL_Class_Pairer*)xl6_class_data(pairer" build\test\cgen_class_method_multi_return.c >nul
+findstr /C:"xl_class_Pairer__pair(((XL_Class_Pairer*)xl6_class_data(__xl6_user_global_pairer" build\test\cgen_class_method_multi_return.c >nul
 if errorlevel 1 (
     echo cgen_class_method_multi_return.c missing class method multi-return call.
     exit /b 1
@@ -223,12 +223,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_object_protocol.xl --emit build\test\cgen_object_protocol.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_object______setField____(&((XL_Class_Actor*)xl6_class_data(a" build\test\cgen_object_protocol.c >nul
+findstr /C:"xl_class_object______setField____(&((XL_Class_Actor*)xl6_class_data(__xl6_user_global_a" build\test\cgen_object_protocol.c >nul
 if errorlevel 1 (
     echo cgen_object_protocol.c missing object field protocol setter call.
     exit /b 1
 )
-findstr /C:"xl_class_object______setItem____(&((XL_Class_Actor*)xl6_class_data(a" build\test\cgen_object_protocol.c >nul
+findstr /C:"xl_class_object______setItem____(&((XL_Class_Actor*)xl6_class_data(__xl6_user_global_a" build\test\cgen_object_protocol.c >nul
 if errorlevel 1 (
     echo cgen_object_protocol.c missing object item protocol setter call.
     exit /b 1
@@ -250,17 +250,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_protocol_ops.xl --emit build\test\cgen_protocol_ops.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_Counter______add____(((XL_Class_Counter*)xl6_class_data(c" build\test\cgen_protocol_ops.c >nul
+findstr /C:"xl_class_Counter______add____(((XL_Class_Counter*)xl6_class_data(__xl6_user_global_c" build\test\cgen_protocol_ops.c >nul
 if errorlevel 1 (
     echo cgen_protocol_ops.c missing operator protocol call.
     exit /b 1
 )
-findstr /C:"xl_class_Counter______contains____(((XL_Class_Counter*)xl6_class_data(c" build\test\cgen_protocol_ops.c >nul
+findstr /C:"xl_class_Counter______contains____(((XL_Class_Counter*)xl6_class_data(__xl6_user_global_c" build\test\cgen_protocol_ops.c >nul
 if errorlevel 1 (
     echo cgen_protocol_ops.c missing contains protocol call.
     exit /b 1
 )
-findstr /C:"xl_class_Counter______call____(((XL_Class_Counter*)xl6_class_data(c" build\test\cgen_protocol_ops.c >nul
+findstr /C:"xl_class_Counter______call____(((XL_Class_Counter*)xl6_class_data(__xl6_user_global_c" build\test\cgen_protocol_ops.c >nul
 if errorlevel 1 (
     echo cgen_protocol_ops.c missing call protocol call.
     exit /b 1
@@ -272,7 +272,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_protocol_compound_assign.xl --emit build\test\cgen_protocol_compound_assign.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_Meter______add______int(((XL_Class_Meter*)xl6_class_data(value" build\test\cgen_protocol_compound_assign.c >nul
+findstr /C:"xl_class_Meter______add______int(((XL_Class_Meter*)xl6_class_data(__xl6_user_global_value" build\test\cgen_protocol_compound_assign.c >nul
 if errorlevel 1 (
     echo cgen_protocol_compound_assign.c missing class += protocol call.
     exit /b 1
@@ -282,7 +282,7 @@ if errorlevel 1 (
     echo cgen_protocol_compound_assign.c missing inline class argument temporary.
     exit /b 1
 )
-findstr /C:"xl_class_Meter______add__________class__handle_of_Meter(((XL_Class_Meter*)xl6_class_data(value" build\test\cgen_protocol_compound_assign.c >nul
+findstr /C:"xl_class_Meter______add__________class__handle_of_Meter(((XL_Class_Meter*)xl6_class_data(__xl6_user_global_value" build\test\cgen_protocol_compound_assign.c >nul
 if errorlevel 1 (
     echo cgen_protocol_compound_assign.c missing inline class += overload call.
     exit /b 1
@@ -360,7 +360,7 @@ if errorlevel 1 (
     echo cgen_class_property_get_let.c missing multi-dimensional property setter symbol.
     exit /b 1
 )
-findstr /C:"xl_class_Player______get______hp__int__int(((XL_Class_Player*)xl6_class_data(player" build\test\cgen_class_property_get_let.c >nul
+findstr /C:"xl_class_Player______get______hp__int__int(((XL_Class_Player*)xl6_class_data(__xl6_user_global_player" build\test\cgen_class_property_get_let.c >nul
 if errorlevel 1 (
     echo cgen_class_property_get_let.c missing multi-dimensional property getter call.
     exit /b 1
@@ -443,6 +443,11 @@ if errorlevel 1 (
     echo cgen_protocol_complex_receiver.c missing value receiver protocol wrapper.
     exit /b 1
 )
+findstr /C:"xl_protocol_tmp_Counter______contains____" build\test\cgen_protocol_complex_receiver.c >nul
+if errorlevel 1 (
+    echo cgen_protocol_complex_receiver.c missing contains protocol wrapper for a temporary receiver.
+    exit /b 1
+)
 findstr /C:"xl_protocol_tmp_Bag______item____" build\test\cgen_protocol_complex_receiver.c >nul
 if errorlevel 1 (
     echo cgen_protocol_complex_receiver.c missing item protocol wrapper.
@@ -455,7 +460,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_protocol_len.xl --emit build\test\cgen_protocol_len.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_Sized______len____(((XL_Class_Sized*)xl6_class_data(value" build\test\cgen_protocol_len.c >nul
+findstr /C:"xl_class_Sized______len____(((XL_Class_Sized*)xl6_class_data(__xl6_user_global_value" build\test\cgen_protocol_len.c >nul
 if errorlevel 1 (
     echo cgen_protocol_len.c missing named receiver len protocol call.
     exit /b 1
@@ -465,7 +470,7 @@ if errorlevel 1 (
     echo cgen_protocol_len.c missing temporary receiver len protocol wrapper.
     exit /b 1
 )
-findstr /C:"xl6_class_data(withField" build\test\cgen_protocol_len.c >nul
+findstr /C:"xl6_class_data(__xl6_user_global_withField" build\test\cgen_protocol_len.c >nul
 if errorlevel 1 (
     echo cgen_protocol_len.c missing static length field assignment.
     exit /b 1

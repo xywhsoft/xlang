@@ -279,7 +279,7 @@ static void xl6CgenEmitRecordFieldHelpers(XL6_CgenContext* ctx)
         }
     }
     xl6OutputPuts("    }\n", ctx->out);
-    xl6OutputPuts("    result = xl6_xrt_retain(xl6_xrt_index_safe_get_key(obj, key));\n", ctx->out);
+    xl6OutputPuts("    result = xl6_xrt_index_safe_get_key(obj, key);\n", ctx->out);
     xl6OutputPuts("done:\n", ctx->out);
     xl6OutputPuts("    if ( release && obj != 0 ) { xvoUnref(obj); }\n", ctx->out);
     xl6OutputPuts("    return result != 0 ? result : xvoCreateNull();\n", ctx->out);
@@ -292,6 +292,9 @@ static void xl6CgenEmitRecordFieldHelpers(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static bool xl6_record_field_set_borrow(xvalue obj, const char* key, xvalue value)\n", ctx->out);
     xl6OutputPuts("{\n", ctx->out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(obj) == XL6_XRT_TYPE_KIND_DICT ) {\n", ctx->out);
+    xl6OutputPuts("        return xl6_xrt_typed_container_set_key_borrow(obj, key, value);\n", ctx->out);
+    xl6OutputPuts("    }\n", ctx->out);
     xl6OutputPuts("    const xrt_type_desc* desc = obj != 0 ? xvoTypeDesc(obj) : 0;\n", ctx->out);
     xl6OutputPuts("    void* data = obj != 0 ? xvoGetRecordData(obj) : 0;\n", ctx->out);
     xl6OutputPuts("    if ( desc != 0 && data != 0 && key != 0 ) {\n", ctx->out);

@@ -50,7 +50,9 @@ static void xl6CgenFStringValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* exp
     } else if ( xl6CTextEquals(typeName, "null") ) {
         xl6OutputPuts("\"\"", ctx->out);
     } else if ( xl6CgenIsIntegerTypeName(typeName) ) {
-        xl6OutputPuts("xl6_xrt_i64_to_string((long long)(", ctx->out);
+        xl6OutputPuts(xl6CgenIsUnsignedIntegerTypeName(typeName) ?
+                      "xl6_xrt_u64_to_string((unsigned long long)(" :
+                      "xl6_xrt_i64_to_string((long long)(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts("))", ctx->out);
     } else if ( xl6CgenIsFloatTypeName(typeName) ) {

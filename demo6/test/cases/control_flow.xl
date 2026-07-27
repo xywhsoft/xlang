@@ -4,7 +4,7 @@ func walk(int n)
     elseif n < 0 then
         return
     else
-        while n > 0 do
+        while n > 0
             n
             break
         end

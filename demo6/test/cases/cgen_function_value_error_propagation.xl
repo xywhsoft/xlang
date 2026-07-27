@@ -1,0 +1,27 @@
+func failNamed(int value) as int
+    if value == 1
+        throw ValueError "named callback failed"
+    end
+    return value
+end
+
+func invoke(func(int) as int callback, int value) as int
+    try
+        return callback(value)
+    catch ValueError e
+        assert string.contains(e.message, "callback failed")
+        return -1
+    end
+end
+
+assert invoke(failNamed, 1) == -1, "named function value error propagation"
+
+func(int) as int failClosure = func(int value) as int
+    if value == 2
+        throw ValueError "closure callback failed"
+    end
+    return value
+end
+
+assert invoke(failClosure, 2) == -1, "closure function value error propagation"
+println("cgen_function_value_error_propagation ok")

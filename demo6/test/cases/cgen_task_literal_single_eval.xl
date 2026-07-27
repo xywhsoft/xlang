@@ -1,0 +1,17 @@
+func markTask(int value) as int
+    return value
+end
+
+func(int) as int markTaskJob = markTask
+
+bool canceledAll = task.cancel(task.all([
+    task.spawn(markTaskJob, 91001),
+    task.spawn(markTaskJob, 91002)
+]))
+assert canceledAll == true or canceledAll == false, "task.all literal cancel should evaluate each task once"
+
+bool canceledRace = task.cancel(task.race([
+    task.spawn(markTaskJob, 91003),
+    task.spawn(markTaskJob, 91004)
+]))
+assert canceledRace == true or canceledRace == false, "task.race literal cancel should evaluate each task once"

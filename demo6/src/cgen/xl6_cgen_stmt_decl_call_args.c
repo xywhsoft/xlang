@@ -187,12 +187,18 @@ static int xl6CgenDeclEmitXValueCallValueTemp(
         xl6CgenXValueFromExprForTarget(ctx, targetType, rightExpr);
         xl6OutputPuts(";\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out,
-                        "%s = xl6_xrt_basic_binary(__xl6_bin_left_%d, __xl6_bin_right_%d, %d);\n",
-                        valueName,
-                        id,
-                        id,
-                        xl6CgenXValueBinaryMode(expr->text));
+        {
+            int mode = xl6CgenXValueBinaryMode(expr->text);
+            if ( mode == 3 || mode == 4 || mode == 8 || mode == 9 ) {
+                xl6OutputPrintf(ctx->out,
+                                "%s = xl6_xrt_basic_binary_checked(__xl6_bin_left_%d, __xl6_bin_right_%d, %d, %d, %d);\n",
+                                valueName, id, id, mode, expr->line, expr->column);
+            } else {
+                xl6OutputPrintf(ctx->out,
+                                "%s = xl6_xrt_basic_binary(__xl6_bin_left_%d, __xl6_bin_right_%d, %d);\n",
+                                valueName, id, id, mode);
+            }
+        }
         xl6CgenAssignEmitXValueTempCleanup(ctx, "bin", id);
     } else {
         const XL6_AstNode* cond = expr->childCount > 0 ? expr->children[0] : NULL;
@@ -469,6 +475,9 @@ static int xl6CgenDeclTryTypeConvertCallArgTemp(
 {
     const XL6_AstNode* sourceExpr;
     const char* convertName;
+    const char* sourceReplacement;
+    unsigned int sourceReplacementFlags;
+    size_t replacementIndex;
     char valueName[64];
     int id;
 
@@ -479,6 +488,35 @@ static int xl6CgenDeclTryTypeConvertCallArgTemp(
     }
 
     sourceExpr = xl6CgenTypeConvertArg(expr);
+    sourceReplacement = NULL;
+    sourceReplacementFlags = 0u;
+    for ( replacementIndex = 0; replacementIndex < ctx->exprReplacementCount; ++replacementIndex ) {
+        if ( ctx->exprReplacements[replacementIndex].expr == sourceExpr ) {
+            sourceReplacement = ctx->exprReplacements[replacementIndex].cName;
+            sourceReplacementFlags = ctx->exprReplacements[replacementIndex].flags;
+            break;
+        }
+    }
+    if ( sourceReplacement != NULL ) {
+        XL6_AstNode* sourceType = xl6CgenCloneExprTypeForInference(ctx, sourceExpr);
+        int sourceUsesXValue = (sourceReplacementFlags & XL6_CGEN_EXPR_REPLACEMENT_XVALUE) != 0u ||
+                               xl6CgenIsXValueType(sourceType) ||
+                               xl6CgenBinaryArithmeticIsXValue(ctx, sourceExpr);
+        xl6AstFree(sourceType);
+        if ( !sourceUsesXValue ) {
+            /* 静态标量 replacement 交回普通转换表达式，不能按 xvalue 解箱。 */
+            sourceReplacement = NULL;
+        }
+    }
+    if ( sourceReplacement != NULL ) {
+        /* 内层 xvalue 已经物化，转换必须消费该临时量，不能再次求值原表达式。 */
+        return xl6CgenDeclEmitScalarAssignFromXValueTemp(
+            ctx,
+            typeNode,
+            cType,
+            cName,
+            sourceReplacement);
+    }
     if ( !xl6CgenDeclCanEmitXValueCallValueTemp(ctx, sourceExpr) ) {
         return 0;
     }
@@ -668,6 +706,15 @@ static int xl6CgenDeclEmitCallArgTemp(
     if ( xl6CgenIsXValueType(typeNode) && xl6CgenDeclEmitXValueCallValueTemp(ctx, typeNode, expr, cName) ) {
         return 1;
     }
+    if ( xl6CgenIsXValueType(typeNode) && expr->kind == XL6_AST_CALL &&
+         !xl6CgenDeclExprNeedsCallArgTemps(ctx, expr) ) {
+        /* 内层实参已经由 replacement 物化，当前调用结果可直接写入拥有型 var 临时量。 */
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", cName);
+        xl6CgenXValueFromExprForTarget(ctx, typeNode, expr);
+        xl6OutputPuts(";\n", ctx->out);
+        return 1;
+    }
     if ( xl6CgenAssignTryStaticXValueCompareStmt(ctx, typeNode, cType, cName, expr) ) {
         return 1;
     }
@@ -692,6 +739,15 @@ static int xl6CgenDeclEmitCallArgTemp(
         return 1;
     }
     if ( xl6CgenDeclTryTypeConvertCallArgTemp(ctx, typeNode, cType, cName, expr) ) {
+        return 1;
+    }
+    if ( xl6CgenDeclCallArgStaticScalarType(typeNode) &&
+         !xl6CgenDeclExprNeedsCallArgTemps(ctx, expr) ) {
+        /* 内层依赖已物化后，当前标量调用可以直接落到临时量。 */
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", cName);
+        xl6CgenExpr(ctx, expr);
+        xl6OutputPuts(";\n", ctx->out);
         return 1;
     }
     return 0;

@@ -1,0 +1,12 @@
+auto inc = func(int value) as int => value + 1
+assert inc(41) == 42, "top-level auto arrow anonymous func"
+
+auto add = func(int a, int b) as int
+    return a + b
+end
+assert add(19, 23) == 42, "top-level auto body anonymous func"
+
+auto combined = inc(0) + add(1, 1)
+assert combined == 3, "combined top-level anonymous calls"
+
+println("cgen_toplevel_auto_anonymous_func ok")

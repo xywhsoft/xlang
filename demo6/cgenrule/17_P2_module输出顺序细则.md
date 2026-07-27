@@ -115,12 +115,12 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `extern func`、`extern var`、`export func`、`export var`、普通 `func`、`async func` |
-| 生成规则描述 | 顶层声明阶段按 AST 顺序处理：extern 函数输出外部原型，extern 变量输出外部声明，export 函数输出内部原型和 wrapper 原型，export 变量或常量输出全局定义，普通函数输出原型，async 函数输出异步原型。声明和定义在此分离，避免函数体相互调用时缺少原型。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:179` |
-| 对应生成的 C 代码 | `extern ...;`、`static ...;`、export wrapper 原型、全局变量定义等。 |
-| 中间形态伪代码 | `for decl in root: switch decl.kind: emitExtern/emitExportProto/emitGlobalDef/emitFuncProto/emitAsyncProto` |
+| 生成规则描述 | 顶层声明阶段按 AST 顺序处理：extern 函数输出外部原型，extern 变量输出外部声明，export 函数输出内部原型和 wrapper 原型，显式绑定 C 符号的 export 变量或常量输出 ABI 定义，普通函数输出原型，async 函数输出异步原型。未显式声明 C ABI 符号的普通模块全局量则编码为稳定的 `__xl6_user_global_<name>` 存储名，并使用 C `static` 内部链接；后续读取、写入、清理、闭包、异步和容器操作统一引用该存储名，避免合法的 xlang 标识符与 XRT/CRT 的 typedef、函数或其他 C 全局符号冲突。显式 `extern "symbol"`、`export "symbol"` 必须保留指定的 ABI 名。 |
+| 生成器文件名和行号 | 顶层 ABI 声明 `demo6/src/cgen/xl6_cgen_module.c:430`；内部存储命名 `demo6/src/cgen/xl6_cgen_core_state.c:34`；模块全局声明 `demo6/src/cgen/xl6_cgen_main.c:304` |
+| 对应生成的 C 代码 | `extern ...;`、export wrapper 原型、显式 C ABI 全局变量定义；普通 `point ptr = null` 生成 `static void* __xl6_user_global_ptr;`。 |
+| 中间形态伪代码 | `if decl.hasExplicitCAbi: keepAbiName(); else if decl.isModuleGlobal: storage = encode("__xl6_user_global_", sourceName); linkage = internal; else emitFuncProto()` |
 | 实现同等功能手写的 C 代码 | 手写 C 通常需要在文件顶部手动写函数原型和全局变量定义。 |
-| 额外依赖的封装代码 | export wrapper 原型；外部声明不产生封装代码。 |
+| 额外依赖的封装代码 | export wrapper 原型；普通模块全局量只改变生成标识符和 C 链接属性，不增加封装代码。 |
 
 ## CGEN-MODULE-011 泛型函数实例原型输出
 
