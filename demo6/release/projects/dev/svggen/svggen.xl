@@ -31,7 +31,7 @@ func fmtNum(float v) as string
     end
     string s = float.format(v, ".2")
     if string.contains(s, ".") then
-        while string.endsWith(s, "0") do
+        while string.endsWith(s, "0")
             s = string.slice(s, 0, string.len(s) - 1)
         end
         if string.endsWith(s, ".") then
@@ -48,7 +48,7 @@ func xmlEscape(string s) as string
     string outputValue = ""
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if c == "&" then
             outputValue = outputValue + "&amp;"
@@ -206,7 +206,7 @@ func loadChartData(var data) as var
         // Array of records: [{"label":..,"value":..}, ...]
         int n = data.length
         int i = 0
-        while i < n do
+        while i < n
             var item = data[i]
             string lab = string(item["label"])
             if lab == "" then
@@ -239,7 +239,7 @@ func loadChartData(var data) as var
             bool hasLabels = (string(lbs) != "")
             int n = vls.length
             int i = 0
-            while i < n do
+            while i < n
                 string lab = ""
                 if hasLabels then
                     lab = string(lbs[i])
@@ -256,7 +256,7 @@ func loadChartData(var data) as var
             var items = data["items"]
             int n = items.length
             int i = 0
-            while i < n do
+            while i < n
                 var item = items[i]
                 string lab = string(item["label"])
                 if lab == "" then
@@ -296,7 +296,7 @@ func genBar(var cfg) as string
 
     float maxVal = 0.0
     int i = 0
-    while i < n do
+    while i < n
         float v = float(values[i])
         if v > maxVal then
             maxVal = v
@@ -315,7 +315,7 @@ func genBar(var cfg) as string
     // gridlines + y tick labels
     int ticks = 5
     int t = 0
-    while t <= ticks do
+    while t <= ticks
         float frac = float(t) / float(ticks)
         float y = marginT + plotH - frac * plotH
         svg = svg + svgLine(marginL, y, marginL + plotW, y, "#eeeeee", 1.0, 1.0) + "\n"
@@ -334,7 +334,7 @@ func genBar(var cfg) as string
         barW = 2.0
     end
     i = 0
-    while i < n do
+    while i < n
         float v = float(values[i])
         float vdraw = v
         if vdraw < 0.0 then
@@ -364,7 +364,7 @@ func genPie(var cfg) as string
 
     float total = 0.0
     int i = 0
-    while i < n do
+    while i < n
         float v = float(values[i])
         if v > 0.0 then
             total = total + v
@@ -388,7 +388,7 @@ func genPie(var cfg) as string
 
     float start = -90.0
     i = 0
-    while i < n do
+    while i < n
         float v = float(values[i])
         if v < 0.0 then
             v = 0.0
@@ -436,7 +436,7 @@ func genLine(var cfg) as string
 
     float maxVal = 0.0
     int i = 0
-    while i < n do
+    while i < n
         float v = float(values[i])
         if v > maxVal then
             maxVal = v
@@ -454,7 +454,7 @@ func genLine(var cfg) as string
 
     int ticks = 5
     int t = 0
-    while t <= ticks do
+    while t <= ticks
         float frac = float(t) / float(ticks)
         float y = marginT + plotH - frac * plotH
         svg = svg + svgLine(marginL, y, marginL + plotW, y, "#eeeeee", 1.0, 1.0) + "\n"
@@ -468,7 +468,7 @@ func genLine(var cfg) as string
     var xs = []
     var ys = []
     i = 0
-    while i < n do
+    while i < n
         float x
         if n == 1 then
             x = marginL + plotW / 2.0
@@ -489,7 +489,7 @@ func genLine(var cfg) as string
     if n >= 2 then
         string area = "M " + fmtNum(float(xs[0])) + " " + fmtNum(baseY)
         i = 0
-        while i < n do
+        while i < n
             area = area + " L " + fmtNum(float(xs[i])) + " " + fmtNum(float(ys[i]))
             i = i + 1
         end
@@ -499,7 +499,7 @@ func genLine(var cfg) as string
         // the line itself
         string ld = "M " + fmtNum(float(xs[0])) + " " + fmtNum(float(ys[0]))
         i = 1
-        while i < n do
+        while i < n
             ld = ld + " L " + fmtNum(float(xs[i])) + " " + fmtNum(float(ys[i]))
             i = i + 1
         end
@@ -508,7 +508,7 @@ func genLine(var cfg) as string
 
     // markers + value / category labels
     i = 0
-    while i < n do
+    while i < n
         float x = float(xs[i])
         float y = float(ys[i])
         svg = svg + svgCircle(x, y, 4.0, palette(0), "#ffffff", 1.5, 1.0) + "\n"
@@ -536,7 +536,7 @@ func genDemo() as string
     float sy = 100.0
     svg = svg + svgCircle(sx, sy, 45.0, "#FFD700", "#FFA500", 2.0, 0.9) + "\n"
     int r = 0
-    while r < 12 do
+    while r < 12
         float ang = math.rad(float(r) * 30.0)
         float x1 = sx + 55.0 * math.cos(ang)
         float y1 = sy + 55.0 * math.sin(ang)
@@ -622,7 +622,7 @@ func genTest() as string
 
     // palette swatches
     int k = 0
-    while k < 10 do
+    while k < 10
         svg = svg + svgRect(40.0 + float(k) * 68.0, 415.0, 60.0, 35.0, palette(k), "#333333", 1.0, 1.0) + "\n"
         k = k + 1
     end

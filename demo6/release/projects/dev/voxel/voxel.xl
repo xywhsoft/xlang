@@ -213,7 +213,7 @@ class VoxelWorld
         int total = w * h * d
         array<int> a = array[0]
         int i = 1
-        while i < total do
+        while i < total
             a.push(0)
             i += 1
         end
@@ -247,7 +247,7 @@ class VoxelWorld
     func countSolid() as int
         int total = 0
         int i = 0
-        while i < self.data.length do
+        while i < self.data.length
             if self.data[i] != VOXEL_EMPTY then
                 total += 1
             end
@@ -335,15 +335,15 @@ end
 // 收集所有可见面到 faces（每面 FACE_STRIDE 个 float）
 func collectFaces(VoxelWorld world, Camera cam, array<float> faces)
     int y = 0
-    while y < world.h do
+    while y < world.h
         int z = 0
-        while z < world.d do
+        while z < world.d
             int x = 0
-            while x < world.w do
+            while x < world.w
                 int t = world.get(x, y, z)
                 if t != VOXEL_EMPTY then
                     int f = 0
-                    while f < 6 do
+                    while f < 6
                         if world.isExposed(x, y, z, f) then
                             float fnx = FNX[f]
                             float fny = FNY[f]
@@ -418,17 +418,17 @@ end
 // 按 depth（camZ）降序排序 order（远者在前 = 先画），shell/comb 排序
 func sortFacesDesc(array<float> faces, array<int> order, int n)
     int gap = n
-    while gap > 1 do
+    while gap > 1
         gap = gap * 10 / 13
         if gap < 1 then
             gap = 1
         end
         int i = gap
-        while i < n do
+        while i < n
             int temp = order[i]
             float keyD = faces[temp * FACE_STRIDE + 8]
             int j = i
-            while j >= gap do
+            while j >= gap
                 float prevD = faces[order[j - gap] * FACE_STRIDE + 8]
                 if prevD >= keyD then
                     break
@@ -477,10 +477,10 @@ func rasterFace(array<int> fb, array<float> depth, int sw, int sh,
     end
 
     int py = y0
-    while py <= y1 do
+    while py <= y1
         float pcy = float(py) + 0.5
         int px = x0
-        while px <= x1 do
+        while px <= x1
             float pcx = float(px) + 0.5
             if pointInQuad(pcx, pcy, sx0, sy0, sx1, sy1, sx2, sy2, sx3, sy3) then
                 int pidx = py * sw + px
@@ -502,7 +502,7 @@ func renderWorld(VoxelWorld world, Camera cam, int sw, int sh) as (array<int>, a
     array<int> fb = array[]
     array<float> depth = array[]
     int ii = 0
-    while ii < n do
+    while ii < n
         fb.push(sky)
         depth.push(INF_DEPTH)
         ii += 1
@@ -514,14 +514,14 @@ func renderWorld(VoxelWorld world, Camera cam, int sw, int sh) as (array<int>, a
 
     array<int> order = array[]
     int k = 0
-    while k < fc do
+    while k < fc
         order.push(k)
         k += 1
     end
     sortFacesDesc(faces, order, fc)
 
     int idx = 0
-    while idx < fc do
+    while idx < fc
         rasterFace(fb, depth, sw, sh, faces, order[idx])
         idx += 1
     end
@@ -537,10 +537,10 @@ func renderAscii(array<int> fb, int sw, int sh) as string
     string ramp = " .:-=+*#%@"
     string outputValue = ""
     int y = 0
-    while y < sh do
+    while y < sh
         string line = ""
         int x = 0
-        while x < sw do
+        while x < sw
             int c = fb[y * sw + x]
             int lum = int(0.299 * float(unpackR(c)) + 0.587 * float(unpackG(c)) + 0.114 * float(unpackB(c)))
             int ci = lum * 9 / 255
@@ -565,10 +565,10 @@ func writePpm(string path, array<int> fb, int sw, int sh) as bool
     lines.append(string(sw) + " " + string(sh))
     lines.append("255")
     int y = 0
-    while y < sh do
+    while y < sh
         string line = ""
         int x = 0
-        while x < sw do
+        while x < sw
             int c = fb[y * sw + x]
             int r = unpackR(c)
             int g = unpackG(c)
@@ -594,10 +594,10 @@ func renderDepthAscii(array<float> depth, int sw, int sh, float maxDist) as stri
     end
     string outputValue = ""
     int y = 0
-    while y < sh do
+    while y < sh
         string line = ""
         int x = 0
-        while x < sw do
+        while x < sw
             float dz = depth[y * sw + x]
             int ci = 0
             if dz >= INF_DEPTH then
@@ -627,13 +627,13 @@ end
 
 func buildPyramidInto(VoxelWorld world, int cx, int baseY, int cz, int height)
     int y = 0
-    while y < height do
+    while y < height
         int r = height - 1 - y
         int yy = baseY + y
         int xx = cx - r
-        while xx <= cx + r do
+        while xx <= cx + r
             int zz = cz - r
-            while zz <= cz + r do
+            while zz <= cz + r
                 int t = VOXEL_STONE
                 if y >= height - 3 then
                     t = VOXEL_SAND
@@ -652,12 +652,12 @@ end
 
 func buildDomeInto(VoxelWorld world, int cx, int baseY, int cz, int r)
     int y = 0
-    while y <= r do
+    while y <= r
         int yy = baseY + y
         int xx = cx - r
-        while xx <= cx + r do
+        while xx <= cx + r
             int zz = cz - r
-            while zz <= cz + r do
+            while zz <= cz + r
                 int ddx = xx - cx
                 int ddz = zz - cz
                 int dist2 = ddx * ddx + y * y + ddz * ddz
@@ -678,17 +678,17 @@ end
 
 func plantTree(VoxelWorld world, int x, int baseY, int z)
     int y = 0
-    while y < 4 do
+    while y < 4
         world.set(x, baseY + y, z, VOXEL_WOOD)
         y += 1
     end
     int topY = baseY + 3
     int ly = -1
-    while ly <= 1 do
+    while ly <= 1
         int lx = -2
-        while lx <= 2 do
+        while lx <= 2
             int lz = -2
-            while lz <= 2 do
+            while lz <= 2
                 int dist2 = lx * lx + ly * ly + lz * lz
                 if dist2 <= 4 then
                     world.set(x + lx, topY + ly, z + lz, VOXEL_LEAF)
@@ -708,9 +708,9 @@ func buildPyramidScene() as VoxelWorld
     int d = 32
     VoxelWorld world = VoxelWorld(w, h, d)
     int x = 0
-    while x < w do
+    while x < w
         int z = 0
-        while z < d do
+        while z < d
             world.set(x, 0, z, VOXEL_STONE)
             z += 1
         end
@@ -730,13 +730,13 @@ func buildTerrainScene() as VoxelWorld
     int domeCz = d * 3 / 4
     int domeR = 7
     int x = 0
-    while x < w do
+    while x < w
         int z = 0
-        while z < d do
+        while z < d
             float s = math.sin(float(x) * 0.32) * math.cos(float(z) * 0.32)
             int hh = 1 + int((s + 1.0) * 1.5)
             int y = 0
-            while y <= hh do
+            while y <= hh
                 int t = VOXEL_DIRT
                 if y == hh then
                     t = VOXEL_GRASS
@@ -762,9 +762,9 @@ func buildDemoScene() as VoxelWorld
     int d = 44
     VoxelWorld world = VoxelWorld(w, h, d)
     int x = 0
-    while x < w do
+    while x < w
         int z = 0
-        while z < d do
+        while z < d
             world.set(x, 0, z, VOXEL_STONE)
             world.set(x, 1, z, VOXEL_GRASS)
             z += 1
@@ -810,7 +810,7 @@ func parseIntSafe(string s, int defValue) as int
         end
     end
     int i = start
-    while i < string.len(s) do
+    while i < string.len(s)
         string ch = string.slice(s, i, 1)
         if string.indexOf("0123456789", ch) < 0 then
             return defValue
@@ -835,7 +835,7 @@ func parseFloatSafe(string s, float defValue) as float
     end
     int dots = 0
     int i = start
-    while i < string.len(s) do
+    while i < string.len(s)
         string ch = string.slice(s, i, 1)
         if ch == "." then
             dots += 1
@@ -858,7 +858,7 @@ func parseRenderArgs(array<string> arg, int startIdx) as (int, int, string, stri
     string scene = "demo"
     float fov = 55.0
     int i = startIdx
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         int eq = string.indexOf(a, "=")
         if eq > 0 then
@@ -1008,7 +1008,7 @@ func runTests() as int
     lone.set(2, 2, 2, VOXEL_STONE)
     int f = 0
     bool allExposed = true
-    while f < 6 do
+    while f < 6
         if not lone.isExposed(2, 2, 2, f) then
             allExposed = false
         end
@@ -1061,7 +1061,7 @@ func runTests() as int
     // --- 8. 深度排序（远者在前）---
     array<float> tf = array[]
     int ti = 0
-    while ti < 2 * FACE_STRIDE do
+    while ti < 2 * FACE_STRIDE
         tf.push(0.0)
         ti += 1
     end
@@ -1089,7 +1089,7 @@ func runTests() as int
     check(mfaces > 0, "mini scene produced visible faces")
     int nonbg = 0
     int p = 0
-    while p < mfb.length do
+    while p < mfb.length
         if mfb[p] != packRGB(150, 200, 235) then
             nonbg += 1
         end
@@ -1113,7 +1113,7 @@ func main(...) as int
 // main 收集命令行参数后传给 parseRenderArgs。
     array<string> args = array[]
     int ai = 0
-    while ai < arg.length do
+    while ai < arg.length
         args.push(string(arg[ai]))
         ai = ai + 1
     end

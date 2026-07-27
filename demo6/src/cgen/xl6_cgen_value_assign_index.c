@@ -30,7 +30,7 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
 
     receiver = left != NULL && left->childCount > 0 ? left->children[0] : NULL;
     index = left != NULL && left->childCount > 1 ? left->children[1] : NULL;
-    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    receiverType = xl6CgenCloneExprStorageType(ctx, receiver);
 
     if ( xl6CgenExprUsesTypedContainerStorage(ctx, receiver) && xl6CgenIsTypedContainerType(ctx, receiverType) ) {
         const XL6_AstNode* concreteType = xl6CgenTypedContainerConcreteType(ctx, receiverType);

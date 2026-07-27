@@ -42,7 +42,7 @@ post-test requestCount=22
   self-test 用 `if true then ... end` 为每个 case 建立独立生命周期，完成请求后立即释放资源。
 - **结构化 JSON**：反射路径参数、请求头、查询字符串、Cookie 和错误信息时，先构造字典再
   `json.stringify`，不会因为外部文本包含引号而生成非法 JSON。
-- **无 bare block scope**：xlang 只有 `do ... while`，没有 `do ... end` 块；
+- **无 bare block scope**：xlang 只有 `do ... while cond end` 后置循环，没有独立的 `do ... end` 块；
   用 `if true then ... end` 替代。
 - **self-test 端口 = 0**：让系统自动分配空闲端口，避免端口冲突；
   server 启动后用 `http.server.port(server)` 取实际端口构造 client URL。

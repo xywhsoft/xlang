@@ -6,7 +6,7 @@ func main(...) as int
     int limit = 3
 
     int i = 2
-    while i < arg.length do
+    while i < arg.length
         string key = string(arg[i])
 
         if key == "--name" and i + 1 < arg.length then

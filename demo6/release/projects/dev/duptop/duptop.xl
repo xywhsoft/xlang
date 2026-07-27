@@ -39,7 +39,7 @@ func isAllDigits(string s) as bool
         return false
     end
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if not string.contains("0123456789", c) then
             return false
@@ -88,7 +88,7 @@ func main(...) as int
     bool recursive = false
 
     int i = 1
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "-d" or a == "--dirs" then
             dirsMode = true
@@ -126,7 +126,7 @@ func main(...) as int
     array raw = dir.entries(target, recursive)
     int n = raw.length
     int k = 0
-    while k < n do
+    while k < n
         var e = raw[k]
         bool isDir = bool(e["isDir"])
         if isDir == dirsMode then
@@ -151,11 +151,11 @@ func main(...) as int
         limit = len
     end
     int a = 0
-    while a < limit do
+    while a < limit
         int maxIdx = a
         int64 maxSize = sizes[a]
         int b = a + 1
-        while b < len do
+        while b < len
             int64 sb = sizes[b]
             if sb > maxSize then
                 maxIdx = b
@@ -177,7 +177,7 @@ func main(...) as int
     // 全量统计 (不止 TopN).
     int64 totalSize = 0
     int t = 0
-    while t < len do
+    while t < len
         totalSize += sizes[t]
         t += 1
     end
@@ -187,7 +187,7 @@ func main(...) as int
     println("Top " + string(shown) + " largest " + unit + " in: " + target)
     println(string.repeat("─", 50))
     int p = 0
-    while p < shown do
+    while p < shown
         int64 sz = sizes[p]
         string disp = relName(target, paths[p])
         string sizeStr = formatSize(sz)

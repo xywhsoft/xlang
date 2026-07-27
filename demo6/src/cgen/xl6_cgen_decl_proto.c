@@ -418,8 +418,10 @@ static void xl6CgenEmitRecordBoxRuntime(
     if ( ctx == NULL || cTypeName == NULL || sourceName == NULL ) {
         return;
     }
-    needsDestroy = xl6CgenClassNeedsDestroy(ctx, classNode);
     isGeneric = typeNode != NULL && typeNode->childCount > 0 && xl6CgenClassHasTypeParams(classNode);
+    needsDestroy = isGeneric ?
+        xl6CgenGenericClassNeedsDestroy(ctx, classNode, typeNode) :
+        xl6CgenClassNeedsDestroy(ctx, classNode);
     copyMethod = xl6CgenFindClassFunc(classNode, "__copy__");
     cloneMethod = xl6CgenFindClassFunc(classNode, "__clone__");
     hashMethod = xl6CgenFindClassFunc(classNode, "__hash__");

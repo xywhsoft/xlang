@@ -6,7 +6,7 @@ end
 
 func recvText(TcpStream stream, string expected) as string
     string result = ""
-    while string.byteLen(result) < string.byteLen(expected) do
+    while string.byteLen(result) < string.byteLen(expected)
         string chunk = stream.recv(3000)
         if chunk == "" then break end
         result += chunk
@@ -16,7 +16,7 @@ end
 
 func recvBytes(TcpStream stream, int expectedSize) as Buffer
     Buffer result = Buffer()
-    while result.len() < expectedSize do
+    while result.len() < expectedSize
         Buffer chunk = stream.recvBytes(3000)
         if chunk.len() == 0 then break end
         require(result.append(chunk), "response buffer append must succeed")

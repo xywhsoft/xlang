@@ -87,7 +87,7 @@ end
 func listLength(int id) as int
     int n = 0
     int cur = id
-    while cur != NIL do
+    while cur != NIL
         n += 1
         cur = listNext[cur]
     end
@@ -97,7 +97,7 @@ end
 func listToArr(int id) as array<int>
     array<int> outputValue
     int cur = id
-    while cur != NIL do
+    while cur != NIL
         outputValue.append(listVal[cur])
         cur = listNext[cur]
     end
@@ -108,7 +108,7 @@ end
 func listFromArr(array<int> a) as int
     int r = NIL
     int i = a.length - 1
-    while i >= 0 do
+    while i >= 0
         r = listCons(a[i], r)
         i -= 1
     end
@@ -119,7 +119,7 @@ func listStr(int id) as string
     array<int> a = listToArr(id)
     string s = "("
     int i = 0
-    while i < a.length do
+    while i < a.length
         if i > 0 then s = s + " " end
         s = s + string(a[i])
         i += 1
@@ -131,7 +131,7 @@ end
 func listMap(int id, func(int) as int f) as int
     array<int> vals
     int cur = id
-    while cur != NIL do
+    while cur != NIL
         vals.append(f(listVal[cur]))
         cur = listNext[cur]
     end
@@ -142,7 +142,7 @@ end
 func listFilter(int id, func(int) as bool pred) as int
     array<int> vals
     int cur = id
-    while cur != NIL do
+    while cur != NIL
         int v = listVal[cur]
         if pred(v) then
             vals.append(v)
@@ -156,7 +156,7 @@ end
 func listFold(int id, int init, func(int, int) as int f) as int
     int acc = init
     int cur = id
-    while cur != NIL do
+    while cur != NIL
         acc = f(acc, listVal[cur])
         cur = listNext[cur]
     end
@@ -167,7 +167,7 @@ end
 func listReverse(int id) as int
     int r = NIL
     int cur = id
-    while cur != NIL do
+    while cur != NIL
         r = listCons(listVal[cur], r)
         cur = listNext[cur]
     end
@@ -179,7 +179,7 @@ end
 func listAppend(int a, int b) as int
     int r = b
     int cur = listReverse(a)
-    while cur != NIL do
+    while cur != NIL
         r = listCons(listVal[cur], r)
         cur = listNext[cur]
     end
@@ -221,7 +221,7 @@ end
 // lookup: 迭代查找。
 func bstLookup(int root, int key) as bool
     int cur = root
-    while cur != NIL do
+    while cur != NIL
         if key == bstKey[cur] then
             return true
         elseif key < bstKey[cur] then
@@ -236,7 +236,7 @@ end
 // bstMin: 子树最小 key (前提 root != NIL)。
 func bstMin(int root) as int
     int cur = root
-    while bstLeft[cur] != NIL do
+    while bstLeft[cur] != NIL
         cur = bstLeft[cur]
     end
     return bstKey[cur]
@@ -279,8 +279,8 @@ func bstInorder(int root) as array<int>
     array<int> outputValue
     array<int> st
     int cur = root
-    while cur != NIL or st.length > 0 do
-        while cur != NIL do
+    while cur != NIL or st.length > 0
+        while cur != NIL
             st.push(cur)
             cur = bstLeft[cur]
         end
@@ -317,7 +317,7 @@ func hmNew(int cap) as int
     int base = hmBuckets.length
     hmBase.append(base)
     int i = 0
-    while i < cap do
+    while i < cap
         hmBuckets.append(NIL)
         i += 1
     end
@@ -341,7 +341,7 @@ end
 func hmGetOr(int ver, string key, int defaultVal) as int
     int idx = hmHashIdx(ver, key)
     int entry = hmBuckets[hmBase[ver] + idx]
-    while entry != NIL do
+    while entry != NIL
         if hmKey[entry] == key then
             return hmVal[entry]
         end
@@ -353,7 +353,7 @@ end
 func hmHas(int ver, string key) as bool
     int idx = hmHashIdx(ver, key)
     int entry = hmBuckets[hmBase[ver] + idx]
-    while entry != NIL do
+    while entry != NIL
         if hmKey[entry] == key then
             return true
         end
@@ -396,7 +396,7 @@ func hmAssoc(int ver, string key, int val) as int
     int newBase = hmBase[newVer]
     // 复制桶数组 (未变桶仅复制链头 id => 结构共享)
     int i = 0
-    while i < cap do
+    while i < cap
         hmBuckets[newBase + i] = hmBuckets[oldBase + i]
         i += 1
     end
@@ -415,7 +415,7 @@ func hmDissoc(int ver, string key) as int
     int oldBase = hmBase[ver]
     int newBase = hmBase[newVer]
     int i = 0
-    while i < cap do
+    while i < cap
         hmBuckets[newBase + i] = hmBuckets[oldBase + i]
         i += 1
     end
@@ -431,9 +431,9 @@ func hmSize(int ver) as int
     int cap = hmCap[ver]
     int base = hmBase[ver]
     int i = 0
-    while i < cap do
+    while i < cap
         int entry = hmBuckets[base + i]
-        while entry != NIL do
+        while entry != NIL
             n += 1
             entry = hmNext[entry]
         end
@@ -447,9 +447,9 @@ func hmKeys(int ver) as array<string>
     int cap = hmCap[ver]
     int base = hmBase[ver]
     int i = 0
-    while i < cap do
+    while i < cap
         int entry = hmBuckets[base + i]
-        while entry != NIL do
+        while entry != NIL
             outputValue.append(hmKey[entry])
             entry = hmNext[entry]
         end
@@ -463,10 +463,10 @@ func hmStr(int ver) as string
     array<string> ks = hmKeys(ver)
     int n = ks.length
     int i = 0
-    while i < n do
+    while i < n
         int best = i
         int j = i + 1
-        while j < n do
+        while j < n
             if ks[j] < ks[best] then best = j end
             j += 1
         end
@@ -477,7 +477,7 @@ func hmStr(int ver) as string
     end
     string s = "{"
     int k = 0
-    while k < n do
+    while k < n
         if k > 0 then s = s + ", " end
         s = s + ks[k] + ":" + string(hmGetOr(ver, ks[k], 0))
         k += 1
@@ -507,7 +507,7 @@ func arrEqInt(array<int> a, array<int> b) as bool
     int n = a.length
     if b.length != n then return false end
     int i = 0
-    while i < n do
+    while i < n
         if a[i] != b[i] then return false end
         i += 1
     end
@@ -517,7 +517,7 @@ end
 func intArrStr(array<int> a) as string
     string s = "["
     int i = 0
-    while i < a.length do
+    while i < a.length
         if i > 0 then s = s + ", " end
         s = s + string(a[i])
         i += 1
@@ -614,7 +614,7 @@ func testBST() as int
     array<int> keys = array[4, 2, 6, 1, 3, 5, 7]
     int T1 = bstEmpty()
     int i = 0
-    while i < keys.length do
+    while i < keys.length
         T1 = bstInsert(T1, keys[i])
         i += 1
     end
@@ -716,13 +716,13 @@ func testHashMap() as int
     // 哈希冲突 (cap=4) 下大量 key 仍正确: 顺序无关 get 一致性
     int mbig = hmNew(4)
     int k = 0
-    while k < 20 do
+    while k < 20
         mbig = hmAssoc(mbig, "k" + string(k), k * k)
         k += 1
     end
     bool ok = true
     int j = 0
-    while j < 20 do
+    while j < 20
         if hmGetOr(mbig, "k" + string(j), -1) != j * j then ok = false end
         j += 1
     end

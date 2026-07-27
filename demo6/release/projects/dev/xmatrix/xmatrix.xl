@@ -107,7 +107,7 @@ func formatVector(array<float> v) as string
     string outputValue = "["
     int n = v.length
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             outputValue = outputValue + ", "
         end
@@ -194,7 +194,7 @@ class Matrix
         self.data = array[]
         int total = rows * cols
         int i = 0
-        while i < total do
+        while i < total
             self.data.append(0.0)
             i += 1
         end
@@ -240,7 +240,7 @@ class Matrix
         Matrix result = Matrix(self.rows, self.cols)
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             result.data[i] = self.data[i]
             i += 1
         end
@@ -263,9 +263,9 @@ class Matrix
             return false
         end
         int r = 0
-        while r < self.rows do
+        while r < self.rows
             int c = r + 1
-            while c < self.cols do
+            while c < self.cols
                 if not approxDefault(self.at(r, c), self.at(c, r)) then
                     return false
                 end
@@ -283,7 +283,7 @@ class Matrix
         end
         float s = 0.0
         int i = 0
-        while i < self.rows do
+        while i < self.rows
             s += self.at(i, i)
             i += 1
         end
@@ -294,7 +294,7 @@ class Matrix
     func fill(float v)
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             self.data[i] = v
             i += 1
         end
@@ -307,12 +307,12 @@ class Matrix
         end
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             self.data[i] = 0.0
             i += 1
         end
         int k = 0
-        while k < self.rows do
+        while k < self.rows
             self.set(k, k, 1.0)
             k += 1
         end
@@ -324,7 +324,7 @@ class Matrix
             return
         end
         int c = 0
-        while c < self.cols do
+        while c < self.cols
             float tmp = self.at(i, c)
             self.set(i, c, self.at(j, c))
             self.set(j, c, tmp)
@@ -338,7 +338,7 @@ class Matrix
             return
         end
         int r = 0
-        while r < self.rows do
+        while r < self.rows
             float tmp = self.at(r, i)
             self.set(r, i, self.at(r, j))
             self.set(r, j, tmp)
@@ -350,7 +350,7 @@ class Matrix
     func getRow(int r) as Matrix
         Matrix result = Matrix(1, self.cols)
         int c = 0
-        while c < self.cols do
+        while c < self.cols
             result.set(0, c, self.at(r, c))
             c += 1
         end
@@ -361,7 +361,7 @@ class Matrix
     func getCol(int c) as Matrix
         Matrix result = Matrix(self.rows, 1)
         int r = 0
-        while r < self.rows do
+        while r < self.rows
             result.set(r, 0, self.at(r, c))
             r += 1
         end
@@ -371,7 +371,7 @@ class Matrix
     // 设置第 r 行的值（从 array<float>）
     func setRow(int r, array<float> vals)
         int c = 0
-        while c < self.cols do
+        while c < self.cols
             self.set(r, c, vals[c])
             c += 1
         end
@@ -380,7 +380,7 @@ class Matrix
     // 设置第 c 列的值（从 array<float>）
     func setCol(int c, array<float> vals)
         int r = 0
-        while r < self.rows do
+        while r < self.rows
             self.set(r, c, vals[r])
             r += 1
         end
@@ -396,7 +396,7 @@ class Matrix
         Matrix result = Matrix(self.rows, self.cols)
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             result.data[i] = self.data[i] + other.data[i]
             i += 1
         end
@@ -411,7 +411,7 @@ class Matrix
         Matrix result = Matrix(self.rows, self.cols)
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             result.data[i] = self.data[i] - other.data[i]
             i += 1
         end
@@ -425,12 +425,12 @@ class Matrix
         end
         Matrix result = Matrix(self.rows, other.cols)
         int r = 0
-        while r < self.rows do
+        while r < self.rows
             int c = 0
-            while c < other.cols do
+            while c < other.cols
                 float sum = 0.0
                 int k = 0
-                while k < self.cols do
+                while k < self.cols
                     sum += self.at(r, k) * other.at(k, c)
                     k += 1
                 end
@@ -447,7 +447,7 @@ class Matrix
         Matrix result = Matrix(self.rows, self.cols)
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             result.data[i] = self.data[i] * s
             i += 1
         end
@@ -458,9 +458,9 @@ class Matrix
     func transpose() as Matrix
         Matrix result = Matrix(self.cols, self.rows)
         int r = 0
-        while r < self.rows do
+        while r < self.rows
             int c = 0
-            while c < self.cols do
+            while c < self.cols
                 result.set(c, r, self.at(r, c))
                 c += 1
             end
@@ -477,7 +477,7 @@ class Matrix
         Matrix result = Matrix(self.rows, self.cols)
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             result.data[i] = self.data[i] * other.data[i]
             i += 1
         end
@@ -493,7 +493,7 @@ class Matrix
         end
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             if self.data[i] != other.data[i] then
                 return false
             end
@@ -509,7 +509,7 @@ class Matrix
         end
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             if not approxDefault(self.data[i], other.data[i]) then
                 return false
             end
@@ -527,7 +527,7 @@ class Matrix
         end
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             if math.abs(self.data[i] - other.data[i]) > tol then
                 return false
             end
@@ -541,7 +541,7 @@ class Matrix
         float s = 0.0
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             float v = self.data[i]
             s += v * v
             i += 1
@@ -556,7 +556,7 @@ class Matrix
         end
         array<float> d = array[]
         int i = 0
-        while i < self.rows do
+        while i < self.rows
             d.append(self.at(i, i))
             i += 1
         end
@@ -576,10 +576,10 @@ class Matrix
 
         array<int> widths = array[]
         int c = 0
-        while c < self.cols do
+        while c < self.cols
             int maxW = 0
             int r = 0
-            while r < self.rows do
+            while r < self.rows
                 string s = formatNumber(self.at(r, c))
                 int sl = string.len(s)
                 if sl > maxW then
@@ -593,10 +593,10 @@ class Matrix
 
         string outputValue = ""
         int r2 = 0
-        while r2 < self.rows do
+        while r2 < self.rows
             outputValue = outputValue + "| "
             int cc = 0
-            while cc < self.cols do
+            while cc < self.cols
                 int w = widths[cc]
                 string s = formatNumber(self.at(r2, cc))
                 outputValue = outputValue + string.padLeft(s, w, " ")
@@ -628,7 +628,7 @@ end
 func matrixIdentity(int n) as Matrix
     Matrix m = Matrix(n, n)
     int i = 0
-    while i < n do
+    while i < n
         m.set(i, i, 1.0)
         i += 1
     end
@@ -640,7 +640,7 @@ func matrixFrom(int r, int c, array<float> vals) as Matrix
     Matrix m = Matrix(r, c)
     int n = r * c
     int i = 0
-    while i < n do
+    while i < n
         if i < vals.length then
             m.data[i] = vals[i]
         end
@@ -654,7 +654,7 @@ func matrixConstant(int r, int c, float v) as Matrix
     Matrix m = Matrix(r, c)
     int n = r * c
     int i = 0
-    while i < n do
+    while i < n
         m.data[i] = v
         i += 1
     end
@@ -671,10 +671,10 @@ func matrixFromRows(array<array<float>> rows) as Matrix
     int nc = firstRow.length
     Matrix m = Matrix(nr, nc)
     int r = 0
-    while r < nr do
+    while r < nr
         int c = 0
         array<float> rowR = rows[r]
-        while c < nc do
+        while c < nc
             m.set(r, c, rowR[c])
             c += 1
         end
@@ -712,18 +712,18 @@ func luDecompose(Matrix a) as LUResult
     array<int> perm = array[]
     int sign = 1
     int i = 0
-    while i < n do
+    while i < n
         perm.append(i)
         i += 1
     end
 
     int k = 0
-    while k < n do
+    while k < n
         // 部分主元选择：在 [k, n) 中找 |work[i][k]| 最大的行
         float maxVal = math.abs(work.at(k, k))
         int maxRow = k
         int r = k + 1
-        while r < n do
+        while r < n
             float absVal = math.abs(work.at(r, k))
             if absVal > maxVal then
                 maxVal = absVal
@@ -751,11 +751,11 @@ func luDecompose(Matrix a) as LUResult
         // 消元：计算 L 的第 k 列（严格下三角部分）并更新 U
         if math.abs(pivot) >= EPS_LU then
             int r2 = k + 1
-            while r2 < n do
+            while r2 < n
                 float factor = work.at(r2, k) / pivot
                 work.set(r2, k, factor)
                 int j = k + 1
-                while j < n do
+                while j < n
                     float val = work.at(r2, j) - factor * work.at(k, j)
                     work.set(r2, j, val)
                     j += 1
@@ -770,9 +770,9 @@ func luDecompose(Matrix a) as LUResult
     Matrix L = Matrix(n, n)
     Matrix U = Matrix(n, n)
     int r3 = 0
-    while r3 < n do
+    while r3 < n
         int c3 = 0
-        while c3 < n do
+        while c3 < n
             if r3 > c3 then
                 L.set(r3, c3, work.at(r3, c3))
                 U.set(r3, c3, 0.0)
@@ -801,15 +801,15 @@ func forwardSub(Matrix L, array<float> Pb) as array<float>
     int n = L.rows
     array<float> y = array[]
     int i = 0
-    while i < n do
+    while i < n
         y.append(0.0)
         i += 1
     end
     int r = 0
-    while r < n do
+    while r < n
         float s = Pb[r]
         int c = 0
-        while c < r do
+        while c < r
             s -= L.at(r, c) * y[c]
             c += 1
         end
@@ -824,15 +824,15 @@ func forwardSubGeneral(Matrix L, array<float> b) as array<float>
     int n = L.rows
     array<float> y = array[]
     int i = 0
-    while i < n do
+    while i < n
         y.append(0.0)
         i += 1
     end
     int r = 0
-    while r < n do
+    while r < n
         float s = b[r]
         int c = 0
-        while c < r do
+        while c < r
             s -= L.at(r, c) * y[c]
             c += 1
         end
@@ -852,15 +852,15 @@ func backSub(Matrix U, array<float> y) as array<float>
     int n = U.rows
     array<float> x = array[]
     int i = 0
-    while i < n do
+    while i < n
         x.append(0.0)
         i += 1
     end
     int r = n - 1
-    while r >= 0 do
+    while r >= 0
         float s = y[r]
         int c = r + 1
-        while c < n do
+        while c < n
             s -= U.at(r, c) * x[c]
             c += 1
         end
@@ -912,13 +912,13 @@ func qrDecompose(Matrix a) as QRResult
     end
 
     int k = 0
-    while k < steps do
+    while k < steps
         // 计算 Householder 向量 v
         // x = R[k:m, k]（从第 k 行到第 m-1 行的第 k 列）
         int xlen = m - k
         array<float> x = array[]
         int i = 0
-        while i < xlen do
+        while i < xlen
             x.append(R.at(k + i, k))
             i += 1
         end
@@ -926,7 +926,7 @@ func qrDecompose(Matrix a) as QRResult
         // alpha = -sign(x[0]) * ||x||
         float xNorm = 0.0
         i = 0
-        while i < xlen do
+        while i < xlen
             xNorm += x[i] * x[i]
             i += 1
         end
@@ -949,7 +949,7 @@ func qrDecompose(Matrix a) as QRResult
         // v = x - alpha * e1
         array<float> v = array[]
         i = 0
-        while i < xlen do
+        while i < xlen
             float vi = x[i]
             if i == 0 then
                 vi = vi - alpha
@@ -961,7 +961,7 @@ func qrDecompose(Matrix a) as QRResult
         // vNorm^2 = ||v||^2
         float vNormSq = 0.0
         i = 0
-        while i < xlen do
+        while i < xlen
             vNormSq += v[i] * v[i]
             i += 1
         end
@@ -974,17 +974,17 @@ func qrDecompose(Matrix a) as QRResult
         // 对 R 的第 k 到 n-1 列应用 H = I - 2 v v^T / (v^T v)
         // R[k:m, j] -= 2 * v * (v^T R[k:m, j]) / vNormSq
         int j = k
-        while j < n do
+        while j < n
             // dot = v^T * R[k:m, j]
             float dot = 0.0
             int p = 0
-            while p < xlen do
+            while p < xlen
                 dot += v[p] * R.at(k + p, j)
                 p += 1
             end
             float coeff = 2.0 * dot / vNormSq
             p = 0
-            while p < xlen do
+            while p < xlen
                 float val = R.at(k + p, j) - coeff * v[p]
                 R.set(k + p, j, val)
                 p += 1
@@ -995,17 +995,17 @@ func qrDecompose(Matrix a) as QRResult
         // 对 Q 应用同样的变换：Q = Q * H
         // Q[i, k:m] -= 2 * (Q[i, k:m] * v) * v^T / vNormSq
         int row = 0
-        while row < m do
+        while row < m
             // dot = Q[row, k:m] * v
             float dot = 0.0
             int p = 0
-            while p < xlen do
+            while p < xlen
                 dot += Q.at(row, k + p) * v[p]
                 p += 1
             end
             float coeff = 2.0 * dot / vNormSq
             p = 0
-            while p < xlen do
+            while p < xlen
                 float val = Q.at(row, k + p) - coeff * v[p]
                 Q.set(row, k + p, val)
                 p += 1
@@ -1036,12 +1036,12 @@ func cholesky(Matrix a) as Matrix
     int n = a.rows
     Matrix L = Matrix(n, n)
     int i = 0
-    while i < n do
+    while i < n
         int j = 0
-        while j <= i do
+        while j <= i
             float sum = a.at(i, j)
             int k = 0
-            while k < j do
+            while k < j
                 sum -= L.at(i, k) * L.at(j, k)
                 k += 1
             end
@@ -1100,7 +1100,7 @@ func determinant(Matrix a) as float
     end
     float det = float(lu.sign)
     int i = 0
-    while i < n do
+    while i < n
         det *= lu.U.at(i, i)
         i += 1
     end
@@ -1125,19 +1125,19 @@ func inverse(Matrix a) as Matrix
 
     Matrix inv = Matrix(n, n)
     int col = 0
-    while col < n do
+    while col < n
         // 构造 e_col（单位向量的原始位置）
         // 先按 perm 排列：Pb = P * e_col
         array<float> Pb = array[]
         int i = 0
-        while i < n do
+        while i < n
             Pb.append(0.0)
             i += 1
         end
         // perm[i] 表示位置 i 的原始行号
         // P * e_col 的第 i 个分量 = e_col[perm[i]]
         i = 0
-        while i < n do
+        while i < n
             if lu.perm[i] == col then
                 Pb[i] = 1.0
             end
@@ -1151,7 +1151,7 @@ func inverse(Matrix a) as Matrix
 
         // x 就是 A^{-1} 的第 col 列
         int r = 0
-        while r < n do
+        while r < n
             inv.set(r, col, x[r])
             r += 1
         end
@@ -1185,7 +1185,7 @@ func solve(Matrix a, array<float> b) as array<float>
     int n = a.rows
     array<float> Pb = array[]
     int i = 0
-    while i < n do
+    while i < n
         Pb.append(b[lu.perm[i]])
         i += 1
     end
@@ -1223,7 +1223,7 @@ func powerIteration(Matrix a, int maxIter, float tol) as EigenResult
     // 初始向量：全 1（避免全零）
     array<float> v = array[]
     int i = 0
-    while i < n do
+    while i < n
         v.append(1.0)
         i += 1
     end
@@ -1231,7 +1231,7 @@ func powerIteration(Matrix a, int maxIter, float tol) as EigenResult
     // 归一化初始向量
     float vNorm = 0.0
     i = 0
-    while i < n do
+    while i < n
         vNorm += v[i] * v[i]
         i += 1
     end
@@ -1242,7 +1242,7 @@ func powerIteration(Matrix a, int maxIter, float tol) as EigenResult
         return result
     end
     i = 0
-    while i < n do
+    while i < n
         v[i] = v[i] / vNorm
         i += 1
     end
@@ -1251,14 +1251,14 @@ func powerIteration(Matrix a, int maxIter, float tol) as EigenResult
     int iter = 0
     bool converged = false
 
-    while iter < maxIter do
+    while iter < maxIter
         // w = A * v
         array<float> w = array[]
         int r = 0
-        while r < n do
+        while r < n
             float s = 0.0
             int c = 0
-            while c < n do
+            while c < n
                 s += a.at(r, c) * v[c]
                 c += 1
             end
@@ -1269,7 +1269,7 @@ func powerIteration(Matrix a, int maxIter, float tol) as EigenResult
         // Rayleigh 商：lambda = v^T * w
         float lambda = 0.0
         i = 0
-        while i < n do
+        while i < n
             lambda += v[i] * w[i]
             i += 1
         end
@@ -1277,7 +1277,7 @@ func powerIteration(Matrix a, int maxIter, float tol) as EigenResult
         // 归一化 w
         float wNorm = 0.0
         i = 0
-        while i < n do
+        while i < n
             wNorm += w[i] * w[i]
             i += 1
         end
@@ -1294,7 +1294,7 @@ func powerIteration(Matrix a, int maxIter, float tol) as EigenResult
         // 新向量
         array<float> vNew = array[]
         i = 0
-        while i < n do
+        while i < n
             vNew.append(w[i] / wNorm)
             i += 1
         end
@@ -1303,7 +1303,7 @@ func powerIteration(Matrix a, int maxIter, float tol) as EigenResult
         float diff1 = 0.0
         float diff2 = 0.0
         i = 0
-        while i < n do
+        while i < n
             float d1 = vNew[i] - v[i]
             float d2 = vNew[i] + v[i]
             diff1 += d1 * d1
@@ -1315,7 +1315,7 @@ func powerIteration(Matrix a, int maxIter, float tol) as EigenResult
 
         // 更新 v 和 eigenvalue
         i = 0
-        while i < n do
+        while i < n
             v[i] = vNew[i]
             i += 1
         end
@@ -1339,7 +1339,7 @@ func powerIteration(Matrix a, int maxIter, float tol) as EigenResult
     // 构造特征向量矩阵（n x 1 列向量）
     Matrix eigenVec = Matrix(n, 1)
     i = 0
-    while i < n do
+    while i < n
         eigenVec.set(i, 0, v[i])
         i += 1
     end
@@ -1365,7 +1365,7 @@ func qrIteration(Matrix a, int maxIter, float tol) as array<float>
 
     Matrix ak = a.copy()
     int iter = 0
-    while iter < maxIter do
+    while iter < maxIter
         QRResult qr = qrDecompose(ak)
         Matrix qrR = qr.R
         Matrix qrQ = qr.Q
@@ -1374,9 +1374,9 @@ func qrIteration(Matrix a, int maxIter, float tol) as array<float>
         // 计算次对角线（严格下三角）元素之和，判断收敛
         float offDiag = 0.0
         int r = 0
-        while r < n do
+        while r < n
             int c = 0
-            while c < r do
+            while c < r
                 offDiag += next.at(r, c) * next.at(r, c)
                 c += 1
             end
@@ -1395,17 +1395,17 @@ func qrIteration(Matrix a, int maxIter, float tol) as array<float>
     // 提取对角线特征值
     array<float> eigenvalues = array[]
     int i = 0
-    while i < n do
+    while i < n
         eigenvalues.append(ak.at(i, i))
         i += 1
     end
 
     // 按模从大到小排序（简单选择排序）
     int ei = 0
-    while ei < n - 1 do
+    while ei < n - 1
         int maxIdx = ei
         int ej = ei + 1
-        while ej < n do
+        while ej < n
             if math.abs(eigenvalues[ej]) > math.abs(eigenvalues[maxIdx]) then
                 maxIdx = ej
             end
@@ -1458,10 +1458,10 @@ func leastSquares(Matrix a, array<float> b) as array<float>
     // (Q^T b)[i] = sum_j Q[j][i] * b[j]
     array<float> QTb = array[]
     int i = 0
-    while i < m do
+    while i < m
         float s = 0.0
         int j = 0
-        while j < m do
+        while j < m
             s += Q.at(j, i) * b[j]
             j += 1
         end
@@ -1473,16 +1473,16 @@ func leastSquares(Matrix a, array<float> b) as array<float>
     // R 是上三角（前 n 行 n 列部分）
     array<float> x = array[]
     i = 0
-    while i < n do
+    while i < n
         x.append(0.0)
         i += 1
     end
 
     int r = n - 1
-    while r >= 0 do
+    while r >= 0
         float s = QTb[r]
         int c = r + 1
-        while c < n do
+        while c < n
             s -= R.at(r, c) * x[c]
             c += 1
         end
@@ -1503,10 +1503,10 @@ func residual(Matrix a, array<float> x, array<float> b) as array<float>
     int n = a.cols
     array<float> r = array[]
     int i = 0
-    while i < m do
+    while i < m
         float s = b[i]
         int j = 0
-        while j < n do
+        while j < n
             s -= a.at(i, j) * x[j]
             j += 1
         end
@@ -1531,7 +1531,7 @@ func vDot(array<float> a, array<float> b) as float
     end
     float s = 0.0
     int i = 0
-    while i < n do
+    while i < n
         s += a[i] * b[i]
         i += 1
     end
@@ -1555,7 +1555,7 @@ func vNorm(array<float> a) as float
     float s = 0.0
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         s += a[i] * a[i]
         i += 1
     end
@@ -1571,7 +1571,7 @@ func vNormalize(array<float> a) as array<float>
     array<float> r = array[]
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         r.append(a[i] / norm)
         i += 1
     end
@@ -1586,7 +1586,7 @@ func vAdd(array<float> a, array<float> b) as array<float>
     end
     array<float> r = array[]
     int i = 0
-    while i < n do
+    while i < n
         r.append(a[i] + b[i])
         i += 1
     end
@@ -1601,7 +1601,7 @@ func vSub(array<float> a, array<float> b) as array<float>
     end
     array<float> r = array[]
     int i = 0
-    while i < n do
+    while i < n
         r.append(a[i] - b[i])
         i += 1
     end
@@ -1613,7 +1613,7 @@ func vScale(array<float> a, float s) as array<float>
     array<float> r = array[]
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         r.append(a[i] * s)
         i += 1
     end
@@ -1625,7 +1625,7 @@ func vNorm1(array<float> a) as float
     float s = 0.0
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         s += math.abs(a[i])
         i += 1
     end
@@ -1639,7 +1639,7 @@ func vNormInf(array<float> a) as float
     end
     float mx = math.abs(a[0])
     int i = 1
-    while i < a.length do
+    while i < a.length
         float v = math.abs(a[i])
         if v > mx then
             mx = v
@@ -1667,13 +1667,13 @@ end
 func matrixToJson(Matrix m) as string
     string outputValue = "["
     int r = 0
-    while r < m.rows do
+    while r < m.rows
         if r > 0 then
             outputValue = outputValue + ", "
         end
         outputValue = outputValue + "["
         int c = 0
-        while c < m.cols do
+        while c < m.cols
             if c > 0 then
                 outputValue = outputValue + ", "
             end
@@ -1726,14 +1726,14 @@ func matrixFromJson(string text) as Matrix
 
     Matrix m = Matrix(rows, cols)
     int r = 0
-    while r < rows do
+    while r < rows
         var row = data[r]
         int rowLen = row.length
         if rowLen != cols then
             throw "ragged matrix at row " + string(r) + ": expected " + string(cols) + " cols, got " + string(rowLen)
         end
         int c = 0
-        while c < cols do
+        while c < cols
             m.set(r, c, float(row[c]))
             c += 1
         end
@@ -1770,7 +1770,7 @@ func vectorFromJson(string text) as array<float>
 
     array<float> v = array[]
     int i = 0
-    while i < n do
+    while i < n
         v.append(float(data[i]))
         i += 1
     end
@@ -1940,9 +1940,9 @@ func testLUDecomposition()
         // 先构造 PA
         Matrix pa = Matrix(2, 2)
         int i = 0
-        while i < 2 do
+        while i < 2
             int j = 0
-            while j < 2 do
+            while j < 2
                 pa.set(i, j, a.at(lu.perm[i], j))
                 j += 1
             end
@@ -1969,9 +1969,9 @@ func testLUDecomposition()
         // 验证 PA = LU
         Matrix pa3 = Matrix(3, 3)
         i = 0
-        while i < 3 do
+        while i < 3
             int j = 0
-            while j < 3 do
+            while j < 3
                 pa3.set(i, j, a3.at(lu3.perm[i], j))
                 j += 1
             end
@@ -2008,9 +2008,9 @@ func testQRDecomposition()
         // 验证 R 上三角
         bool upperTri = true
         int r = 1
-        while r < 3 do
+        while r < 3
             int c = 0
-            while c < r do
+            while c < r
                 if math.abs(qr.R.at(r, c)) > 0.001 then
                     upperTri = false
                 end
@@ -2165,10 +2165,10 @@ func testLinearSolve()
         // 验证 A*x = b
         array<float> ax = array[]
         int i = 0
-        while i < 2 do
+        while i < 2
             float s = 0.0
             int j = 0
-            while j < 2 do
+            while j < 2
                 s += a.at(i, j) * x[j]
                 j += 1
             end
@@ -2506,10 +2506,10 @@ func cmdSolve(string aPath, string bPath) as int
         // 验证：打印 A*x
         array<float> ax = array[]
         int i = 0
-        while i < a.rows do
+        while i < a.rows
             float s = 0.0
             int j = 0
-            while j < a.cols do
+            while j < a.cols
                 s += a.at(i, j) * x[j]
                 j += 1
             end
@@ -2553,7 +2553,7 @@ func cmdEigen(string mPath) as int
         println("--- QR Iteration ---")
         println("All eigenvalues (diagonal, sorted by magnitude):")
         int i = 0
-        while i < eigs.length do
+        while i < eigs.length
             println("  lambda_" + string(i) + " = " + formatNumber(eigs[i]))
             i += 1
         end
@@ -2623,9 +2623,9 @@ func cmdLU(string mPath) as int
         int n = m.rows
         Matrix pa = Matrix(n, n)
         int i = 0
-        while i < n do
+        while i < n
             int j = 0
-            while j < n do
+            while j < n
                 pa.set(i, j, m.at(lu.perm[i], j))
                 j += 1
             end
@@ -2647,7 +2647,7 @@ end
 func permToString(array<int> perm) as string
     string outputValue = "["
     int i = 0
-    while i < perm.length do
+    while i < perm.length
         if i > 0 then
             outputValue = outputValue + ", "
         end

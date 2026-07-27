@@ -56,7 +56,7 @@ class SkipNode
         self.forward = array[]
         self.span = array[]
         int i = 0
-        while i < levels do
+        while i < levels
             self.forward.push(NIL)
             self.span.push(0)
             i = i + 1
@@ -187,7 +187,7 @@ class SkipList
     func randomLevel() as int
         int lvl = 1
         int bits = int(random.u32())
-        while lvl < self.maxLevel and (bits & 1) == 1 do
+        while lvl < self.maxLevel and (bits & 1) == 1
             lvl = lvl + 1
             bits = bits >> 1
         end
@@ -198,9 +198,9 @@ class SkipList
     func findNode(int key) as int
         int xid = HEADER_ID
         int i = self.level - 1
-        while i >= 0 do
+        while i >= 0
             int f = self.fwdAt(xid, i)
-            while f != NIL and self.keyAt(f) < key do
+            while f != NIL and self.keyAt(f) < key
                 xid = f
                 f = self.fwdAt(xid, i)
             end
@@ -242,7 +242,7 @@ class SkipList
         array<int> update = array[]
         array<int> rank = array[]
         int mi = 0
-        while mi < self.maxLevel do
+        while mi < self.maxLevel
             update.push(HEADER_ID)
             rank.push(0)
             mi = mi + 1
@@ -251,14 +251,14 @@ class SkipList
         // 下降查找：记录每层的前驱 update[i] 与其 rank[i]
         int xid = HEADER_ID
         int i = self.level - 1
-        while i >= 0 do
+        while i >= 0
             if i == self.level - 1 then
                 rank[i] = 0
             else
                 rank[i] = rank[i + 1]
             end
             int f = self.fwdAt(xid, i)
-            while f != NIL and self.keyAt(f) < key do
+            while f != NIL and self.keyAt(f) < key
                 rank[i] = rank[i] + self.spanAt(xid, i)
                 xid = f
                 f = self.fwdAt(xid, i)
@@ -271,7 +271,7 @@ class SkipList
         // 新层数超过当前最高：扩展 header 的空层 span = count
         if lvl > self.level then
             int j = self.level
-            while j < lvl do
+            while j < lvl
                 rank[j] = 0
                 update[j] = HEADER_ID
                 self.setSpan(HEADER_ID, j, self.count)
@@ -285,7 +285,7 @@ class SkipList
         int newId = self.allocNode(nn)
         SkipNode work = self.getNode(newId)
         int k = 0
-        while k < lvl do
+        while k < lvl
             SkipNode un = self.getNode(update[k])
             int fwd = un.forward[k]
             work.forward[k] = fwd
@@ -299,7 +299,7 @@ class SkipList
 
         // 新节点未出现的更高层：前驱 span +1
         int m = lvl
-        while m < self.level do
+        while m < self.level
             SkipNode un = self.getNode(update[m])
             un.span[m] = un.span[m] + 1
             self.setNode(update[m], un)
@@ -315,16 +315,16 @@ class SkipList
     func delete(int key) as bool
         array<int> update = array[]
         int mi = 0
-        while mi < self.maxLevel do
+        while mi < self.maxLevel
             update.push(HEADER_ID)
             mi = mi + 1
         end
 
         int xid = HEADER_ID
         int i = self.level - 1
-        while i >= 0 do
+        while i >= 0
             int f = self.fwdAt(xid, i)
-            while f != NIL and self.keyAt(f) < key do
+            while f != NIL and self.keyAt(f) < key
                 xid = f
                 f = self.fwdAt(xid, i)
             end
@@ -342,7 +342,7 @@ class SkipList
 
         SkipNode cn = self.getNode(cand)
         int i2 = 0
-        while i2 < self.level do
+        while i2 < self.level
             SkipNode un = self.getNode(update[i2])
             if un.forward[i2] == cand then
                 // cand 出现于第 i2 层：cn 在该层有效，前驱直接接到 cand.next
@@ -358,7 +358,7 @@ class SkipList
         end
 
         // 顶层变空则降低 level
-        while self.level > 1 and self.fwdAt(HEADER_ID, self.level - 1) == NIL do
+        while self.level > 1 and self.fwdAt(HEADER_ID, self.level - 1) == NIL
             self.level = self.level - 1
         end
 
@@ -372,9 +372,9 @@ class SkipList
         int xid = HEADER_ID
         int acc = 0
         int i = self.level - 1
-        while i >= 0 do
+        while i >= 0
             int f = self.fwdAt(xid, i)
-            while f != NIL and self.keyAt(f) <= key do
+            while f != NIL and self.keyAt(f) <= key
                 acc = acc + self.spanAt(xid, i)
                 xid = f
                 f = self.fwdAt(xid, i)
@@ -399,9 +399,9 @@ class SkipList
     func max() as int
         int xid = HEADER_ID
         int i = self.level - 1
-        while i >= 0 do
+        while i >= 0
             int f = self.fwdAt(xid, i)
-            while f != NIL do
+            while f != NIL
                 xid = f
                 f = self.fwdAt(xid, i)
             end
@@ -421,16 +421,16 @@ class SkipList
         end
         int xid = HEADER_ID
         int i = self.level - 1
-        while i >= 0 do
+        while i >= 0
             int f = self.fwdAt(xid, i)
-            while f != NIL and self.keyAt(f) < low do
+            while f != NIL and self.keyAt(f) < low
                 xid = f
                 f = self.fwdAt(xid, i)
             end
             i = i - 1
         end
         int cur = self.fwdAt(xid, 0)
-        while cur != NIL and self.keyAt(cur) <= high do
+        while cur != NIL and self.keyAt(cur) <= high
             var pair = [self.keyAt(cur), self.valAt(cur)]
             result.push(pair)
             cur = self.fwdAt(cur, 0)
@@ -442,7 +442,7 @@ class SkipList
     func __iter__() as SkipIter
         var items = []
         int xid = self.fwdAt(HEADER_ID, 0)
-        while xid != NIL do
+        while xid != NIL
             var pair = [self.keyAt(xid), self.valAt(xid)]
             items.push(pair)
             xid = self.fwdAt(xid, 0)
@@ -460,7 +460,7 @@ class SkipList
         var ns = []
         int total = self.nodes.length
         int i = 0
-        while i < total do
+        while i < total
             SkipNode n = self.getNode(i)
             var nd = {}
             nd["key"] = n.key
@@ -469,7 +469,7 @@ class SkipList
             var sp = []
             int L = n.forward.length
             int j = 0
-            while j < L do
+            while j < L
                 fw.push(n.forward[j])
                 sp.push(n.span[j])
                 j = j + 1
@@ -496,7 +496,7 @@ class SkipList
         var ns = data["nodes"]
         int total = ns.length
         int i = 0
-        while i < total do
+        while i < total
             var nd = ns[i]
             int key = int(nd["key"])
             string val = string(nd["value"])
@@ -505,7 +505,7 @@ class SkipList
             int L = fw.length
             SkipNode n = SkipNode(key, val, L)
             int j = 0
-            while j < L do
+            while j < L
                 n.forward[j] = int(fw[j])
                 n.span[j] = int(sp[j])
                 j = j + 1
@@ -521,7 +521,7 @@ class SkipList
         string line = "L" + string(lvl) + ": H"
         int xid = HEADER_ID
         int f = self.fwdAt(xid, lvl)
-        while f != NIL do
+        while f != NIL
             int sp = self.spanAt(xid, lvl)
             SkipNode n = self.getNode(f)
             line = line + " --[" + string(sp) + "]--> "
@@ -540,7 +540,7 @@ class SkipList
                 " maxLevel=" + string(self.maxLevel) +
                 " nodes=" + string(self.nodes.length))
         int i = self.level - 1
-        while i >= 0 do
+        while i >= 0
             self.dumpLevel(i)
             i = i - 1
         end
@@ -606,13 +606,13 @@ end
 func shuffledRange(int n) as var
     var arr = []
     int i = 1
-    while i <= n do
+    while i <= n
         arr.push(i)
         i = i + 1
     end
     int seed = 987654321
     int j = n - 1
-    while j > 0 do
+    while j > 0
         seed = seed * 1103515245 + 12345
         seed = seed % 2147483647
         if seed < 0 then
@@ -642,7 +642,7 @@ func looksLikeInt(string s) as bool
     if i >= len then
         return false
     end
-    while i < len do
+    while i < len
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -657,7 +657,7 @@ func joinArgs(var argv, int fromIdx) as string
     string s = ""
     int i = fromIdx
     int n = argv.length
-    while i < n do
+    while i < n
         if i > fromIdx then
             s = s + " "
         end
@@ -701,7 +701,7 @@ func buildDemo(int n) as SkipList
     SkipList tree = SkipList(MAXLVL)
     var ord = shuffledRange(n)
     int i = 0
-    while i < ord.length do
+    while i < ord.length
         int k = int(ord[i])
         tree.insert(k, "demo-" + string(k))
         i = i + 1
@@ -725,7 +725,7 @@ func cmdTest() as int
     var order = shuffledRange(N)
     int inserted = 0
     int ii = 0
-    while ii < N do
+    while ii < N
         int k = int(order[ii])
         bool isNew = tree.insert(k, "v-" + string(k))
         if isNew then
@@ -745,7 +745,7 @@ func cmdTest() as int
     // ---- 查找：全部命中 ----
     int findHits = 0
     int fi = 1
-    while fi <= N do
+    while fi <= N
         string v = tree.search(fi)
         if not string.isEmpty(v) then
             findHits = findHits + 1
@@ -762,7 +762,7 @@ func cmdTest() as int
     // ---- 排名：keys 为 1..1000，rank(k) 应 = k ----
     int rankHits = 0
     int ri = 1
-    while ri <= N do
+    while ri <= N
         if tree.rank(ri) == ri then
             rankHits = rankHits + 1
         end
@@ -835,7 +835,7 @@ func cmdTest() as int
     // ---- 删除：删掉全部偶数键（500 个）----
     int delCount = 0
     int di = 2
-    while di <= N do
+    while di <= N
         bool removed = tree.delete(di)
         if removed then
             delCount = delCount + 1
@@ -848,7 +848,7 @@ func cmdTest() as int
     // 偶数 gone
     int evenMiss = 0
     int ei = 2
-    while ei <= N do
+    while ei <= N
         if not tree.contains(ei) then
             evenMiss = evenMiss + 1
         end
@@ -859,7 +859,7 @@ func cmdTest() as int
     // 奇数仍在
     int oddHit = 0
     int oi = 1
-    while oi <= N do
+    while oi <= N
         if tree.contains(oi) then
             oddHit = oddHit + 1
         end
@@ -887,7 +887,7 @@ func cmdTest() as int
 
     // ---- 再删剩余奇数 -> 树空 ----
     int dii = 1
-    while dii <= N do
+    while dii <= N
         tree.delete(dii)
         dii = dii + 2
     end
@@ -910,7 +910,7 @@ func cmdTest() as int
     // ---- 多元素再插 + dump 形态校验（节点数 >= 元素数 + header）----
     SkipList small = SkipList(MAXLVL)
     int si = 1
-    while si <= 50 do
+    while si <= 50
         small.insert(si, "x" + string(si))
         si = si + 1
     end
@@ -958,7 +958,7 @@ func cmdRange(string scriptPath, int low, int high) as int
         return 0
     end
     int i = 0
-    while i < n do
+    while i < n
         var pair = result[i]
         println(string(pair[0]) + "=" + string(pair[1]))
         i = i + 1

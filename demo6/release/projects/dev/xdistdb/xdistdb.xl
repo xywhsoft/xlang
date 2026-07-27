@@ -128,7 +128,7 @@ func looksLikeInt(string s) as bool
     int fb = string.byteAt(s, 0)
     if fb == 45 or fb == 43 then i = 1 end
     if i >= string.len(s) then return false end
-    while i < string.len(s) do
+    while i < string.len(s)
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then return false end
         i += 1
@@ -144,7 +144,7 @@ func looksLikeFloat(string s) as bool
     int fb = string.byteAt(s, 0)
     if fb == 45 or fb == 43 then i = 1 end
     bool seenDigit = false
-    while i < string.len(s) do
+    while i < string.len(s)
         int b = string.byteAt(s, i)
         if b >= 48 and b <= 57 then
             seenDigit = true
@@ -205,10 +205,10 @@ func splitAll(string s, string sep) as var
     int i = 0
     int seplen = string.len(sep)
     int n = string.len(s)
-    while i < n do
+    while i < n
         bool match = true
         int j = 0
-        while j < seplen do
+        while j < seplen
             if i + j >= n then
                 match = false
                 break
@@ -236,7 +236,7 @@ func splitFields(string s, string sep) as var
     var raw = splitAll(s, sep)
     var result = []
     int i = 0
-    while i < raw.length do
+    while i < raw.length
         string t = string.trim(string(raw[i]))
         if not isEmpty(t) then result.append(t) end
         i += 1
@@ -247,7 +247,7 @@ end
 func joinStrings(var arr, string sep) as string
     string res = ""
     int i = 0
-    while i < arr.length do
+    while i < arr.length
         if i > 0 then res = res + sep end
         res = res + string(arr[i])
         i += 1
@@ -266,7 +266,7 @@ func progressBar(float ratio, int width) as string
     if filled > width then filled = width end
     string bar = ""
     int i = 0
-    while i < width do
+    while i < width
         if i < filled then bar = bar + "#" else bar = bar + "-" end
         i += 1
     end
@@ -302,10 +302,10 @@ end
 func sortByHashField(var arr, string field) as var
     int n = arr.length
     int i = 1
-    while i < n do
+    while i < n
         var cur = arr[i]
         int j = i - 1
-        while j >= 0 do
+        while j >= 0
             if int(arr[j][field]) > int(cur[field]) then
                 arr[j + 1] = arr[j]
                 j -= 1
@@ -322,10 +322,10 @@ end
 func sortByFloatField(var arr, string field) as var
     int n = arr.length
     int i = 1
-    while i < n do
+    while i < n
         var cur = arr[i]
         int j = i - 1
-        while j >= 0 do
+        while j >= 0
             if float(arr[j][field]) > float(cur[field]) then
                 arr[j + 1] = arr[j]
                 j -= 1
@@ -343,9 +343,9 @@ end
 func sortStringArray(var arr) as var
     int n = arr.length
     int i = 0
-    while i < n do
+    while i < n
         int j = 0
-        while j < n - 1 - i do
+        while j < n - 1 - i
             if string(arr[j]) > string(arr[j + 1]) then
                 var t = arr[j]
                 arr[j] = arr[j + 1]
@@ -362,7 +362,7 @@ func jsonEscapeStr(string s) as string
     string res = ""
     int i = 0
     int n = string.len(s)
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if c == "\"" then
             res = res + "\\\""
@@ -409,7 +409,7 @@ func rebuildRing()
     var nodes = gState["nodes"]
     for nodeId, node in nodes
         int vi = 0
-        while vi < VNODES_PER_NODE do
+        while vi < VNODES_PER_NODE
             int h = hashVnode(string(nodeId), vi)
             ring.append({"hash": h, "nodeId": string(nodeId), "vnodeId": vi})
             vi += 1
@@ -422,7 +422,7 @@ end
 func ringLookup(int h) as string
     var ring = ensureRing()
     int i = 0
-    while i < ring.length do
+    while i < ring.length
         if int(ring[i]["hash"]) >= h then return string(ring[i]["nodeId"]) end
         i += 1
     end
@@ -434,7 +434,7 @@ func ringBinarySearch(int h) as int
     var ring = ensureRing()
     int lo = 0
     int hi = ring.length
-    while lo < hi do
+    while lo < hi
         int mid = (lo + hi) / 2
         if int(ring[mid]["hash"]) >= h then
             hi = mid
@@ -454,7 +454,7 @@ func ringLookupN(int h, int n) as var
     int start = ringBinarySearch(h)
     if start >= count then start = 0 end
     int i = 0
-    while i < count and res.length < n do
+    while i < count and res.length < n
         int idx = (start + i) % count
         string nid = string(ring[idx]["nodeId"])
         if not (nid in seen) then
@@ -472,19 +472,19 @@ func computeJoinMigration(string newNodeId) as var
     if ring.length == 0 then return ranges end
     var newVnodes = []
     int vi = 0
-    while vi < VNODES_PER_NODE do
+    while vi < VNODES_PER_NODE
         int h = hashVnode(newNodeId, vi)
         newVnodes.append({"hash": h, "nodeId": newNodeId, "vnodeId": vi})
         vi += 1
     end
     newVnodes = sortByHashField(newVnodes, "hash")
     int i = 0
-    while i < newVnodes.length do
+    while i < newVnodes.length
         int nvHash = int(newVnodes[i]["hash"])
         string oldOwner = ringLookup(nvHash)
         int lastBefore = -1
         int k = 0
-        while k < ring.length do
+        while k < ring.length
             if int(ring[k]["hash"]) < nvHash and int(ring[k]["hash"]) > lastBefore then
                 lastBefore = int(ring[k]["hash"])
             end
@@ -504,12 +504,12 @@ func computeLeaveMigration(string leavingNodeId) as var
     var ring = ensureRing()
     if ring.length == 0 then return ranges end
     int i = 0
-    while i < ring.length do
+    while i < ring.length
         if string(ring[i]["nodeId"]) == leavingNodeId then
             int leaveHash = int(ring[i]["hash"])
             string newOwner = ""
             int j = 1
-            while j < ring.length do
+            while j < ring.length
                 int idx = (i + j) % ring.length
                 string cand = string(ring[idx]["nodeId"])
                 if cand != leavingNodeId then
@@ -538,12 +538,12 @@ func renderRingViz() as string
     res = res + "hash space: [0, 2^32) sampled into 32 segments\n"
     int step = 134217728
     int i = 0
-    while i < 32 do
+    while i < 32
         int pos = i * step
         string owner = ringLookup(pos)
         var nodeCount = {}
         int j = 0
-        while j < ring.length do
+        while j < ring.length
             int h = int(ring[j]["hash"])
             if h >= pos and h < pos + step then
                 string nid = string(ring[j]["nodeId"])
@@ -869,7 +869,7 @@ func clusterFailNode(string nodeId) as var
     end
     int relected = 0
     int i = 0
-    while i < affected.length do
+    while i < affected.length
         var r = raftStartElection(string(affected[i]))
         if bool(r["ok"]) then relected += 1 end
         i += 1
@@ -937,7 +937,7 @@ func countKeysInRanges(var ranges) as int
     end
     int rangeWidth = 0
     int i = 0
-    while i < ranges.length do
+    while i < ranges.length
         int from = int(ranges[i]["fromHash"])
         int to = int(ranges[i]["toHash"])
         if to >= from then rangeWidth += (to - from) end
@@ -984,7 +984,7 @@ func reassignShards()
     end
     if onlineNodes.length == 0 then return end
     int i = 0
-    while i < DEFAULT_SHARD_COUNT do
+    while i < DEFAULT_SHARD_COUNT
         string sid = string(i)
         if not (sid in shards) then
             shards[sid] = {"id": sid,
@@ -1007,7 +1007,7 @@ func reassignShards()
             string cur = string(sh["leader"])
             bool leaderOk = false
             int r = 0
-            while r < replicas.length do
+            while r < replicas.length
                 if string(replicas[r]) == cur then
                     leaderOk = true
                     break
@@ -1037,7 +1037,7 @@ func clusterInit(int nodeCount) as var
     var nodes = gState["nodes"]
     ensureStats()
     int i = 0
-    while i < nodeCount do
+    while i < nodeCount
         string nid = ""
         if i < 26 then
             nid = "node-" + string.charAt("abcdefghijklmnopqrstuvwxyz", i)
@@ -1052,7 +1052,7 @@ func clusterInit(int nodeCount) as var
     rebuildRing()
     reassignShards()
     int s = 0
-    while s < DEFAULT_SHARD_COUNT do
+    while s < DEFAULT_SHARD_COUNT
         raftInitShard(string(s))
         s += 1
     end
@@ -1095,7 +1095,7 @@ end
 func advanceMigrations()
     var migrations = gState["migrations"]
     int i = 0
-    while i < migrations.length do
+    while i < migrations.length
         if string(migrations[i]["status"]) == "pending" then
             var m = migrations[i]
             m["status"] = "completed"
@@ -1184,7 +1184,7 @@ func activeSweepShard(string sid, int batch) as int
         end
     end
     int i = 0
-    while i < expired.length do
+    while i < expired.length
         sd.remove(string(expired[i]))
         decrShardKeyCount(sid)
         i += 1
@@ -1341,7 +1341,7 @@ func opLpush(string sid, string key, var values) as string
     end
     var lst = entry["value"]
     int i = values.length - 1
-    while i >= 0 do
+    while i >= 0
         lst.insert(0, values[i])
         i -= 1
     end
@@ -1362,7 +1362,7 @@ func opRpush(string sid, string key, var values) as string
     end
     var lst = entry["value"]
     int i = 0
-    while i < values.length do
+    while i < values.length
         lst.append(values[i])
         i += 1
     end
@@ -1384,7 +1384,7 @@ func opLpop(string sid, string key, int count) as string
     if count > lst.length then count = lst.length end
     var popped = []
     int i = 0
-    while i < count do
+    while i < count
         popped.append(lst[0])
         lst.remove(0)
         i += 1
@@ -1408,7 +1408,7 @@ func opRpop(string sid, string key, int count) as string
     if count > lst.length then count = lst.length end
     var popped = []
     int i = 0
-    while i < count do
+    while i < count
         int last = lst.length - 1
         popped.append(lst[last])
         lst.remove(last)
@@ -1437,7 +1437,7 @@ func opLrange(string sid, string key, int start, int stop) as string
     if start > stop or start >= n then return "[]" end
     var res = []
     int i = start
-    while i <= stop do
+    while i <= stop
         res.append(lst[i])
         i += 1
     end
@@ -1533,7 +1533,7 @@ func opSadd(string sid, string key, var members) as int
     var s = entry["value"]
     int added = 0
     int i = 0
-    while i < members.length do
+    while i < members.length
         string m = string(members[i])
         if not (m in s) then
             s[m] = true
@@ -1558,7 +1558,7 @@ func opSrem(string sid, string key, var members) as int
     var s = entry["value"]
     int removed = 0
     int i = 0
-    while i < members.length do
+    while i < members.length
         string m = string(members[i])
         if m in s then
             s.remove(m)
@@ -1619,7 +1619,7 @@ func opZadd(string sid, string key, float score, string member) as int
     end
     var lst = entry["value"]
     int i = 0
-    while i < lst.length do
+    while i < lst.length
         if string(lst[i]["member"]) == member then
             lst[i]["score"] = score
             entry["value"] = lst
@@ -1645,7 +1645,7 @@ func opZrem(string sid, string key, string member) as int
     if string(entry["type"]) != "zset" then return -1 end
     var lst = entry["value"]
     int i = 0
-    while i < lst.length do
+    while i < lst.length
         if string(lst[i]["member"]) == member then
             lst.remove(i)
             entry["value"] = lst
@@ -1675,7 +1675,7 @@ func opZrange(string sid, string key, int start, int stop) as string
     if start > stop or start >= n then return "(empty)" end
     var lines = []
     int i = start
-    while i <= stop do
+    while i <= stop
         string m = string(sorted[i]["member"])
         float sc = float(sorted[i]["score"])
         lines.append(m + " : " + float.format(sc, ".4"))
@@ -1691,7 +1691,7 @@ func opZscore(string sid, string key, string member) as string
     if string(entry["type"]) != "zset" then return "(error) WRONGTYPE" end
     var lst = entry["value"]
     int i = 0
-    while i < lst.length do
+    while i < lst.length
         if string(lst[i]["member"]) == member then
             return float.format(float(lst[i]["score"]), ".4")
         end
@@ -1763,7 +1763,7 @@ func raftInitShard(string sid)
     var matchIdx = {}
     var nextIdx = {}
     int i = 0
-    while i < replicas.length do
+    while i < replicas.length
         string rid = string(replicas[i])
         matchIdx[rid] = 1
         nextIdx[rid] = 2
@@ -1789,7 +1789,7 @@ func raftOnlineReplicas(string sid) as var
     var online = []
     var nodes = gState["nodes"]
     int i = 0
-    while i < replicas.length do
+    while i < replicas.length
         string rid = string(replicas[i])
         if rid in nodes then
             var n = nodes[rid]
@@ -1815,7 +1815,7 @@ func raftAppendEntries(string sid, var entry) as int
     var matchIdx = rs["matchIndex"]
     var nextIdx = rs["nextIndex"]
     int i = 0
-    while i < online.length do
+    while i < online.length
         string rid = string(online[i])
         if rid == leader then
             acks += 1
@@ -1842,7 +1842,7 @@ func raftRequestVote(string sid, int term, string candidateId) as int
     int curTerm = int(rs["currentTerm"])
     string voted = string(rs["votedFor"])
     int i = 0
-    while i < online.length do
+    while i < online.length
         string rid = string(online[i])
         if rid == candidateId then
             votes += 1
@@ -1956,11 +1956,11 @@ func applyCommitted(string sid)
     int commit = int(rs["commitIndex"])
     int applied = int(rs["lastApplied"])
     var log = rs["log"]
-    while applied < commit do
+    while applied < commit
         applied += 1
         int li = 0
         bool found = false
-        while li < log.length do
+        while li < log.length
             if int(log[li]["index"]) == applied then
                 applyEntry(sid, log[li])
                 found = true
@@ -2033,7 +2033,7 @@ func raftTakeSnapshot(string sid)
         var kept = []
         int start = log.length - RAFT_SNAPSHOT_KEEP_LOG
         int i = start
-        while i < log.length do
+        while i < log.length
             kept.append(log[i])
             i += 1
         end
@@ -2052,7 +2052,7 @@ func raftAddServer(string sid, string newNodeId) as var
     var sh = shards[sid]
     var replicas = sh["replicas"]
     int i = 0
-    while i < replicas.length do
+    while i < replicas.length
         if string(replicas[i]) == newNodeId then
             return {"ok": false, "error": "already a replica"}
         end
@@ -2072,7 +2072,7 @@ func raftRemoveServer(string sid, string oldNodeId) as var
     var replicas = sh["replicas"]
     var kept = []
     int i = 0
-    while i < replicas.length do
+    while i < replicas.length
         if string(replicas[i]) != oldNodeId then kept.append(replicas[i]) end
         i += 1
     end
@@ -2207,7 +2207,7 @@ end
 func scatterGather(string queryFn, string pattern) as var
     var results = []
     int i = 0
-    while i < DEFAULT_SHARD_COUNT do
+    while i < DEFAULT_SHARD_COUNT
         string sid = string(i)
         var data = gState["data"]
         if sid in data then
@@ -2236,7 +2236,7 @@ func crossShardTx(var commands) as var
     var prepared = []
     bool allOk = true
     int i = 0
-    while i < commands.length do
+    while i < commands.length
         var cmd = commands[i]
         string key = string(cmd["key"])
         string sid = shardOf(key)
@@ -2272,7 +2272,7 @@ func cmdFlushAll() as string
     var data = gState["data"]
     var shards = gState["shards"]
     int i = 0
-    while i < DEFAULT_SHARD_COUNT do
+    while i < DEFAULT_SHARD_COUNT
         string sid = string(i)
         data[sid] = {}
         if sid in shards then
@@ -2568,7 +2568,7 @@ func executeProtocolLine(string line) as string
         string sid = shardOf(key)
         int removed = 0
         int i = 0
-        while i < members.length do
+        while i < members.length
             removed += opSrem(sid, key, [members[i]])
             i += 1
         end
@@ -2657,10 +2657,10 @@ func executeProtocolLine(string line) as string
         var sg = scatterGather("keys:" + pattern, pattern)
         var all = []
         int si = 0
-        while si < sg.length do
+        while si < sg.length
             var keys = sg[si]["keys"]
             int kj = 0
-            while kj < keys.length do
+            while kj < keys.length
                 all.append(keys[kj])
                 kj += 1
             end
@@ -2765,13 +2765,13 @@ func formatClusterShards() as string
     int limit = 16
     if DEFAULT_SHARD_COUNT < limit then limit = DEFAULT_SHARD_COUNT end
     int i = 0
-    while i < limit do
+    while i < limit
         string sid = string(i)
         var sh = ensureShard(sid)
         var replicas = sh["replicas"]
         string repStr = ""
         int j = 0
-        while j < replicas.length do
+        while j < replicas.length
             if not isEmpty(repStr) then repStr = repStr + "," end
             repStr = repStr + string(replicas[j])
             j += 1
@@ -2791,7 +2791,7 @@ func formatClusterSlots() as string
     var shards = ensureShards()
     var slotPerNode = {}
     int i = 0
-    while i < DEFAULT_SHARD_COUNT do
+    while i < DEFAULT_SHARD_COUNT
         string sid = string(i)
         var sh = ensureShard(sid)
         string prim = string(sh["primary"])
@@ -2815,7 +2815,7 @@ func formatHealth() as string
     string res = ""
     res = res + "=== CLUSTER HEALTH ===\n"
     int i = 0
-    while i < health.length do
+    while i < health.length
         var h = health[i]
         res = res + padRight(string(h["id"]), 10)
         res = res + "status=" + padRight(string(h["status"]), 10)
@@ -2839,7 +2839,7 @@ func formatMigrations() as string
     res = res + padRight("ranges", 8) + padRight("total", 8) + padRight("moved", 8)
     res = res + padRight("status", 12) + "\n"
     int i = 0
-    while i < migrations.length do
+    while i < migrations.length
         var m = migrations[i]
         res = res + padRight(string(m["id"]), 10)
         res = res + padRight(string(m["type"]), 8)
@@ -2879,7 +2879,7 @@ func formatRaftState(string sid) as string
     res = res + "replicas:         "
     var replicas = sh["replicas"]
     int i = 0
-    while i < replicas.length do
+    while i < replicas.length
         if i > 0 then res = res + ", " end
         res = res + string(replicas[i])
         i += 1
@@ -2892,7 +2892,7 @@ func formatRaftState(string sid) as string
     int startL = log.length - 5
     if startL < 0 then startL = 0 end
     int li = startL
-    while li < log.length do
+    while li < log.length
         var e = log[li]
         res = res + "  idx=" + padRight(string(e["index"]), 4)
         res = res + "term=" + padRight(string(e["term"]), 4)
@@ -2912,7 +2912,7 @@ func formatMigrationProgress() as string
         return res
     end
     int i = 0
-    while i < migrations.length do
+    while i < migrations.length
         var m = migrations[i]
         int total = int(m["totalKeys"])
         int moved = int(m["movedKeys"])
@@ -2933,7 +2933,7 @@ func formatKeyDistribution() as string
     var data = ensureData()
     var perNode = {}
     int i = 0
-    while i < DEFAULT_SHARD_COUNT do
+    while i < DEFAULT_SHARD_COUNT
         string sid = string(i)
         var sh = ensureShard(sid)
         string prim = string(sh["primary"])
@@ -3096,10 +3096,10 @@ func httpHandle(point reqHandle, point respHandle) as bool
         var sg = scatterGather("keys:" + pat, pat)
         var all = []
         int si = 0
-        while si < sg.length do
+        while si < sg.length
             var keys = sg[si]["keys"]
             int kj = 0
-            while kj < keys.length do
+            while kj < keys.length
                 all.append(keys[kj])
                 kj += 1
             end
@@ -3220,7 +3220,7 @@ func cmdClusterMigrate() as int
     var migrations = ensureMigrations()
     int pendingBefore = 0
     int i = 0
-    while i < migrations.length do
+    while i < migrations.length
         if string(migrations[i]["status"]) == "pending" then pendingBefore += 1 end
         i += 1
     end
@@ -3430,7 +3430,7 @@ func cmdSetOp(string subcmd, string key, var args) as int
     if subcmd == "srem" then
         int removed = 0
         int i = 0
-        while i < args.length do
+        while i < args.length
             removed += opSrem(sid, key, [args[i]])
             i += 1
         end
@@ -3514,10 +3514,10 @@ func cmdKeys(string pattern) as int
     int total = 0
     var all = []
     int si = 0
-    while si < sg.length do
+    while si < sg.length
         var keys = sg[si]["keys"]
         int kj = 0
-        while kj < keys.length do
+        while kj < keys.length
             all.append(keys[kj])
             total += 1
             kj += 1
@@ -3531,7 +3531,7 @@ func cmdKeys(string pattern) as int
     int limit = total
     if limit > MAX_KEYS_LOG then limit = MAX_KEYS_LOG end
     int i = 0
-    while i < limit do
+    while i < limit
         println(string(all[i]))
         i += 1
     end
@@ -3547,7 +3547,7 @@ func cmdCount() as int
     println("(integer) " + string(totalKeyCount()))
     var data = ensureData()
     int i = 0
-    while i < 16 do
+    while i < 16
         string sid = string(i)
         int c = 0
         if sid in data then c = data[sid].length end
@@ -3598,7 +3598,7 @@ func cmdTx(string txExpr) as int
     var parts = splitAll(txExpr, "|")
     var commands = []
     int i = 0
-    while i < parts.length do
+    while i < parts.length
         string line = string.trim(string(parts[i]))
         if isEmpty(line) then
             i += 1
@@ -3639,7 +3639,7 @@ func cmdTx(string txExpr) as int
         println("OK 2PC COMMIT in " + formatMs(t1 - t0))
         var prepared = r["prepared"]
         int pi = 0
-        while pi < prepared.length do
+        while pi < prepared.length
             println("  shard=" + string(prepared[pi]["shardId"]) + " commit_index=" + string(prepared[pi]["newIdx"]))
             pi += 1
         end
@@ -3648,7 +3648,7 @@ func cmdTx(string txExpr) as int
     println("FAIL 2PC ABORT in " + formatMs(t1 - t0))
     var prepared = r["prepared"]
     int pi = 0
-    while pi < prepared.length do
+    while pi < prepared.length
         if bool(prepared[pi]["ok"]) then
             println("  shard=" + string(prepared[pi]["shardId"]) + " PREPARED then rolled back")
         else
@@ -3714,7 +3714,7 @@ func cmdBench(int ops) as int
     println("[1/3] WRITE phase (SET key:<i> value:<i>)...")
     int t0 = nowMs()
     int i = 0
-    while i < ops do
+    while i < ops
         string k = "bench:key:" + string(i)
         string v = "value:" + string(i)
         var r = routeSet(k, v)
@@ -3736,7 +3736,7 @@ func cmdBench(int ops) as int
     int hits = 0
     int misses = 0
     i = 0
-    while i < ops do
+    while i < ops
         string k = "bench:key:" + string(i)
         var r = routeGet(k)
         if string(r["value"]) != "(nil)" then
@@ -3763,7 +3763,7 @@ func cmdBench(int ops) as int
     var data = ensureData()
     var perNode = {}
     int ti = 0
-    while ti < DEFAULT_SHARD_COUNT do
+    while ti < DEFAULT_SHARD_COUNT
         string sid = string(ti)
         var sh = ensureShard(sid)
         string prim = string(sh["primary"])
@@ -3790,7 +3790,7 @@ func cmdBench(int ops) as int
         if stddev > 0.0 then
             float g = stddev / 2.0 + 0.5
             int iter = 0
-            while iter < 10 do
+            while iter < 10
                 if g <= 0.0 then g = 0.01 end
                 g = (g + stddev / g) / 2.0
                 iter += 1
@@ -3858,7 +3858,7 @@ func cmdServe(int port) as int
     println("  GET  /raft/<shardId>         raft state of shard")
     println("  POST /cmd  body=<line>       Redis-like command")
     println("press Ctrl+C to stop")
-    while true do
+    while true
         time.sleep(1000)
     end
     return 0
@@ -3898,7 +3898,7 @@ func collectSlotPerNode() as var
     var shards = ensureShards()
     var slotPerNode = {}
     int i = 0
-    while i < DEFAULT_SHARD_COUNT do
+    while i < DEFAULT_SHARD_COUNT
         string sid = string(i)
         var sh = ensureShard(sid)
         string prim = string(sh["primary"])
@@ -3914,7 +3914,7 @@ func collectKeyPerNode() as var
     var data = ensureData()
     var perNode = {}
     int i = 0
-    while i < DEFAULT_SHARD_COUNT do
+    while i < DEFAULT_SHARD_COUNT
         string sid = string(i)
         var sh = ensureShard(sid)
         string prim = string(sh["primary"])
@@ -3946,7 +3946,7 @@ func test01ClusterInit() as int
     int noPrimary = 0
     int noLeader = 0
     int i = 0
-    while i < DEFAULT_SHARD_COUNT do
+    while i < DEFAULT_SHARD_COUNT
         string sid = string(i)
         if isEmpty(string(shards[sid]["primary"])) then noPrimary += 1 end
         if isEmpty(string(shards[sid]["leader"])) then noLeader += 1 end
@@ -3969,7 +3969,7 @@ func test02HashRingAndRouting() as int
     check(sid1a == sid1b, "same key -> same shard (deterministic)")
     var seen = {}
     int i = 0
-    while i < 100 do
+    while i < 100
         string k = "k:" + string(i)
         string sid = shardOf(k)
         if not (sid in seen) then seen[sid] = 0 end
@@ -3994,7 +3994,7 @@ func test03KeyDistribution() as int
     section("[test 03] key distribution balance")
     int i = 0
     int t0 = nowMs()
-    while i < 1000 do
+    while i < 1000
         string k = "dist:" + string(i)
         var r = routeSet(k, "v" + string(i))
         if not bool(r["ok"]) then
@@ -4023,7 +4023,7 @@ func test03KeyDistribution() as int
     if stddev > 0.0 then
         float g = stddev / 2.0 + 0.5
         int iter = 0
-        while iter < 10 do
+        while iter < 10
             if g <= 0.0 then g = 0.01 end
             g = (g + stddev / g) / 2.0
             iter += 1
@@ -4132,7 +4132,7 @@ func test05TTL() as int
     check(getEntry(sid, "ttl:expired") == null, "lazy expire removes key from shard data")
     string sid2 = shardOf("ttl:sweep")
     int i = 0
-    while i < 5 do
+    while i < 5
         string k = "ttl:sweep:" + string(i)
         var e = makeEntry("string", "v")
         e["ttl"] = nowSec() - 1
@@ -4167,7 +4167,7 @@ func test06Raft() as int
     check(int(rs2["lastApplied"]) == ci, "lastApplied advanced")
     checkEq(opGet(sid, "raft:k1"), "v1", "data visible after apply")
     int i = 0
-    while i < RAFT_SNAPSHOT_THRESHOLD + 5 do
+    while i < RAFT_SNAPSHOT_THRESHOLD + 5
         var cmd2 = {"op": "SET", "key": "raft:bulk:" + string(i), "value": string(i), "type": "string"}
         raftAppendAndApply(sid, cmd2)
         i += 1
@@ -4212,7 +4212,7 @@ func test08Failover() as int
     string targetSid = ""
     string targetLeader = ""
     int i = 0
-    while i < DEFAULT_SHARD_COUNT do
+    while i < DEFAULT_SHARD_COUNT
         string sid = string(i)
         var rs = ensureRaftShard(sid)
         string leader = string(rs["leaderId"])
@@ -4260,7 +4260,7 @@ func test09JoinLeaveMigration() as int
     check(r["ranges"].length > 0, "join migration has ranges > 0")
     bool hasOldAndNew = false
     int i = 0
-    while i < r["ranges"].length do
+    while i < r["ranges"].length
         if string(r["ranges"][i]["newOwner"]) == newId then
             hasOldAndNew = true
             break
@@ -4272,7 +4272,7 @@ func test09JoinLeaveMigration() as int
     var migrations = ensureMigrations()
     bool joinCompleted = false
     int mi = 0
-    while mi < migrations.length do
+    while mi < migrations.length
         if string(migrations[mi]["nodeId"]) == newId and string(migrations[mi]["status"]) == "completed" then
             joinCompleted = true
             break
@@ -4293,7 +4293,7 @@ end
 func test10ScatterGather() as int
     section("[test 10] scatter-gather (KEYS / COUNT)")
     int i = 0
-    while i < 20 do
+    while i < 20
         routeSet("scatter:" + string(i), "v")
         i += 1
     end
@@ -4302,7 +4302,7 @@ func test10ScatterGather() as int
     var sg = scatterGather("keys:scatter:*", "scatter:*")
     int matched = 0
     int si = 0
-    while si < sg.length do
+    while si < sg.length
         matched += sg[si]["keys"].length
         si += 1
     end
@@ -4310,7 +4310,7 @@ func test10ScatterGather() as int
     var sgNone = scatterGather("keys:nomatch:*", "nomatch:*")
     int matchedNone = 0
     si = 0
-    while si < sgNone.length do
+    while si < sgNone.length
         matchedNone += sgNone[si]["keys"].length
         si += 1
     end
@@ -4409,7 +4409,7 @@ func test14EndToEnd() as int
     section("[test 14] end-to-end (5 nodes -> 1000 keys -> fail -> verify -> recover)")
     clusterInit(5)
     int i = 0
-    while i < 1000 do
+    while i < 1000
         string k = "e2e:" + string(i)
         string v = "v:" + string(i)
         var r = routeSet(k, v)
@@ -4433,7 +4433,7 @@ func test14EndToEnd() as int
     check(not isEmpty(failTarget), "found node with data to fail")
     var beforeSnapshot = {}
     int ki = 0
-    while ki < 1000 do
+    while ki < 1000
         string k = "e2e:" + string(ki)
         beforeSnapshot[k] = opGet(shardOf(k), k)
         ki += 1
@@ -4442,7 +4442,7 @@ func test14EndToEnd() as int
     check(bool(fr["ok"]), "fail " + failTarget + " ok")
     int accessibleAfterFail = 0
     ki = 0
-    while ki < 1000 do
+    while ki < 1000
         string k = "e2e:" + string(ki)
         string v = opGet(shardOf(k), k)
         if v == string(beforeSnapshot[k]) then
@@ -4455,7 +4455,7 @@ func test14EndToEnd() as int
     check(bool(rec["ok"]), "recover " + failTarget + " ok")
     int consistentAfterRecover = 0
     ki = 0
-    while ki < 1000 do
+    while ki < 1000
         string k = "e2e:" + string(ki)
         string v = opGet(shardOf(k), k)
         if v == string(beforeSnapshot[k]) then
@@ -4465,7 +4465,7 @@ func test14EndToEnd() as int
     end
     check(consistentAfterRecover == 1000, "all 1000 keys consistent after recovery (got " + string(consistentAfterRecover) + ")")
     int j = 0
-    while j < 100 do
+    while j < 100
         string k = "e2e:post:" + string(j)
         var r = routeSet(k, "post" + string(j))
         if not bool(r["ok"]) then
@@ -4512,7 +4512,7 @@ func test16MultiFailover() as int
     section("[test 16] multi-node failover (2 of 5 down)")
     clusterInit(5)
     int i = 0
-    while i < 200 do
+    while i < 200
         routeSet("mf:" + string(i), "v" + string(i))
         i += 1
     end
@@ -4521,7 +4521,7 @@ func test16MultiFailover() as int
     // Snapshot keys
     var snap = {}
     i = 0
-    while i < 200 do
+    while i < 200
         string k = "mf:" + string(i)
         snap[k] = opGet(shardOf(k), k)
         i += 1
@@ -4548,7 +4548,7 @@ func test16MultiFailover() as int
     // Verify all keys still accessible via remaining replicas
     int accessible = 0
     i = 0
-    while i < 200 do
+    while i < 200
         string k = "mf:" + string(i)
         string v = opGet(shardOf(k), k)
         if v == string(snap[k]) then accessible += 1 end
@@ -4634,7 +4634,7 @@ func test19EdgeCases() as int
     string sk = "edge:bigset"
     string sid = shardOf(sk)
     int i = 0
-    while i < 50 do
+    while i < 50
         opSadd(sid, sk, ["m" + string(i)])
         i += 1
     end
@@ -4673,7 +4673,7 @@ func test20MigrationRanges() as int
     check(ranges.length == VNODES_PER_NODE, "join ranges = vnodes_per_node (got " + string(ranges.length) + ")")
     bool allNewOwner = true
     int i = 0
-    while i < ranges.length do
+    while i < ranges.length
         if string(ranges[i]["newOwner"]) != newId then
             allNewOwner = false
             break
@@ -4684,7 +4684,7 @@ func test20MigrationRanges() as int
     // Each range has fromHash < toHash
     bool allHashed = true
     i = 0
-    while i < ranges.length do
+    while i < ranges.length
         int from = int(ranges[i]["fromHash"])
         int to = int(ranges[i]["toHash"])
         if from >= to then
@@ -4701,7 +4701,7 @@ func test20MigrationRanges() as int
     check(lranges.length == VNODES_PER_NODE, "leave ranges = vnodes_per_node (got " + string(lranges.length) + ")")
     bool allOldOwner = true
     i = 0
-    while i < lranges.length do
+    while i < lranges.length
         if string(lranges[i]["oldOwner"]) != newId then
             allOldOwner = false
             break
@@ -4740,7 +4740,7 @@ func test22Routing() as int
     clusterInit(5)
     // Each key has a valid shard + leader
     int i = 0
-    while i < 20 do
+    while i < 20
         string k = "route:" + string(i)
         var info = routeKey(k)
         check(not isEmpty(string(info["shardId"])), "key " + k + " has shardId")
@@ -4773,7 +4773,7 @@ func test23WorkloadStats() as int
     int missBefore = int(stats0["totalMisses"])
     // 10 SETs + 5 GETs (3 hits + 2 misses)
     int i = 0
-    while i < 10 do
+    while i < 10
         routeSet("stat:k" + string(i), "v")
         i += 1
     end
@@ -4866,7 +4866,7 @@ func test25HashDeterminism() as int
     // Hash space coverage: 1000 keys hit many shards
     var shardCount = {}
     int i = 0
-    while i < 1000 do
+    while i < 1000
         string s = shardOf("k:" + string(i) + ":" + string(i * 2))
         if not (s in shardCount) then shardCount[s] = 0 end
         shardCount[s] = int(shardCount[s]) + 1
@@ -5113,7 +5113,7 @@ func main(...) as int
         string key = string(arg[2])
         string rawVal = ""
         int vi = 3
-        while vi < arg.length do
+        while vi < arg.length
             if isEmpty(rawVal) then
                 rawVal = string(arg[vi])
             else
@@ -5189,7 +5189,7 @@ func main(...) as int
         string key = string(arg[2])
         var args = []
         int ai = 3
-        while ai < arg.length do
+        while ai < arg.length
             args.append(string(arg[ai]))
             ai += 1
         end
@@ -5202,7 +5202,7 @@ func main(...) as int
         string key = string(arg[2])
         var args = []
         int ai = 3
-        while ai < arg.length do
+        while ai < arg.length
             args.append(string(arg[ai]))
             ai += 1
         end
@@ -5215,7 +5215,7 @@ func main(...) as int
         string key = string(arg[2])
         var args = []
         int ai = 3
-        while ai < arg.length do
+        while ai < arg.length
             args.append(string(arg[ai]))
             ai += 1
         end
@@ -5228,7 +5228,7 @@ func main(...) as int
         string key = string(arg[2])
         var args = []
         int ai = 3
-        while ai < arg.length do
+        while ai < arg.length
             args.append(string(arg[ai]))
             ai += 1
         end
@@ -5264,7 +5264,7 @@ func main(...) as int
         end
         string line = ""
         int li = 2
-        while li < arg.length do
+        while li < arg.length
             if isEmpty(line) then
                 line = string(arg[li])
             else
@@ -5280,7 +5280,7 @@ func main(...) as int
         end
         string txExpr = ""
         int ti = 2
-        while ti < arg.length do
+        while ti < arg.length
             if isEmpty(txExpr) then
                 txExpr = string(arg[ti])
             else

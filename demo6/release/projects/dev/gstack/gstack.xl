@@ -84,9 +84,9 @@ end
 func sortArray<T is comparable>(array<T> arr)
     int n = arr.length
     int i = 0
-    while i < n do
+    while i < n
         int j = 0
-        while j < n - 1 - i do
+        while j < n - 1 - i
             if arr[j] > arr[j + 1] then
                 T tmp = arr[j]
                 arr[j] = arr[j + 1]
@@ -102,7 +102,7 @@ end
 func arrayMax<T is comparable>(array<T> arr) as T
     T m = arr[0]
     int i = 1
-    while i < arr.length do
+    while i < arr.length
         if arr[i] > m then
             m = arr[i]
         end
@@ -162,9 +162,9 @@ class SortedStack<T is comparable>
     func sortUp()
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             int j = 0
-            while j < n - 1 - i do
+            while j < n - 1 - i
                 T a = self.data[j]
                 T b = self.data[j + 1]
                 if a > b then
@@ -368,7 +368,7 @@ func testSortedStack() as int
     int total = 0
     int count = ss.size()
     int i = 0
-    while i < count do
+    while i < count
         total = total * 10 + ss.pop()
         i = i + 1
     end
@@ -389,7 +389,7 @@ func testGenericArrayFunc() as int
     sortArray::<int>(ai)
     int acc = 0
     int i = 0
-    while i < ai.length do
+    while i < ai.length
         acc = acc * 10 + ai[i]
         i = i + 1
     end
@@ -458,7 +458,7 @@ func runDemo() as int
     print("  push 10,20,30 -> 栈顶到栈底: ")
     int n = si.size()
     int i = 0
-    while i < n do
+    while i < n
         print(si.pop())
         if i < n - 1 then
             print(" ")
@@ -473,7 +473,7 @@ func runDemo() as int
     ss.push("hello")
     print("  pop 全部: ")
     string acc = ""
-    while not ss.isEmpty() do
+    while not ss.isEmpty()
         acc = acc + ss.pop()
         if not ss.isEmpty() then
             acc = acc + " <- "
@@ -498,7 +498,7 @@ func runDemo() as int
     print("  排序后从大到小 pop: ")
     int m = sorted.size()
     int k = 0
-    while k < m do
+    while k < m
         print(sorted.pop())
         if k < m - 1 then
             print(" ")
@@ -517,7 +517,7 @@ func runDemo() as int
     sortArray(arr)
     print("  sortArray(array<int>) 原地排序后: ")
     int p = 0
-    while p < arr.length do
+    while p < arr.length
         print(arr[p])
         print(" ")
         p = p + 1

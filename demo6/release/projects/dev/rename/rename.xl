@@ -53,7 +53,7 @@ end
 func stripDot(string ext) as string
     string e = ext
     bool done = false
-    while not done do
+    while not done
         if string.len(e) > 0 and string.startsWith(e, ".") then
             e = string.slice(e, 1)
         else
@@ -77,7 +77,7 @@ func isAllDigits(string s) as bool
     int n = chars.length
     string digits = "0123456789"
     int i = 0
-    while i < n do
+    while i < n
         string c = string(chars[i])
         if not string.contains(digits, c) then
             return false
@@ -96,13 +96,13 @@ func expandSeq(string pattern, int value) as string
     string result = ""
     bool found = false
     int i = 0
-    while i < plen do
+    while i < plen
         string ch = string.slice(pattern, i, 1)
         if ch == "{" then
             int j = i + 1
             string inner = ""
             bool closed = false
-            while j < plen do
+            while j < plen
                 string cj = string.slice(pattern, j, 1)
                 if cj == "}" then
                     closed = true
@@ -161,7 +161,7 @@ func main(...) as int
     bool doIt = false
     array positionals = []
     int k = 1
-    while k < arg.length do
+    while k < arg.length
         string ak = string(arg[k])
         if ak == "--do" then
             doIt = true
@@ -262,10 +262,10 @@ func main(...) as int
 
     // ---- 按完整路径稳定地确定处理顺序 ----
     int a = 0
-    while a < count do
+    while a < count
         int best = a
         int b = a + 1
-        while b < count do
+        while b < count
             if string.compare(files[b], files[best], false) < 0 then
                 best = b
             end
@@ -285,7 +285,7 @@ func main(...) as int
     int errors = 0
     int seqNo = start
     int pi = 0
-    while pi < count do
+    while pi < count
         string fp = files[pi]
         string d = path.dir(fp)
         string name = path.nameExt(fp)

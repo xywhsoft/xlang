@@ -60,7 +60,7 @@ class Config
     func sectionNames() as array<string>
         array<string> result = array<string>[]
         int i = 0
-        while i < self.sectionCountNative() do
+        while i < self.sectionCountNative()
             point value = self.sectionNameNative(c_int(i))
             if value == null then
                 throw ConfigError __ini_error()
@@ -78,7 +78,7 @@ class Config
     func keys(string section = "") as array<string>
         array<string> result = array<string>[]
         int i = 0
-        while i < self.keyCountNative(section) do
+        while i < self.keyCountNative(section)
             point value = self.keyNameNative(section, c_int(i))
             if value == null then
                 throw ConfigError __ini_error()

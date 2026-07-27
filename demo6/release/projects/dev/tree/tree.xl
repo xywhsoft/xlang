@@ -32,10 +32,10 @@ end
 func sortEntries(array raw)
     int n = raw.length
     int i = 0
-    while i < n do
+    while i < n
         int minIdx = i
         int j = i + 1
-        while j < n do
+        while j < n
             var ej = raw[j]
             var em = raw[minIdx]
             bool ejDir = bool(ej["isDir"])
@@ -70,7 +70,7 @@ func walk(string basePath, string prefix, bool dirsOnly)
     // 先数出可见条目数, 以判断每个条目是否为同级最后一个
     int visible = 0
     int c = 0
-    while c < n do
+    while c < n
         var ec = raw[c]
         bool isDir = bool(ec["isDir"])
         if (not dirsOnly) or isDir then
@@ -81,7 +81,7 @@ func walk(string basePath, string prefix, bool dirsOnly)
 
     int printed = 0
     int k = 0
-    while k < n do
+    while k < n
         var e = raw[k]
         bool isDir = bool(e["isDir"])
         bool show = (not dirsOnly) or isDir
@@ -119,7 +119,7 @@ func main(...) as int
     bool dirsOnly = false
 
     int i = 1
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "-d" or a == "--dirs" then
             dirsOnly = true

@@ -1,0 +1,15 @@
+uint64 computed = 9223372036854775807
+computed += 1
+assert string(computed) == "9223372036854775808", "uint64 above int64 max prints unsigned"
+
+uint64 u64max = 18446744073709551615
+assert string(u64max) == "18446744073709551615", "uint64 max to string"
+assert f"val={u64max}" == "val=18446744073709551615", "uint64 max in f-string"
+
+uint64 half = u64max / 2
+assert string(half) == "9223372036854775807", "uint64 unsigned division print"
+
+int64 i64min = -9223372036854775808
+assert string(i64min) == "-9223372036854775808", "int64 min still prints signed"
+
+println("runtime_uint64_large_print ok")

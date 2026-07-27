@@ -1,0 +1,50 @@
+func makeOuter(int base) as func(int) as int
+    return func(int middle) as int
+        func(int) as int inner = func(int value) as int
+            return base + middle + value
+        end
+        return inner(3)
+    end
+end
+
+func(int) as int outer = makeOuter(10)
+assert outer(29) == 42, "nested anonymous function metadata and captures"
+
+func makeShadowed(int base) as func(int) as int
+    return func(int base) as int
+        func(int) as int inner = func(int value) as int
+            return base + value
+        end
+        return inner(2)
+    end
+end
+
+func(int) as int shadowed = makeShadowed(100)
+assert shadowed(40) == 42, "nested anonymous parameter shadows outer binding"
+
+func makeForCapture() as func() as int
+    func() as int selected = func() as int => -1
+    for item in array[42]
+        selected = func() as int
+            return item
+        end
+    end
+    return selected
+end
+
+func() as int forCapture = makeForCapture()
+assert forCapture() == 42, "anonymous function captures for iterator"
+
+func makeStringForCapture() as func() as string
+    func() as string selected = func() as string => ""
+    for item in array["first", "last"]
+        selected = func() as string
+            return item
+        end
+    end
+    return selected
+end
+
+func() as string stringForCapture = makeStringForCapture()
+assert stringForCapture() == "last", "iterator capture owns string after loop"
+println("cgen_nested_anonymous_metadata ok")

@@ -53,7 +53,7 @@ func isAllDigits(string s) as bool
         return false
     end
     int i = 0
-    while i < string.len(s) do
+    while i < string.len(s)
         string ch = string.charAt(s, i)
         if ch < "0" or ch > "9" then
             return false
@@ -68,7 +68,7 @@ end
 func makeBits(int size) as array<int>
     array<int> bits = array[]
     int i = 0
-    while i < size do
+    while i < size
         bits.append(0)
         i += 1
     end
@@ -149,7 +149,7 @@ func parseField(string token, int lo, int hi, int bitsSize, bool isDow) as (bool
 
         // 置位
         int v = startV
-        while v <= endV do
+        while v <= endV
             int idx = v
             if isDow and idx == 7 then
                 idx = 0
@@ -162,7 +162,7 @@ func parseField(string token, int lo, int hi, int bitsSize, bool isDow) as (bool
     // 至少要有一个合法值
     bool any = false
     int j = lo
-    while j < bitsSize do
+    while j < bitsSize
         if bits[j] == 1 then
             any = true
         end
@@ -246,7 +246,7 @@ func nextTime(CronExpr c, time from) as time
 
     int guard = 0
     int limit = 2200000   // 约 4 年分钟数，覆盖闰年周期并兜底不可能表达式
-    while guard < limit do
+    while guard < limit
         int yy = time.year(t)
         int mm = time.month(t)
         int dd = time.day(t)
@@ -418,7 +418,7 @@ func cmdNext(string cronText, int count) as int
         count = 1
     end
     int i = 0
-    while i < count do
+    while i < count
         time nx = nextTime(c, cur)
         println("  " + string(i + 1) + ") " + time.format(nx))
         cur = nx
@@ -477,7 +477,7 @@ func cmdRun(string p, string logP, int durationSec) as int
     array<int> nextUnix = array[]
     time now = time.now()
     int i = 0
-    while i < names.length do
+    while i < names.length
         nextUnix.append(time.toUnix(nextTime(exprs[i], now)))
         i += 1
     end
@@ -490,10 +490,10 @@ func cmdRun(string p, string logP, int durationSec) as int
     logLine(logP, "scheduler start: " + string(names.length) + " tasks, duration=" + mode)
 
     float deadline = time.timer() + float(durationSec)
-    while durationSec <= 0 or time.timer() < deadline do
+    while durationSec <= 0 or time.timer() < deadline
         int nowUnix = time.toUnix(time.now())
         int k = 0
-        while k < names.length do
+        while k < names.length
             if nowUnix >= nextUnix[k] then
                 executeTask(logP, names[k], commands[k])
                 var e = data[names[k]]
@@ -594,7 +594,7 @@ func cmdTest() as int
     if skok then
         time cur = time.fromDateTime(2026, 7, 10, 12, 0, 0)
         int n = 0
-        while n < 5 do
+        while n < 5
             time fire = nextTime(sk, cur)
             println("    fire " + string(n + 1) + " -> " + time.format(fire))
             cur = fire
@@ -660,7 +660,7 @@ func main(...) as int
         string cronText = string(arg[3])
         string cmdText = ""
         int ci = 4
-        while ci < arg.length do
+        while ci < arg.length
             if string.isEmpty(cmdText) then
                 cmdText = string(arg[ci])
             else

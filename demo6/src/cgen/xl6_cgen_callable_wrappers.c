@@ -51,19 +51,43 @@ static void xl6CgenCopyClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAnonCa
     XL6_AstNode* classNode;
     char path[1024];
     char sourceName[512];
+    char sourceValue[1024];
+    char sharedName[1024];
 
     if ( typeNode == NULL ) {
         return;
     }
     xl6CgenClosureCapturePath(path, sizeof(path), capture);
+    /* make helper 的捕获源始终是它自己的形参，不能被同名模块全局量覆盖。 */
     xl6CgenCIdentText(sourceName, sizeof(sourceName), capture->name);
+    if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+        /*
+         * 类型化容器需要保持引用身份，同时可能随闭包跨线程。
+         * 工厂接收外层变量的槽位，先将 local 对象原位提升为 shared，
+         * 再为闭包环境保留同一个句柄，不能创建容器副本。
+         */
+        snprintf(sharedName, sizeof(sharedName), "__xl6_shared_%s", sourceName);
+        snprintf(sourceValue, sizeof(sourceValue), "(*%s)", sourceName);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts(xl6CgenParamCType(ctx, typeNode), ctx->out);
+        xl6OutputPrintf(ctx->out, " %s = ", sharedName);
+        xl6CgenTypedContainerMoveToSharedCExpr(ctx, typeNode, sourceValue);
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_function_fatal(2); }\n", sharedName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "*%s = %s;\n", sourceName, sharedName);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", path);
+        xl6CgenTypedContainerRetainCExpr(ctx, typeNode, sharedName);
+        xl6OutputPuts(";\n", ctx->out);
+        return;
+    }
     xl6CgenIndent(ctx);
     xl6OutputPuts(path, ctx->out);
     xl6OutputPuts(" = ", ctx->out);
     if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
         xl6OutputPrintf(ctx->out, "xrtCopyStr(%s, 0u)", sourceName);
-    } else if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
-        xl6CgenTypedContainerCopyCExprMode(ctx, typeNode, sourceName, "XRT_OBJMODE_SHARED");
     } else if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
         xl6CgenSpecialCollectionRetainCExpr(ctx, typeNode, sourceName);
     } else if ( xl6CgenIsXValueType(typeNode) ) {
@@ -88,6 +112,29 @@ static void xl6CgenCopyClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAnonCa
         if ( classNode != NULL && xl6CgenClassHasTypeParams(classNode) ) {
             xl6CgenRetainClassFunctionFields(ctx, classNode, path);
         }
+    }
+}
+
+static void xl6CgenEmitAnonMakeParams(
+    XL6_CgenContext* ctx,
+    const XL6_CgenAnonFunc* info)
+{
+    size_t i;
+
+    if ( info->captureCount == 0 ) {
+        xl6OutputPuts("void", ctx->out);
+        return;
+    }
+    for ( i = 0; i < info->captureCount; ++i ) {
+        if ( i > 0 ) {
+            xl6OutputPuts(", ", ctx->out);
+        }
+        xl6OutputPuts(xl6CgenParamCType(ctx, info->captures[i].type), ctx->out);
+        if ( xl6CgenIsTypedContainerType(ctx, info->captures[i].type) ) {
+            xl6OutputPutc('*', ctx->out);
+        }
+        xl6OutputPutc(' ', ctx->out);
+        xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
     }
 }
 
@@ -205,18 +252,7 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
     xl6CgenEmitAnonXCall(ctx, info);
 
     xl6OutputPrintf(ctx->out, "static XL6_Function xl6_anon_%d_make(", info->id);
-    if ( info->captureCount == 0 ) {
-        xl6OutputPuts("void", ctx->out);
-    } else {
-        for ( i = 0; i < info->captureCount; ++i ) {
-            if ( i > 0 ) {
-                xl6OutputPuts(", ", ctx->out);
-            }
-            xl6OutputPuts(xl6CgenParamCType(ctx, info->captures[i].type), ctx->out);
-            xl6OutputPutc(' ', ctx->out);
-            xl6CgenFputsCIdent(ctx->out, info->captures[i].name);
-        }
-    }
+    xl6CgenEmitAnonMakeParams(ctx, info);
     xl6OutputPuts(")\n{\n", ctx->out);
     if ( info->captureCount > 0 ) {
         xl6OutputPrintf(ctx->out, "    XL6_Closure_%d* __env = (XL6_Closure_%d*)xrtMalloc(sizeof(XL6_Closure_%d));\n", info->id, info->id, info->id);
@@ -902,6 +938,19 @@ static void xl6CgenEmitAnonFunctions(XL6_CgenContext* ctx)
 {
     size_t i;
 
+    /*
+     * 匿名函数可以任意嵌套。先声明全部工厂，函数体输出顺序便不再成为
+     * 隐含约束，外层闭包可以稳定创建尚未输出定义的内层闭包。
+     */
+    for ( i = 0; i < ctx->anonFuncCount; ++i ) {
+        const XL6_CgenAnonFunc* info = &ctx->anonFuncs[i];
+        xl6OutputPrintf(ctx->out, "static XL6_Function xl6_anon_%d_make(", info->id);
+        xl6CgenEmitAnonMakeParams(ctx, info);
+        xl6OutputPuts(");\n", ctx->out);
+    }
+    if ( ctx->anonFuncCount > 0 ) {
+        xl6OutputPutc('\n', ctx->out);
+    }
     for ( i = 0; i < ctx->anonFuncCount; ++i ) {
         xl6CgenEmitAnonFunction(ctx, &ctx->anonFuncs[i]);
     }

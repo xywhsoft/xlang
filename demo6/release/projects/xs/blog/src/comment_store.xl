@@ -37,7 +37,7 @@ export func visible(point handle, int articleId, int limit = 200) as array
     end
     db.bindInt(statement, index, limit)
     int code = db.step(statement)
-    while code == sqlite.SQLITE_ROW do
+    while code == sqlite.SQLITE_ROW
         rows.append(db.row(statement))
         code = db.step(statement)
     end
@@ -61,7 +61,7 @@ export func adminList(point handle, string status = "", int limit = 300) as arra
     end
     db.bindInt(statement, index, limit)
     int code = db.step(statement)
-    while code == sqlite.SQLITE_ROW do
+    while code == sqlite.SQLITE_ROW
         rows.append(db.row(statement))
         code = db.step(statement)
     end

@@ -94,7 +94,7 @@ func resolveVirtual(string cwd, string arg) as string
     var parts = string.split(base, "/")
     var segs = []
     int i = 0
-    while i < parts.length do
+    while i < parts.length
         string seg = string(parts[i])
         if seg == "" or seg == "." then
             // skip empty (leading/double slash) and "."
@@ -110,7 +110,7 @@ func resolveVirtual(string cwd, string arg) as string
     end
     string result = ""
     int j = 0
-    while j < segs.length do
+    while j < segs.length
         result = result + "/" + string(segs[j])
         j = j + 1
     end
@@ -141,7 +141,7 @@ func formatList(string fsDir) as string
     var entries = dir.entries(fsDir, false)
     string result = ""
     int i = 0
-    while i < entries.length do
+    while i < entries.length
         var e = entries[i]
         string name = string(e["name"])
         bool isDir = bool(e["isDir"])
@@ -184,7 +184,7 @@ end
 func sendRetry(TcpStream s, string text) as bool
     int tries = 0
     bool ok = false
-    while tries < SEND_RETRY_TRIES and not ok do
+    while tries < SEND_RETRY_TRIES and not ok
         ok = s.send(text)
         if not ok then
             time.sleep(SEND_RETRY_GAP)
@@ -206,7 +206,7 @@ end
 func sendBytesRetry(TcpStream s, point data, c_size size) as bool
     int tries = 0
     bool ok = false
-    while tries < SEND_RETRY_TRIES and not ok do
+    while tries < SEND_RETRY_TRIES and not ok
         ok = s.sendBytes(data, size)
         if not ok then
             time.sleep(SEND_RETRY_GAP)
@@ -222,7 +222,7 @@ end
 // Read one CRLF-terminated line. Returns (line, newInbuf, ok).
 // On disconnect/timeout returns ("", inbuf, false).
 func recvLine(TcpStream s, string inbuf, int timeoutMs) as (string, string, bool)
-    while true do
+    while true
         int eol = string.indexOf(inbuf, "\r\n")
         if eol >= 0 then
             int blen = string.len(inbuf)
@@ -285,7 +285,7 @@ func handleClient(point clientHandle, string peerAddr) as int
         println("[ftp] " + peerAddr + " connected (data port " + dataListenPort.toString() + ")")
     end
 
-    while true do
+    while true
         string line = ""
         string nb = ""
         bool got = false
@@ -451,7 +451,7 @@ func handleClient(point clientHandle, string peerAddr) as int
                     else
                         sendLine(client, "150 Ok to send data.")
                         Buffer all = Buffer()
-                        while true do
+                        while true
                             Buffer chunk = dataStream.recvBytes(DATA_RECV_TIMEOUT)
                             int clen = chunk.len()
                             if clen == 0 then
@@ -459,7 +459,7 @@ func handleClient(point clientHandle, string peerAddr) as int
                             end
                             // Buffer.appendBytes takes (string, c_size); copy byte-wise.
                             int bi = 0
-                            while bi < clen do
+                            while bi < clen
                                 all.appendByte(chunk[bi])
                                 bi = bi + 1
                             end
@@ -526,7 +526,7 @@ func runClientTest() as int
     // retry-connect: the server thread may not have called listen() yet
     point cp = ZERO
     int attempts = 0
-    while cp == ZERO and attempts < 50 do
+    while cp == ZERO and attempts < 50
         cp = tcp.connect("127.0.0.1", gTestPort, 2000)
         if cp == ZERO then
             time.sleep(50)
@@ -634,14 +634,14 @@ func runClientTest() as int
         inbuf = n2
         check(o and string.startsWith(r, "150"), "18. RETR hello.txt -> 150", "reply=" + r)
         Buffer got = Buffer()
-        while true do
+        while true
             Buffer d = data.recvBytes(5000)
             int dl = d.len()
             if dl == 0 then
                 break
             end
             int bi = 0
-            while bi < dl do
+            while bi < dl
                 got.appendByte(d[bi])
                 bi = bi + 1
             end
@@ -703,14 +703,14 @@ func runClientTest() as int
         inbuf = n2
         check(o and string.startsWith(r, "150"), "26. RETR upload.txt -> 150", "reply=" + r)
         Buffer got = Buffer()
-        while true do
+        while true
             Buffer d = data.recvBytes(5000)
             int dl = d.len()
             if dl == 0 then
                 break
             end
             int bi = 0
-            while bi < dl do
+            while bi < dl
                 got.appendByte(d[bi])
                 bi = bi + 1
             end
@@ -735,14 +735,14 @@ func runClientTest() as int
         inbuf = n2
         check(o and string.startsWith(r, "150"), "30. LIST -> 150", "reply=" + r)
         Buffer listing = Buffer()
-        while true do
+        while true
             Buffer d = data.recvBytes(5000)
             int dl = d.len()
             if dl == 0 then
                 break
             end
             int bi = 0
-            while bi < dl do
+            while bi < dl
                 listing.appendByte(d[bi])
                 bi = bi + 1
             end
@@ -882,7 +882,7 @@ func main(...) as int
         println("users: anonymous/ftp (any pw), admin/admin")
         println("press Ctrl+C to stop")
         println("")
-        while true do
+        while true
             point ch = srv.accept(-1)
             if ch != ZERO then
                 handleClient(ch, "client")

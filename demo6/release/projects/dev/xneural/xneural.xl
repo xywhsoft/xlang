@@ -100,7 +100,7 @@ class Tensor
         self.cols = cols
         int total = rows * cols
         int i = 0
-        while i < total do
+        while i < total
             self.data.append(0.0)
             i += 1
         end
@@ -127,7 +127,7 @@ class Tensor
         Tensor t = Tensor(self.rows, self.cols)
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             t.data[i] = self.data[i]
             i += 1
         end
@@ -140,12 +140,12 @@ class Tensor
         end
         Tensor result = Tensor(self.rows, other.cols)
         int r = 0
-        while r < self.rows do
+        while r < self.rows
             int c = 0
-            while c < other.cols do
+            while c < other.cols
                 float sum = 0.0
                 int k = 0
-                while k < self.cols do
+                while k < self.cols
                     sum += self.at(r, k) * other.at(k, c)
                     k += 1
                 end
@@ -164,7 +164,7 @@ class Tensor
         Tensor result = Tensor(self.rows, self.cols)
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             result.data[i] = self.data[i] + other.data[i]
             i += 1
         end
@@ -178,7 +178,7 @@ class Tensor
         Tensor result = Tensor(self.rows, self.cols)
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             result.data[i] = self.data[i] - other.data[i]
             i += 1
         end
@@ -188,9 +188,9 @@ class Tensor
     func transpose() as Tensor
         Tensor result = Tensor(self.cols, self.rows)
         int r = 0
-        while r < self.rows do
+        while r < self.rows
             int c = 0
-            while c < self.cols do
+            while c < self.cols
                 result.set(c, r, self.at(r, c))
                 c += 1
             end
@@ -204,7 +204,7 @@ class Tensor
         Tensor result = Tensor(self.rows, self.cols)
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             float v = self.data[i]
             if v < 0.0 then
                 v = 0.0
@@ -220,7 +220,7 @@ class Tensor
         Tensor result = Tensor(self.rows, self.cols)
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             float g = self.data[i]
             if input.data[i] <= 0.0 then
                 g = 0.0
@@ -236,7 +236,7 @@ class Tensor
         Tensor result = Tensor(self.rows, self.cols)
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             float x = self.data[i]
             result.data[i] = 1.0 / (1.0 + math.exp(-x))
             i += 1
@@ -249,7 +249,7 @@ class Tensor
         Tensor result = Tensor(self.rows, self.cols)
         int n = self.data.length
         int i = 0
-        while i < n do
+        while i < n
             float s = output.data[i]
             result.data[i] = self.data[i] * s * (1.0 - s)
             i += 1
@@ -262,7 +262,7 @@ end
 func floats(...) as array<float>
     array<float> result = array[]
     int i = 0
-    while i < arg.length do
+    while i < arg.length
         result.append(float(arg[i]))
         i += 1
     end
@@ -278,7 +278,7 @@ func tensorFrom(int r, int c, array<float> vals) as Tensor
     int n = r * c
     array<float> d = array[]
     int i = 0
-    while i < n do
+    while i < n
         d.append(vals[i])
         i += 1
     end
@@ -291,7 +291,7 @@ func tensorRandom(int r, int c, float scale) as Tensor
     int n = r * c
     array<float> d = array[]
     int i = 0
-    while i < n do
+    while i < n
         d.append(randNormal() * scale)
         i += 1
     end
@@ -373,23 +373,23 @@ class Dense extends Layer
         int nw = self.W.data.length
         int nb = self.b.data.length
         // 首次调用时把 Adam 状态数组补到参数数量
-        while self.mW.length < nw do
+        while self.mW.length < nw
             self.mW.append(0.0)
         end
-        while self.vW.length < nw do
+        while self.vW.length < nw
             self.vW.append(0.0)
         end
-        while self.mb.length < nb do
+        while self.mb.length < nb
             self.mb.append(0.0)
         end
-        while self.vb.length < nb do
+        while self.vb.length < nb
             self.vb.append(0.0)
         end
         self.adamT += 1.0
         // 对每个标量参数调用 optimizer.compute（virtual -> SGD/Adam dispatch）
         // compute 只返回新值，由 Dense 写回自己的字段，规避 owned-copy 不传播
         int i = 0
-        while i < nw do
+        while i < nw
             float np; float nm; float nv
             np, nm, nv = opt.compute(self.W.data[i], self.gradW.data[i], self.mW[i], self.vW[i], self.adamT)
             self.W.data[i] = np
@@ -398,7 +398,7 @@ class Dense extends Layer
             i += 1
         end
         int j = 0
-        while j < nb do
+        while j < nb
             float np; float nm; float nv
             np, nm, nv = opt.compute(self.b.data[j], self.gradB.data[j], self.mb[j], self.vb[j], self.adamT)
             self.b.data[j] = np
@@ -508,7 +508,7 @@ func mseLoss(Tensor pred, Tensor target) as float
     Tensor diff = pred.sub(target)
     float sum = 0.0
     int i = 0
-    while i < n do
+    while i < n
         float d = diff.data[i]
         sum += d * d
         i += 1
@@ -523,7 +523,7 @@ func mseLossGrad(Tensor pred, Tensor target) as Tensor
     Tensor grad = Tensor(pred.rows, pred.cols)
     float scale = 2.0 / float(n)
     int j = 0
-    while j < n do
+    while j < n
         grad.data[j] = diff.data[j] * scale
         j += 1
     end
@@ -536,7 +536,7 @@ func crossEntropyLoss(Tensor logits, Tensor target) as float
     int c = logits.data.length
     float maxL = logits.data[0]
     int i = 1
-    while i < c do
+    while i < c
         if logits.data[i] > maxL then
             maxL = logits.data[i]
         end
@@ -544,13 +544,13 @@ func crossEntropyLoss(Tensor logits, Tensor target) as float
     end
     float sumExp = 0.0
     int j = 0
-    while j < c do
+    while j < c
         sumExp += math.exp(logits.data[j] - maxL)
         j += 1
     end
     float loss = 0.0
     int k = 0
-    while k < c do
+    while k < c
         float sm = math.exp(logits.data[k] - maxL) / sumExp
         float t = target.data[k]
         loss -= t * math.log(sm + EPS_NORM)
@@ -563,7 +563,7 @@ func crossEntropyGrad(Tensor logits, Tensor target) as Tensor
     int c = logits.data.length
     float maxL = logits.data[0]
     int i = 1
-    while i < c do
+    while i < c
         if logits.data[i] > maxL then
             maxL = logits.data[i]
         end
@@ -571,13 +571,13 @@ func crossEntropyGrad(Tensor logits, Tensor target) as Tensor
     end
     float sumExp = 0.0
     int j = 0
-    while j < c do
+    while j < c
         sumExp += math.exp(logits.data[j] - maxL)
         j += 1
     end
     Tensor grad = Tensor(logits.rows, logits.cols)
     int k = 0
-    while k < c do
+    while k < c
         float sm = math.exp(logits.data[k] - maxL) / sumExp
         float t = target.data[k]
         grad.data[k] = sm - t
@@ -604,7 +604,7 @@ class Sequential
     func forward(Tensor input) as Tensor
         Tensor cur = input
         int i = 0
-        while i < self.layers.length do
+        while i < self.layers.length
             cur = self.layers[i].forward(cur)
             i += 1
         end
@@ -614,7 +614,7 @@ class Sequential
     func backward(Tensor grad) as Tensor
         Tensor cur = grad
         int i = self.layers.length - 1
-        while i >= 0 do
+        while i >= 0
             cur = self.layers[i].backward(cur)
             i -= 1
         end
@@ -623,7 +623,7 @@ class Sequential
 
     func update(Optimizer opt)
         int i = 0
-        while i < self.layers.length do
+        while i < self.layers.length
             self.layers[i].update(opt)
             i += 1
         end
@@ -634,10 +634,10 @@ class Sequential
         int n = xBatch.length
         int nextPrint = 0
         int epoch = 0
-        while epoch < epochs do
+        while epoch < epochs
             float totalLoss = 0.0
             int s = 0
-            while s < n do
+            while s < n
                 Tensor x = xBatch[s]
                 Tensor target = yBatch[s]
                 Tensor pred = self.forward(x)
@@ -697,7 +697,7 @@ func cmdXor() as int
     println("")
     println("Predictions:")
     int s = 0
-    while s < xs.length do
+    while s < xs.length
         Tensor x = xs[s]
         Tensor target = ys[s]
         Tensor pred = net.forward(x)
@@ -709,7 +709,7 @@ func cmdXor() as int
     // 验收：4 个样本预测都接近目标
     bool learned = true
     int k = 0
-    while k < xs.length do
+    while k < xs.length
         Tensor x = xs[k]
         Tensor target = ys[k]
         Tensor pred = net.forward(x)
@@ -819,7 +819,7 @@ func gradCheckDense() as float
     // 检查 gradW
     int nw = d.W.data.length
     int i = 0
-    while i < nw do
+    while i < nw
         float orig = d.W.data[i]
         d.W.data[i] = orig + eps
         Tensor yp = d.forward(x)
@@ -840,7 +840,7 @@ func gradCheckDense() as float
     // 检查 gradB
     int nb = d.b.data.length
     int j = 0
-    while j < nb do
+    while j < nb
         float orig = d.b.data[j]
         d.b.data[j] = orig + eps
         Tensor yp = d.forward(x)
@@ -879,7 +879,7 @@ func gradCheckSequential() as float
     float eps = 1e-4
     float maxRelErr = 0.0
     int i = 0
-    while i < first.W.data.length do
+    while i < first.W.data.length
         float orig = first.W.data[i]
         first.W.data[i] = orig + eps
         float lp = mseLoss(net.forward(x), target)

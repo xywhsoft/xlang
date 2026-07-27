@@ -82,7 +82,7 @@ func renderTimeline(var hourly, list<string> sortedKeys, int keyCount) as string
 
     int maxV = 0
     int i = 0
-    while i < keyCount do
+    while i < keyCount
         int c = int(hourly[sortedKeys[i]])
         if c > maxV then
             maxV = c
@@ -92,7 +92,7 @@ func renderTimeline(var hourly, list<string> sortedKeys, int keyCount) as string
 
     string outputValue = "Hourly volume (bar = #" + CHART_WIDTH.toString() + " max):\n"
     i = 0
-    while i < keyCount do
+    while i < keyCount
         string hk = sortedKeys[i]
         int c = int(hourly[hk])
         int bars = 0
@@ -104,7 +104,7 @@ func renderTimeline(var hourly, list<string> sortedKeys, int keyCount) as string
         end
         string bar = ""
         int j = 0
-        while j < bars do
+        while j < bars
             bar = bar + "#"
             j = j + 1
         end
@@ -139,7 +139,7 @@ func analyzeDir(string logDir) as int
     int fileCount = logFiles.length
 
     int fi = 0
-    while fi < fileCount do
+    while fi < fileCount
         string logPath = logFiles[fi]
         fi = fi + 1
 
@@ -154,7 +154,7 @@ func analyzeDir(string logDir) as int
         int lineCount = lines.length
 
         int li = 0
-        while li < lineCount do
+        while li < lineCount
             string line = string(lines[li])
             li = li + 1
 
@@ -245,9 +245,9 @@ func analyzeDir(string logDir) as int
         hourCount = hourCount + 1
     end
     int a = 0
-    while a < hourCount do
+    while a < hourCount
         int b = a + 1
-        while b < hourCount do
+        while b < hourCount
             if hourKeys[b] < hourKeys[a] then
                 string tk = hourKeys[a]
                 hourKeys[a] = hourKeys[b]
@@ -271,9 +271,9 @@ func analyzeDir(string logDir) as int
         minCount = minCount + 1
     end
     a = 0
-    while a < minCount do
+    while a < minCount
         int b = a + 1
-        while b < minCount do
+        while b < minCount
             if minKeys[b] < minKeys[a] then
                 string tk = minKeys[a]
                 minKeys[a] = minKeys[b]
@@ -297,9 +297,9 @@ func analyzeDir(string logDir) as int
         errCount = errCount + 1
     end
     a = 0
-    while a < errCount do
+    while a < errCount
         int b = a + 1
-        while b < errCount do
+        while b < errCount
             if errVals[b] > errVals[a] then
                 int tv = errVals[a]
                 errVals[a] = errVals[b]
@@ -318,7 +318,7 @@ func analyzeDir(string logDir) as int
     list<int> alertCnt
     int alertCount = 0
     int mi = 0
-    while mi < minCount do
+    while mi < minCount
         if minVals[mi] >= ALERT_ERR_PER_MIN then
             alertWin[alertCount] = minKeys[mi]
             alertCnt[alertCount] = minVals[mi]
@@ -342,7 +342,7 @@ func analyzeDir(string logDir) as int
     array knownLevels = ["ERROR", "FATAL", "WARN", "INFO", "DEBUG", "TRACE", "OTHER"]
     int firstLvl = 1
     int kli = 0
-    while kli < knownLevels.length do
+    while kli < knownLevels.length
         string lv = string(knownLevels[kli])
         var cv = levelCounts[lv]
         if cv != null then
@@ -359,7 +359,7 @@ func analyzeDir(string logDir) as int
     sj = sj + "\"hourlyBuckets\":{"
     int firstH = 1
     int hi = 0
-    while hi < hourCount do
+    while hi < hourCount
         if firstH == 0 then
             sj = sj + ","
         end
@@ -372,7 +372,7 @@ func analyzeDir(string logDir) as int
     sj = sj + "\"alerts\":["
     int firstA = 1
     int ai = 0
-    while ai < alertCount do
+    while ai < alertCount
         if firstA == 0 then
             sj = sj + ","
         end
@@ -397,7 +397,7 @@ func analyzeDir(string logDir) as int
         topMax = errCount
     end
     int ei = 0
-    while ei < topMax do
+    while ei < topMax
         if ei > 0 then
             ej = ej + ","
         end
@@ -418,7 +418,7 @@ func analyzeDir(string logDir) as int
     rep = rep + "time range : " + timeRange + "\n"
     rep = rep + "\nby level:\n"
     kli = 0
-    while kli < knownLevels.length do
+    while kli < knownLevels.length
         string lv = string(knownLevels[kli])
         var cv = levelCounts[lv]
         if cv != null then
@@ -433,7 +433,7 @@ func analyzeDir(string logDir) as int
         rep = rep + "  (none)\n"
     else
         ei = 0
-        while ei < topMax do
+        while ei < topMax
             rep = rep + "  " + string.padLeft(string(errVals[ei]), 5) + "  " + errKeys[ei] + "\n"
             ei = ei + 1
         end
@@ -444,7 +444,7 @@ func analyzeDir(string logDir) as int
         rep = rep + "  (none)\n"
     else
         ai = 0
-        while ai < alertCount do
+        while ai < alertCount
             rep = rep + "  [" + alertWin[ai] + "]  " + alertCnt[ai].toString() + " errors\n"
             ai = ai + 1
         end
@@ -554,18 +554,18 @@ func runSelfTest() as int
     // ---- app1.log: 20 INFO, 5 WARN, 12 ERROR in same minute (triggers alert) ----
     string app1 = ""
     int i = 0
-    while i < 20 do
+    while i < 20
         app1 = app1 + "2026-07-10 09:00:" + int.format(i % 60, "02") + " INFO request served ok\n"
         i = i + 1
     end
     i = 0
-    while i < 5 do
+    while i < 5
         app1 = app1 + "2026-07-10 09:01:" + int.format(i, "02") + " WARN slow query " + i.toString() + "ms\n"
         i = i + 1
     end
     // 12 errors in minute 09:05 -> alert (threshold 10)
     i = 0
-    while i < 12 do
+    while i < 12
         app1 = app1 + "2026-07-10 09:05:" + int.format(i, "02") + " ERROR db connection failed: timeout\n"
         i = i + 1
     end
@@ -806,7 +806,7 @@ func main(...) as int
         end
         println("endpoints: /api/stats /api/errors /api/timeline /api/refresh")
         println("press Ctrl+C to stop")
-        while true do
+        while true
             time.sleep(5000)
             println("[stats] requestCount=" + http.server.requestCount(server).toString())
         end

@@ -66,7 +66,7 @@ func dupArr(array<int> src) as array<int>
     int n = src.length
     array<int> a = array<int>[]
     int i = 0
-    while i < n do
+    while i < n
         a.push(src[i])
         i += 1
     end
@@ -85,7 +85,7 @@ end
 func isSorted(array<int> a) as bool
     int n = a.length
     int i = 1
-    while i < n do
+    while i < n
         if a[i] < a[i - 1] then return false end
         i += 1
     end
@@ -130,7 +130,7 @@ end
 func genRandom(int n) as array<int>
     array<int> a = array<int>[]
     int i = 0
-    while i < n do
+    while i < n
         a.push(random.range(0, n * 2))
         i += 1
     end
@@ -140,7 +140,7 @@ end
 func genSorted(int n) as array<int>
     array<int> a = array<int>[]
     int i = 0
-    while i < n do
+    while i < n
         a.push(i)
         i += 1
     end
@@ -150,7 +150,7 @@ end
 func genReverse(int n) as array<int>
     array<int> a = array<int>[]
     int i = 0
-    while i < n do
+    while i < n
         a.push(n - i)
         i += 1
     end
@@ -160,7 +160,7 @@ end
 func genFewUnique(int n) as array<int>
     array<int> a = array<int>[]
     int i = 0
-    while i < n do
+    while i < n
         a.push(random.range(0, 4) * 100)
         i += 1
     end
@@ -174,9 +174,9 @@ func sortBubble(array<int> src) as array<int>
     array<int> a = dupArr(src)
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         int j = 0
-        while j < n - 1 - i do
+        while j < n - 1 - i
             g_cmp += 1
             if a[j] > a[j + 1] then
                 swapItems(a, j, j + 1)
@@ -193,10 +193,10 @@ func sortSelection(array<int> src) as array<int>
     array<int> a = dupArr(src)
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         int sel = i
         int j = i + 1
-        while j < n do
+        while j < n
             g_cmp += 1
             if a[j] < a[sel] then
                 sel = j
@@ -216,11 +216,11 @@ func sortInsertion(array<int> src) as array<int>
     array<int> a = dupArr(src)
     int n = a.length
     int i = 1
-    while i < n do
+    while i < n
         int key = a[i]
         int j = i - 1
         bool go = true
-        while j >= 0 and go do
+        while j >= 0 and go
             g_cmp += 1
             if a[j] > key then
                 a[j + 1] = a[j]
@@ -241,13 +241,13 @@ func sortShell(array<int> src) as array<int>
     array<int> a = dupArr(src)
     int n = a.length
     int gap = n / 2
-    while gap > 0 do
+    while gap > 0
         int i = gap
-        while i < n do
+        while i < n
             int key = a[i]
             int j = i - gap
             bool go = true
-            while j >= 0 and go do
+            while j >= 0 and go
                 g_cmp += 1
                 if a[j] > key then
                     a[j + gap] = a[j]
@@ -270,7 +270,7 @@ func mergeMerge(array<int> a, int lo, int mid, int hi)
     array<int> tmp = array<int>[]
     int i = lo
     int j = mid + 1
-    while i <= mid and j <= hi do
+    while i <= mid and j <= hi
         g_cmp += 1
         if a[i] <= a[j] then
             tmp.push(a[i])
@@ -280,16 +280,16 @@ func mergeMerge(array<int> a, int lo, int mid, int hi)
             j += 1
         end
     end
-    while i <= mid do
+    while i <= mid
         tmp.push(a[i])
         i += 1
     end
-    while j <= hi do
+    while j <= hi
         tmp.push(a[j])
         j += 1
     end
     int k = 0
-    while k < tmp.length do
+    while k < tmp.length
         a[lo + k] = tmp[k]
         k += 1
     end
@@ -326,7 +326,7 @@ func quickPartition(array<int> a, int lo, int hi) as int
     int pivot = a[hi]
     int i = lo - 1
     int j = lo
-    while j < hi do
+    while j < hi
         g_cmp += 1
         if a[j] < pivot then
             i += 1
@@ -359,7 +359,7 @@ end
 func siftDown(array<int> a, int start, int endd)
     int root = start
     bool go = true
-    while root * 2 + 1 <= endd and go do
+    while root * 2 + 1 <= endd and go
         int child = root * 2 + 1
         if child + 1 <= endd then
             g_cmp += 1
@@ -382,12 +382,12 @@ func sortHeap(array<int> src) as array<int>
     int n = a.length
     if n <= 1 then return a end
     int i = n / 2 - 1
-    while i >= 0 do
+    while i >= 0
         siftDown(a, i, n - 1)
         i -= 1
     end
     int e = n - 1
-    while e > 0 do
+    while e > 0
         swapItems(a, 0, e)
         e -= 1
         siftDown(a, 0, e)
@@ -402,29 +402,29 @@ func sortCounting(array<int> src) as array<int>
     if n <= 1 then return a end
     int mx = int(a[0])
     int i = 1
-    while i < n do
+    while i < n
         int v = int(a[i])
         if v > mx then mx = v end
         i += 1
     end
     array<int> count = array<int>[]
     int ci = 0
-    while ci <= mx do
+    while ci <= mx
         count.push(0)
         ci += 1
     end
     int j = 0
-    while j < n do
+    while j < n
         int idx = int(a[j])
         count[idx] = count[idx] + 1
         j += 1
     end
     int idx2 = 0
     int v = 0
-    while v <= mx do
+    while v <= mx
         int c = int(count[v])
         int k = 0
-        while k < c do
+        while k < c
             a[idx2] = v
             idx2 += 1
             k += 1
@@ -438,36 +438,36 @@ end
 func radixCount(array<int> a, int n, int exp)
     array<int> output = array<int>[]
     int oi = 0
-    while oi < n do
+    while oi < n
         output.push(0)
         oi += 1
     end
     array<int> count = array<int>[]
     int ci = 0
-    while ci < 10 do
+    while ci < 10
         count.push(0)
         ci += 1
     end
     int i = 0
-    while i < n do
+    while i < n
         int d = (int(a[i]) / exp) % 10
         count[d] = count[d] + 1
         i += 1
     end
     int k = 1
-    while k < 10 do
+    while k < 10
         count[k] = count[k] + count[k - 1]
         k += 1
     end
     int j = n - 1
-    while j >= 0 do
+    while j >= 0
         int d = (int(a[j]) / exp) % 10
         count[d] = count[d] - 1
         output[count[d]] = a[j]
         j -= 1
     end
     int m = 0
-    while m < n do
+    while m < n
         a[m] = output[m]
         m += 1
     end
@@ -479,13 +479,13 @@ func sortRadix(array<int> src) as array<int>
     if n <= 1 then return a end
     int mx = int(a[0])
     int i = 1
-    while i < n do
+    while i < n
         int v = int(a[i])
         if v > mx then mx = v end
         i += 1
     end
     int exp = 1
-    while mx / exp > 0 do
+    while mx / exp > 0
         radixCount(a, n, exp)
         exp = exp * 10
     end
@@ -496,11 +496,11 @@ end
 func insertionSort(array<int> b)
     int n = b.length
     int i = 1
-    while i < n do
+    while i < n
         int key = b[i]
         int j = i - 1
         bool go = true
-        while j >= 0 and go do
+        while j >= 0 and go
             if b[j] > key then
                 b[j + 1] = b[j]
                 j -= 1
@@ -520,7 +520,7 @@ func sortBucket(array<int> src) as array<int>
     if n <= 1 then return a end
     int mx = 0
     int i = 0
-    while i < n do
+    while i < n
         int v = int(a[i])
         if v > mx then mx = v end
         i += 1
@@ -530,12 +530,12 @@ func sortBucket(array<int> src) as array<int>
     int sz = mx / nb + 1
     array<array<int>> buckets = []
     int bi = 0
-    while bi < nb do
+    while bi < nb
         buckets.push([])
         bi += 1
     end
     int j = 0
-    while j < n do
+    while j < n
         int v = int(a[j])
         int idx = v / sz
         if idx >= nb then idx = nb - 1 end
@@ -545,19 +545,19 @@ func sortBucket(array<int> src) as array<int>
     end
     array<int> outputValue = array<int>[]
     int k = 0
-    while k < nb do
+    while k < nb
         array<int> bucket = buckets[k]
         insertionSort(bucket)
         int m = 0
         int blen = bucket.length
-        while m < blen do
+        while m < blen
             outputValue.push(bucket[m])
             m += 1
         end
         k += 1
     end
     int p = 0
-    while p < n do
+    while p < n
         a[p] = outputValue[p]
         p += 1
     end
@@ -572,10 +572,10 @@ func sortCocktail(array<int> src) as array<int>
     bool swapped = true
     int start = 0
     int endd = n - 1
-    while swapped do
+    while swapped
         swapped = false
         int i = start
-        while i < endd do
+        while i < endd
             g_cmp += 1
             if a[i] > a[i + 1] then
                 swapItems(a, i, i + 1)
@@ -587,7 +587,7 @@ func sortCocktail(array<int> src) as array<int>
         swapped = false
         endd = endd - 1
         int j = endd
-        while j >= start do
+        while j >= start
             g_cmp += 1
             if a[j] > a[j + 1] then
                 swapItems(a, j, j + 1)
@@ -605,7 +605,7 @@ func sortGnome(array<int> src) as array<int>
     array<int> a = dupArr(src)
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         if i == 0 then
             i += 1
         else
@@ -665,7 +665,7 @@ func printTable()
     println("-----------   ----------   ------------   ----------   -------")
     int i = 0
     int n = g_names.length
-    while i < n do
+    while i < n
         string s = string.padRight(g_names[i], 13)
         s = s + string.padLeft(float.format(g_times[i], ".3"), 11)
         s = s + padNum(g_cmps[i])
@@ -710,7 +710,7 @@ func runBenchAll(array<int> data, string label)
     println("sortlab - " + label + "  (n=" + string(data.length) + ")")
     println("================================================================")
     int i = 0
-    while i < g_algos.length do
+    while i < g_algos.length
         benchOne(string(g_algos[i]), data)
         i += 1
     end
@@ -718,7 +718,7 @@ func runBenchAll(array<int> data, string label)
     println("================================================================")
     int pass = 0
     int j = 0
-    while j < g_oks.length do
+    while j < g_oks.length
         if g_oks[j] then pass += 1 end
         j += 1
     end
@@ -770,11 +770,11 @@ func cmdVerify() as int
     int totalPass = 0
     int totalRun = 0
     int ai = 0
-    while ai < g_algos.length do
+    while ai < g_algos.length
         string algo = string(g_algos[ai])
         bool algoOk = true
         int ci = 0
-        while ci < datasets.length do
+        while ci < datasets.length
             array<int> ds = datasets[ci]
             array<int> res = runAlgo(algo, ds)
             bool ok = isSorted(res)
@@ -811,7 +811,7 @@ func cmdTest() as int
     array<int> input = [5, 3, 8, 1, 9, 3, 0, 4, 7, 6, 2]
     int expectedLen = input.length
     int ai = 0
-    while ai < g_algos.length do
+    while ai < g_algos.length
         string algo = string(g_algos[ai])
         array<int> res = runAlgo(algo, input)
         bool ok = isSorted(res)
@@ -833,7 +833,7 @@ func cmdTest() as int
     bool det = true
     if r1.length != r2.length then det = false end
     int i = 0
-    while i < r1.length do
+    while i < r1.length
         if r1[i] != r2[i] then det = false end
         i += 1
     end
@@ -852,7 +852,7 @@ func cmdTest() as int
     int origMin = int(data3[0])
     int origMax = int(data3[0])
     int k = 1
-    while k < data3.length do
+    while k < data3.length
         int vv = int(data3[k])
         if vv < origMin then origMin = vv end
         if vv > origMax then origMax = vv end

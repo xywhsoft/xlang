@@ -84,7 +84,7 @@ func main(...) as int
     array<string> headers = array[]
 
     int i = 2
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "-h" or a == "-H" then
             if i + 1 >= arg.length then
@@ -143,7 +143,7 @@ func main(...) as int
     req.timeout(timeoutMs)
 
     int h = 0
-    while h < headers.length do
+    while h < headers.length
         string pair = headers[h]
         array<string> kv = parseHeaderPair(pair)
         string hname = kv[0]

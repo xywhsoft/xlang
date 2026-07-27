@@ -52,11 +52,13 @@ xl impdef <file.dll> -o <output.def>
 - `auto` 用于局部推断；`type` 是真实类型值，可用于 `type(a) == int`。
 - 类型标识符可用于声明、构造/转换、type 字面量比较。
 - 支持安全拓宽转换；危险窄化或 ABI 截断应显式转换或报错。
+- 整数字面量必须落在目标类型范围内；无显式无符号目标时按有符号 `int64` 解释，`auto` / `var` 不会把超出 `INT64_MAX` 的值静默环绕。
+- `uint64` 转字符串、f-string 和 `print` / `println` 均按十进制无符号全精度输出。
 - 支持运行时 `is` / `as` 类型判断与转换；函数返回类型的 `as` 和表达式中的 `as` 由语法位置区分。
 
 ## 5. 表达式、控制流与容器
 
-- 控制流：`if then else elseif end`、`while do end`、`for in end`、`break`、`continue`、`return`。
+- 控制流：`if then else elseif end`、`while ... end`、`do ... while ... end`、`for in end`、`break`、`continue`、`return`。
 - 逻辑关键字：`and`、`or`、`not`。
 - range 和 `in` 按 Python 风格收口；`~=` 按 XRT 模式匹配机制收口。
 - 数组、列表、集合、字典支持字面量、索引、成员方法和运算符重载。
@@ -88,6 +90,7 @@ xl impdef <file.dll> -o <output.def>
 
 - 异常处理：`try` / `catch` / `finally` / `throw` / `assert`。
 - 错误模型参考 Python 分类，避免只依赖字符串判断异常。
+- 运行时整数除零/模零抛出 `ZeroDivisionError`；`INT64_MIN / -1` 及对应取模抛出 `OverflowError`，二者均可由 `ArithmeticError` 捕获。
 - `throw` 只抛出字符串描述，由运行时包装为分类错误。
 - 文档注释：`#doc ... #end`，支持 `desc`、`param`、`return`、`note`、`example`。
 - 模块系统：`import`、`export`、package、XAPI/interface metadata。

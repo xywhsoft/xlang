@@ -40,7 +40,7 @@ end
 func splitArgs(var args, int start, var pos) as string
     string bracket = "{}"
     int i = start
-    while i < args.length do
+    while i < args.length
         string a = string(args[i])
         if string.startsWith(a, "--bracket=") then
             bracket = string.slice(a, 10)

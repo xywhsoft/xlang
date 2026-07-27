@@ -60,7 +60,7 @@ assert(sharedClient.protocol() == "shared.v1")
 assert(sharedClient.send("hello") == 0)
 
 int sharedWaitCount = 0
-while sharedUpgradeClientText == "" and sharedWaitCount < 500 do
+while sharedUpgradeClientText == "" and sharedWaitCount < 500
     time.sleep(10)
     sharedWaitCount += 1
 end

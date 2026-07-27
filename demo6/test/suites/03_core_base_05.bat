@@ -6,7 +6,7 @@ echo Running DEMO6 suite: core C generation and runtime baseline 5/10...
 
 release\xl.exe cgen test\cases\cgen_auto_inference_matrix.xl --emit build\test\cgen_auto_inference_matrix.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'build\test\cgen_auto_inference_matrix.c'; $checks=@('long long literalInt;','double literalFloat;','int literalBool;','const char* literalString;','xtarray inferredArray;','xtlist inferredList;','xtdict inferredDict;','typedArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedArray','typedListItem = xrtCopyStr(xl6_xrt_str_dup((*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(typedList','typedDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(typedDict','missingTypedItem = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(typedArray','inferredArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(inferredArray','inferredListItem = xrtCopyStr(xl6_xrt_str_dup((*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(inferredList','inferredDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(inferredDict','xvalue box;','box = xl6_xrt_move_to_shared(xl6_xrt_bind_type(xl_fn_makeBox(7LL,','fieldValue = (*((XL_Class_MatrixBox*)xl6_class_data(box','fieldText = xrtCopyStr((*((XL_Class_MatrixBox*)xl6_class_data(box','methodValue = xl_class_MatrixBox__getValue(((XL_Class_MatrixBox*)xl6_class_data(box','fn = xl_fn_makeAdder(10LL);','long long fnResult;','callResult = xl_fn_add(fieldValue, methodValue);','futureValue = xl_fn_doubleAsync(6LL);','long long awaitedValue;','autoCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','sent = xl6_channel_send_value(autoCh','received = xl6_channel_recv_into(autoCh'); foreach($p in $checks){ if($t.IndexOf($p) -lt 0){ Write-Host ('cgen_auto_inference_matrix.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -Raw -Encoding UTF8 'build\test\cgen_auto_inference_matrix.c'; $checks=@('long long __xl6_user_global_literalInt;','double __xl6_user_global_literalFloat;','int __xl6_user_global_literalBool;','const char* __xl6_user_global_literalString;','xtarray __xl6_user_global_inferredArray;','xtlist __xl6_user_global_inferredList;','xtdict __xl6_user_global_inferredDict;','typedArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(__xl6_user_global_typedArray','typedListItem = xrtCopyStr(xl6_xrt_str_dup((*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(__xl6_user_global_typedList','typedDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(__xl6_user_global_typedDict','missingTypedItem = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(__xl6_user_global_typedArray','inferredArrayItem = (*(long long*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(__xl6_user_global_inferredArray','inferredListItem = xrtCopyStr(xl6_xrt_str_dup((*(const char**)xl6_xrt_typed_require_item(xrtTypedListGet(__xl6_user_global_inferredList','inferredDictItem = (*(long long*)xl6_xrt_typed_require_item(xrtTypedDictGet(__xl6_user_global_inferredDict','xvalue __xl6_user_global_box;','box = xl6_xrt_move_to_shared(xl_fn_makeBox(7LL,','fieldValue = (*((XL_Class_MatrixBox*)xl6_class_data(__xl6_user_global_box','fieldText = xrtCopyStr((*((XL_Class_MatrixBox*)xl6_class_data(__xl6_user_global_box','methodValue = xl_class_MatrixBox__getValue(((XL_Class_MatrixBox*)xl6_class_data(__xl6_user_global_box','fn = xl_fn_makeAdder(10LL);','long long __xl6_user_global_fnResult;','callResult = xl_fn_add(__xl6_user_global_fieldValue, __xl6_user_global_methodValue);','futureValue = xl_fn_doubleAsync(6LL);','long long __xl6_user_global_awaitedValue;','autoCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','sent = xl6_channel_send_value(__xl6_user_global_autoCh','received = xl6_channel_recv_into(__xl6_user_global_autoCh'); foreach($p in $checks){ if($t.IndexOf($p) -lt 0){ Write-Host ('cgen_auto_inference_matrix.c missing '+$p); exit 1 } }"
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_auto_inference_matrix.xl test\cases\cgen_class_host.c -o build\test\cgen_auto_inference_matrix.exe
 if errorlevel 1 exit /b 1
@@ -52,12 +52,12 @@ if errorlevel 1 (
     echo cgen_call_var_arg_exprs.c missing var argument conditional branch.
     exit /b 1
 )
-findstr /C:"xl6_var_call(dynamicSum, 2, __xl6_call_arg_" build\test\cgen_call_var_arg_exprs.c >nul
+findstr /C:"xl6_var_call(__xl6_user_global_dynamicSum, 2, __xl6_call_arg_" build\test\cgen_call_var_arg_exprs.c >nul
 if errorlevel 1 (
     echo cgen_call_var_arg_exprs.c missing var callable positional argument lowering.
     exit /b 1
 )
-findstr /C:"xl6_var_call_kwargs(dynamicSum, xl6_xrt_dict_varargs(2," build\test\cgen_call_var_arg_exprs.c | findstr /C:"__xl6_call_arg_" >nul
+findstr /C:"xl6_var_call_kwargs(__xl6_user_global_dynamicSum, xl6_xrt_dict_varargs(2," build\test\cgen_call_var_arg_exprs.c | findstr /C:"__xl6_call_arg_" >nul
 if errorlevel 1 (
     echo cgen_call_var_arg_exprs.c missing var callable named argument lowering.
     exit /b 1
@@ -431,7 +431,7 @@ if errorlevel 1 (
     echo cgen_var_values.c missing dynamic value arithmetic cleanup.
     exit /b 1
 )
-findstr /C:"xvalue sumNumber;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_sumNumber;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level sumNumber dynamic arithmetic declaration.
     exit /b 1
@@ -441,12 +441,12 @@ if errorlevel 1 (
     echo cgen_var_values.c missing statement-level sumNumber dynamic arithmetic assignment.
     exit /b 1
 )
-findstr /C:"xvalue sumNumber = ({ xvalue __xl6_bin_left_" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_sumNumber = ({ xvalue __xl6_bin_left_" build\test\cgen_var_values.c >nul
 if not errorlevel 1 (
     echo cgen_var_values.c should not emit sumNumber dynamic arithmetic declaration statement expressions.
     exit /b 1
 )
-findstr /C:"xvalue joinedText;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_joinedText;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level joinedText dynamic arithmetic declaration.
     exit /b 1
@@ -456,12 +456,12 @@ if errorlevel 1 (
     echo cgen_var_values.c missing statement-level joinedText dynamic arithmetic assignment.
     exit /b 1
 )
-findstr /C:"xvalue joinedText = ({ xvalue __xl6_bin_left_" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_joinedText = ({ xvalue __xl6_bin_left_" build\test\cgen_var_values.c >nul
 if not errorlevel 1 (
     echo cgen_var_values.c should not emit joinedText dynamic arithmetic declaration statement expressions.
     exit /b 1
 )
-findstr /C:"xvalue mixedPlus;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_mixedPlus;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level mixedPlus dynamic arithmetic declaration.
     exit /b 1
@@ -471,27 +471,27 @@ if errorlevel 1 (
     echo cgen_var_values.c missing statement-level mixedPlus dynamic arithmetic assignment.
     exit /b 1
 )
-findstr /C:"xvalue mixedPlus = ({ xvalue __xl6_bin_left_" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_mixedPlus = ({ xvalue __xl6_bin_left_" build\test\cgen_var_values.c >nul
 if not errorlevel 1 (
     echo cgen_var_values.c should not emit mixedPlus dynamic arithmetic declaration statement expressions.
     exit /b 1
 )
-findstr /C:"xvalue conditionalPick;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_conditionalPick;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level conditionalPick declaration.
     exit /b 1
 )
-findstr /C:"xl6_xrt_retain(lowNumber);" build\test\cgen_var_values.c >nul
+findstr /C:"xl6_xrt_retain(__xl6_user_global_lowNumber);" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level conditionalPick assignment.
     exit /b 1
 )
-findstr /C:"xvalue conditionalPick = ({ xvalue __xl6_cond_result_" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_conditionalPick = ({ xvalue __xl6_cond_result_" build\test\cgen_var_values.c >nul
 if not errorlevel 1 (
     echo cgen_var_values.c should not emit conditionalPick declaration statement expressions.
     exit /b 1
 )
-findstr /C:"xvalue conditionalTemp;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_conditionalTemp;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level conditionalTemp declaration.
     exit /b 1
@@ -501,12 +501,12 @@ if errorlevel 1 (
     echo cgen_var_values.c missing statement-level conditionalTemp assignment.
     exit /b 1
 )
-findstr /C:"xvalue conditionalTemp = ({ xvalue __xl6_cond_result_" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_conditionalTemp = ({ xvalue __xl6_cond_result_" build\test\cgen_var_values.c >nul
 if not errorlevel 1 (
     echo cgen_var_values.c should not emit conditionalTemp declaration statement expressions.
     exit /b 1
 )
-findstr /C:"xvalue mixedAuto;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_mixedAuto;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level mixedAuto declaration.
     exit /b 1
@@ -516,12 +516,12 @@ if errorlevel 1 (
     echo cgen_var_values.c missing statement-level mixedAuto assignment.
     exit /b 1
 )
-findstr /C:"xvalue mixedAuto = ({ xvalue __xl6_cond_result_" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_mixedAuto = ({ xvalue __xl6_cond_result_" build\test\cgen_var_values.c >nul
 if not errorlevel 1 (
     echo cgen_var_values.c should not emit mixedAuto declaration statement expressions.
     exit /b 1
 )
-findstr /C:"xvalue mixedConditional;" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_mixedConditional;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level mixedConditional declaration.
     exit /b 1
@@ -531,12 +531,12 @@ if errorlevel 1 (
     echo cgen_var_values.c missing statement-level mixedConditional assignment.
     exit /b 1
 )
-findstr /C:"xvalue mixedConditional = ({ xvalue __xl6_cond_result_" build\test\cgen_var_values.c >nul
+findstr /C:"xvalue __xl6_user_global_mixedConditional = ({ xvalue __xl6_cond_result_" build\test\cgen_var_values.c >nul
 if not errorlevel 1 (
     echo cgen_var_values.c should not emit mixedConditional declaration statement expressions.
     exit /b 1
 )
-findstr /C:"int compareDecl;" build\test\cgen_var_values.c >nul
+findstr /C:"int __xl6_user_global_compareDecl;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level compareDecl declaration.
     exit /b 1
@@ -546,12 +546,12 @@ if errorlevel 1 (
     echo cgen_var_values.c missing statement-level compareDecl assignment.
     exit /b 1
 )
-findstr /C:"int compareDecl = ({ xvalue __xl6_cmp_left_" build\test\cgen_var_values.c >nul
+findstr /C:"int __xl6_user_global_compareDecl = ({ xvalue __xl6_cmp_left_" build\test\cgen_var_values.c >nul
 if not errorlevel 1 (
     echo cgen_var_values.c should not emit compareDecl declaration statement expressions.
     exit /b 1
 )
-findstr /C:"long long orderDecl;" build\test\cgen_var_values.c >nul
+findstr /C:"long long __xl6_user_global_orderDecl;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level orderDecl declaration.
     exit /b 1
@@ -561,12 +561,12 @@ if errorlevel 1 (
     echo cgen_var_values.c missing statement-level orderDecl assignment.
     exit /b 1
 )
-findstr /C:"long long orderDecl = ({ xvalue __xl6_cmp_left_" build\test\cgen_var_values.c >nul
+findstr /C:"long long __xl6_user_global_orderDecl = ({ xvalue __xl6_cmp_left_" build\test\cgen_var_values.c >nul
 if not errorlevel 1 (
     echo cgen_var_values.c should not emit orderDecl declaration statement expressions.
     exit /b 1
 )
-findstr /C:"int autoCompareDecl;" build\test\cgen_var_values.c >nul
+findstr /C:"int __xl6_user_global_autoCompareDecl;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level autoCompareDecl declaration.
     exit /b 1
@@ -576,12 +576,12 @@ if errorlevel 1 (
     echo cgen_var_values.c missing statement-level autoCompareDecl assignment.
     exit /b 1
 )
-findstr /C:"int autoCompareDecl = ({ xvalue __xl6_cmp_left_" build\test\cgen_var_values.c >nul
+findstr /C:"int __xl6_user_global_autoCompareDecl = ({ xvalue __xl6_cmp_left_" build\test\cgen_var_values.c >nul
 if not errorlevel 1 (
     echo cgen_var_values.c should not emit autoCompareDecl declaration statement expressions.
     exit /b 1
 )
-findstr /C:"int approxDecl;" build\test\cgen_var_values.c >nul
+findstr /C:"int __xl6_user_global_approxDecl;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level approxDecl declaration.
     exit /b 1
@@ -591,12 +591,12 @@ if errorlevel 1 (
     echo cgen_var_values.c missing statement-level approxDecl assignment.
     exit /b 1
 )
-findstr /C:"int approxDecl = ({ xvalue __xl6_approx_left_" build\test\cgen_var_values.c >nul
+findstr /C:"int __xl6_user_global_approxDecl = ({ xvalue __xl6_approx_left_" build\test\cgen_var_values.c >nul
 if not errorlevel 1 (
     echo cgen_var_values.c should not emit approxDecl declaration statement expressions.
     exit /b 1
 )
-findstr /C:"int autoApproxDecl;" build\test\cgen_var_values.c >nul
+findstr /C:"int __xl6_user_global_autoApproxDecl;" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing statement-level autoApproxDecl declaration.
     exit /b 1
@@ -606,7 +606,7 @@ if errorlevel 1 (
     echo cgen_var_values.c missing statement-level autoApproxDecl assignment.
     exit /b 1
 )
-findstr /C:"int autoApproxDecl = ({ xvalue __xl6_approx_left_" build\test\cgen_var_values.c >nul
+findstr /C:"int __xl6_user_global_autoApproxDecl = ({ xvalue __xl6_approx_left_" build\test\cgen_var_values.c >nul
 if not errorlevel 1 (
     echo cgen_var_values.c should not emit autoApproxDecl declaration statement expressions.
     exit /b 1
@@ -921,7 +921,7 @@ if errorlevel 1 (
     echo cgen_var_values.c missing dynamic value compare cleanup.
     exit /b 1
 )
-findstr /C:"xvoUnref(number);" build\test\cgen_var_values.c >nul
+findstr /C:"xvoUnref(__xl6_user_global_number);" build\test\cgen_var_values.c >nul
 if errorlevel 1 (
     echo cgen_var_values.c missing var cleanup.
     exit /b 1

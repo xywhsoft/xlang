@@ -125,7 +125,7 @@ func initStore()
     if gTs.length == 0 then
         int total = MAX_METRICS * CAP_PER
         int i = 0
-        while i < total do
+        while i < total
             gTs.append(int64(0))
             gVal.append(0.0)
             gLabel.append("")
@@ -196,7 +196,7 @@ end
 func joinStrings(array<string> parts, string sep) as string
     string outputValue = ""
     int i = 0
-    while i < parts.length do
+    while i < parts.length
         if i > 0 then
             outputValue = outputValue + sep
         end
@@ -239,7 +239,7 @@ func jEsc(string s) as string
     string r = ""
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b == 34 then
             r = r + "\\\""
@@ -337,7 +337,7 @@ func labelDisplay(string packed) as string
     array parts = string.split(packed, ";")
     string outputValue = ""
     int i = 0
-    while i < parts.length do
+    while i < parts.length
         if i > 0 then
             outputValue = outputValue + ", "
         end
@@ -359,7 +359,7 @@ end
 // 调用者负责加锁。
 func metricIdOfNL(string name) as int
     int i = 0
-    while i < gNumMetrics do
+    while i < gNumMetrics
         if gMetricName[i] == name then
             return i
         end
@@ -434,13 +434,13 @@ func collectWindowNL(int id, int64 nowTs, int windowSec, string labelFilter,
         return 0
     end
     int start = gHead[id] - cnt
-    while start < 0 do
+    while start < 0
         start = start + CAP_PER
     end
     int64 cutoff = nowTs - int64(windowSec)
     int matched = 0
     int i = 0
-    while i < cnt do
+    while i < cnt
         int pos = flatIdx(id, (start + i) % CAP_PER)
         int64 ts = gTs[pos]
         if ts >= cutoff then
@@ -477,11 +477,11 @@ func latestPointNL(int id, string labelFilter) as (bool, float, int64)
         return found, v, ts
     end
     int start = gHead[id] - cnt
-    while start < 0 do
+    while start < 0
         start = start + CAP_PER
     end
     int i = 0
-    while i < cnt do
+    while i < cnt
         int pos = flatIdx(id, (start + i) % CAP_PER)
         if labelMatch(gLabel[pos], labelFilter) then
             found = true
@@ -504,11 +504,11 @@ func lastTsNL(int id) as int64
         return ts
     end
     int start = gHead[id] - cnt
-    while start < 0 do
+    while start < 0
         start = start + CAP_PER
     end
     int i = 0
-    while i < cnt do
+    while i < cnt
         int pos = flatIdx(id, (start + i) % CAP_PER)
         if gTs[pos] > ts then
             ts = gTs[pos]
@@ -553,10 +553,10 @@ end
 func sortAscInPlace(array<float> a)
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         int minIdx = i
         int j = i + 1
-        while j < n do
+        while j < n
             if a[j] < a[minIdx] then
                 minIdx = j
             end
@@ -575,7 +575,7 @@ end
 func copySortAsc(array<float> src) as array<float>
     array<float> outputValue
     int i = 0
-    while i < src.length do
+    while i < src.length
         outputValue.append(src[i])
         i += 1
     end
@@ -619,7 +619,7 @@ func aggregate(array<float> vals, string agg) as float
     float mn = vals[0]
     float mx = vals[0]
     int i = 0
-    while i < n do
+    while i < n
         float x = vals[i]
         sum += x
         if x < mn then
@@ -774,7 +774,7 @@ end
 func evaluateAllRulesAt(int64 now)
     gStoreLock.lock()
     int i = 0
-    while i < gNumRules do
+    while i < gNumRules
         evaluateRuleNL(i, now)
         i += 1
     end
@@ -803,7 +803,7 @@ func sparkline(array<float> vals, int width) as string
     float lo = vals[0]
     float hi = vals[0]
     int i = 1
-    while i < n do
+    while i < n
         if vals[i] < lo then
             lo = vals[i]
         end
@@ -818,7 +818,7 @@ func sparkline(array<float> vals, int width) as string
     end
     string outputValue = ""
     int idx = 0
-    while idx < w do
+    while idx < w
         int s0 = int(float(idx) * float(n) / float(w))
         int s1 = int(float(idx + 1) * float(n) / float(w))
         if s1 <= s0 then
@@ -830,7 +830,7 @@ func sparkline(array<float> vals, int width) as string
         float sum = 0.0
         int c = 0
         int j = s0
-        while j < s1 do
+        while j < s1
             sum += vals[j]
             c += 1
             j += 1
@@ -859,7 +859,7 @@ func barH(string name, float value, float maxval, int width) as string
     int filled = int(frac * float(width))
     string bar = ""
     int i = 0
-    while i < width do
+    while i < width
         if i < filled then
             bar = bar + "█"
         else
@@ -882,7 +882,7 @@ func trendArrow(array<float> vals) as string
     end
     float firstSum = 0.0
     int i = 0
-    while i < half do
+    while i < half
         firstSum += vals[i]
         i += 1
     end
@@ -890,7 +890,7 @@ func trendArrow(array<float> vals) as string
     float lastSum = 0.0
     int lc = 0
     int k = half
-    while k < n do
+    while k < n
         lastSum += vals[k]
         lc += 1
         k += 1
@@ -920,7 +920,7 @@ func sparkChart(array<float> vals, int height, int width) as array<string>
     int n = vals.length
     if n == 0 then
         int r = 0
-        while r < height do
+        while r < height
             rows.append(string.padRight("", width))
             r += 1
         end
@@ -929,7 +929,7 @@ func sparkChart(array<float> vals, int height, int width) as array<string>
     // 分桶取每列 max
     array<float> cols
     int c = 0
-    while c < width do
+    while c < width
         int s0 = int(float(c) * float(n) / float(width))
         int s1 = int(float(c + 1) * float(n) / float(width))
         if s1 <= s0 then
@@ -940,7 +940,7 @@ func sparkChart(array<float> vals, int height, int width) as array<string>
         end
         float mx = vals[s0]
         int j = s0 + 1
-        while j < s1 do
+        while j < s1
             if vals[j] > mx then
                 mx = vals[j]
             end
@@ -952,7 +952,7 @@ func sparkChart(array<float> vals, int height, int width) as array<string>
     float lo = cols[0]
     float hi = cols[0]
     c = 1
-    while c < width do
+    while c < width
         if cols[c] < lo then
             lo = cols[c]
         end
@@ -966,11 +966,11 @@ func sparkChart(array<float> vals, int height, int width) as array<string>
         range = 1.0
     end
     int row = 0
-    while row < height do
+    while row < height
         float level = hi - (float(row) + 0.5) * range / float(height)
         string line = ""
         int cc = 0
-        while cc < width do
+        while cc < width
             if cols[cc] >= level then
                 line = line + "█"
             else
@@ -994,7 +994,7 @@ func metricsJson(int64 now, int window) as string
     gStoreLock.lock()
     string sb = "["
     int i = 0
-    while i < gNumMetrics do
+    while i < gNumMetrics
         array<float> vals
         array<int64> ts
         int m = collectWindowNL(i, now, window, "", vals, ts)
@@ -1046,7 +1046,7 @@ func queryJson(string metric, string agg, int window, string labels, int64 now) 
         int n = vals.length
         int si = 0
         int written = 0
-        while si < n do
+        while si < n
             int step = n / cap
             if step < 1 then
                 step = 1
@@ -1083,7 +1083,7 @@ func alertsJson() as string
     gStoreLock.lock()
     string sb = "["
     int i = 0
-    while i < gNumRules do
+    while i < gNumRules
         if i > 0 then
             sb = sb + ","
         end
@@ -1112,7 +1112,7 @@ func dashboardJson(int64 now, int window) as string
     // metric 卡片
     string msb = "["
     int i = 0
-    while i < gNumMetrics do
+    while i < gNumMetrics
         array<float> vals
         array<int64> ts
         int m = collectWindowNL(i, now, window, "", vals, ts)
@@ -1140,7 +1140,7 @@ func dashboardJson(int64 now, int window) as string
     int resolved = 0
     string asb = "["
     int j = 0
-    while j < gNumRules do
+    while j < gNumRules
         int st = gRuleState[j]
         if st == ST_FIRING then
             firing += 1
@@ -1185,7 +1185,7 @@ func healthJson() as string
     gStoreLock.lock()
     int total = 0
     int i = 0
-    while i < gNumMetrics do
+    while i < gNumMetrics
         total += gCnt[i]
         i += 1
     end
@@ -1209,7 +1209,7 @@ func consoleDashboard(int64 now, int window) as string
 
     gStoreLock.lock()
     int i = 0
-    while i < gNumMetrics do
+    while i < gNumMetrics
         array<float> vals
         array<int64> ts
         int m = collectWindowNL(i, now, window, "", vals, ts)
@@ -1230,7 +1230,7 @@ func consoleDashboard(int64 now, int window) as string
         if m > 0 then
             array<string> chart = sparkChart(vals, 5, 50)
             int r = 0
-            while r < chart.length do
+            while r < chart.length
                 lines.append("  " + chart[r])
                 r += 1
             end
@@ -1243,7 +1243,7 @@ func consoleDashboard(int64 now, int window) as string
     lines.append(string.padRight("ALERT", 18) + string.padRight("STATE", 10)
                 + string.padRight("FIRES", 6) + "EXPR")
     int j = 0
-    while j < gNumRules do
+    while j < gNumRules
         string expr = gRuleName[j] + ": " + gRuleMetric[j] + " "
         if gRuleType[j] == RT_MISSING then
             expr = expr + "missing > " + fmtNum(gRuleThresh[j]) + "s"
@@ -1385,7 +1385,7 @@ end
 
 func makeCollector() as func() as int
     return func() as int
-        while gCollectStop == 0 do
+        while gCollectStop == 0
             collectOnce()
             evaluateAllRules()
             time.sleep(COLLECT_INTERVAL_MS)
@@ -1586,7 +1586,7 @@ func runTest() as int
     // 用 1..10 填充 metric "m1"
     int64 base = int64(1000)
     int n = 1
-    while n <= 10 do
+    while n <= 10
         recordPointAt("m1", float(n), "", base + int64(n - 1))
         n += 1
     end
@@ -1703,7 +1703,7 @@ func runTest() as int
     // ---------- 9. sparkline / 图表 ----------
     resetStore()
     int z = 0
-    while z < 50 do
+    while z < 50
         recordPointAt("wave", float(z), "", base + int64(z))
         z += 1
     end
@@ -1774,7 +1774,7 @@ func cmdCollect(int durationSec) as int
 
     int tick = 0
     int64 start = nowSec()
-    while tick < durationSec do
+    while tick < durationSec
         collectOnce()
         evaluateAllRulesAt(nowSec())
         int64 now = nowSec()
@@ -1782,7 +1782,7 @@ func cmdCollect(int durationSec) as int
         gStoreLock.lock()
         string line = "[" + string(int(now - start)) + "s] "
         int i = 0
-        while i < gNumMetrics do
+        while i < gNumMetrics
             auto f, v, ts = latestPointNL(i, "")
             line = line + gMetricName[i] + "=" + (f ? fmtNum(v) : "n/a") + " "
             i += 1
@@ -1790,7 +1790,7 @@ func cmdCollect(int durationSec) as int
         // FIRING 数
         int firing = 0
         int j = 0
-        while j < gNumRules do
+        while j < gNumRules
             if gRuleState[j] == ST_FIRING then
                 firing += 1
             end
@@ -1852,12 +1852,12 @@ func cmdServe(int port) as int
     println("  POST /api/ingest       {\"metric\":\"...\",\"value\":N,\"labels\":\"k=v\"}")
     println("press Ctrl+C to stop")
     println("")
-    while true do
+    while true
         time.sleep(5000)
         gStoreLock.lock()
         int firing = 0
         int jj = 0
-        while jj < gNumRules do
+        while jj < gNumRules
             if gRuleState[jj] == ST_FIRING then
                 firing += 1
             end

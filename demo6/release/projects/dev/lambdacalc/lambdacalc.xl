@@ -104,7 +104,7 @@ func tokenize(string src) as var
     var toks = []
     int i = 0
     int n = string.len(src)
-    while i < n do
+    while i < n
         string c = string.charAt(src, i)
         if isWsChar(c) then
             i += 1
@@ -126,7 +126,7 @@ func tokenize(string src) as var
         else
             // 标识符：连续非分隔符
             string name = ""
-            while i < n do
+            while i < n
                 string cc = string.charAt(src, i)
                 if isDelimChar(cc) then
                     break
@@ -210,7 +210,7 @@ class Parser
     // app := atom atom*   （左结合；遇 RP / DOT / EQ / EOF / "in" 停止）
     func parseApp() as var
         var left = self.parseAtom()
-        while true do
+        while true
             string ty = self.curType()
             if ty == "EOF" or ty == "RP" or ty == "DOT" or ty == "EQ" then
                 break
@@ -229,13 +229,13 @@ class Parser
         self.expect("LAM")
         var params = []
         params.push(self.readParam())
-        while self.curType() == "ID" do
+        while self.curType() == "ID"
             params.push(self.readParam())
         end
         self.expect("DOT")
         var body = self.parseExpr()
         int k = params.length - 1
-        while k >= 0 do
+        while k >= 0
             body = Abs(params[k], body)
             k -= 1
         end
@@ -307,7 +307,7 @@ end
 func addUnique(var arr, string s)
     int i = 0
     int n = arr.length
-    while i < n do
+    while i < n
         if string(arr[i]) == s then
             return
         end
@@ -319,7 +319,7 @@ end
 func inSet(var arr, string s) as bool
     int i = 0
     int n = arr.length
-    while i < n do
+    while i < n
         if string(arr[i]) == s then
             return true
         end
@@ -331,7 +331,7 @@ end
 func mergeUnique(var dest, var src)
     int i = 0
     int n = src.length
-    while i < n do
+    while i < n
         addUnique(dest, string(src[i]))
         i += 1
     end
@@ -356,7 +356,7 @@ func collectFree(var t, var acc)
         collectFree(a.body, inner)
         int i = 0
         int n = inner.length
-        while i < n do
+        while i < n
             if string(inner[i]) != string(a.param) then
                 addUnique(acc, string(inner[i]))
             end
@@ -380,7 +380,7 @@ int gFresh = 0
 // 在 avoid 集合外生成形如 base0, base1, ... 的新名。
 func freshVar(string base, var avoid) as string
     int k = 0
-    while true do
+    while true
         string cand = base + string(k)
         if not inSet(avoid, cand) then
             return cand
@@ -503,7 +503,7 @@ func reduceToNormal(var term, int maxSteps, bool trace, string order) as var
     if trace then
         println("  = " + showTerm(cur))
     end
-    while steps < maxSteps do
+    while steps < maxSteps
         var nxt = null
         if order == "applicative" then
             nxt = applicativeStep(cur)
@@ -535,7 +535,7 @@ func canonStr(var t, var binders) as string
         string nm = string(v.name)
         int i = binders.length - 1
         int depth = 0
-        while i >= 0 do
+        while i >= 0
             if string(binders[i]) == nm then
                 return "#" + string(depth)
             end
@@ -584,7 +584,7 @@ end
 func countApplications(var body, string f, string x) as var
     int count = 0
     var cur = body
-    while cur is App do
+    while cur is App
         App ap = cur as App
         if not (ap.fn is Var) then
             return null
@@ -639,7 +639,7 @@ func addRaw(var defs, string name, string src)
     var t = parseTerm(src)
     int i = 0
     int n = defs.length
-    while i < n do
+    while i < n
         string nm = string(defs[i])
         var val = defs[i + 1]
         t = subst(nm, val, t)
@@ -652,7 +652,7 @@ end
 func lookupPrelude(var pre, string name) as var
     int i = 0
     int n = pre.length
-    while i < n do
+    while i < n
         if string(pre[i]) == name then
             return pre[i + 1]
         end
@@ -666,7 +666,7 @@ func buildApp(var pre, string exprSrc) as var
     var t = parseTerm(exprSrc)
     int i = 0
     int n = pre.length
-    while i < n do
+    while i < n
         string nm = string(pre[i])
         var val = pre[i + 1]
         t = subst(nm, val, t)

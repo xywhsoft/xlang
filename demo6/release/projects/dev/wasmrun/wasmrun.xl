@@ -53,7 +53,7 @@ func readU32Leb(array<int> b, int pos) as (int, int)
     int shift = 0
     int p = pos
     int n = b.length
-    while p < n do
+    while p < n
         int by = b[p]
         p += 1
         result = result | ((by & 0x7f) << shift)
@@ -74,7 +74,7 @@ func readS32Leb(array<int> b, int pos) as (int, int)
     int p = pos
     int by = 0
     int n = b.length
-    while p < n do
+    while p < n
         by = b[p]
         p += 1
         result = result | ((by & 0x7f) << shift)
@@ -173,7 +173,7 @@ func makeArray(int n, int initVal) as array<int>
     end
     array<int> a = array[initVal]
     int i = 1
-    while i < n do
+    while i < n
         a.push(initVal)
         i += 1
     end
@@ -193,7 +193,7 @@ func bufferToBytes(Buffer buf) as array<int>
     int n = buf.len()
     array<int> r = array[]
     int i = 0
-    while i < n do
+    while i < n
         r.push(buf.byteAt(i))
         i += 1
     end
@@ -210,7 +210,7 @@ end
 func parseTypeSec(array<int> b, int start, int endPos) as bool
     auto count, p = readU32Leb(b, start)
     int i = 0
-    while i < count do
+    while i < count
         if p >= endPos then
             modError("type sec: truncated")
             return false
@@ -225,7 +225,7 @@ func parseTypeSec(array<int> b, int start, int endPos) as bool
         auto pcnt, p2 = readU32Leb(b, p)
         p = p2
         int j = 0
-        while j < pcnt do
+        while j < pcnt
             if p >= endPos then
                 modError("type sec: param truncated")
                 return false
@@ -238,7 +238,7 @@ func parseTypeSec(array<int> b, int start, int endPos) as bool
         auto rcnt, p3 = readU32Leb(b, p)
         p = p3
         j = 0
-        while j < rcnt do
+        while j < rcnt
             if p >= endPos then
                 modError("type sec: result truncated")
                 return false
@@ -259,7 +259,7 @@ end
 func parseFuncSec(array<int> b, int start, int endPos) as bool
     auto count, p = readU32Leb(b, start)
     int i = 0
-    while i < count do
+    while i < count
         if p >= endPos then
             modError("func sec: truncated")
             return false
@@ -281,7 +281,7 @@ end
 func parseExportSec(array<int> b, int start, int endPos) as bool
     auto count, p = readU32Leb(b, start)
     int i = 0
-    while i < count do
+    while i < count
         if p >= endPos then
             modError("export sec: truncated")
             return false
@@ -295,7 +295,7 @@ func parseExportSec(array<int> b, int start, int endPos) as bool
         // Build name via Buffer
         Buffer nameBuf = Buffer()
         int j = 0
-        while j < nameLen do
+        while j < nameLen
             nameBuf.appendByte(b[p])
             p += 1
             j += 1
@@ -320,7 +320,7 @@ end
 func parseGlobalSec(array<int> b, int start, int endPos) as bool
     auto count, p = readU32Leb(b, start)
     int i = 0
-    while i < count do
+    while i < count
         if p + 2 > endPos then
             modError("global sec: truncated")
             return false
@@ -357,7 +357,7 @@ func parseCodeSec(array<int> b, int start, int endPos) as bool
         return false
     end
     int i = 0
-    while i < count do
+    while i < count
         if p >= endPos then
             modError("code sec: truncated")
             return false
@@ -373,7 +373,7 @@ func parseCodeSec(array<int> b, int start, int endPos) as bool
         p = p3
         int nLocals = 0
         int d = 0
-        while d < localDecls do
+        while d < localDecls
             if p + 2 > bodyEnd then
                 modError("code sec: local decl truncated")
                 return false
@@ -387,7 +387,7 @@ func parseCodeSec(array<int> b, int start, int endPos) as bool
         int codeLen = bodyEnd - p
         int codeOff = gMod.codeBytes.length
         int k = 0
-        while k < codeLen do
+        while k < codeLen
             gMod.codeBytes.push(b[p + k])
             k += 1
         end
@@ -417,7 +417,7 @@ func parseModule(array<int> b) as bool
         return false
     end
     int p = 8
-    while p < n do
+    while p < n
         int secId = b[p]
         auto secSize, bodyStart = readU32Leb(b, p + 1)
         p = bodyStart
@@ -451,14 +451,14 @@ func parseModule(array<int> b) as bool
     end
 
     int totalCode = gMod.codeBytes.length
-    while gMod.matchEnd.length < totalCode do
+    while gMod.matchEnd.length < totalCode
         gMod.matchEnd.push(-1)
     end
-    while gMod.matchElse.length < totalCode do
+    while gMod.matchElse.length < totalCode
         gMod.matchElse.push(-1)
     end
     int fi = 0
-    while fi < gMod.funcTypeIdx.length do
+    while fi < gMod.funcTypeIdx.length
         analyzeControlFlow(fi)
         fi += 1
     end
@@ -497,7 +497,7 @@ func analyzeControlFlow(int fi)
     int absEnd = codeOff + codeLen
 
     int i = codeOff
-    while i < absEnd do
+    while i < absEnd
         gMod.matchEnd[i] = -1
         gMod.matchElse[i] = -1
         i += 1
@@ -505,7 +505,7 @@ func analyzeControlFlow(int fi)
 
     array<int> stk = array[]
     int pc = codeOff
-    while pc < absEnd do
+    while pc < absEnd
         int op = gMod.codeBytes[pc]
         int openerPc = pc
         pc += 1
@@ -694,7 +694,7 @@ func typeSignatureString(int tidx) as string
     int pcnt = gMod.typeParamCnt[tidx]
     int poff = gMod.typeParamOff[tidx]
     int j = 0
-    while j < pcnt do
+    while j < pcnt
         if j > 0 then
             sig = sig + ", "
         end
@@ -708,7 +708,7 @@ func typeSignatureString(int tidx) as string
         sig = sig + "void"
     else
         j = 0
-        while j < rcnt do
+        while j < rcnt
             if j > 0 then
                 sig = sig + ", "
             end
@@ -728,7 +728,7 @@ func disasmModule() as int
     if gMod.typeParamCnt.length > 0 then
         println("; types:")
         int i = 0
-        while i < gMod.typeParamCnt.length do
+        while i < gMod.typeParamCnt.length
             println(";   type " + string(i) + ": " + typeSignatureString(i))
             i += 1
         end
@@ -737,7 +737,7 @@ func disasmModule() as int
     if gMod.funcTypeIdx.length > 0 then
         println("; functions:")
         int i = 0
-        while i < gMod.funcTypeIdx.length do
+        while i < gMod.funcTypeIdx.length
             println(";   func " + string(i) + ": type=" + string(gMod.funcTypeIdx[i]) +
                     " params=" + string(gMod.funcNParams[i]) +
                     " locals=" + string(gMod.funcNLocals[i]) +
@@ -750,7 +750,7 @@ func disasmModule() as int
     if gMod.exportNames.length > 0 then
         println("; exports:")
         int i = 0
-        while i < gMod.exportNames.length do
+        while i < gMod.exportNames.length
             string kind = "?"
             if gMod.exportKinds[i] == 0 then
                 kind = "func"
@@ -769,7 +769,7 @@ func disasmModule() as int
     if gMod.globalTypes.length > 0 then
         println("; globals:")
         int i = 0
-        while i < gMod.globalTypes.length do
+        while i < gMod.globalTypes.length
             string m = ""
             if gMod.globalMut[i] != 0 then
                 m = "mut "
@@ -783,26 +783,26 @@ func disasmModule() as int
     if gMod.funcTypeIdx.length > 0 then
         println("; code:")
         int fi = 0
-        while fi < gMod.funcTypeIdx.length do
+        while fi < gMod.funcTypeIdx.length
             println("  func " + string(fi) + " (" + typeSignatureString(gMod.funcTypeIdx[fi]) + "):")
             int codeOff = gMod.funcCodeOff[fi]
             int codeLen = gMod.funcCodeLen[fi]
             int pc = codeOff
             int absEnd = codeOff + codeLen
-            while pc < absEnd do
+            while pc < absEnd
                 int instrStart = pc
                 auto text, nextPc = disasmInstr(gMod.codeBytes, pc)
                 pc = nextPc
                 string hexPart = ""
                 int k = instrStart
-                while k < pc do
+                while k < pc
                     hexPart = hexPart + hex2(gMod.codeBytes[k])
                     if k < pc - 1 then
                         hexPart = hexPart + " "
                     end
                     k += 1
                 end
-                while string.len(hexPart) < 12 do
+                while string.len(hexPart) < 12
                     hexPart = hexPart + " "
                 end
                 println("    " + int.format(instrStart - codeOff, "X4") + ": " + hexPart + " " + text)
@@ -831,7 +831,7 @@ end
 
 func findExportAny(string name) as int
     int i = 0
-    while i < gMod.exportNames.length do
+    while i < gMod.exportNames.length
         if gMod.exportNames[i] == name then
             return gMod.exportIndices[i]
         end
@@ -854,7 +854,7 @@ func invoke(int funcIdx, array<int> args) as int
 
     array<int> locals = makeArray(nTotalLocals, 0)
     int ai = 0
-    while ai < nParams and ai < args.length do
+    while ai < nParams and ai < args.length
         locals[ai] = args[ai]
         ai += 1
     end
@@ -870,7 +870,7 @@ func invoke(int funcIdx, array<int> args) as int
     int pc = codeOff
     bool done = false
 
-    while not done do
+    while not done
         if pc >= absEnd then
             break
         end
@@ -949,7 +949,7 @@ func invoke(int funcIdx, array<int> args) as int
             int height = lblHeight[targetIdx]
             int src = sp - arity
             int k = 0
-            while k < arity do
+            while k < arity
                 stack[height + k] = stack[src + k]
                 k += 1
             end
@@ -974,7 +974,7 @@ func invoke(int funcIdx, array<int> args) as int
                 int height = lblHeight[targetIdx]
                 int src = sp - arity
                 int k = 0
-                while k < arity do
+                while k < arity
                     stack[height + k] = stack[src + k]
                     k += 1
                 end
@@ -998,7 +998,7 @@ func invoke(int funcIdx, array<int> args) as int
             int calleeNResults = gMod.funcNResults[fidx]
             array<int> callArgs = makeArray(calleeNParams, 0)
             int k = 0
-            while k < calleeNParams do
+            while k < calleeNParams
                 callArgs[calleeNParams - 1 - k] = stack[sp - 1 - k]
                 k += 1
             end
@@ -1355,7 +1355,7 @@ end
 
 func bU32(var b, int v)
     int val = v
-    while true do
+    while true
         int c = val & 0x7f
         val = val >> 7
         if val != 0 then
@@ -1369,7 +1369,7 @@ end
 
 func bS32(var b, int v)
     int val = v
-    while true do
+    while true
         int c = val & 0x7f
         val = val >> 7
         bool signBit = (c & 0x40) != 0
@@ -1386,7 +1386,7 @@ func bName(var b, string s)
     int n = string.len(s)
     bU32(b, n)
     int i = 0
-    while i < n do
+    while i < n
         b.push(string.byteAt(s, i))
         i += 1
     end
@@ -2214,7 +2214,7 @@ func cmdRun(string path) as int
         println("wasmrun: no _start or main export found")
         println("available exports:")
         int i = 0
-        while i < gMod.exportNames.length do
+        while i < gMod.exportNames.length
             println("  " + gMod.exportNames[i])
             i += 1
         end

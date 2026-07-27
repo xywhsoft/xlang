@@ -221,7 +221,7 @@ func stripComment(string line) as string
     string sep = ""
     int i = 0
     int n = string.len(line)
-    while i < n do
+    while i < n
         string ch = string.charAt(line, i)
         if inString then
             if ch == "\\" then
@@ -255,7 +255,7 @@ end
 func identAt(string line, int col) as string
     int n = string.len(line)
     int start = col
-    while start > 0 do
+    while start > 0
         string c = string.charAt(line, start - 1)
         if isIdentChar(c) then
             start -= 1
@@ -264,7 +264,7 @@ func identAt(string line, int col) as string
         end
     end
     int endPos = col
-    while endPos < n do
+    while endPos < n
         string c = string.charAt(line, endPos)
         if isIdentChar(c) then
             endPos += 1
@@ -297,7 +297,7 @@ func wordAtPosition(string text, int line, int character) as string
     end
     // 向左找单词起点
     int start = character
-    while start > 0 do
+    while start > 0
         string c = string.charAt(l, start - 1)
         if isIdentChar(c) then
             start -= 1
@@ -307,7 +307,7 @@ func wordAtPosition(string text, int line, int character) as string
     end
     // 向右找单词终点
     int endPos = character
-    while endPos < n do
+    while endPos < n
         string c = string.charAt(l, endPos)
         if isIdentChar(c) then
             endPos += 1
@@ -355,7 +355,7 @@ func indentLevel(string line) as int
     int n = 0
     int i = 0
     int len = string.len(line)
-    while i < len do
+    while i < len
         string c = string.charAt(line, i)
         if c == " " then
             n += 1
@@ -419,13 +419,13 @@ end
 // 从作用域向上查找符号 (局部 -> 父作用域 -> ... -> 全局)
 func lookupSymbolInScope(string name, int scopeId) as Symbol
     int cur = scopeId
-    while cur >= 0 do
+    while cur >= 0
         var s = g_scopes[string(cur)]
         if not (s is null) then
             var syms = s["symbols"]
             if syms is array then
                 int i = syms.length - 1
-                while i >= 0 do
+                while i >= 0
                     Symbol sym = syms[i] as Symbol
                     if sym.name == name then
                         return sym
@@ -495,7 +495,7 @@ func scanFileSymbols(string filePath, string text) as array<Symbol>
     scopeStack.push(0)                     // global scope
 
     int i = 0
-    while i < n do
+    while i < n
         string raw = string(lines[i])
         string code = stripComment(raw)
         string trimmed = string.trim(code)
@@ -622,8 +622,16 @@ func matchClassDecl(string s) as bool
     return true
 end
 
+func matchPostWhileEnd(string s) as bool
+    string t = string.trim(s)
+    return string.startsWith(t, "while ") and regex.isMatch(t, "\\bend$")
+end
+
 func matchEnd(string s) as bool
     string t = string.trim(s)
+    if matchPostWhileEnd(t) then
+        return true
+    end
     if t == "end" then
         return true
     end
@@ -927,7 +935,7 @@ func extractSymbolsFromAst(var root, string filePath)
         inClassStack.push(false)
     end
 
-    while nodeStack.length > 0 do
+    while nodeStack.length > 0
         int last = nodeStack.length - 1
         var node = nodeStack[last]
         int curScope = int(scopeStack[last])
@@ -1379,7 +1387,7 @@ func findSymbolsByName(string name) as array<Symbol>
     array<Symbol> result = []
     if arr is array then
         int i = 0
-        while i < arr.length do
+        while i < arr.length
             result.push(arr[i] as Symbol)
             i += 1
         end
@@ -1458,7 +1466,7 @@ func searchReferencesInText(string uri, string text, string word, bool includeDe
     array lines = splitLinesSafe(text)
     int n = lines.length
     int i = 0
-    while i < n do
+    while i < n
         string l = string(lines[i])
         searchWordInLine(uri, l, i, word, result)
         i += 1
@@ -1478,7 +1486,7 @@ func searchWordInLine(string uri, string line, int lineNo, string word, array re
         return
     end
     int i = 0
-    while i <= n - wlen do
+    while i <= n - wlen
         // 检查是否匹配 word
         if string.slice(line, i, wlen) == word then
             // 检查边界: 前后不是标识符字符
@@ -1737,7 +1745,7 @@ func scanSourceDiagnostics(string filePath, string uri) as array
     int depth = 0
     int i = 0
     int n = lines.length
-    while i < n do
+    while i < n
         string raw = string(lines[i])
         string code = stripComment(raw)
         string trimmed = string.trim(code)
@@ -1761,36 +1769,6 @@ func scanSourceDiagnostics(string filePath, string uri) as array
     if depth > 0 then
         Diagnostic d = Diagnostic(filePath, n, 1, DS_ERROR, "xlsrv", "unclosed block (" + string(depth) + " 'end' missing)")
         result.push(d)
-    end
-
-    // while 缺 do 检查
-    int j = 0
-    while j < n do
-        string raw = string(lines[j])
-        string code = stripComment(raw)
-        string trimmed = string.trim(code)
-        if string.startsWith(trimmed, "while ") and not containsWord(code, "do") then
-            // 向后看 3 行是否有 do
-            bool seen = false
-            int k = j + 1
-            int stop = j + 3
-            if stop >= n then
-                stop = n - 1
-            end
-            while k <= stop do
-                string code2 = stripComment(string(lines[k]))
-                if containsWord(code2, "do") then
-                    seen = true
-                    break
-                end
-                k += 1
-            end
-            if not seen then
-                Diagnostic d = Diagnostic(filePath, j + 1, 1, DS_WARNING, "xlsrv", "'while' without 'do'")
-                result.push(d)
-            end
-        end
-        j += 1
     end
 
     return result
@@ -1818,7 +1796,7 @@ func startsBlock(string s) as bool
         return false
     end
     if string.startsWith(t, "while ") then
-        return true
+        return not matchPostWhileEnd(t)
     end
     if string.startsWith(t, "for ") then
         return true
@@ -1833,10 +1811,6 @@ func startsBlock(string s) as bool
         return false
     end
     return false
-end
-
-func containsWord(string s, string w) as bool
-    return regex.isMatch(s, "\\b" + w + "\\b")
 end
 
 // ====================================================================
@@ -1937,7 +1911,7 @@ end
 func findHeaderEnd(string buffer) as int
     int n = string.len(buffer)
     int i = 0
-    while i < n - 3 do
+    while i < n - 3
         if string.charAt(buffer, i) == "\r" then
             if string.charAt(buffer, i + 1) == "\n" then
                 if string.charAt(buffer, i + 2) == "\r" then
@@ -2389,7 +2363,7 @@ func outputAnalysisText(string filePath)
     println("[Scopes] (" + string(g_nextScopeId) + ")")
     println("-----------------------------------------------")
     int si = 0
-    while si < g_nextScopeId do
+    while si < g_nextScopeId
         var s = g_scopes[string(si)]
         if not (s is null) then
             string kind = string(s["kind"])
@@ -2456,7 +2430,7 @@ func outputAnalysisJson(string filePath)
     // scopes
     array scopeArr = []
     int si = 0
-    while si < g_nextScopeId do
+    while si < g_nextScopeId
         var s = g_scopes[string(si)]
         if not (s is null) then
             var sc = {}
@@ -2511,9 +2485,9 @@ func sortSymbols(array<Symbol> arr) as array<Symbol>
     // 简单冒泡 (数据量不大)
     int n = result.length
     int i = 0
-    while i < n do
+    while i < n
         int j = 0
-        while j < n - 1 - i do
+        while j < n - 1 - i
             Symbol a = result[j]
             Symbol b = result[j + 1]
             bool swap = false
@@ -2991,7 +2965,9 @@ func testDeclarationMatching()
     expectTrue(matchClassDecl("class Point"), "match class decl")
     expectTrue(matchEnd("end"), "match end")
     expectTrue(matchEnd("end "), "match end with space")
+    expectTrue(matchEnd("while ready end"), "match do-while end")
     expectFalse(matchEnd("endif"), "not match endif")
+    expectFalse(startsBlock("while ready end"), "do-while tail does not open block")
 
     expectStr(extractFuncName("func add(int a, int b) as int"), "add", "extract func name")
     expectStr(extractClassName("class Point"), "Point", "extract class name")
@@ -3235,7 +3211,7 @@ func main(...) as int
         string filePath = string(arg[2])
         bool asJson = false
         int ai = 3
-        while ai < arg.length do
+        while ai < arg.length
             string a = string(arg[ai])
             if a == "--json" then
                 asJson = true

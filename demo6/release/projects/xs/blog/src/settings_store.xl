@@ -6,7 +6,7 @@ export func all(point handle) as var
     point statement = db.prepare(handle, "select key, value from settings order by key")
     if statement == null then return values end
     int code = db.step(statement)
-    while code == sqlite.SQLITE_ROW do
+    while code == sqlite.SQLITE_ROW
         values[db.columnText(statement, 0)] = db.columnText(statement, 1)
         code = db.step(statement)
     end

@@ -86,7 +86,7 @@ func pmExpBackoff(int attempt) as int
     if attempt < 1 then attempt = 1 end
     int v = g_backoffBase
     int i = 1
-    while i < attempt do
+    while i < attempt
         v = v * 2
         if v >= g_backoffCap then return g_backoffCap end
         i = i + 1
@@ -103,7 +103,7 @@ end
 // 右侧补空格到固定宽度，用于状态表对齐。
 func pmPad(string s, int w) as string
     string r = s
-    while string.len(r) < w do
+    while string.len(r) < w
         r = r + " "
     end
     return r
@@ -238,7 +238,7 @@ func loadConfig(string cfgPath) as bool
         return false
     end
     int i = 0
-    while i < n do
+    while i < n
         var spec = procs[i]
         string name = optStr(spec, "name", "proc" + string(i))
         string command = optStr(spec, "command", "")
@@ -278,7 +278,7 @@ func runOnce(int idx) as int
     string hc = g_pHealthCheck[idx]
     bool healthFail = false
 
-    while not g_stop do
+    while not g_stop
         bool done = proc.wait(interval)
         if g_stop then
             pmLog(idx, "stop signal -> terminate")
@@ -330,7 +330,7 @@ func monitorBody(int idx) as int
     g_activeMonitors = g_activeMonitors + 1
     g_lock.unlock()
 
-    while not g_stop do
+    while not g_stop
         int code = runOnce(idx)
         if g_stop then break end
 
@@ -372,7 +372,7 @@ func monitorBody(int idx) as int
         int backoff = pmExpBackoff(attempt)
         pmLog(idx, "restart #" + string(attempt) + " after " + string(backoff) + "ms backoff")
         int slept = 0
-        while slept < backoff and not g_stop do
+        while slept < backoff and not g_stop
             time.sleep(50)
             slept = slept + 50
         end
@@ -398,7 +398,7 @@ func printStatus()
     g_lock.lock()
     println("---- procmgr status ----")
     int i = 0
-    while i < g_pCount do
+    while i < g_pCount
         string nm = g_pName[i]
         float up = 0.0
         if g_pStatus[i] == PROCESS_STATUS_RUNNING and g_pStartTime[i] > 0.0 then
@@ -432,7 +432,7 @@ func runWithConfig(string cfgPath, int durationSec) as int
     println("------------------------")
 
     int i = 0
-    while i < g_pCount do
+    while i < g_pCount
         thread(pmMakeMonitor(i))
         i = i + 1
     end
@@ -440,7 +440,7 @@ func runWithConfig(string cfgPath, int durationSec) as int
     float deadline = -1.0
     if durationSec > 0 then deadline = time.timer() + float(durationSec) end
 
-    while true do
+    while true
         time.sleep(1000)
         printStatus()
         g_lock.lock()
@@ -458,7 +458,7 @@ func runWithConfig(string cfgPath, int durationSec) as int
     g_lock.unlock()
 
     int waited = 0
-    while waited < 8000 do
+    while waited < 8000
         g_lock.lock()
         int active = g_activeMonitors
         g_lock.unlock()
@@ -532,7 +532,7 @@ func runTest() as int
 
     println("[live] running " + string(g_pCount) + " monitor lifecycles sequentially (fast backoff)")
     int i = 0
-    while i < g_pCount do
+    while i < g_pCount
         monitorBody(i)
         i = i + 1
     end

@@ -40,7 +40,7 @@ end
 func stripLeadZeros(string body) as string
     int n = string.len(body)
     int i = 0
-    while i < n do
+    while i < n
         if string.charAt(body, i) != "0" then
             break
         end
@@ -79,7 +79,7 @@ func isValidNumber(string s) as bool
         end
     end
     int i = start
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -113,7 +113,7 @@ func cmpAbs(string a, string b) as int
         return -1
     end
     int i = 0
-    while i < la do
+    while i < la
         int da = string.byteAt(a, i) - 48
         int db = string.byteAt(b, i) - 48
         if da > db then
@@ -139,7 +139,7 @@ func addAbs(string a, string b) as string
     string outputValue = ""
     int carry = 0
     int i = 0
-    while i < n do
+    while i < n
         int da = 0
         int db = 0
         if i < la then
@@ -167,7 +167,7 @@ func subAbs(string a, string b) as string
     string outputValue = ""
     int borrow = 0
     int i = 0
-    while i < la do
+    while i < la
         int da = string.byteAt(ra, i) - 48
         int db = 0
         if i < lb then
@@ -195,14 +195,14 @@ func mulDigit(string a, int d) as string
     string outputValue = ""
     int carry = 0
     int i = 0
-    while i < la do
+    while i < la
         int da = string.byteAt(ra, i) - 48
         int prod = da * d + carry
         carry = prod / 10
         outputValue = outputValue + string.charAt("0123456789", prod - carry * 10)
         i += 1
     end
-    while carry > 0 do
+    while carry > 0
         int m = carry % 10
         outputValue = outputValue + string.charAt("0123456789", m)
         carry = carry / 10
@@ -218,7 +218,7 @@ func mulAbs(string a, string b) as string
     int lb = string.len(rb)
     string result = "0"
     int j = 0
-    while j < lb do
+    while j < lb
         int db = string.byteAt(rb, j) - 48
         string row = mulDigit(a, db)
         if row != "0" then
@@ -290,12 +290,12 @@ func divmodAbs(string a, string b) as (string, string)
     string quot = ""
     int la = string.len(a)
     int i = 0
-    while i < la do
+    while i < la
         int d = string.byteAt(a, i) - 48
         rem = stripLeadZeros(rem + string.charAt("0123456789", d))
         int q = 0
         int k = 9
-        while k >= 1 do
+        while k >= 1
             if cmpAbs(mulDigit(b, k), rem) <= 0 then
                 q = k
                 break
@@ -343,7 +343,7 @@ func div2(string a) as string
     int rem = 0
     int n = string.len(a)
     int i = 0
-    while i < n do
+    while i < n
         int d = string.byteAt(a, i) - 48 + rem * 10
         outputValue = outputValue + string.charAt("0123456789", d / 2)
         rem = d % 2
@@ -381,7 +381,7 @@ func bigModPow(string base, string exp, string mod) as string
     string result = "1"
     string b = bigMod(base, m)
     string e = normalize(exp)
-    while e != "0" do
+    while e != "0"
         if isOdd(e) then
             result = bigMod(bigMul(result, b), m)
         end
@@ -396,7 +396,7 @@ end
 func bigGcd(string a, string b) as string
     string x = normalize(a)
     string y = normalize(b)
-    while y != "0" do
+    while y != "0"
         string r = bigMod(x, y)
         x = y
         y = r
@@ -425,7 +425,7 @@ func millerRabin(string n) as bool
     string n1 = bigSub(nn, "1")
     string d = n1
     int r = 0
-    while isEven(d) do
+    while isEven(d)
         d = div2(d)
         r += 1
     end
@@ -440,7 +440,7 @@ func millerRabin(string n) as bool
         end
         bool composite = true
         int j = 0
-        while j < r - 1 do
+        while j < r - 1
             x = bigModPow(x, "2", nn)
             if x == n1 then
                 composite = false
@@ -468,7 +468,7 @@ func randDigits(int ndigits) as string
     end
     string s = string.charAt(DIGITS, random.range(1, 9))
     int i = 1
-    while i < ndigits do
+    while i < ndigits
         s = s + string.charAt(DIGITS, random.range(0, 9))
         i += 1
     end
@@ -482,7 +482,7 @@ func dhGenPrivate(string p) as string
     string r = "0"
     int tries = 0
     // 采样直到落在 [2, p-2] 内（拒绝采样）
-    while true do
+    while true
         r = randDigits(nd)
         if cmpAbs(r, upper) <= 0 and cmpAbs(r, "2") >= 0 then
             break

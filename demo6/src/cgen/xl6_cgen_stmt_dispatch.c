@@ -25,8 +25,7 @@ static void xl6CgenForIn(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenForStringIterable(ctx, node, iterableType);
     } else if ( xl6CgenIsClassProtocolIterableType(ctx, iterableType) ) {
         xl6CgenForClassProtocolIterable(ctx, node, iterableType);
-    } else if ( xl6CgenExprUsesTypedContainerStorage(ctx, node->children[1]) ||
-                xl6CgenExprIsTypedContainerReturnCall(ctx, node->children[1]) ) {
+    } else if ( xl6CgenIsTypedContainerType(ctx, iterableType) ) {
         xl6CgenForTypedContainerIterable(ctx, node, iterableType);
     } else {
         xl6CgenForXValueIterable(ctx, node, iterableType);
@@ -102,6 +101,20 @@ static int xl6CgenReturnTryMultiCallInto(XL6_CgenContext* ctx, const XL6_AstNode
     return 1;
 }
 
+static int xl6CgenReturnExprUsesXValueStorage(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* expr)
+{
+    XL6_AstNode* storageType;
+    int result;
+
+    storageType = xl6CgenCloneExprStorageType(ctx, expr);
+    result = xl6CgenIsXValueType(storageType) ||
+             xl6CgenBinaryArithmeticIsXValue(ctx, expr);
+    xl6AstFree(storageType);
+    return result;
+}
+
 static int xl6CgenReturnTrySingleValueStmt(
     XL6_CgenContext* ctx,
     const XL6_AstNode* returnType,
@@ -117,10 +130,39 @@ static int xl6CgenReturnTrySingleValueStmt(
 
     concreteReturnType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, returnType));
     if ( concreteReturnType != NULL && xl6CTextEquals(concreteReturnType->text, "string") ) {
+        if ( xl6CgenDeclCanEmitCallArgTemp(ctx, concreteReturnType, expr) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "const char* %s = NULL;\n", returnName);
+            if ( !xl6CgenDeclEmitCallArgTemp(ctx, concreteReturnType, "const char*", returnName, expr) ) {
+                xl6CgenError(ctx, expr, "string return expression lowering failed");
+            }
+            return 1;
+        }
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "const char* %s = xrtCopyStr(", returnName);
         xl6CgenStringSourceExpr(ctx, concreteReturnType, expr);
         xl6OutputPuts(", 0u);\n", ctx->out);
+        return 1;
+    }
+
+    /*
+        语义类型可以比实际存储更精确，例如 XValue 容器的迭代目标在
+        语义阶段推断为 int，lowering 入口仍以 var 保存。返回具体标量
+        时必须在统一出口解箱，不能把 xvalue 指针直接写入 C 标量。
+    */
+    if ( xl6CgenDeclCallArgStaticScalarType(concreteReturnType) &&
+         xl6CgenReturnExprUsesXValueStorage(ctx, expr) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(
+            ctx->out,
+            "%s %s = ",
+            xl6CgenTypeName(ctx, concreteReturnType),
+            returnName);
+        if ( !xl6CgenFixedParamXValueConvertArgExpr(ctx, concreteReturnType, expr) ) {
+            xl6CgenError(ctx, expr, "xvalue return conversion lowering failed");
+            xl6CgenDefaultValue(ctx, concreteReturnType);
+        }
+        xl6OutputPuts(";\n", ctx->out);
         return 1;
     }
 
@@ -292,6 +334,9 @@ static int xl6CgenReturnCanMultiScalarFieldStmt(
          !xl6CgenDeclCallArgStaticScalarType(returnType) ) {
         return 0;
     }
+    if ( xl6CgenReturnExprUsesXValueStorage(ctx, expr) ) {
+        return 1;
+    }
     if ( xl6CgenDeclCanEmitCallArgTemp(ctx, returnType, expr) ) {
         return 1;
     }
@@ -422,10 +467,14 @@ static int xl6CgenTryPrintIntrinsicStatement(XL6_CgenContext* ctx, const XL6_Ast
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "xvalue __xl6_print_args_%d = ", id);
-    xl6CgenArrayVarargExpr(ctx, args, 0);
+    xl6CgenPrintArrayArgsExpr(ctx, args);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xl6_xrt_print(__xl6_print_args_%d, %d);\n", id, newline);
+    if ( ctx->needsErrorRuntime ) {
+        xl6OutputPrintf(ctx->out, "if (!xl6_error_has()) { xl6_xrt_print(__xl6_print_args_%d, %d); }\n", id, newline);
+    } else {
+        xl6OutputPrintf(ctx->out, "xl6_xrt_print(__xl6_print_args_%d, %d);\n", id, newline);
+    }
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out,
                     "if (__xl6_print_args_%d != 0) { xvoUnref(__xl6_print_args_%d); __xl6_print_args_%d = 0; }\n",
@@ -573,14 +622,22 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenEmitExceptionPropagate(ctx, node);
         }
         break;
-    case XL6_AST_MULTI_VAR_DECL:
+    case XL6_AST_MULTI_VAR_DECL: {
+        const XL6_AstNode* right = node->childCount > 1 ? node->children[1] : NULL;
+        XL6_CgenCallArgTempScope callScope;
+        int hasCallScope = right != NULL && xl6CgenCallArgTempScopeBegin(ctx, right, &callScope);
+
         if ( !xl6CgenTryMultiDeclWithTaskSpawnArgTemps(ctx, node) ) {
             xl6CgenMultiDecl(ctx, node);
+        }
+        if ( hasCallScope ) {
+            xl6CgenCallArgTempScopeEnd(ctx, &callScope);
         }
         if ( xl6CgenNodeMayRaise(node) ) {
             xl6CgenEmitExceptionPropagate(ctx, node);
         }
         break;
+    }
     case XL6_AST_ASSIGN: {
         const XL6_AstNode* right;
         const XL6_AstNode* scopeExpr;
@@ -602,19 +659,33 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         if ( hasClassScope ) {
             xl6CgenClassExprTempScopeEnd(ctx, &classScope);
         }
+        if ( xl6CTextEquals(node->text, "=") &&
+             node->childCount > 0 && node->children[0] != NULL &&
+             node->children[0]->kind == XL6_AST_NAME ) {
+            /* var 一旦被重新赋值，后续代码不能继续依赖声明初始化器提供的 class 收窄。 */
+            xl6CgenSetVarNarrowType(ctx, node->children[0]->text, NULL);
+        }
         if ( xl6CgenNodeMayRaise(node) ) {
             xl6CgenEmitExceptionPropagate(ctx, node);
         }
         break;
     }
-    case XL6_AST_MULTI_ASSIGN:
+    case XL6_AST_MULTI_ASSIGN: {
+        const XL6_AstNode* right = node->childCount > 1 ? node->children[1] : NULL;
+        XL6_CgenCallArgTempScope callScope;
+        int hasCallScope = right != NULL && xl6CgenCallArgTempScopeBegin(ctx, right, &callScope);
+
         if ( !xl6CgenTryMultiAssignWithTaskSpawnArgTemps(ctx, node) ) {
             xl6CgenMultiAssign(ctx, node);
+        }
+        if ( hasCallScope ) {
+            xl6CgenCallArgTempScopeEnd(ctx, &callScope);
         }
         if ( xl6CgenNodeMayRaise(node) ) {
             xl6CgenEmitExceptionPropagate(ctx, node);
         }
         break;
+    }
     case XL6_AST_RETURN: {
         XL6_CgenTaskSpawnArgTempScope taskScope;
         int hasTaskScope;
@@ -777,12 +848,19 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 if ( node->children[0] != NULL &&
                      node->children[0]->kind == XL6_AST_NAME &&
                      xl6CgenClassCleanupIsTracked(ctx, node->children[0]->text) ) {
-                    xl6CgenCIdentText(movedCleanupName, sizeof(movedCleanupName), node->children[0]->text);
+                    xl6CgenValueStorageNameText(ctx, movedCleanupName, sizeof(movedCleanupName), node->children[0]->text);
                 }
             }
             if ( hasReturnArgScope ) {
                 xl6CgenClassExprTempScopeEnd(ctx, &returnArgScope);
             }
+
+            /*
+                返回表达式必须先完成求值，再检查异常，最后才能清理并返回。
+                直接 return callback(...) 会经过函数值包装层；若这里先返回，
+                外层 try 永远看不到 callback 设置的活动异常。
+            */
+            xl6CgenEmitExceptionPropagate(ctx, node);
             xl6CgenPrepareMultiStringReturns(ctx, id);
             snprintf(returnName, sizeof(returnName), "__xl6_return_%d", id);
             if ( ctx->currentReturns != NULL && ctx->currentReturns->childCount > 1 &&
@@ -822,12 +900,19 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     case XL6_AST_EXPR_STMT: {
         const XL6_AstNode* expr;
         XL6_CgenTaskSpawnArgTempScope taskScope;
+        XL6_CgenCallArgTempScope callScope;
         int hasTaskScope;
+        int hasCallScope;
 
         expr = node->childCount > 0 ? node->children[0] : NULL;
         hasTaskScope = expr != NULL &&
                        xl6CgenTaskSpawnArgTempScopeBegin(ctx, expr, &taskScope);
+        hasCallScope = expr != NULL &&
+                       xl6CgenCallArgTempScopeBegin(ctx, expr, &callScope);
         xl6CgenExprStatementBody(ctx, expr);
+        if ( hasCallScope ) {
+            xl6CgenCallArgTempScopeEnd(ctx, &callScope);
+        }
         if ( hasTaskScope ) {
             xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
         }

@@ -21,12 +21,68 @@ static const XL6_AstNode* xl6CgenFindTrackedVarType(XL6_CgenContext* ctx, const 
     return varInfo != NULL ? varInfo->type : NULL;
 }
 
+static const XL6_AstNode* xl6CgenFindVarNarrowType(XL6_CgenContext* ctx, const char* name)
+{
+    const XL6_CgenVar* varInfo = xl6CgenFindTrackedVar(ctx, name);
+    return varInfo != NULL ? varInfo->narrowType : NULL;
+}
+
+static void xl6CgenSetVarNarrowType(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* type)
+{
+    size_t i;
+
+    if ( ctx == NULL || name == NULL ) {
+        return;
+    }
+    for ( i = ctx->varCount; i > 0; --i ) {
+        if ( xl6CTextEquals(ctx->vars[i - 1].name, name) ) {
+            ctx->vars[i - 1].narrowType = type;
+            ctx->typeScopeEpoch += 1;
+            return;
+        }
+    }
+}
+
 static unsigned int xl6CgenFindTrackedVarFlags(XL6_CgenContext* ctx, const char* name)
 {
     const XL6_CgenVar* varInfo;
 
     varInfo = xl6CgenFindTrackedVar(ctx, name);
     return varInfo != NULL ? varInfo->flags : 0u;
+}
+
+/*
+ * 普通模块全局量只属于 xlang 模块，不应直接占用 C 的全局符号名。
+ * 显式 extern/export C 符号走独立路径，不会进入这个内部命名规则。
+ */
+static void xl6CgenValueStorageNameText(
+    XL6_CgenContext* ctx,
+    char* buffer,
+    size_t capacity,
+    const char* name)
+{
+    char encoded[XL6_CGEN_C_IDENT_MAX + 1];
+
+    if ( buffer == NULL || capacity == 0 ) {
+        return;
+    }
+    if ( (xl6CgenFindTrackedVarFlags(ctx, name) & XL6_CGEN_VAR_MODULE_GLOBAL) == 0 ) {
+        xl6CgenCIdentText(buffer, capacity, name);
+        return;
+    }
+    xl6CgenEncodeSymbolComponent(encoded, sizeof(encoded), name);
+    snprintf(buffer, capacity, "__xl6_user_global_%s", encoded);
+}
+
+static void xl6CgenFputsValueStorageName(XL6_CgenContext* ctx, const char* name)
+{
+    char cName[512];
+
+    if ( ctx == NULL ) {
+        return;
+    }
+    xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), name);
+    xl6OutputPuts(cName, ctx->out);
 }
 
 static void xl6CgenTypedParamOwnerName(char* buffer, size_t capacity, const char* name)
@@ -73,6 +129,7 @@ static void xl6CgenAddVarTypeWithFlags(XL6_CgenContext* ctx, const char* name, c
     }
     ctx->vars[ctx->varCount].name = xrtCopyStr((char*)name, strlen(name));
     ctx->vars[ctx->varCount].type = type;
+    ctx->vars[ctx->varCount].narrowType = NULL;
     ctx->vars[ctx->varCount].flags = flags;
     ctx->varCount += 1;
     ctx->typeScopeEpoch += 1;

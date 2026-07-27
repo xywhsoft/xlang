@@ -92,10 +92,10 @@ func findFrom(string text, string token, int from) as int
     end
     int last = n - tn
     int i = from
-    while i <= last do
+    while i <= last
         bool match = true
         int j = 0
-        while j < tn do
+        while j < tn
             if string.charAt(text, i + j) != string.charAt(token, j) then
                 match = false
                 break
@@ -139,7 +139,7 @@ func isIdentPath(string s) as bool
     end
     int i = 0
     int segStart = 0
-    while i <= n do
+    while i <= n
         bool atEnd = (i == n)
         string c = ""
         if not atEnd then
@@ -155,7 +155,7 @@ func isIdentPath(string s) as bool
                 return false
             end
             int k = segStart + 1
-            while k < i do
+            while k < i
                 if not isIdentChar(string.charAt(s, k)) then
                     return false
                 end
@@ -177,7 +177,7 @@ func jsonString(string s) as string
     string outputValue = "\""
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if c == "\"" then
             outputValue = outputValue + "\\\""
@@ -209,7 +209,7 @@ func tagsToJsonArray(var arr) as string
     end
     string outputValue = "["
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             outputValue = outputValue + ","
         end
@@ -237,7 +237,7 @@ func splitTags(string val) as var
     var parts = string.split(v, ",")
     int n = parts.length
     int i = 0
-    while i < n do
+    while i < n
         string t = string.trim(string(parts[i]))
         if t != "" then
             tags.push(t)
@@ -255,7 +255,7 @@ func makeSlug(string text) as string
     string result = ""
     int n = chs.length
     int i = 0
-    while i < n do
+    while i < n
         string c = string(chs[i])
         int b = string.byteAt(c, 0)
         if b >= 128 then
@@ -272,7 +272,7 @@ func makeSlug(string text) as string
     int fn = string.len(result)
     int fi = 0
     bool prevDash = false
-    while fi < fn do
+    while fi < fn
         string cc = string.charAt(result, fi)
         if cc == "-" then
             if not prevDash then
@@ -316,7 +316,7 @@ func mdToPlainText(string md) as string
     int total = lines.length
     int i = 0
     bool inCode = false
-    while i < total do
+    while i < total
         string line = string(lines[i])
         string trimmed = string.trim(line)
         if string.startsWith(trimmed, "```") then
@@ -330,7 +330,7 @@ func mdToPlainText(string md) as string
         end
         if string.startsWith(trimmed, "#") then
             int level = 0
-            while level < string.len(trimmed) and string.charAt(trimmed, level) == "#" do
+            while level < string.len(trimmed) and string.charAt(trimmed, level) == "#"
                 level = level + 1
             end
             if level < string.len(trimmed) then
@@ -358,7 +358,7 @@ func mdToPlainText(string md) as string
     int cn = string.len(outputValue)
     int ci = 0
     bool prevSpace = false
-    while ci < cn do
+    while ci < cn
         string ch = string.charAt(outputValue, ci)
         if ch == " " then
             if not prevSpace then
@@ -386,7 +386,7 @@ func mdInline(string text) as string
     string outputValue = ""
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         bool matched = false
         string c0 = string.charAt(s, i)
         string c1 = ""
@@ -520,7 +520,7 @@ func isTableSeparator(string line) as string
     end
     string aligns = ""
     int i = 0
-    while i < n do
+    while i < n
         string cell = string.trim(string(cells[i]))
         int clen = string.len(cell)
         if clen == 0 then
@@ -540,7 +540,7 @@ func isTableSeparator(string line) as string
             return ""
         end
         int mi = 0
-        while mi < string.len(middle) do
+        while mi < string.len(middle)
             if string.charAt(middle, mi) != "-" then
                 return ""
             end
@@ -578,7 +578,7 @@ func renderTable(string headerLine, string aligns, var bodyLines) as string
     string html = "<table>\n<thead>\n<tr>\n"
     int hn = headerCells.length
     int hi = 0
-    while hi < hn do
+    while hi < hn
         string align = "left"
         if hi < string.len(aligns) then
             string a = string.charAt(aligns, hi)
@@ -595,12 +595,12 @@ func renderTable(string headerLine, string aligns, var bodyLines) as string
     html = html + "</tr>\n</thead>\n<tbody>\n"
     int bn = bodyLines.length
     int bi = 0
-    while bi < bn do
+    while bi < bn
         var cells = splitTableRow(string(bodyLines[bi]))
         html = html + "<tr>\n"
         int cn = cells.length
         int ci = 0
-        while ci < cn do
+        while ci < cn
             string align = "left"
             if ci < string.len(aligns) then
                 string a = string.charAt(aligns, ci)
@@ -633,7 +633,7 @@ func renderMarkdown(string md) as string
     string openBlock = ""    // "", "p", "ul", "ol", "code", "blockquote"
 
     int i = 0
-    while i < totalLines do
+    while i < totalLines
         string line = string(lines[i])
         string trimmed = string.trim(line)
 
@@ -674,7 +674,7 @@ func renderMarkdown(string md) as string
         // 标题 #..######
         if string.startsWith(trimmed, "#") then
             int level = 0
-            while level < string.len(trimmed) and string.charAt(trimmed, level) == "#" do
+            while level < string.len(trimmed) and string.charAt(trimmed, level) == "#"
                 level = level + 1
             end
             if level >= 1 and level <= 6 then
@@ -711,7 +711,7 @@ func renderMarkdown(string md) as string
                 openBlock = ""
             end
             array quoteLines = []
-            while i < totalLines do
+            while i < totalLines
                 string q = string.trim(string(lines[i]))
                 if string.startsWith(q, ">") then
                     string rest = string.trim(string.slice(q, 1))
@@ -725,7 +725,7 @@ func renderMarkdown(string md) as string
             string innerMd = ""
             int qn = quoteLines.length
             int qi = 0
-            while qi < qn do
+            while qi < qn
                 innerMd = innerMd + quoteLines[qi] + "\n"
                 qi = qi + 1
             end
@@ -744,7 +744,7 @@ func renderMarkdown(string md) as string
                 string headerLine = trimmed
                 var bodyLines = []
                 int j = i + 2
-                while j < totalLines do
+                while j < totalLines
                     string bl = string.trim(string(lines[j]))
                     if bl == "" or not string.contains(bl, "|") then
                         break
@@ -848,7 +848,7 @@ func tplTokenize(string text) as var
     string buf = ""
     int n = string.len(text)
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(text, i)
         if c == "{" then
             int j = i + 1
@@ -919,7 +919,7 @@ func tplResolve(string name, var data) as var
     var cur = data
     int n = parts.length
     int i = 0
-    while i < n do
+    while i < n
         string p = string(parts[i])
         if p in cur then
             cur = cur[p]
@@ -978,7 +978,7 @@ end
 // 读取 tokens 从 parsed["_pos"] 开始，遇到 end/else/elseif/endblock 停止。
 func tplParseNodes(var tokens, var parsed) as var
     var nodes = []
-    while parsed["_pos"] < tokens.length do
+    while parsed["_pos"] < tokens.length
         var tk = tokens[parsed["_pos"]]
         string tt = string(tk["type"])
         if tt == "kw" then
@@ -1020,7 +1020,7 @@ func tplParseIf(var tokens, string cond, var parsed) as var
     firstBranch["cond"] = cond
     firstBranch["body"] = tplParseNodes(tokens, parsed)
     branches.push(firstBranch)
-    while string(parsed["_stop"]) == "elseif" do
+    while string(parsed["_stop"]) == "elseif"
         var br = {}
         br["cond"] = string(parsed["_stoparg"])
         br["body"] = tplParseNodes(tokens, parsed)
@@ -1082,7 +1082,7 @@ func tplRenderNodes(var nodes, var data, var blocks) as string
     string outputValue = ""
     int n = nodes.length
     int i = 0
-    while i < n do
+    while i < n
         var node = nodes[i]
         string tt = string(node["type"])
         if tt == "text" then
@@ -1112,7 +1112,7 @@ func tplRenderIf(var node, var data, var blocks) as string
     var branches = node["branches"]
     int n = branches.length
     int i = 0
-    while i < n do
+    while i < n
         var br = branches[i]
         var condVal = tplResolve(string(br["cond"]), data)
         if tplTruthy(condVal) then
@@ -1139,7 +1139,7 @@ func tplRenderForeach(var node, var data, var blocks) as string
     string outputValue = ""
     int n = coll.length
     int i = 0
-    while i < n do
+    while i < n
         var item = coll[i]
         var scope = tplMakeScope(data, item, i)
         outputValue = outputValue + tplRenderNodes(node["body"], scope, blocks)
@@ -1290,7 +1290,7 @@ func loadTheme(string contentDir)
         var files = dir.files(gTemplatesDir, false)
         int n = files.length
         int i = 0
-        while i < n do
+        while i < n
             string fp = string(files[i])
             string baseName = path.name(fp)
             string ext = path.ext(baseName)
@@ -1515,7 +1515,7 @@ func parsePostFile(string rawText, string fileSlug) as var
 
     if total > 0 and string.trim(string(lines[0])) == "---" then
         int j = 1
-        while j < total do
+        while j < total
             if string.trim(string(lines[j])) == "---" then
                 hasFm = true
                 bodyStart = j + 1
@@ -1534,13 +1534,13 @@ func parsePostFile(string rawText, string fileSlug) as var
 
     if hasFm then
         int bi = bodyStart
-        while bi < total do
+        while bi < total
             body = body + lines[bi] + "\n"
             bi = bi + 1
         end
     else
         int bi = 0
-        while bi < total do
+        while bi < total
             body = body + lines[bi] + "\n"
             bi = bi + 1
         end
@@ -1554,7 +1554,7 @@ func parsePostFile(string rawText, string fileSlug) as var
         array bodyLines = string.splitLines(body)
         int bn = bodyLines.length
         int bi = 0
-        while bi < bn do
+        while bi < bn
             string bl = string.trim(string(bodyLines[bi]))
             if string.startsWith(bl, "# ") then
                 title = string.trim(string.slice(bl, 2))
@@ -1616,7 +1616,7 @@ func loadPosts(string contentDir) as var
     var files = dir.files(postsDir, false)
     int n = files.length
     int i = 0
-    while i < n do
+    while i < n
         string fp = string(files[i])
         string ext = string.lower(path.ext(fp))
         if ext == "md" or ext == "markdown" then
@@ -1637,9 +1637,9 @@ end
 func sortPostsByDate(var posts)
     int n = posts.length
     int a = 0
-    while a < n - 1 do
+    while a < n - 1
         int b = 0
-        while b < n - 1 - a do
+        while b < n - 1 - a
             string d1 = string(posts[b]["date"])
             string d2 = string(posts[b + 1]["date"])
             if d1 < d2 then
@@ -1659,7 +1659,7 @@ func buildTagIndex()
     gTags = {}
     int n = gPosts.length
     int i = 0
-    while i < n do
+    while i < n
         var p = gPosts[i]
         if bool(p["draft"]) then
             i = i + 1
@@ -1668,7 +1668,7 @@ func buildTagIndex()
         var tags = p["tags"]
         int tn = tags.length
         int ti = 0
-        while ti < tn do
+        while ti < tn
             string t = string(tags[ti])
             if not (t in gTags) then
                 gTags[t] = []
@@ -1770,7 +1770,7 @@ func generatePostPages()
     string siteUrl = string(gConfig["url"])
     int n = gPosts.length
     int i = 0
-    while i < n do
+    while i < n
         var p = gPosts[i]
         var data = siteData()
         data["title"] = p["title"]
@@ -1794,7 +1794,7 @@ func generateIndexPages()
     var published = []
     int n = gPosts.length
     int i = 0
-    while i < n do
+    while i < n
         var p = gPosts[i]
         if not bool(p["draft"]) then
             published.push(p)
@@ -1810,10 +1810,10 @@ func generateIndexPages()
 
     int page = 1
     int idx = 0
-    while page <= totalPages do
+    while page <= totalPages
         var pagePosts = []
         int cnt = 0
-        while idx < total and cnt < perPage do
+        while idx < total and cnt < perPage
             pagePosts.push(published[idx])
             idx = idx + 1
             cnt = cnt + 1
@@ -1876,7 +1876,7 @@ func generateArchivePage()
     var published = []
     int n = gPosts.length
     int i = 0
-    while i < n do
+    while i < n
         var p = gPosts[i]
         if not bool(p["draft"]) then
             published.push(p)
@@ -1901,7 +1901,7 @@ func generateTagPages()
     end
     int n = tagNames.length
     int i = 0
-    while i < n do
+    while i < n
         string tagName = string(tagNames[i])
         var posts = gTags[tagName]
         var data = siteData()
@@ -1924,7 +1924,7 @@ func generateRssFeed()
     var published = []
     int n = gPosts.length
     int i = 0
-    while i < n do
+    while i < n
         var p = gPosts[i]
         if not bool(p["draft"]) then
             published.push(p)
@@ -1942,7 +1942,7 @@ func generateRssFeed()
     end
     var recent = []
     int k = 0
-    while k < limit do
+    while k < limit
         recent.push(published[k])
         k = k + 1
     end
@@ -1960,7 +1960,7 @@ func generateSitemap()
     xml = xml + "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
     int n = gSiteUrls.length
     int i = 0
-    while i < n do
+    while i < n
         var e = gSiteUrls[i]
         string url = string(e["url"])
         string lastmod = string(e["lastmod"])
@@ -1987,7 +1987,7 @@ func generateSearchIndex()
     int n = gPosts.length
     int i = 0
     bool first = true
-    while i < n do
+    while i < n
         var p = gPosts[i]
         if bool(p["draft"]) then
             i = i + 1
@@ -2038,7 +2038,7 @@ func copyDirRecursive(string src, string dst)
     var entries = dir.entries(src, false)
     int n = entries.length
     int i = 0
-    while i < n do
+    while i < n
         var e = entries[i]
         string name = string(e["name"])
         bool isDir = bool(e["isDir"])
@@ -2088,7 +2088,7 @@ func buildSite(string contentDir, string outputDir) as int
     int totalPosts = gPosts.length
     int published = 0
     int pi = 0
-    while pi < totalPosts do
+    while pi < totalPosts
         if not bool(gPosts[pi]["draft"]) then
             published = published + 1
         end
@@ -2214,7 +2214,7 @@ func serveSite(int port, string outputDir) as int
     println("  previewing: " + outputDir)
     println("  listening:  http://127.0.0.1:" + boundPort.toString())
     println("press Ctrl+C to stop")
-    while true do
+    while true
         time.sleep(5000)
         println("[stats] requestCount=" + http.server.requestCount(server).toString() + " connectionCount=" + http.server.connectionCount(server).toString())
     end
@@ -2477,7 +2477,7 @@ func removeTree(string p)
     int n = entries.length
     int i = 0
     // entries recursive 返回顺序不一定，先删文件
-    while i < n do
+    while i < n
         var e = entries[i]
         if not bool(e["isDir"]) then
             file.delete(string(e["path"]))
@@ -2487,7 +2487,7 @@ func removeTree(string p)
     // 再删目录（按路径长度倒序：子目录优先）
     var dirs = []
     i = 0
-    while i < n do
+    while i < n
         var e = entries[i]
         if bool(e["isDir"]) then
             dirs.push(string(e["path"]))
@@ -2497,9 +2497,9 @@ func removeTree(string p)
     int dn = dirs.length
     // 简单冒泡按长度倒序
     int a = 0
-    while a < dn - 1 do
+    while a < dn - 1
         int b = 0
-        while b < dn - 1 - a do
+        while b < dn - 1 - a
             if string.len(string(dirs[b])) < string.len(string(dirs[b + 1])) then
                 var tmp = dirs[b]
                 dirs[b] = dirs[b + 1]
@@ -2510,7 +2510,7 @@ func removeTree(string p)
         a = a + 1
     end
     int k = 0
-    while k < dn do
+    while k < dn
         dir.delete(string(dirs[k]))
         k = k + 1
     end

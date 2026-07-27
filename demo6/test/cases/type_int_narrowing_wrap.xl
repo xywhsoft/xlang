@@ -1,0 +1,26 @@
+int8 a = int8(128)
+int8 b = int8(257)
+uint8 c = uint8(-1)
+int8 d = int8(255)
+uint16 e = uint16(65536)
+int16 f = int16(32768)
+int32 g = int32(4294967296)
+uint32 h = uint32(-1)
+
+assert a == -128, "int8(128) wraps"
+assert b == 1, "int8(257) wraps"
+assert c == 255, "uint8(-1) wraps"
+assert d == -1, "int8(255) wraps"
+assert e == 0, "uint16(65536) wraps"
+assert f == -32768, "int16(32768) wraps"
+assert g == 0, "int32(4294967296) wraps"
+assert h == 4294967295, "uint32(-1) wraps"
+
+int8 rt = 127
+rt += 1
+assert rt == -128, "runtime int8 overflow wraps"
+uint8 ru = 255
+ru += 1
+assert ru == 0, "runtime uint8 overflow wraps"
+
+println("type_int_narrowing_wrap ok")

@@ -243,6 +243,38 @@ static int xl6ParserIsStmtStart(const XL6_ParseTokenStream* stream, size_t index
     return stream->tokens[index - 1].kind == XL6_TK_SEP;
 }
 
+/*
+ * 后置循环以 `while 条件 end` 结束。它和普通 while 使用同一个词法 Token，
+ * 但前者的 end 必须位于同一个逻辑行。这里仅标记 Lemon 看到的 Token 类型，
+ * 不修改词法结果，也不把上下文状态引入 lexer。
+ */
+static void xl6ParserMarkPostWhileTokens(XL6_ParseTokenStream* stream)
+{
+    size_t i;
+    size_t lineEnd;
+
+    if ( stream == NULL ) {
+        return;
+    }
+
+    for ( i = 0; i < stream->count; ++i ) {
+        if ( stream->tokens[i].kind != XL6_KW_WHILE ||
+             !xl6ParserIsStmtStart(stream, i) ) {
+            continue;
+        }
+
+        lineEnd = i + 1;
+        while ( lineEnd < stream->count &&
+                stream->tokens[lineEnd].kind != XL6_TK_SEP &&
+                stream->tokens[lineEnd].kind != XL6_TK_EOF ) {
+            lineEnd += 1;
+        }
+        if ( lineEnd > i + 1 && stream->tokens[lineEnd - 1].kind == XL6_KW_END ) {
+            stream->parserKinds[i] = XL6PG_POST_WHILE;
+        }
+    }
+}
+
 static int xl6ParserMatchTypeExpr(const XL6_ParseTokenStream* stream, size_t index, size_t* outNext);
 static int xl6ParserMatchTypeRef(const XL6_ParseTokenStream* stream, size_t index, size_t* outNext);
 static int xl6ParserMatchFunctionTypeRef(const XL6_ParseTokenStream* stream, size_t index, size_t* outNext);
@@ -775,6 +807,201 @@ static void xl6ParserMarkFunctionTypeTokens(XL6_ParseTokenStream* stream)
     }
 }
 
+static void xl6ParserDelimiterStep(const XL6_Token* token, int* paren, int* bracket, int* brace)
+{
+    if ( token == NULL ) {
+        return;
+    }
+    switch ( token->kind ) {
+    case XL6_TK_LPAREN: *paren += 1; break;
+    case XL6_TK_RPAREN: if ( *paren > 0 ) { *paren -= 1; } break;
+    case XL6_TK_LBRACKET:
+    case XL6_TK_SAFE_LBRACKET: *bracket += 1; break;
+    case XL6_TK_RBRACKET: if ( *bracket > 0 ) { *bracket -= 1; } break;
+    case XL6_TK_LBRACE: *brace += 1; break;
+    case XL6_TK_RBRACE: if ( *brace > 0 ) { *brace -= 1; } break;
+    default: break;
+    }
+}
+
+static int xl6ParserWhileLineEndsBlock(const XL6_ParseTokenStream* stream, size_t index)
+{
+    size_t end;
+    int line;
+
+    if ( stream == NULL || index >= stream->count || stream->tokens[index].kind != XL6_KW_WHILE ) {
+        return 0;
+    }
+    line = stream->tokens[index].startLine;
+    end = index + 1;
+    while ( end < stream->count &&
+            stream->tokens[end].kind != XL6_TK_EOF &&
+            stream->tokens[end].startLine == line ) {
+        end += 1;
+    }
+    return end > index + 1 && stream->tokens[end - 1].kind == XL6_KW_END;
+}
+
+static int xl6ParserMatchAnonSignatureEnd(
+    const XL6_ParseTokenStream* stream,
+    size_t index,
+    size_t* outNext)
+{
+    size_t next;
+    int depth;
+
+    if ( stream == NULL || outNext == NULL || index + 1 >= stream->count ||
+         stream->tokens[index].kind != XL6_KW_FUNC ||
+         stream->tokens[index + 1].kind != XL6_TK_LPAREN ) {
+        return 0;
+    }
+
+    /*
+     * 匿名函数参数带名称和默认值，不能复用只接受类型列表的 func 类型匹配器。
+     * 这里只确定签名边界，参数是否合法仍由 Lemon 语法规则统一判断。
+     */
+    depth = 0;
+    for ( next = index + 1; next < stream->count; ++next ) {
+        if ( stream->tokens[next].kind == XL6_TK_LPAREN ) {
+            depth += 1;
+        } else if ( stream->tokens[next].kind == XL6_TK_RPAREN ) {
+            depth -= 1;
+            if ( depth == 0 ) {
+                return xl6ParserMatchFunctionReturnSig(stream, next + 1, outNext);
+            }
+        } else if ( stream->tokens[next].kind == XL6_TK_EOF ) {
+            break;
+        }
+    }
+    return 0;
+}
+
+static int xl6ParserMultilineAnonBodyStart(
+    const XL6_ParseTokenStream* stream,
+    size_t index,
+    size_t* bodyStart)
+{
+    size_t next;
+
+    if ( stream == NULL || index >= stream->count ||
+         stream->tokens[index].kind != XL6_KW_FUNC ||
+         stream->parserKinds[index] == XL6PG_TYPE_FUNCTION ||
+         xl6ParserIsFuncDeclHead(stream, index) ||
+         !xl6ParserMatchAnonSignatureEnd(stream, index, &next) ||
+         next >= stream->count ||
+         stream->tokens[next].kind == XL6_TK_FAT_ARROW ) {
+        return 0;
+    }
+    if ( next > index &&
+         stream->tokens[next].kind != XL6_TK_SEP &&
+         stream->tokens[next - 1].endLine >= stream->tokens[next].startLine ) {
+        return 0;
+    }
+    *bodyStart = next;
+    return 1;
+}
+
+/*
+ * 普通括号内部换行不产生 SEP；匿名函数字面量的函数体是唯一例外。
+ * func/type 的上下文分类完成后，才能无歧义识别这个例外。这里只在函数体
+ * 自身的分隔符深度补 SEP，嵌套调用、索引和字面量内部仍保持连续表达式语义。
+ */
+static int xl6ParserInsertAnonBlockSeparators(XL6_ParseTokenStream* stream)
+{
+    XL6_ParseTokenStream rewritten;
+    unsigned char* insertBefore;
+    size_t i;
+    int paren;
+    int bracket;
+    int brace;
+
+    if ( stream == NULL || stream->count == 0 ) {
+        return 1;
+    }
+    insertBefore = (unsigned char*)xrtCalloc(stream->count, sizeof(unsigned char));
+    if ( insertBefore == NULL ) {
+        return 0;
+    }
+
+    paren = 0;
+    bracket = 0;
+    brace = 0;
+    for ( i = 0; i < stream->count; ++i ) {
+        size_t bodyStart;
+
+        if ( xl6ParserMultilineAnonBodyStart(stream, i, &bodyStart) ) {
+            size_t j;
+            int baseParen = paren;
+            int baseBracket = bracket;
+            int baseBrace = brace;
+            int scanParen = paren;
+            int scanBracket = bracket;
+            int scanBrace = brace;
+            int blockDepth = 1;
+
+            for ( j = i; j < bodyStart; ++j ) {
+                xl6ParserDelimiterStep(&stream->tokens[j], &scanParen, &scanBracket, &scanBrace);
+            }
+            baseParen = scanParen;
+            baseBracket = scanBracket;
+            baseBrace = scanBrace;
+            for ( j = bodyStart; j < stream->count && blockDepth > 0; ++j ) {
+                XL6_TokenKind kind = stream->tokens[j].kind;
+
+                if ( j > 0 &&
+                     stream->tokens[j - 1].kind != XL6_TK_SEP &&
+                     kind != XL6_TK_SEP && kind != XL6_TK_EOF &&
+                     stream->tokens[j - 1].endLine < stream->tokens[j].startLine &&
+                     scanParen == baseParen && scanBracket == baseBracket && scanBrace == baseBrace ) {
+                    insertBefore[j] = 1;
+                }
+
+                if ( kind == XL6_KW_END ) {
+                    blockDepth -= 1;
+                } else if ( kind == XL6_KW_IF || kind == XL6_KW_FOR ||
+                            kind == XL6_KW_TRY || kind == XL6_KW_DO ||
+                            (kind == XL6_KW_WHILE && !xl6ParserWhileLineEndsBlock(stream, j)) ) {
+                    blockDepth += 1;
+                } else if ( kind == XL6_KW_FUNC ) {
+                    size_t nestedBody;
+                    if ( xl6ParserMultilineAnonBodyStart(stream, j, &nestedBody) ) {
+                        blockDepth += 1;
+                    }
+                }
+                xl6ParserDelimiterStep(&stream->tokens[j], &scanParen, &scanBracket, &scanBrace);
+            }
+        }
+        xl6ParserDelimiterStep(&stream->tokens[i], &paren, &bracket, &brace);
+    }
+
+    xl6ParseTokenStreamInit(&rewritten);
+    for ( i = 0; i < stream->count; ++i ) {
+        if ( insertBefore[i] ) {
+            XL6_Token separator = stream->tokens[i];
+            separator.kind = XL6_TK_SEP;
+            separator.len = 0;
+            separator.endOffset = separator.startOffset;
+            separator.endLine = separator.startLine;
+            separator.endColumn = separator.startColumn;
+            separator.message[0] = '\0';
+            if ( !xl6ParseTokenStreamAppend(&rewritten, &separator) ) {
+                xl6ParseTokenStreamFree(&rewritten);
+                xrtFree(insertBefore);
+                return 0;
+            }
+        }
+        if ( !xl6ParseTokenStreamAppend(&rewritten, &stream->tokens[i]) ) {
+            xl6ParseTokenStreamFree(&rewritten);
+            xrtFree(insertBefore);
+            return 0;
+        }
+    }
+    xrtFree(insertBefore);
+    xl6ParseTokenStreamFree(stream);
+    *stream = rewritten;
+    return 1;
+}
+
 static void xl6ParserMarkShrRange(const XL6_ParseTokenStream* stream, size_t begin, size_t end, int* splitShr)
 {
     size_t i;
@@ -1019,6 +1246,12 @@ static int xl6ParserReadTokens(XL6_Lexer* lexer, XL6_ParseTokenStream* stream, X
         return 0;
     }
     xl6ParserMarkFunctionTypeTokens(stream);
+    if ( !xl6ParserInsertAnonBlockSeparators(stream) ) {
+        xl6DiagAdd(diags, token.startLine, token.startColumn, "内存不足，无法补齐匿名函数块分隔符");
+        return 0;
+    }
+    xl6ParserMarkFunctionTypeTokens(stream);
+    xl6ParserMarkPostWhileTokens(stream);
     xl6ParserMarkContainerLiteralTypeLt(stream);
     xl6ParserMarkGenericDeclTypeLt(stream);
     return 1;

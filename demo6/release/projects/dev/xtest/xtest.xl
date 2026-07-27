@@ -224,10 +224,10 @@ func collectTestFiles(string target, bool recursive) as array<string>
     // 简单选择排序，保证输出稳定
     int n = result.length
     int a = 0
-    while a < n do
+    while a < n
         int best = a
         int b = a + 1
-        while b < n do
+        while b < n
             if result[b] < result[best] then
                 best = b
             end
@@ -388,7 +388,7 @@ end
 func buildNamesLiteral(array<string> tests) as string
     string s = "["
     int i = 0
-    while i < tests.length do
+    while i < tests.length
         if i > 0 then
             s = s + ", "
         end
@@ -547,7 +547,7 @@ end
 // ===== worker（线程入口：func() as int）=====
 
 func xtestWorker() as int
-    while true do
+    while true
         g_mu.lock()
         int idx = g_nextIdx
         g_nextIdx = g_nextIdx + 1
@@ -611,10 +611,10 @@ end
 func sortResults()
     int n = g_results.length
     int a = 0
-    while a < n do
+    while a < n
         int best = a
         int b = a + 1
-        while b < n do
+        while b < n
             if recLess(g_results[b], g_results[best]) then
                 best = b
             end
@@ -678,7 +678,7 @@ end
 func padRight(string s, int width) as string
     string outputValue = s
     int n = string.len(s)
-    while n < width do
+    while n < width
         outputValue = outputValue + " "
         n += 1
     end
@@ -978,7 +978,7 @@ func main(...) as int
         string target = ""
         bool recursive = false
         int i = 2
-        while i < arg.length do
+        while i < arg.length
             string a = string(arg[i])
             if a == "-r" then
                 recursive = true
@@ -1016,7 +1016,7 @@ func main(...) as int
         bool recursive = false
         int jobs = 1
         int i = 2
-        while i < arg.length do
+        while i < arg.length
             string a = string(arg[i])
             if a == "-r" then
                 recursive = true

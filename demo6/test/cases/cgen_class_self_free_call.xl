@@ -1,0 +1,21 @@
+class SelfCallBox
+    int value = 0
+
+    create(int initialValue)
+        self.value = initialValue
+    end
+
+    func add(int delta) as int
+        return addToSelfCallBox(self, delta)
+    end
+end
+
+func addToSelfCallBox(SelfCallBox box, int delta) as int
+    return box.value + delta
+end
+
+func main(...) as int
+    SelfCallBox box = SelfCallBox(7)
+    assert box.add(5) == 12, "class self free-function call failed"
+    return 0
+end

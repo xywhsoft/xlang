@@ -43,7 +43,7 @@ func toBytes(string s) as array<int>
     array raw = string.bytes(s)
     array<int> outputValue = array[]
     int i = 0
-    while i < raw.length do
+    while i < raw.length
         outputValue.push(int(raw[i]))
         i = i + 1
     end
@@ -55,7 +55,7 @@ func bytesToText(array<int> b, int start, int count) as string
     string outputValue = ""
     int i = start
     int endd = start + count
-    while i < endd and i < b.length do
+    while i < endd and i < b.length
         outputValue = outputValue + int.format(b[i], "c")
         i += 1
     end
@@ -69,7 +69,7 @@ end
 func fmtArr(array<int> a) as string
     string s = "["
     int i = 0
-    while i < a.length do
+    while i < a.length
         if i > 0 then s = s + ", " end
         s = s + string(a[i])
         i += 1
@@ -80,7 +80,7 @@ end
 func eqIntArr(array<int> a, array<int> b) as bool
     if a.length != b.length then return false end
     int i = 0
-    while i < a.length do
+    while i < a.length
         if a[i] != b[i] then return false end
         i += 1
     end
@@ -96,14 +96,14 @@ func kmpFailFunc(array<int> pat) as array<int>
     int m = pat.length
     array<int> fail = array[]
     int i = 0
-    while i < m do
+    while i < m
         fail.push(0)
         i += 1
     end
     int k = 0
     int q = 1
-    while q < m do
-        while k > 0 and pat[k] != pat[q] do
+    while q < m
+        while k > 0 and pat[k] != pat[q]
             k = fail[k - 1]
         end
         if pat[k] == pat[q] then
@@ -124,8 +124,8 @@ func kmpSearch(array<int> pat, array<int> text) as array<int>
     array<int> fail = kmpFailFunc(pat)
     int q = 0
     int i = 0
-    while i < n do
-        while q > 0 and pat[q] != text[i] do
+    while i < n
+        while q > 0 and pat[q] != text[i]
             q = fail[q - 1]
         end
         if pat[q] == text[i] then
@@ -148,12 +148,12 @@ end
 func bmBadCharTable(array<int> pat) as array<int>
     array<int> t = array[]
     int i = 0
-    while i < 256 do
+    while i < 256
         t.push(-1)
         i += 1
     end
     int j = 0
-    while j < pat.length do
+    while j < pat.length
         t[pat[j]] = j
         j += 1
     end
@@ -168,9 +168,9 @@ func bmSearch(array<int> pat, array<int> text) as array<int>
     if m == 0 or m > n then return result end
     array<int> bad = bmBadCharTable(pat)
     int s = 0
-    while s <= n - m do
+    while s <= n - m
         int j = m - 1
-        while j >= 0 and pat[j] == text[s + j] do
+        while j >= 0 and pat[j] == text[s + j]
             j -= 1
         end
         if j < 0 then
@@ -204,7 +204,7 @@ func rkSearch(array<int> pat, array<int> text) as array<int>
     // base^(m-1) mod prime
     int h = 1
     int i = 0
-    while i < m - 1 do
+    while i < m - 1
         h = (h * base) % prime
         i += 1
     end
@@ -212,18 +212,18 @@ func rkSearch(array<int> pat, array<int> text) as array<int>
     int hp = 0
     int ht = 0
     int k = 0
-    while k < m do
+    while k < m
         hp = (hp * base + pat[k]) % prime
         ht = (ht * base + text[k]) % prime
         k += 1
     end
     int s = 0
-    while s <= n - m do
+    while s <= n - m
         if hp == ht then
             // 显式逐字节校验, 排除哈希碰撞
             bool ok = true
             int j = 0
-            while j < m do
+            while j < m
                 if pat[j] != text[s + j] then
                     ok = false
                 end
@@ -252,7 +252,7 @@ func zCompute(array<int> s) as array<int>
     int n = s.length
     array<int> z = array[]
     int i = 0
-    while i < n do
+    while i < n
         z.push(0)
         i += 1
     end
@@ -261,7 +261,7 @@ func zCompute(array<int> s) as array<int>
     int l = 0
     int r = 0
     int k = 1
-    while k < n do
+    while k < n
         if k < r then
             int v = z[k - l]
             if r - k < v then
@@ -269,7 +269,7 @@ func zCompute(array<int> s) as array<int>
             end
             z[k] = v
         end
-        while k + z[k] < n and s[z[k]] == s[k + z[k]] do
+        while k + z[k] < n and s[z[k]] == s[k + z[k]]
             z[k] += 1
         end
         if k + z[k] > r then
@@ -289,19 +289,19 @@ func zSearch(array<int> pat, array<int> text) as array<int>
     if m == 0 or m > n then return result end
     array<int> combined = array[]
     int i = 0
-    while i < m do
+    while i < m
         combined.push(pat[i])
         i += 1
     end
     combined.push(-1)
     int j = 0
-    while j < n do
+    while j < n
         combined.push(text[j])
         j += 1
     end
     array<int> z = zCompute(combined)
     int k = m + 1
-    while k < z.length do
+    while k < z.length
         if z[k] == m then
             result.push(k - m - 1)
         end
@@ -321,27 +321,27 @@ func levenshtein(array<int> a, array<int> b) as int
     int total = (m + 1) * cols
     array<int> dp = array[]
     int z = 0
-    while z < total do
+    while z < total
         dp.push(0)
         z += 1
     end
     // 首行: 0..n
     int j = 0
-    while j <= n do
+    while j <= n
         dp[j] = j
         j += 1
     end
     // 首列: 0..m
     int i = 1
-    while i <= m do
+    while i <= m
         dp[i * cols] = i
         i += 1
     end
     // 填表
     int ii = 1
-    while ii <= m do
+    while ii <= m
         int jj = 1
-        while jj <= n do
+        while jj <= n
             int cost = 1
             if a[ii - 1] == b[jj - 1] then
                 cost = 0
@@ -372,14 +372,14 @@ func lcsBuildTable(array<int> a, array<int> b) as array<int>
     int total = (m + 1) * cols
     array<int> dp = array[]
     int z = 0
-    while z < total do
+    while z < total
         dp.push(0)
         z += 1
     end
     int i = 1
-    while i <= m do
+    while i <= m
         int j = 1
-        while j <= n do
+        while j <= n
             if a[i - 1] == b[j - 1] then
                 dp[i * cols + j] = dp[(i - 1) * cols + (j - 1)] + 1
             else
@@ -414,7 +414,7 @@ func lcsBytes(array<int> a, array<int> b) as array<int>
     array<int> result = array[]
     int ii = m
     int jj = n
-    while ii > 0 and jj > 0 do
+    while ii > 0 and jj > 0
         if a[ii - 1] == b[jj - 1] then
             result.push(a[ii - 1])
             ii -= 1
@@ -436,7 +436,7 @@ end
 // 比较 g_suf 从 i / j 起的后缀: <0 -> i小, 0 -> 相等, >0 -> i大
 func suffixCompare(int i, int j) as int
     int n = g_suf.length
-    while i < n and j < n do
+    while i < n and j < n
         if g_suf[i] < g_suf[j] then return -1 end
         if g_suf[i] > g_suf[j] then return 1 end
         i += 1
@@ -453,16 +453,16 @@ func suffixArray(array<int> s) as array<int>
     int n = s.length
     array<int> sa = array[]
     int i = 0
-    while i < n do
+    while i < n
         sa.push(i)
         i += 1
     end
     int k = 1
-    while k < n do
+    while k < n
         int key = sa[k]
         int p = k - 1
         bool go = true
-        while p >= 0 and go do
+        while p >= 0 and go
             if suffixCompare(sa[p], key) > 0 then
                 sa[p + 1] = sa[p]
                 p -= 1
@@ -538,7 +538,7 @@ func cmdMatch(string algo, string pattern, string text) as int
     end
     println("matches: " + string(result.length) + "  at " + fmtArr(result))
     int i = 0
-    while i < result.length do
+    while i < result.length
         int pos = result[i]
         println("  [" + string(pos) + "]  " + bytesToText(txt, pos, pat.length))
         i += 1
@@ -572,7 +572,7 @@ func cmdSuffixArray(string text) as int
     println("  " + fmtArr(sa))
     println("  ---- suffixes ----")
     int i = 0
-    while i < sa.length do
+    while i < sa.length
         int p = sa[i]
         println("  sa[" + string(i) + "]=" + string(p) + "  " + bytesToText(b, p, b.length - p))
         i += 1

@@ -96,10 +96,10 @@ func printMonthCN(int year, int month)
     int rows = weekRowCount(offset, dim)
     int day = 1
     int r = 0
-    while r < rows do
+    while r < rows
         string line = ""
         int col = 0
-        while col < 7 do
+        while col < 7
             int pos = r * 7 + col
             if pos < offset or day > dim then
                 line = line + "  "
@@ -134,10 +134,10 @@ func monthLinesEN(int year, int month) as array<string>
     int offset = firstDayColumn(year, month)
     int day = 1
     int r = 0
-    while r < 6 do
+    while r < 6
         string line = ""
         int col = 0
-        while col < 7 do
+        while col < 7
             int pos = r * 7 + col
             if pos < offset or day > dim then
                 line = line + "  "
@@ -160,7 +160,7 @@ end
 func printYear(int year)
     println(string.padCenter(string(year), YEAR_TITLE_WIDTH))
     int row = 0
-    while row < 4 do
+    while row < 4
         int m0 = row * 3 + 1
         int m1 = m0 + 1
         int m2 = m1 + 1
@@ -168,7 +168,7 @@ func printYear(int year)
         array<string> b = monthLinesEN(year, m1)
         array<string> c = monthLinesEN(year, m2)
         int i = 0
-        while i < 8 do
+        while i < 8
             println(a[i] + "  " + b[i] + "  " + c[i])
             i = i + 1
         end

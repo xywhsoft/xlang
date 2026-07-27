@@ -56,7 +56,7 @@ func isAllDigits(string s) as bool
         return false
     end
     int i = 0
-    while i < string.len(s) do
+    while i < string.len(s)
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -301,7 +301,7 @@ func proxyRoute(point reqHandle, point respHandle) as bool
 
     int hc = req.headerCount()
     int hi = 0
-    while hi < hc do
+    while hi < hc
         string hn = req.headerName(hi)
         string hv = req.headerValue(hi)
         if not isHopHeader(hn) then
@@ -327,7 +327,7 @@ func proxyRoute(point reqHandle, point respHandle) as bool
     // recv 响应（文本累积；ASCII / UTF-8 文本响应；二进制保真非本简易代理目标）
     string acc = ""
     int retries = 0
-    while retries < RECV_MAX_LOOPS do
+    while retries < RECV_MAX_LOOPS
         string chunk = ts.recv(RECV_TIMEOUT, RECV_CHUNK)
         if chunk == "" then
             break
@@ -366,7 +366,7 @@ func proxyRoute(point reqHandle, point respHandle) as bool
     // 拷贝响应头（保留原大小写；剔除 hop-by-hop / CL / CT / TE）
     int scan = string.indexOf(headerBlock, "\r\n")
     int pos = scan + 2
-    while pos < string.len(headerBlock) do
+    while pos < string.len(headerBlock)
         int lineEnd = string.indexOf(string.mid(headerBlock, pos), "\r\n")
         if lineEnd < 0 then
             lineEnd = string.len(headerBlock)
@@ -495,7 +495,7 @@ func proxyRoundTrip(string host, int port, string reqBlob) as string
     s.drain(SEND_DRAIN)
     string acc = ""
     int retries = 0
-    while retries < RECV_MAX_LOOPS do
+    while retries < RECV_MAX_LOOPS
         string chunk = s.recv(RECV_TIMEOUT, RECV_CHUNK)
         if chunk == "" then
             break
@@ -695,7 +695,7 @@ func main(...) as int
     println("httpproxy listening on 127.0.0.1:" + bound.toString())
     println("set this as your HTTP proxy. cache TTL = " + CACHE_TTL.toString() + "s. Ctrl+C to stop.")
     println("")
-    while true do
+    while true
         time.sleep(5000)
         println("[stats] requests=" + g_requests.toString() + " forwards=" + g_forwards.toString() + " cacheHits=" + g_cacheHits.toString() + " connects=" + g_connects.toString() + " errors=" + g_errors.toString() + " cached=" + g_cached.toString())
     end

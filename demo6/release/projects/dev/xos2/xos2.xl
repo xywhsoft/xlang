@@ -399,7 +399,7 @@ end
 func findByte(string s, int ch) as int
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         if string.byteAt(s, i) == ch then
             return i
         end
@@ -411,7 +411,7 @@ end
 func findByteFrom(string s, int ch, int fromIdx) as int
     int n = string.len(s)
     int i = fromIdx
-    while i < n do
+    while i < n
         if string.byteAt(s, i) == ch then
             return i
         end
@@ -423,7 +423,7 @@ end
 func rfindByte(string s, int ch) as int
     int n = string.len(s)
     int i = n - 1
-    while i >= 0 do
+    while i >= 0
         if string.byteAt(s, i) == ch then
             return i
         end
@@ -436,7 +436,7 @@ func isDigits(string s) as bool
     int n = string.len(s)
     if n == 0 then return false end
     int i = 0
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -478,7 +478,7 @@ end
 func permString(int perm) as string
     string s = ""
     int shift = 6
-    while shift >= 0 do
+    while shift >= 0
         int bits = (perm >> shift) & 7
         if (bits & PERM_R) != 0 then s = s + "r" else s = s + "-" end
         if (bits & PERM_W) != 0 then s = s + "w" else s = s + "-" end
@@ -494,7 +494,7 @@ func parsePerm(string s) as int
     if n != 9 then return -1 end
     int perm = 0
     int i = 0
-    while i < 9 do
+    while i < 9
         int b = string.byteAt(s, i)
         int bits = 0
         int col = i % 3
@@ -540,7 +540,7 @@ func parsePermOctal(string s) as int
     end
     int v = 0
     int i = start
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 55 then return -1 end
         v = v * 8 + (b - 48)
@@ -713,7 +713,7 @@ func testSummary() as int
         println("  Failed tests:")
         int i = 0
         int n = g_failNames.length
-        while i < n do
+        while i < n
             println("    - " + g_failNames[i])
             i += 1
         end
@@ -1066,7 +1066,7 @@ func procCreate(string name, int arrival, int burst, int level, array<string> pr
     p.groupId = g_gid
     p.program = program
     int i = 0
-    while i < 8 do
+    while i < 8
         p.registers.append(0)
         i += 1
     end
@@ -1085,7 +1085,7 @@ func procTerminate(int pid, int code)
     // Reparent children to init (PID 1) and notify parent if it is waiting
     int i = 1
     int n = g_pcb.length
-    while i < n do
+    while i < n
         PCB c = g_pcb[i]
         if c.ppid == pid and c.state != PROC_TERMINATED then
             c.ppid = 1
@@ -1105,7 +1105,7 @@ func procTerminate(int pid, int code)
     end
     // Detach shm segments
     int s = 0
-    while s < p.shmList.length do
+    while s < p.shmList.length
         shmDetachByPid(p.shmList[s], pid)
         s += 1
     end
@@ -1139,7 +1139,7 @@ func procReap(int pid)
     int i = 0
     int n = g_zombies.length
     bool done = false
-    while i < n and not done do
+    while i < n and not done
         if g_zombies[i] == pid then
             g_zombies.remove(i)
             done = true
@@ -1157,7 +1157,7 @@ func procOpen(int pid, string path, string mode) as int
     int localFd = NIL
     int i = 0
     int m = p.fdMap.length
-    while i < m do
+    while i < m
         if p.fdMap[i] == NIL then
             localFd = i
             i = m
@@ -1203,7 +1203,7 @@ func procCloseAllFd(int pid)
     PCB p = g_pcb[pid]
     int i = 0
     int m = p.fdMap.length
-    while i < m do
+    while i < m
         if p.fdMap[i] != NIL then
             fsClose(p.fdMap[i])
             p.fdMap[i] = NIL
@@ -1220,7 +1220,7 @@ func procRemoveFromQueue(array<int> q, int pid)
     int i = 0
     int n = q.length
     bool done = false
-    while i < n and not done do
+    while i < n and not done
         if q[i] == pid then
             q.remove(i)
             done = true
@@ -1286,14 +1286,14 @@ end
 
 // Periodic boost: move every runnable process back to the top queue
 func mlfqBoost()
-    while g_mlfq1.length > 0 do
+    while g_mlfq1.length > 0
         int pid = g_mlfq1[0]
         g_mlfq1.remove(0)
         g_mlfq0.append(pid)
         g_pcb[pid].level = 0
         g_pcb[pid].usedInLevel = 0
     end
-    while g_mlfq2.length > 0 do
+    while g_mlfq2.length > 0
         int pid = g_mlfq2[0]
         g_mlfq2.remove(0)
         g_mlfq0.append(pid)
@@ -1357,7 +1357,7 @@ func procDeliverPending(int pid) as bool
     if sig == SIGCHLD then
         // Reap any zombies belonging to this pid
         int i = 0
-        while i < g_zombies.length do
+        while i < g_zombies.length
             int z = g_zombies[i]
             if z < g_pcb.length then
                 if g_pcb[z].ppid == pid then
@@ -1388,7 +1388,7 @@ end
 func procWakeSleepers()
     int i = 1
     int n = g_pcb.length
-    while i < n do
+    while i < n
         PCB p = g_pcb[i]
         if p.state == PROC_WAITING and p.sleepUntil >= 0 then
             if g_totalTick >= p.sleepUntil then
@@ -1404,7 +1404,7 @@ end
 func procHasAlive() as bool
     int i = 1
     int n = g_pcb.length
-    while i < n do
+    while i < n
         int s = g_pcb[i].state
         if s != PROC_ZOMBIE and s != PROC_TERMINATED then
             return true
@@ -1439,7 +1439,7 @@ func procRunQuantum(int pid, int quantum)
     end
     g_pcb[pid] = p
     bool stop = false
-    while used < quantum and not stop do
+    while used < quantum and not stop
         // Signal delivery at slice boundary
         procDeliverPending(pid)
         if g_pcb[pid].state != PROC_RUNNING then
@@ -1509,7 +1509,7 @@ func schedulerStep()
     // Charge wait time to ready processes (simplified)
     int i = 1
     int n = g_pcb.length
-    while i < n do
+    while i < n
         if g_pcb[i].state == PROC_READY then
             g_pcb[i].waitTime += 1
         end
@@ -1528,7 +1528,7 @@ end
 
 func schedulerLoop(int maxTicks)
     int ticks = 0
-    while ticks < maxTicks do
+    while ticks < maxTicks
         if not procHasAlive() then
             return
         end
@@ -1542,7 +1542,7 @@ end
 func procReapZombies()
     int i = 1
     int n = g_pcb.length
-    while i < n do
+    while i < n
         if g_pcb[i].state == PROC_ZOMBIE then
             g_pcb[i].state = PROC_TERMINATED
         end
@@ -1563,7 +1563,7 @@ func procFork(int parentPid) as int
     PCB par = g_pcb[parentPid]
     array<string> prog = array[]
     int j = par.pc
-    while j < par.program.length do
+    while j < par.program.length
         prog.append(par.program[j])
         j += 1
     end
@@ -1590,7 +1590,7 @@ func procFork(int parentPid) as int
     child.groupId = par.groupId
     child.ptDirId = memAllocDir()
     int k = 0
-    while k < 8 do
+    while k < 8
         child.registers.append(par.registers[k])
         k += 1
     end
@@ -1635,7 +1635,7 @@ func procWait(int parentPid, int childPid) as int
     int target = NIL
     int i = 1
     int n = g_pcb.length
-    while i < n do
+    while i < n
         PCB c = g_pcb[i]
         if c.ppid == parentPid then
             if childPid == NIL or childPid == -1 or childPid == i then
@@ -1728,7 +1728,7 @@ func execOp(int pid, string line) as int
         if tokens.length > 1 then localFd = parseIntSafe(string(tokens[1]), 0) end
         string data = ""
         int ti = 2
-        while ti < tokens.length do
+        while ti < tokens.length
             if ti > 2 then data = data + " " end
             data = data + tokens[ti]
             ti += 1
@@ -1843,7 +1843,7 @@ func procListReport() as string
     s = s + padR("ARR", 6) + padR("WAIT", 6) + "\n"
     int i = 1
     int n = g_pcb.length
-    while i < n do
+    while i < n
         PCB p = g_pcb[i]
         s = s + padR(i2s(p.pid), 6)
         if p.ppid == NIL then
@@ -1874,7 +1874,7 @@ func procTop() as string
     int total = 0
     int i = 1
     int n = g_pcb.length
-    while i < n do
+    while i < n
         int st = g_pcb[i].state
         if st == PROC_READY then ready += 1 end
         if st == PROC_RUNNING then running += 1 end
@@ -1927,7 +1927,7 @@ func memInit()
     g_ptTabCow.clear()
     g_tlb.clear()
     int i = 0
-    while i < NUM_FRAMES do
+    while i < NUM_FRAMES
         g_frameOwner.append(NIL)
         g_frameTick.append(0)
         g_frameDirty.append(false)
@@ -1937,30 +1937,30 @@ func memInit()
     g_clockHand.append(0)
     // Page-directory pool: 32 directories, each PAGE_DIR_SIZE entries
     i = 0
-    while i < 32 * PAGE_DIR_SIZE do
+    while i < 32 * PAGE_DIR_SIZE
         g_ptDir.append(NIL)
         i += 1
     end
     i = 0
-    while i < 32 do
+    while i < 32
         g_ptDirUsed.append(false)
         i += 1
     end
     // Page-table pool: 256 tables, each PAGE_TABLE_SIZE entries
     i = 0
-    while i < 256 * PAGE_TABLE_SIZE do
+    while i < 256 * PAGE_TABLE_SIZE
         g_ptTab.append(NIL)
         g_ptTabCow.append(false)
         i += 1
     end
     i = 0
-    while i < 256 do
+    while i < 256
         g_ptTabUsed.append(false)
         i += 1
     end
     // TLB
     i = 0
-    while i < TLB_SIZE do
+    while i < TLB_SIZE
         g_tlb.append(TlbEntry())
         i += 1
     end
@@ -1968,11 +1968,11 @@ end
 
 func memAllocDir() as int
     int i = 0
-    while i < 32 do
+    while i < 32
         if not g_ptDirUsed[i] then
             g_ptDirUsed[i] = true
             int j = 0
-            while j < PAGE_DIR_SIZE do
+            while j < PAGE_DIR_SIZE
                 g_ptDir[i * PAGE_DIR_SIZE + j] = NIL
                 j += 1
             end
@@ -1985,11 +1985,11 @@ end
 
 func memAllocTab() as int
     int i = 0
-    while i < 256 do
+    while i < 256
         if not g_ptTabUsed[i] then
             g_ptTabUsed[i] = true
             int j = 0
-            while j < PAGE_TABLE_SIZE do
+            while j < PAGE_TABLE_SIZE
                 g_ptTab[i * PAGE_TABLE_SIZE + j] = NIL
                 g_ptTabCow[i * PAGE_TABLE_SIZE + j] = false
                 j += 1
@@ -2004,7 +2004,7 @@ end
 func memFreeDir(int dirId)
     if dirId < 0 or dirId >= 32 then return end
     int j = 0
-    while j < PAGE_DIR_SIZE do
+    while j < PAGE_DIR_SIZE
         g_ptDir[dirId * PAGE_DIR_SIZE + j] = NIL
         j += 1
     end
@@ -2014,7 +2014,7 @@ end
 func memFreeTab(int tabId)
     if tabId < 0 or tabId >= 256 then return end
     int j = 0
-    while j < PAGE_TABLE_SIZE do
+    while j < PAGE_TABLE_SIZE
         g_ptTab[tabId * PAGE_TABLE_SIZE + j] = NIL
         g_ptTabCow[tabId * PAGE_TABLE_SIZE + j] = false
         j += 1
@@ -2026,7 +2026,7 @@ end
 // g_memReplPolicy: REPL_LRU, REPL_CLOCK, or REPL_OPT.
 func memAllocFrame(int pid) as int
     int i = 0
-    while i < NUM_FRAMES do
+    while i < NUM_FRAMES
         if g_frameOwner[i] == NIL then
             g_frameOwner[i] = pid
             g_frameTick[i] = g_totalTick
@@ -2069,7 +2069,7 @@ func memLruVictim() as int
     int best = NIL
     int bestTick = -1
     int i = 0
-    while i < NUM_FRAMES do
+    while i < NUM_FRAMES
         if g_frameOwner[i] != NIL then
             if bestTick < 0 or g_frameTick[i] < bestTick then
                 bestTick = g_frameTick[i]
@@ -2085,7 +2085,7 @@ end
 func memClockVictim() as int
     int scanned = 0
     int cap = NUM_FRAMES * 4
-    while scanned < cap do
+    while scanned < cap
         int idx = g_clockHand[0] % NUM_FRAMES
         if g_frameOwner[idx] != NIL then
             if not g_frameRefBit[idx] then
@@ -2099,7 +2099,7 @@ func memClockVictim() as int
     end
     // Fallback: first owned frame
     int i = 0
-    while i < NUM_FRAMES do
+    while i < NUM_FRAMES
         if g_frameOwner[i] != NIL then return i end
         i += 1
     end
@@ -2111,7 +2111,7 @@ func memOptVictim() as int
     int best = NIL
     int bestNext = -1
     int i = 0
-    while i < NUM_FRAMES do
+    while i < NUM_FRAMES
         if g_frameOwner[i] != NIL then
             int nextUse = memNextUse(i)
             if nextUse == NIL then
@@ -2131,7 +2131,7 @@ end
 func memNextUse(int frame) as int
     int i = g_futureIdx
     int n = g_futureAccess.length
-    while i < n do
+    while i < n
         if g_futureAccess[i] == frame then
             return i
         end
@@ -2159,10 +2159,10 @@ func memEvictFrame(int frame)
     trace("memEvict frame=" + i2s(frame) + " owner=" + i2s(owner))
     // Invalidate PTEs that pointed to this frame
     int i = 0
-    while i < 256 do
+    while i < 256
         if g_ptTabUsed[i] then
             int j = 0
-            while j < PAGE_TABLE_SIZE do
+            while j < PAGE_TABLE_SIZE
                 if g_ptTab[i * PAGE_TABLE_SIZE + j] == frame then
                     g_ptTab[i * PAGE_TABLE_SIZE + j] = NIL
                     g_ptTabCow[i * PAGE_TABLE_SIZE + j] = false
@@ -2174,7 +2174,7 @@ func memEvictFrame(int frame)
     end
     // Invalidate any TLB entry pointing to this frame
     int t = 0
-    while t < TLB_SIZE do
+    while t < TLB_SIZE
         if g_tlb[t].valid and g_tlb[t].frame == frame then
             g_tlb[t].valid = false
             g_tlb[t].vpn = -1
@@ -2188,7 +2188,7 @@ end
 // Release all frames held by a process
 func memReleaseProc(int pid)
     int i = 0
-    while i < NUM_FRAMES do
+    while i < NUM_FRAMES
         if g_frameOwner[i] == pid then
             g_frameOwner[i] = NIL
             g_frameDirty[i] = false
@@ -2198,7 +2198,7 @@ func memReleaseProc(int pid)
     end
     // Flush TLB entries for this pid
     int t = 0
-    while t < TLB_SIZE do
+    while t < TLB_SIZE
         if g_tlb[t].valid and g_tlb[t].pid == pid then
             g_tlb[t].valid = false
             g_tlb[t].vpn = -1
@@ -2211,7 +2211,7 @@ func memReleaseProc(int pid)
     int dirId = g_pcb[pid].ptDirId
     if dirId == NIL then return end
     int j = 0
-    while j < PAGE_DIR_SIZE do
+    while j < PAGE_DIR_SIZE
         int tabId = g_ptDir[dirId * PAGE_DIR_SIZE + j]
         if tabId != NIL then
             memFreeTab(tabId)
@@ -2230,7 +2230,7 @@ end
 
 func memTlbLookup(int pid, int vpn) as int
     int i = 0
-    while i < TLB_SIZE do
+    while i < TLB_SIZE
         if g_tlb[i].valid and g_tlb[i].pid == pid and g_tlb[i].vpn == vpn then
             g_tlb[i].tick = g_totalTick
             return g_tlb[i].frame
@@ -2245,7 +2245,7 @@ func memTlbInsert(int pid, int vpn, int frame)
     int victimSlot = NIL
     int oldestTick = -1
     int i = 0
-    while i < TLB_SIZE do
+    while i < TLB_SIZE
         if not g_tlb[i].valid then
             victimSlot = i
             oldestTick = -1
@@ -2268,7 +2268,7 @@ end
 
 func memFlushTlb()
     int i = 0
-    while i < TLB_SIZE do
+    while i < TLB_SIZE
         g_tlb[i].valid = false
         g_tlb[i].vpn = -1
         g_tlb[i].frame = -1
@@ -2280,7 +2280,7 @@ end
 // Flush only TLB entries for a particular process
 func memFlushTlbPid(int pid)
     int i = 0
-    while i < TLB_SIZE do
+    while i < TLB_SIZE
         if g_tlb[i].valid and g_tlb[i].pid == pid then
             g_tlb[i].valid = false
             g_tlb[i].vpn = -1
@@ -2411,13 +2411,13 @@ func memCowCloneDir(int parentPid, int childPid)
     int childDirId = child.ptDirId
     if parentDirId == NIL or childDirId == NIL then return end
     int d = 0
-    while d < PAGE_DIR_SIZE do
+    while d < PAGE_DIR_SIZE
         int pTabId = g_ptDir[parentDirId * PAGE_DIR_SIZE + d]
         if pTabId != NIL then
             int cTabId = memAllocTab()
             g_ptDir[childDirId * PAGE_DIR_SIZE + d] = cTabId
             int t = 0
-            while t < PAGE_TABLE_SIZE do
+            while t < PAGE_TABLE_SIZE
                 int frame = g_ptTab[pTabId * PAGE_TABLE_SIZE + t]
                 if frame != NIL then
                     // Share the frame between parent and child, mark COW
@@ -2445,7 +2445,7 @@ func memReport()
     int used = 0
     int dirty = 0
     int i = 0
-    while i < NUM_FRAMES do
+    while i < NUM_FRAMES
         if g_frameOwner[i] != NIL then
             used += 1
             if g_frameDirty[i] then dirty += 1 end
@@ -2468,12 +2468,12 @@ func memReport()
     int dirUsed = 0
     int tabUsed = 0
     int di = 0
-    while di < 32 do
+    while di < 32
         if g_ptDirUsed[di] then dirUsed += 1 end
         di += 1
     end
     int ti = 0
-    while ti < 256 do
+    while ti < 256
         if g_ptTabUsed[ti] then tabUsed += 1 end
         ti += 1
     end
@@ -2484,7 +2484,7 @@ func memReportString() as string
     int used = 0
     int dirty = 0
     int i = 0
-    while i < NUM_FRAMES do
+    while i < NUM_FRAMES
         if g_frameOwner[i] != NIL then
             used += 1
             if g_frameDirty[i] then dirty += 1 end
@@ -2512,11 +2512,11 @@ func memDumpProc(int pid) as string
         return s + "  (no page directory)\n"
     end
     int d = 0
-    while d < PAGE_DIR_SIZE do
+    while d < PAGE_DIR_SIZE
         int tabId = g_ptDir[dirId * PAGE_DIR_SIZE + d]
         if tabId != NIL then
             int t = 0
-            while t < PAGE_TABLE_SIZE do
+            while t < PAGE_TABLE_SIZE
                 int fr = g_ptTab[tabId * PAGE_TABLE_SIZE + t]
                 if fr != NIL then
                     int vpn = (d << TAB_BITS) | t
@@ -2537,7 +2537,7 @@ end
 func memDumpTlb() as string
     string s = "TLB dump:\n"
     int i = 0
-    while i < TLB_SIZE do
+    while i < TLB_SIZE
         if g_tlb[i].valid then
             s = s + "  slot=" + i2s(i) + " pid=" + i2s(g_tlb[i].pid)
             s = s + " vpn=" + i2s(g_tlb[i].vpn) + " frame=" + i2s(g_tlb[i].frame)
@@ -2551,7 +2551,7 @@ end
 func memFree() as string
     int used = 0
     int i = 0
-    while i < NUM_FRAMES do
+    while i < NUM_FRAMES
         if g_frameOwner[i] != NIL then used += 1 end
         i += 1
     end
@@ -2576,7 +2576,7 @@ end
 func shmInit()
     g_shm.clear()
     int i = 0
-    while i < MAX_SHM do
+    while i < MAX_SHM
         ShmSeg seg = ShmSeg()
         seg.used = false
         g_shm.append(seg)
@@ -2586,7 +2586,7 @@ end
 
 func shmAllocSlot() as int
     int i = 0
-    while i < MAX_SHM do
+    while i < MAX_SHM
         if not g_shm[i].used then
             g_shm[i].used = true
             return i
@@ -2599,7 +2599,7 @@ end
 func shmGet(int key, int size) as int
     // Reuse existing segment if same key
     int i = 0
-    while i < MAX_SHM do
+    while i < MAX_SHM
         if g_shm[i].used and g_shm[i].key == key then
             return i
         end
@@ -2617,7 +2617,7 @@ func shmGet(int key, int size) as int
     int nframes = (size + FRAME_SIZE - 1) / FRAME_SIZE
     if nframes < 1 then nframes = 1 end
     int j = 0
-    while j < nframes do
+    while j < nframes
         int f = memAllocFrame(-1)
         if f == NIL then
             // clean up partial allocation
@@ -2648,7 +2648,7 @@ func shmDetachByPid(int shmid, int pid)
     ShmSeg seg = g_shm[shmid]
     int i = 0
     bool done = false
-    while i < seg.attached.length and not done do
+    while i < seg.attached.length and not done
         if seg.attached[i] == pid then
             seg.attached.remove(i)
             done = true
@@ -2659,7 +2659,7 @@ func shmDetachByPid(int shmid, int pid)
     if seg.refCount <= 0 then
         // Release frames back to the global pool
         int j = 0
-        while j < seg.frames.length do
+        while j < seg.frames.length
             int fr = seg.frames[j]
             if fr >= 0 and fr < NUM_FRAMES then
                 g_frameOwner[fr] = NIL
@@ -2676,7 +2676,7 @@ end
 func shmReport() as string
     string s = "Shared memory segments:\n"
     int i = 0
-    while i < MAX_SHM do
+    while i < MAX_SHM
         if g_shm[i].used then
             ShmSeg seg = g_shm[i]
             s = s + "  id=" + i2s(i) + " key=" + i2s(seg.key)
@@ -2722,7 +2722,7 @@ func fsInit()
     g_rootIno = 0
     g_cwdIno = 0
     int i = 0
-    while i < MAX_OPEN_FILES do
+    while i < MAX_OPEN_FILES
         g_open.append(OpenFile())
         g_openUsed.append(false)
         i += 1
@@ -2781,7 +2781,7 @@ func fsSplitParent(string p) as var
     int last = -1
     int n = string.len(p)
     int i = 0
-    while i < n do
+    while i < n
         if string.byteAt(p, i) == SLASH_BYTE then
             last = i
         end
@@ -2820,7 +2820,7 @@ func fsResolveDepth(string p, int depth) as int
     var segs = string.split(p, "/")
     int n = segs.length
     int i = 0
-    while i < n do
+    while i < n
         string seg = string(segs[i])
         if seg == "" or seg == "." then
             // skip
@@ -2865,7 +2865,7 @@ func fsResolveNoFollow(string p) as int
     var segs = string.split(p, "/")
     int n = segs.length
     int i = 0
-    while i < n do
+    while i < n
         string seg = string(segs[i])
         bool last = (i == n - 1)
         if seg == "" or seg == "." then
@@ -2908,7 +2908,7 @@ func fsAbsPath(int ino) as string
     var parts = []
     int cur = ino
     bool stop = false
-    while not stop do
+    while not stop
         if cur == NIL or cur == g_rootIno then
             stop = true
         else
@@ -2920,7 +2920,7 @@ func fsAbsPath(int ino) as string
     string result = ""
     int n = parts.length
     int i = n - 1
-    while i >= 0 do
+    while i >= 0
         result = result + "/" + parts[i]
         i -= 1
     end
@@ -2984,7 +2984,7 @@ func fsDropChild(int dirIno, int childIno)
     int n = d.children.length
     int i = 0
     bool done = false
-    while i < n and not done do
+    while i < n and not done
         if d.children[i] == childIno then
             d.children.remove(i)
             done = true
@@ -3005,7 +3005,7 @@ func fsDropChild(int dirIno, int childIno)
         end
     end
     int ri = 0
-    while ri < toRemove.length do
+    while ri < toRemove.length
         dict.remove(g_names, string(toRemove[ri]))
         ri += 1
     end
@@ -3020,7 +3020,7 @@ func fsDropNamedChild(int dirIno, int childIno, string name)
     int n = d.children.length
     int i = 0
     bool done = false
-    while i < n and not done do
+    while i < n and not done
         if d.children[i] == childIno then
             d.children.remove(i)
             done = true
@@ -3154,7 +3154,7 @@ func fsListDir(string p) as var
     end
     int cn = n.children.length
     int i = 0
-    while i < cn do
+    while i < cn
         items.append(g_inodes[n.children[i]].name)
         i += 1
     end
@@ -3203,12 +3203,12 @@ func fsRemoveRecursive(string p) as bool
         // Copy out the children list before mutating
         array<int> kids = array[]
         int i = 0
-        while i < n.children.length do
+        while i < n.children.length
             kids.append(n.children[i])
             i += 1
         end
         i = 0
-        while i < kids.length do
+        while i < kids.length
             int child = kids[i]
             string cp = fsAbsPath(child)
             fsRemoveRecursive(cp)
@@ -3333,7 +3333,7 @@ end
 
 func fsAllocFd() as int
     int i = 0
-    while i < MAX_OPEN_FILES do
+    while i < MAX_OPEN_FILES
         if not g_openUsed[i] then
             g_openUsed[i] = true
             g_openCount += 1
@@ -3484,7 +3484,7 @@ func fsWrite(int fd, string data) as int
         before = node.content
         int gap = pos - total
         int g = 0
-        while g < gap do
+        while g < gap
             before = before + " "
             g += 1
         end
@@ -3582,7 +3582,7 @@ func fsDumpNode(int ino, int depth)
     Inode n = g_inodes[ino]
     string pad = ""
     int d = 0
-    while d < depth do
+    while d < depth
         pad = pad + "  "
         d += 1
     end
@@ -3607,7 +3607,7 @@ func fsDumpNode(int ino, int depth)
     println(line)
     int cn = n.children.length
     int i = 0
-    while i < cn do
+    while i < cn
         fsDumpNode(n.children[i], depth + 1)
         i += 1
     end
@@ -3636,7 +3636,7 @@ func mountsInit()
     g_mounts.append(rootMount)
     g_mountCount = 1
     int i = 1
-    while i < MAX_MOUNTS do
+    while i < MAX_MOUNTS
         Mount m = Mount()
         m.used = false
         g_mounts.append(m)
@@ -3646,7 +3646,7 @@ end
 
 func mountsAlloc() as int
     int i = 0
-    while i < MAX_MOUNTS do
+    while i < MAX_MOUNTS
         if not g_mounts[i].used then
             g_mounts[i].used = true
             g_mountCount += 1
@@ -3663,7 +3663,7 @@ func fsMount(string source, string target, string fstype) as bool
     if g_inodes[targetId].type != FT_DIR then return false end
     // Check duplicate mount
     int i = 0
-    while i < MAX_MOUNTS do
+    while i < MAX_MOUNTS
         if g_mounts[i].used then
             if g_mounts[i].target == target then return false end
         end
@@ -3685,7 +3685,7 @@ end
 func fsUmount(string target) as bool
     if target == "/" then return false end
     int i = 1
-    while i < MAX_MOUNTS do
+    while i < MAX_MOUNTS
         if g_mounts[i].used then
             if g_mounts[i].target == target then
                 g_mounts[i].used = false
@@ -3702,7 +3702,7 @@ func mountsReport() as string
     string s = "Mount table:\n"
     s = s + padR("Source", 16) + padR("Target", 16) + padR("Type", 10) + "RootIno\n"
     int i = 0
-    while i < MAX_MOUNTS do
+    while i < MAX_MOUNTS
         if g_mounts[i].used then
             Mount m = g_mounts[i]
             s = s + padR(m.source, 16) + padR(m.target, 16) + padR(m.fstype, 10)
@@ -3727,7 +3727,7 @@ end
 func pipeInit()
     g_pipes.clear()
     int i = 0
-    while i < MAX_PIPES do
+    while i < MAX_PIPES
         Pipe p = Pipe()
         p.used = false
         g_pipes.append(p)
@@ -3737,7 +3737,7 @@ end
 
 func pipeAlloc() as int
     int i = 0
-    while i < MAX_PIPES do
+    while i < MAX_PIPES
         if not g_pipes[i].used then
             g_pipes[i].used = true
             g_pipes[i].id = i
@@ -3822,7 +3822,7 @@ end
 func pipeOpen(int ino, string mode) as int
     int pipeId = NIL
     int i = 0
-    while i < MAX_PIPES do
+    while i < MAX_PIPES
         if g_pipes[i].used and g_pipes[i].ino == ino then
             pipeId = i
             i = MAX_PIPES
@@ -3905,7 +3905,7 @@ end
 func devInit()
     g_devices.clear()
     int i = 0
-    while i < 8 do
+    while i < 8
         Device d = Device()
         d.used = false
         g_devices.append(d)
@@ -3926,7 +3926,7 @@ func devRegister(string path, int kind) as int
     // Allocate the device record
     int slot = NIL
     int i = 0
-    while i < g_devices.length do
+    while i < g_devices.length
         if not g_devices[i].used then
             slot = i
             i = g_devices.length
@@ -4003,7 +4003,7 @@ func devRead(int devId, int n) as string
         int alphaLen = string.len(alphabet)
         int i = 0
         string s = ""
-        while i < n do
+        while i < n
             int v = random.range(0, alphaLen - 1)
             s = s + string.charAt(alphabet, v)
             i += 1
@@ -4078,7 +4078,7 @@ func envExpand(string s) as string
     string r = ""
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b == 36 then
             // $ - variable expansion
@@ -4099,7 +4099,7 @@ func envExpand(string s) as string
                     // $VAR uppercase letters/digits/underscore
                     int j = i + 1
                     bool stop = false
-                    while j < n and not stop do
+                    while j < n and not stop
                         int c = string.byteAt(s, j)
                         if (c >= 65 and c <= 90) or (c >= 48 and c <= 57) or c == 95 then
                             j += 1
@@ -4310,7 +4310,7 @@ func syscall(int op, var args) as var
         var progArr = args[2]
         array<string> prog = array[]
         int j = 0
-        while j < progArr.length do
+        while j < progArr.length
             prog.append(string(progArr[j]))
             j += 1
         end
@@ -4464,21 +4464,21 @@ func shTokenize(string s) as var
     var tokens = []
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b == SPACE_BYTE or b == TAB_BYTE or b == NEWLINE_BYTE or b == RETURN_BYTE then
             i += 1
         else
             string cur = ""
             bool stop = false
-            while i < n and not stop do
+            while i < n and not stop
                 int c = string.byteAt(s, i)
                 if c == SPACE_BYTE or c == TAB_BYTE or c == NEWLINE_BYTE or c == RETURN_BYTE then
                     stop = true
                 elseif c == DQUOTE_BYTE then
                     i += 1
                     bool closed = false
-                    while i < n and not closed do
+                    while i < n and not closed
                         int cc = string.byteAt(s, i)
                         if cc == DQUOTE_BYTE then
                             i += 1
@@ -4491,7 +4491,7 @@ func shTokenize(string s) as var
                 elseif c == SQUOTE_BYTE then
                     i += 1
                     bool closed = false
-                    while i < n and not closed do
+                    while i < n and not closed
                         int cc = string.byteAt(s, i)
                         if cc == SQUOTE_BYTE then
                             i += 1
@@ -4537,7 +4537,7 @@ func shParse(string line) as var
     // Find '>>'
     int scan = 0
     bool stopScan = false
-    while scan < string.len(s) - 1 and not stopScan do
+    while scan < string.len(s) - 1 and not stopScan
         if string.byteAt(s, scan) == GT_BYTE and string.byteAt(s, scan + 1) == GT_BYTE then
             gt2 = scan
             stopScan = true
@@ -4570,7 +4570,7 @@ func shParse(string line) as var
     var pipeline = []
     int n = segs.length
     int i = 0
-    while i < n do
+    while i < n
         string seg = trimP(string(segs[i]))
         if string.len(seg) > 0 then
             var tokens = shTokenize(seg)
@@ -4578,7 +4578,7 @@ func shParse(string line) as var
                 // Expand env vars on each token
                 int ti = 0
                 var expanded = []
-                while ti < tokens.length do
+                while ti < tokens.length
                     string t = string(tokens[ti])
                     expanded.append(envExpand(t))
                     ti += 1
@@ -4610,7 +4610,7 @@ func shExecParsed(var parsed) as string
         end
     end
     int i = 0
-    while i < n do
+    while i < n
         var tokens = pipeline[i]
         bool last = (i == n - 1)
         var res = shRunOne(tokens, flow, last, parsed)
@@ -4646,7 +4646,7 @@ func shRunOne(var tokens, string stdin, bool isLast, var parsed) as var
     string name = string(tokens[0])
     var args = []
     int i = 1
-    while i < tn do
+    while i < tn
         args.append(tokens[i])
         i += 1
     end
@@ -4744,7 +4744,7 @@ func shEcho(var args) as string
     string s = ""
     int n = args.length
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then s = s + " " end
         s = s + string(args[i])
         i += 1
@@ -4757,7 +4757,7 @@ func shLs(var args) as string
     bool longFmt = false
     bool showAll = false
     int i = 0
-    while i < args.length do
+    while i < args.length
         string a = string(args[i])
         if startsWithP(a, "-") then
             if containsP(a, "l") then longFmt = true end
@@ -4783,7 +4783,7 @@ func shLs(var args) as string
         string s = ""
         int j = 0
         int m = items.length
-        while j < m do
+        while j < m
             s = s + string(items[j]) + "\n"
             j += 1
         end
@@ -4792,7 +4792,7 @@ func shLs(var args) as string
     string s = padR("total", 10) + i2s(items.length) + "\n"
     int j = 0
     int m = items.length
-    while j < m do
+    while j < m
         string nm = string(items[j])
         int childId = fsFindChild(id, nm)
         if childId != NIL then
@@ -4825,7 +4825,7 @@ func shCat(var args, string stdin) as string
     end
     string s = ""
     int i = 0
-    while i < args.length do
+    while i < args.length
         string p = string(args[i])
         int id = fsResolve(p)
         if id == NIL then
@@ -4880,7 +4880,7 @@ func shExec(var args) as string
     end
     array<string> prog = array[]
     int i = 3
-    while i < args.length do
+    while i < args.length
         prog.append(string(args[i]))
         i += 1
     end
@@ -4918,7 +4918,7 @@ func shMkdir(var args) as string
     end
     string s = ""
     int i = 0
-    while i < args.length do
+    while i < args.length
         string p = string(args[i])
         if fsMkdir(p, PERM_RWX) == NIL then
             s = s + "mkdir: cannot create '" + p + "'\n"
@@ -4944,7 +4944,7 @@ func shTouch(var args) as string
         return "touch: usage: touch <path>\n"
     end
     int i = 0
-    while i < args.length do
+    while i < args.length
         string p = string(args[i])
         if not fsExists(p) then
             if fsCreate(p, PERM_RW) == NIL then
@@ -4964,7 +4964,7 @@ func shRm(var args) as string
     bool fflag = false
     array<string> targets = array[]
     int idx = 0
-    while idx < args.length do
+    while idx < args.length
         string a = string(args[idx])
         if startsWithP(a, "-") and string.len(a) > 1 then
             if containsP(a, "r") then rflag = true end
@@ -4976,7 +4976,7 @@ func shRm(var args) as string
     end
     string s = ""
     int j = 0
-    while j < targets.length do
+    while j < targets.length
         string p = targets[j]
         bool ok = false
         if rflag then
@@ -5064,7 +5064,7 @@ func shChmod(var args) as string
         return "chmod: invalid mode: " + pp + "\n"
     end
     int i = 1
-    while i < args.length do
+    while i < args.length
         string p = string(args[i])
         if not fsChmod(p, perm) then
             return "chmod: cannot change mode of '" + p + "'\n"
@@ -5083,7 +5083,7 @@ func shChown(var args) as string
         return "chown: invalid uid\n"
     end
     int i = 1
-    while i < args.length do
+    while i < args.length
         string p = string(args[i])
         if not fsChown(p, uid, 0) then
             return "chown: cannot change owner of '" + p + "'\n"
@@ -5123,7 +5123,7 @@ func shExport(var args) as string
         return envList()
     end
     int i = 0
-    while i < args.length do
+    while i < args.length
         string a = string(args[i])
         int eq = findByte(a, EQUAL_BYTE)
         if eq > 0 then
@@ -5141,7 +5141,7 @@ func shUnset(var args) as string
         return "unset: usage: unset <var>\n"
     end
     int i = 0
-    while i < args.length do
+    while i < args.length
         envUnset(string(args[i]))
         i += 1
     end
@@ -5156,7 +5156,7 @@ func shSleep(var args) as string
     if n < 1 then n = 1 end
     // Advance the scheduler N ticks so sleepers wake up
     int i = 0
-    while i < n do
+    while i < n
         schedulerStep()
         i += 1
     end
@@ -5210,7 +5210,7 @@ func shHistory() as string
     string s = ""
     int i = 0
     int n = g_history.length
-    while i < n do
+    while i < n
         s = s + i2s(i + 1) + "  " + g_history[i] + "\n"
         i += 1
     end
@@ -5220,7 +5220,7 @@ end
 func shTree() as string
     string s = ""
     int i = 0
-    while i < g_inodes.length do
+    while i < g_inodes.length
         Inode n = g_inodes[i]
         if n.parent == NIL and i != g_rootIno then
             // orphan, skip
@@ -5228,14 +5228,14 @@ func shTree() as string
             string pad = ""
             int cur = i
             int depth = 0
-            while cur != g_rootIno and cur != NIL do
+            while cur != g_rootIno and cur != NIL
                 Inode c = g_inodes[cur]
                 cur = c.parent
                 depth += 1
                 if depth > 64 then cur = g_rootIno end
             end
             int d = 0
-            while d < depth do
+            while d < depth
                 pad = pad + "  "
                 d += 1
             end
@@ -5267,7 +5267,7 @@ func shWrite(var args) as string
     string p = string(args[0])
     string txt = ""
     int i = 1
-    while i < args.length do
+    while i < args.length
         if i > 1 then txt = txt + " " end
         txt = txt + args[i]
         i += 1
@@ -5322,7 +5322,7 @@ end
 func shHead(var args, string stdin) as string
     int n = 10
     int i = 0
-    while i < args.length do
+    while i < args.length
         string a = string(args[i])
         if startsWithP(a, "-") and string.len(a) > 1 then
             int v = parseIntSafe(string.mid(a, 1, string.len(a) - 1), 10)
@@ -5335,7 +5335,7 @@ func shHead(var args, string stdin) as string
     int take = mini(n, lines.length)
     string s = ""
     int j = 0
-    while j < take do
+    while j < take
         s = s + string(lines[j]) + "\n"
         j += 1
     end
@@ -5345,7 +5345,7 @@ end
 func shTail(var args, string stdin) as string
     int n = 10
     int i = 0
-    while i < args.length do
+    while i < args.length
         string a = string(args[i])
         if startsWithP(a, "-") and string.len(a) > 1 then
             int v = parseIntSafe(string.mid(a, 1, string.len(a) - 1), 10)
@@ -5359,7 +5359,7 @@ func shTail(var args, string stdin) as string
     if start < 0 then start = 0 end
     string s = ""
     int j = start
-    while j < lines.length do
+    while j < lines.length
         s = s + string(lines[j]) + "\n"
         j += 1
     end
@@ -5385,7 +5385,7 @@ func shGrep(var args, string stdin) as string
     var lines = string.splitLines(stdin)
     string s = ""
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         string l = string(lines[i])
         if containsP(l, pat) then
             s = s + l + "\n"
@@ -5400,11 +5400,11 @@ func shSort(var args, string stdin) as string
     if lines.length <= 1 then return stdin end
     // Simple insertion sort (var comparisons via string)
     int i = 1
-    while i < lines.length do
+    while i < lines.length
         string cur = string(lines[i])
         int j = i - 1
         bool stop = false
-        while j >= 0 and not stop do
+        while j >= 0 and not stop
             string prev = string(lines[j])
             if string.compare(prev, cur) > 0 then
                 lines[j + 1] = prev
@@ -5418,7 +5418,7 @@ func shSort(var args, string stdin) as string
     end
     string s = ""
     int k = 0
-    while k < lines.length do
+    while k < lines.length
         s = s + string(lines[k]) + "\n"
         k += 1
     end
@@ -5431,7 +5431,7 @@ func shUniq(var args, string stdin) as string
     string s = string(lines[0]) + "\n"
     string prev = string(lines[0])
     int i = 1
-    while i < lines.length do
+    while i < lines.length
         string cur = string(lines[i])
         if cur != prev then
             s = s + cur + "\n"
@@ -5462,7 +5462,7 @@ func shRunScript(string path) as int
     int n = rawLines.length
     int i = 0
     int errors = 0
-    while i < n do
+    while i < n
         string line = string(rawLines[i])
         i += 1
         string t = trimP(line)
@@ -5480,7 +5480,7 @@ func shRunScript(string path) as int
                 // Split on ';' for sequence
                 var seq = string.split(t, ";")
                 int j = 0
-                while j < seq.length do
+                while j < seq.length
                     string stmt = trimP(string(seq[j]))
                     if string.len(stmt) > 0 then
                         var parsed = shParse(stmt)
@@ -5500,7 +5500,7 @@ func shRunText(string text) as int
     int n = rawLines.length
     int i = 0
     int errors = 0
-    while i < n do
+    while i < n
         string line = string(rawLines[i])
         i += 1
         string t = trimP(line)
@@ -5517,7 +5517,7 @@ func shRunText(string text) as int
                 end
                 var seq = string.split(t, ";")
                 int j = 0
-                while j < seq.length do
+                while j < seq.length
                     string stmt = trimP(string(seq[j]))
                     if string.len(stmt) > 0 then
                         var parsed = shParse(stmt)
@@ -5710,7 +5710,7 @@ func testSignals()
     bool hasSig = false
     PCB par = g_pcb[p3]
     int i = 0
-    while i < par.pendingSignals.length do
+    while i < par.pendingSignals.length
         if par.pendingSignals[i] == SIGCHLD then hasSig = true end
         i += 1
     end

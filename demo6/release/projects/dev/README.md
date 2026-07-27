@@ -59,7 +59,7 @@ powershell -ExecutionPolicy Bypass -File ..\..\..\tools\run_dev_selftests.ps1 -K
 - 输出：`print(args...)` 不加换行；`println(args...)` 加换行。参数间自动加空格。
 - 函数返回类型用 `as`，不是 `->`：`func f(int a) as int`。
 - 语句分隔：换行或 `;`。`()`/`[]`/`{}` 内可换行。
-- 控制流：`if ... then ... elseif ... else ... end`；`for x in ... ... end`（**无 `do`**）；`while cond do ... end`（**必须有 `do`**）；`do ... while cond`。
+- 控制流：`if ... then ... elseif ... else ... end`；`for x in ... ... end`；`while cond ... end`；`do ... while cond end`。
 - 类型：`var` = 动态类型；`auto` = 类型推断；无 `void`。
 - 容器：`[1,2,3]` = array；`{}` = dict；`array<int>[1,2,3]`/`set<int>{1,2}`/`list[0: 1]`/`dict<int>{"a":1}` 显式构造。
 - array 方法：`append/push/pop/insert/remove/removeValue/contains/indexOf/clear/reverse`，`array + array` 拼接。

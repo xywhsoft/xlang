@@ -6,6 +6,7 @@ static void xl6CgenForTypedContainerIterable(XL6_CgenContext* ctx, const XL6_Ast
     const char* typeName;
     int id;
     int ownsIter;
+    int loweredIter;
     int hasTaskScope;
     char iterName[64];
     size_t iterCleanupMark;
@@ -33,14 +34,28 @@ static void xl6CgenForTypedContainerIterable(XL6_CgenContext* ctx, const XL6_Ast
     ctx->indent += 1;
     iterCleanupMark = ctx->cleanupCount;
     hasTaskScope = iterable != NULL && xl6CgenTaskSpawnArgTempScopeBegin(ctx, iterable, &taskScope);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, iterableType), iterName);
-    xl6CgenExpr(ctx, iterable);
-    xl6OutputPuts(";\n", ctx->out);
+    loweredIter = iterable != NULL && xl6CgenDeclCanEmitCallArgTemp(ctx, iterableType, iterable);
+    if ( loweredIter ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s %s = 0;\n", xl6CgenTypedContainerCType(ctx, iterableType), iterName);
+        if ( !xl6CgenDeclEmitCallArgTemp(
+                 ctx,
+                 iterableType,
+                 xl6CgenTypedContainerCType(ctx, iterableType),
+                 iterName,
+                 iterable) ) {
+            xl6CgenError(ctx, iterable, "typed for-in iterable lowering failed");
+        }
+    } else {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, iterableType), iterName);
+        xl6CgenExpr(ctx, iterable);
+        xl6OutputPuts(";\n", ctx->out);
+    }
     if ( hasTaskScope ) {
         xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
     }
-    ownsIter = !xl6CgenExprUsesTypedContainerStorage(ctx, iterable);
+    ownsIter = loweredIter || !xl6CgenExprUsesTypedContainerStorage(ctx, iterable);
     if ( ownsIter ) {
         xl6CgenAddTypedContainerCleanup(ctx, iterName, iterableType);
     }

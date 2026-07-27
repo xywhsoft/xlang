@@ -128,7 +128,7 @@ func main(...) as int
     bool hasPos2 = false
 
     int i = 1
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "--no-symbols" then
             useSymbols = false

@@ -62,7 +62,7 @@ end
 func benchLoop(int n) as float
     float t0 = time.timer()
     int i = 0
-    while i < n do
+    while i < n
         i += 1
     end
     float t1 = time.timer()
@@ -74,7 +74,7 @@ func benchMath(int n) as float
     float acc = 0.0
     float t0 = time.timer()
     int i = 1
-    while i <= n do
+    while i <= n
         float fi = float(i)
         acc += math.sqrt(fi)
         acc = math.sin(acc) + math.cos(fi) + math.log(fi + 1.0)
@@ -89,7 +89,7 @@ func benchString(int n) as float
     string s = ""
     float t0 = time.timer()
     int i = 0
-    while i < n do
+    while i < n
         s = s + "x"
         i += 1
     end
@@ -102,7 +102,7 @@ func benchArray(int n) as float
     float t0 = time.timer()
     array<int> a
     int i = 0
-    while i < n do
+    while i < n
         a.append(i)
         i += 1
     end
@@ -116,7 +116,7 @@ func benchJson(int n) as float
     float acc = 0.0
     float t0 = time.timer()
     int i = 0
-    while i < n do
+    while i < n
         var doc = json.parse(sample)
         string outputValue = json.stringify(doc)
         acc += float(string.len(outputValue))

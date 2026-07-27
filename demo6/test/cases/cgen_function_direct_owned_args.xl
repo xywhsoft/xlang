@@ -3,7 +3,7 @@ extern "expect_i64" func expect(int actual, int expected)
 func repeatVar(func(var) as int callback, var value, int count) as int
     int total = 0
     int i = 0
-    while i < count do
+    while i < count
         total += callback(value)
         i += 1
     end

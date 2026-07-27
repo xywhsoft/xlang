@@ -61,7 +61,7 @@ array<int> FONT = array[
 func makeArray(int n, int initVal) as array<int>
     array<int> a = array[initVal]
     int i = 1
-    while i < n do
+    while i < n
         a.push(initVal)
         i += 1
     end
@@ -72,7 +72,7 @@ end
 func makeStrArray(int n) as array<string>
     array<string> a = array[""]
     int i = 1
-    while i < n do
+    while i < n
         a.push("")
         i += 1
     end
@@ -83,7 +83,7 @@ end
 func expandBytes(array<int> words) as array<int>
     array<int> outputValue = makeArray(words.length * 2, 0)
     int i = 0
-    while i < words.length do
+    while i < words.length
         outputValue[i * 2]     = (words[i] >> 8) & 0xFF
         outputValue[i * 2 + 1] = words[i] & 0xFF
         i += 1
@@ -138,7 +138,7 @@ class Chip8
     // Burn the standard font into low memory.
     func loadFont()
         int i = 0
-        while i < FONT_COUNT * FONT_BYTES do
+        while i < FONT_COUNT * FONT_BYTES
             self.memory[FONT_START + i] = FONT[i]
             i += 1
         end
@@ -147,7 +147,7 @@ class Chip8
     // CLS: blank the 64x32 framebuffer.
     func cls()
         int i = 0
-        while i < DISPLAY_SIZE do
+        while i < DISPLAY_SIZE
             self.gfx[i] = 0
             i += 1
         end
@@ -162,7 +162,7 @@ class Chip8
         int y0 = vy & 0x1F
         int collision = 0
         int row = 0
-        while row < n do
+        while row < n
             int py = y0 + row
             if py >= DISPLAY_H then
                 // clip rows below the screen
@@ -170,7 +170,7 @@ class Chip8
             end
             int spriteByte = self.memory[(self.I + row) & 0x0FFF]
             int col = 0
-            while col < 8 do
+            while col < 8
                 int px = x0 + col
                 if px >= DISPLAY_W then
                     // clip columns right of the screen
@@ -370,7 +370,7 @@ class Chip8
             elseif nn == 0x55 then
                 // LD [I], Vx (store V0..Vx; COSMAC VIP increments I)
                 int k = 0
-                while k <= x do
+                while k <= x
                     self.memory[(self.I + k) & 0x0FFF] = self.vregs[k]
                     k += 1
                 end
@@ -378,7 +378,7 @@ class Chip8
             elseif nn == 0x65 then
                 // LD Vx, [I] (load V0..Vx; COSMAC VIP increments I)
                 int k = 0
-                while k <= x do
+                while k <= x
                     self.vregs[k] = self.memory[(self.I + k) & 0x0FFF]
                     k += 1
                 end
@@ -401,7 +401,7 @@ class Chip8
     // Run up to maxCycles instructions. Stops early on halt.
     func run(int maxCycles)
         int n = 0
-        while n < maxCycles do
+        while n < maxCycles
             if not self.step() then
                 break
             end
@@ -413,10 +413,10 @@ class Chip8
     func render() as array<string>
         array<string> lines = makeStrArray(DISPLAY_H)
         int row = 0
-        while row < DISPLAY_H do
+        while row < DISPLAY_H
             string line = ""
             int col = 0
-            while col < DISPLAY_W do
+            while col < DISPLAY_W
                 if self.gfx[row * DISPLAY_W + col] == 1 then
                     line = line + "#"
                 else
@@ -447,7 +447,7 @@ func loadBytes(Chip8 cpu, array<int> prog)
         n = room
     end
     int i = 0
-    while i < n do
+    while i < n
         cpu.memory[PROG_START + i] = prog[i] & 0xFF
         i += 1
     end
@@ -461,7 +461,7 @@ func loadBuffer(Chip8 cpu, Buffer buf)
         n = room
     end
     int i = 0
-    while i < n do
+    while i < n
         cpu.memory[PROG_START + i] = buf.byteAt(i)
         i += 1
     end
@@ -587,7 +587,7 @@ func disasmBuffer(Buffer buf) as int
     int n = buf.len()
     int i = 0
     int addr = PROG_START
-    while i + 1 < n do
+    while i + 1 < n
         int op = (buf.byteAt(i) << 8) | buf.byteAt(i + 1)
         println(hexWord(addr) + ": " + hexWord(op) + "  " + decodeOp(op))
         i += 2
@@ -607,7 +607,7 @@ func printDisplay(Chip8 cpu)
     array<string> lines = cpu.render()
     println("+" + string.repeat("-", DISPLAY_W) + "+")
     int row = 0
-    while row < DISPLAY_H do
+    while row < DISPLAY_H
         println("|" + lines[row] + "|")
         row += 1
     end
@@ -618,7 +618,7 @@ end
 func dumpState(Chip8 cpu)
     string line = "V "
     int i = 0
-    while i < REG_COUNT do
+    while i < REG_COUNT
         line = line + hexByte(cpu.vregs[i]) + " "
         i += 1
     end
@@ -782,7 +782,7 @@ func testRnd() as bool
     bool okZero = true
     bool okRange = true
     int trial = 0
-    while trial < 50 do
+    while trial < 50
         // 0xC000  RND V0, 0x00   -> V0 always 0
         // 0xC1FF  RND V1, 0xFF   -> V1 in [0,255]
         // 0x1210  JP
@@ -998,7 +998,7 @@ func runDemo() as int
     //   y=15 -> cycles=152    y=22 -> cycles=222
     array<int> frameCycles = array[12, 82, 152, 222]
     int fi = 0
-    while fi < frameCycles.length do
+    while fi < frameCycles.length
         // fresh CPU each frame so we render at a deterministic y
         Chip8 cpu = Chip8()
         loadBytes(cpu, romBytes)
@@ -1026,7 +1026,7 @@ func looksInt(string s) as bool
             return false
         end
     end
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false

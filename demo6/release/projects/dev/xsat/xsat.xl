@@ -169,7 +169,7 @@ end
 func g_addClauseRaw(array<int> lits, int learnt) as int
     int cid = g_cl_off.length - 1
     int i = 0
-    while i < lits.length do
+    while i < lits.length
         g_cl_data.append(lits[i])
         i += 1
     end
@@ -250,14 +250,14 @@ end
 // (因为 ~p 现在为假, 这些子句的某个观察文字变假了).
 func g_propagate() as int
     g_conflict_cid = -1
-    while g_qhead < g_trail.length do
+    while g_qhead < g_trail.length
         int p = g_trail[g_qhead]
         g_qhead += 1
         int falseLit = p ^ 1
         // 取出 falseLit 的整条观察链, 后面重建.
         array<int> old = array[]
         int s = g_wc_head[falseLit]
-        while s != -1 do
+        while s != -1
             old.append(g_wc_cid[s])
             old.append(g_wc_blk[s])
             g_wc_free.push(s)
@@ -266,7 +266,7 @@ func g_propagate() as int
         g_wc_head[falseLit] = -1
 
         int i = 0
-        while i < old.length do
+        while i < old.length
             int cid = old[i]
             int blk = old[i + 1]
             i += 2
@@ -294,7 +294,7 @@ func g_propagate() as int
             int sz = g_cl_off[cid + 1] - off
             int k = 2
             bool found = false
-            while k < sz do
+            while k < sz
                 int lk = g_cl_data[off + k]
                 if g_value[lk] != -1 then
                     g_cl_data[off + 1] = lk
@@ -313,7 +313,7 @@ func g_propagate() as int
             if g_value[other] == -1 then
                 // 冲突: 保留剩余观察者后返回.
                 g_conflict_cid = cid
-                while i < old.length do
+                while i < old.length
                     if g_cl_dead[old[i]] == 0 then
                         g_watchAdd(falseLit, old[i], old[i + 1])
                     end
@@ -359,7 +359,7 @@ func g_analyze(int confl) as int
             start = 1
         end
         int j = start
-        while j < sz do
+        while j < sz
             int q = g_cl_data[off + j]
             j += 1
             int vq = q >> 1
@@ -377,7 +377,7 @@ func g_analyze(int confl) as int
             end
         end
         // 从 trail 末尾向前找下一个标记变量.
-        while index >= 0 and g_seen[g_trail[index] >> 1] == 0 do
+        while index >= 0 and g_seen[g_trail[index] >> 1] == 0
             index -= 1
         end
         p = g_trail[index]
@@ -385,11 +385,11 @@ func g_analyze(int confl) as int
         conflCur = g_reason[p >> 1]
         g_seen[p >> 1] = 0
         pathC -= 1
-    while pathC > 0
+    while pathC > 0 end
     g_learnt_cls[0] = p ^ 1              // 断言文字 = ~p (1-UIP 的否定)
     // 清除学习子句文字的 seen 标记.
     int i = 0
-    while i < g_learnt_cls.length do
+    while i < g_learnt_cls.length
         g_seen[g_learnt_cls[i] >> 1] = 0
         i += 1
     end
@@ -408,7 +408,7 @@ func g_cancelUntil(int level)
     end
     int lim = g_trail_lim[level]
     int i = g_trail.length - 1
-    while i >= lim do
+    while i >= lim
         int lit = g_trail[i]
         int v = lit >> 1
         g_phase[v] = lit & 1             // 相位保存
@@ -417,10 +417,10 @@ func g_cancelUntil(int level)
         g_reason[v] = -1
         i -= 1
     end
-    while g_trail.length > lim do
+    while g_trail.length > lim
         g_trail.pop()
     end
-    while g_trail_lim.length > level do
+    while g_trail_lim.length > level
         g_trail_lim.pop()
     end
     g_qhead = g_trail.length
@@ -434,7 +434,7 @@ func g_varBump(int v)
     if g_activity[v] > VAR_RESCALE then
         int i = 0
         int n = g_nvars
-        while i < n do
+        while i < n
             g_activity[i] = g_activity[i] * 1e-100
             i += 1
         end
@@ -454,7 +454,7 @@ func g_clauseBump(int cid)
     if g_cl_act[cid] > CL_RESCALE then
         int i = 0
         int nc = g_cl_off.length - 1
-        while i < nc do
+        while i < nc
             g_cl_act[i] = g_cl_act[i] * 1e-20
             i += 1
         end
@@ -476,7 +476,7 @@ func g_pickBranchVar() as int
     float bestAct = -1.0
     int v = 0
     int n = g_nvars
-    while v < n do
+    while v < n
         if g_value[2 * v + 1] == 0 then
             if g_activity[v] > bestAct then
                 bestAct = g_activity[v]
@@ -499,7 +499,7 @@ end
 func g_locked(int cid) as bool
     int v = 0
     int n = g_nvars
-    while v < n do
+    while v < n
         if g_reason[v] == cid then
             return true
         end
@@ -513,7 +513,7 @@ func g_reduceDB()
     array<int> ls = array[]
     int nc = g_cl_off.length - 1
     int cid = 0
-    while cid < nc do
+    while cid < nc
         if g_cl_learnt[cid] == 1 and g_cl_dead[cid] == 0 then
             ls.append(cid)
         end
@@ -522,11 +522,11 @@ func g_reduceDB()
     // 按活动度降序插入排序.
     int m = ls.length
     int i = 1
-    while i < m do
+    while i < m
         int key = ls[i]
         float keyAct = g_cl_act[key]
         int j = i - 1
-        while j >= 0 and g_cl_act[ls[j]] < keyAct do
+        while j >= 0 and g_cl_act[ls[j]] < keyAct
             ls[j + 1] = ls[j]
             j -= 1
         end
@@ -536,7 +536,7 @@ func g_reduceDB()
     int half = m / 2
     int removed = 0
     int idx = m - 1
-    while idx >= 0 and removed < half do
+    while idx >= 0 and removed < half
         int c2 = ls[idx]
         idx -= 1
         if not g_locked(c2) then
@@ -561,18 +561,18 @@ func g_preprocess()
     array<float> nact = array[]
     int nc = g_cl_off.length - 1
     int cid = 0
-    while cid < nc do
+    while cid < nc
         int off = g_cl_off[cid]
         int sz = g_cl_off[cid + 1] - off
         array<int> tmp = array[]
         bool taut = false
         int j = 0
-        while j < sz do
+        while j < sz
             int lit = g_cl_data[off + j]
             j += 1
             bool dup = false
             int k = 0
-            while k < tmp.length do
+            while k < tmp.length
                 if tmp[k] == lit then
                     dup = true
                     break
@@ -592,7 +592,7 @@ func g_preprocess()
         end
         if (not taut) and tmp.length > 0 then
             int kk = 0
-            while kk < tmp.length do
+            while kk < tmp.length
                 nd.append(tmp[kk])
                 kk += 1
             end
@@ -620,19 +620,19 @@ func g_pureLiteralElim()
     array<int> pos = array[]
     array<int> neg = array[]
     int i = 0
-    while i < n do
+    while i < n
         pos.append(0)
         neg.append(0)
         i += 1
     end
     int nc = g_cl_off.length - 1
     int cid = 0
-    while cid < nc do
+    while cid < nc
         if g_cl_dead[cid] == 0 then
             int off = g_cl_off[cid]
             int sz = g_cl_off[cid + 1] - off
             int j = 0
-            while j < sz do
+            while j < sz
                 int lit = g_cl_data[off + j]
                 int v = lit >> 1
                 if (lit & 1) == 1 then
@@ -647,12 +647,12 @@ func g_pureLiteralElim()
     end
     array<int> assign = array[]
     i = 0
-    while i < n do
+    while i < n
         assign.append(0)
         i += 1
     end
     i = 0
-    while i < n do
+    while i < n
         if pos[i] > 0 and neg[i] == 0 then
             assign[i] = 1
         elseif neg[i] > 0 and pos[i] == 0 then
@@ -662,13 +662,13 @@ func g_pureLiteralElim()
     end
     // 删除被纯文字满足的子句.
     cid = 0
-    while cid < nc do
+    while cid < nc
         if g_cl_dead[cid] == 0 then
             int off = g_cl_off[cid]
             int sz = g_cl_off[cid + 1] - off
             int j = 0
             bool sat = false
-            while j < sz do
+            while j < sz
                 int lit = g_cl_data[off + j]
                 int v = lit >> 1
                 int sign = lit & 1
@@ -701,32 +701,32 @@ func g_setup() as bool
     g_phase = array[]
     g_activity = array[]
     int i = 0
-    while i < 2 * n do
+    while i < 2 * n
         g_value.append(0)
         i += 1
     end
     i = 0
-    while i < n do
+    while i < n
         g_level.append(0)
         i += 1
     end
     i = 0
-    while i < n do
+    while i < n
         g_reason.append(-1)
         i += 1
     end
     i = 0
-    while i < n do
+    while i < n
         g_seen.append(0)
         i += 1
     end
     i = 0
-    while i < n do
+    while i < n
         g_phase.append(1)
         i += 1
     end
     i = 0
-    while i < n do
+    while i < n
         g_activity.append(0.0)
         i += 1
     end
@@ -741,7 +741,7 @@ func g_setup() as bool
     g_wc_head = array[]
     g_wc_free = array[]
     i = 0
-    while i < 2 * n do
+    while i < 2 * n
         g_wc_head.append(-1)
         i += 1
     end
@@ -759,7 +759,7 @@ func g_setup() as bool
     int nc = g_cl_off.length - 1
     int nclive = 0
     int cid = 0
-    while cid < nc do
+    while cid < nc
         if g_cl_dead[cid] == 0 then
             int off = g_cl_off[cid]
             int sz = g_cl_off[cid + 1] - off
@@ -776,7 +776,7 @@ func g_setup() as bool
     // 入队纯文字 (层级 0).
     if g_pure_assign.length == n then
         i = 0
-        while i < n do
+        while i < n
             if g_pure_assign[i] == 1 then
                 g_enqueue(2 * i + 1, -1)
             elseif g_pure_assign[i] == 2 then
@@ -788,7 +788,7 @@ func g_setup() as bool
 
     // 入队单元子句 (层级 0); 直接冲突则 UNSAT.
     cid = 0
-    while cid < nc do
+    while cid < nc
         if g_cl_dead[cid] == 0 then
             int off = g_cl_off[cid]
             int sz = g_cl_off[cid + 1] - off
@@ -825,7 +825,7 @@ func g_solve() as int
     if confl != -1 then
         return -1
     end
-    while true do
+    while true
         int branch = g_pickBranchVar()
         if branch == -1 then
             return 1                       // 全部变量已赋值 => SAT
@@ -833,7 +833,7 @@ func g_solve() as int
         g_newDecisionLevel()
         g_decisions += 1
         g_enqueue(branch, -1)
-        while true do
+        while true
             confl = g_propagate()
             if confl == -1 then
                 break
@@ -875,7 +875,7 @@ end
 // 按竞赛格式输出满足赋值: 每行 "v <sign><var>", 末行 "v 0".
 func g_printModel()
     int v = 0
-    while v < g_nvars do
+    while v < g_nvars
         int dim = v + 1
         if g_value[2 * v + 1] == 1 then
             println("v " + string(dim))
@@ -894,13 +894,13 @@ end
 func g_verifyModel() as bool
     int nc = g_cl_off.length - 1
     int cid = 0
-    while cid < nc do
+    while cid < nc
         if g_cl_learnt[cid] == 0 and g_cl_dead[cid] == 0 then
             int off = g_cl_off[cid]
             int sz = g_cl_off[cid + 1] - off
             bool sat = false
             int j = 0
-            while j < sz do
+            while j < sz
                 if g_value[g_cl_data[off + j]] == 1 then
                     sat = true
                     break
@@ -925,7 +925,7 @@ func parseDimacs(string content)
     array lines = string.splitLines(content)
     array<int> cur = array[]
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         string line = string(lines[i])
         i += 1
         string t = string.trim(line)
@@ -939,10 +939,10 @@ func parseDimacs(string content)
             // p cnf <vars> <clauses>
             array parts = string.split(t, " ")
             int pi = 0
-            while pi < parts.length do
+            while pi < parts.length
                 if parts[pi] == "cnf" then
                     pi += 1
-                    while pi < parts.length and parts[pi] == "" do
+                    while pi < parts.length and parts[pi] == ""
                         pi += 1
                     end
                     if pi < parts.length then
@@ -960,7 +960,7 @@ func parseDimacs(string content)
         // 子句行: 空白分隔的整数, 以 0 结束.
         array toks = string.split(t, " ")
         int j = 0
-        while j < toks.length do
+        while j < toks.length
             string tk = string.trim(string(toks[j]))
             j += 1
             if tk == "" then
@@ -1014,20 +1014,20 @@ func g_encodeQueens(int N)
     g_nvars = N * N
     // 行约束.
     int r = 0
-    while r < N do
+    while r < N
         // 至少一个.
         array<int> row = array[]
         int c = 0
-        while c < N do
+        while c < N
             row.append(posLit1(r * N + c + 1))
             c += 1
         end
         g_addClauseRaw(row, 0)
         // 至多一个 (两两互斥).
         int c1 = 0
-        while c1 < N do
+        while c1 < N
             int c2 = c1 + 1
-            while c2 < N do
+            while c2 < N
                 array<int> cl = array[]
                 cl.append(negLit1(r * N + c1 + 1))
                 cl.append(negLit1(r * N + c2 + 1))
@@ -1040,18 +1040,18 @@ func g_encodeQueens(int N)
     end
     // 列约束.
     int cc = 0
-    while cc < N do
+    while cc < N
         array<int> col = array[]
         int rr = 0
-        while rr < N do
+        while rr < N
             col.append(posLit1(rr * N + cc + 1))
             rr += 1
         end
         g_addClauseRaw(col, 0)
         int r1 = 0
-        while r1 < N do
+        while r1 < N
             int r2 = r1 + 1
-            while r2 < N do
+            while r2 < N
                 array<int> cl = array[]
                 cl.append(negLit1(r1 * N + cc + 1))
                 cl.append(negLit1(r2 * N + cc + 1))
@@ -1064,13 +1064,13 @@ func g_encodeQueens(int N)
     end
     // 对角线 (主/副) 两两互斥.
     int a = 0
-    while a < N do
+    while a < N
         int b = 0
-        while b < N do
+        while b < N
             int a2 = a + 1
-            while a2 < N do
+            while a2 < N
                 int b2 = 0
-                while b2 < N do
+                while b2 < N
                     if (a - b == a2 - b2) or (a + b == a2 + b2) then
                         array<int> cl = array[]
                         cl.append(negLit1(a * N + b + 1))
@@ -1090,9 +1090,9 @@ end
 // 打印 N 皇后棋盘 (Q/.).
 func g_printQueensBoard(int N)
     int r = 0
-    while r < N do
+    while r < N
         int c = 0
-        while c < N do
+        while c < N
             int lit = 2 * (r * N + c) + 1
             if g_value[lit] == 1 then
                 print("Q ")
@@ -1116,21 +1116,21 @@ func g_encodeSudoku(string puzzle)
     g_nvars = 9 * 9 * 9
     // 每格至少一个数字 + 至多一个数字.
     int r = 0
-    while r < 9 do
+    while r < 9
         int c = 0
-        while c < 9 do
+        while c < 9
             int base = (r * 9 + c) * 9
             array<int> atleast = array[]
             int d = 1
-            while d <= 9 do
+            while d <= 9
                 atleast.append(posLit1(base + d))
                 d += 1
             end
             g_addClauseRaw(atleast, 0)
             int d1 = 1
-            while d1 <= 9 do
+            while d1 <= 9
                 int d2 = d1 + 1
-                while d2 <= 9 do
+                while d2 <= 9
                     array<int> cl = array[]
                     cl.append(negLit1(base + d1))
                     cl.append(negLit1(base + d2))
@@ -1145,12 +1145,12 @@ func g_encodeSudoku(string puzzle)
     end
     // 行: 每个数字至少出现一次.
     int rr = 0
-    while rr < 9 do
+    while rr < 9
         int d = 1
-        while d <= 9 do
+        while d <= 9
             array<int> cl = array[]
             int cc = 0
-            while cc < 9 do
+            while cc < 9
                 cl.append(posLit1((rr * 9 + cc) * 9 + d))
                 cc += 1
             end
@@ -1161,12 +1161,12 @@ func g_encodeSudoku(string puzzle)
     end
     // 列: 每个数字至少出现一次.
     int cc2 = 0
-    while cc2 < 9 do
+    while cc2 < 9
         int d = 1
-        while d <= 9 do
+        while d <= 9
             array<int> cl = array[]
             int r3 = 0
-            while r3 < 9 do
+            while r3 < 9
                 cl.append(posLit1((r3 * 9 + cc2) * 9 + d))
                 r3 += 1
             end
@@ -1177,16 +1177,16 @@ func g_encodeSudoku(string puzzle)
     end
     // 宫: 每个数字至少出现一次.
     int br = 0
-    while br < 3 do
+    while br < 3
         int bc = 0
-        while bc < 3 do
+        while bc < 3
             int d = 1
-            while d <= 9 do
+            while d <= 9
                 array<int> cl = array[]
                 int dr = 0
-                while dr < 3 do
+                while dr < 3
                     int dc = 0
-                    while dc < 3 do
+                    while dc < 3
                         int r4 = br * 3 + dr
                         int c4 = bc * 3 + dc
                         cl.append(posLit1((r4 * 9 + c4) * 9 + d))
@@ -1203,7 +1203,7 @@ func g_encodeSudoku(string puzzle)
     end
     // 题面: 已知数字作单元子句.
     int idx = 0
-    while idx < 81 do
+    while idx < 81
         int digit = int(string.charAt(puzzle, idx))
         if digit >= 1 and digit <= 9 then
             int r5 = idx / 9
@@ -1219,12 +1219,12 @@ end
 // 打印数独解 (从 SAT 模型解码每格数字).
 func g_printSudokuSolution()
     int r = 0
-    while r < 9 do
+    while r < 9
         int c = 0
-        while c < 9 do
+        while c < 9
             int d = 1
             int found = 0
-            while d <= 9 do
+            while d <= 9
                 int lit = 2 * ((r * 9 + c) * 9 + (d - 1)) + 1
                 if g_value[lit] == 1 then
                     found = d
@@ -1250,12 +1250,12 @@ end
 func g_verifySudoku(string puzzle) as bool
     array<int> grid = array[]
     int r = 0
-    while r < 9 do
+    while r < 9
         int c = 0
-        while c < 9 do
+        while c < 9
             int d = 1
             int found = 0
-            while d <= 9 do
+            while d <= 9
                 int lit = 2 * ((r * 9 + c) * 9 + (d - 1)) + 1
                 if g_value[lit] == 1 then
                     found = d
@@ -1270,7 +1270,7 @@ func g_verifySudoku(string puzzle) as bool
     end
     // 题面一致.
     int i = 0
-    while i < 81 do
+    while i < 81
         int given = int(string.charAt(puzzle, i))
         if given >= 1 and given <= 9 then
             if grid[i] != given then
@@ -1281,15 +1281,15 @@ func g_verifySudoku(string puzzle) as bool
     end
     // 行.
     r = 0
-    while r < 9 do
+    while r < 9
         array<int> seen = array[]
         int k = 0
-        while k < 10 do
+        while k < 10
             seen.append(0)
             k += 1
         end
         int c = 0
-        while c < 9 do
+        while c < 9
             int d = grid[r * 9 + c]
             if d < 1 or d > 9 then
                 return false
@@ -1304,15 +1304,15 @@ func g_verifySudoku(string puzzle) as bool
     end
     // 列.
     int c2 = 0
-    while c2 < 9 do
+    while c2 < 9
         array<int> seen = array[]
         int k = 0
-        while k < 10 do
+        while k < 10
             seen.append(0)
             k += 1
         end
         int rr = 0
-        while rr < 9 do
+        while rr < 9
             int d = grid[rr * 9 + c2]
             if seen[d] == 1 then
                 return false
@@ -1324,19 +1324,19 @@ func g_verifySudoku(string puzzle) as bool
     end
     // 宫.
     int br = 0
-    while br < 3 do
+    while br < 3
         int bc = 0
-        while bc < 3 do
+        while bc < 3
             array<int> seen = array[]
             int k = 0
-            while k < 10 do
+            while k < 10
                 seen.append(0)
                 k += 1
             end
             int dr = 0
-            while dr < 3 do
+            while dr < 3
                 int dc = 0
-                while dc < 3 do
+                while dc < 3
                     int d = grid[(br * 3 + dr) * 9 + (bc * 3 + dc)]
                     if seen[d] == 1 then
                         return false
@@ -1358,12 +1358,12 @@ func cleanPuzzle(string raw) as string
     array lines = string.splitLines(raw)
     string outputValue = ""
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         string ln = string(lines[i])
         i += 1
         int j = 0
         int L = string.len(ln)
-        while j < L do
+        while j < L
             int b = string.byteAt(ln, j)
             if b >= 48 and b <= 57 then
                 outputValue = outputValue + string.charAt(ln, j)
@@ -1377,9 +1377,9 @@ end
 // 打印原始题面网格 (0 显示为 .).
 func g_printPuzzleGrid(string puzzle)
     int r = 0
-    while r < 9 do
+    while r < 9
         int c = 0
-        while c < 9 do
+        while c < 9
             string ch = string.charAt(puzzle, r * 9 + c)
             if ch == "0" then
                 print(". ")

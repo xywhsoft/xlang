@@ -765,6 +765,34 @@ static int xl6CgenClassProtocolBinaryAvailable(XL6_CgenContext* ctx, const XL6_A
     return result;
 }
 
+static int xl6CgenExprResolvesToClass(XL6_CgenContext* ctx, const XL6_AstNode* expr)
+{
+    XL6_AstNode* ownedType;
+    const XL6_AstNode* concreteType;
+    int result;
+
+    ownedType = xl6CgenCloneExprTypeForInference(ctx, expr);
+    concreteType = xl6CgenResolveAliasType(ctx, ownedType);
+    if ( xl6CgenClassHandleTargetType(ctx, concreteType) != NULL ) {
+        concreteType = xl6CgenClassHandleTargetType(ctx, concreteType);
+    }
+    result = concreteType != NULL &&
+             concreteType->text != NULL &&
+             xl6CgenFindClass(ctx, concreteType->text) != NULL;
+    xl6AstFree(ownedType);
+    return result;
+}
+
+static int xl6CgenBinaryOperatorIsArithmetic(const char* op)
+{
+    return xl6CTextEquals(op, "+") ||
+           xl6CTextEquals(op, "-") ||
+           xl6CTextEquals(op, "*") ||
+           xl6CTextEquals(op, "/") ||
+           xl6CTextEquals(op, "%") ||
+           xl6CTextEquals(op, "**");
+}
+
 static int xl6CgenClassProtocolBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* receiver;
@@ -799,6 +827,18 @@ static int xl6CgenClassProtocolBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNod
          !xl6CgenResolveClassProtocolReceiverForCall(ctx, receiver, protocolName, protocolCall, &classNode, &ownerClass, &method, &receiverType) ) {
         xl6CgenProtocolTempCallFree(protocolCall);
         if ( xl6CgenClassAutoEqualsBinaryExpr(ctx, receiver, arg, protocolName) ) {
+            return 1;
+        }
+
+        /*
+            class 运算只能由对应协议实现。这里必须截住 class handle，
+            不能让它继续落入普通 C 运算符生成路径。
+        */
+        if ( xl6CgenBinaryOperatorIsArithmetic(node->text) &&
+             (xl6CgenExprResolvesToClass(ctx, receiver) ||
+              xl6CgenExprResolvesToClass(ctx, arg)) ) {
+            xl6CgenError(ctx, node, "class operator requires matching protocol method");
+            xl6OutputPuts("0", ctx->out);
             return 1;
         }
         return 0;

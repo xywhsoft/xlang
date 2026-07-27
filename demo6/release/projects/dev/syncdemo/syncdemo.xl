@@ -71,7 +71,7 @@ const int SEM_ITEMS = 5
 // consumer's blocking wait() actually has to block between posts.
 auto g_semProducer = func() as int
     int i = 0
-    while i < SEM_ITEMS do
+    while i < SEM_ITEMS
         g_semGate.post()
         g_semAux.lock()
         g_semProduced = g_semProduced + 1
@@ -133,7 +133,7 @@ func runSem()
     g_semProduced = 0
     thread prod = thread(g_semProducer)
     int consumed = 0
-    while consumed < SEM_ITEMS do
+    while consumed < SEM_ITEMS
         g_semGate.wait()
         consumed = consumed + 1
     end
@@ -155,7 +155,7 @@ int g_condWoke = 0       // waiters that observed the flag and awoke (under mute
 auto g_condWaiter = func() as int
     g_condMutex.lock()
     g_condParked = g_condParked + 1
-    while g_condFlag == 0 do
+    while g_condFlag == 0
         g_cond.wait(g_condMutex)
     end
     g_condWoke = g_condWoke + 1
@@ -166,7 +166,7 @@ end
 // spin (under the mutex) until n waiters report parked.
 func waitForParked(int n) as bool
     int tries = 0
-    while tries < 500 do
+    while tries < 500
         g_condMutex.lock()
         bool ready = g_condParked >= n
         g_condMutex.unlock()
@@ -255,7 +255,7 @@ end
 auto g_rwWriterProbe = func() as int
     int fails = 0
     bool got = false
-    while fails < 300 do
+    while fails < 300
         if g_rwWriter.tryReadLock() then
             got = true
             break

@@ -450,9 +450,14 @@ if errorlevel 1 (
     echo cgen_closure_ownership.c missing static typed-container capture storage.
     exit /b 1
 )
-findstr /C:"__env->values = xl6_xrt_typed_array_copy_mode" build\test\cgen_closure_ownership.c >nul
+findstr /C:"xtarray __xl6_shared_values = xrtTypedArrayMoveToShared((*values));" build\test\cgen_closure_ownership.c >nul
 if errorlevel 1 (
-    echo cgen_closure_ownership.c missing shared typed-container capture copy.
+    echo cgen_closure_ownership.c missing shared typed-container capture promotion.
+    exit /b 1
+)
+findstr /C:"__env->values = xrtTypedArrayRetain(__xl6_shared_values);" build\test\cgen_closure_ownership.c >nul
+if errorlevel 1 (
+    echo cgen_closure_ownership.c missing shared typed-container capture retain.
     exit /b 1
 )
 findstr /C:"__env->prefix = xrtCopyStr(prefix, 0u);" build\test\cgen_closure_ownership.c >nul
@@ -521,7 +526,7 @@ if errorlevel 1 (
     echo cgen_string_value_ownership.c missing generator string value copy.
     exit /b 1
 )
-findstr /C:"xrtFree((void*)globalText);" build\test\cgen_string_value_ownership.c >nul
+findstr /C:"xrtFree((void*)__xl6_user_global_globalText);" build\test\cgen_string_value_ownership.c >nul
 if errorlevel 1 (
     echo cgen_string_value_ownership.c missing module string cleanup.
     exit /b 1
@@ -602,5 +607,32 @@ if errorlevel 1 (
 
 
 
+release\xl.exe run test\cases\operators_int_literal_forms.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\operators_pow_int_bounds.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\type_int_minmax_bounds.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\type_int_narrowing_wrap.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\type_mixed_int_arith_infer.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\runtime_uint_small_print.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_toplevel_typed_func_value.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_global_symbol_names.xl
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\runtime_uint64_large_print.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_toplevel_auto_anonymous_func.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_local_macro_identifier.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\runtime_int_division_zero.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\anonymous_functions.xl
+if errorlevel 1 exit /b 1
 echo DEMO6 suite ok: core C generation and runtime baseline 10/10
 exit /b 0

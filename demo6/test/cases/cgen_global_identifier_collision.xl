@@ -1,0 +1,47 @@
+point ptr = null
+string xrtFree = "before"
+var xvoUnref = 7
+array<int> xrtTypedArrayDestroy = [1, 2]
+channel<int> xrtChannelSend = channel::<int>(2)
+int code = 100
+
+func increment(int value) as int
+    return value + 1
+end
+
+func(int) as int xrtCall = increment
+
+func makeCode(int code) as func() as int
+    return func() as int
+        return code
+    end
+end
+
+func() as int xrtWorker = makeCode(23)
+
+func globalPointerIsNull() as bool
+    return ptr == null
+end
+
+func localPointerIsNull(point ptr) as bool
+    return ptr == null
+end
+
+func main(...) as int
+    assert globalPointerIsNull()
+    assert localPointerIsNull(ptr)
+    xrtFree = "after"
+    xvoUnref = 8
+    xrtTypedArrayDestroy.append(3)
+    xrtChannelSend.send(11)
+    int received = 0
+    xrtChannelSend.recvInto(received)
+    assert xrtFree == "after"
+    assert xvoUnref == 8
+    assert xrtTypedArrayDestroy.length == 3
+    assert received == 11
+    assert xrtCall(9) == 10
+    assert xrtWorker() == 23
+    assert code == 100
+    return 0
+end

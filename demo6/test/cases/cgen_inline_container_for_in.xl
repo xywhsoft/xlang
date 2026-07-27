@@ -1,0 +1,15 @@
+// 直接遍历普通与显式泛型容器字面量。
+
+int dynamicSum = 0
+for value in array[1, 2, 3]
+    dynamicSum += value
+end
+assert dynamicSum == 6, "untyped array literal for-in failed"
+
+int typedSum = 0
+for value in array<int>[4, 5, 6]
+    typedSum += value
+end
+assert typedSum == 15, "typed array literal for-in failed"
+
+println("inline container for-in ok")

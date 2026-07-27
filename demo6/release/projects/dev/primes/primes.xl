@@ -27,7 +27,7 @@ func isPrime(int64 n) as bool
     end
     int64 i = 5
     int64 sq = i * i
-    while sq <= n do
+    while sq <= n
         if n % i == 0 then
             return false
         end
@@ -45,7 +45,7 @@ end
 func primeStream(int limit) as generator<int64>
     int count = 0
     int64 candidate = 2
-    while count < limit do
+    while count < limit
         if isPrime(candidate) then
             count += 1
             yield candidate
@@ -59,14 +59,14 @@ func factorize(int64 n) as array<int64>
     array<int64> result = array[]
     int64 x = n
     int64 d = 2
-    while x % d == 0 do
+    while x % d == 0
         result.append(d)
         x = x / d
     end
     d = 3
     int64 dsq = d * d
-    while dsq <= x do
-        while x % d == 0 do
+    while dsq <= x
+        while x % d == 0
             result.append(d)
             x = x / d
         end
@@ -141,7 +141,7 @@ func main(...) as int
         array<int64> fs = factorize(n)
         print(n, "= ")
         int i = 0
-        while i < fs.length do
+        while i < fs.length
             if i > 0 then
                 print(" * ")
             end
@@ -166,7 +166,7 @@ func main(...) as int
         end
         int cnt = 0
         int64 k = a
-        while k <= b do
+        while k <= b
             if isPrime(k) then
                 print(k)
                 print(" ")

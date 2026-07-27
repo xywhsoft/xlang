@@ -118,7 +118,7 @@ array<int> g_image = array[]          // 64 KiB assembled output image
 func makeIntArray(int n, int v) as array<int>
     array<int> a = array[v]
     int i = 1
-    while i < n do
+    while i < n
         a.push(v)
         i += 1
     end
@@ -128,7 +128,7 @@ end
 func makeStrArray(int n, string v) as array<string>
     array<string> a = array[v]
     int i = 1
-    while i < n do
+    while i < n
         a.push(v)
         i += 1
     end
@@ -630,7 +630,7 @@ func reset()
     ensureTable()
     ensureMem()
     int i = 0
-    while i < MEM_SIZE do
+    while i < MEM_SIZE
         g_mem[i] = 0
         i += 1
     end
@@ -893,7 +893,7 @@ end
 // Run up to `maxCycles` instructions or until BRK stops the run loop.
 func run(int maxCycles)
     int n = 0
-    while n < maxCycles and g_running do
+    while n < maxCycles and g_running
         step()
         n += 1
     end
@@ -937,7 +937,7 @@ func dumpState()
     // Dump the first 16 bytes of zero page for a quick sanity view.
     string line = "ZP:"
     int i = 0
-    while i < 16 do
+    while i < 16
         line = line + " " + hex2(g_mem[i])
         i += 1
     end
@@ -1008,7 +1008,7 @@ func parseNumber(string s) as int
             return 0
         end
         int v = 0
-        while j < n do
+        while j < n
             int ch = string.byteAt(s, j)
             if not isHexByte(ch) then
                 return 0
@@ -1026,7 +1026,7 @@ func parseNumber(string s) as int
             return 0
         end
         int v = 0
-        while j < n do
+        while j < n
             int ch = string.byteAt(s, j)
             if ch != 48 and ch != 49 then
                 return 0
@@ -1048,7 +1048,7 @@ func parseNumber(string s) as int
         return 0
     end
     int v = 0
-    while j < n do
+    while j < n
         int ch = string.byteAt(s, j)
         if not isDecByte(ch) then
             return 0
@@ -1256,7 +1256,7 @@ end
 // Find the opcode byte for a (mnemonic, mode) pair, or -1 if illegal.
 func findOpcode(string mn, int mode) as int
     int i = 0
-    while i < 256 do
+    while i < 256
         if OPN[i] == mn and OPM[i] == mode then
             return i
         end
@@ -1320,7 +1320,7 @@ func parseLine(string line) as bool
     if isIdentStart(string.byteAt(line, 0)) then
         int k = 0
         int ln = string.len(line)
-        while k < ln and isIdent(string.byteAt(line, k)) do
+        while k < ln and isIdent(string.byteAt(line, k))
             k += 1
         end
         if k < ln and string.byteAt(line, k) == 58 then
@@ -1381,7 +1381,7 @@ func splitItems(string s) as array<string>
     array<string> outputValue = array[]
     array parts = string.split(s, ",")
     int i = 0
-    while i < parts.length do
+    while i < parts.length
         string t = string.trim(string(parts[i]))
         if t != "" then
             outputValue.push(t)
@@ -1444,7 +1444,7 @@ func assemble(string src) as int
     // ---- Pass 1: collect labels and compute instruction sizes ----
     int addr = 0
     int li = 0
-    while li < rawLines.length do
+    while li < rawLines.length
         bool hasContent = parseLine(string(rawLines[li]))
         if hasContent then
             if g_lineLabel != "" then
@@ -1475,13 +1475,13 @@ func assemble(string src) as int
     int maxAddr = 0
     addr = 0
     li = 0
-    while li < rawLines.length and not g_asmError do
+    while li < rawLines.length and not g_asmError
         parseLine(string(rawLines[li]))
         if g_lineDirKind == 1 then
             addr = evalValue(g_lineOp)
         elseif g_lineDirKind == 2 then
             int k = 0
-            while k < g_lineItems.length do
+            while k < g_lineItems.length
                 int bv = evalValue(string(g_lineItems[k])) & 0xFF
                 g_image[addr] = bv
                 if addr + 1 > maxAddr then
@@ -1492,7 +1492,7 @@ func assemble(string src) as int
             end
         elseif g_lineDirKind == 3 then
             int k = 0
-            while k < g_lineItems.length do
+            while k < g_lineItems.length
                 int wv = evalValue(string(g_lineItems[k])) & 0xFFFF
                 g_image[addr] = wv & 0xFF
                 g_image[addr + 1] = (wv >> 8) & 0xFF
@@ -1506,7 +1506,7 @@ func assemble(string src) as int
             int bl = asciiLen(g_lineOp)
             string lit = string.slice(g_lineOp, 1, asciiLen(g_lineOp))
             int k = 0
-            while k < bl do
+            while k < bl
                 g_image[addr + k] = string.byteAt(lit, k)
                 k += 1
             end
@@ -1613,7 +1613,7 @@ end
 func disassembleImage(array<int> mem, int memLen) as int
     ensureTable()
     int pc = 0
-    while pc < memLen do
+    while pc < memLen
         int opcode = mem[pc]
         string mn = OPN[opcode]
         int mode = OPM[opcode]
@@ -1632,7 +1632,7 @@ func disassembleImage(array<int> mem, int memLen) as int
             bytesCol = bytesCol + " " + hex2(fetchAt(mem, memLen, pc + 2))
         end
         // Pad bytes column to a fixed width for alignment.
-        while string.len(bytesCol) < 8 do
+        while string.len(bytesCol) < 8
             bytesCol = bytesCol + " "
         end
         string opText = formatOperand(mem, memLen, pc, mode)
@@ -1654,12 +1654,12 @@ func loadImage(string path) as int
     int n = buf.len()
     ensureMem()
     int i = 0
-    while i < MEM_SIZE do
+    while i < MEM_SIZE
         g_mem[i] = 0
         i += 1
     end
     i = 0
-    while i < n and i < MEM_SIZE do
+    while i < n and i < MEM_SIZE
         g_mem[i] = buf.byteAt(i)
         i += 1
     end
@@ -1670,7 +1670,7 @@ end
 func writeImage(string path, int len) as bool
     Buffer buf = Buffer()
     int i = 0
-    while i < len do
+    while i < len
         buf.appendByte(g_image[i] & 0xFF)
         i += 1
     end
@@ -1742,7 +1742,7 @@ func cmdDisasm(string path) as int
     end
     array<int> img = makeIntArray(n, 0)
     int i = 0
-    while i < n do
+    while i < n
         img[i] = buf.byteAt(i)
         i += 1
     end
@@ -1768,12 +1768,12 @@ func runProgram(array<int> prog, int maxCycles)
     ensureTable()
     ensureMem()
     int i = 0
-    while i < MEM_SIZE do
+    while i < MEM_SIZE
         g_mem[i] = 0
         i += 1
     end
     i = 0
-    while i < prog.length do
+    while i < prog.length
         g_mem[i] = prog[i] & 0xFF
         i += 1
     end
@@ -2087,12 +2087,12 @@ func testAssembler() as bool
     // Copy the assembled image into memory and run.
     ensureMem()
     int i = 0
-    while i < MEM_SIZE do
+    while i < MEM_SIZE
         g_mem[i] = 0
         i += 1
     end
     i = 0
-    while i < len do
+    while i < len
         g_mem[i] = g_image[i]
         i += 1
     end
@@ -2110,7 +2110,7 @@ func testAssembler() as bool
     // Disassemble the produced image without erroring.
     array<int> img = makeIntArray(len, 0)
     i = 0
-    while i < len do
+    while i < len
         img[i] = g_image[i]
         i += 1
     end
@@ -2176,7 +2176,7 @@ func looksInt(string s) as bool
             return false
         end
     end
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false

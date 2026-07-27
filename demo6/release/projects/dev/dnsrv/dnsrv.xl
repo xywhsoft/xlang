@@ -230,7 +230,7 @@ func writeName(Buffer buf, string name)
         if lbLen > 255 then lbLen = 255 end
         buf.appendByte(lbLen)
         int j = 0
-        while j < lbLen do
+        while j < lbLen
             buf.appendByte(int(labelBytes[j]))
             j += 1
         end
@@ -244,7 +244,7 @@ func readName(Buffer buf, int offset) as (string, int)
     bool jumped = false
     int afterPtr = offset
     int safety = 0
-    while safety < 128 do
+    while safety < 128
         safety += 1
         if pos < 0 or pos >= buf.len() then break end
         int b = buf.byteAt(pos)
@@ -266,7 +266,7 @@ func readName(Buffer buf, int offset) as (string, int)
             if name != "" then name = name + "." end
             Buffer lbl = Buffer()
             int j = 0
-            while j < labelLen do
+            while j < labelLen
                 lbl.appendByte(buf.byteAt(pos + j))
                 j += 1
             end
@@ -285,7 +285,7 @@ func writeIPv4(Buffer buf, string ip) as bool
     array parts = string.split(ip, ".")
     if parts.length != 4 then return false end
     int i = 0
-    while i < 4 do
+    while i < 4
         int octet = int(string(parts[i]))
         if octet < 0 or octet > 255 then return false end
         buf.appendByte(octet)
@@ -314,7 +314,7 @@ func writeTxt(Buffer buf, string txt)
     if len > 255 then len = 255 end
     buf.appendByte(len)
     int j = 0
-    while j < len do
+    while j < len
         buf.appendByte(int(txtBytes[j]))
         j += 1
     end
@@ -353,7 +353,7 @@ func writeAnswerRecord(Buffer buf, int rtype, int ttl, string rdata)
 
     // RDATA bytes
     int i = 0
-    while i < rd.len() do
+    while i < rd.len()
         buf.appendByte(rd.byteAt(i))
         i += 1
     end
@@ -501,7 +501,7 @@ func handleQuery(Buffer req, Buffer resp)
 
     // Copy answer bytes
     int i = 0
-    while i < answers.len() do
+    while i < answers.len()
         resp.appendByte(answers.byteAt(i))
         i += 1
     end
@@ -509,7 +509,7 @@ func handleQuery(Buffer req, Buffer resp)
     // Store in cache (everything after the 2-byte ID)
     var cacheArr = []
     int ci = 2
-    while ci < resp.len() do
+    while ci < resp.len()
         cacheArr.append(resp.byteAt(ci))
         ci += 1
     end
@@ -554,7 +554,7 @@ func parseAndPrintResponse(Buffer buf)
     // Skip question section
     int pos = 12
     int qi = 0
-    while qi < qd do
+    while qi < qd
         string qName
         int afterQ
         qName, afterQ = readName(buf, pos)
@@ -569,7 +569,7 @@ func parseAndPrintResponse(Buffer buf)
 
     println("answers:")
     int ai = 0
-    while ai < an do
+    while ai < an
         string aName
         int afterAName
         aName, afterAName = readName(buf, pos)
@@ -603,12 +603,12 @@ func parseAndPrintResponse(Buffer buf)
             int tip = rdataStart
             int tend = rdataStart + aRdlen
             string txt = ""
-            while tip < tend do
+            while tip < tend
                 int slen = buf.byteAt(tip)
                 tip += 1
                 Buffer tb = Buffer()
                 int tj = 0
-                while tj < slen and tip < tend do
+                while tj < slen and tip < tend
                     tb.appendByte(buf.byteAt(tip))
                     tip += 1
                     tj += 1
@@ -635,7 +635,7 @@ end
 func serverLoop(UdpSocket sock, int maxRequests, int timeoutMs) as int
     int count = 0
     int idleRounds = 0
-    while maxRequests <= 0 or count < maxRequests do
+    while maxRequests <= 0 or count < maxRequests
         point pktHandle = sock.recv(timeoutMs)
         if pktHandle == ZERO then
             if maxRequests > 0 then
@@ -721,7 +721,7 @@ func dnsCheckAData(Buffer resp, int answerIdx, string expectedIP, string label) 
     // skip question
     int pos = 12
     int qi = 0
-    while qi < qd do
+    while qi < qd
         string _
         int afterQ
         _, afterQ = readName(resp, pos)
@@ -731,7 +731,7 @@ func dnsCheckAData(Buffer resp, int answerIdx, string expectedIP, string label) 
 
     // skip to desired answer
     int ai = 0
-    while ai <= answerIdx do
+    while ai <= answerIdx
         string aName
         int afterAName
         aName, afterAName = readName(resp, pos)

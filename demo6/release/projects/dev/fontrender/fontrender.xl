@@ -65,7 +65,7 @@ func initFont()
     end
 
     int i = 0
-    while i < 7 do
+    while i < 7
         gBlank.append("     ")
         i = i + 1
     end
@@ -537,7 +537,7 @@ func parseArgInt(string s, int defValue) as int
         end
     end
     int i = start
-    while i < string.len(s) do
+    while i < string.len(s)
         string ch = string.slice(s, i, 1)
         if string.indexOf("0123456789", ch) < 0 then
             return defValue
@@ -580,7 +580,7 @@ func loadGlyph(string ch) as array<string>
     array<string> outputValue = array[]
     int i = 0
     int n = src.length
-    while i < n do
+    while i < n
         outputValue.append(string(src[i]))
         i += 1
     end
@@ -592,14 +592,14 @@ func renderText(string text, int scale) as array<string>
     int rowTotal = 7 * scale
     array<string> lines = array[]
     int r = 0
-    while r < rowTotal do
+    while r < rowTotal
         lines.append("")
         r = r + 1
     end
 
     int ci = 0
     int n = string.len(text)
-    while ci < n do
+    while ci < n
         string raw = string.charAt(text, ci)
         string ch = string.upper(raw)
         array<string> glyph
@@ -611,15 +611,15 @@ func renderText(string text, int scale) as array<string>
 
         // 把字形按 scale 缩放追加到每一行
         int outRow = 0
-        while outRow < rowTotal do
+        while outRow < rowTotal
             int srcRow = outRow / scale
             string srcLine = glyph[srcRow]
             string acc = lines[outRow]
             int col = 0
-            while col < 5 do
+            while col < 5
                 string pixel = string.charAt(srcLine, col)
                 int rep = 0
-                while rep < scale do
+                while rep < scale
                     acc = acc + pixel
                     rep = rep + 1
                 end
@@ -631,10 +631,10 @@ func renderText(string text, int scale) as array<string>
 
         // 字符间隔（scale 列空格）
         int or2 = 0
-        while or2 < rowTotal do
+        while or2 < rowTotal
             string acc2 = lines[or2]
             int rep = 0
-            while rep < scale do
+            while rep < scale
                 acc2 = acc2 + " "
                 rep = rep + 1
             end
@@ -653,7 +653,7 @@ end
 func maxWidthOf(array<string> lines) as int
     int w = 0
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         int lw = string.len(lines[i])
         if lw > w then
             w = lw
@@ -670,7 +670,7 @@ end
 func applyAlign(array<string> lines, int targetWidth, string align) as array<string>
     array<string> outputValue = array[]
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         string line = lines[i]
         int lw = string.len(line)
         int pad = targetWidth - lw
@@ -694,7 +694,7 @@ end
 // 打印行数组（每行一条 println）。
 func printLines(array<string> lines)
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         println(lines[i])
         i = i + 1
     end
@@ -740,7 +740,7 @@ func cmdBanner(string text) as int
 
     // 内容行：| <居中文本> |
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         string line = lines[i]
         int lw = string.len(line)
         int pad = w - lw
@@ -803,10 +803,10 @@ func cmdTest() as int
     bool widthOk = true
     array<string> keysToCheck = array["A", "B", "M", "W", "0", "5", " ", ".", "?", "/"]
     int ki = 0
-    while ki < keysToCheck.length do
+    while ki < keysToCheck.length
         array<string> g = loadGlyph(keysToCheck[ki])
         int ri = 0
-        while ri < g.length do
+        while ri < g.length
             if string.len(g[ri]) != 5 then
                 widthOk = false
             end
@@ -941,7 +941,7 @@ func main(...) as int
             string align = "left"
             int width = 0
             int i = 2
-            while i < arg.length do
+            while i < arg.length
                 string a = string(arg[i])
                 int eq = string.indexOf(a, "=")
                 if eq >= 0 then
@@ -973,7 +973,7 @@ func main(...) as int
             string text = ""
             bool hasText = false
             int i = 2
-            while i < arg.length do
+            while i < arg.length
                 string a = string(arg[i])
                 if not hasText then
                     text = a

@@ -182,10 +182,10 @@ func fmtF(float v) as string
         return string(wplus)
     end
     string fracS = string(scaled)
-    while string.len(fracS) < 6 do
+    while string.len(fracS) < 6
         fracS = "0" + fracS
     end
-    while string.len(fracS) > 1 do
+    while string.len(fracS) > 1
         int L = string.len(fracS)
         string last = string.slice(fracS, L - 1, 1)
         if last != "0" then
@@ -217,7 +217,7 @@ func fmtN(float v, int n) as string
     int64 whole = scaled / int64(mul)
     int64 frac = scaled - whole * int64(mul)
     string fracS = string(frac)
-    while string.len(fracS) < n do
+    while string.len(fracS) < n
         fracS = "0" + fracS
     end
     return string(whole) + "." + fracS
@@ -346,13 +346,13 @@ class Tensor
 
     create(array<int> shp)
         int k = 0
-        while k < shp.length do
+        while k < shp.length
             self.shape.append(shp[k])
             k += 1
         end
         self.recomputeMeta()
         int j = 0
-        while j < self.numel do
+        while j < self.numel
             self.data.append(0.0)
             j += 1
         end
@@ -362,7 +362,7 @@ class Tensor
         self.shape.append(n)
         self.recomputeMeta()
         int j = 0
-        while j < self.numel do
+        while j < self.numel
             self.data.append(0.0)
             j += 1
         end
@@ -373,7 +373,7 @@ class Tensor
         self.shape.append(cols)
         self.recomputeMeta()
         int j = 0
-        while j < self.numel do
+        while j < self.numel
             self.data.append(0.0)
             j += 1
         end
@@ -384,7 +384,7 @@ class Tensor
         self.ndim = n
         int total = 1
         int i = n - 1
-        while i >= 0 do
+        while i >= 0
             self.strides.insert(0, total)
             total = total * self.shape[i]
             i -= 1
@@ -400,7 +400,7 @@ end
 func tensorFrom(array<float> data, array<int> shape) as Tensor
     Tensor t = Tensor(shape)
     int i = 0
-    while i < t.numel do
+    while i < t.numel
         if i < data.length then
             t.data[i] = data[i]
         end
@@ -414,7 +414,7 @@ func tensor1d(array<float> data) as Tensor
     shp.append(data.length)
     Tensor t = Tensor(shp)
     int i = 0
-    while i < data.length do
+    while i < data.length
         t.data[i] = data[i]
         i += 1
     end
@@ -424,7 +424,7 @@ end
 func tensor2d(array<float> flat, int rows, int cols) as Tensor
     Tensor t = Tensor(rows, cols)
     int i = 0
-    while i < flat.length and i < rows * cols do
+    while i < flat.length and i < rows * cols
         t.data[i] = flat[i]
         i += 1
     end
@@ -446,7 +446,7 @@ end
 func ones(array<int> shape) as Tensor
     Tensor t = Tensor(shape)
     int i = 0
-    while i < t.numel do
+    while i < t.numel
         t.data[i] = 1.0
         i += 1
     end
@@ -456,7 +456,7 @@ end
 func fullTensor(array<int> shape, float v) as Tensor
     Tensor t = Tensor(shape)
     int i = 0
-    while i < t.numel do
+    while i < t.numel
         t.data[i] = v
         i += 1
     end
@@ -466,7 +466,7 @@ end
 func cloneTensor(Tensor t) as Tensor
     Tensor r = Tensor(t.shape)
     int i = 0
-    while i < t.numel do
+    while i < t.numel
         r.data[i] = t.data[i]
         i += 1
     end
@@ -491,7 +491,7 @@ func shapeEquals(array<int> a, array<int> b) as bool
         return false
     end
     int i = 0
-    while i < a.length do
+    while i < a.length
         if a[i] != b[i] then
             return false
         end
@@ -503,7 +503,7 @@ end
 func shapeProduct(array<int> shp) as int
     int p = 1
     int i = 0
-    while i < shp.length do
+    while i < shp.length
         p = p * shp[i]
         i += 1
     end
@@ -513,7 +513,7 @@ end
 func shapeStr(array<int> shp) as string
     string s = "("
     int i = 0
-    while i < shp.length do
+    while i < shp.length
         if i > 0 then
             s = s + ", "
         end
@@ -574,7 +574,7 @@ func reshape(Tensor t, array<int> newShape) as Tensor
     end
     Tensor r = Tensor(newShape)
     int i = 0
-    while i < t.numel do
+    while i < t.numel
         r.data[i] = t.data[i]
         i += 1
     end
@@ -604,9 +604,9 @@ func transpose2d(Tensor t) as Tensor
     int cols = t.shape[1]
     Tensor r = Tensor(cols, rows)
     int i = 0
-    while i < rows do
+    while i < rows
         int j = 0
-        while j < cols do
+        while j < cols
             r.data[j * rows + i] = t.data[i * cols + j]
             j += 1
         end
@@ -632,11 +632,11 @@ func transpose(Tensor t) as Tensor
         shp.append(d1)
         Tensor r = Tensor(shp)
         int i = 0
-        while i < d0 do
+        while i < d0
             int j = 0
-            while j < d1 do
+            while j < d1
                 int k = 0
-                while k < d2 do
+                while k < d2
                     r.data[i * d2 * d1 + k * d1 + j] = t.data[i * d1 * d2 + j * d2 + k]
                     k += 1
                 end
@@ -669,7 +669,7 @@ func slice1d(Tensor t, int start, int endExcl) as Tensor
     shp.append(n)
     Tensor r = Tensor(shp)
     int i = 0
-    while i < n do
+    while i < n
         r.data[i] = t.data[start + i]
         i += 1
     end
@@ -685,7 +685,7 @@ func sliceRow(Tensor t, int row) as Tensor
     end
     array<int> newShape = array[]
     int i = 1
-    while i < t.ndim do
+    while i < t.ndim
         newShape.append(t.shape[i])
         i += 1
     end
@@ -696,7 +696,7 @@ func sliceRow(Tensor t, int row) as Tensor
     int off = row * subNumel
     Tensor r = Tensor(newShape)
     int j = 0
-    while j < subNumel do
+    while j < subNumel
         r.data[j] = t.data[off + j]
         j += 1
     end
@@ -716,7 +716,7 @@ func broadcastShapes(array<int> a, array<int> b) as array<int>
     end
     array<int> result = array[]
     int i = n - 1
-    while i >= 0 do
+    while i >= 0
         int ai = 1
         if i - (n - na) >= 0 then
             ai = a[i - (n - na)]
@@ -752,13 +752,13 @@ func broadcastTo(Tensor src, array<int> targetShape) as Tensor
     array<int> alignedSrcStrides = array[]
     int pad = nt - ns
     int p = 0
-    while p < pad do
+    while p < pad
         alignedSrcShape.append(1)
         alignedSrcStrides.append(0)
         p += 1
     end
     int q = 0
-    while q < ns do
+    while q < ns
         alignedSrcShape.append(srcShape[q])
         alignedSrcStrides.append(src.strides[q])
         q += 1
@@ -766,16 +766,16 @@ func broadcastTo(Tensor src, array<int> targetShape) as Tensor
     Tensor result = Tensor(targetShape)
     array<int> idx = array[]
     int k = 0
-    while k < nt do
+    while k < nt
         idx.append(0)
         k += 1
     end
     int total = result.numel
     int iter = 0
-    while iter < total do
+    while iter < total
         int srcOff = 0
         int d = 0
-        while d < nt do
+        while d < nt
             int ss = alignedSrcShape[d]
             int sel = idx[d]
             if ss == 1 then
@@ -791,7 +791,7 @@ func broadcastTo(Tensor src, array<int> targetShape) as Tensor
         result.data[iter] = src.data[srcOff]
         iter += 1
         int c = nt - 1
-        while c >= 0 do
+        while c >= 0
             idx[c] += 1
             if idx[c] < targetShape[c] then
                 break
@@ -813,7 +813,7 @@ func elementwiseBinary(Tensor a, Tensor b, string op) as Tensor
     Tensor bb = broadcastTo(b, outShape)
     Tensor r = Tensor(outShape)
     int i = 0
-    while i < r.numel do
+    while i < r.numel
         float x = ab.data[i]
         float y = bb.data[i]
         float z = 0.0
@@ -869,7 +869,7 @@ end
 func tensorAddScalar(Tensor a, float s) as Tensor
     Tensor r = Tensor(a.shape)
     int i = 0
-    while i < a.numel do
+    while i < a.numel
         r.data[i] = a.data[i] + s
         i += 1
     end
@@ -879,7 +879,7 @@ end
 func tensorMulScalar(Tensor a, float s) as Tensor
     Tensor r = Tensor(a.shape)
     int i = 0
-    while i < a.numel do
+    while i < a.numel
         r.data[i] = a.data[i] * s
         i += 1
     end
@@ -897,7 +897,7 @@ end
 func applyUnary(Tensor a, string op) as Tensor
     Tensor r = Tensor(a.shape)
     int i = 0
-    while i < a.numel do
+    while i < a.numel
         float x = a.data[i]
         float z = 0.0
         if op == "relu" then
@@ -988,11 +988,11 @@ func tensorSoftmax(Tensor t) as Tensor
     int outer = t.numel / lastDim
     Tensor r = Tensor(t.shape)
     int g = 0
-    while g < outer do
+    while g < outer
         int base = g * lastDim
         float m = t.data[base]
         int k = 1
-        while k < lastDim do
+        while k < lastDim
             if t.data[base + k] > m then
                 m = t.data[base + k]
             end
@@ -1000,7 +1000,7 @@ func tensorSoftmax(Tensor t) as Tensor
         end
         float sum = 0.0
         int i = 0
-        while i < lastDim do
+        while i < lastDim
             float e = safeExp(t.data[base + i] - m)
             r.data[base + i] = e
             sum = sum + e
@@ -1010,7 +1010,7 @@ func tensorSoftmax(Tensor t) as Tensor
             sum = MLP_EPS
         end
         int j = 0
-        while j < lastDim do
+        while j < lastDim
             r.data[base + j] = r.data[base + j] / sum
             j += 1
         end
@@ -1034,12 +1034,12 @@ func matmul(Tensor a, Tensor b) as Tensor
         end
         Tensor r = Tensor(m, n)
         int i = 0
-        while i < m do
+        while i < m
             int j = 0
-            while j < n do
+            while j < n
                 float sum = 0.0
                 int p = 0
-                while p < k do
+                while p < k
                     sum = sum + a.data[i * k + p] * b.data[p * n + j]
                     p += 1
                 end
@@ -1065,14 +1065,14 @@ func matmul(Tensor a, Tensor b) as Tensor
         shp.append(n)
         Tensor r = Tensor(shp)
         int bi = 0
-        while bi < B do
+        while bi < B
             int i = 0
-            while i < m do
+            while i < m
                 int j = 0
-                while j < n do
+                while j < n
                     float sum = 0.0
                     int p = 0
-                    while p < k do
+                    while p < k
                         float av = a.data[(bi * m + i) * k + p]
                         float bv = b.data[(bi * k + p) * n + j]
                         sum = sum + av * bv
@@ -1103,10 +1103,10 @@ func matvec(Tensor A, Tensor x) as Tensor
     shp.append(m)
     Tensor r = Tensor(shp)
     int i = 0
-    while i < m do
+    while i < m
         float sum = 0.0
         int j = 0
-        while j < k do
+        while j < k
             sum = sum + A.data[i * k + j] * x.data[j]
             j += 1
         end
@@ -1123,7 +1123,7 @@ end
 func tensorSum(Tensor t) as float
     float s = 0.0
     int i = 0
-    while i < t.numel do
+    while i < t.numel
         s = s + t.data[i]
         i += 1
     end
@@ -1141,10 +1141,10 @@ func tensorSumAxis(Tensor t, int axis) as Tensor
             shp.append(cols)
             Tensor r = Tensor(shp)
             int j = 0
-            while j < cols do
+            while j < cols
                 float s = 0.0
                 int i = 0
-                while i < t.shape[0] do
+                while i < t.shape[0]
                     s = s + t.data[i * cols + j]
                     i += 1
                 end
@@ -1159,10 +1159,10 @@ func tensorSumAxis(Tensor t, int axis) as Tensor
             shp.append(rows)
             Tensor r = Tensor(shp)
             int i = 0
-            while i < rows do
+            while i < rows
                 float s = 0.0
                 int j = 0
-                while j < t.shape[1] do
+                while j < t.shape[1]
                     s = s + t.data[i * t.shape[1] + j]
                     j += 1
                 end
@@ -1188,7 +1188,7 @@ func tensorMax(Tensor t) as float
     end
     float m = t.data[0]
     int i = 1
-    while i < t.numel do
+    while i < t.numel
         if t.data[i] > m then
             m = t.data[i]
         end
@@ -1203,7 +1203,7 @@ func tensorMin(Tensor t) as float
     end
     float m = t.data[0]
     int i = 1
-    while i < t.numel do
+    while i < t.numel
         if t.data[i] < m then
             m = t.data[i]
         end
@@ -1215,7 +1215,7 @@ end
 func tensorNorm(Tensor t) as float
     float s = 0.0
     int i = 0
-    while i < t.numel do
+    while i < t.numel
         float v = t.data[i]
         s = s + v * v
         i += 1
@@ -1232,7 +1232,7 @@ func tensorArgmax(Tensor t) as Tensor
     array<int> shp = array[]
     if t.ndim > 1 then
         int i = 0
-        while i < t.ndim - 1 do
+        while i < t.ndim - 1
             shp.append(t.shape[i])
             i += 1
         end
@@ -1241,12 +1241,12 @@ func tensorArgmax(Tensor t) as Tensor
     end
     Tensor r = Tensor(shp)
     int g = 0
-    while g < outer do
+    while g < outer
         int base = g * lastDim
         float m = t.data[base]
         int mi = 0
         int k = 1
-        while k < lastDim do
+        while k < lastDim
             if t.data[base + k] > m then
                 m = t.data[base + k]
                 mi = k
@@ -1270,7 +1270,7 @@ func concatAxis0(array<Tensor> ts) as Tensor
     if ts[0].ndim == 1 then
         int total = 0
         int i = 0
-        while i < ts.length do
+        while i < ts.length
             total = total + ts[i].shape[0]
             i += 1
         end
@@ -1279,9 +1279,9 @@ func concatAxis0(array<Tensor> ts) as Tensor
         Tensor r = Tensor(shp)
         int off = 0
         int j = 0
-        while j < ts.length do
+        while j < ts.length
             int k = 0
-            while k < ts[j].shape[0] do
+            while k < ts[j].shape[0]
                 r.data[off + k] = ts[j].data[k]
                 k += 1
             end
@@ -1293,7 +1293,7 @@ func concatAxis0(array<Tensor> ts) as Tensor
     int cols = ts[0].shape[1]
     int totalRows = 0
     int i = 0
-    while i < ts.length do
+    while i < ts.length
         totalRows = totalRows + ts[i].shape[0]
         if ts[i].shape[1] != cols then
             throw "concatAxis0: column mismatch"
@@ -1303,9 +1303,9 @@ func concatAxis0(array<Tensor> ts) as Tensor
     Tensor r = Tensor(totalRows, cols)
     int off = 0
     int j = 0
-    while j < ts.length do
+    while j < ts.length
         int k = 0
-        while k < ts[j].numel do
+        while k < ts[j].numel
             r.data[off + k] = ts[j].data[k]
             k += 1
         end
@@ -1321,7 +1321,7 @@ end
 
 func initZeros(Tensor t)
     int i = 0
-    while i < t.numel do
+    while i < t.numel
         t.data[i] = 0.0
         i += 1
     end
@@ -1329,7 +1329,7 @@ end
 
 func initOnes(Tensor t)
     int i = 0
-    while i < t.numel do
+    while i < t.numel
         t.data[i] = 1.0
         i += 1
     end
@@ -1337,7 +1337,7 @@ end
 
 func initUniform(Tensor t, float lo, float hi)
     int i = 0
-    while i < t.numel do
+    while i < t.numel
         t.data[i] = randRange(lo, hi)
         i += 1
     end
@@ -1345,7 +1345,7 @@ end
 
 func initNormal(Tensor t, float mean, float std)
     int i = 0
-    while i < t.numel do
+    while i < t.numel
         t.data[i] = mean + std * randNormal()
         i += 1
     end
@@ -1374,7 +1374,7 @@ func tensorPreview(Tensor t, int maxElems) as string
         n = maxElems
     end
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             s = s + ", "
         end
@@ -1428,7 +1428,7 @@ func tapeRecord(Tape tape, array<Tensor> inputs, Tensor output, string opName, v
     end
     TapeNode n = TapeNode()
     int i = 0
-    while i < inputs.length do
+    while i < inputs.length
         n.inputs.append(inputs[i])
         i += 1
     end
@@ -1443,7 +1443,7 @@ func accumulateGradTensor(Tensor t, Tensor grad)
         t.grad = Tensor(t.shape)
     end
     int i = 0
-    while i < t.grad.numel do
+    while i < t.grad.numel
         t.grad.data[i] = t.grad.data[i] + grad.data[i]
         i += 1
     end
@@ -1455,13 +1455,13 @@ func tapeBackward(Tape tape, Tensor loss, float seed)
     end
     loss.grad = Tensor(loss.shape)
     int i = 0
-    while i < loss.numel do
+    while i < loss.numel
         loss.grad.data[i] = seed
         i += 1
     end
     int n = tape.nodes.length
     int k = n - 1
-    while k >= 0 do
+    while k >= 0
         TapeNode node = tape.nodes[k]
         if node.output != null and node.output.grad != null and node.localGradFunc != null then
             var fn = node.localGradFunc
@@ -1595,7 +1595,7 @@ func adRelu(Tape tape, Tensor a) as Tensor
             Tensor up = r.grad
             Tensor ga = Tensor(a.shape)
             int i = 0
-            while i < a.numel do
+            while i < a.numel
                 if a.data[i] > 0.0 then
                     ga.data[i] = up.data[i]
                 else
@@ -1621,7 +1621,7 @@ func adTanh(Tape tape, Tensor a) as Tensor
             Tensor up = r.grad
             Tensor ga = Tensor(a.shape)
             int i = 0
-            while i < a.numel do
+            while i < a.numel
                 float t = r.data[i]
                 ga.data[i] = up.data[i] * (1.0 - t * t)
                 i += 1
@@ -1644,7 +1644,7 @@ func adSigmoid(Tape tape, Tensor a) as Tensor
             Tensor up = r.grad
             Tensor ga = Tensor(a.shape)
             int i = 0
-            while i < a.numel do
+            while i < a.numel
                 float s = r.data[i]
                 ga.data[i] = up.data[i] * s * (1.0 - s)
                 i += 1
@@ -1667,7 +1667,7 @@ func adSquare(Tape tape, Tensor a) as Tensor
             Tensor up = r.grad
             Tensor ga = Tensor(a.shape)
             int i = 0
-            while i < a.numel do
+            while i < a.numel
                 ga.data[i] = up.data[i] * 2.0 * a.data[i]
                 i += 1
             end
@@ -1690,7 +1690,7 @@ func adSum(Tape tape, Tensor a) as Tensor
             float u = up.data[0]
             Tensor ga = Tensor(a.shape)
             int i = 0
-            while i < a.numel do
+            while i < a.numel
                 ga.data[i] = u
                 i += 1
             end
@@ -1714,7 +1714,7 @@ func adMean(Tape tape, Tensor a) as Tensor
             float u = up.data[0] / n
             Tensor ga = Tensor(a.shape)
             int i = 0
-            while i < a.numel do
+            while i < a.numel
                 ga.data[i] = u
                 i += 1
             end
@@ -1729,7 +1729,7 @@ end
 func adLeakyRelu(Tape tape, Tensor a, float alpha) as Tensor
     Tensor r = Tensor(a.shape)
     int i = 0
-    while i < a.numel do
+    while i < a.numel
         r.data[i] = leakyReluF(a.data[i], alpha)
         i += 1
     end
@@ -1741,7 +1741,7 @@ func adLeakyRelu(Tape tape, Tensor a, float alpha) as Tensor
             Tensor up = r.grad
             Tensor ga = Tensor(a.shape)
             int j = 0
-            while j < a.numel do
+            while j < a.numel
                 if a.data[j] > 0.0 then
                     ga.data[j] = up.data[j]
                 else
@@ -1760,7 +1760,7 @@ end
 func adElu(Tape tape, Tensor a, float alpha) as Tensor
     Tensor r = Tensor(a.shape)
     int i = 0
-    while i < a.numel do
+    while i < a.numel
         r.data[i] = eluF(a.data[i], alpha)
         i += 1
     end
@@ -1772,7 +1772,7 @@ func adElu(Tape tape, Tensor a, float alpha) as Tensor
             Tensor up = r.grad
             Tensor ga = Tensor(a.shape)
             int j = 0
-            while j < a.numel do
+            while j < a.numel
                 if a.data[j] > 0.0 then
                     ga.data[j] = up.data[j]
                 else
@@ -1791,7 +1791,7 @@ end
 func adGelu(Tape tape, Tensor a) as Tensor
     Tensor r = Tensor(a.shape)
     int i = 0
-    while i < a.numel do
+    while i < a.numel
         r.data[i] = geluF(a.data[i])
         i += 1
     end
@@ -1804,7 +1804,7 @@ func adGelu(Tape tape, Tensor a) as Tensor
             Tensor ga = Tensor(a.shape)
             float c = math.sqrt(2.0 / math.pi)
             int j = 0
-            while j < a.numel do
+            while j < a.numel
                 float x = a.data[j]
                 float inner = c * (x + 0.044715 * x * x * x)
                 float t = tanhF(inner)
@@ -1824,7 +1824,7 @@ end
 // AD: 数值梯度检查（中心差分）
 func numericGradient(Tensor x, func(Tensor) as float lossFn, float eps)
     int i = 0
-    while i < x.numel do
+    while i < x.numel
         float orig = x.data[i]
         x.data[i] = orig + eps
         float lp = lossFn(x)
@@ -1976,9 +1976,9 @@ class Dense extends Layer
         if self.useBias then
             int batch = y.shape[0]
             int i = 0
-            while i < batch do
+            while i < batch
                 int j = 0
-                while j < self.outFeatures do
+                while j < self.outFeatures
                     y.data[i * self.outFeatures + j] = y.data[i * self.outFeatures + j] + self.b.data[j]
                     j += 1
                 end
@@ -2016,10 +2016,10 @@ class Dense extends Layer
         Tensor newGradW = matmul(x2dT, g2d)
         Tensor newGradB = Tensor(self.outFeatures)
         int j = 0
-        while j < self.outFeatures do
+        while j < self.outFeatures
             float s = 0.0
             int i = 0
-            while i < batch do
+            while i < batch
                 s = s + g2d.data[i * self.outFeatures + j]
                 i += 1
             end
@@ -2027,12 +2027,12 @@ class Dense extends Layer
             j += 1
         end
         int k = 0
-        while k < self.gradW.numel do
+        while k < self.gradW.numel
             self.gradW.data[k] = self.gradW.data[k] + newGradW.data[k]
             k += 1
         end
         int m = 0
-        while m < self.gradB.numel do
+        while m < self.gradB.numel
             self.gradB.data[m] = self.gradB.data[m] + newGradB.data[m]
             m += 1
         end
@@ -2066,12 +2066,12 @@ class Dense extends Layer
 
     override func resetState()
         int i = 0
-        while i < self.gradW.numel do
+        while i < self.gradW.numel
             self.gradW.data[i] = 0.0
             i += 1
         end
         int j = 0
-        while j < self.gradB.numel do
+        while j < self.gradB.numel
             self.gradB.data[j] = 0.0
             j += 1
         end
@@ -2096,7 +2096,7 @@ class ReLU extends Layer
         Tensor r = Tensor(x.shape)
         Tensor mask = Tensor(x.shape)
         int i = 0
-        while i < x.numel do
+        while i < x.numel
             if x.data[i] > 0.0 then
                 r.data[i] = x.data[i]
                 mask.data[i] = 1.0
@@ -2113,7 +2113,7 @@ class ReLU extends Layer
     override func backward(Tensor gradOutput) as Tensor
         Tensor r = Tensor(gradOutput.shape)
         int i = 0
-        while i < gradOutput.numel do
+        while i < gradOutput.numel
             r.data[i] = gradOutput.data[i] * self.cachedMask.data[i]
             i += 1
         end
@@ -2141,7 +2141,7 @@ class LeakyReLU extends Layer
         self.cachedX = x
         Tensor r = Tensor(x.shape)
         int i = 0
-        while i < x.numel do
+        while i < x.numel
             r.data[i] = leakyReluF(x.data[i], self.alpha)
             i += 1
         end
@@ -2151,7 +2151,7 @@ class LeakyReLU extends Layer
     override func backward(Tensor gradOutput) as Tensor
         Tensor r = Tensor(gradOutput.shape)
         int i = 0
-        while i < gradOutput.numel do
+        while i < gradOutput.numel
             if self.cachedX.data[i] > 0.0 then
                 r.data[i] = gradOutput.data[i]
             else
@@ -2181,7 +2181,7 @@ class Sigmoid extends Layer
     override func backward(Tensor gradOutput) as Tensor
         Tensor r = Tensor(gradOutput.shape)
         int i = 0
-        while i < gradOutput.numel do
+        while i < gradOutput.numel
             float s = self.cachedY.data[i]
             r.data[i] = gradOutput.data[i] * s * (1.0 - s)
             i += 1
@@ -2208,7 +2208,7 @@ class Tanh extends Layer
     override func backward(Tensor gradOutput) as Tensor
         Tensor r = Tensor(gradOutput.shape)
         int i = 0
-        while i < gradOutput.numel do
+        while i < gradOutput.numel
             float t = self.cachedY.data[i]
             r.data[i] = gradOutput.data[i] * (1.0 - t * t)
             i += 1
@@ -2237,16 +2237,16 @@ class Softmax extends Layer
         int lastDim = self.cachedY.shape[self.cachedY.ndim - 1]
         int outer = self.cachedY.numel / lastDim
         int g = 0
-        while g < outer do
+        while g < outer
             int base = g * lastDim
             float s = 0.0
             int i = 0
-            while i < lastDim do
+            while i < lastDim
                 s = s + gradOutput.data[base + i] * self.cachedY.data[base + i]
                 i += 1
             end
             int j = 0
-            while j < lastDim do
+            while j < lastDim
                 r.data[base + j] = self.cachedY.data[base + j] * (gradOutput.data[base + j] - s)
                 j += 1
             end
@@ -2277,7 +2277,7 @@ class ELU extends Layer
         self.cachedX = x
         Tensor r = Tensor(x.shape)
         int i = 0
-        while i < x.numel do
+        while i < x.numel
             r.data[i] = eluF(x.data[i], self.alpha)
             i += 1
         end
@@ -2288,7 +2288,7 @@ class ELU extends Layer
     override func backward(Tensor gradOutput) as Tensor
         Tensor r = Tensor(gradOutput.shape)
         int i = 0
-        while i < gradOutput.numel do
+        while i < gradOutput.numel
             if self.cachedX.data[i] > 0.0 then
                 r.data[i] = gradOutput.data[i]
             else
@@ -2313,7 +2313,7 @@ class GELU extends Layer
         self.cachedX = x
         Tensor r = Tensor(x.shape)
         int i = 0
-        while i < x.numel do
+        while i < x.numel
             r.data[i] = geluF(x.data[i])
             i += 1
         end
@@ -2324,7 +2324,7 @@ class GELU extends Layer
         Tensor r = Tensor(gradOutput.shape)
         float c = math.sqrt(2.0 / math.pi)
         int i = 0
-        while i < gradOutput.numel do
+        while i < gradOutput.numel
             float x = self.cachedX.data[i]
             float inner = c * (x + 0.044715 * x * x * x)
             float t = tanhF(inner)
@@ -2353,7 +2353,7 @@ class Flatten extends Layer
     override func forward(Tensor x) as Tensor
         self.cachedShape = array[]
         int i = 0
-        while i < x.ndim do
+        while i < x.ndim
             self.cachedShape.append(x.shape[i])
             i += 1
         end
@@ -2403,7 +2403,7 @@ class Dropout extends Layer
         end
         float scale = 1.0 / keep
         int i = 0
-        while i < x.numel do
+        while i < x.numel
             if randF() < keep then
                 r.data[i] = x.data[i] * scale
                 mask.data[i] = scale
@@ -2423,7 +2423,7 @@ class Dropout extends Layer
         end
         Tensor r = Tensor(gradOutput.shape)
         int i = 0
-        while i < gradOutput.numel do
+        while i < gradOutput.numel
             r.data[i] = gradOutput.data[i] * self.cachedMask.data[i]
             i += 1
         end
@@ -2469,7 +2469,7 @@ class BatchNorm extends Layer
         initZeros(self.beta)
         initZeros(self.runningMean)
         int k = 0
-        while k < nf do
+        while k < nf
             self.runningVar.data[k] = 1.0
             k += 1
         end
@@ -2490,7 +2490,7 @@ class BatchNorm extends Layer
         initZeros(self.beta)
         initZeros(self.runningMean)
         int k = 0
-        while k < nf do
+        while k < nf
             self.runningVar.data[k] = 1.0
             k += 1
         end
@@ -2502,10 +2502,10 @@ class BatchNorm extends Layer
         int nf = self.numFeatures
         Tensor mean = Tensor(nf)
         int j = 0
-        while j < nf do
+        while j < nf
             float s = 0.0
             int i = 0
-            while i < batch do
+            while i < batch
                 s = s + x.data[i * nf + j]
                 i += 1
             end
@@ -2514,11 +2514,11 @@ class BatchNorm extends Layer
         end
         Tensor variance = Tensor(nf)
         int j2 = 0
-        while j2 < nf do
+        while j2 < nf
             float s = 0.0
             float m = mean.data[j2]
             int i = 0
-            while i < batch do
+            while i < batch
                 float d = x.data[i * nf + j2] - m
                 s = s + d * d
                 i += 1
@@ -2528,9 +2528,9 @@ class BatchNorm extends Layer
         end
         Tensor xhat = Tensor(x.shape)
         int i = 0
-        while i < batch do
+        while i < batch
             int jj = 0
-            while jj < nf do
+            while jj < nf
                 float denom = math.sqrt(variance.data[jj] + self.eps)
                 xhat.data[i * nf + jj] = (x.data[i * nf + jj] - mean.data[jj]) / denom
                 jj += 1
@@ -2539,9 +2539,9 @@ class BatchNorm extends Layer
         end
         Tensor y = Tensor(x.shape)
         int i2 = 0
-        while i2 < batch do
+        while i2 < batch
             int jj2 = 0
-            while jj2 < nf do
+            while jj2 < nf
                 y.data[i2 * nf + jj2] = xhat.data[i2 * nf + jj2] * self.gamma.data[jj2] + self.beta.data[jj2]
                 jj2 += 1
             end
@@ -2552,7 +2552,7 @@ class BatchNorm extends Layer
         self.cachedVar = variance
         if self.training then
             int kk = 0
-            while kk < nf do
+            while kk < nf
                 self.runningMean.data[kk] = self.momentum * self.runningMean.data[kk] + (1.0 - self.momentum) * mean.data[kk]
                 self.runningVar.data[kk] = self.momentum * self.runningVar.data[kk] + (1.0 - self.momentum) * variance.data[kk]
                 kk += 1
@@ -2567,11 +2567,11 @@ class BatchNorm extends Layer
         Tensor newGradGamma = Tensor(nf)
         Tensor newGradBeta = Tensor(nf)
         int j = 0
-        while j < nf do
+        while j < nf
             float sg = 0.0
             float sb = 0.0
             int i = 0
-            while i < batch do
+            while i < batch
                 sg = sg + gradOutput.data[i * nf + j] * self.cachedXHat.data[i * nf + j]
                 sb = sb + gradOutput.data[i * nf + j]
                 i += 1
@@ -2581,7 +2581,7 @@ class BatchNorm extends Layer
             j += 1
         end
         int kk = 0
-        while kk < nf do
+        while kk < nf
             self.gradGamma.data[kk] = self.gradGamma.data[kk] + newGradGamma.data[kk]
             self.gradBeta.data[kk] = self.gradBeta.data[kk] + newGradBeta.data[kk]
             kk += 1
@@ -2589,20 +2589,20 @@ class BatchNorm extends Layer
         Tensor gradInput = Tensor(gradOutput.shape)
         float invBatch = 1.0 / float(batch)
         int jj = 0
-        while jj < nf do
+        while jj < nf
             float stdInv = 1.0 / math.sqrt(self.cachedVar.data[jj] + self.eps)
             float g = self.gamma.data[jj]
             float sumDxhat = 0.0
             float sumDxhatXhat = 0.0
             int i = 0
-            while i < batch do
+            while i < batch
                 float dxhat = gradOutput.data[i * nf + jj] * g
                 sumDxhat = sumDxhat + dxhat
                 sumDxhatXhat = sumDxhatXhat + dxhat * self.cachedXHat.data[i * nf + jj]
                 i += 1
             end
             int i2 = 0
-            while i2 < batch do
+            while i2 < batch
                 float dxhat = gradOutput.data[i2 * nf + jj] * g
                 gradInput.data[i2 * nf + jj] = stdInv * invBatch * (float(batch) * dxhat - sumDxhat - self.cachedXHat.data[i2 * nf + jj] * sumDxhatXhat)
                 i2 += 1
@@ -2628,12 +2628,12 @@ class BatchNorm extends Layer
 
     override func resetState()
         int i = 0
-        while i < self.gradGamma.numel do
+        while i < self.gradGamma.numel
             self.gradGamma.data[i] = 0.0
             i += 1
         end
         int j = 0
-        while j < self.gradBeta.numel do
+        while j < self.gradBeta.numel
             self.gradBeta.data[j] = 0.0
             j += 1
         end
@@ -2730,18 +2730,18 @@ class Conv2D extends Layer
         Tensor col = Tensor(colShp)
         int r = 0
         int bi = 0
-        while bi < batch do
+        while bi < batch
             int oh = 0
-            while oh < outH do
+            while oh < outH
                 int ow = 0
-                while ow < outW do
+                while ow < outW
                     int c = 0
                     int ic = 0
-                    while ic < inCh do
+                    while ic < inCh
                         int ky = 0
-                        while ky < ks do
+                        while ky < ks
                             int kx = 0
-                            while kx < ks do
+                            while kx < ks
                                 int ih = oh * self.stride + ky - self.pad
                                 int iw = ow * self.stride + kx - self.pad
                                 float v = 0.0
@@ -2767,13 +2767,13 @@ class Conv2D extends Layer
         Tensor wReshape = Tensor(colCols, self.outChannels)
         int idx = 0
         int oc = 0
-        while oc < self.outChannels do
+        while oc < self.outChannels
             int ic2 = 0
-            while ic2 < inCh do
+            while ic2 < inCh
                 int ky2 = 0
-                while ky2 < ks do
+                while ky2 < ks
                     int kx2 = 0
-                    while kx2 < ks do
+                    while kx2 < ks
                         int row = ic2 * ks * ks + ky2 * ks + kx2
                         wReshape.data[row * self.outChannels + oc] = self.W.data[idx]
                         idx += 1
@@ -2787,9 +2787,9 @@ class Conv2D extends Layer
         end
         Tensor y = matmul(col, wReshape)
         int i = 0
-        while i < colRows do
+        while i < colRows
             int j = 0
-            while j < self.outChannels do
+            while j < self.outChannels
                 y.data[i * self.outChannels + j] = y.data[i * self.outChannels + j] + self.b.data[j]
                 j += 1
             end
@@ -2802,13 +2802,13 @@ class Conv2D extends Layer
         outShape.append(outW)
         Tensor outT = Tensor(outShape)
         int i2 = 0
-        while i2 < batch do
+        while i2 < batch
             int oh2 = 0
-            while oh2 < outH do
+            while oh2 < outH
                 int ow2 = 0
-                while ow2 < outW do
+                while ow2 < outW
                     int oc2 = 0
-                    while oc2 < self.outChannels do
+                    while oc2 < self.outChannels
                         int rowIdx = (i2 * outH + oh2) * outW + ow2
                         float v = y.data[rowIdx * self.outChannels + oc2]
                         outT.data[((i2 * self.outChannels + oc2) * outH + oh2) * outW + ow2] = v
@@ -2836,13 +2836,13 @@ class Conv2D extends Layer
         int colCols = inCh * ks * ks
         Tensor g2d = Tensor(colRows, self.outChannels)
         int bi = 0
-        while bi < batch do
+        while bi < batch
             int oh = 0
-            while oh < outH do
+            while oh < outH
                 int ow = 0
-                while ow < outW do
+                while ow < outW
                     int oc = 0
-                    while oc < self.outChannels do
+                    while oc < self.outChannels
                         int rowIdx = (bi * outH + oh) * outW + ow
                         float v = gradOutput.data[((bi * self.outChannels + oc) * outH + oh) * outW + ow]
                         g2d.data[rowIdx * self.outChannels + oc] = v
@@ -2856,9 +2856,9 @@ class Conv2D extends Layer
         end
         Tensor newGradB = Tensor(self.outChannels)
         int i = 0
-        while i < colRows do
+        while i < colRows
             int j = 0
-            while j < self.outChannels do
+            while j < self.outChannels
                 newGradB.data[j] = newGradB.data[j] + g2d.data[i * self.outChannels + j]
                 j += 1
             end
@@ -2868,13 +2868,13 @@ class Conv2D extends Layer
         Tensor gradWReshape = matmul(colT, g2d)
         int idx = 0
         int oc = 0
-        while oc < self.outChannels do
+        while oc < self.outChannels
             int ic = 0
-            while ic < inCh do
+            while ic < inCh
                 int ky = 0
-                while ky < ks do
+                while ky < ks
                     int kx = 0
-                    while kx < ks do
+                    while kx < ks
                         int row = ic * ks * ks + ky * ks + kx
                         float g = gradWReshape.data[row * self.outChannels + oc]
                         self.gradW.data[idx] = self.gradW.data[idx] + g
@@ -2888,20 +2888,20 @@ class Conv2D extends Layer
             oc += 1
         end
         int kb = 0
-        while kb < self.outChannels do
+        while kb < self.outChannels
             self.gradB.data[kb] = self.gradB.data[kb] + newGradB.data[kb]
             kb += 1
         end
         Tensor wReshape = Tensor(colCols, self.outChannels)
         int idx2 = 0
         int oc2 = 0
-        while oc2 < self.outChannels do
+        while oc2 < self.outChannels
             int ic2 = 0
-            while ic2 < inCh do
+            while ic2 < inCh
                 int ky2 = 0
-                while ky2 < ks do
+                while ky2 < ks
                     int kx2 = 0
-                    while kx2 < ks do
+                    while kx2 < ks
                         int row = ic2 * ks * ks + ky2 * ks + kx2
                         wReshape.data[row * self.outChannels + oc2] = self.W.data[idx2]
                         idx2 += 1
@@ -2918,18 +2918,18 @@ class Conv2D extends Layer
         Tensor gradInput = Tensor(x.shape)
         int rr = 0
         int bi3 = 0
-        while bi3 < batch do
+        while bi3 < batch
             int oh = 0
-            while oh < outH do
+            while oh < outH
                 int ow = 0
-                while ow < outW do
+                while ow < outW
                     int c = 0
                     int ic = 0
-                    while ic < inCh do
+                    while ic < inCh
                         int ky = 0
-                        while ky < ks do
+                        while ky < ks
                             int kx = 0
-                            while kx < ks do
+                            while kx < ks
                                 int ih = oh * self.stride + ky - self.pad
                                 int iw = ow * self.stride + kx - self.pad
                                 if ih >= 0 and ih < H and iw >= 0 and iw < Wd then
@@ -2969,12 +2969,12 @@ class Conv2D extends Layer
 
     override func resetState()
         int i = 0
-        while i < self.gradW.numel do
+        while i < self.gradW.numel
             self.gradW.data[i] = 0.0
             i += 1
         end
         int j = 0
-        while j < self.gradB.numel do
+        while j < self.gradB.numel
             self.gradB.data[j] = 0.0
             j += 1
         end
@@ -3030,19 +3030,19 @@ class MaxPool2d extends Layer
         Tensor outT = Tensor(outShape)
         Tensor argmax = Tensor(outShape)
         int bi = 0
-        while bi < batch do
+        while bi < batch
             int c = 0
-            while c < ch do
+            while c < ch
                 int oh = 0
-                while oh < outH do
+                while oh < outH
                     int ow = 0
-                    while ow < outW do
+                    while ow < outW
                         float m = MLP_NEG_INF
                         int mi = 0
                         int ky = 0
-                        while ky < ks do
+                        while ky < ks
                             int kx = 0
-                            while kx < ks do
+                            while kx < ks
                                 int ih = oh * self.stride + ky
                                 int iw = ow * self.stride + kx
                                 float v = x.data[((bi * ch + c) * H + ih) * Wd + iw]
@@ -3079,13 +3079,13 @@ class MaxPool2d extends Layer
         int outW = gradOutput.shape[3]
         Tensor gradInput = Tensor(x.shape)
         int bi = 0
-        while bi < batch do
+        while bi < batch
             int c = 0
-            while c < ch do
+            while c < ch
                 int oh = 0
-                while oh < outH do
+                while oh < outH
                     int ow = 0
-                    while ow < outW do
+                    while ow < outW
                         float g = gradOutput.data[((bi * ch + c) * outH + oh) * outW + ow]
                         int mi = int(self.cachedArgmax.data[((bi * ch + c) * outH + oh) * outW + ow])
                         int ky = mi / ks
@@ -3152,18 +3152,18 @@ class AvgPool2d extends Layer
         Tensor outT = Tensor(outShape)
         float poolSize = float(ks * ks)
         int bi = 0
-        while bi < batch do
+        while bi < batch
             int c = 0
-            while c < ch do
+            while c < ch
                 int oh = 0
-                while oh < outH do
+                while oh < outH
                     int ow = 0
-                    while ow < outW do
+                    while ow < outW
                         float s = 0.0
                         int ky = 0
-                        while ky < ks do
+                        while ky < ks
                             int kx = 0
-                            while kx < ks do
+                            while kx < ks
                                 int ih = oh * self.stride + ky
                                 int iw = ow * self.stride + kx
                                 s = s + x.data[((bi * ch + c) * H + ih) * Wd + iw]
@@ -3195,18 +3195,18 @@ class AvgPool2d extends Layer
         Tensor gradInput = Tensor(x.shape)
         float poolSize = float(ks * ks)
         int bi = 0
-        while bi < batch do
+        while bi < batch
             int c = 0
-            while c < ch do
+            while c < ch
                 int oh = 0
-                while oh < outH do
+                while oh < outH
                     int ow = 0
-                    while ow < outW do
+                    while ow < outW
                         float g = gradOutput.data[((bi * ch + c) * outH + oh) * outW + ow] / poolSize
                         int ky = 0
-                        while ky < ks do
+                        while ky < ks
                             int kx = 0
-                            while kx < ks do
+                            while kx < ks
                                 int ih = oh * self.stride + ky
                                 int iw = ow * self.stride + kx
                                 int pos = ((bi * ch + c) * H + ih) * Wd + iw
@@ -3261,7 +3261,7 @@ class Embedding extends Layer
         outShape.append(self.embedDim)
         Tensor outT = Tensor(outShape)
         int i = 0
-        while i < n do
+        while i < n
             int idx = int(x.data[i])
             if idx < 0 then
                 idx = 0
@@ -3270,7 +3270,7 @@ class Embedding extends Layer
                 idx = self.vocabSize - 1
             end
             int j = 0
-            while j < self.embedDim do
+            while j < self.embedDim
                 outT.data[i * self.embedDim + j] = self.W.data[idx * self.embedDim + j]
                 j += 1
             end
@@ -3282,7 +3282,7 @@ class Embedding extends Layer
     override func backward(Tensor gradOutput) as Tensor
         int n = self.cachedIdx.shape[0]
         int i = 0
-        while i < n do
+        while i < n
             int idx = int(self.cachedIdx.data[i])
             if idx < 0 then
                 idx = 0
@@ -3291,7 +3291,7 @@ class Embedding extends Layer
                 idx = self.vocabSize - 1
             end
             int j = 0
-            while j < self.embedDim do
+            while j < self.embedDim
                 self.gradW.data[idx * self.embedDim + j] = self.gradW.data[idx * self.embedDim + j] + gradOutput.data[i * self.embedDim + j]
                 j += 1
             end
@@ -3314,7 +3314,7 @@ class Embedding extends Layer
 
     override func resetState()
         int i = 0
-        while i < self.gradW.numel do
+        while i < self.gradW.numel
             self.gradW.data[i] = 0.0
             i += 1
         end
@@ -3342,7 +3342,7 @@ class Sequential
     func forward(Tensor x) as Tensor
         Tensor cur = x
         int i = 0
-        while i < self.layers.length do
+        while i < self.layers.length
             Layer lyr = self.layers[i]
             cur = lyr.forward(cur)
             i += 1
@@ -3353,7 +3353,7 @@ class Sequential
     func backward(Tensor grad) as Tensor
         Tensor cur = grad
         int i = self.layers.length - 1
-        while i >= 0 do
+        while i >= 0
             Layer lyr = self.layers[i]
             cur = lyr.backward(cur)
             i -= 1
@@ -3364,11 +3364,11 @@ class Sequential
     func params() as array<Tensor>
         array<Tensor> all = array[]
         int i = 0
-        while i < self.layers.length do
+        while i < self.layers.length
             Layer lyr = self.layers[i]
             array<Tensor> ps = lyr.params()
             int j = 0
-            while j < ps.length do
+            while j < ps.length
                 all.append(ps[j])
                 j += 1
             end
@@ -3380,11 +3380,11 @@ class Sequential
     func paramGrads() as array<Tensor>
         array<Tensor> all = array[]
         int i = 0
-        while i < self.layers.length do
+        while i < self.layers.length
             Layer lyr = self.layers[i]
             array<Tensor> ps = lyr.paramGrads()
             int j = 0
-            while j < ps.length do
+            while j < ps.length
                 all.append(ps[j])
                 j += 1
             end
@@ -3395,7 +3395,7 @@ class Sequential
 
     func resetGrads()
         int i = 0
-        while i < self.layers.length do
+        while i < self.layers.length
             Layer lyr = self.layers[i]
             lyr.resetState()
             i += 1
@@ -3404,7 +3404,7 @@ class Sequential
 
     func setTraining(bool mode)
         int i = 0
-        while i < self.layers.length do
+        while i < self.layers.length
             Layer lyr = self.layers[i]
             lyr.setTraining(mode)
             i += 1
@@ -3422,7 +3422,7 @@ class Sequential
     func describe() as string
         string s = "Sequential (" + string(self.layers.length) + " layers):\n"
         int i = 0
-        while i < self.layers.length do
+        while i < self.layers.length
             Layer lyr = self.layers[i]
             s = s + "  [" + string(i) + "] " + lyr.name + "\n"
             i += 1
@@ -3472,7 +3472,7 @@ class MSELoss extends Loss
         end
         float s = 0.0
         int i = 0
-        while i < pred.numel do
+        while i < pred.numel
             float d = pred.data[i] - target.data[i]
             s = s + d * d
             i += 1
@@ -3484,7 +3484,7 @@ class MSELoss extends Loss
         Tensor r = Tensor(self.cachedPred.shape)
         int n = self.cachedPred.numel
         int i = 0
-        while i < n do
+        while i < n
             r.data[i] = 2.0 * (self.cachedPred.data[i] - self.cachedTarget.data[i]) / float(n)
             i += 1
         end
@@ -3503,7 +3503,7 @@ class BCELoss extends Loss
         float s = 0.0
         int n = pred.numel
         int i = 0
-        while i < n do
+        while i < n
             float p = clampF(pred.data[i], MLP_EPS, 1.0 - MLP_EPS)
             float t = target.data[i]
             float v = -(t * safeLog(p) + (1.0 - t) * safeLog(1.0 - p))
@@ -3517,7 +3517,7 @@ class BCELoss extends Loss
         Tensor r = Tensor(self.cachedPred.shape)
         int n = self.cachedPred.numel
         int i = 0
-        while i < n do
+        while i < n
             float p = clampF(self.cachedPred.data[i], MLP_EPS, 1.0 - MLP_EPS)
             float t = self.cachedTarget.data[i]
             r.data[i] = (p - t) / (p * (1.0 - p)) / float(n)
@@ -3543,7 +3543,7 @@ class CrossEntropyLoss extends Loss
         self.cachedProbs = probs
         float s = 0.0
         int i = 0
-        while i < batch do
+        while i < batch
             int label = int(target.data[i])
             // 如果 target 是 (batch, C) one-hot，找最大值位置
             // 如果 target 是 (batch, 1) 或 (batch,)，直接用值作为 label
@@ -3551,7 +3551,7 @@ class CrossEntropyLoss extends Loss
                 label = 0
                 float m = target.data[i * C]
                 int k = 1
-                while k < C do
+                while k < C
                     if target.data[i * C + k] > m then
                         m = target.data[i * C + k]
                         label = k
@@ -3580,13 +3580,13 @@ class CrossEntropyLoss extends Loss
         Tensor probs = self.cachedProbs
         Tensor target = self.cachedTarget
         int i = 0
-        while i < batch do
+        while i < batch
             int label = int(target.data[i])
             if target.ndim == 2 and target.shape[1] == C then
                 label = 0
                 float m = target.data[i * C]
                 int k = 1
-                while k < C do
+                while k < C
                     if target.data[i * C + k] > m then
                         m = target.data[i * C + k]
                         label = k
@@ -3597,7 +3597,7 @@ class CrossEntropyLoss extends Loss
                 label = int(target.data[i])
             end
             int j = 0
-            while j < C do
+            while j < C
                 float one = 0.0
                 if j == label then
                     one = 1.0
@@ -3637,7 +3637,7 @@ class FocalLoss extends Loss
         self.cachedProbs = probs
         float s = 0.0
         int i = 0
-        while i < batch do
+        while i < batch
             int label = int(target.data[i])
             if label < 0 then
                 label = 0
@@ -3659,7 +3659,7 @@ class FocalLoss extends Loss
         Tensor probs = self.cachedProbs
         Tensor target = self.cachedTarget
         int i = 0
-        while i < batch do
+        while i < batch
             int label = int(target.data[i])
             if label < 0 then
                 label = 0
@@ -3670,7 +3670,7 @@ class FocalLoss extends Loss
             float pLab = probs.data[i * C + label]
             float mod = self.alpha * math.pow(1.0 - pLab, self.gamma - 1.0)
             int j = 0
-            while j < C do
+            while j < C
                 float one = 0.0
                 if j == label then
                     one = 1.0
@@ -3711,11 +3711,11 @@ class SGD extends Optimizer
 
     override func step(array<Tensor> params, array<Tensor> grads)
         int i = 0
-        while i < params.length do
+        while i < params.length
             Tensor p = params[i]
             Tensor g = grads[i]
             int j = 0
-            while j < p.numel do
+            while j < p.numel
                 p.data[j] = p.data[j] - self.lr * g.data[j]
                 j += 1
             end
@@ -3740,18 +3740,18 @@ class Momentum extends Optimizer
         if self.velocities.length != params.length then
             self.velocities = array[]
             int k = 0
-            while k < params.length do
+            while k < params.length
                 self.velocities.append(zerosLike(params[k]))
                 k += 1
             end
         end
         int i = 0
-        while i < params.length do
+        while i < params.length
             Tensor p = params[i]
             Tensor g = grads[i]
             Tensor v = self.velocities[i]
             int j = 0
-            while j < p.numel do
+            while j < p.numel
                 v.data[j] = self.momentum * v.data[j] + g.data[j]
                 p.data[j] = p.data[j] - self.lr * v.data[j]
                 j += 1
@@ -3762,10 +3762,10 @@ class Momentum extends Optimizer
 
     override func resetState()
         int i = 0
-        while i < self.velocities.length do
+        while i < self.velocities.length
             Tensor v = self.velocities[i]
             int j = 0
-            while j < v.numel do
+            while j < v.numel
                 v.data[j] = 0.0
                 j += 1
             end
@@ -3799,18 +3799,18 @@ class RMSprop extends Optimizer
         if self.sqAvg.length != params.length then
             self.sqAvg = array[]
             int k = 0
-            while k < params.length do
+            while k < params.length
                 self.sqAvg.append(zerosLike(params[k]))
                 k += 1
             end
         end
         int i = 0
-        while i < params.length do
+        while i < params.length
             Tensor p = params[i]
             Tensor g = grads[i]
             Tensor s = self.sqAvg[i]
             int j = 0
-            while j < p.numel do
+            while j < p.numel
                 s.data[j] = self.decay * s.data[j] + (1.0 - self.decay) * g.data[j] * g.data[j]
                 float denom = math.sqrt(s.data[j]) + self.eps
                 p.data[j] = p.data[j] - self.lr * g.data[j] / denom
@@ -3822,10 +3822,10 @@ class RMSprop extends Optimizer
 
     override func resetState()
         int i = 0
-        while i < self.sqAvg.length do
+        while i < self.sqAvg.length
             Tensor s = self.sqAvg[i]
             int j = 0
-            while j < s.numel do
+            while j < s.numel
                 s.data[j] = 0.0
                 j += 1
             end
@@ -3865,7 +3865,7 @@ class Adam extends Optimizer
             self.m = array[]
             self.v = array[]
             int k = 0
-            while k < params.length do
+            while k < params.length
                 self.m.append(zerosLike(params[k]))
                 self.v.append(zerosLike(params[k]))
                 k += 1
@@ -3875,13 +3875,13 @@ class Adam extends Optimizer
         float bc1 = 1.0 - math.pow(self.beta1, float(self.t))
         float bc2 = 1.0 - math.pow(self.beta2, float(self.t))
         int i = 0
-        while i < params.length do
+        while i < params.length
             Tensor p = params[i]
             Tensor g = grads[i]
             Tensor m = self.m[i]
             Tensor v = self.v[i]
             int j = 0
-            while j < p.numel do
+            while j < p.numel
                 m.data[j] = self.beta1 * m.data[j] + (1.0 - self.beta1) * g.data[j]
                 v.data[j] = self.beta2 * v.data[j] + (1.0 - self.beta2) * g.data[j] * g.data[j]
                 float mHat = m.data[j] / bc1
@@ -3895,16 +3895,16 @@ class Adam extends Optimizer
 
     override func resetState()
         int i = 0
-        while i < self.m.length do
+        while i < self.m.length
             Tensor mm = self.m[i]
             int j = 0
-            while j < mm.numel do
+            while j < mm.numel
                 mm.data[j] = 0.0
                 j += 1
             end
             Tensor vv = self.v[i]
             int k = 0
-            while k < vv.numel do
+            while k < vv.numel
                 vv.data[k] = 0.0
                 k += 1
             end
@@ -3939,7 +3939,7 @@ class AdamW extends Optimizer
             self.m = array[]
             self.v = array[]
             int k = 0
-            while k < params.length do
+            while k < params.length
                 self.m.append(zerosLike(params[k]))
                 self.v.append(zerosLike(params[k]))
                 k += 1
@@ -3949,13 +3949,13 @@ class AdamW extends Optimizer
         float bc1 = 1.0 - math.pow(self.beta1, float(self.t))
         float bc2 = 1.0 - math.pow(self.beta2, float(self.t))
         int i = 0
-        while i < params.length do
+        while i < params.length
             Tensor p = params[i]
             Tensor g = grads[i]
             Tensor m = self.m[i]
             Tensor v = self.v[i]
             int j = 0
-            while j < p.numel do
+            while j < p.numel
                 p.data[j] = p.data[j] * (1.0 - self.lr * self.weightDecay)
                 m.data[j] = self.beta1 * m.data[j] + (1.0 - self.beta1) * g.data[j]
                 v.data[j] = self.beta2 * v.data[j] + (1.0 - self.beta2) * g.data[j] * g.data[j]
@@ -3970,16 +3970,16 @@ class AdamW extends Optimizer
 
     override func resetState()
         int i = 0
-        while i < self.m.length do
+        while i < self.m.length
             Tensor mm = self.m[i]
             int j = 0
-            while j < mm.numel do
+            while j < mm.numel
                 mm.data[j] = 0.0
                 j += 1
             end
             Tensor vv = self.v[i]
             int k = 0
-            while k < vv.numel do
+            while k < vv.numel
                 vv.data[k] = 0.0
                 k += 1
             end
@@ -4105,10 +4105,10 @@ end
 func clipGradientsGlobalNorm(array<Tensor> grads, float maxNorm)
     float totalSq = 0.0
     int i = 0
-    while i < grads.length do
+    while i < grads.length
         Tensor g = grads[i]
         int j = 0
-        while j < g.numel do
+        while j < g.numel
             totalSq = totalSq + g.data[j] * g.data[j]
             j += 1
         end
@@ -4120,10 +4120,10 @@ func clipGradientsGlobalNorm(array<Tensor> grads, float maxNorm)
     end
     float scale = maxNorm / (total + MLP_EPS)
     int i2 = 0
-    while i2 < grads.length do
+    while i2 < grads.length
         Tensor g = grads[i2]
         int j2 = 0
-        while j2 < g.numel do
+        while j2 < g.numel
             g.data[j2] = g.data[j2] * scale
             j2 += 1
         end
@@ -4133,10 +4133,10 @@ end
 
 func clipGradientsByValue(array<Tensor> grads, float minVal, float maxVal)
     int i = 0
-    while i < grads.length do
+    while i < grads.length
         Tensor g = grads[i]
         int j = 0
-        while j < g.numel do
+        while j < g.numel
             float v = g.data[j]
             if v < minVal then
                 v = minVal
@@ -4190,9 +4190,9 @@ func stackBatch2d(array<Tensor> samples) as Tensor
     shp.append(f)
     Tensor r = Tensor(shp)
     int i = 0
-    while i < n do
+    while i < n
         int j = 0
-        while j < f do
+        while j < f
             r.data[i * f + j] = samples[i].data[j]
             j += 1
         end
@@ -4221,7 +4221,7 @@ func trainEpoch(Sequential model, Optimizer opt, array<Tensor> xs, array<Tensor>
     float totalLoss = 0.0
     int numBatches = 0
     int i = 0
-    while i < n do
+    while i < n
         int endIdx = i + bs
         if endIdx > n then
             endIdx = n
@@ -4229,7 +4229,7 @@ func trainEpoch(Sequential model, Optimizer opt, array<Tensor> xs, array<Tensor>
         array<Tensor> batchXs = array[]
         array<Tensor> batchYs = array[]
         int j = i
-        while j < endIdx do
+        while j < endIdx
             batchXs.append(xs[j])
             batchYs.append(ys[j])
             j += 1
@@ -4270,13 +4270,13 @@ func evaluateAccuracy(Sequential model, array<Tensor> xs, array<Tensor> ys) as f
     end
     int correct = 0
     int i = 0
-    while i < n do
+    while i < n
         Tensor pred = model.forward(xs[i])
         int c = pred.shape[pred.ndim - 1]
         int mi = 0
         float m = pred.data[0]
         int k = 1
-        while k < c do
+        while k < c
             if pred.data[k] > m then
                 m = pred.data[k]
                 mi = k
@@ -4299,11 +4299,11 @@ func evaluateMSE(Sequential model, array<Tensor> xs, array<Tensor> ys) as float
     end
     float s = 0.0
     int i = 0
-    while i < n do
+    while i < n
         Tensor pred = model.forward(xs[i])
         Tensor y = ys[i]
         int j = 0
-        while j < pred.numel do
+        while j < pred.numel
             float d = pred.data[j] - y.data[j]
             s = s + d * d
             j += 1
@@ -4323,7 +4323,7 @@ func runTraining(Sequential model, Optimizer opt, Scheduler sched, Loss lossFn, 
     int badEpochs = 0
     model.setTraining(true)
     int epoch = 0
-    while epoch < cfg.epochs do
+    while epoch < cfg.epochs
         float lr = sched.getLR(epoch, 0.0)
         opt.lr = lr
         float loss = trainEpoch(model, opt, xs, ys, lossFn, cfg, epoch)
@@ -4407,10 +4407,10 @@ func makeSpiral(int pointsPerClass) as Dataset
     d.nFeatures = 2
     seedRandom(42)
     int c = 0
-    while c < 3 do
+    while c < 3
         float rStart = float(c) * 0.5
         int i = 0
-        while i < pointsPerClass do
+        while i < pointsPerClass
             float t = float(i) / float(pointsPerClass - 1)
             float r = rStart + t * 2.5
             float theta = t * 4.0 * math.pi + float(c) * 2.0 * math.pi / 3.0
@@ -4437,7 +4437,7 @@ func makeSinRegression(int nPoints, float xMin, float xMax) as Dataset
     d.nClasses = 1
     seedRandom(7)
     int i = 0
-    while i < nPoints do
+    while i < nPoints
         float t = float(i) / float(nPoints - 1)
         float x = xMin + t * (xMax - xMin)
         float y = math.sin(x)
@@ -4460,13 +4460,13 @@ func makeMnistStyle(int perClass) as Dataset
     d.nClasses = 10
     seedRandom(123)
     int c = 0
-    while c < 10 do
+    while c < 10
         int i = 0
-        while i < perClass do
+        while i < perClass
             // 生成 8x8 图案：以模板为基础加噪声
             array<float> img = array[]
             int p = 0
-            while p < 64 do
+            while p < 64
                 img.append(0.0)
                 p += 1
             end
@@ -4474,9 +4474,9 @@ func makeMnistStyle(int perClass) as Dataset
             int cy = c / 2
             int cx = c - cy * 2
             int py = 0
-            while py < 8 do
+            while py < 8
                 int px = 0
-                while px < 8 do
+                while px < 8
                     // 在中心 + (cy-4, cx-4) 偏移处填充
                     float dy = float(py - 4) - float(cy - 4) * 0.5
                     float dx = float(px - 4) - float(cx - 4) * 0.5
@@ -4523,7 +4523,7 @@ end
 func toOneHot(array<Tensor> labels, int numClasses) as array<Tensor>
     array<Tensor> r = array[]
     int i = 0
-    while i < labels.length do
+    while i < labels.length
         int label = int(labels[i].data[0])
         if label < 0 then
             label = 0
@@ -4533,7 +4533,7 @@ func toOneHot(array<Tensor> labels, int numClasses) as array<Tensor>
         end
         array<float> v = array[]
         int j = 0
-        while j < numClasses do
+        while j < numClasses
             if j == label then
                 v.append(1.0)
             else
@@ -4564,14 +4564,14 @@ func tensorFromVar(var v) as Tensor
     int sn = shapeVar.length
     array<int> shp = array[]
     int i = 0
-    while i < sn do
+    while i < sn
         shp.append(int(shapeVar[i]))
         i += 1
     end
     int dn = dataVar.length
     array<float> data = array[]
     int j = 0
-    while j < dn do
+    while j < dn
         data.append(float(dataVar[j]))
         j += 1
     end
@@ -4583,14 +4583,14 @@ func saveModel(Sequential model, string path) as bool
     var root = dict{}
     var layersList = array[]
     int i = 0
-    while i < model.layers.length do
+    while i < model.layers.length
         Layer lyr = model.layers[i]
         var info = dict{}
         info["name"] = lyr.name
         var paramList = array[]
         array<Tensor> ps = lyr.params()
         int j = 0
-        while j < ps.length do
+        while j < ps.length
             paramList.append(tensorToVar(ps[j]))
             j += 1
         end
@@ -4618,18 +4618,18 @@ func loadModel(Sequential model, string path) as bool
     var layersList = root["layers"]
     int n = layersList.length
     int i = 0
-    while i < n do
+    while i < n
         var info = layersList[i]
         var paramList = info["params"]
         Layer lyr = model.layerAt(i)
         array<Tensor> ps = lyr.params()
         int j = 0
-        while j < ps.length do
+        while j < ps.length
             var pv = paramList[j]
             Tensor loaded = tensorFromVar(pv)
             Tensor dst = ps[j]
             int k = 0
-            while k < dst.numel do
+            while k < dst.numel
                 if k < loaded.numel then
                     dst.data[k] = loaded.data[k]
                 end
@@ -4686,7 +4686,7 @@ func cmdXor() as int
     println("")
     println("Final predictions:")
     int i = 0
-    while i < d.nSamples do
+    while i < d.nSamples
         Tensor p = model.forward(d.xs[i])
         float v = tensorItem(p)
         float tgt = tensorItem(d.ys[i])
@@ -4697,7 +4697,7 @@ func cmdXor() as int
     float acc = 0.0
     int correct = 0
     int j = 0
-    while j < d.nSamples do
+    while j < d.nSamples
         Tensor p = model.forward(d.xs[j])
         float v = tensorItem(p)
         float tgt = tensorItem(d.ys[j])
@@ -4823,7 +4823,7 @@ func cmdRegression() as int
     println("")
     println("Final predictions (first 8 samples):")
     int i = 0
-    while i < 8 and i < d.nSamples do
+    while i < 8 and i < d.nSamples
         Tensor p = model.forward(d.xs[i])
         float v = tensorItem(p)
         float tgt = tensorItem(d.ys[i])
@@ -4932,7 +4932,7 @@ func testTensorBasic()
     expectI(t.strides[1], 1, "tensor strides[1]")
 
     int i = 0
-    while i < 6 do
+    while i < 6
         t.data[i] = float(i + 1)
         i += 1
     end
@@ -5081,7 +5081,7 @@ func testLayers()
     shp.append(3)
     Tensor x = Tensor(shp)
     int i = 0
-    while i < x.numel do
+    while i < x.numel
         x.data[i] = float(i + 1)
         i += 1
     end
@@ -5281,7 +5281,7 @@ func testConvAndPool()
     shp.append(4)
     Tensor x = Tensor(shp)
     int i = 0
-    while i < 16 do
+    while i < 16
         x.data[i] = float(i + 1)
         i += 1
     end
@@ -5314,7 +5314,7 @@ func testBatchNormDropout()
     shp.append(3)
     Tensor x = Tensor(shp)
     int i = 0
-    while i < 12 do
+    while i < 12
         x.data[i] = float(i) * 0.5 - 1.0
         i += 1
     end

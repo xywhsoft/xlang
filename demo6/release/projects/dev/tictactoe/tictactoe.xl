@@ -101,7 +101,7 @@ class Board
 
     func isFull() as bool
         int i = 0
-        while i < 9 do
+        while i < 9
             if self.cells[i] == 0 then
                 return false
             end
@@ -114,7 +114,7 @@ class Board
     func signature() as string
         string s = ""
         int i = 0
-        while i < 9 do
+        while i < 9
             s = s + string(self.cells[i])
             i += 1
         end
@@ -134,7 +134,7 @@ class Board
     func render() as string
         string outputValue = ""
         int row = 0
-        while row < 3 do
+        while row < 3
             int base = row * 3
             int v0 = self.cells[base]
             int v1 = self.cells[base + 1]
@@ -160,7 +160,7 @@ class Board
     func emptyCells() as array<int>
         array<int> result = array[]
         int i = 0
-        while i < 9 do
+        while i < 9
             if self.cells[i] == 0 then
                 result.push(i)
             end
@@ -196,7 +196,7 @@ class Board
         int opponent = 3 - player
         int best = -100
         int pos = 0
-        while pos < 9 do
+        while pos < 9
             if self.cells[pos] == 0 then
                 self.cells[pos] = player
                 int score = 0 - self.minimax(opponent)
@@ -216,7 +216,7 @@ class Board
         int bestScore = -100
         int bestPos = -1
         int pos = 0
-        while pos < 9 do
+        while pos < 9
             if self.cells[pos] == 0 then
                 if bestPos == -1 then
                     bestPos = pos
@@ -252,7 +252,7 @@ func explore(Board b)
     int xs = 0
     int os = 0
     int i = 0
-    while i < 9 do
+    while i < 9
         int v = b.cell(i)
         if v == 1 then
             xs += 1
@@ -267,7 +267,7 @@ func explore(Board b)
     end
     array<int> empties = b.emptyCells()
     int k = 0
-    while k < empties.length do
+    while k < empties.length
         int pos = empties[k]
         Board child = clone(b)
         child.place(pos, nextPlayer)
@@ -283,7 +283,7 @@ func playGame(int xStrat, int oStrat, bool verbose) as int
     Board b = Board()
     int player = 1
     int moves = 0
-    while moves < 9 do
+    while moves < 9
         int pos = 0
         if player == 1 then
             if xStrat == 0 then
@@ -331,7 +331,7 @@ func cmdTournament(int N)
     int oWins = 0
     int draws = 0
     int i = 0
-    while i < N do
+    while i < N
         int result = playGame(0, 1, false)
         if result == 1 then
             xWins += 1

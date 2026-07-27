@@ -80,7 +80,7 @@ func parseNumber(string s) as (bool, float)
     bool seenDigit = false
     bool seenDot = false
     int k = start
-    while k < n do
+    while k < n
         string c = string.charAt(s, k)
         if c >= "0" and c <= "9" then
             seenDigit = true

@@ -1,6 +1,7 @@
 typedef struct XL6_CgenVar {
     char* name;
     const XL6_AstNode* type;
+    const XL6_AstNode* narrowType;
     unsigned int flags;
 } XL6_CgenVar;
 
@@ -229,6 +230,10 @@ static void xl6CgenDebugProbe(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 static int xl6CgenEmitClassCtorInto(XL6_CgenContext* ctx, const XL6_AstNode* call, const char* targetExpr);
 static int xl6CgenClassNeedsDestroy(XL6_CgenContext* ctx, const XL6_AstNode* classNode);
+static int xl6CgenGenericClassNeedsDestroy(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* typeNode);
 static void xl6CgenBeginTempScope(XL6_CgenContext* ctx, const XL6_AstNode* atNode);
 static int xl6CgenParamTypeUsesTypedContainerStorage(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 static int xl6CgenClassHasLocalVirtualSlots(const XL6_AstNode* classNode);
@@ -266,6 +271,11 @@ static void xl6CgenEmitExceptionPropagate(XL6_CgenContext* ctx, const XL6_AstNod
 static void xl6CgenEmitDefaultErrorReturn(XL6_CgenContext* ctx);
 static void xl6CgenCloseScope(XL6_CgenContext* ctx, size_t mark);
 static void xl6CgenXValueFromExprForTarget(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr);
+static int xl6CgenDeclEmitXValueCallExprWithArgTemps(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* targetType,
+    const XL6_AstNode* expr,
+    const char* valueName);
 static int xl6CgenSyncCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee);
 static int xl6CgenSyncDefaultCtorExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, int line, int column);
 static int xl6CgenSyncMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member);

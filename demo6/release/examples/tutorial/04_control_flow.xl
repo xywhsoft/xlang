@@ -26,7 +26,7 @@ func main(...) as int
 
     int i = 0
     int total = 0
-    while i < 5 do
+    while i < 5
         i += 1
         total += i
     end
@@ -34,7 +34,7 @@ func main(...) as int
     int once = 0
     do
         once += 1
-    while once < 1
+    while once < 1 end
 
     int rangeSum = 0
     for item in range(5)

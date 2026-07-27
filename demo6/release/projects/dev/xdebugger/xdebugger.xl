@@ -367,7 +367,7 @@ end
 func leadingWS(string line) as string
     int n = string.len(line)
     int i = 0
-    while i < n do
+    while i < n
         int b = string.byteAt(line, i)
         if b != 32 and b != 9 then
             return string.mid(line, 0, i)
@@ -381,7 +381,7 @@ func indentOf(string line) as int
     int n = string.len(line)
     int i = 0
     int cnt = 0
-    while i < n do
+    while i < n
         int b = string.byteAt(line, i)
         if b == 32 then
             cnt += 1
@@ -398,7 +398,7 @@ end
 func padRight(string s, int width) as string
     string outputValue = s
     int n = string.len(s)
-    while n < width do
+    while n < width
         outputValue = outputValue + " "
         n += 1
     end
@@ -407,7 +407,7 @@ end
 
 func padLeft(string s, int width) as string
     string outputValue = s
-    while string.len(outputValue) < width do
+    while string.len(outputValue) < width
         outputValue = " " + outputValue
     end
     return outputValue
@@ -545,7 +545,7 @@ func findFuncEndByIndent(array<string> lines, int startLine1) as int
     end
     string findent = leadingWS(lines[startLine1 - 1])
     int i = startLine1 + 1
-    while i <= lines.length do
+    while i <= lines.length
         string ln = lines[i - 1]
         if leadingWS(ln) == findent and string.trim(ln) == "end" then
             return i
@@ -665,7 +665,7 @@ func extractParams(string sigLine) as array<VarDecl>
     string cur = ""
     int depth = 0
     int i = 0
-    while i < string.len(params) do
+    while i < string.len(params)
         int b = string.byteAt(params, i)
         if b == 60 then
             depth += 1
@@ -721,7 +721,7 @@ func scanLocals(array<string> lines, int startLine, int endLine, array<VarDecl> 
         result.push(p)
     end
     int i = startLine
-    while i <= endLine and i <= lines.length do
+    while i <= endLine and i <= lines.length
         string raw = lines[i - 1]
         // 去注释
         int cpos = string.indexOf(raw, "//")
@@ -736,7 +736,7 @@ func scanLocals(array<string> lines, int startLine, int endLine, array<VarDecl> 
         end
         // 提取首个单词
         int wlen = 0
-        while wlen < string.len(code) and isIdentByte(string.byteAt(code, wlen)) do
+        while wlen < string.len(code) and isIdentByte(string.byteAt(code, wlen))
             wlen += 1
         end
         string firstW = string.mid(code, 0, wlen)
@@ -746,7 +746,7 @@ func scanLocals(array<string> lines, int startLine, int endLine, array<VarDecl> 
             // 提取变量名：rest 开头的标识符
             if string.len(rest) > 0 and isIdentStart(string.byteAt(rest, 0)) then
                 int vlen = 0
-                while vlen < string.len(rest) and isIdentByte(string.byteAt(rest, vlen)) do
+                while vlen < string.len(rest) and isIdentByte(string.byteAt(rest, vlen))
                     vlen += 1
                 end
                 string vname = string.mid(rest, 0, vlen)
@@ -765,7 +765,7 @@ func scanLocals(array<string> lines, int startLine, int endLine, array<VarDecl> 
                 string afterGt = string.trim(string.mid(rest, gt + 1, string.len(rest)))
                 if string.len(afterGt) > 0 and isIdentStart(string.byteAt(afterGt, 0)) then
                     int vlen = 0
-                    while vlen < string.len(afterGt) and isIdentByte(string.byteAt(afterGt, vlen)) do
+                    while vlen < string.len(afterGt) and isIdentByte(string.byteAt(afterGt, vlen))
                         vlen += 1
                     end
                     string vname = string.mid(afterGt, 0, vlen)
@@ -823,7 +823,7 @@ func scanFuncsFromSource(string src) as array<FuncInfo>
     array<string> lines = splitLinesSafe(src)
     array<FuncInfo> result = []
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         string raw = lines[i]
         int cpos = string.indexOf(raw, "//")
         string code = raw
@@ -897,7 +897,7 @@ func extractLineMapFromC(string cPath, string xlFileName) as array<LineMapEntry>
     int curXlLine = 0
     string curSource = ""
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         string ln = lines[i]
         int lineNum = i + 1
         // #line N "file.xl"
@@ -908,7 +908,7 @@ func extractLineMapFromC(string cPath, string xlFileName) as array<LineMapEntry>
             if sp1 > 0 then
                 string rest = string.trim(string.mid(t, sp1 + 1, string.len(t)))
                 int numEnd = 0
-                while numEnd < string.len(rest) and isDigitByte(string.byteAt(rest, numEnd)) do
+                while numEnd < string.len(rest) and isDigitByte(string.byteAt(rest, numEnd))
                     numEnd += 1
                 end
                 if numEnd > 0 then
@@ -934,7 +934,7 @@ func extractLineMapFromC(string cPath, string xlFileName) as array<LineMapEntry>
         if lc >= 0 then
             string after = string.mid(ln, lc + 8, string.len(ln))
             int numEnd = 0
-            while numEnd < string.len(after) and isDigitByte(string.byteAt(after, numEnd)) do
+            while numEnd < string.len(after) and isDigitByte(string.byteAt(after, numEnd))
                 numEnd += 1
             end
             if numEnd > 0 then
@@ -948,7 +948,7 @@ func extractLineMapFromC(string cPath, string xlFileName) as array<LineMapEntry>
         if at >= 0 then
             string after = string.mid(ln, at + 9, string.len(ln))
             int numEnd = 0
-            while numEnd < string.len(after) and isDigitByte(string.byteAt(after, numEnd)) do
+            while numEnd < string.len(after) and isDigitByte(string.byteAt(after, numEnd))
                 numEnd += 1
             end
             if numEnd > 0 then
@@ -1123,7 +1123,7 @@ end
 func bpmRemove(var bpm, int id) as bool
     var breakpoints = bpm.bps
     int i = 0
-    while i < breakpoints.length do
+    while i < breakpoints.length
         var bp = breakpoints[i]
         if int(bp.id) == id then
             breakpoints.remove(i)
@@ -1137,7 +1137,7 @@ end
 func bpmSetEnabled(var bpm, int id, bool on) as bool
     var breakpoints = bpm.bps
     int i = 0
-    while i < breakpoints.length do
+    while i < breakpoints.length
         var bp = breakpoints[i]
         if int(bp.id) == id then
             bp.enabled = on
@@ -1151,7 +1151,7 @@ end
 func bpmSetIgnore(var bpm, int id, int count) as bool
     var breakpoints = bpm.bps
     int i = 0
-    while i < breakpoints.length do
+    while i < breakpoints.length
         var bp = breakpoints[i]
         if int(bp.id) == id then
             bp.ignoreCount = count
@@ -1167,7 +1167,7 @@ func bpmResolve(var bpm, array<FuncInfo> funcs, string srcFile)
     array<string> lines = splitLinesSafe(file.readText(srcFile))
     var breakpoints = bpm.bps
     int bi = 0
-    while bi < breakpoints.length do
+    while bi < breakpoints.length
         var bp = breakpoints[bi]
         if string(bp.state) == "pending" then
             if int(bp.kind) == BP_FUNC then
@@ -1197,7 +1197,7 @@ end
 func bpmCheckHit(var bpm, string file, int line, string funcName, var locals) as var
     var breakpoints = bpm.bps
     int i = 0
-    while i < breakpoints.length do
+    while i < breakpoints.length
         var bp = breakpoints[i]
         if not bool(bp.enabled) then
             i += 1
@@ -1309,7 +1309,7 @@ func evalCondition(string cond, var locals) as bool
             ri += 1
         end
     end
-    while ri < string.len(rhs) do
+    while ri < string.len(rhs)
         int rb = string.byteAt(rhs, ri)
         if not (isDigitByte(rb) or rb == 46) then
             rhsNumeric = false
@@ -1505,7 +1505,7 @@ func buildInstrumentation(string src, array<FuncInfo> funcs) as var
 
         // 函数内每条语句行前插入 point 事件（跳过 bodyStart 已处理的）
         int sl = fi.bodyStart + 1
-        while sl < fi.endLine do
+        while sl < fi.endLine
             string raw = lines[sl - 1]
             string tcode = string.trim(raw)
             // 跳过空行、注释行、end 行
@@ -1571,7 +1571,7 @@ func buildInstrumentation(string src, array<FuncInfo> funcs) as var
         // 在每个 return 行前插入 exit（简化：整行匹配）
         // return 行的插桩在循环中已通过 point 覆盖，这里额外加 exit
         int rl = fi.bodyStart
-        while rl < fi.endLine do
+        while rl < fi.endLine
             string raw = lines[rl - 1]
             int cpos = string.indexOf(raw, "//")
             string code = raw
@@ -1615,7 +1615,7 @@ func applyInstrumentation(string src, var ins) as string
     array<string> lines = splitLinesSafe(src)
     array<string> output = []
     int i = 1
-    while i <= lines.length do
+    while i <= lines.length
         string key = string(i)
         if ins.contains(key) then
             var arr = ins[key]
@@ -1636,7 +1636,7 @@ func applyInstrumentation(string src, var ins) as string
     end
     string result = ""
     int j = 0
-    while j < output.length do
+    while j < output.length
         result = result + output[j] + "\n"
         j += 1
     end
@@ -1722,7 +1722,7 @@ func parseCommand(string line) as Command
     end
     // 提取第一个词
     int wlen = 0
-    while wlen < string.len(t) and isIdentByte(string.byteAt(t, wlen)) do
+    while wlen < string.len(t) and isIdentByte(string.byteAt(t, wlen))
         wlen += 1
     end
     string cmd = string.mid(t, 0, wlen)
@@ -1871,7 +1871,7 @@ func rebuildCallStack(DebugSession sess, int upToIdx) as array<StackFrame>
     array<StackFrame> stack = []
     int depth = 0
     int i = 0
-    while i <= upToIdx and i < sess.events.length do
+    while i <= upToIdx and i < sess.events.length
         DebugEvent e = sess.events[i]
         if e.etype == "enter" then
             depth += 1
@@ -1906,7 +1906,7 @@ func currentPointEvent(DebugSession sess) as var
     end
     // 向前找最近的 point 事件
     int i = sess.eventIdx
-    while i >= 0 do
+    while i >= 0
         if sess.events[i].etype == "point" then
             return sess.events[i]
         end
@@ -1918,7 +1918,7 @@ end
 // 执行 continue：推进到下一个断点命中或结束
 func execContinue(DebugSession sess) as string
     string msg = ""
-    while sess.eventIdx < sess.events.length do
+    while sess.eventIdx < sess.events.length
         DebugEvent e = sess.events[sess.eventIdx]
         if e.etype == "point" then
             var bp = bpmCheckHit(sess.bpm, sess.targetFile, e.line, e.fn, e.locals)
@@ -1944,7 +1944,7 @@ end
 // 执行 step：前进到下一个 point 事件
 func execStep(DebugSession sess) as string
     sess.eventIdx += 1
-    while sess.eventIdx < sess.events.length do
+    while sess.eventIdx < sess.events.length
         DebugEvent e = sess.events[sess.eventIdx]
         if e.etype == "point" then
             sess.callStack = rebuildCallStack(sess, sess.eventIdx)
@@ -1961,7 +1961,7 @@ func execNext(DebugSession sess) as string
     // 记录当前深度
     int startDepth = sess.callStack.length
     sess.eventIdx += 1
-    while sess.eventIdx < sess.events.length do
+    while sess.eventIdx < sess.events.length
         DebugEvent e = sess.events[sess.eventIdx]
         if e.etype == "enter" then
             // 进入函数，跳过
@@ -1989,13 +1989,13 @@ func execFinish(DebugSession sess) as string
     end
     int targetDepth = sess.callStack.length - 1
     sess.eventIdx += 1
-    while sess.eventIdx < sess.events.length do
+    while sess.eventIdx < sess.events.length
         DebugEvent e = sess.events[sess.eventIdx]
         if e.etype == "exit" then
             if e.fn == curFunc then
                 sess.eventIdx += 1
                 // 前进到下一个 point 或结束
-                while sess.eventIdx < sess.events.length do
+                while sess.eventIdx < sess.events.length
                     DebugEvent e2 = sess.events[sess.eventIdx]
                     if e2.etype == "point" then
                         sess.callStack = rebuildCallStack(sess, sess.eventIdx)
@@ -2057,7 +2057,7 @@ func execBacktrace(DebugSession sess) as string
     end
     string result = ""
     int i = sess.callStack.length - 1
-    while i >= 0 do
+    while i >= 0
         StackFrame f = sess.callStack[i]
         string marker = ""
         if i == sess.callStack.length - 1 then
@@ -2149,7 +2149,7 @@ end
 func runDebugSession(DebugSession sess, array<Command> commands) as int
     int errors = 0
     int ci = 0
-    while ci < commands.length do
+    while ci < commands.length
         Command cmd = commands[ci]
         ci += 1
         if cmd.kind == CMD_BLANK or cmd.kind == CMD_COMMENT then
@@ -2334,7 +2334,7 @@ func handleBreak(DebugSession sess, Command cmd)
     // 纯数字 = 行号
     bool allDigit = true
     int di = 0
-    while di < string.len(spec) do
+    while di < string.len(spec)
         if not isDigitByte(string.byteAt(spec, di)) then
             allDigit = false
             break
@@ -2456,7 +2456,7 @@ func generateDapEvents(DebugSession sess, array<Command> commands) as string
     // 重新模拟事件流，生成 stopped/continued 事件
     int evtIdx = 0
     int ci = 0
-    while ci < commands.length do
+    while ci < commands.length
         Command cmd = commands[ci]
         ci += 1
         if cmd.kind == CMD_CONTINUE or cmd.kind == CMD_STEP or cmd.kind == CMD_NEXT or cmd.kind == CMD_FINISH then
@@ -2474,7 +2474,7 @@ func generateDapEvents(DebugSession sess, array<Command> commands) as string
             // 模拟推进
             if cmd.kind == CMD_CONTINUE then
                 bool stopped = false
-                while evtIdx < sess.events.length do
+                while evtIdx < sess.events.length
                     DebugEvent e = sess.events[evtIdx]
                     if e.etype == "point" then
                         var bp = bpmCheckHit(sess.bpm, sess.targetFile, e.line, e.fn, e.locals)
@@ -2511,7 +2511,7 @@ func generateDapEvents(DebugSession sess, array<Command> commands) as string
                 end
             elseif cmd.kind == CMD_STEP or cmd.kind == CMD_NEXT or cmd.kind == CMD_FINISH then
                 evtIdx += 1
-                while evtIdx < sess.events.length do
+                while evtIdx < sess.events.length
                     DebugEvent e = sess.events[evtIdx]
                     if e.etype == "point" then
                         string reason = "step"

@@ -54,7 +54,7 @@ end
 func sumVariadic(int base, ...) as int
     int total = base
     int i = 0
-    while i < arg.length do
+    while i < arg.length
         total = total + int(arg[i])
         i = i + 1
     end
@@ -192,7 +192,7 @@ end
 
 func numbers(int count) as generator<int>
     int i = 0
-    while i < count do
+    while i < count
         i = i + 1
         yield i
     end

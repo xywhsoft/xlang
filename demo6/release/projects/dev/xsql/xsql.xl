@@ -50,7 +50,7 @@ func tokenize(string s) as array
     array toks = []
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b == 32 or b == 9 or b == 10 or b == 13 then
             i += 1
@@ -59,7 +59,7 @@ func tokenize(string s) as array
             i += 1
             string lit = "'"
             bool closed = false
-            while i < n do
+            while i < n
                 int c = string.byteAt(s, i)
                 if c == 39 then
                     if i + 1 < n and string.byteAt(s, i + 1) == 39 then
@@ -84,7 +84,7 @@ func tokenize(string s) as array
             // 数字字面量
             string num = ""
             bool hasDot = false
-            while i < n do
+            while i < n
                 int c = string.byteAt(s, i)
                 if c >= 48 and c <= 57 then
                     num = num + string.charAt(s, i)
@@ -101,7 +101,7 @@ func tokenize(string s) as array
         elseif (b >= 65 and b <= 90) or (b >= 97 and b <= 122) or b == 95 then
             // 标识符 / 关键字
             string ident = ""
-            while i < n do
+            while i < n
                 int c = string.byteAt(s, i)
                 if (c >= 65 and c <= 90) or (c >= 97 and c <= 122) or (c >= 48 and c <= 57) or c == 95 then
                     ident = ident + string.charAt(s, i)
@@ -209,7 +209,7 @@ func tokIsNumberLit(string t) as bool
     bool hasDot = false
     int i = 1
     int n = string.len(t)
-    while i < n do
+    while i < n
         int b = string.byteAt(t, i)
         if b == 46 then
             if hasDot then
@@ -370,7 +370,7 @@ end
 
 func parseOr() as var
     var node = parseAnd()
-    while tokWordIs(tokPeek(), "or") do
+    while tokWordIs(tokPeek(), "or")
         gIx += 1
         var rhs = parseAnd()
         node = {"k":"or", "left":node, "right":rhs}
@@ -380,7 +380,7 @@ end
 
 func parseAnd() as var
     var node = parseNot()
-    while tokWordIs(tokPeek(), "and") do
+    while tokWordIs(tokPeek(), "and")
         gIx += 1
         var rhs = parseNot()
         node = {"k":"and", "left":node, "right":rhs}
@@ -420,7 +420,7 @@ end
 
 func parseAdd() as var
     var node = parseMul()
-    while tokPeek() == "+" or tokPeek() == "-" do
+    while tokPeek() == "+" or tokPeek() == "-"
         string op = tokEat()
         var rhs = parseMul()
         node = {"k":"arith", "op":op, "left":node, "right":rhs}
@@ -430,7 +430,7 @@ end
 
 func parseMul() as var
     var node = parseUnary()
-    while tokPeek() == "*" or tokPeek() == "/" or tokPeek() == "%" do
+    while tokPeek() == "*" or tokPeek() == "/" or tokPeek() == "%"
         string op = tokEat()
         var rhs = parseUnary()
         node = {"k":"arith", "op":op, "left":node, "right":rhs}
@@ -559,7 +559,7 @@ func parseCreate() as var
     string tname = tokEat()
     tokExpectTok("(")
     array cols = []
-    while tokPeek() != ")" and not tokAtEnd() do
+    while tokPeek() != ")" and not tokAtEnd()
         string cname = tokEat()
         string ctype = "TEXT"
         if tokIsWord(tokPeek()) then
@@ -568,7 +568,7 @@ func parseCreate() as var
         // 跳过类型后的括号说明，例如 VARCHAR(10)
         if tokPeek() == "(" then
             gIx += 1
-            while tokPeek() != ")" and not tokAtEnd() do
+            while tokPeek() != ")" and not tokAtEnd()
                 gIx += 1
             end
             if tokPeek() == ")" then
@@ -592,7 +592,7 @@ func parseInsert() as var
     if tokPeek() == "(" then
         gIx += 1
         colNames = []
-        while tokPeek() != ")" and not tokAtEnd() do
+        while tokPeek() != ")" and not tokAtEnd()
             colNames.append(tokEat())
             if tokPeek() == "," then
                 gIx += 1
@@ -602,10 +602,10 @@ func parseInsert() as var
     end
     tokExpectWord("values")
     array rows = []
-    while true do
+    while true
         tokExpectTok("(")
         array vals = []
-        while tokPeek() != ")" and not tokAtEnd() do
+        while tokPeek() != ")" and not tokAtEnd()
             vals.append(parseExpr())
             if tokPeek() == "," then
                 gIx += 1
@@ -630,7 +630,7 @@ func parseSelect() as var
         distinct = true
     end
     array selItems = []
-    while true do
+    while true
         var expr = parseExpr()
         var alias = null
         if tokAcceptWord("as") then
@@ -654,7 +654,7 @@ func parseSelect() as var
     end
 
     array joins = []
-    while true do
+    while true
         var j = tryParseJoin()
         if j == null then
             break
@@ -671,7 +671,7 @@ func parseSelect() as var
     if tokAcceptWord("group") then
         tokExpectWord("by")
         groupExprs = []
-        while true do
+        while true
             groupExprs.append(parseExpr())
             if tokPeek() == "," then
                 gIx += 1
@@ -690,7 +690,7 @@ func parseSelect() as var
     if tokAcceptWord("order") then
         tokExpectWord("by")
         orderSpecs = []
-        while true do
+        while true
             var oe = parseExpr()
             string dir = "asc"
             if tokAcceptWord("asc") then
@@ -766,7 +766,7 @@ func parseUpdate() as var
     string tname = tokEat()
     tokExpectWord("set")
     array sets = []
-    while true do
+    while true
         string col = tokEat()
         tokExpectTok("=")
         var ex = parseExpr()
@@ -1104,7 +1104,7 @@ func computeAgg(var node, var rows) as var
         end
         int cnt = 0
         int i = 0
-        while i < rows.length do
+        while i < rows.length
             var v = evalExpr(rows[i], arg, null)
             if v != null then
                 cnt += 1
@@ -1119,7 +1119,7 @@ func computeAgg(var node, var rows) as var
     if name == "MIN" or name == "MAX" then
         var best = null
         int i = 0
-        while i < rows.length do
+        while i < rows.length
             var v = evalExpr(rows[i], arg, null)
             if v != null then
                 if best == null then
@@ -1142,7 +1142,7 @@ func computeAgg(var node, var rows) as var
     float total = 0.0
     int cnt = 0
     int i = 0
-    while i < rows.length do
+    while i < rows.length
         var v = evalExpr(rows[i], arg, null)
         if v != null then
             if not ((v is int) or (v is float)) then
@@ -1237,19 +1237,19 @@ func execInsert(var ast) as int
     for vals in ast["rows"]
         var row = {}
         int ci = 0
-        while ci < ncol do
+        while ci < ncol
             row[colDefs[ci]["name"]] = null
             ci += 1
         end
         if targetCols != null then
             int k = 0
-            while k < targetCols.length and k < vals.length do
+            while k < targetCols.length and k < vals.length
                 row[targetCols[k]] = evalExpr({}, vals[k], null)
                 k += 1
             end
         else
             int k = 0
-            while k < ncol and k < vals.length do
+            while k < ncol and k < vals.length
                 row[colDefs[k]["name"]] = evalExpr({}, vals[k], null)
                 k += 1
             end
@@ -1271,11 +1271,11 @@ func execUpdate(var ast) as int
     var whereExpr = ast["where"]
     int count = 0
     int i = 0
-    while i < rows.length do
+    while i < rows.length
         var row = rows[i]
         if whereExpr == null or truthy(evalExpr(row, whereExpr, null)) then
             int s = 0
-            while s < sets.length do
+            while s < sets.length
                 row[sets[s]["col"]] = evalExpr(row, sets[s]["expr"], null)
                 s += 1
             end
@@ -1316,7 +1316,7 @@ func expandStar(var srcTables) as array
     array cols = []
     bool qualify = srcTables.length > 1
     int i = 0
-    while i < srcTables.length do
+    while i < srcTables.length
         var tn = srcTables[i]
         var t = gTables[tn]
         if t != null then
@@ -1351,7 +1351,7 @@ end
 // 多键排序的比较：按 orderSpecs 顺序比较，desc 反向。
 func orderCompare(var c1, var c2, var orderSpecs) as int
     int i = 0
-    while i < orderSpecs.length do
+    while i < orderSpecs.length
         var spec = orderSpecs[i]
         var v1 = evalExpr(c1["row"], spec["expr"], c1["agg"])
         var v2 = evalExpr(c2["row"], spec["expr"], c2["agg"])
@@ -1371,10 +1371,10 @@ end
 func insertionSortCtx(var outCtx, var orderSpecs)
     int n = outCtx.length
     int i = 1
-    while i < n do
+    while i < n
         var cur = outCtx[i]
         int j = i - 1
-        while j >= 0 and orderCompare(outCtx[j], cur, orderSpecs) > 0 do
+        while j >= 0 and orderCompare(outCtx[j], cur, orderSpecs) > 0
             outCtx[j + 1] = outCtx[j]
             j -= 1
         end
@@ -1387,7 +1387,7 @@ end
 func ctxRowKey(var c, var projCols) as string
     string key = ""
     int i = 0
-    while i < projCols.length do
+    while i < projCols.length
         var v = evalExpr(c["row"], projCols[i]["expr"], c["agg"])
         key = key + "|" + valKey(v)
         i += 1
@@ -1422,7 +1422,7 @@ func execSelect(var ast) as var
     // ---- JOINs ----
     var joins = ast["joins"]
     int ji = 0
-    while ji < joins.length do
+    while ji < joins.length
         var j = joins[ji]
         string jt = string(j["type"])
         if jt == "right" or jt == "full" then
@@ -1484,7 +1484,7 @@ func execSelect(var ast) as var
     gAggList = []
     var selItems = ast["select"]
     int si = 0
-    while si < selItems.length do
+    while si < selItems.length
         collectAgg(selItems[si]["expr"])
         si += 1
     end
@@ -1494,7 +1494,7 @@ func execSelect(var ast) as var
     if ast["order"] != null then
         var specs = ast["order"]
         int oi = 0
-        while oi < specs.length do
+        while oi < specs.length
             collectAgg(specs[oi]["expr"])
             oi += 1
         end
@@ -1513,7 +1513,7 @@ func execSelect(var ast) as var
                 var kv = []
                 string gkey = ""
                 int gi = 0
-                while gi < gp.length do
+                while gi < gp.length
                     var v = evalExpr(r, gp[gi], null)
                     kv.append(v)
                     gkey = gkey + "|" + valKey(v)
@@ -1530,7 +1530,7 @@ func execSelect(var ast) as var
             groupOrder.append("__all__")
         end
         int gi2 = 0
-        while gi2 < groupOrder.length do
+        while gi2 < groupOrder.length
             string gk = string(groupOrder[gi2])
             var grp = groups[gk]
             var rep = {}
@@ -1539,7 +1539,7 @@ func execSelect(var ast) as var
             end
             var aggCache = {}
             int ai = 0
-            while ai < gAggList.length do
+            while ai < gAggList.length
                 var an = gAggList[ai]
                 aggCache[an["aid"]] = computeAgg(an, grp["rows"])
                 ai += 1
@@ -1567,20 +1567,20 @@ func execSelect(var ast) as var
     // ---- 投影列（展开 *）----
     array projCols = []
     int pi = 0
-    while pi < selItems.length do
+    while pi < selItems.length
         var item = selItems[pi]
         var ex = item["expr"]
         if ex["k"] == "star" then
             array expanded = expandStar(srcTables)
             int ei = 0
-            while ei < expanded.length do
+            while ei < expanded.length
                 projCols.append(expanded[ei])
                 ei += 1
             end
         elseif ex["k"] == "qstar" then
             array expanded = expandTableStar(ex["table"])
             int ei = 0
-            while ei < expanded.length do
+            while ei < expanded.length
                 projCols.append(expanded[ei])
                 ei += 1
             end
@@ -1620,7 +1620,7 @@ func execSelect(var ast) as var
     if limitVal >= 0 and outCtx.length > limitVal then
         array tr = []
         int li = 0
-        while li < limitVal do
+        while li < limitVal
             tr.append(outCtx[li])
             li += 1
         end
@@ -1630,7 +1630,7 @@ func execSelect(var ast) as var
     // ---- 生成结果 ----
     array colNames = []
     int ci = 0
-    while ci < projCols.length do
+    while ci < projCols.length
         colNames.append(string(projCols[ci]["name"]))
         ci += 1
     end
@@ -1638,7 +1638,7 @@ func execSelect(var ast) as var
     for c in outCtx
         array vals = []
         int vi = 0
-        while vi < projCols.length do
+        while vi < projCols.length
             vals.append(evalExpr(c["row"], projCols[vi]["expr"], c["agg"]))
             vi += 1
         end
@@ -1687,7 +1687,7 @@ end
 func repeatChar(string c, int n) as string
     string r = ""
     int i = 0
-    while i < n do
+    while i < n
         r = r + c
         i += 1
     end
@@ -1732,7 +1732,7 @@ func printTable(var res)
     end
     array widths = []
     int i = 0
-    while i < nc do
+    while i < nc
         widths.append(string.len(formatHeaderCell(colsVar[i])))
         i += 1
     end
@@ -1740,7 +1740,7 @@ func printTable(var res)
     for row in rowsVar
         array sr = []
         int j = 0
-        while j < nc do
+        while j < nc
             sr.append(formatVal(row[j]))
             j += 1
         end
@@ -1748,7 +1748,7 @@ func printTable(var res)
     end
     for sr in smatrix
         int j = 0
-        while j < nc do
+        while j < nc
             int wl = string.len(string(sr[j]))
             if wl > widths[j] then
                 widths[j] = wl
@@ -1759,7 +1759,7 @@ func printTable(var res)
     // 表头
     string hline = ""
     int j2 = 0
-    while j2 < nc do
+    while j2 < nc
         if j2 > 0 then
             hline = hline + " | "
         end
@@ -1771,7 +1771,7 @@ func printTable(var res)
     // 分隔线
     string sep = ""
     int j3 = 0
-    while j3 < nc do
+    while j3 < nc
         if j3 > 0 then
             sep = sep + "-+-"
         end
@@ -1783,7 +1783,7 @@ func printTable(var res)
     for sr in smatrix
         string line = ""
         int j4 = 0
-        while j4 < nc do
+        while j4 < nc
             if j4 > 0 then
                 line = line + " | "
             end
@@ -1807,7 +1807,7 @@ func runSqlString(string sql) as int
     array toks = tokenize(sql)
     array stmts = splitStatements(toks)
     int i = 0
-    while i < stmts.length do
+    while i < stmts.length
         var stmt = stmts[i]
         if stmt.length > 0 then
             gTox = stmt
@@ -1827,7 +1827,7 @@ func runOneLine(string line)
     array toks = tokenize(line)
     array stmts = splitStatements(toks)
     int i = 0
-    while i < stmts.length do
+    while i < stmts.length
         var stmt = stmts[i]
         if stmt.length > 0 then
             gTox = stmt
@@ -1883,7 +1883,7 @@ func runBuiltinTest() as int
     stmts.append("SELECT COUNT(*) FROM users")
 
     int i = 0
-    while i < stmts.length do
+    while i < stmts.length
         println("")
         println("xsql> " + stmts[i])
         try

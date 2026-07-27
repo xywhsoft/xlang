@@ -827,6 +827,7 @@ int xlApiAddDefaultRuntimeSymbols(TCCState* s)
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayPopValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayClear);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayReverse);
+    XL_ADD_XRT_SYMBOL(s, xrtTypedArraySwap);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayIndexOfValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayContainsValue);
     XL_ADD_XRT_SYMBOL(s, xrtTypedArrayExtend);

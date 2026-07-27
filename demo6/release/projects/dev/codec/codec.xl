@@ -111,7 +111,7 @@ func main(...) as int
     bool hasP2 = false
 
     int i = 2
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "-f" or a == "--file" then
             if i + 1 < arg.length then

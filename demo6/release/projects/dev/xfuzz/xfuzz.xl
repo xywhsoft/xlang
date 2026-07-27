@@ -96,7 +96,7 @@ func bytesFromString(string s) as array<int>
         return outputValue
     end
     int i = 0
-    while i < n do
+    while i < n
         outputValue.push(string.byteAt(s, i))
         i += 1
     end
@@ -110,7 +110,7 @@ func stringFromBytes(array<int> bs) as string
     end
     Buffer buf = Buffer()
     int i = 0
-    while i < bs.length do
+    while i < bs.length
         buf.appendByte(bs[i] & 0xFF)
         i += 1
     end
@@ -129,7 +129,7 @@ func bytesToHex(array<int> bs) as string
     string hex = "0123456789abcdef"
     string outputValue = ""
     int i = 0
-    while i < bs.length do
+    while i < bs.length
         int b = bs[i] & 0xFF
         outputValue = outputValue + string.charAt(hex, (b >> 4) & 0xF) + string.charAt(hex, b & 0xF)
         i += 1
@@ -146,7 +146,7 @@ func printableBytes(array<int> bs, int maxLen) as string
         show = maxLen
     end
     int i = 0
-    while i < show do
+    while i < show
         int b = bs[i] & 0xFF
         if b >= 32 and b <= 126 then
             outputValue = outputValue + string.charAt(PRINTABLE_CHARS, b - 32)
@@ -165,7 +165,7 @@ end
 func copyBytes(array<int> bs) as array<int>
     array<int> outputValue = []
     int i = 0
-    while i < bs.length do
+    while i < bs.length
         outputValue.push(bs[i])
         i += 1
     end
@@ -183,7 +183,7 @@ func sliceBytes(array<int> bs, int start, int len) as array<int>
     if end2 > bs.length then
         end2 = bs.length
     end
-    while i < end2 do
+    while i < end2
         outputValue.push(bs[i])
         i += 1
     end
@@ -194,12 +194,12 @@ end
 func removeRange(array<int> bs, int start, int len) as array<int>
     array<int> outputValue = []
     int i = 0
-    while i < start and i < bs.length do
+    while i < start and i < bs.length
         outputValue.push(bs[i])
         i += 1
     end
     i = start + len
-    while i < bs.length do
+    while i < bs.length
         outputValue.push(bs[i])
         i += 1
     end
@@ -216,16 +216,16 @@ func insertAt(array<int> bs, int pos, array<int> segment) as array<int>
         pos = bs.length
     end
     int i = 0
-    while i < pos do
+    while i < pos
         outputValue.push(bs[i])
         i += 1
     end
     int j = 0
-    while j < segment.length do
+    while j < segment.length
         outputValue.push(segment[j])
         j += 1
     end
-    while i < bs.length do
+    while i < bs.length
         outputValue.push(bs[i])
         i += 1
     end
@@ -238,7 +238,7 @@ func bytesEqual(array<int> a, array<int> b) as bool
         return false
     end
     int i = 0
-    while i < a.length do
+    while i < a.length
         if a[i] != b[i] then
             return false
         end
@@ -254,7 +254,7 @@ func clampLen(array<int> bs, int maxLen) as array<int>
     end
     array<int> outputValue = []
     int i = 0
-    while i < maxLen do
+    while i < maxLen
         outputValue.push(bs[i])
         i += 1
     end
@@ -267,7 +267,7 @@ func readFileBytes(string p) as array<int>
     array<int> outputValue = []
     int n = buf.len()
     int i = 0
-    while i < n do
+    while i < n
         outputValue.push(buf.byteAt(i))
         i += 1
     end
@@ -278,7 +278,7 @@ end
 func writeFileBytes(string p, array<int> bs)
     Buffer buf = Buffer()
     int i = 0
-    while i < bs.length do
+    while i < bs.length
         buf.appendByte(bs[i] & 0xFF)
         i += 1
     end
@@ -314,7 +314,7 @@ class MutationEngine
     func setDictionary(array<string> tokens)
         self.dictTokens = []
         int i = 0
-        while i < tokens.length do
+        while i < tokens.length
             self.dictTokens.push(tokens[i])
             i += 1
         end
@@ -434,7 +434,7 @@ class MutationEngine
         array<int> outputValue = copyBytes(input)
         int pos = self.rp(n)
         int j = 0
-        while j < tokenBytes.length and pos + j < n do
+        while j < tokenBytes.length and pos + j < n
             outputValue[pos + j] = tokenBytes[j]
             j += 1
         end
@@ -463,7 +463,7 @@ class MutationEngine
         end
         array<int> outputValue = copyBytes(input)
         int k = 0
-        while k < blockLen do
+        while k < blockLen
             int tmp = outputValue[s1 + k]
             outputValue[s1 + k] = outputValue[s2 + k]
             outputValue[s2 + k] = tmp
@@ -520,9 +520,9 @@ class MutationEngine
         int times = random.range(2, 4)
         array<int> outputValue = []
         int t = 0
-        while t < times do
+        while t < times
             int i = 0
-            while i < input.length do
+            while i < input.length
                 outputValue.push(input[i])
                 i += 1
             end
@@ -540,7 +540,7 @@ class MutationEngine
         if random.range(0, 1) == 0 then
             useA = false
         end
-        while i < a.length and j < b.length do
+        while i < a.length and j < b.length
             if random.range(0, 4) == 0 then
                 useA = not useA
             end
@@ -552,11 +552,11 @@ class MutationEngine
                 j += 1
             end
         end
-        while i < a.length do
+        while i < a.length
             outputValue.push(a[i])
             i += 1
         end
-        while j < b.length do
+        while j < b.length
             outputValue.push(b[j])
             j += 1
         end
@@ -568,7 +568,7 @@ class MutationEngine
         int n = random.range(1, 64)
         array<int> outputValue = []
         int i = 0
-        while i < n do
+        while i < n
             outputValue.push(self.rb())
             i += 1
         end
@@ -580,7 +580,7 @@ class MutationEngine
         array<int> cur = copyBytes(input)
         int rounds = random.range(1, 8)
         int i = 0
-        while i < rounds do
+        while i < rounds
             int which = random.range(0, 11)
             if which == 0 then
                 cur = self.flipBit(cur)
@@ -620,13 +620,13 @@ class MutationEngine
     // 长度归一化：补齐 minLen，截断 maxLen
     func normalize(array<int> bs) as array<int>
         array<int> outputValue = copyBytes(bs)
-        while outputValue.length < self.minLen do
+        while outputValue.length < self.minLen
             outputValue.push(0)
         end
         if outputValue.length > self.maxLen then
             array<int> trimmed = []
             int j = 0
-            while j < self.maxLen do
+            while j < self.maxLen
                 trimmed.push(outputValue[j])
                 j += 1
             end
@@ -731,7 +731,7 @@ class Dictionary
         string text = file.readText(filePath)
         array<string> lines = string.splitLines(text)
         int i = 0
-        while i < lines.length do
+        while i < lines.length
             string line = lines[i]
             string trimmed = string.trim(line)
             if string.len(trimmed) > 0 then
@@ -837,7 +837,7 @@ class SeedCorpus
             int minIdx = 0
             int minW = self.seeds[0].weight
             int i = 1
-            while i < self.seeds.length do
+            while i < self.seeds.length
                 if self.seeds[i].weight < minW then
                     minW = self.seeds[i].weight
                     minIdx = i
@@ -879,7 +879,7 @@ class SeedCorpus
         end
         int total = 0
         int i = 0
-        while i < n do
+        while i < n
             total += self.seeds[i].weight
             i += 1
         end
@@ -889,7 +889,7 @@ class SeedCorpus
         int r = random.range(0, total - 1)
         int acc = 0
         int j = 0
-        while j < n do
+        while j < n
             acc += self.seeds[j].weight
             if r < acc then
                 return j
@@ -948,7 +948,7 @@ class SeedCorpus
         end
         array raw = dir.entries(dirPath, false)
         int i = 0
-        while i < raw.length do
+        while i < raw.length
             var e = raw[i]
             bool isDir = bool(e["isDir"])
             if not isDir then
@@ -970,7 +970,7 @@ class SeedCorpus
     func totalBytes() as int
         int total = 0
         int i = 0
-        while i < self.seeds.length do
+        while i < self.seeds.length
             total += self.seeds[i].data.length
             i += 1
         end
@@ -1105,7 +1105,7 @@ class CrashAnalyzer
         int execsUsed = 1
         bool progress = true
         // 多轮：块级删除（块大小减半）+ 字节级删除
-        while progress and execsUsed < maxExecs do
+        while progress and execsUsed < maxExecs
             progress = false
             // 块级删除
             int n = best.length
@@ -1115,7 +1115,7 @@ class CrashAnalyzer
                     blockSize = 1
                 end
                 int pos = 0
-                while pos < best.length and execsUsed < maxExecs do
+                while pos < best.length and execsUsed < maxExecs
                     if best.length <= 1 then
                         break
                     end
@@ -1143,7 +1143,7 @@ class CrashAnalyzer
             // 字节级删除
             if execsUsed < maxExecs then
                 int bp = 0
-                while bp < best.length and execsUsed < maxExecs do
+                while bp < best.length and execsUsed < maxExecs
                     if best.length <= 1 then
                         break
                     end
@@ -1171,7 +1171,7 @@ class CrashAnalyzer
         println("")
         println(C_YELLOW + "Crashes:" + C_RESET)
         int i = 0
-        while i < self.crashes.length do
+        while i < self.crashes.length
             CrashRec c = self.crashes[i]
             string preview = printableBytes(c.data, 48)
             println("  [" + string(i + 1) + "] " + c.crashType + " (" + string(c.data.length) + "B) " + preview)
@@ -1457,7 +1457,7 @@ class Fuzzer
         end
 
         int endTime = time.toUnix(time.now()) + self.budgetSec
-        while time.toUnix(time.now()) < endTime do
+        while time.toUnix(time.now()) < endTime
             self.fuzzOne()
             self.stats.printStatus(self.coverage.pathCount(), self.corpus.size(),
                                    self.analyzer.crashCount(), self.budgetSec)
@@ -1626,7 +1626,7 @@ func testByteHelpers()
     // clampLen
     array<int> big = []
     int i = 0
-    while i < 100 do
+    while i < 100
         big.push(i)
         i += 1
     end
@@ -1659,13 +1659,13 @@ func testMutators()
     int havocFailLen = 0
     int havocFailRange = 0
     int havocSame = 0
-    while i < 500 do
+    while i < 500
         array<int> m = eng.havoc(seed)
         if m.length < 1 or m.length > 256 then
             havocFailLen += 1
         end
         int j = 0
-        while j < m.length do
+        while j < m.length
             if m[j] < 0 or m[j] > 255 then
                 havocFailRange += 1
             end
@@ -1685,7 +1685,7 @@ func testMutators()
     check(m1.length == seedLen, "flipBit preserves length")
     int diffs = 0
     int k = 0
-    while k < seedLen do
+    while k < seedLen
         if m1[k] != seed[k] then
             diffs += 1
         end
@@ -1748,7 +1748,7 @@ func testDictionary()
     bool hasBrace = false
     array<string> dToks = d.getTokens()
     int i = 0
-    while i < d.count() do
+    while i < d.count()
         if dToks[i] == "{" then
             hasBrace = true
         end
@@ -1827,7 +1827,7 @@ func testCorpus()
     // 大输入截断
     array<int> big = []
     int i = 0
-    while i < 10000 do
+    while i < 10000
         big.push(65)
         i += 1
     end

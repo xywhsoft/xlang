@@ -37,10 +37,10 @@ end
 
 func breakTwoWhileCleanup()
     int outer = 0
-    while outer < 2 do
+    while outer < 2
         auto outerTracker = Tracker(300 + outer)
         int inner = 0
-        while inner < 2 do
+        while inner < 2
             auto innerTracker = Tracker(400 + inner)
             break 2
             inner += 1
@@ -51,10 +51,10 @@ end
 
 func continueTwoWhileCleanup()
     int outer = 0
-    while outer < 2 do
+    while outer < 2
         auto outerTracker = Tracker(500 + outer)
         int inner = 0
-        while inner < 2 do
+        while inner < 2
             auto innerTracker = Tracker(600 + outer * 10 + inner)
             outer += 1
             continue 2

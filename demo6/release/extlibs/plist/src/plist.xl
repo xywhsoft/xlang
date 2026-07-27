@@ -115,7 +115,7 @@ func __plist_to_value(NativeDocument document, point node,
     elseif kind == 7 then
         var result = []
         int index = 0
-        while index < document.count(node) do
+        while index < document.count(node)
             result.append(__plist_to_value(document,
                 document.arrayGet(node, c_uint(index)), depth + 1, maxDepth))
             index += 1
@@ -124,7 +124,7 @@ func __plist_to_value(NativeDocument document, point node,
     elseif kind == 8 then
         var result = {}
         int index = 0
-        while index < document.count(node) do
+        while index < document.count(node)
             string key = string(document.dictKey(node, c_uint(index)))
             result[key] = __plist_to_value(document,
                 document.dictValue(node, c_uint(index)), depth + 1, maxDepth)

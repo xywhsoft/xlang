@@ -148,7 +148,7 @@ func xfeat_locate_prepared_with_session(point query_set, point target_session, s
 	point best = null
 	int index = 0
 	int count = xfeat_query_count_native(query_set)
-	while index < count do
+	while index < count
 		best = xfeat_choose_better(best, xfeat_match_prepared_index(query_set, index, target_features, min_cossim, min_inliers, ransac_reproj))
 		index = index + 1
 	end

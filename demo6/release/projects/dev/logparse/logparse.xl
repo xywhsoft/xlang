@@ -28,7 +28,7 @@ func main(...) as int
     bool usePattern = false
 
     int ai = 2
-    while ai < arg.length do
+    while ai < arg.length
         string a = string(arg[ai])
         if a == "-p" or a == "--pattern" then
             if ai + 1 >= arg.length then
@@ -79,7 +79,7 @@ func main(...) as int
 
     int n = lines.length
     int i = 0
-    while i < n do
+    while i < n
         string line = string(lines[i])
         i = i + 1
 
@@ -163,7 +163,7 @@ func main(...) as int
     array levels = ["INFO", "DEBUG", "WARN", "ERROR", "FATAL", "TRACE", "OTHER"]
     int lvlN = levels.length
     int li = 0
-    while li < lvlN do
+    while li < lvlN
         string lv = string(levels[li])
         var cv = counts[lv]
         if cv != null then
@@ -190,9 +190,9 @@ func main(...) as int
 
         // 冒泡排序: 按计数降序
         int a = 0
-        while a < eCount do
+        while a < eCount
             int b = a + 1
-            while b < eCount do
+            while b < eCount
                 if eVals[b] > eVals[a] then
                     int tv = eVals[a]
                     eVals[a] = eVals[b]
@@ -211,7 +211,7 @@ func main(...) as int
             topMax = eCount
         end
         int ti = 0
-        while ti < topMax do
+        while ti < topMax
             string m = eKeys[ti]
             int c = eVals[ti]
             println("  \"" + m + "\":" + string.padLeft(string(c), 5))

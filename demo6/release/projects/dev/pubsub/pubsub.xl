@@ -114,7 +114,7 @@ int g_fail = 0
 
 func initSubs()
     int i = 0
-    while i < MAX_SUBS do
+    while i < MAX_SUBS
         g_subStatus.push(ST_FREE)
         g_subTopic.push("")
         g_subGroup.push("")
@@ -193,7 +193,7 @@ func subscribe(string topic, string group) as int
     g_lock.lock()
     int slot = -1
     int i = 0
-    while i < MAX_SUBS do
+    while i < MAX_SUBS
         if g_subStatus[i] == ST_FREE then
             slot = i
             break
@@ -225,7 +225,7 @@ func publish(string topic, int data) as int
     g_msgData.push(data)
     g_nextMsgId = g_nextMsgId + 1
     g_lock.unlock()
-    while true do
+    while true
         if g_dispatch.send(id) then
             return id
         end
@@ -243,7 +243,7 @@ func ack(int slot, int msgId)
     g_lock.lock()
     int idx = -1
     int i = 0
-    while i < g_penSub.length do
+    while i < g_penSub.length
         if g_penSub[i] == slot and g_penMsg[i] == msgId then
             idx = i
             break
@@ -280,7 +280,7 @@ func pickGroupMember(string topic, string group) as int
     string key = group + "|" + topic
     int ki = -1
     int i = 0
-    while i < g_gtKey.length do
+    while i < g_gtKey.length
         if g_gtKey[i] == key then
             ki = i
             break
@@ -294,7 +294,7 @@ func pickGroupMember(string topic, string group) as int
     end
     array<int> members
     int j = 0
-    while j < MAX_SUBS do
+    while j < MAX_SUBS
         if g_subStatus[j] == ST_ACTIVE then
             if g_subTopic[j] == topic then
                 if g_subGroup[j] == group then
@@ -319,7 +319,7 @@ func dispatchMessage(int msgId)
     g_lock.lock()
     string topic = g_msgTopic[msgId]
     int i = 0
-    while i < MAX_SUBS do
+    while i < MAX_SUBS
         if g_subStatus[i] == ST_ACTIVE then
             if g_subTopic[i] == topic then
                 if g_subGroup[i] == "" then
@@ -331,7 +331,7 @@ func dispatchMessage(int msgId)
     end
     array<string> groups
     int k = 0
-    while k < MAX_SUBS do
+    while k < MAX_SUBS
         if g_subStatus[k] == ST_ACTIVE then
             if g_subTopic[k] == topic then
                 if g_subGroup[k] != "" then
@@ -344,7 +344,7 @@ func dispatchMessage(int msgId)
         k = k + 1
     end
     int g = 0
-    while g < groups.length do
+    while g < groups.length
         int target = pickGroupMember(topic, groups[g])
         if target >= 0 then
             deliverTo(target, msgId)
@@ -360,7 +360,7 @@ func checkRedelivery()
     g_lock.lock()
     int now = g_tick
     int i = 0
-    while i < g_penSub.length do
+    while i < g_penSub.length
         int s = g_penSub[i]
         int m = g_penMsg[i]
         int t = g_penTime[i]
@@ -387,7 +387,7 @@ func makeDispatchWorker() as func() as int
         g_lock.lock()
         g_activeThreads = g_activeThreads + 1
         g_lock.unlock()
-        while true do
+        while true
             bool ok = false
             int msgId = 0
             ok, msgId = tryRecvDispatch()
@@ -422,7 +422,7 @@ func makeSubWorker(int slot) as func() as int
         g_lock.lock()
         g_activeThreads = g_activeThreads + 1
         g_lock.unlock()
-        while true do
+        while true
             bool ok = false
             int msgId = 0
             ok, msgId = subRecv(slot)
@@ -464,7 +464,7 @@ func makePublisher(string topic, int start, int count) as func() as int
         g_activeThreads = g_activeThreads + 1
         g_lock.unlock()
         int i = 0
-        while i < count do
+        while i < count
             publish(topic, start + i)
             i = i + 1
         end
@@ -488,7 +488,7 @@ func prettyCompact(string compact) as string
     int indent = 0
     int i = 0
     string pad = "  "
-    while i < n do
+    while i < n
         string c = string.charAt(compact, i)
         if c == "{" or c == "[" then
             indent = indent + 1
@@ -512,7 +512,7 @@ end
 func saveMessages(string p) as bool
     var arr = []
     int i = 0
-    while i < g_msgTopic.length do
+    while i < g_msgTopic.length
         var m = {}
         m["id"] = i
         m["topic"] = g_msgTopic[i]
@@ -588,7 +588,7 @@ end
 
 func waitForAcked(int slot, int expected, int timeoutMs) as bool
     int waited = 0
-    while waited < timeoutMs do
+    while waited < timeoutMs
         if ackedCount(slot) >= expected then
             return true
         end
@@ -600,7 +600,7 @@ end
 
 func waitForDelivered(int slot, int expected, int timeoutMs) as bool
     int waited = 0
-    while waited < timeoutMs do
+    while waited < timeoutMs
         if deliveredCount(slot) >= expected then
             return true
         end
@@ -612,7 +612,7 @@ end
 
 func waitForGroupAcked(int a, int b, int c, int expected, int timeoutMs) as bool
     int waited = 0
-    while waited < timeoutMs do
+    while waited < timeoutMs
         if groupAcked(a, b, c) >= expected then
             return true
         end
@@ -628,7 +628,7 @@ func distinctAckedInRange(int a, int b) as int
     g_lock.lock()
     array<int> seen
     int i = 0
-    while i < g_ackSub.length do
+    while i < g_ackSub.length
         int s = g_ackSub[i]
         if s >= a and s <= b then
             int m = g_ackMsg[i]
@@ -645,7 +645,7 @@ end
 
 func waitForDispatchDone(int timeoutMs) as bool
     int waited = 0
-    while waited < timeoutMs do
+    while waited < timeoutMs
         g_lock.lock()
         bool d = g_dispatchDone
         g_lock.unlock()
@@ -660,7 +660,7 @@ end
 
 func waitForActive(int target, int timeoutMs) as bool
     int waited = 0
-    while waited < timeoutMs do
+    while waited < timeoutMs
         g_lock.lock()
         int a = g_activeThreads
         g_lock.unlock()
@@ -705,7 +705,7 @@ func runTests(string scriptPath) as int
     // ---- start worker threads ----
     thread(makeDispatchWorker())
     int i = 0
-    while i < MAX_SUBS do
+    while i < MAX_SUBS
         thread(makeSubWorker(i))
         i = i + 1
     end
@@ -713,7 +713,7 @@ func runTests(string scriptPath) as int
     // TEST 1: standalone subscribe + publish + consume + ack
     println("[test 1] standalone: 10 msgs to 'news', 2 subscribers, immediate ack")
     i = 0
-    while i < 10 do
+    while i < 10
         publish("news", i + 1)
         i = i + 1
     end
@@ -725,7 +725,7 @@ func runTests(string scriptPath) as int
     // TEST 2: consumer group round-robin
     println("[test 2] consumer group: 9 msgs to 'tasks', group 'workers' x3")
     i = 0
-    while i < 9 do
+    while i < 9
         publish("tasks", 100 + i)
         i = i + 1
     end
@@ -773,7 +773,7 @@ func runTests(string scriptPath) as int
     println("passed:", g_pass, " failed:", g_fail)
     println("messages published:", g_nextMsgId)
     int s = 0
-    while s < MAX_SUBS do
+    while s < MAX_SUBS
         println("  sub#" + string(s) + " [" + g_subTopic[s] +
                 "] delivered=" + string(g_subDelivered[s]) +
                 " acked=" + string(g_subAcked[s]))

@@ -222,13 +222,13 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `string(123)`、`string(1.25)`、`string(varValue)` |
-| 生成规则描述 | 整数和浮点分别通过 `xrtI64ToStr`、`xrtNumToStr` 写入栈缓冲区，再复制到 XRT 临时内存。xvalue 转字符串调用 `xvoToString` 后通过 `xl6_xrt_take_cstr` 接管释放。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:54` |
-| 对应生成的 C 代码 | `xl6_xrt_i64_to_string`、`xl6_xrt_f64_to_string`、`xl6_xrt_value_to_string` |
+| xlang 写法 | `string(123)`、`string(uint64Value)`、`string(1.25)`、`string(varValue)` |
+| 生成规则描述 | 有符号整数和浮点分别通过 `xrtI64ToStr`、`xrtNumToStr` 写入栈缓冲区；无符号整数使用 `xrtFormat("%llu", value)` 生成十进制文本并由 `xl6_xrt_take_cstr` 接管。不能使用 XRT 的十六进制 `xrtU64ToStr` 代替语言层十进制转换。xvalue 转字符串调用 `xvoToString`。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:170-190` |
+| 对应生成的 C 代码 | `xl6_xrt_i64_to_string`、`xl6_xrt_u64_to_string`、`xl6_xrt_f64_to_string`、`xl6_xrt_value_to_string` |
 | 中间形态伪代码 | `buffer = xrtToStr(value); return tempCopy(buffer)` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自己选择缓冲区、格式化和释放策略。 |
-| 额外依赖的封装代码 | 三个字符串转换 helper。 |
+| 额外依赖的封装代码 | 有符号、无符号、浮点和 xvalue 字符串转换 helper。 |
 
 ## CGEN-RTH-020 xvalue 转字符串并释放输入
 

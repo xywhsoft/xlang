@@ -93,7 +93,7 @@ func isAllDigits(string s) as bool
         return false
     end
     int i = 0
-    while i < n do
+    while i < n
         int c = string.byteAt(s, i)
         if c < 48 or c > 57 then
             return false
@@ -116,7 +116,7 @@ func looksInt(string s) as bool
             return false
         end
     end
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -135,7 +135,7 @@ func parseOctal(string s) as int
     end
     int v = 0
     int i = 0
-    while i < n do
+    while i < n
         int c = string.byteAt(s, i)
         if c < 48 or c > 55 then
             return 0
@@ -163,7 +163,7 @@ func hasSuffixI(string s, string suf) as bool
     end
     int start = sl - fl
     int i = 0
-    while i < fl do
+    while i < fl
         int a = string.byteAt(s, start + i)
         int b = string.byteAt(suf, i)
         if a >= 65 and a <= 90 then
@@ -191,7 +191,7 @@ func bufferToArray(Buffer buf) as array<int>
     array<int> outputValue = array[]
     int n = buf.len()
     int i = 0
-    while i < n do
+    while i < n
         outputValue.push(buf.byteAt(i))
         i = i + 1
     end
@@ -203,7 +203,7 @@ end
 func fillBuffer(Buffer buf, array<int> bytes)
     int n = bytes.length
     int i = 0
-    while i < n do
+    while i < n
         buf.appendByte(bytes[i] & 0xFF)
         i = i + 1
     end
@@ -281,10 +281,10 @@ func crcInitTable()
     end
     CRC_TABLE.clear()
     int n = 0
-    while n < 256 do
+    while n < 256
         int c = n
         int k = 0
-        while k < 8 do
+        while k < 8
             if (c & 1) != 0 then
                 c = (c >> 1) ^ 0xEDB88320
             else
@@ -311,7 +311,7 @@ func crc32Slice(array<int> data, int start, int len) as int
     crcInitTable()
     int crc = 0xFFFFFFFF
     int i = 0
-    while i < len do
+    while i < len
         int idx = (crc ^ data[start + i]) & 0xFF
         crc = ((crc >> 8) ^ CRC_TABLE[idx]) & 0xFFFFFFFF
         i = i + 1
@@ -360,7 +360,7 @@ class BitReader
     func bits(int n) as int
         int v = 0
         int i = 0
-        while i < n do
+        while i < n
             v = v | (self.bit() << i)
             i = i + 1
         end
@@ -393,7 +393,7 @@ class BitReader
     func copyBytes(array<int> dst, int n)
         self.alignToByte()
         int i = 0
-        while i < n do
+        while i < n
             dst.push(self.data[self.bytePos] & 0xFF)
             self.bytePos = self.bytePos + 1
             i = i + 1
@@ -414,7 +414,7 @@ class BitReader
         int first = 0
         int index = 0
         int L = 1
-        while L <= MAX_BITS do
+        while L <= MAX_BITS
             code = code | self.bit()
             int cnt = t.count[L]
             if (code - first) < cnt then
@@ -444,7 +444,7 @@ class HuffTable
 
     create()
         int i = 0
-        while i <= MAX_BITS do
+        while i <= MAX_BITS
             self.count.push(0)
             i = i + 1
         end
@@ -458,7 +458,7 @@ func huffBuild(array<int> lengths) as HuffTable
     int n = lengths.length
     // count codes per length
     int i = 0
-    while i < n do
+    while i < n
         int L = lengths[i]
         if L > 0 then
             t.count[L] = t.count[L] + 1
@@ -468,25 +468,25 @@ func huffBuild(array<int> lengths) as HuffTable
     // offsets[L] = start index in `symbol` of length-L codes
     array<int> offsets = array[]
     int k = 0
-    while k <= MAX_BITS do
+    while k <= MAX_BITS
         offsets.push(0)
         k = k + 1
     end
     int acc = 0
     int L = 1
-    while L <= MAX_BITS do
+    while L <= MAX_BITS
         offsets[L] = acc
         acc = acc + t.count[L]
         L = L + 1
     end
     // pre-size symbol[] and place each symbol at its offset slot
     int s = 0
-    while s < acc do
+    while s < acc
         t.symbol.push(0)
         s = s + 1
     end
     int sym = 0
-    while sym < n do
+    while sym < n
         int cl = lengths[sym]
         if cl > 0 then
             int pos = offsets[cl]
@@ -554,19 +554,19 @@ array<int> CODELEN_ORDER = array[
 func fixedLitLenLengths() as array<int>
     array<int> L = array[]
     int i = 0
-    while i <= 143 do
+    while i <= 143
         L.push(8)
         i = i + 1
     end
-    while i <= 255 do
+    while i <= 255
         L.push(9)
         i = i + 1
     end
-    while i <= 279 do
+    while i <= 279
         L.push(7)
         i = i + 1
     end
-    while i <= 287 do
+    while i <= 287
         L.push(8)
         i = i + 1
     end
@@ -577,7 +577,7 @@ end
 func fixedDistLengths() as array<int>
     array<int> D = array[]
     int i = 0
-    while i < 30 do
+    while i < 30
         D.push(5)
         i = i + 1
     end
@@ -605,7 +605,7 @@ func decodeStoredBlock(BitReader br, array<int> outputValue) as bool
 end
 
 func decodeBlockBody(BitReader br, HuffTable litLen, HuffTable dist, array<int> outputValue)
-    while true do
+    while true
         int sym = br.huffDecode(litLen)
         if sym < 256 then
             outputValue.push(sym)
@@ -630,7 +630,7 @@ func decodeBlockBody(BitReader br, HuffTable litLen, HuffTable dist, array<int> 
                 throw "DEFLATE: distance too far back"
             end
             int k = 0
-            while k < len do
+            while k < len
                 outputValue.push(outputValue[srcPos + k])
                 k = k + 1
             end
@@ -652,12 +652,12 @@ func decodeDynamicCodeLens(BitReader br, int ncodes) as array<int>
     int hclen = br.bits(4) + 4
     array<int> cl = array[]
     int i = 0
-    while i < 19 do
+    while i < 19
         cl.push(0)
         i = i + 1
     end
     int j = 0
-    while j < hclen do
+    while j < hclen
         cl[CODELEN_ORDER[j]] = br.bits(3)
         j = j + 1
     end
@@ -668,7 +668,7 @@ end
 // using the code-length Huffman table.
 func expandCodeLens(BitReader br, HuffTable clTable, int total) as array<int>
     array<int> result = array[]
-    while result.length < total do
+    while result.length < total
         int sym = br.huffDecode(clTable)
         if sym < 16 then
             result.push(sym)
@@ -677,7 +677,7 @@ func expandCodeLens(BitReader br, HuffTable clTable, int total) as array<int>
             int rep = 3 + br.bits(2)
             int prev = result[result.length - 1]
             int k = 0
-            while k < rep do
+            while k < rep
                 result.push(prev)
                 k = k + 1
             end
@@ -685,7 +685,7 @@ func expandCodeLens(BitReader br, HuffTable clTable, int total) as array<int>
             // repeat 0 for 3..10 times
             int rep = 3 + br.bits(3)
             int k = 0
-            while k < rep do
+            while k < rep
                 result.push(0)
                 k = k + 1
             end
@@ -693,7 +693,7 @@ func expandCodeLens(BitReader br, HuffTable clTable, int total) as array<int>
             // repeat 0 for 11..138 times
             int rep = 11 + br.bits(7)
             int k = 0
-            while k < rep do
+            while k < rep
                 result.push(0)
                 k = k + 1
             end
@@ -720,12 +720,12 @@ func decodeDynamicBlock(BitReader br, array<int> outputValue) as bool
     array<int> llLens = array[]
     array<int> dLens = array[]
     int i = 0
-    while i < hlit do
+    while i < hlit
         llLens.push(allLens[i])
         i = i + 1
     end
     int j = 0
-    while j < hdist do
+    while j < hdist
         dLens.push(allLens[hlit + j])
         j = j + 1
     end
@@ -738,7 +738,7 @@ end
 // Inflate a complete DEFLATE stream (one or more blocks) into `out`.
 func inflateStream(BitReader br, array<int> outputValue)
     bool done = false
-    while not done do
+    while not done
         int bfinal = br.bit()
         int btype = br.bits(2)
         if btype == 0 then
@@ -814,7 +814,7 @@ func findEocd(array<int> data) as int
         minPos = n - (22 + 65535)
     end
     int pos = n - 22
-    while pos >= minPos do
+    while pos >= minPos
         if readU32LE(data, pos) == ZIP_EOCD_SIG then
             return pos
         end
@@ -827,7 +827,7 @@ end
 func readAscii(array<int> data, int off, int len) as string
     Buffer buf = Buffer()
     int i = 0
-    while i < len do
+    while i < len
         int b = data[off + i] & 0xFF
         if b == 0 then
             // stop at first NUL (filenames inside ZIP are NUL-padded)
@@ -846,7 +846,7 @@ func parseCentralDirectory(array<int> data, int cdOffset, int count) as array<Zi
     array<ZipEntry> entries = array[]
     int pos = cdOffset
     int seen = 0
-    while seen < count do
+    while seen < count
         if pos + 46 > data.length then
             break
         end
@@ -904,7 +904,7 @@ func readZipEntryPayload(array<int> data, ZipEntry e) as array<int>
     end
     array<int> outputValue = array[]
     int i = 0
-    while i < n do
+    while i < n
         outputValue.push(data[dataStart + i] & 0xFF)
         i = i + 1
     end
@@ -975,7 +975,7 @@ end
 func tarReadField(array<int> data, int off, int len) as string
     Buffer buf = Buffer()
     int i = 0
-    while i < len do
+    while i < len
         int b = data[off + i] & 0xFF
         if b == 0 then
             i = len
@@ -993,7 +993,7 @@ end
 func tarCheckChecksum(array<int> data, int off) as bool
     int computed = 0
     int i = 0
-    while i < 512 do
+    while i < 512
         int b = data[off + i] & 0xFF
         if i >= 148 and i < 156 then
             b = 32      // space
@@ -1011,7 +1011,7 @@ end
 func parseTarHeader(array<int> data, int off) as var
     int i = 0
     bool allZero = true
-    while i < 512 do
+    while i < 512
         if data[off + i] != 0 then
             allZero = false
         end
@@ -1039,7 +1039,7 @@ func parseTar(array<int> data) as array<TarEntry>
     array<TarEntry> entries = array[]
     int off = 0
     int n = data.length
-    while off + 512 <= n do
+    while off + 512 <= n
         var e = parseTarHeader(data, off)
         if e == null then
             // two consecutive zero blocks = end of archive; we stop at first.
@@ -1068,7 +1068,7 @@ func readTarEntry(array<int> data, TarEntry e) as array<int>
         n = data.length - e.dataOffset
     end
     int i = 0
-    while i < n do
+    while i < n
         outputValue.push(data[e.dataOffset + i] & 0xFF)
         i = i + 1
     end
@@ -1083,7 +1083,7 @@ end
 func pushTarField(array<int> outputValue, string s, int fieldLen)
     int sl = string.len(s)
     int i = 0
-    while i < fieldLen do
+    while i < fieldLen
         if i < sl then
             outputValue.push(string.byteAt(s, i) & 0xFF)
         else
@@ -1102,7 +1102,7 @@ func pushTarOctal(array<int> outputValue, int v, int fieldLen)
     if x == 0 then
         s = "0"
     else
-        while x > 0 do
+        while x > 0
             int d = x & 7
             string ch = "0"
             if d == 1 then
@@ -1126,11 +1126,11 @@ func pushTarOctal(array<int> outputValue, int v, int fieldLen)
     end
     // pad to (fieldLen-1) chars with leading zeros, then a NUL terminator
     int need = fieldLen - 1
-    while string.len(s) < need do
+    while string.len(s) < need
         s = "0" + s
     end
     int i = 0
-    while i < need do
+    while i < need
         outputValue.push(string.byteAt(s, i) & 0xFF)
         i = i + 1
     end
@@ -1141,7 +1141,7 @@ end
 func tarAddFile(array<int> outputValue, string name, array<int> bytes, int mtime, int mode)
     int headerStart = outputValue.length
     int i = 0
-    while i < 512 do
+    while i < 512
         outputValue.push(0)
         i = i + 1
     end
@@ -1154,7 +1154,7 @@ func tarAddFile(array<int> outputValue, string name, array<int> bytes, int mtime
         nameLen = 100
     end
     int ni = 0
-    while ni < nameLen do
+    while ni < nameLen
         outputValue[p + ni] = string.byteAt(name, ni) & 0xFF
         ni = ni + 1
     end
@@ -1162,7 +1162,7 @@ func tarAddFile(array<int> outputValue, string name, array<int> bytes, int mtime
     array<int> modeBuf = array[]
     pushTarOctal(modeBuf, mode, 8)
     int mi = 0
-    while mi < 8 do
+    while mi < 8
         outputValue[p + 100 + mi] = modeBuf[mi]
         mi = mi + 1
     end
@@ -1170,7 +1170,7 @@ func tarAddFile(array<int> outputValue, string name, array<int> bytes, int mtime
     array<int> uidBuf = array[]
     pushTarOctal(uidBuf, 0, 8)
     int ui = 0
-    while ui < 8 do
+    while ui < 8
         outputValue[p + 108 + ui] = uidBuf[ui]
         outputValue[p + 116 + ui] = uidBuf[ui]
         ui = ui + 1
@@ -1179,7 +1179,7 @@ func tarAddFile(array<int> outputValue, string name, array<int> bytes, int mtime
     array<int> sizeBuf = array[]
     pushTarOctal(sizeBuf, bytes.length, 12)
     int si = 0
-    while si < 12 do
+    while si < 12
         outputValue[p + 124 + si] = sizeBuf[si]
         si = si + 1
     end
@@ -1187,13 +1187,13 @@ func tarAddFile(array<int> outputValue, string name, array<int> bytes, int mtime
     array<int> mtBuf = array[]
     pushTarOctal(mtBuf, mtime, 12)
     int ti = 0
-    while ti < 12 do
+    while ti < 12
         outputValue[p + 136 + ti] = mtBuf[ti]
         ti = ti + 1
     end
     // checksum placeholder @ +148 (8 spaces)
     int ci = 0
-    while ci < 8 do
+    while ci < 8
         outputValue[p + 148 + ci] = 32
         ci = ci + 1
     end
@@ -1211,7 +1211,7 @@ func tarAddFile(array<int> outputValue, string name, array<int> bytes, int mtime
     // compute checksum over the whole header with placeholder spaces
     int sum = 0
     int hi = 0
-    while hi < 512 do
+    while hi < 512
         sum = sum + (outputValue[p + hi] & 0xFF)
         hi = hi + 1
     end
@@ -1221,7 +1221,7 @@ func tarAddFile(array<int> outputValue, string name, array<int> bytes, int mtime
     if y == 0 then
         cs = "0"
     else
-        while y > 0 do
+        while y > 0
             int d = y & 7
             string ch = "0"
             if d == 1 then
@@ -1244,11 +1244,11 @@ func tarAddFile(array<int> outputValue, string name, array<int> bytes, int mtime
         end
     end
     int cneed = 6
-    while string.len(cs) < cneed do
+    while string.len(cs) < cneed
         cs = "0" + cs
     end
     int xi = 0
-    while xi < 6 do
+    while xi < 6
         outputValue[p + 148 + xi] = string.byteAt(cs, xi) & 0xFF
         xi = xi + 1
     end
@@ -1257,7 +1257,7 @@ func tarAddFile(array<int> outputValue, string name, array<int> bytes, int mtime
     // append payload
     int bi = 0
     int bn = bytes.length
-    while bi < bn do
+    while bi < bn
         outputValue.push(bytes[bi] & 0xFF)
         bi = bi + 1
     end
@@ -1266,7 +1266,7 @@ func tarAddFile(array<int> outputValue, string name, array<int> bytes, int mtime
     if rem != 0 then
         int padN = 512 - rem
         int qi = 0
-        while qi < padN do
+        while qi < padN
             outputValue.push(0)
             qi = qi + 1
         end
@@ -1276,7 +1276,7 @@ end
 // Append the two trailing zero blocks that mark end-of-archive.
 func tarAddTrailer(array<int> outputValue)
     int i = 0
-    while i < 1024 do
+    while i < 1024
         outputValue.push(0)
         i = i + 1
     end
@@ -1299,7 +1299,7 @@ func deriveKeystream(string password) as array<int>
         seed = 0x12345678
     else
         int i = 0
-        while i < n do
+        while i < n
             int b = string.byteAt(password, i)
             seed = seed ^ (b << ((i & 3) * 8))
             seed = seed & 0xFFFFFFFF
@@ -1309,7 +1309,7 @@ func deriveKeystream(string password) as array<int>
     array<int> ks = array[]
     int state = seed
     int k = 0
-    while k < 256 do
+    while k < 256
         // xorshift32
         state = state ^ ((state << 13) & 0xFFFFFFFF)
         state = state & 0xFFFFFFFF
@@ -1327,7 +1327,7 @@ func xorCrypt(array<int> data, array<int> ks) as array<int>
     array<int> outputValue = array[]
     int n = data.length
     int i = 0
-    while i < n do
+    while i < n
         outputValue.push((data[i] ^ ks[i & 0xFF]) & 0xFF)
         i = i + 1
     end
@@ -1358,7 +1358,7 @@ func sha256Bytes(array<int> data) as string
     Buffer buf = Buffer()
     int n = data.length
     int i = 0
-    while i < n do
+    while i < n
         buf.appendByte(data[i] & 0xFF)
         i = i + 1
     end
@@ -1447,7 +1447,7 @@ end
 func parentDir(string path) as string
     int n = string.len(path)
     int i = n - 1
-    while i >= 0 do
+    while i >= 0
         int b = string.byteAt(path, i)
         if b == 47 or b == 92 then
             return string.slice(path, 0, i)
@@ -1486,7 +1486,7 @@ func cmdListZip(array<int> data) as int
     println(padField("METHOD", 9) + padField("COMP", 11) + padField("UNC", 11) + padField("CRC-32", 11) + "NAME")
     println(string.repeat("-", 78))
     int i = 0
-    while i < n do
+    while i < n
         ZipEntry e = entries[i]
         println(padField(methodToName(e.method), 9) + padField(formatSize(e.compSize), 11) + padField(formatSize(e.uncompSize), 11) + padField(hexDword(e.crc32), 11) + e.name)
         i = i + 1
@@ -1504,7 +1504,7 @@ func cmdListTar(array<int> data) as int
     println(padField("TYPE", 9) + padField("MODE", 8) + padField("SIZE", 11) + padField("MTIME", 12) + "NAME")
     println(string.repeat("-", 78))
     int i = 0
-    while i < n do
+    while i < n
         TarEntry e = entries[i]
         println(padField(tarTypeToName(e.typeFlag), 9) + padField(int.format(e.mode, "o"), 8) + padField(formatSize(e.size), 11) + padField(string(e.mtime), 12) + e.name)
         i = i + 1
@@ -1550,7 +1550,7 @@ func cmdExtractZip(array<int> data, string outDir) as int
     println("ZIP: extracting " + string(n) + " entr" + (n == 1 ? "y" : "ies") + (string.len(outDir) > 0 ? " to " + outDir : " to current dir"))
     int i = 0
     int ok = 0
-    while i < n do
+    while i < n
         ZipEntry e = entries[i]
         try
             e.data = extractZipEntry(data, e)
@@ -1595,7 +1595,7 @@ func cmdExtractTar(array<int> data, string outDir) as int
     println("TAR: extracting " + string(n) + " entr" + (n == 1 ? "y" : "ies") + (string.len(outDir) > 0 ? " to " + outDir : " to current dir"))
     int i = 0
     int ok = 0
-    while i < n do
+    while i < n
         TarEntry e = entries[i]
         try
             if e.typeFlag == 53 then
@@ -1652,7 +1652,7 @@ func cmdCreate(string outPath, array<string> files) as int
     int added = 0
     int totalBytes = 0
     int i = 0
-    while i < files.length do
+    while i < files.length
         string src = files[i]
         if not file.exists(src) then
             println("  [skip] not found: " + src)
@@ -1664,7 +1664,7 @@ func cmdCreate(string outPath, array<string> files) as int
                 int slash = -1
                 int j = 0
                 int sn = string.len(src)
-                while j < sn do
+                while j < sn
                     int b = string.byteAt(src, j)
                     if b == 47 or b == 92 then
                         slash = j
@@ -1706,7 +1706,7 @@ func cmdVerifyZip(array<int> data) as int
     int okCount = 0
     int failCount = 0
     int i = 0
-    while i < n do
+    while i < n
         ZipEntry e = entries[i]
         try
             e.data = extractZipEntry(data, e)
@@ -1743,7 +1743,7 @@ func cmdVerifyTar(array<int> data) as int
     int hdrBad = 0
     int off = 0
     int limit = data.length
-    while off + 512 <= limit do
+    while off + 512 <= limit
         var e = parseTarHeader(data, off)
         if e == null then
             break
@@ -1823,7 +1823,7 @@ func bytesEqual(array<int> a, array<int> b) as bool
         return false
     end
     int i = 0
-    while i < n do
+    while i < n
         if a[i] != b[i] then
             return false
         end
@@ -1850,7 +1850,7 @@ func testZipStored() as bool
     array<int> body = array[]
     int ci = 0
     int cn = string.len(content)
-    while ci < cn do
+    while ci < cn
         body.push(string.byteAt(content, ci))
         ci = ci + 1
     end
@@ -1872,12 +1872,12 @@ func testZipStored() as bool
     pushU16LE(zip, nameLen)
     pushU16LE(zip, 0)             // extra len
     int ni = 0
-    while ni < nameLen do
+    while ni < nameLen
         zip.push(name[ni])
         ni = ni + 1
     end
     int bi = 0
-    while bi < usize do
+    while bi < usize
         zip.push(body[bi])
         bi = bi + 1
     end
@@ -1901,7 +1901,7 @@ func testZipStored() as bool
     pushU32LE(zip, 0)             // external attrs
     pushU32LE(zip, 0)             // local header offset
     int ni2 = 0
-    while ni2 < nameLen do
+    while ni2 < nameLen
         zip.push(name[ni2])
         ni2 = ni2 + 1
     end
@@ -1943,7 +1943,7 @@ func testCrc32() as bool
     array<int> b = array[]
     int i = 0
     int n = string.len(s)
-    while i < n do
+    while i < n
         b.push(string.byteAt(s, i))
         i = i + 1
     end
@@ -1963,7 +1963,7 @@ func testTarRoundtrip() as bool
     array<int> body = array[]
     int ci = 0
     int cn = string.len(content)
-    while ci < cn do
+    while ci < cn
         body.push(string.byteAt(content, ci))
         ci = ci + 1
     end
@@ -1998,7 +1998,7 @@ func testXorCipher() as bool
     array<int> body = array[]
     int i = 0
     int n = string.len(content)
-    while i < n do
+    while i < n
         body.push(string.byteAt(content, i))
         i = i + 1
     end
@@ -2025,7 +2025,7 @@ func testInflateStored() as bool
     int ci = 0
     string s = "hello"
     int sn = string.len(s)
-    while ci < sn do
+    while ci < sn
         body.push(string.byteAt(s, ci))
         ci = ci + 1
     end
@@ -2039,7 +2039,7 @@ func testInflateStored() as bool
     src.push(0xFA)
     src.push(0xFF)
     int bi = 0
-    while bi < body.length do
+    while bi < body.length
         src.push(body[bi])
         bi = bi + 1
     end
@@ -2055,7 +2055,7 @@ func testTarVerifyFlow() as bool
     println("[T6] TAR verify flow")
     array<int> body = array[]
     int i = 0
-    while i < 10 do
+    while i < 10
         body.push((i * 13 + 7) & 0xFF)
         i = i + 1
     end
@@ -2246,7 +2246,7 @@ func main(...) as int
         end
         array<string> files = array[]
         int i = 3
-        while i < arg.length do
+        while i < arg.length
             files.push(string(arg[i]))
             i = i + 1
         end

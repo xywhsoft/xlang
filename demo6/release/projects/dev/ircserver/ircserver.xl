@@ -156,7 +156,7 @@ func isValidNick(string nick) as bool
         return false
     end
     int i = 1
-    while i < n do
+    while i < n
         if not isNickChar(string.charAt(nick, i)) then
             return false
         end
@@ -174,7 +174,7 @@ func isValidChanName(string name) as bool
         return false
     end
     int i = 1
-    while i < n do
+    while i < n
         string c = string.charAt(name, i)
         if c == " " or c == "," or c == "\r" or c == "\n" or c == "\t" then
             return false
@@ -237,7 +237,7 @@ func parseIrcLine(string line) as var
         array parts = string.split(rest, " ")
         var parr = msg["params"]
         int pi = 0
-        while pi < parts.length do
+        while pi < parts.length
             string p = string(parts[pi])
             if p != "" then
                 parr.push(p)
@@ -382,7 +382,7 @@ func joinModes(var ch) as string
     string s = ""
     array order = ["n", "t", "s", "p", "m"]
     int i = 0
-    while i < order.length do
+    while i < order.length
         string c = string(order[i])
         if modeInArray(modes, c) then
             s = s + c
@@ -631,7 +631,7 @@ func cmdJoin(int connId, var msg, var conns, var chans, var outbox)
     string targets = string(params[0])
     array chanList = string.split(targets, ",")
     int ci = 0
-    while ci < chanList.length do
+    while ci < chanList.length
         joinOne(connId, string(chanList[ci]), conns, chans, outbox)
         ci = ci + 1
     end
@@ -704,7 +704,7 @@ func cmdPart(int connId, var msg, var conns, var chans, var outbox)
     end
     array chanList = string.split(targets, ",")
     int ci = 0
-    while ci < chanList.length do
+    while ci < chanList.length
         partOne(connId, string(chanList[ci]), reason, conns, chans, outbox)
         ci = ci + 1
     end
@@ -885,7 +885,7 @@ func cmdMode(int connId, var msg, var conns, var chans, var outbox)
         string prefix = buildPrefix(connId, conns)
         string modeLine = ":" + prefix + " MODE " + key + " " + modestring
         int ai = 2
-        while ai < params.length do
+        while ai < params.length
             modeLine = modeLine + " " + params[ai]
             ai = ai + 1
         end
@@ -904,7 +904,7 @@ func applyChanModes(var ch, string modestring, var params)
     var modes = ch["modes"]
     int i = 0
     int n = string.len(modestring)
-    while i < n do
+    while i < n
         string c = string.charAt(modestring, i)
         if c == "+" then
             plus = true
@@ -1967,7 +1967,7 @@ func makeClientLoop(int connId, point handle) as func() as int
         int idleTicks = 0
         bool sentPing = false
 
-        while alive do
+        while alive
             string chunk = conn.recv(RECV_TIMEOUT_MS)
             if chunk != "" then
                 idleTicks = 0
@@ -1975,7 +1975,7 @@ func makeClientLoop(int connId, point handle) as func() as int
                 recvBuf = recvBuf + chunk
                 // 按 \n 切行（兼容 \r\n）
                 bool keepGoing = true
-                while keepGoing do
+                while keepGoing
                     int nl = string.indexOf(recvBuf, "\n")
                     if nl < 0 then
                         keepGoing = false
@@ -2056,7 +2056,7 @@ async func serveMode(int port) as int
     println("press Ctrl+C to stop")
     println("")
 
-    while gServing == 1 do
+    while gServing == 1
         future<point> af = server.acceptAsync(500)
         point handle = ZERO
         try

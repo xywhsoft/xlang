@@ -683,7 +683,7 @@ static void xl6CgenNativeBackedCtorValue(XL6_CgenContext* ctx, const XL6_AstNode
 static void xl6CgenNativeBackedCtorAssign(XL6_CgenContext* ctx, const XL6_AstNode* nativeClassNode, const char* varName, const XL6_AstNode* call)
 {
     xl6CgenIndent(ctx);
-    xl6CgenFputsCIdent(ctx->out, varName);
+    xl6CgenFputsValueStorageName(ctx, varName);
     xl6OutputPuts(".handle = ", ctx->out);
     xl6CgenNativeBackedCtorValue(ctx, nativeClassNode, call);
     xl6OutputPuts(";\n", ctx->out);

@@ -1,9 +1,38 @@
 extern "expect_i64" func expect(int actual, int expected)
 
 int value = 0
+int preValue = 0
+
+while preValue < 2
+    preValue += 1
+end
 
 do
     value += 1
-while value < 3
+while value < 3 end
 
-expect(value, 3)
+int nested = 0
+do
+    while nested < 2
+        nested += 1
+    end
+while false end
+
+int multiline = 0
+do
+    multiline += 1
+while (
+    multiline < 2
+) end
+
+do
+    value += 1
+while false end
+do
+    value += 1
+while false end
+
+expect(value, 5)
+expect(preValue, 2)
+expect(nested, 2)
+expect(multiline, 2)

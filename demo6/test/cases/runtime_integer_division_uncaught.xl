@@ -1,0 +1,2 @@
+int divisor = 0
+println(10 / divisor)

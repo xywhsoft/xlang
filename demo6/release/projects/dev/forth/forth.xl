@@ -72,7 +72,7 @@ func isNumber(string t) as bool
             return false
         end
     end
-    while i < n do
+    while i < n
         int b = string.byteAt(t, i)
         if b < 48 or b > 57 then
             return false
@@ -87,19 +87,19 @@ func tokenize(string src) as array<string>
     array<string> toks = array[]
     int n = string.len(src)
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(src, i)
         if c == " " or c == "\t" or c == "\r" or c == "\n" then
             i += 1
         elseif c == "\\" then
-            while i < n do
+            while i < n
                 if string.charAt(src, i) == "\n" then
                     break
                 end
                 i += 1
             end
         elseif c == "(" then
-            while i < n do
+            while i < n
                 if string.charAt(src, i) == ")" then
                     i += 1
                     break
@@ -108,7 +108,7 @@ func tokenize(string src) as array<string>
             end
         else
             string tok = ""
-            while i < n do
+            while i < n
                 string cc = string.charAt(src, i)
                 if cc == " " or cc == "\t" or cc == "\r" or cc == "\n" then
                     break
@@ -130,7 +130,7 @@ end
 func scanThen(array<string> toks, int start, int endIdx) as int
     int depth = 0
     int j = start
-    while j < endIdx do
+    while j < endIdx
         string t = toks[j]
         if t == "if" then
             depth += 1
@@ -149,7 +149,7 @@ end
 func scanElse(array<string> toks, int start, int endIdx) as int
     int depth = 0
     int j = start
-    while j < endIdx do
+    while j < endIdx
         string t = toks[j]
         if t == "if" then
             depth += 1
@@ -169,7 +169,7 @@ end
 func scanUntil(array<string> toks, int start, int endIdx) as int
     int depth = 0
     int j = start
-    while j < endIdx do
+    while j < endIdx
         string t = toks[j]
         if t == "begin" then
             depth += 1
@@ -188,7 +188,7 @@ end
 func scanLoop(array<string> toks, int start, int endIdx) as int
     int depth = 0
     int j = start
-    while j < endIdx do
+    while j < endIdx
         string t = toks[j]
         if t == "do" then
             depth += 1
@@ -209,7 +209,7 @@ end
 // 执行 toks[start..end)。
 func execRange(array<string> toks, int start, int endIdx)
     int i = start
-    while i < endIdx do
+    while i < endIdx
         i = execOne(toks, i, endIdx)
     end
 end
@@ -283,7 +283,7 @@ func doDefine(array<string> toks, int i, int endIdx) as int
     end
     string name = toks[i + 1]
     int semi = i + 2
-    while semi < endIdx do
+    while semi < endIdx
         if toks[semi] == ";" then
             break
         end
@@ -294,7 +294,7 @@ func doDefine(array<string> toks, int i, int endIdx) as int
     end
     array<string> body = array[]
     int k = i + 2
-    while k < semi do
+    while k < semi
         body.push(toks[k])
         k += 1
     end
@@ -324,7 +324,7 @@ end
 // begin body until  —— 执行 body，弹标志，非零退出。
 func doBegin(array<string> toks, int i, int endIdx) as int
     int untilIdx = scanUntil(toks, i + 1, endIdx)
-    while true do
+    while true
         execRange(toks, i + 1, untilIdx)
         int flag = pop()
         if flag != 0 then
@@ -340,7 +340,7 @@ func doLoop(array<string> toks, int i, int endIdx) as int
     int index = pop()
     int limit = pop()
     gLoopStack.push(index)
-    while index < limit do
+    while index < limit
         int top = gLoopStack.length - 1
         gLoopStack[top] = index
         execRange(toks, i + 1, loopIdx)
@@ -356,7 +356,7 @@ func callWord(string name)
     array<string> body = array[]
     int k = 0
     int n = src.length
-    while k < n do
+    while k < n
         body.append(string(src[k]))
         k += 1
     end
@@ -487,7 +487,7 @@ end
 func printStack()
     print("<" + string(gStack.length) + "> ")
     int k = 0
-    while k < gStack.length do
+    while k < gStack.length
         print(string(gStack[k]) + " ")
         k += 1
     end

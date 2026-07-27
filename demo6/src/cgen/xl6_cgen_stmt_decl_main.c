@@ -145,9 +145,11 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         if ( copyInit ) {
             XL6_AstNode* memberFunctionType;
             char memberTempName[64];
+            int emittedWithTemps;
 
             memberFunctionType = xl6CgenCloneMemberFunctionCallTypeForStatementInvoke(ctx, initExpr);
             memberTempName[0] = '\0';
+            emittedWithTemps = 0;
             if ( memberFunctionType != NULL ) {
                 snprintf(memberTempName, sizeof(memberTempName), "__xl6_member_fn_stmt_%d", ctx->tempId++);
                 xl6CgenEmitMemberFunctionStatementTemp(ctx, initExpr, memberTempName);
@@ -163,10 +165,23 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 xl6OutputPuts(";\n", ctx->out);
                 xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, isGenericClass ? classTypeNode : classNode, cName, initExpr);
             } else {
-                xl6CgenIndent(ctx);
-                xl6OutputPrintf(ctx->out, "%s = ", cName);
-                xl6CgenExpr(ctx, initExpr);
-                xl6OutputPuts(";\n", ctx->out);
+                if ( isGenericClass ) {
+                    ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
+                    ctx->currentGenericArgs = classTypeNode->children[0];
+                }
+                emittedWithTemps = xl6CgenDeclEmitXValueCallExprWithArgTemps(
+                    ctx,
+                    isGenericClass ? classTypeNode : classNode,
+                    initExpr,
+                    cName);
+                ctx->currentGenericParams = prevParams;
+                ctx->currentGenericArgs = prevArgs;
+                if ( !emittedWithTemps ) {
+                    xl6CgenIndent(ctx);
+                    xl6OutputPrintf(ctx->out, "%s = ", cName);
+                    xl6CgenExpr(ctx, initExpr);
+                    xl6OutputPuts(";\n", ctx->out);
+                }
                 xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, isGenericClass ? classTypeNode : classNode, cName, initExpr);
             }
             xl6AstFree(memberFunctionType);
@@ -391,7 +406,29 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         return;
     }
     if ( xl6CgenIsXValueType(typeNode) ) {
+        XL6_AstNode* narrowType = NULL;
+        XL6_AstNode* inferredType = NULL;
+
         xl6CgenAddVarType(ctx, node->text, typeNode);
+        if ( initExpr != NULL && typeNode->text != NULL && xl6CTextEquals(typeNode->text, "var") ) {
+            inferredType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
+            if ( inferredType != NULL && xl6CgenClassNodeForType(ctx, inferredType) != NULL ) {
+                /*
+                    HIR 可能已经把 class 表达式规范化成 __class_handle<T>。
+                    此处只负责补齐缺失的句柄层，不能生成 __class_handle<__class_handle<T>>。
+                */
+                if ( xl6CgenClassHandleTargetType(ctx, inferredType) != NULL ) {
+                    narrowType = xl6CgenCloneCanonicalTypeNode(ctx, inferredType);
+                } else {
+                    narrowType = xl6CgenClassHandleTypeForClassType(ctx, inferredType);
+                }
+            }
+            xl6AstFree(inferredType);
+            if ( narrowType != NULL ) {
+                xl6CgenOwnTypeNode(ctx, narrowType);
+                xl6CgenSetVarNarrowType(ctx, node->text, narrowType);
+            }
+        }
         xl6CgenAddXValueCleanup(ctx, node->text, typeNode);
         if ( initExpr != NULL && xl6CgenDeclTryXValueArrayLiteralInit(ctx, typeNode, cName, initExpr) ) {
             return;
@@ -422,6 +459,15 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
     if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
         xl6CgenAddVarType(ctx, node->text, typeNode);
         xl6CgenAddStringCleanup(ctx, node->text, typeNode);
+        if ( initExpr != NULL && xl6CgenDeclCanEmitCallArgTemp(ctx, typeNode, initExpr) ) {
+            xl6OutputPrintf(ctx->out, "const char* %s = NULL;\n", cName);
+            if ( !xl6CgenDeclEmitCallArgTemp(ctx, typeNode, "const char*", cName, initExpr) ) {
+                xl6CgenError(ctx, initExpr, "string declaration expression lowering failed");
+            }
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_runtime_fatal(3); }\n", cName);
+            return;
+        }
         xl6OutputPrintf(ctx->out, "const char* %s = xrtCopyStr(", cName);
         if ( initExpr != NULL ) {
             xl6CgenStringSourceExpr(ctx, typeNode, initExpr);
@@ -447,6 +493,9 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         return;
     }
     if ( initExpr != NULL && xl6CgenDeclTryStaticXValueApproxInit(ctx, typeNode, cType, cName, initExpr) ) {
+        return;
+    }
+    if ( initExpr != NULL && xl6CgenDeclTryStaticXValueScalarInit(ctx, typeNode, cType, cName, initExpr) ) {
         return;
     }
     if ( initExpr != NULL && xl6CgenDeclTryTaskSpawnArgTempsInit(ctx, typeNode, cType, cName, initExpr) ) {

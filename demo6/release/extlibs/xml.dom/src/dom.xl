@@ -104,7 +104,7 @@ class Node
     func children() as array<Node>
         array<Node> result = array<Node>[]
         int index = 0
-        while index < self.childCount do
+        while index < self.childCount
             result.append(self.child(index))
             index += 1
         end

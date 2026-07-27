@@ -73,7 +73,7 @@ class ScheduleResult
         float st = 0.0
         float sr = 0.0
         int i = 0
-        while i < n do
+        while i < n
             sw = sw + float(p[i].waitTime)
             st = st + float(p[i].turnaround)
             sr = sr + float(p[i].responseTime)
@@ -100,7 +100,7 @@ end
 func cloneAll(array<Process> src) as array<Process>
     array<Process> outputValue = array[]
     int i = 0
-    while i < src.length do
+    while i < src.length
         outputValue.append(cloneProcess(src[i]))
         i += 1
     end
@@ -119,7 +119,7 @@ func pickMin(array<Process> p, int t, int mode) as int
     int sel = -1
     int selKey = 0
     int i = 0
-    while i < n do
+    while i < n
         if p[i].arrival <= t and p[i].remaining > 0 then
             int key = 0
             if mode == 0 then
@@ -167,7 +167,7 @@ func scheduleNonPreemptive(array<Process> src, int mode) as ScheduleResult
     int n = p.length
     int t = 0
     int completed = 0
-    while completed < n do
+    while completed < n
         int sel = pickMin(p, t, mode)
         if sel < 0 then
             res.gantt.append(0)
@@ -180,7 +180,7 @@ func scheduleNonPreemptive(array<Process> src, int mode) as ScheduleResult
         p[sel].startTime = t
         int rem = p[sel].remaining
         int k = 0
-        while k < rem do
+        while k < rem
             res.gantt.append(p[sel].pid)
             t += 1
             k += 1
@@ -218,7 +218,7 @@ func scheduleSRTF(array<Process> src) as ScheduleResult
     int n = p.length
     int t = 0
     int completed = 0
-    while completed < n do
+    while completed < n
         int sel = pickMin(p, t, 1)
         if sel < 0 then
             res.gantt.append(0)
@@ -259,11 +259,11 @@ func scheduleRR(array<Process> src, int quantum) as ScheduleResult
     int head = 0
     array<bool> queued = array[]
     int qi = 0
-    while qi < n do
+    while qi < n
         queued.append(false)
         qi += 1
     end
-    while completed < n do
+    while completed < n
         enqueueArrived(p, t, queued, queue)
         if head >= queue.length then
             res.gantt.append(0)
@@ -281,7 +281,7 @@ func scheduleRR(array<Process> src, int quantum) as ScheduleResult
             run = p[sel].remaining
         end
         int k = 0
-        while k < run do
+        while k < run
             res.gantt.append(p[sel].pid)
             p[sel].remaining -= 1
             t += 1
@@ -308,7 +308,7 @@ func enqueueArrived(array<Process> p, int t, array<bool> queued, array<int> queu
     int n = p.length
     array<int> cand = array[]
     int i = 0
-    while i < n do
+    while i < n
         if not queued[i] and p[i].arrival <= t then
             cand.append(i)
         end
@@ -317,10 +317,10 @@ func enqueueArrived(array<Process> p, int t, array<bool> queued, array<int> queu
     // 候选按 (arrival asc, pid asc) 选择排序, 保证 RR 入队顺序确定.
     int cn = cand.length
     int a = 0
-    while a < cn do
+    while a < cn
         int best = a
         int b = a + 1
-        while b < cn do
+        while b < cn
             int bi = cand[b]
             int bb = cand[best]
             bool take = false
@@ -342,7 +342,7 @@ func enqueueArrived(array<Process> p, int t, array<bool> queued, array<int> queu
         a += 1
     end
     int ci = 0
-    while ci < cn do
+    while ci < cn
         int idx = cand[ci]
         queue.append(idx)
         queued[idx] = true
@@ -375,11 +375,11 @@ func renderGantt(array<int> gantt) as string
     array<int> segStart = array[]
     array<int> segPid = array[]
     int i = 0
-    while i < n do
+    while i < n
         int pid = gantt[i]
         int start = i
         i += 1
-        while i < n do
+        while i < n
             if gantt[i] != pid then
                 break
             end
@@ -391,7 +391,7 @@ func renderGantt(array<int> gantt) as string
     int end_ = n
     int W = 2
     int si = 0
-    while si < segPid.length do
+    while si < segPid.length
         int labLen = string.len(pidLabel(segPid[si]))
         if labLen > W then
             W = labLen
@@ -404,14 +404,14 @@ func renderGantt(array<int> gantt) as string
     end
     string bar = ""
     int bi = 0
-    while bi < segPid.length do
+    while bi < segPid.length
         bar = bar + "|" + string.padRight(pidLabel(segPid[bi]), W)
         bi += 1
     end
     bar = bar + "|"
     string axis = ""
     int ai2 = 0
-    while ai2 < segStart.length do
+    while ai2 < segStart.length
         axis = axis + string.padRight(string(segStart[ai2]), W + 1)
         ai2 += 1
     end
@@ -427,7 +427,7 @@ end
 func printProcessTable(array<Process> p)
     println(string.padRight("PID", 6) + string.padRight("Arrival", 9) + string.padRight("Burst", 7) + string.padRight("Priority", 9) + string.padRight("Wait", 7) + string.padRight("Turnaround", 12) + string.padRight("Response", 10) + string.padRight("Completion", 11))
     int i = 0
-    while i < p.length do
+    while i < p.length
         Process c = p[i]
         println(string.padRight("P" + string(c.pid), 6) + string.padRight(string(c.arrival), 9) + string.padRight(string(c.burst), 7) + string.padRight(string(c.priority), 9) + string.padRight(string(c.waitTime), 7) + string.padRight(string(c.turnaround), 12) + string.padRight(string(c.responseTime), 10) + string.padRight(string(c.completionTime), 11))
         i += 1
@@ -594,7 +594,7 @@ func main(...) as int
         // 解析可选 -q/--quantum (位置从 arg[2] 起); 解析失败直接返回.
         int q = 2
         int ai = 2
-        while ai < arg.length do
+        while ai < arg.length
             string o = string(arg[ai])
             if o == "-q" or o == "--quantum" then
                 if ai + 1 >= arg.length then

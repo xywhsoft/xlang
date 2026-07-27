@@ -83,14 +83,23 @@ static int xl6CgenCallArgTempScopeBegin(
         xl6CgenError(ctx, expr, "out of memory while preparing assignment call arguments");
         return 0;
     }
-    memcpy(scope->replacements, ownReplacements, ownCount * sizeof(XL6_CgenExprReplacement));
     if ( scope->previousReplacementCount > 0 ) {
         memcpy(
-            scope->replacements + ownCount,
+            scope->replacements,
             scope->previousReplacements,
             scope->previousReplacementCount * sizeof(XL6_CgenExprReplacement));
     }
+    memcpy(
+        scope->replacements + scope->previousReplacementCount,
+        ownReplacements,
+        ownCount * sizeof(XL6_CgenExprReplacement));
     xrtFree(ownReplacements);
+
+    /*
+        临时值之间可以存在依赖，生成临时值时就必须启用完整替换表。
+        根表达式不会通过通用表达式入口读取自身替换，因此不会形成自引用。
+    */
+    ctx->exprReplacements = scope->replacements;
 
     for ( i = 0; i < scope->tempCapacity; ++i ) {
         const char* cType;
@@ -98,6 +107,8 @@ static int xl6CgenCallArgTempScopeBegin(
         if ( !scope->temps[i].active ) {
             continue;
         }
+        /* 当前临时量只能依赖外层替换和已经完成的临时量，不能读取自身。 */
+        ctx->exprReplacementCount = scope->previousReplacementCount + (size_t)i;
         cType = xl6CgenValueStorageCType(ctx, scope->temps[i].typeNode);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s %s = ", cType, scope->temps[i].name);
@@ -112,9 +123,8 @@ static int xl6CgenCallArgTempScopeBegin(
             xl6CgenError(ctx, scope->temps[i].expr, "assignment call argument lowering failed");
         }
     }
-
-    ctx->exprReplacements = scope->replacements;
     ctx->exprReplacementCount = totalCount;
+
     scope->active = 1;
     return 1;
 }

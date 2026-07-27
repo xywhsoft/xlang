@@ -48,7 +48,7 @@ func nextPow2(int n) as int
         return 1
     end
     int p = 1
-    while p < n do
+    while p < n
         p = p * 2
     end
     return p
@@ -59,7 +59,7 @@ func isPow2(int n) as bool
         return false
     end
     int x = n
-    while x > 1 do
+    while x > 1
         if x % 2 != 0 then
             return false
         end
@@ -82,7 +82,7 @@ func verifyProof(string leafHash, var proof, string rootHash) as bool
     string h = leafHash
     int n = proof.length
     int i = 0
-    while i < n do
+    while i < n
         var entry = proof[i]
         string sib = string(entry[0])
         int dir = int(entry[1])
@@ -145,18 +145,18 @@ class MerkleTree extends HashTree
         self.hashes = array[]
         self.data = array[]
         int i = 0
-        while i < self.nodeCount do
+        while i < self.nodeCount
             self.hashes.push("")
             i = i + 1
         end
         int j = 0
-        while j < lc do
+        while j < lc
             self.data.push("")
             j = j + 1
         end
         self.emptyLeafHash = hashStr(EMPTY_LEAF_DATA)
         int k = 0
-        while k < lc do
+        while k < lc
             self.hashes[lc - 1 + k] = self.emptyLeafHash
             k = k + 1
         end
@@ -219,7 +219,7 @@ class MerkleTree extends HashTree
     func getProof(int leafIdx) as var
         var proof = []
         int node = self.leafCount - 1 + leafIdx
-        while node > 0 do
+        while node > 0
             int parent = (node - 1) / 2
             int sib
             int dir
@@ -252,7 +252,7 @@ class MerkleTree extends HashTree
         self.data[idx] = newBlock
         int node = self.leafCount - 1 + idx
         self.hashes[node] = hashStr(newBlock)
-        while node > 0 do
+        while node > 0
             int parent = (node - 1) / 2
             int left = 2 * parent + 1
             int right = 2 * parent + 2
@@ -267,7 +267,7 @@ class MerkleTree extends HashTree
     func height() as int
         int h = 0
         int lc = self.leafCount
-        while lc > 1 do
+        while lc > 1
             h = h + 1
             lc = lc / 2
         end
@@ -284,14 +284,14 @@ class MerkleTree extends HashTree
         outputValue["root"] = self.hashes[0]
         var hs = []
         int i = 0
-        while i < self.nodeCount do
+        while i < self.nodeCount
             hs.push(self.hashes[i])
             i = i + 1
         end
         outputValue["hashes"] = hs
         var ds = []
         int j = 0
-        while j < self.leafCount do
+        while j < self.leafCount
             ds.push(self.data[j])
             j = j + 1
         end
@@ -311,7 +311,7 @@ class MerkleTree extends HashTree
         self.hashes = array[]
         int hn = hs.length
         int i = 0
-        while i < hn do
+        while i < hn
             self.hashes.push(string(hs[i]))
             i = i + 1
         end
@@ -319,7 +319,7 @@ class MerkleTree extends HashTree
         self.data = array[]
         int dn = ds.length
         int j = 0
-        while j < dn do
+        while j < dn
             self.data.push(string(ds[j]))
             j = j + 1
         end
@@ -331,7 +331,7 @@ class MerkleTree extends HashTree
     func dump()
         int h = self.height()
         int level = 0
-        while level <= h do
+        while level <= h
             int start = (1 << level) - 1
             int cnt = 1 << level
             string label = "L" + string(level)
@@ -342,7 +342,7 @@ class MerkleTree extends HashTree
             end
             string line = label + ":"
             int i = 0
-            while i < cnt do
+            while i < cnt
                 int idx = start + i
                 if idx < self.nodeCount then
                     string hh = self.hashes[idx]
@@ -455,7 +455,7 @@ func cmdTest() as int
         "tx:ivan->alice:4"
     ]
     int bi = 0
-    while bi < 8 do
+    while bi < 8
         tree.setLeaf(bi, blocks[bi])
         bi = bi + 1
     end
@@ -484,7 +484,7 @@ func cmdTest() as int
     // ---- 证明验证：每个叶子都能验证到根 ----
     int verifyHits = 0
     int vi = 0
-    while vi < 8 do
+    while vi < 8
         var proof = tree.getProof(vi)
         bool good = verifyProof(tree.leafHash(vi), proof, tree.rootHash())
         if good then
@@ -548,7 +548,7 @@ func cmdTest() as int
     string prev = tree.rootHash()
     int changes = 0
     int ci = 0
-    while ci < 8 do
+    while ci < 8
         tree.updateLeaf(ci, "rev2:block" + string(ci))
         string now = tree.rootHash()
         if now != prev then
@@ -558,7 +558,7 @@ func cmdTest() as int
         // 每次更新后，所有叶子证明都应验证到当前根
         int allOk = 0
         int li = 0
-        while li < 8 do
+        while li < 8
             var pp = tree.getProof(li)
             if verifyProof(tree.leafHash(li), pp, tree.rootHash()) then
                 allOk = allOk + 1
@@ -607,7 +607,7 @@ func cmdDump() as int
     println("=== merkletree dump (8-leaf sample) ===")
     MerkleTree tree = MerkleTree(8)
     int i = 0
-    while i < 8 do
+    while i < 8
         tree.setLeaf(i, "block-" + string(i))
         i = i + 1
     end
@@ -622,7 +622,7 @@ func cmdDump() as int
     var proof = tree.getProof(3)
     int n = proof.length
     int k = 0
-    while k < n do
+    while k < n
         var e = proof[k]
         string sib = string(e[0])
         int dir = int(e[1])

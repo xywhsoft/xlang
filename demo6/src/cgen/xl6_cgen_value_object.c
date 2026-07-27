@@ -457,7 +457,7 @@ static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name)
         xl6CgenFputsCIdent(ctx->out, name);
         xl6OutputPutc(')', ctx->out);
     } else {
-        xl6CgenFputsCIdent(ctx->out, name);
+        xl6CgenFputsValueStorageName(ctx, name);
     }
 }
 
@@ -661,10 +661,12 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
     const XL6_AstNode* prevArgs;
     char basePath[256];
     int fixedCount;
+    int baseReceiver;
 
     receiverType = NULL;
     classType = NULL;
     ownedReceiverType = NULL;
+    baseReceiver = 0;
     receiver = member->childCount > 0 ? member->children[0] : NULL;
     if ( receiver == NULL ) {
         return 0;
@@ -678,6 +680,18 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
         receiverType = xl6CgenFindVarType(ctx, "self");
         classType = receiverType;
         classNode = ctx->currentClass;
+    } else if ( receiver->kind == XL6_AST_NAME &&
+                xl6CTextEquals(receiver->text, "base") &&
+                ctx->currentClass != NULL ) {
+        const XL6_AstNode* baseType = ctx->currentClass->childCount > 0
+            ? ctx->currentClass->children[0]
+            : NULL;
+
+        baseReceiver = 1;
+        ownedReceiverType = xl6CgenCloneCanonicalTypeNode(ctx, baseType);
+        receiverType = ownedReceiverType;
+        classType = receiverType;
+        classNode = xl6CgenBaseClass(ctx, ctx->currentClass);
     } else if ( receiver->kind == XL6_AST_MEMBER ) {
         ownedReceiverType = xl6CgenCloneMemberFieldTypeForInference(ctx, receiver);
         receiverType = ownedReceiverType;
@@ -726,7 +740,12 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
         ownerClass = classNode;
     }
 
-    if ( xl6CgenVirtualClassMethodCall(ctx, call, member, receiver, classNode, ownerClass, method) ) {
+    /*
+        base.method() 明确要求静态调用父类实现，不能再次进入虚派发。
+        普通 self/实例调用仍保持原有 virtual/override 语义。
+    */
+    if ( !baseReceiver &&
+         xl6CgenVirtualClassMethodCall(ctx, call, member, receiver, classNode, ownerClass, method) ) {
         xl6AstFree(ownedReceiverType);
         return 1;
     }
@@ -746,7 +765,10 @@ static int xl6CgenClassMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
         xl6CgenError(ctx, member, "无法生成继承方法调用的 base 路径");
         basePath[0] = '\0';
     }
-    if ( receiver->kind == XL6_AST_NAME && xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
+    if ( baseReceiver ) {
+        xl6OutputPuts("&self->base", ctx->out);
+        xl6OutputPuts(basePath, ctx->out);
+    } else if ( receiver->kind == XL6_AST_NAME && xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
         if ( basePath[0] == '\0' ) {
             xl6OutputPuts("self", ctx->out);
         } else {

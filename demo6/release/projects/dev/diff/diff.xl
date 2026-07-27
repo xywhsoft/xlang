@@ -20,7 +20,7 @@ func toLines(string content) as array<string>
     array<string> result = array[""]
     result.remove(0)
     int i = 0
-    while i < n do
+    while i < n
         result.push(string(raw[i]))
         i += 1
     end
@@ -39,16 +39,16 @@ func computeDiff(array<string> a, array<string> b, array<int> ops, array<int> ol
     array<int> dp = array[0]
     dp.remove(0)
     int z = 0
-    while z < total do
+    while z < total
         dp.push(0)
         z += 1
     end
 
     // 填表
     int i = 1
-    while i <= m do
+    while i <= m
         int j = 1
-        while j <= n do
+        while j <= n
             if a[i - 1] == b[j - 1] then
                 dp[i * cols + j] = dp[(i - 1) * cols + (j - 1)] + 1
             else
@@ -68,7 +68,7 @@ func computeDiff(array<string> a, array<string> b, array<int> ops, array<int> ol
     // 回溯 (逆序收集, 最后翻转)
     i = m
     int j = n
-    while i > 0 or j > 0 do
+    while i > 0 or j > 0
         if i > 0 then
             if j > 0 then
                 if a[i - 1] == b[j - 1] then
@@ -126,7 +126,7 @@ func printSimple(string f1, string f2, array<int> ops, array<string> texts)
     int unchanged = 0
     int n = ops.length
     int i = 0
-    while i < n do
+    while i < n
         if ops[i] == 0 then
             println(" " + texts[i])
             unchanged += 1
@@ -159,19 +159,19 @@ func printUnified(string f1, string f2, array<int> ops, array<int> oldNo, array<
     array<int> mark = array[0]
     mark.remove(0)
     int z = 0
-    while z < total do
+    while z < total
         mark.push(0)
         z += 1
     end
     int zi = 0
-    while zi < total do
+    while zi < total
         if ops[zi] != 0 then
             int s = zi - context
             if s < 0 then s = 0 end
             int e = zi + context
             if e >= total then e = total - 1 end
             int k = s
-            while k <= e do
+            while k <= e
                 mark[k] = 1
                 k += 1
             end
@@ -183,7 +183,7 @@ func printUnified(string f1, string f2, array<int> ops, array<int> oldNo, array<
     int oldLine = 0
     int newLine = 0
     int i = 0
-    while i < total do
+    while i < total
         if mark[i] == 0 then
             if ops[i] == 0 then
                 oldLine += 1
@@ -215,7 +215,7 @@ func printUnified(string f1, string f2, array<int> ops, array<int> oldNo, array<
         int j = i
         int oldCount = 0
         int newCount = 0
-        while j < total do
+        while j < total
             if mark[j] != 1 then
                 break
             end
@@ -234,7 +234,7 @@ func printUnified(string f1, string f2, array<int> ops, array<int> oldNo, array<
         println("@@ -" + string(hOldStart) + "," + string(oldCount) + " +" + string(hNewStart) + "," + string(newCount) + " @@")
 
         // hunk 行并推进 old/new 计数
-        while i < j do
+        while i < j
             if ops[i] == 0 then
                 println(" " + texts[i])
                 oldLine += 1
@@ -268,7 +268,7 @@ func main(...) as int
     bool stats = false
 
     int i = 1
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "-u" or a == "--unified" then
             unified = true
@@ -344,7 +344,7 @@ func main(...) as int
     int removed = 0
     int n = ops.length
     int ci = 0
-    while ci < n do
+    while ci < n
         if ops[ci] == 1 then
             removed += 1
         elseif ops[ci] == 2 then

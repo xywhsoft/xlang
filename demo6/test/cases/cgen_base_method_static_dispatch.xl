@@ -1,0 +1,29 @@
+// base.method() 绕过虚派发，调用当前类的直接父类实现。
+
+class RootSpeaker
+    virtual func speak() as string
+        return "root"
+    end
+end
+
+class ParentSpeaker extends RootSpeaker
+    override func speak() as string
+        return "parent"
+    end
+end
+
+class ChildSpeaker extends ParentSpeaker
+    override func speak() as string
+        return "child"
+    end
+
+    func parentSpeak() as string
+        return base.speak()
+    end
+end
+
+ChildSpeaker child = ChildSpeaker()
+assert child.speak() == "child", "normal call must use virtual dispatch"
+assert child.parentSpeak() == "parent", "base call must use direct parent implementation"
+
+println("base static dispatch ok")

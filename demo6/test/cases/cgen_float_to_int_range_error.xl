@@ -1,0 +1,18 @@
+bool highCaught = false
+try
+    int high = int(1e30)
+catch e
+    highCaught = e.kind == "RangeError"
+end
+assert highCaught, "positive float-to-int overflow must raise RangeError"
+
+bool lowCaught = false
+try
+    int low = int(-1e30)
+catch e
+    lowCaught = e.kind == "RangeError"
+end
+assert lowCaught, "negative float-to-int overflow must raise RangeError"
+
+assert int(42.75) == 42, "in-range float-to-int conversion still truncates"
+println("cgen_float_to_int_range_error ok")

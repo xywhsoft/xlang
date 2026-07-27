@@ -6,7 +6,7 @@ echo Running DEMO6 suite: core C generation and runtime baseline 7/10...
 
 release\xl.exe cgen test\cases\cgen_runtime_type_baseline.xl --emit build\test\cgen_runtime_type_baseline.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_type_value_id(boxedChild" build\test\cgen_runtime_type_baseline.c >nul
+findstr /C:"xl6_xrt_type_value_id(__xl6_user_global_boxedChild" build\test\cgen_runtime_type_baseline.c >nul
 if errorlevel 1 (
     echo cgen_runtime_type_baseline.c missing boxed class runtime type query.
     exit /b 1
@@ -21,7 +21,7 @@ if errorlevel 1 (
     echo cgen_runtime_type_baseline.c missing native-backed class handle runtime type boxing.
     exit /b 1
 )
-findstr /C:"xl6_box_XL_Union_Payload(payload)" build\test\cgen_runtime_type_baseline.c >nul
+findstr /C:"xl6_box_XL_Union_Payload(__xl6_user_global_payload)" build\test\cgen_runtime_type_baseline.c >nul
 if errorlevel 1 (
     echo cgen_runtime_type_baseline.c missing union runtime type boxing.
     exit /b 1
@@ -31,7 +31,7 @@ if errorlevel 1 (
     echo cgen_runtime_type_baseline.c missing callable runtime type boxing.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_runtime_type_baseline.c' -Raw; if($t -notmatch 'xrtTypedArrayCreate\(xl6_runtime_type_desc_([0-9A-F]+)\(\),[\s\S]*?xl6_xrt_typed_array_to_xvalue\(xl6_runtime_type_desc_\1\(\), children\)'){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_runtime_type_baseline.c' -Raw; if($t -notmatch 'xrtTypedArrayCreate\(xl6_runtime_type_desc_([0-9A-F]+)\(\),[\s\S]*?xl6_xrt_typed_array_to_xvalue\(xl6_runtime_type_desc_\1\(\), __xl6_user_global_children\)'){exit 1}"
 if errorlevel 1 (
     echo cgen_runtime_type_baseline.c missing typed class array runtime descriptor binding.
     exit /b 1
@@ -68,9 +68,19 @@ if errorlevel 1 (
     echo cgen_runtime_as_fail.xl should generate runtime failure path.
     exit /b 1
 )
-findstr /C:"xl6_runtime_fatal(4);" build\test\cgen_runtime_as_fail.c >nul
+findstr /C:"xl6_error_raise(\"TypeError\", \"runtime type cast failed\"" build\test\cgen_runtime_as_fail.c >nul
 if errorlevel 1 (
-    echo cgen_runtime_as_fail.c missing runtime as failure branch.
+    echo cgen_runtime_as_fail.c missing catchable TypeError branch.
+    exit /b 1
+)
+release\xl.exe run test\cases\cgen_runtime_as_fail.xl > build\test\cgen_runtime_as_fail.out.txt 2> build\test\cgen_runtime_as_fail.err.txt
+if not errorlevel 1 (
+    echo cgen_runtime_as_fail.xl should fail with an uncaught TypeError.
+    exit /b 1
+)
+findstr /C:"TypeError" build\test\cgen_runtime_as_fail.err.txt >nul
+if errorlevel 1 (
+    echo cgen_runtime_as_fail.err.txt missing TypeError.
     exit /b 1
 )
 
@@ -129,7 +139,7 @@ if errorlevel 1 (
     echo cgen_type_conversions.c missing int to string helper.
     exit /b 1
 )
-findstr /C:"xl6_xrt_value_to_string(boxedInt)" build\test\cgen_type_conversions.c >nul
+findstr /C:"xl6_xrt_value_to_string(__xl6_user_global_boxedInt)" build\test\cgen_type_conversions.c >nul
 if errorlevel 1 (
     echo cgen_type_conversions.c missing var to string conversion.
     exit /b 1
@@ -203,17 +213,17 @@ if errorlevel 1 (
     echo cgen_closure.c still contains CRT free.
     exit /b 1
 )
-findstr /C:"copy.retain(copy.env);" build\test\cgen_closure.c >nul
+findstr /C:"__xl6_user_global_copy.retain(__xl6_user_global_copy.env);" build\test\cgen_closure.c >nul
 if errorlevel 1 (
     echo cgen_closure.c missing function copy retain.
     exit /b 1
 )
-findstr /C:"value = ((add10.signature == " build\test\cgen_closure.c >nul
+findstr /C:"value = ((__xl6_user_global_add10.signature == " build\test\cgen_closure.c >nul
 if errorlevel 1 (
     echo cgen_closure.c missing function signature guard.
     exit /b 1
 )
-findstr /C:"((long long (*)(void*, long long))add10.invoke)(add10.env, 5LL)" build\test\cgen_closure.c >nul
+findstr /C:"((long long (*)(void*, long long))__xl6_user_global_add10.invoke)(__xl6_user_global_add10.env, 5LL)" build\test\cgen_closure.c >nul
 if errorlevel 1 (
     echo cgen_closure.c missing function value invoke.
     exit /b 1
@@ -266,7 +276,7 @@ if errorlevel 1 (
     echo cgen_closure_resource_capture.c missing function capture release.
     exit /b 1
 )
-findstr /C:"current.release(current.env);" build\test\cgen_closure_resource_capture.c >nul
+findstr /C:"__xl6_user_global_current.release(__xl6_user_global_current.env);" build\test\cgen_closure_resource_capture.c >nul
 if errorlevel 1 (
     echo cgen_closure_resource_capture.c missing function assignment release.
     exit /b 1
@@ -318,7 +328,7 @@ if errorlevel 1 (
     echo cgen_function_bare_call.c missing erased function argument type check.
     exit /b 1
 )
-findstr /C:"value = xl6_xrt_move_to_shared(xl6_function_call_var(add, 2" build\test\cgen_function_bare_call.c >nul
+findstr /C:"__xl6_user_global_value = xl6_xrt_move_to_shared(xl6_function_call_var(__xl6_user_global_add, 2" build\test\cgen_function_bare_call.c >nul
 if errorlevel 1 (
     echo cgen_function_bare_call.c missing bare function call lowering.
     exit /b 1
@@ -370,7 +380,7 @@ if errorlevel 1 (
     echo cgen_function_named_value.c missing optional vararg function adapter.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_function_named_value.c',[System.Text.Encoding]::UTF8); if($text.IndexOf('mixedPicker = (chooseMixedPicker ? xl6_function_copy_value(borrowedMixedPicker) : xl_fn_makePicker(200LL));') -lt 0 -or $text.IndexOf('XL6_Function __xl6_function_assign_') -lt 0 -or $text.IndexOf('= (chooseMixedPicker ? xl6_function_copy_value(borrowedMixedPicker) : xl_fn_makePicker(300LL));') -lt 0){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_function_named_value.c',[System.Text.Encoding]::UTF8); if($text.IndexOf('__xl6_user_global_mixedPicker = (__xl6_user_global_chooseMixedPicker ? xl6_function_copy_value(__xl6_user_global_borrowedMixedPicker) : xl_fn_makePicker(200LL));') -lt 0 -or $text.IndexOf('XL6_Function __xl6_function_assign_') -lt 0 -or $text.IndexOf('= (__xl6_user_global_chooseMixedPicker ? xl6_function_copy_value(__xl6_user_global_borrowedMixedPicker) : xl_fn_makePicker(300LL));') -lt 0){ exit 1 }"
 if errorlevel 1 (
     echo cgen_function_named_value.c missing mixed conditional function value branch copy.
     exit /b 1

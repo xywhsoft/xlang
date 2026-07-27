@@ -1,0 +1,24 @@
+int8 i8min = -128
+int8 i8max = 127
+uint8 u8max = 255
+int16 i16min = -32768
+int16 i16max = 32767
+uint16 u16max = 65535
+int32 i32min = -2147483648
+int32 i32max = 2147483647
+uint32 u32max = 4294967295
+int64 i64min = -9223372036854775808
+int64 i64max = 9223372036854775807
+uint64 u64max = 18446744073709551615
+
+assert i8min == -128 and i8max == 127, "int8 bounds"
+assert u8max == 255, "uint8 max"
+assert i16min == -32768 and i16max == 32767, "int16 bounds"
+assert u16max == 65535, "uint16 max"
+assert i32min == -2147483648 and i32max == 2147483647, "int32 bounds"
+assert u32max == 4294967295, "uint32 max"
+assert i64min == -9223372036854775808 and i64max == 9223372036854775807, "int64 bounds"
+assert u64max > i64max, "uint64 max above int64 max"
+assert u64max / 2 == 9223372036854775807, "uint64 unsigned division"
+
+println("type_int_minmax_bounds ok")

@@ -64,6 +64,19 @@ static int xl6CgenIsCReservedIdent(const char* text)
         "else", "enum", "extern", "float", "for", "goto", "if", "inline", "int", "long",
         "register", "restrict", "return", "short", "signed", "sizeof", "static", "struct",
         "switch", "typedef", "union", "unsigned", "void", "volatile", "while",
+        /*
+            TCC/GNU/Windows 扩展关键字和历史调用约定宏。
+            xlang 允许它们作为普通标识符，生成 C 时必须统一转义。
+        */
+        "asm", "__asm", "__asm__",
+        "__const", "__const__", "__volatile", "__volatile__", "__signed", "__signed__",
+        "__inline", "__inline__", "__restrict", "__restrict__", "__extension__",
+        "__thread", "__attribute", "__attribute__", "__alignof", "__alignof__",
+        "typeof", "__typeof", "__typeof__", "__label__",
+        "cdecl", "__cdecl", "__cdecl__", "stdcall", "__stdcall", "__stdcall__",
+        "fastcall", "__fastcall", "__fastcall__", "thiscall", "__thiscall", "__thiscall__",
+        "regparm", "__regparm__", "pascal", "near", "far", "huge", "interrupt",
+        "based", "segment", "declspec", "__declspec",
         /* TCC/CRT 常以宏暴露这些名字，不能让宏改写生成的局部标识符。 */
         "errno", "stdin", "stdout", "stderr"
     };
@@ -78,6 +91,33 @@ static int xl6CgenIsCReservedIdent(const char* text)
         }
     }
     return 0;
+}
+
+static int xl6CgenLooksLikeCMacroIdent(const char* text)
+{
+    const unsigned char* p;
+    int hasUpper;
+
+    if ( text == NULL || text[0] == '\0' ) {
+        return 0;
+    }
+
+    /*
+        C/CRT 的对象宏通常使用全大写名字。这里统一编码这类用户标识符，
+        避免 NULL、EOF、SIZE_MAX 等宏在预处理阶段改写局部变量、参数和字段。
+    */
+    hasUpper = 0;
+    for ( p = (const unsigned char*)text; *p != '\0'; ++p ) {
+        if ( *p >= 'A' && *p <= 'Z' ) {
+            hasUpper = 1;
+            continue;
+        }
+        if ( (*p >= 'a' && *p <= 'z') ||
+             ((*p < '0' || *p > '9') && *p != '_') ) {
+            return 0;
+        }
+    }
+    return hasUpper;
 }
 
 static int xl6CgenIsSimpleCIdent(const char* text)
@@ -235,7 +275,7 @@ void xl6CgenEncodeCIdentifier(char* out, size_t capacity, const char* text)
         return;
     }
 
-    reserved = xl6CgenIsCReservedIdent(text);
+    reserved = xl6CgenIsCReservedIdent(text) || xl6CgenLooksLikeCMacroIdent(text);
     encodedSize = reserved ? strlen("xl_kw_") : 0;
     prefix[0] = '\0';
     prefixSize = 0;

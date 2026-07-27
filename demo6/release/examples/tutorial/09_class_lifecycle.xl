@@ -73,7 +73,7 @@ func main(...) as int
     do
         Point3 point = Point3(10, 20, 12)
         value = point.sum3()
-    while false
+    while false end
 
     if value != 42 then
         return 1

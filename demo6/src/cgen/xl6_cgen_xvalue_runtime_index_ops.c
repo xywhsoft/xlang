@@ -4,12 +4,18 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static xvalue xl6_xrt_index_safe_get_i64(xvalue values, long long index)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return xvoIndexGetI64(values, index);\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(values) != XL6_XRT_TYPE_KIND_INVALID ) {\n", out);
+    xl6OutputPuts("        return xl6_xrt_typed_container_get_i64(values, index);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return xl6_xrt_retain(xvoIndexGetI64(values, index));\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static xvalue xl6_xrt_index_safe_get_key(xvalue values, const char* key)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return xvoIndexGetKey(values, key, 0);\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_DICT ) {\n", out);
+    xl6OutputPuts("        return xl6_xrt_typed_container_get_key(values, key);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return xl6_xrt_retain(xvoIndexGetKey(values, key, 0));\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static xvalue xl6_xrt_dict_get_var_key(xvalue values, xvalue key)\n", out);
@@ -62,7 +68,7 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static xvalue xl6_xrt_array_index_retain_release(xvalue values, long long index)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xvalue result = xl6_xrt_retain(xvoIndexGetI64(values, index));\n", out);
+    xl6OutputPuts("    xvalue result = xl6_xrt_index_safe_get_i64(values, index);\n", out);
     xl6OutputPuts("    if ( values != 0 ) {\n", out);
     xl6OutputPuts("        xvoUnref(values);\n", out);
     xl6OutputPuts("    }\n", out);
@@ -71,7 +77,7 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static xvalue xl6_xrt_list_index_retain_release(xvalue values, long long index)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xvalue result = xl6_xrt_retain(xvoListGetValue(values, index));\n", out);
+    xl6OutputPuts("    xvalue result = xl6_xrt_index_safe_get_i64(values, index);\n", out);
     xl6OutputPuts("    if ( values != 0 ) {\n", out);
     xl6OutputPuts("        xvoUnref(values);\n", out);
     xl6OutputPuts("    }\n", out);
@@ -80,7 +86,7 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static xvalue xl6_xrt_dict_get_key_retain_release(xvalue values, const char* key)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xvalue result = xl6_xrt_retain(xvoTableGetValue(values, key, 0));\n", out);
+    xl6OutputPuts("    xvalue result = xl6_xrt_index_safe_get_key(values, key);\n", out);
     xl6OutputPuts("    if ( values != 0 ) {\n", out);
     xl6OutputPuts("        xvoUnref(values);\n", out);
     xl6OutputPuts("    }\n", out);
@@ -98,7 +104,7 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static xvalue xl6_xrt_index_safe_get_i64_retain_release(xvalue values, long long index)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xvalue result = xl6_xrt_retain(xl6_xrt_index_safe_get_i64(values, index));\n", out);
+    xl6OutputPuts("    xvalue result = xl6_xrt_index_safe_get_i64(values, index);\n", out);
     xl6OutputPuts("    if ( values != 0 ) {\n", out);
     xl6OutputPuts("        xvoUnref(values);\n", out);
     xl6OutputPuts("    }\n", out);
@@ -107,7 +113,7 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static xvalue xl6_xrt_index_safe_get_key_retain_release(xvalue values, const char* key)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xvalue result = xl6_xrt_retain(xl6_xrt_index_safe_get_key(values, key));\n", out);
+    xl6OutputPuts("    xvalue result = xl6_xrt_index_safe_get_key(values, key);\n", out);
     xl6OutputPuts("    if ( values != 0 ) {\n", out);
     xl6OutputPuts("        xvoUnref(values);\n", out);
     xl6OutputPuts("    }\n", out);
@@ -116,7 +122,7 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static xvalue xl6_xrt_index_safe_get_var_key_retain_release(xvalue values, xvalue key)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xvalue result = xl6_xrt_retain(xl6_xrt_index_safe_get_var_key(values, key));\n", out);
+    xl6OutputPuts("    xvalue result = xl6_xrt_index_safe_get_var_key(values, key);\n", out);
     xl6OutputPuts("    if ( values != 0 ) {\n", out);
     xl6OutputPuts("        xvoUnref(values);\n", out);
     xl6OutputPuts("    }\n", out);
@@ -130,6 +136,9 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("        return xvoCreateNull();\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    type = xvoType(values);\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(values) != XL6_XRT_TYPE_KIND_INVALID ) {\n", out);
+    xl6OutputPuts("        return xvoCreateInt((long long)xl6_xrt_typed_container_count(values));\n", out);
+    xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( type == XL6_XVO_DT_ARRAY ) {\n", out);
     xl6OutputPuts("        return xvoCreateInt((long long)xvoArrayItemCount(values));\n", out);
     xl6OutputPuts("    }\n", out);
@@ -161,6 +170,9 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("        return 0u;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    type = xvoType(values);\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(values) != XL6_XRT_TYPE_KIND_INVALID ) {\n", out);
+    xl6OutputPuts("        return xl6_xrt_typed_container_count(values);\n", out);
+    xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( type == XL6_XVO_DT_ARRAY ) {\n", out);
     xl6OutputPuts("        return xvoArrayItemCount(values);\n", out);
     xl6OutputPuts("    }\n", out);
@@ -240,6 +252,10 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("static int xl6_xrt_basic_equal(xvalue left, xvalue right)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    int cmp = 0;\n\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(left) != XL6_XRT_TYPE_KIND_INVALID &&\n", out);
+    xl6OutputPuts("         xl6_xrt_typed_container_kind(right) != XL6_XRT_TYPE_KIND_INVALID ) {\n", out);
+    xl6OutputPuts("        return xvoGetHandleData(left) == xvoGetHandleData(right);\n", out);
+    xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( xl6_xrt_basic_compare(left, right, &cmp) ) {\n", out);
     xl6OutputPuts("        return cmp == 0;\n", out);
     xl6OutputPuts("    }\n", out);
@@ -428,6 +444,9 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("    if ( type == XL6_XVO_DT_LIST ) { return xvoListItemCount(value) != 0u; }\n", out);
     xl6OutputPuts("    if ( type == XL6_XVO_DT_COLL ) { return xvoSetItemCount(value) != 0u; }\n", out);
     xl6OutputPuts("    if ( type == XL6_XVO_DT_TABLE ) { return xvoTableItemCount(value) != 0u; }\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(value) != XL6_XRT_TYPE_KIND_INVALID ) {\n", out);
+    xl6OutputPuts("        return xl6_xrt_typed_container_count(value) != 0u;\n", out);
+    xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return 1;\n", out);
     xl6OutputPuts("}\n\n", out);
 
@@ -572,6 +591,11 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("    int valuesType = xvoType(values);\n", out);
     xl6OutputPuts("    int itemType = xvoType(item);\n", out);
     xl6OutputPuts("    int found = 0;\n\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(values) != XL6_XRT_TYPE_KIND_INVALID ) {\n", out);
+    xl6OutputPuts("        found = xl6_xrt_typed_container_contains(values, item);\n", out);
+    xl6OutputPuts("        if ( item != 0 ) { xvoUnref(item); }\n", out);
+    xl6OutputPuts("        return found;\n", out);
+    xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( valuesType == XL6_XVO_DT_ARRAY ) {\n", out);
     xl6OutputPuts("        return xl6_xrt_array_contains(values, item);\n", out);
     xl6OutputPuts("    }\n", out);
@@ -648,7 +672,9 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("static int xl6_xrt_value_remove_value_release(xvalue values, xvalue item)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    int ok = 0;\n", out);
-    xl6OutputPuts("    if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_ARRAY ) {\n", out);
+    xl6OutputPuts("        ok = xl6_xrt_typed_array_remove_value_release((xtarray)xvoGetHandleData(values), item);\n", out);
+    xl6OutputPuts("    } else if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {\n", out);
     xl6OutputPuts("        ok = xl6_xrt_array_remove_value_release(values, item);\n", out);
     xl6OutputPuts("    } else if ( item != 0 ) {\n", out);
     xl6OutputPuts("        xvoUnref(item);\n", out);
@@ -759,6 +785,9 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static int xl6_xrt_container_push_value(xvalue values, xvalue item)\n", out);
     xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_ARRAY ) {\n", out);
+    xl6OutputPuts("        return xl6_xrt_typed_array_append_value_release((xtarray)xvoGetHandleData(values), item);\n", out);
+    xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {\n", out);
     xl6OutputPuts("        return xl6_xrt_array_push_value(values, item);\n", out);
     xl6OutputPuts("    }\n", out);
@@ -768,6 +797,9 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static int xl6_xrt_container_add_value(xvalue values, xvalue item)\n", out);
     xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_SET ) {\n", out);
+    xl6OutputPuts("        return xl6_xrt_typed_set_add_value_release((xtset)xvoGetHandleData(values), item);\n", out);
+    xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( values != 0 && xvoType(values) == XL6_XVO_DT_COLL ) {\n", out);
     xl6OutputPuts("        return xl6_xrt_set_add_value(values, item);\n", out);
     xl6OutputPuts("    }\n", out);
@@ -778,7 +810,10 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("static int xl6_xrt_container_insert_value(xvalue values, xvalue index, xvalue item)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    int ok = 0;\n", out);
-    xl6OutputPuts("    if ( values != 0 && index != 0 && xvoType(values) == XL6_XVO_DT_ARRAY && xvoType(index) == XL6_XVO_DT_INT ) {\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_ARRAY && index != 0 && xvoType(index) == XL6_XVO_DT_INT ) {\n", out);
+    xl6OutputPuts("        ok = xrtTypedArrayInsertValue((xtarray)xvoGetHandleData(values), (unsigned int)xvoGetInt(index) + 1u, item) ? 1 : 0;\n", out);
+    xl6OutputPuts("        if ( item != 0 ) { xvoUnref(item); }\n", out);
+    xl6OutputPuts("    } else if ( values != 0 && index != 0 && xvoType(values) == XL6_XVO_DT_ARRAY && xvoType(index) == XL6_XVO_DT_INT ) {\n", out);
     xl6OutputPuts("        ok = xl6_xrt_array_insert_value(values, (unsigned int)xvoGetInt(index), item);\n", out);
     xl6OutputPuts("    } else if ( item != 0 ) {\n", out);
     xl6OutputPuts("        xvoUnref(item);\n", out);
@@ -792,7 +827,16 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("    int ok = 0;\n", out);
     xl6OutputPuts("    int valuesType = values != 0 ? xvoType(values) : -1;\n", out);
     xl6OutputPuts("    int keyType = key != 0 ? xvoType(key) : -1;\n", out);
-    xl6OutputPuts("    if ( valuesType == XL6_XVO_DT_ARRAY && keyType == XL6_XVO_DT_INT ) {\n", out);
+    xl6OutputPuts("    unsigned int typedKind = xl6_xrt_typed_container_kind(values);\n", out);
+    xl6OutputPuts("    if ( typedKind == XL6_XRT_TYPE_KIND_ARRAY && keyType == XL6_XVO_DT_INT ) {\n", out);
+    xl6OutputPuts("        ok = xrtTypedArrayRemove((xtarray)xvoGetHandleData(values), (unsigned int)xvoGetInt(key) + 1u, hasCount ? count : 1u) ? 1 : 0;\n", out);
+    xl6OutputPuts("    } else if ( !hasCount && typedKind == XL6_XRT_TYPE_KIND_LIST && keyType == XL6_XVO_DT_INT ) {\n", out);
+    xl6OutputPuts("        ok = xrtTypedListRemove((xtlist)xvoGetHandleData(values), xvoGetInt(key)) ? 1 : 0;\n", out);
+    xl6OutputPuts("    } else if ( !hasCount && typedKind == XL6_XRT_TYPE_KIND_SET ) {\n", out);
+    xl6OutputPuts("        ok = xrtTypedSetRemoveValue((xtset)xvoGetHandleData(values), key) ? 1 : 0;\n", out);
+    xl6OutputPuts("    } else if ( !hasCount && typedKind == XL6_XRT_TYPE_KIND_DICT && keyType == XL6_XVO_DT_TEXT ) {\n", out);
+    xl6OutputPuts("        ok = xrtTypedDictRemove((xtdict)xvoGetHandleData(values), xvoGetText(key), 0) ? 1 : 0;\n", out);
+    xl6OutputPuts("    } else if ( valuesType == XL6_XVO_DT_ARRAY && keyType == XL6_XVO_DT_INT ) {\n", out);
     xl6OutputPuts("        ok = xvoArrayRemove(values, (unsigned int)xvoGetInt(key), hasCount ? count : 1u) ? 1 : 0;\n", out);
     xl6OutputPuts("    } else if ( !hasCount && valuesType == XL6_XVO_DT_LIST && keyType == XL6_XVO_DT_INT ) {\n", out);
     xl6OutputPuts("        ok = xvoListRemove(values, xvoGetInt(key)) ? 1 : 0;\n", out);
@@ -815,7 +859,14 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("    xvalue result = 0;\n", out);
     xl6OutputPuts("    int valuesType = values != 0 ? xvoType(values) : -1;\n", out);
     xl6OutputPuts("    int keyType = key != 0 ? xvoType(key) : -1;\n", out);
-    xl6OutputPuts("    if ( valuesType == XL6_XVO_DT_ARRAY && keyType == XL6_XVO_DT_INT ) {\n", out);
+    xl6OutputPuts("    unsigned int typedKind = xl6_xrt_typed_container_kind(values);\n", out);
+    xl6OutputPuts("    if ( typedKind == XL6_XRT_TYPE_KIND_ARRAY && keyType == XL6_XVO_DT_INT ) {\n", out);
+    xl6OutputPuts("        result = xrtTypedArrayTakeValue((xtarray)xvoGetHandleData(values), (unsigned int)xvoGetInt(key) + 1u);\n", out);
+    xl6OutputPuts("    } else if ( typedKind == XL6_XRT_TYPE_KIND_LIST && keyType == XL6_XVO_DT_INT ) {\n", out);
+    xl6OutputPuts("        result = xrtTypedListTakeValue((xtlist)xvoGetHandleData(values), xvoGetInt(key));\n", out);
+    xl6OutputPuts("    } else if ( typedKind == XL6_XRT_TYPE_KIND_DICT && keyType == XL6_XVO_DT_TEXT ) {\n", out);
+    xl6OutputPuts("        result = xrtTypedDictTakeValue((xtdict)xvoGetHandleData(values), xvoGetText(key), 0);\n", out);
+    xl6OutputPuts("    } else if ( valuesType == XL6_XVO_DT_ARRAY && keyType == XL6_XVO_DT_INT ) {\n", out);
     xl6OutputPuts("        result = xvoArrayTakeValue(values, (unsigned int)xvoGetInt(key));\n", out);
     xl6OutputPuts("    } else if ( valuesType == XL6_XVO_DT_LIST && keyType == XL6_XVO_DT_INT ) {\n", out);
     xl6OutputPuts("        result = xvoListTakeValue(values, xvoGetInt(key));\n", out);
@@ -829,7 +880,9 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("static xvalue xl6_xrt_container_pop_value(xvalue values)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xvalue result = 0;\n", out);
-    xl6OutputPuts("    if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_ARRAY ) {\n", out);
+    xl6OutputPuts("        result = xrtTypedArrayPopValue((xtarray)xvoGetHandleData(values));\n", out);
+    xl6OutputPuts("    } else if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {\n", out);
     xl6OutputPuts("        result = xvoArrayPopValue(values);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return result != 0 ? result : xvoCreateNull();\n", out);
@@ -838,6 +891,9 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
     xl6OutputPuts("static int xl6_xrt_container_clear(xvalue values)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    int type = values != 0 ? xvoType(values) : -1;\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(values) != XL6_XRT_TYPE_KIND_INVALID ) {\n", out);
+    xl6OutputPuts("        return xl6_xrt_typed_container_clear(values);\n", out);
+    xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( type == XL6_XVO_DT_ARRAY ) { return xvoArrayClear(values) ? 1 : 0; }\n", out);
     xl6OutputPuts("    if ( type == XL6_XVO_DT_LIST ) { return xvoListClear(values) ? 1 : 0; }\n", out);
     xl6OutputPuts("    if ( type == XL6_XVO_DT_COLL ) { return xvoSetClear(values) ? 1 : 0; }\n", out);
@@ -847,11 +903,15 @@ static void xl6CgenEmitXValueRuntimeIndexAndOps(XL6_CgenContext* ctx)
 
     xl6OutputPuts("static int xl6_xrt_container_reserve(xvalue values, unsigned int count)\n", out);
     xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_ARRAY ) { (void)count; return 1; }\n", out);
     xl6OutputPuts("    return values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ? (xvoArrayAlloc(values, count) ? 1 : 0) : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static int xl6_xrt_container_swap(xvalue values, unsigned int index1, unsigned int index2)\n", out);
     xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_ARRAY ) {\n", out);
+    xl6OutputPuts("        return xrtTypedArraySwap((xtarray)xvoGetHandleData(values), index1 + 1u, index2 + 1u) ? 1 : 0;\n", out);
+    xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ? (xvoArraySwap(values, index1, index2) ? 1 : 0) : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 

@@ -79,7 +79,7 @@ class MinHeap
 
     func siftUp(int idx)
         int i = idx
-        while i > 0 do
+        while i > 0
             int parent = (i - 1) / 2
             if self.keys[i] < self.keys[parent] then
                 float tk = self.keys[i]
@@ -99,7 +99,7 @@ class MinHeap
         int i = idx
         int n = self.keys.length
         bool done = false
-        while not done do
+        while not done
             int l = 2 * i + 1
             int r = 2 * i + 2
             int smallest = i
@@ -174,7 +174,7 @@ class UnionFind
         var trail = []
         string cur = x
         bool reachedRoot = false
-        while not reachedRoot do
+        while not reachedRoot
             string p = string(self.parent[cur])
             if p == cur then
                 reachedRoot = true
@@ -185,7 +185,7 @@ class UnionFind
         end
         int i = 0
         int n = trail.length
-        while i < n do
+        while i < n
             self.parent[trail[i]] = cur
             i = i + 1
         end
@@ -309,7 +309,7 @@ class Graph
         visited[src] = true
         var order = []
         int head = 0
-        while head < queue.length do
+        while head < queue.length
             string u = string(queue[head])
             head = head + 1
             order.push(u)
@@ -334,7 +334,7 @@ class Graph
         var visited = {}
         var stack = [src]
         var order = []
-        while stack.length > 0 do
+        while stack.length > 0
             int last = stack.length - 1
             string u = string(stack[last])
             stack.remove(last)
@@ -349,7 +349,7 @@ class Graph
                 nbrs.push(v)
             end
             int i = nbrs.length - 1
-            while i >= 0 do
+            while i >= 0
                 stack.push(nbrs[i])
                 i = i - 1
             end
@@ -381,7 +381,7 @@ class Graph
         MinHeap pq = MinHeap()
         pq.push(0.0, src)
 
-        while not pq.empty() do
+        while not pq.empty()
             string u = pq.pop()
             if finalized.contains(u) then
                 continue
@@ -414,7 +414,7 @@ class Graph
         var route = []
         string cur = dst
         bool walkedSrc = false
-        while not walkedSrc do
+        while not walkedSrc
             route.push(cur)
             if cur == src then
                 walkedSrc = true
@@ -424,7 +424,7 @@ class Graph
         end
         var rev = []
         int i = route.length - 1
-        while i >= 0 do
+        while i >= 0
             rev.push(route[i])
             i = i - 1
         end
@@ -474,7 +474,7 @@ class Graph
         MinHeap pq = MinHeap()
         pq.push(h0, src)
 
-        while not pq.empty() do
+        while not pq.empty()
             string u = pq.pop()
             if finalized.contains(u) then
                 continue
@@ -516,7 +516,7 @@ class Graph
         var route = []
         string cur = dst
         bool walkedSrc = false
-        while not walkedSrc do
+        while not walkedSrc
             route.push(cur)
             if cur == src then
                 walkedSrc = true
@@ -526,7 +526,7 @@ class Graph
         end
         var rev = []
         int i = route.length - 1
-        while i >= 0 do
+        while i >= 0
             rev.push(route[i])
             i = i - 1
         end
@@ -552,7 +552,7 @@ class Graph
         var link = {}
 
         int i = 0
-        while i < n do
+        while i < n
             dist[nodes[i]] = 1e18
             i = i + 1
         end
@@ -567,7 +567,7 @@ class Graph
         float total = 0.0
         var edges = []
 
-        while not pq.empty() do
+        while not pq.empty()
             string u = pq.pop()
             if inTree.contains(u) then
                 continue
@@ -630,10 +630,10 @@ class Graph
 
         int m = ew.length
         int i = 0
-        while i < m do
+        while i < m
             int minIdx = i
             int j = i + 1
-            while j < m do
+            while j < m
                 if ew[j] < ew[minIdx] then
                     minIdx = j
                 end
@@ -661,7 +661,7 @@ class Graph
         float total = 0.0
         var edges = []
         int k = 0
-        while k < m do
+        while k < m
             string a = eu[k]
             string b = ev[k]
             if not uf.connected(a, b) then
@@ -704,7 +704,7 @@ class Graph
 
         var result = []
         int head = 0
-        while head < queue.length do
+        while head < queue.length
             string u = string(queue[head])
             head = head + 1
             result.push(u)
@@ -774,14 +774,14 @@ func loadGraphJSON(string text) as Graph
             var nodesField = raw["nodes"]
             int ni = 0
             int nn = nodesField.length
-            while ni < nn do
+            while ni < nn
                 g.addNode(string(nodesField[ni]))
                 ni = ni + 1
             end
         end
         int ei = 0
         int en = edgesField.length
-        while ei < en do
+        while ei < en
             var edge = edgesField[ei]
             string u = string(edge["from"])
             string v = string(edge["to"])
@@ -842,9 +842,9 @@ end
 func makeGrid(int rows, int cols) as Graph
     Graph g = Graph(false)
     int r = 0
-    while r < rows do
+    while r < rows
         int c = 0
-        while c < cols do
+        while c < cols
             string name = string(r) + "," + string(c)
             g.setCoord(name, float(c), float(r))
             c = c + 1
@@ -852,9 +852,9 @@ func makeGrid(int rows, int cols) as Graph
         r = r + 1
     end
     r = 0
-    while r < rows do
+    while r < rows
         int c = 0
-        while c < cols do
+        while c < cols
             string here = string(r) + "," + string(c)
             if c + 1 < cols then
                 string right = string(r) + "," + string(c + 1)
@@ -925,7 +925,7 @@ func fmtPath(var route) as string
     string s = ""
     int i = 0
     int n = route.length
-    while i < n do
+    while i < n
         if i > 0 then
             s = s + " -> "
         end
@@ -938,7 +938,7 @@ end
 func printEdges(var edges)
     int i = 0
     int n = edges.length
-    while i < n do
+    while i < n
         var e = edges[i]
         println("  " + string(e[0]) + " -- " + string(e[1]) + "  (w=" + fmtDist(float(e[2])) + ")")
         i = i + 1
@@ -1013,7 +1013,7 @@ func testMinHeap(var fails)
 
     string order = ""
     int count = 0
-    while not h.empty() do
+    while not h.empty()
         string v = h.pop()
         order = order + v
         count = count + 1
@@ -1066,7 +1066,7 @@ func testBFS(var fails)
     var dist = {}
     dist["A"] = 0
     int i = 0
-    while i < order.length do
+    while i < order.length
         dist[order[i]] = i
         i = i + 1
     end
@@ -1089,7 +1089,7 @@ func testDFS(var fails)
 
     bool seenF = false
     int i = 0
-    while i < order.length do
+    while i < order.length
         if string(order[i]) == "F" then
             seenF = true
         end
@@ -1176,7 +1176,7 @@ func testTopoSort(var fails)
 
     var pos = {}
     int i = 0
-    while i < order.length do
+    while i < order.length
         pos[order[i]] = i
         i = i + 1
     end
@@ -1301,7 +1301,7 @@ func runTests() as int
     else
         println(string(failCount) + " TEST(S) FAILED:")
         int i = 0
-        while i < failCount do
+        while i < failCount
             println("  " + string(fails[i]))
             i = i + 1
         end

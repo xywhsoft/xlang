@@ -873,7 +873,7 @@ static void xl6CgenGenericClassMethods(XL6_CgenContext* ctx)
                 xl6CgenGenericClassSpecial(ctx, classNode, typeNode, member);
             }
         }
-        if ( !hasDestroy && xl6CgenClassNeedsDestroy(ctx, classNode) ) {
+        if ( !hasDestroy && xl6CgenGenericClassNeedsDestroy(ctx, classNode, typeNode) ) {
             xl6CgenGenericClassAutoDestroy(ctx, classNode, typeNode);
         }
     }

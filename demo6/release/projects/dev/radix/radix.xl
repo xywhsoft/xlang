@@ -51,7 +51,7 @@ func parseRadix(string s, int base) as int64
         throw "no digits after sign"
     end
     int64 result = 0
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         int v = byteToDigit(b)
         if v < 0 then
@@ -80,7 +80,7 @@ func formatRadix(int64 value, int base) as string
         sign = "-"
     end
     string buf = ""
-    while x != 0 do
+    while x != 0
         int64 rem = x % base
         int64 q = x / base
         int ri = int(rem)
@@ -109,7 +109,7 @@ func formatBinaryBitwise(int64 value) as string
         end
     end
     string buf = ""
-    while mag != 0 do
+    while mag != 0
         int64 bit = mag & 1
         if bit == 1 then
             buf = "1" + buf
@@ -204,7 +204,7 @@ func cmdProbe() as int
     array fs = string.split(fmts, ",")
     println("int.format(255, format) behavior:")
     int i = 0
-    while i < fs.length do
+    while i < fs.length
         string f = string(fs[i])
         string outputValue = ""
         try
@@ -274,7 +274,7 @@ func main(...) as int
         string joined = ""
         int k = 4
         try
-            while k < arg.length do
+            while k < arg.length
                 string item = string(arg[k])
                 int64 v = parseRadix(item, fromBase)
                 string piece = formatRadix(v, toBase)

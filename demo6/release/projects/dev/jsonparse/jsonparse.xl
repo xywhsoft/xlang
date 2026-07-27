@@ -47,7 +47,7 @@ end
 func parseHex4(string h) as int
     int v = 0
     int i = 0
-    while i < 4 do
+    while i < 4
         int d = hexDigit(string.charAt(h, i))
         if d < 0 then
             return -1
@@ -122,7 +122,7 @@ class Lexer
     end
 
     func skipSpaces()
-        while self.pos < self.len do
+        while self.pos < self.len
             string c = string.charAt(self.src, self.pos)
             if isSpace(c) then
                 self.pos += 1
@@ -135,7 +135,7 @@ class Lexer
     // 读取字符串字面量（调用者已消耗起始引号）。返回解码后的字符串内容。
     func readStringBody(int openPos) as string
         string outputValue = ""
-        while self.pos < self.len do
+        while self.pos < self.len
             string c = string.charAt(self.src, self.pos)
             if c == "\"" then
                 return outputValue
@@ -166,7 +166,7 @@ class Lexer
                     self.pos += 1
                     string hex = ""
                     int h = 0
-                    while h < 4 do
+                    while h < 4
                         if self.pos + h >= self.len then
                             self.errorAt(openPos, "incomplete \\u escape")
                         end
@@ -186,7 +186,7 @@ class Lexer
                             if string.charAt(self.src, p2) == "\\" and string.charAt(self.src, p2 + 1) == "u" then
                                 string hex2 = ""
                                 int h2 = 0
-                                while h2 < 4 do
+                                while h2 < 4
                                     hex2 = hex2 + string.charAt(self.src, p2 + 2 + h2)
                                     h2 += 1
                                 end
@@ -250,7 +250,7 @@ class Lexer
                 self.errorAt(startPos, "leading zero in number")
             end
         else
-            while p < self.len and isDigit(string.charAt(self.src, p)) do
+            while p < self.len and isDigit(string.charAt(self.src, p))
                 p += 1
             end
         end
@@ -260,7 +260,7 @@ class Lexer
             if p >= self.len or not isDigit(string.charAt(self.src, p)) then
                 self.errorAt(startPos, "invalid fraction (no digit after '.')")
             end
-            while p < self.len and isDigit(string.charAt(self.src, p)) do
+            while p < self.len and isDigit(string.charAt(self.src, p))
                 p += 1
             end
         end
@@ -278,7 +278,7 @@ class Lexer
                 if p >= self.len or not isDigit(string.charAt(self.src, p)) then
                     self.errorAt(startPos, "invalid exponent (no digits)")
                 end
-                while p < self.len and isDigit(string.charAt(self.src, p)) do
+                while p < self.len and isDigit(string.charAt(self.src, p))
                     p += 1
                 end
             end
@@ -295,7 +295,7 @@ class Lexer
             self.errorAt(startPos, "invalid literal")
         end
         int i = 0
-        while i < n do
+        while i < n
             if string.charAt(self.src, self.pos + i) != string.charAt(expected, i) then
                 self.errorAt(startPos, "invalid literal (expected '" + expected + "')")
             end
@@ -458,7 +458,7 @@ class Parser
         bool isFloat = false
         int i = 0
         int n = string.len(text)
-        while i < n do
+        while i < n
             string c = string.charAt(text, i)
             if c == "." or c == "e" or c == "E" then
                 isFloat = true
@@ -481,7 +481,7 @@ class Parser
             return obj
         end
         bool first = true
-        while true do
+        while true
             if self.cur.kind == "rbrace" then
                 if not first then
                     self.errorHere("trailing comma in object")
@@ -519,7 +519,7 @@ class Parser
             return arr
         end
         bool first = true
-        while true do
+        while true
             if self.cur.kind == "rbracket" then
                 if not first then
                     self.errorHere("trailing comma in array")
@@ -552,7 +552,7 @@ func escapeString(string s) as string
     string outputValue = ""
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         int blen = string.byteLen(c)
         if c == "\"" then
@@ -630,7 +630,7 @@ func stringifyValue(var v, bool pretty, int indent) as string
         end
         string outputValue = "["
         int i = 0
-        while i < n do
+        while i < n
             if i > 0 then
                 outputValue = outputValue + ","
             end
@@ -699,12 +699,12 @@ func queryPath(var root, string path) as var
     var cur = root
     int n = string.len(path)
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(path, i)
         if c == "." then
             i += 1
             string key = ""
-            while i < n do
+            while i < n
                 string cc = string.charAt(path, i)
                 if cc == "." or cc == "[" then
                     break
@@ -719,7 +719,7 @@ func queryPath(var root, string path) as var
         elseif c == "[" then
             i += 1
             string num = ""
-            while i < n do
+            while i < n
                 string cc = string.charAt(path, i)
                 if cc == "]" then
                     break

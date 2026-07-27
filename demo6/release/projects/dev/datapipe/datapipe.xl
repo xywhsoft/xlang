@@ -54,7 +54,7 @@ func looksLikeInt(string s) as bool
         i = 1
     end
     if i >= string.len(s) then return false end
-    while i < string.len(s) do
+    while i < string.len(s)
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then return false end
         i = i + 1
@@ -73,7 +73,7 @@ func looksLikeFloat(string s) as bool
         i = 1
     end
     bool seenDigit = false
-    while i < string.len(s) do
+    while i < string.len(s)
         int b = string.byteAt(s, i)
         if b >= 48 and b <= 57 then
             seenDigit = true
@@ -143,7 +143,7 @@ func tokenizeExpr(string s) as var
     int n = string.len(s)
     int i = 0
     string lastType = ""
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         // whitespace
         if b == 32 or b == 9 or b == 10 or b == 13 then
@@ -155,7 +155,7 @@ func tokenizeExpr(string s) as var
             int q = b
             i = i + 1
             string collected = ""
-            while i < n do
+            while i < n
                 int cb = string.byteAt(s, i)
                 if cb == q then
                     i = i + 1
@@ -187,7 +187,7 @@ func tokenizeExpr(string s) as var
             if b == 45 then
                 i = i + 1
             end
-            while i < n do
+            while i < n
                 if isDigitByte(string.byteAt(s, i)) then
                     i = i + 1
                 else
@@ -197,7 +197,7 @@ func tokenizeExpr(string s) as var
             if i < n then
                 if string.byteAt(s, i) == 46 then
                     i = i + 1
-                    while i < n do
+                    while i < n
                         if isDigitByte(string.byteAt(s, i)) then
                             i = i + 1
                         else
@@ -260,7 +260,7 @@ func tokenizeExpr(string s) as var
         // identifier
         if isAlphaByte(b) then
             int start2 = i
-            while i < n do
+            while i < n
                 int cb = string.byteAt(s, i)
                 if isAlphaByte(cb) or isDigitByte(cb) then
                     i = i + 1
@@ -390,7 +390,7 @@ end
 
 func parseFilterAnd() as var
     var left = parseFilterAtom()
-    while tokIsIdKw("AND") do
+    while tokIsIdKw("AND")
         tokAdv()
         var right = parseFilterAtom()
         var node = {}
@@ -405,7 +405,7 @@ end
 
 func parseFilterOr() as var
     var left = parseFilterAnd()
-    while tokIsIdKw("OR") do
+    while tokIsIdKw("OR")
         tokAdv()
         var right = parseFilterAnd()
         var node = {}
@@ -506,7 +506,7 @@ end
 
 func parseComputeMul() as var
     var left = parseComputeFactor()
-    while tokIsOp("*") or tokIsOp("/") do
+    while tokIsOp("*") or tokIsOp("/")
         string opv = string(tokCur()["v"])
         tokAdv()
         var right = parseComputeFactor()
@@ -523,7 +523,7 @@ end
 
 func parseComputeAdd() as var
     var left = parseComputeMul()
-    while tokIsOp("+") or tokIsOp("-") do
+    while tokIsOp("+") or tokIsOp("-")
         string opv = string(tokCur()["v"])
         tokAdv()
         var right = parseComputeMul()
@@ -600,7 +600,7 @@ end
 
 func headerEnsure(string name)
     int i = 0
-    while i < gHeaders.length do
+    while i < gHeaders.length
         if string(gHeaders[i]) == name then return end
         i = i + 1
     end
@@ -610,7 +610,7 @@ end
 
 func headerRename(string oldn, string newn)
     int i = 0
-    while i < gHeaders.length do
+    while i < gHeaders.length
         if string(gHeaders[i]) == oldn then
             gHeaders[i] = newn
             return
@@ -623,7 +623,7 @@ end
 
 func headerRemove(string name)
     int i = 0
-    while i < gHeaders.length do
+    while i < gHeaders.length
         if string(gHeaders[i]) == name then
             gHeaders.remove(i)
             return
@@ -636,10 +636,10 @@ end
 func buildRows(var headers, var data) as var
     var rows = []
     int r = 0
-    while r < data.length do
+    while r < data.length
         var row = {}
         int c = 0
-        while c < headers.length do
+        while c < headers.length
             row[string(headers[c])] = string(data[r][c])
             c = c + 1
         end
@@ -674,7 +674,7 @@ func parseCsv(string text, string delim) as var
     bool headersDone = false
     int i = 0
 
-    while i < n do
+    while i < n
         int b = string.byteAt(text, i)
         if inQuotes then
             if b == 34 then
@@ -712,7 +712,7 @@ func parseCsv(string text, string delim) as var
             else
                 var d = {}
                 int fi = 0
-                while fi < fields.length and fi < gHeaders.length do
+                while fi < fields.length and fi < gHeaders.length
                     d[string(gHeaders[fi])] = string(fields[fi])
                     fi = fi + 1
                 end
@@ -743,7 +743,7 @@ func loadJsonRows(string text) as var
     bool dataIsDict = data is dict
     if dataIsArr then
         int i = 0
-        while i < data.length do
+        while i < data.length
             var elem = data[i]
             var r = {}
             bool elemIsDict = elem is dict
@@ -813,7 +813,7 @@ func opSource(var step) as var
         bool dataIsArr = data is array
         if dataIsArr then
             int i = 0
-            while i < data.length do
+            while i < data.length
                 var elem = data[i]
                 var r = {}
                 bool elemIsDict = elem is dict
@@ -842,7 +842,7 @@ func opFilter(var rows, var step) as var
     var ast = parseFilter(string(step["expr"]))
     var outputValue = []
     int i = 0
-    while i < rows.length do
+    while i < rows.length
         bool keep = evalFilter(ast, rows[i])
         if keep then
             outputValue.append(rows[i])
@@ -883,7 +883,7 @@ func opMap(var rows, var step) as var
         end
     end
     int ci2 = 0
-    while ci2 < computeKeys.length do
+    while ci2 < computeKeys.length
         headerEnsure(string(computeKeys[ci2]))
         ci2 = ci2 + 1
     end
@@ -901,7 +901,7 @@ func opMap(var rows, var step) as var
     // row pass
     var outputValue = []
     int i = 0
-    while i < rows.length do
+    while i < rows.length
         var r = copyRow(rows[i])
         if hasFields then
             for k, v in step["fields"]
@@ -915,7 +915,7 @@ func opMap(var rows, var step) as var
         end
         if hasCompute then
             int ci = 0
-            while ci < computeKeys.length do
+            while ci < computeKeys.length
                 string kn = string(computeKeys[ci])
                 float val = evalArith(computeAsts[ci], r)
                 r[kn] = fmtNum(val)
@@ -998,13 +998,13 @@ func opGroup(var rows, var step) as var
     var groupOrder = []
     var groups = {}
     int ri = 0
-    while ri < rows.length do
+    while ri < rows.length
         var row = rows[ri]
         string gkey = ""
         var gvals = []
         bool first = true
         int bi = 0
-        while bi < byCols.length do
+        while bi < byCols.length
             string cv = getCell(row, string(byCols[bi]))
             gvals.append(cv)
             if first then
@@ -1029,7 +1029,7 @@ func opGroup(var rows, var step) as var
             var mins = []
             var maxs = []
             int ai = 0
-            while ai < aggNames.length do
+            while ai < aggNames.length
                 sums.append(0.0)
                 ncnts.append(0)
                 ecnts.append(0)
@@ -1053,7 +1053,7 @@ func opGroup(var rows, var step) as var
         var mins = rec["mins"]
         var maxs = rec["maxs"]
         int ai2 = 0
-        while ai2 < aggNames.length do
+        while ai2 < aggNames.length
             var sp = aggSpecs[ai2]
             string fn = string(sp["func"])
             string arg = string(sp["arg"])
@@ -1086,12 +1086,12 @@ func opGroup(var rows, var step) as var
     // new headers: group cols then agg output names
     var newHeaders = []
     int bi2 = 0
-    while bi2 < byCols.length do
+    while bi2 < byCols.length
         newHeaders.append(string(byCols[bi2]))
         bi2 = bi2 + 1
     end
     int an = 0
-    while an < aggNames.length do
+    while an < aggNames.length
         newHeaders.append(string(aggNames[an]))
         an = an + 1
     end
@@ -1099,12 +1099,12 @@ func opGroup(var rows, var step) as var
 
     var outputValue = []
     int gi = 0
-    while gi < groupOrder.length do
+    while gi < groupOrder.length
         string key = string(groupOrder[gi])
         var rec = groups[key]
         var orow = {}
         int bi3 = 0
-        while bi3 < byCols.length do
+        while bi3 < byCols.length
             orow[string(byCols[bi3])] = string(rec["gvals"][bi3])
             bi3 = bi3 + 1
         end
@@ -1115,7 +1115,7 @@ func opGroup(var rows, var step) as var
         var maxs = rec["maxs"]
         int cnt = int(rec["count"])
         int ai3 = 0
-        while ai3 < aggNames.length do
+        while ai3 < aggNames.length
             var sp = aggSpecs[ai3]
             string fn = string(sp["func"])
             string arg = string(sp["arg"])
@@ -1153,7 +1153,7 @@ end
 
 func cmpRows(var a, var b, var byCols, var descFlags) as int
     int i = 0
-    while i < byCols.length do
+    while i < byCols.length
         string col = string(byCols[i])
         int c = compareCells(getCell(a, col), getCell(b, col))
         if bool(descFlags[i]) then
@@ -1176,10 +1176,10 @@ func mergeSortRows(var arr, var byCols, var descFlags) as var
     end
     var src = arr
     int width = 1
-    while width < nn do
+    while width < nn
         var dst = []
         int idx = 0
-        while idx < nn do
+        while idx < nn
             int left = idx
             int mid = idx + width
             if mid > nn then
@@ -1191,7 +1191,7 @@ func mergeSortRows(var arr, var byCols, var descFlags) as var
             end
             int p = left
             int q = mid
-            while p < mid and q < right do
+            while p < mid and q < right
                 int c = cmpRows(src[p], src[q], byCols, descFlags)
                 if c <= 0 then
                     dst.append(src[p])
@@ -1201,11 +1201,11 @@ func mergeSortRows(var arr, var byCols, var descFlags) as var
                     q = q + 1
                 end
             end
-            while p < mid do
+            while p < mid
                 dst.append(src[p])
                 p = p + 1
             end
-            while q < right do
+            while q < right
                 dst.append(src[q])
                 q = q + 1
             end
@@ -1236,7 +1236,7 @@ func opSort(var rows, var step) as var
     var descRaw = step["desc"]
     var descFlags = []
     int bi = 0
-    while bi < byCols.length do
+    while bi < byCols.length
         bool d = false
         bool descIsArr = descRaw is array
         if descIsArr then
@@ -1276,7 +1276,7 @@ func opJoin(var rows, var step) as var
     // hash index: right-key -> array of right rows
     var index = {}
     int ri = 0
-    while ri < rrows.length do
+    while ri < rrows.length
         string k = getCell(rrows[ri], rcol)
         if k in index then
             index[k].append(rrows[ri])
@@ -1289,7 +1289,7 @@ func opJoin(var rows, var step) as var
     end
 
     int hi = 0
-    while hi < rightHeaders.length do
+    while hi < rightHeaders.length
         string cn = string(rightHeaders[hi])
         headerEnsure(prefix + cn)
         hi = hi + 1
@@ -1297,18 +1297,18 @@ func opJoin(var rows, var step) as var
 
     var outputValue = []
     int li = 0
-    while li < rows.length do
+    while li < rows.length
         var lrow = rows[li]
         string k = getCell(lrow, lcol)
         bool matched = false
         if k in index then
             var lst = index[k]
             int mj = 0
-            while mj < lst.length do
+            while mj < lst.length
                 var merged = copyRow(lrow)
                 var rrow = lst[mj]
                 int ci = 0
-                while ci < rightHeaders.length do
+                while ci < rightHeaders.length
                     string cn = string(rightHeaders[ci])
                     merged[prefix + cn] = getCell(rrow, cn)
                     ci = ci + 1
@@ -1321,7 +1321,7 @@ func opJoin(var rows, var step) as var
         if not matched and jtype == "left" then
             var merged = copyRow(lrow)
             int ci2 = 0
-            while ci2 < rightHeaders.length do
+            while ci2 < rightHeaders.length
                 string cn = string(rightHeaders[ci2])
                 merged[prefix + cn] = ""
                 ci2 = ci2 + 1
@@ -1382,7 +1382,7 @@ func jsonEscape(string s) as string
     string outputValue = ""
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if c == "\"" then
             outputValue = outputValue + "\\\""
@@ -1406,7 +1406,7 @@ end
 func formatCsv(var headers, var grid, string delim) as string
     string outputValue = ""
     int h = 0
-    while h < headers.length do
+    while h < headers.length
         if h > 0 then
             outputValue = outputValue + delim
         end
@@ -1415,10 +1415,10 @@ func formatCsv(var headers, var grid, string delim) as string
     end
     outputValue = outputValue + "\n"
     int r = 0
-    while r < grid.length do
+    while r < grid.length
         var row = grid[r]
         int c = 0
-        while c < row.length do
+        while c < row.length
             if c > 0 then
                 outputValue = outputValue + delim
             end
@@ -1438,7 +1438,7 @@ func prettyJson(string compact) as string
     int indent = 0
     bool inStr = false
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(compact, i)
         if inStr then
             outputValue = outputValue + c
@@ -1505,14 +1505,14 @@ end
 func formatJson(var headers, var grid) as string
     string compact = "["
     int r = 0
-    while r < grid.length do
+    while r < grid.length
         var row = grid[r]
         if r > 0 then
             compact = compact + ","
         end
         compact = compact + "{"
         int c = 0
-        while c < headers.length do
+        while c < headers.length
             if c > 0 then
                 compact = compact + ","
             end
@@ -1531,15 +1531,15 @@ func formatTable(var headers, var grid) as string
     int nc = headers.length
     var widths = []
     int ci = 0
-    while ci < nc do
+    while ci < nc
         widths.append(string.len(string(headers[ci])))
         ci = ci + 1
     end
     int r = 0
-    while r < grid.length do
+    while r < grid.length
         var row = grid[r]
         int c = 0
-        while c < nc and c < row.length do
+        while c < nc and c < row.length
             int wl = string.len(string(row[c]))
             if wl > int(widths[c]) then
                 widths[c] = wl
@@ -1550,7 +1550,7 @@ func formatTable(var headers, var grid) as string
     end
     string sep = ""
     int c2 = 0
-    while c2 < nc do
+    while c2 < nc
         if c2 > 0 then
             sep = sep + "+"
         end
@@ -1559,7 +1559,7 @@ func formatTable(var headers, var grid) as string
     end
     string outputValue = sep + "\n"
     int c3 = 0
-    while c3 < nc do
+    while c3 < nc
         if c3 > 0 then
             outputValue = outputValue + "|"
         end
@@ -1568,10 +1568,10 @@ func formatTable(var headers, var grid) as string
     end
     outputValue = outputValue + "\n" + sep + "\n"
     int r2 = 0
-    while r2 < grid.length do
+    while r2 < grid.length
         var row = grid[r2]
         int c4 = 0
-        while c4 < nc do
+        while c4 < nc
             if c4 > 0 then
                 outputValue = outputValue + "|"
             end
@@ -1593,11 +1593,11 @@ end
 func formatOutput(string fmt) as string
     var grid = []
     int ri = 0
-    while ri < gRows.length do
+    while ri < gRows.length
         var row = gRows[ri]
         var line = []
         int ci = 0
-        while ci < gHeaders.length do
+        while ci < gHeaders.length
             line.append(getCell(row, string(gHeaders[ci])))
             ci = ci + 1
         end
@@ -1643,7 +1643,7 @@ func runPipeline(var pipeline, var rows) as string
 
     string sinkFormat = ""
     int si = 0
-    while si < steps.length do
+    while si < steps.length
         var step = steps[si]
         string op = string(step["op"])
         if op == "source" then
@@ -1856,7 +1856,7 @@ func testMap()
     bool hasWage = false
     bool hasAge = false
     int hi = 0
-    while hi < gHeaders.length do
+    while hi < gHeaders.length
         if string(gHeaders[hi]) == "wage" then hasWage = true end
         if string(gHeaders[hi]) == "age" then hasAge = true end
         hi = hi + 1
@@ -2059,7 +2059,7 @@ func testStress()
     println("[stress] 3000 rows: parse -> filter -> map(compute) -> group -> sort")
     string t = "id,dept,val\n"
     int i = 0
-    while i < 3000 do
+    while i < 3000
         string dp = "eng"
         if i - (i / 2) * 2 == 0 then
             dp = "sales"

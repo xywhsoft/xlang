@@ -25,10 +25,10 @@ end
 func sortFloats(array<float> data)
     int n = data.length
     int i = 0
-    while i < n do
+    while i < n
         int minIdx = i
         int j = i + 1
-        while j < n do
+        while j < n
             if data[j] < data[minIdx] then
                 minIdx = j
             end
@@ -66,7 +66,7 @@ func main(...) as int
         string text = file.readText(path)
         array lines = string.splitLines(text)
         int li = 0
-        while li < lines.length do
+        while li < lines.length
             string s = string.trim(string(lines[li]))
             if string.len(s) > 0 then
                 data.push(float(s))
@@ -75,7 +75,7 @@ func main(...) as int
         end
     else
         int ai = 1
-        while ai < arg.length do
+        while ai < arg.length
             data.push(float(string(arg[ai])))
             ai += 1
         end
@@ -94,7 +94,7 @@ func main(...) as int
     float sum = 0.0
     float sumSq = 0.0
     int si = 0
-    while si < count do
+    while si < count
         float x = data[si]
         sum += x
         sumSq += x * x
@@ -107,7 +107,7 @@ func main(...) as int
     // --- 方差 / 标准差 (总体方差，除以 n) ---
     float varSum = 0.0
     int vi = 0
-    while vi < count do
+    while vi < count
         float diff = data[vi] - mean
         varSum += diff * diff
         vi += 1

@@ -110,10 +110,10 @@ end
 func skipIdentAndSpaces(string t) as int
     int n = string.len(t)
     int i = 0
-    while i < n and isIdentByte(string.byteAt(t, i)) do
+    while i < n and isIdentByte(string.byteAt(t, i))
         i += 1
     end
-    while i < n and (string.byteAt(t, i) == 32 or string.byteAt(t, i) == 9) do
+    while i < n and (string.byteAt(t, i) == 32 or string.byteAt(t, i) == 9)
         i += 1
     end
     return i
@@ -122,7 +122,7 @@ end
 func firstWord(string t) as string
     int n = string.len(t)
     int i = 0
-    while i < n and isIdentByte(string.byteAt(t, i)) do
+    while i < n and isIdentByte(string.byteAt(t, i))
         i += 1
     end
     if i == 0 then
@@ -136,7 +136,7 @@ func hasAssign(string s) as bool
     int n = string.len(s)
     int i = 0
     bool inStr = false
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if inStr then
             if b == 92 then
@@ -227,7 +227,7 @@ func bracketDepthOf(string s) as int
     int i = 0
     int d = 0
     bool inStr = false
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if inStr then
             if b == 92 then
@@ -243,7 +243,7 @@ func bracketDepthOf(string s) as int
                 inStr = true
                 i += 1
             elseif b == 47 and i + 1 < n and string.byteAt(s, i + 1) == 47 then
-                while i < n and string.byteAt(s, i) != 10 do
+                while i < n and string.byteAt(s, i) != 10
                     i += 1
                 end
             elseif b == 40 or b == 91 or b == 123 then
@@ -267,7 +267,7 @@ func blockDepthOf(string s) as int
     int i = 0
     int depth = 0
     bool inStr = false
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if inStr then
             if b == 92 then
@@ -283,12 +283,12 @@ func blockDepthOf(string s) as int
                 inStr = true
                 i += 1
             elseif b == 47 and i + 1 < n and string.byteAt(s, i + 1) == 47 then
-                while i < n and string.byteAt(s, i) != 10 do
+                while i < n and string.byteAt(s, i) != 10
                     i += 1
                 end
             elseif isIdentStart(b) then
                 int start = i
-                while i < n and isIdentByte(string.byteAt(s, i)) do
+                while i < n and isIdentByte(string.byteAt(s, i))
                     i += 1
                 end
                 string word = string.mid(s, start, i - start)
@@ -315,7 +315,7 @@ func readLogicalLines(string src) as array<string>
     array<string> result = []
     string buf = ""
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         string line = lines[i]
         if string.len(buf) == 0 then
             buf = line
@@ -423,7 +423,7 @@ func cmdRun(string xreplPath) as int
     g_tempDir = makeTempDir()
     int i = 0
     int fails = 0
-    while i < lines.length do
+    while i < lines.length
         logHistory(lines[i])
         if not evalLine(lines[i]) then
             fails += 1
@@ -453,7 +453,7 @@ func cmdTest() as int
     g_histFile = path.join(g_tempDir, "history.txt")
     int i = 0
     int fails = 0
-    while i < lines.length do
+    while i < lines.length
         logHistory(lines[i])
         if not evalLine(lines[i]) then
             fails += 1

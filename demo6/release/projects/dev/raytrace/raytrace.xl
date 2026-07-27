@@ -50,7 +50,7 @@ end
 // 单位球内随机向量（用于 Lambertian 漫反射和 Metal fuzz）
 func randInUnitSphere() as Vec3
     int guard = 0
-    while guard < 64 do
+    while guard < 64
         Vec3 p = Vec3(randRange(-1.0, 1.0), randRange(-1.0, 1.0), randRange(-1.0, 1.0))
         if p.lengthSquared() < 1.0 then
             return p
@@ -73,7 +73,7 @@ end
 // 单位圆盘随机向量（用于景深 jitter）
 func randInUnitDisk() as Vec3
     int guard = 0
-    while guard < 64 do
+    while guard < 64
         Vec3 p = Vec3(randRange(-1.0, 1.0), randRange(-1.0, 1.0), 0.0)
         if p.lengthSquared() < 1.0 then
             return p
@@ -525,7 +525,7 @@ class World
         HitRecord closestRec = HitRecord()
         int n = self.shapes.length
         int i = 0
-        while i < n do
+        while i < n
             Shape s = self.shapes[i]
             bool hit
             HitRecord rec
@@ -682,9 +682,9 @@ func buildRandomScene() as World
     w.add(groundSphere)
 
     int a = -4
-    while a <= 4 do
+    while a <= 4
         int b = -4
-        while b <= 4 do
+        while b <= 4
             float cx = float(a) + 0.9 * randF()
             float cz = float(b) + 0.9 * randF()
             // 距离 (4, 0.2, 0) 太近就跳过，给中央大球让位
@@ -799,15 +799,15 @@ func renderImage(World world, Camera cam, int width, int height, int samples) as
     float invGamma = 0.5
 
     int j = height - 1
-    while j >= 0 do
+    while j >= 0
         int i = 0
         string line = ""
-        while i < width do
+        while i < width
             float cr = 0.0
             float cg = 0.0
             float cb = 0.0
             int s = 0
-            while s < samples do
+            while s < samples
                 float u = (float(i) + randF()) / float(width - 1)
                 float v = (float(j) + randF()) / float(height - 1)
                 Ray r = cam.getRay(u, v)
@@ -865,7 +865,7 @@ func parseArgInt(string s, int defValue) as int
         end
     end
     int i = start
-    while i < string.len(s) do
+    while i < string.len(s)
         string ch = string.slice(s, i, 1)
         if string.indexOf("0123456789", ch) < 0 then
             return defValue
@@ -1029,7 +1029,7 @@ func cmdBench(int width, int height, int samples) as int
     // 跑两轮：第一轮预热，第二轮计时
     int sceneChoice = 0
     int which = 0
-    while which < 2 do
+    while which < 2
         random.seed(uint64(20260709), uint64(1))
         World world = buildSimpleScene()
         float aspect = float(width) / float(height)

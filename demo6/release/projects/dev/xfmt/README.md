@@ -34,7 +34,7 @@ projects\dev\xfmt\xfmt.exe <file.xl> [--write|--check]
 - **运算符优先级**：按需补括号，保证 `(a + b) * c`、`a - (b - c)`、`not (a == b)` 等语义不丢。
 - **多返回 / 多赋值 / 多变量声明**：`return a, b`、`a, b = f()`、`auto x, y = f()`。
 - **修饰符还原**：从 `flags` 位图还原 `public/private/protected/static/override/final/virtual/native/async/extern`。
-- **完整覆盖 AST 节点**：if/elseif/else、while/do、do/while、for、try/catch/finally、return/throw/break/continue/assert/yield、anon_func（含 `=>` 箭头体）、typed literal（`array[1,2,3]`/`dict<int>{...}`/`set<int>{...}`/`list[0:0]`）、`is`/`as`、`::<T>` 泛型实例化、`obj?.safe`/`obj?[i]`、f-string、`#doc/#end` 文档块。
+- **完整覆盖 AST 节点**：if/elseif/else、while/end、do/while/end、for、try/catch/finally、return/throw/break/continue/assert/yield、anon_func（含 `=>` 箭头体）、typed literal（`array[1,2,3]`/`dict<int>{...}`/`set<int>{...}`/`list[0:0]`）、`is`/`as`、`::<T>` 泛型实例化、`obj?.safe`/`obj?[i]`、f-string、`#doc/#end` 文档块。
 
 ## 已知限制（AST-based 固有）
 

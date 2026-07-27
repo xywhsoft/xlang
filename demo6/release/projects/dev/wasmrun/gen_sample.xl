@@ -12,7 +12,7 @@ end
 
 func bU32(var b, int v)
     int val = v
-    while true do
+    while true
         int c = val & 0x7f
         val = val >> 7
         if val != 0 then
@@ -26,7 +26,7 @@ end
 
 func bS32(var b, int v)
     int val = v
-    while true do
+    while true
         int c = val & 0x7f
         val = val >> 7
         bool signBit = (c & 0x40) != 0
@@ -43,7 +43,7 @@ func bName(var b, string s)
     int n = string.len(s)
     bU32(b, n)
     int i = 0
-    while i < n do
+    while i < n
         b.push(string.byteAt(s, i))
         i += 1
     end

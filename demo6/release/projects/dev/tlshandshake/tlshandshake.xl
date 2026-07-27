@@ -78,7 +78,7 @@ end
 func joinCiphers(array<string> ciphers) as string
     string s = ""
     int i = 0
-    while i < ciphers.length do
+    while i < ciphers.length
         if i > 0 then s = s + " " end
         s = s + ciphers[i]
         i = i + 1
@@ -97,7 +97,7 @@ func tlsPRF(string secret, string label, string seed, int outBytes) as string
     string result = ""
     string a = fullSeed
     int produced = 0
-    while produced < outBytes do
+    while produced < outBytes
         a = crypto.hmacSha256(secret, a)
         string block = crypto.hmacSha256(secret, a + fullSeed)
         result = result + block
@@ -554,7 +554,7 @@ func printSimulate(HandshakeEngine eng)
     println("SNI: " + ctx.sni)
     println("Client offered cipher suites:")
     int i = 0
-    while i < ctx.clientCiphers.length do
+    while i < ctx.clientCiphers.length
         println("  " + ctx.clientCiphers[i] + " " + cipherName(ctx.clientCiphers[i]))
         i = i + 1
     end
@@ -573,7 +573,7 @@ func printSimulate(HandshakeEngine eng)
     println("[3] Certificate (S->C)")
     println("    chain_length    : " + string(ctx.certCount))
     int j = 0
-    while j < ctx.certChain.length do
+    while j < ctx.certChain.length
         println("    [" + string(j) + "] " + ctx.certChain[j] + " sha256=" + string.left(crypto.sha256(ctx.certChain[j]), 16) + "...")
         j = j + 1
     end
@@ -745,7 +745,7 @@ func runTests() as int
         string nm = st.name()
         dispatchCount = dispatchCount + 1
         int k = 0
-        while k < seenNames.length do
+        while k < seenNames.length
             if seenNames[k] == nm then
                 allDistinct = false
             end

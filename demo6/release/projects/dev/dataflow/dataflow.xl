@@ -102,7 +102,7 @@ end
 func setFromArr(var arr) as var
     var r = {}
     int i = 0
-    while i < arr.length do
+    while i < arr.length
         r[string(arr[i])] = true
         i = i + 1
     end
@@ -113,7 +113,7 @@ end
 func meetUnion(var sets) as var
     var r = {}
     int i = 0
-    while i < sets.length do
+    while i < sets.length
         var s = sets[i]
         for k, v in s
             r[k] = true
@@ -134,7 +134,7 @@ func meetInter(var sets) as var
         r[k] = true
     end
     int i = 1
-    while i < sets.length do
+    while i < sets.length
         var s = sets[i]
         var next = {}
         for k, v in r
@@ -156,10 +156,10 @@ func setToSortedString(var s) as string
     end
     int n = keys.length
     int i = 0
-    while i < n do
+    while i < n
         int minIdx = i
         int j = i + 1
-        while j < n do
+        while j < n
             if string.compare(string(keys[j]), string(keys[minIdx]), false) < 0 then
                 minIdx = j
             end
@@ -174,7 +174,7 @@ func setToSortedString(var s) as string
     end
     string outputValue = "{"
     i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             outputValue = outputValue + ", "
         end
@@ -284,7 +284,7 @@ class CFG
     func blockIds() as array<string>
         array<string> r = array<string>[]
         int i = 0
-        while i < self.order.length do
+        while i < self.order.length
             r.push(self.order[i])
             i = i + 1
         end
@@ -298,7 +298,7 @@ class CFG
     func edgeCount() as int
         int total = 0
         int i = 0
-        while i < self.order.length do
+        while i < self.order.length
             string bid = string(self.order[i])
             BasicBlock b = self.getBlock(bid)
             total = total + b.succIds.length
@@ -312,7 +312,7 @@ class CFG
         BasicBlock b = self.getBlock(id)
         var r = []
         int i = 0
-        while i < b.succIds.length do
+        while i < b.succIds.length
             r.push(b.succIds[i])
             i = i + 1
         end
@@ -324,7 +324,7 @@ class CFG
         BasicBlock b = self.getBlock(id)
         var r = []
         int i = 0
-        while i < b.predIds.length do
+        while i < b.predIds.length
             r.push(b.predIds[i])
             i = i + 1
         end
@@ -335,7 +335,7 @@ class CFG
     func exitIds() as var
         var r = []
         int i = 0
-        while i < self.order.length do
+        while i < self.order.length
             string bid = string(self.order[i])
             BasicBlock b = self.getBlock(bid)
             if b.succIds.length == 0 then
@@ -372,7 +372,7 @@ func solveWorklist(CFG cfg, bool forward,
 
     // 初始化所有块的 IN/OUT 为空集
     int i = 0
-    while i < n do
+    while i < n
         string bid = string(ids[i])
         inSets[bid] = {}
         outSets[bid] = {}
@@ -382,13 +382,13 @@ func solveWorklist(CFG cfg, bool forward,
     // 工作表（FIFO；块可重复入队，标准 worklist）
     var work = []
     i = 0
-    while i < n do
+    while i < n
         work.push(ids[i])
         i = i + 1
     end
     int head = 0
 
-    while head < work.length do
+    while head < work.length
         string bid = string(work[head])
         head = head + 1
 
@@ -404,7 +404,7 @@ func solveWorklist(CFG cfg, bool forward,
             else
                 var sets = []
                 int pi = 0
-                while pi < preds.length do
+                while pi < preds.length
                     sets.push(outSets[string(preds[pi])])
                     pi = pi + 1
                 end
@@ -420,7 +420,7 @@ func solveWorklist(CFG cfg, bool forward,
                 inSets[bid] = newIn
                 var succs = cfg.succsOf(bid)
                 int si = 0
-                while si < succs.length do
+                while si < succs.length
                     work.push(succs[si])
                     si = si + 1
                 end
@@ -435,7 +435,7 @@ func solveWorklist(CFG cfg, bool forward,
             else
                 var sets = []
                 int si = 0
-                while si < succs.length do
+                while si < succs.length
                     sets.push(inSets[string(succs[si])])
                     si = si + 1
                 end
@@ -451,7 +451,7 @@ func solveWorklist(CFG cfg, bool forward,
                 outSets[bid] = newOut
                 var preds = cfg.predsOf(bid)
                 int pi = 0
-                while pi < preds.length do
+                while pi < preds.length
                     work.push(preds[pi])
                     pi = pi + 1
                 end
@@ -480,18 +480,18 @@ func computeUseDef(CFG cfg) as (var, var)
     var ids = cfg.blockIds()
     int n = ids.length
     int i = 0
-    while i < n do
+    while i < n
         string bid = string(ids[i])
         BasicBlock b = cfg.getBlock(bid)
         var used = {}       // upward-exposed uses
         var defined = {}    // 已定义变量
         int m = b.instrs.length
         int j = 0
-        while j < m do
+        while j < m
             Instr ins = b.instrs[j]
             // 先处理使用：未在本块先前定义 -> upward-exposed
             int uk = 0
-            while uk < ins.usevars.length do
+            while uk < ins.usevars.length
                 string u = string(ins.usevars[uk])
                 if not defined.contains(u) then
                     used[u] = true
@@ -500,7 +500,7 @@ func computeUseDef(CFG cfg) as (var, var)
             end
             // 再处理定义
             int dk = 0
-            while dk < ins.defvars.length do
+            while dk < ins.defvars.length
                 string d = string(ins.defvars[dk])
                 defined[d] = true
                 dk = dk + 1
@@ -543,16 +543,16 @@ func computeGenKill(CFG cfg) as (var, var)
 
     // 第一遍：枚举所有定义
     int i = 0
-    while i < n do
+    while i < n
         string bid = string(ids[i])
         BasicBlock b = cfg.getBlock(bid)
         var dlist = []
         int m = b.instrs.length
         int j = 0
-        while j < m do
+        while j < m
             Instr ins = b.instrs[j]
             int dk = 0
-            while dk < ins.defvars.length do
+            while dk < ins.defvars.length
                 string v = string(ins.defvars[dk])
                 string did = v + "@" + bid + "#" + string(j)
                 dlist.push(did)
@@ -574,13 +574,13 @@ func computeGenKill(CFG cfg) as (var, var)
     var genSets = {}
     var killSets = {}
     i = 0
-    while i < n do
+    while i < n
         string bid = string(ids[i])
         var dlist = blockDefList[bid]
         var lastOfVar = {}   // 变量 -> 最后一次 defId（临时）
         var varsInBlock = {}
         int k = 0
-        while k < dlist.length do
+        while k < dlist.length
             string did = string(dlist[k])
             string v = string(defVar[did])
             varsInBlock[v] = true
@@ -634,7 +634,7 @@ func exprOperands(string e) as var
     var r = []
     array parts = string.split(e, "+")
     int i = 0
-    while i < parts.length do
+    while i < parts.length
         string p = string(parts[i])
         if string.len(p) > 0 then
             r.push(p)
@@ -652,15 +652,15 @@ func computeExprGenKill(CFG cfg) as (var, var)
 
     // 第一遍：枚举所有表达式及其操作数
     int i = 0
-    while i < n do
+    while i < n
         string bid = string(ids[i])
         BasicBlock b = cfg.getBlock(bid)
         int m = b.instrs.length
         int j = 0
-        while j < m do
+        while j < m
             Instr ins = b.instrs[j]
             int ek = 0
-            while ek < ins.exprs.length do
+            while ek < ins.exprs.length
                 string e = string(ins.exprs[ek])
                 allExprs[e] = true
                 operandsOf[e] = exprOperands(e)
@@ -675,25 +675,25 @@ func computeExprGenKill(CFG cfg) as (var, var)
     var genSets = {}
     var killSets = {}
     i = 0
-    while i < n do
+    while i < n
         string bid = string(ids[i])
         BasicBlock b = cfg.getBlock(bid)
         var generated = {}     // 当前块末尾仍可用的表达式
         var blockDefVars = {}
         int m = b.instrs.length
         int j = 0
-        while j < m do
+        while j < m
             Instr ins = b.instrs[j]
             // 先把本指令计算的表达式加入 generated
             int ek = 0
-            while ek < ins.exprs.length do
+            while ek < ins.exprs.length
                 string e = string(ins.exprs[ek])
                 generated[e] = true
                 ek = ek + 1
             end
             // 再处理本指令定义的变量：从 generated 移除以该变量为操作数的表达式
             int dk = 0
-            while dk < ins.defvars.length do
+            while dk < ins.defvars.length
                 string dv = string(ins.defvars[dk])
                 blockDefVars[dv] = true
                 var toRemove = []
@@ -701,7 +701,7 @@ func computeExprGenKill(CFG cfg) as (var, var)
                     var ops = operandsOf[ge]
                     int oi = 0
                     bool hit = false
-                    while oi < ops.length and not hit do
+                    while oi < ops.length and not hit
                         if string(ops[oi]) == dv then
                             hit = true
                         end
@@ -712,7 +712,7 @@ func computeExprGenKill(CFG cfg) as (var, var)
                     end
                 end
                 int ri = 0
-                while ri < toRemove.length do
+                while ri < toRemove.length
                     generated.remove(string(toRemove[ri]))
                     ri = ri + 1
                 end
@@ -726,7 +726,7 @@ func computeExprGenKill(CFG cfg) as (var, var)
             var ops = operandsOf[e]
             int oi = 0
             bool usesDef = false
-            while oi < ops.length and not usesDef do
+            while oi < ops.length and not usesDef
                 if blockDefVars.contains(string(ops[oi])) then
                     usesDef = true
                 end
@@ -761,7 +761,7 @@ end
 func joinIds(array<string> arr) as string
     string s = ""
     int i = 0
-    while i < arr.length do
+    while i < arr.length
         if i > 0 then
             s = s + ", "
         end
@@ -775,7 +775,7 @@ func printCFG(CFG cfg)
     var ids = cfg.blockIds()
     int n = ids.length
     int i = 0
-    while i < n do
+    while i < n
         string bid = string(ids[i])
         BasicBlock b = cfg.getBlock(bid)
         string tag = ""
@@ -788,7 +788,7 @@ func printCFG(CFG cfg)
         println("  [" + bid + "]" + tag)
         int m = b.instrs.length
         int j = 0
-        while j < m do
+        while j < m
             Instr ins = b.instrs[j]
             println("      " + ins.text)
             j = j + 1
@@ -803,7 +803,7 @@ func printSets(CFG cfg, string inLabel, string outLabel, var inSets, var outSets
     var ids = cfg.blockIds()
     int n = ids.length
     int i = 0
-    while i < n do
+    while i < n
         string bid = string(ids[i])
         var inS = inSets[bid]
         var outS = outSets[bid]
@@ -990,7 +990,7 @@ func cmdTest() as int
     else
         println(string(failCount) + " CHECK(S) FAILED:")
         int i = 0
-        while i < failCount do
+        while i < failCount
             println("  " + string(fails[i]))
             i = i + 1
         end

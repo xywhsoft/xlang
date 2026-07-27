@@ -33,7 +33,7 @@ func loadLines(string path) as array<string>
     array<string> result = array[""]
     result.remove(0)
     int i = 0
-    while i < n do
+    while i < n
         result.push(toStr(raw[i]))
         i += 1
     end
@@ -44,10 +44,10 @@ end
 func sortStrings(array<string> a, bool descending)
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         int sel = i
         int j = i + 1
-        while j < n do
+        while j < n
             bool swap = false
             if descending then
                 // 降序: 找最大; a[j] > a[sel] 时选中
@@ -94,16 +94,16 @@ func sortNumeric(array<string> a, bool descending)
     array<float> keys = array[0.0]
     keys.remove(0)
     int ki = 0
-    while ki < n do
+    while ki < n
         keys.push(numKey(a[ki]))
         ki += 1
     end
 
     int i = 0
-    while i < n do
+    while i < n
         int sel = i
         int j = i + 1
-        while j < n do
+        while j < n
             bool swap = false
             if descending then
                 if keys[j] > keys[sel] then
@@ -138,7 +138,7 @@ func dedupe(array<string> a) as array<string>
     outputValue.remove(0)
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         if not outputValue.contains(a[i]) then
             outputValue.push(a[i])
         end
@@ -151,7 +151,7 @@ end
 func printLines(array<string> a)
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         println(a[i])
         i += 1
     end
@@ -169,11 +169,11 @@ func runCount(array<string> a)
     ord.remove(0)
 
     int i = 0
-    while i < n do
+    while i < n
         int pos = -1
         int k = 0
         int m = ul.length
-        while k < m do
+        while k < m
             if string.equals(ul[k], a[i]) then
                 pos = k
             end
@@ -192,10 +192,10 @@ func runCount(array<string> a)
     // 选择排序: count 降序; 同 count 时 ord 小的 (更早出现) 在前.
     int p = 0
     int mm = ul.length
-    while p < mm do
+    while p < mm
         int sel = p
         int q = p + 1
-        while q < mm do
+        while q < mm
             bool take = false
             if cnt[q] > cnt[sel] then
                 take = true
@@ -226,7 +226,7 @@ func runCount(array<string> a)
     // 计算最大计数位数, 用于右对齐.
     int maxCount = 0
     int r = 0
-    while r < mm do
+    while r < mm
         if cnt[r] > maxCount then
             maxCount = cnt[r]
         end
@@ -238,7 +238,7 @@ func runCount(array<string> a)
     end
 
     int w = 0
-    while w < mm do
+    while w < mm
         println(string.padLeft(string(cnt[w]), width, " ") + " " + ul[w])
         w += 1
     end
@@ -301,7 +301,7 @@ func main(...) as int
         bool numeric = false
         bool sortFlag = false
         int oi = 3
-        while oi < arg.length do
+        while oi < arg.length
             string o = string(arg[oi])
             if o == "-r" or o == "--reverse" then
                 desc = true

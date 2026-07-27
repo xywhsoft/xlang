@@ -38,7 +38,7 @@ func strToBytes(string s) as array<int>
     array<int> outputValue = array[]
     int i = 0
     int n = raw.length
-    while i < n do
+    while i < n
         outputValue.push(int(raw[i]))
         i += 1
     end
@@ -49,7 +49,7 @@ func bytesToStr(array<int> b) as string
     Buffer buf = Buffer()
     int i = 0
     int n = b.length
-    while i < n do
+    while i < n
         buf.appendByte(b[i])
         i += 1
     end
@@ -62,7 +62,7 @@ func bytesEqual(array<int> a, array<int> b) as bool
         return false
     end
     int i = 0
-    while i < n do
+    while i < n
         if a[i] != b[i] then
             return false
         end
@@ -78,7 +78,7 @@ func bytesSlice(array<int> data, int maxN) as array<int>
         n = maxN
     end
     int i = 0
-    while i < n do
+    while i < n
         outputValue.push(data[i])
         i += 1
     end
@@ -129,10 +129,10 @@ func rleEncode(array<int> data) as array<int>
         return outputValue
     end
     int i = 0
-    while i < n do
+    while i < n
         int b = data[i]
         int run = 1
-        while i + run < n and data[i + run] == b and run < 255 do
+        while i + run < n and data[i + run] == b and run < 255
             run += 1
         end
         outputValue.push(run)
@@ -146,11 +146,11 @@ func rleDecode(array<int> enc) as array<int>
     array<int> outputValue = array[]
     int n = enc.length
     int i = 0
-    while i < n do
+    while i < n
         int run = enc[i]
         int b = enc[i + 1]
         int k = 0
-        while k < run do
+        while k < run
             outputValue.push(b)
             k += 1
         end
@@ -173,7 +173,7 @@ func lzwEncode(array<int> data) as array<int>
     int nextCode = 256
     int w = data[0]
     int i = 1
-    while i < n do
+    while i < n
         int b = data[i]
         string key = string(w) + ":" + string(b)
         if key in table then
@@ -193,7 +193,7 @@ end
 // Walk prefix chain to the root, return the single first byte of a code.
 func lzwFirstByte(array<int> dprefix, int code) as int
     int c = code
-    while c >= 256 do
+    while c >= 256
         c = dprefix[c - 256]
     end
     return c
@@ -203,13 +203,13 @@ end
 func lzwEmitCode(array<int> outputValue, array<int> dprefix, array<int> dsuffix, int code)
     array<int> stk = array[]
     int c = code
-    while c >= 256 do
+    while c >= 256
         stk.push(dsuffix[c - 256])
         c = dprefix[c - 256]
     end
     stk.push(c)
     int s = stk.length - 1
-    while s >= 0 do
+    while s >= 0
         outputValue.push(stk[s])
         s -= 1
     end
@@ -227,7 +227,7 @@ func lzwDecode(array<int> codes) as array<int>
     int prev = codes[0]
     lzwEmitCode(outputValue, dprefix, dsuffix, prev)
     int i = 1
-    while i < n do
+    while i < n
         int cur = codes[i]
         int fb = 0
         if cur < nextCode then
@@ -258,7 +258,7 @@ func lzwByteSize(array<int> codes) as int
     end
     int maxCode = 0
     int i = 0
-    while i < n do
+    while i < n
         if codes[i] > maxCode then
             maxCode = codes[i]
         end
@@ -285,12 +285,12 @@ func huffBuildTree(array<int> data) as int
     end
     array<int> freq = array[]
     int bi = 0
-    while bi < 256 do
+    while bi < 256
         freq.push(0)
         bi += 1
     end
     int di = 0
-    while di < n do
+    while di < n
         freq[data[di]] += 1
         di += 1
     end
@@ -299,7 +299,7 @@ func huffBuildTree(array<int> data) as int
     gHRight.clear()
     gHSym.clear()
     int bi2 = 0
-    while bi2 < 256 do
+    while bi2 < 256
         if freq[bi2] > 0 then
             gHFreq.push(freq[bi2])
             gHLeft.push(-1)
@@ -319,16 +319,16 @@ func huffBuildTree(array<int> data) as int
     end
     array<int> dead = array[]
     int di2 = 0
-    while di2 < gHFreq.length do
+    while di2 < gHFreq.length
         dead.push(0)
         di2 += 1
     end
     int alive = gHFreq.length
-    while alive > 1 do
+    while alive > 1
         int m1 = -1
         int m2 = -1
         int i = 0
-        while i < gHFreq.length do
+        while i < gHFreq.length
             if dead[i] == 0 then
                 if m1 == -1 or gHFreq[i] < gHFreq[m1] then
                     m2 = m1
@@ -351,7 +351,7 @@ func huffBuildTree(array<int> data) as int
     end
     int root = -1
     int i = 0
-    while i < gHFreq.length do
+    while i < gHFreq.length
         if dead[i] == 0 then
             root = i
         end
@@ -364,7 +364,7 @@ end
 func huffCodeLengths(int root) as array<int>
     array<int> lengths = array[]
     int bi = 0
-    while bi < 256 do
+    while bi < 256
         lengths.push(0)
         bi += 1
     end
@@ -372,7 +372,7 @@ func huffCodeLengths(int root) as array<int>
     array<int> sd = array[]
     sn.push(root)
     sd.push(0)
-    while sn.length > 0 do
+    while sn.length > 0
         int top = sn.length - 1
         int node = sn[top]
         int depth = sd[top]
@@ -398,7 +398,7 @@ end
 func huffCanonicalCodes(array<int> lengths) as array<int>
     int maxLen = 0
     int bi = 0
-    while bi < 256 do
+    while bi < 256
         if lengths[bi] > maxLen then
             maxLen = lengths[bi]
         end
@@ -406,12 +406,12 @@ func huffCanonicalCodes(array<int> lengths) as array<int>
     end
     array<int> blCount = array[]
     int li = 0
-    while li <= maxLen do
+    while li <= maxLen
         blCount.push(0)
         li += 1
     end
     int bi2 = 0
-    while bi2 < 256 do
+    while bi2 < 256
         if lengths[bi2] > 0 then
             blCount[lengths[bi2]] += 1
         end
@@ -419,25 +419,25 @@ func huffCanonicalCodes(array<int> lengths) as array<int>
     end
     array<int> nextCode = array[]
     int li2 = 0
-    while li2 <= maxLen do
+    while li2 <= maxLen
         nextCode.push(0)
         li2 += 1
     end
     int code = 0
     int len = 1
-    while len <= maxLen do
+    while len <= maxLen
         code = (code + blCount[len - 1]) << 1
         nextCode[len] = code
         len += 1
     end
     array<int> codes = array[]
     int bi3 = 0
-    while bi3 < 256 do
+    while bi3 < 256
         codes.push(0)
         bi3 += 1
     end
     int bi4 = 0
-    while bi4 < 256 do
+    while bi4 < 256
         if lengths[bi4] > 0 then
             codes[bi4] = nextCode[lengths[bi4]]
             nextCode[lengths[bi4]] += 1
@@ -461,7 +461,7 @@ func huffEncode(array<int> data) as array<int>
 
     int nsym = 0
     int bi = 0
-    while bi < 256 do
+    while bi < 256
         if lengths[bi] > 0 then
             nsym += 1
         end
@@ -469,7 +469,7 @@ func huffEncode(array<int> data) as array<int>
     end
     outputValue.push(nsym)
     int bi2 = 0
-    while bi2 < 256 do
+    while bi2 < 256
         if lengths[bi2] > 0 then
             outputValue.push(bi2)
             outputValue.push(lengths[bi2])
@@ -482,12 +482,12 @@ func huffEncode(array<int> data) as array<int>
     int bitCount = 0
     array<int> packed = array[]
     int di = 0
-    while di < n do
+    while di < n
         int sym = data[di]
         int c = codes[sym]
         int len = lengths[sym]
         int pos = len - 1
-        while pos >= 0 do
+        while pos >= 0
             int bit = (c >> pos) & 1
             acc = (acc << 1) | bit
             nbits += 1
@@ -508,7 +508,7 @@ func huffEncode(array<int> data) as array<int>
 
     outputValue.push(bitCount)
     int pi = 0
-    while pi < packed.length do
+    while pi < packed.length
         outputValue.push(packed[pi])
         pi += 1
     end
@@ -525,12 +525,12 @@ func huffDecode(array<int> packed) as array<int>
     end
     array<int> lengths = array[]
     int bi = 0
-    while bi < 256 do
+    while bi < 256
         lengths.push(0)
         bi += 1
     end
     int si = 0
-    while si < nsym do
+    while si < nsym
         int sym = packed[idx]
         idx += 1
         int len = packed[idx]
@@ -544,7 +544,7 @@ func huffDecode(array<int> packed) as array<int>
 
     var inv = {}
     int bi2 = 0
-    while bi2 < 256 do
+    while bi2 < 256
         if lengths[bi2] > 0 then
             inv[string(codes[bi2]) + ":" + string(lengths[bi2])] = bi2
         end
@@ -555,7 +555,7 @@ func huffDecode(array<int> packed) as array<int>
     int curLen = 0
     int bitIdx = 0
     int base = idx
-    while bitIdx < bitCount do
+    while bitIdx < bitCount
         int bytePos = bitIdx >> 3
         int bitPos = 7 - (bitIdx & 7)
         int bit = (packed[base + bytePos] >> bitPos) & 1
@@ -584,7 +584,7 @@ func deltaEncode(array<int> data) as array<int>
     end
     outputValue.push(data[0])
     int i = 1
-    while i < n do
+    while i < n
         outputValue.push((data[i] - data[i - 1]) & 0xFF)
         i += 1
     end
@@ -600,7 +600,7 @@ func deltaDecode(array<int> data) as array<int>
     int prev = data[0]
     outputValue.push(prev)
     int i = 1
-    while i < n do
+    while i < n
         prev = (prev + data[i]) & 0xFF
         outputValue.push(prev)
         i += 1
@@ -615,7 +615,7 @@ end
 // Compare cyclic rotations starting at i and j; <0 / 0 / >0.
 func bwtRotCompare(array<int> s, int n, int i, int j) as int
     int k = 0
-    while k < n do
+    while k < n
         int ri = i + k
         if ri >= n then
             ri -= n
@@ -643,15 +643,15 @@ func bwtEncode(array<int> data) as array<int>
     end
     array<int> idx = array[]
     int i = 0
-    while i < n do
+    while i < n
         idx.push(i)
         i += 1
     end
     int p = 0
-    while p < n do
+    while p < n
         int sel = p
         int q = p + 1
-        while q < n do
+        while q < n
             if bwtRotCompare(data, n, idx[q], idx[sel]) < 0 then
                 sel = q
             end
@@ -666,7 +666,7 @@ func bwtEncode(array<int> data) as array<int>
     end
     int primary = 0
     int p2 = 0
-    while p2 < n do
+    while p2 < n
         if idx[p2] == 0 then
             primary = p2
         end
@@ -675,7 +675,7 @@ func bwtEncode(array<int> data) as array<int>
     outputValue.push(primary)
     outputValue.push(n)
     int p3 = 0
-    while p3 < n do
+    while p3 < n
         int startPos = idx[p3]
         int lastPos = startPos - 1
         if lastPos < 0 then
@@ -700,7 +700,7 @@ func bwtDecode(array<int> packed) as array<int>
     end
     array<int> L = array[]
     int li = 0
-    while li < n do
+    while li < n
         L.push(packed[idx + li])
         li += 1
     end
@@ -708,19 +708,19 @@ func bwtDecode(array<int> packed) as array<int>
 
     array<int> count = array[]
     int ci = 0
-    while ci < 256 do
+    while ci < 256
         count.push(0)
         ci += 1
     end
     int li2 = 0
-    while li2 < n do
+    while li2 < n
         count[L[li2]] += 1
         li2 += 1
     end
     array<int> C = array[]
     int ci2 = 0
     int sum = 0
-    while ci2 < 256 do
+    while ci2 < 256
         C.push(sum)
         sum += count[ci2]
         ci2 += 1
@@ -728,18 +728,18 @@ func bwtDecode(array<int> packed) as array<int>
 
     array<int> LF = array[]
     int li3 = 0
-    while li3 < n do
+    while li3 < n
         LF.push(0)
         li3 += 1
     end
     array<int> occ = array[]
     int ci3 = 0
-    while ci3 < 256 do
+    while ci3 < 256
         occ.push(0)
         ci3 += 1
     end
     int li4 = 0
-    while li4 < n do
+    while li4 < n
         int c = L[li4]
         LF[li4] = C[c] + occ[c]
         occ[c] += 1
@@ -747,13 +747,13 @@ func bwtDecode(array<int> packed) as array<int>
     end
 
     int ri = 0
-    while ri < n do
+    while ri < n
         outputValue.push(0)
         ri += 1
     end
     int pos = primary
     int k = n - 1
-    while k >= 0 do
+    while k >= 0
         outputValue[k] = L[pos]
         pos = LF[pos]
         k -= 1
@@ -842,7 +842,7 @@ func cmdBench(string filePath) as int
     end
     array<int> data = array[]
     int i = 0
-    while i < origSize do
+    while i < origSize
         data.push(raw.byteAt(i))
         i += 1
     end

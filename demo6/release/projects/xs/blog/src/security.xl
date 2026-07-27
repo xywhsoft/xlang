@@ -22,7 +22,7 @@ const int PASSWORD_BYTES = 32
 func derivePassword(string password, string salt, int iterations) as string
     Buffer derived = Buffer(PASSWORD_BYTES)
     int index = 0
-    while index < PASSWORD_BYTES do
+    while index < PASSWORD_BYTES
         if not derived.appendByte(0) then return "" end
         index += 1
     end
@@ -129,7 +129,7 @@ export func parseInt(string text, int defaultValue = 0) as int
         start = 1
     end
     int index = start
-    while index < string.len(value) do
+    while index < string.len(value)
         string ch = string.slice(value, index, 1)
         if ch < "0" or ch > "9" then return defaultValue end
         index += 1

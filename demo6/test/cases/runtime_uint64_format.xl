@@ -1,0 +1,14 @@
+uint64 highBit = 9223372036854775808
+uint64 maximum = 18446744073709551615
+uint64 computed = 9223372036854775807
+computed += 1
+
+assert string(highBit) == "9223372036854775808"
+assert string(maximum) == "18446744073709551615"
+assert string(computed) == "9223372036854775808"
+assert maximum / 2 == 9223372036854775807
+assert f"{highBit}:{maximum}" == "9223372036854775808:18446744073709551615"
+
+println(highBit)
+println(maximum)
+println("runtime_uint64_format ok")

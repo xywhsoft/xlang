@@ -52,7 +52,7 @@ func initStopwords()
     var words = string.split(list, " ")
     int n = words.length
     int i = 0
-    while i < n do
+    while i < n
         gStop[string(words[i])] = true
         i += 1
     end
@@ -70,7 +70,7 @@ func tokenize(string text) as var
     var tokens = []
     string cur = ""
     int i = 0
-    while i < n do
+    while i < n
         string c = string(chs[i])
         int b = string.byteAt(c, 0)
         if b >= 128 then
@@ -122,7 +122,7 @@ func addDocument(string docName, string text)
     int pos = 0
     int n = tokens.length
     int i = 0
-    while i < n do
+    while i < n
         string tok = string(tokens[i])
         var arr
         if tok in docPostings then
@@ -194,7 +194,7 @@ func lexQuery(string q) as var
     array chs = string.chars(q)
     int n = chs.length
     int i = 0
-    while i < n do
+    while i < n
         string c = string(chs[i])
         int b = string.byteAt(c, 0)
         if b == 32 or b == 9 then
@@ -203,7 +203,7 @@ func lexQuery(string q) as var
             // 双引号 -> 短语
             i += 1
             string phrase = ""
-            while i < n do
+            while i < n
                 string cc = string(chs[i])
                 if string.byteAt(cc, 0) == 34 then break end
                 phrase = phrase + cc
@@ -227,7 +227,7 @@ func lexQuery(string q) as var
         else
             // 读一个裸词（到空白/引号/括号为止）
             string word = ""
-            while i < n do
+            while i < n
                 string cc = string(chs[i])
                 int bb = string.byteAt(cc, 0)
                 if bb == 32 or bb == 9 or bb == 34 or bb == 40 or bb == 41 then break end
@@ -335,7 +335,7 @@ end
 func posContains(var positions, int target) as bool
     int n = positions.length
     int i = 0
-    while i < n do
+    while i < n
         if int(positions[i]) == target then return true end
         i += 1
     end
@@ -369,7 +369,7 @@ func evalPrimary() as var
         var words = tokenize(phrase)
         int wn = words.length
         int w = 0
-        while w < wn do
+        while w < wn
             addUniqueTerm(string(words[w]))
             w += 1
         end
@@ -439,11 +439,11 @@ func phraseInDoc(var words, string doc) as bool
     var startPos = gIndex[first][doc]
     int pn = startPos.length
     int pi = 0
-    while pi < pn do
+    while pi < pn
         int start = int(startPos[pi])
         bool ok = true
         int k = 1
-        while k < wn do
+        while k < wn
             string wk = string(words[k])
             if wk in gIndex then
                 if doc in gIndex[wk] then
@@ -484,7 +484,7 @@ end
 func evalAndExpr() as var
     var left = evalNotExpr()
     bool go = true
-    while go do
+    while go
         if gQPos >= gQToks.length then
             go = false
         else
@@ -509,7 +509,7 @@ end
 func evalOr() as var
     var left = evalAndExpr()
     bool go = true
-    while go do
+    while go
         if gQPos >= gQToks.length then
             go = false
         else
@@ -530,7 +530,7 @@ end
 func addUniqueTerm(string t)
     int n = gQTerms.length
     int i = 0
-    while i < n do
+    while i < n
         if gQTerms[i] == t then return end
         i += 1
     end
@@ -576,7 +576,7 @@ func scoreDoc(string doc) as float
     float score = 0.0
     int n = gQTerms.length
     int i = 0
-    while i < n do
+    while i < n
         score = score + tfidf(gQTerms[i], doc)
         i += 1
     end
@@ -588,12 +588,12 @@ end
 func sortPairsDesc(var pairs) as var
     int n = pairs.length
     int i = 1
-    while i < n do
+    while i < n
         var key = pairs[i]
         float keyScore = float(key[0])
         int j = i - 1
         bool go = true
-        while j >= 0 and go do
+        while j >= 0 and go
             if float(pairs[j][0]) < keyScore then
                 pairs[j + 1] = pairs[j]
                 j -= 1
@@ -622,7 +622,7 @@ func cmdIndex(string dirPath) as int
     int n = files.length
     int i = 0
     int indexed = 0
-    while i < n do
+    while i < n
         string fp = string(files[i])
         if string.endsWith(string.lower(fp), ".txt") then
             string content = ""
@@ -683,7 +683,7 @@ func cmdSearch(string queryStr) as int
     println("searcheng: \"" + queryStr + "\"  ->  " + string(total) + " result(s) in " + string(gDocCount) + " doc(s)")
     println("----------------------------------------------------------------")
     int i = 0
-    while i < total do
+    while i < total
         string doc = string(pairs[i][1])
         float sc = float(pairs[i][0])
         string rank = string.padLeft(string(i + 1), 3)
@@ -744,7 +744,7 @@ func cmdStats() as int
     int show = pairs.length
     if show > 10 then show = 10 end
     int i = 0
-    while i < show do
+    while i < show
         int df = int(pairs[i][0])
         string term = string(pairs[i][1])
         println("    " + string.padLeft(string(i + 1), 2) + ". " + string.padRight(term, 22) + " df=" + string(df))
@@ -780,7 +780,7 @@ end
 func setOf(...) as var
     var s = {}
     int i = 0
-    while i < arg.length do
+    while i < arg.length
         s[string(arg[i])] = true
         i += 1
     end
@@ -797,7 +797,7 @@ func setStr(var s) as string
     string r = "{"
     int n = keys.length
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then r = r + ", " end
         r = r + string(keys[i])
         i += 1
@@ -810,11 +810,11 @@ end
 func sortStringsAsc(var keys)
     int n = keys.length
     int i = 1
-    while i < n do
+    while i < n
         string key = string(keys[i])
         int j = i - 1
         bool go = true
-        while j >= 0 and go do
+        while j >= 0 and go
             if string(keys[j]) > key then
                 keys[j + 1] = keys[j]
                 j -= 1
@@ -1000,7 +1000,7 @@ func main(...) as int
         // 合并多参数为单个查询串（允许不加引号的查询）
         string q = ""
         int i = 2
-        while i < arg.length do
+        while i < arg.length
             if string.isEmpty(q) then
                 q = string(arg[i])
             else

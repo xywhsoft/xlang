@@ -297,7 +297,7 @@ func workerLoop(int idx) as int
     g_activeWorkers = g_activeWorkers + 1
     g_parkMu.unlock()
 
-    while true do
+    while true
         bool ok = false
         int task = 0
 
@@ -313,7 +313,7 @@ func workerLoop(int idx) as int
         //    starting just after self, to spread steal pressure)
         if not ok then
             int t = 0
-            while t < g_workerCount do
+            while t < g_workerCount
                 int victim = (idx + 1 + t)
                 if victim >= g_workerCount then
                     victim = victim - g_workerCount
@@ -390,7 +390,7 @@ func shutdown()
     g_parkCond.broadcast()
     g_parkMu.unlock()
     int waited = 0
-    while waited < 10000 do
+    while waited < 10000
         g_parkMu.lock()
         int active = g_activeWorkers
         g_parkMu.unlock()
@@ -406,7 +406,7 @@ end
 // cannot be stored in an array, so they are tracked only via g_activeWorkers).
 func spawnWorkers(int n)
     int i = 0
-    while i < n do
+    while i < n
         thread(makeWorker(i))
         i = i + 1
     end
@@ -414,7 +414,7 @@ end
 
 func waitForActive(int n, int timeoutMs) as bool
     int waited = 0
-    while waited < timeoutMs do
+    while waited < timeoutMs
         g_parkMu.lock()
         int a = g_activeWorkers
         g_parkMu.unlock()
@@ -429,7 +429,7 @@ end
 
 func waitForDone(int expected, int timeoutMs) as bool
     int waited = 0
-    while waited < timeoutMs do
+    while waited < timeoutMs
         g_resMu.lock()
         int d = g_doneCount
         g_resMu.unlock()
@@ -462,7 +462,7 @@ func setupTasks(int taskCount)
     g_executed.push(false)
     g_results.push(0)
     int i = 1
-    while i <= taskCount do
+    while i <= taskCount
         int k = KIND_ECHO
         int m = i % 3
         if m == 0 then
@@ -498,7 +498,7 @@ func runTest(int workers, int taskCount) as int
     // submit all tasks
     float t0 = time.timer()
     int i = 1
-    while i <= taskCount do
+    while i <= taskCount
         submit(i)
         i = i + 1
     end
@@ -526,7 +526,7 @@ func runTest(int workers, int taskCount) as int
     // every task id ran exactly once
     int missing = 0
     int j = 1
-    while j <= taskCount do
+    while j <= taskCount
         if not g_executed[j] then
             missing = missing + 1
         end
@@ -537,7 +537,7 @@ func runTest(int workers, int taskCount) as int
     // computed results correct per kind (re-read table; read-only now)
     int badResults = 0
     int p = 1
-    while p <= taskCount do
+    while p <= taskCount
         int kind = g_taskKind[p]
         if kind == KIND_DOUBLE then
             if g_results[p] != p * 2 then

@@ -1,0 +1,12 @@
+import xlang
+
+func main(...) as int
+    point server = http.server.create(8080)
+    if server == null then
+        println("cannot create server")
+        return 1
+    end
+    println("server created ok")
+    http.server.destroy(server)
+    return 0
+end

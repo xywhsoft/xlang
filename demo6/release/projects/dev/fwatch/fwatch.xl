@@ -57,7 +57,7 @@ class Snap
     func find(string p) as int
         int n = self.paths.length
         int i = 0
-        while i < n do
+        while i < n
             if self.paths[i] == p then
                 return i
             end
@@ -89,7 +89,7 @@ func buildSnap(string root) as Snap
     array files = dir.files(root, false)
     int n = files.length
     int i = 0
-    while i < n do
+    while i < n
         string p = string(files[i])
         FileInfo info = file.info(p)
         if info.exists and info.isFile then
@@ -108,7 +108,7 @@ func main(...) as int
 
     // -h / --help anywhere on the command line wins immediately.
     int hi = 1
-    while hi < arg.length do
+    while hi < arg.length
         string ha = string(arg[hi])
         if ha == "-h" or ha == "--help" then
             printUsage()
@@ -154,7 +154,7 @@ func main(...) as int
     bool havePrev = false
 
     int scanNo = 0
-    while scanNo < maxScans do
+    while scanNo < maxScans
         scanNo += 1
         Snap curr = buildSnap(root)
 
@@ -181,7 +181,7 @@ func main(...) as int
         // ADDED + MODIFIED: walk current, look up in previous.
         int cn = curr.count()
         int ci = 0
-        while ci < cn do
+        while ci < cn
             string p = curr.pathAt(ci)
             int pi = prev.find(p)
             if pi < 0 then
@@ -200,7 +200,7 @@ func main(...) as int
         // REMOVED: walk previous, look up in current.
         int pn = prev.count()
         int pri = 0
-        while pri < pn do
+        while pri < pn
             string p = prev.pathAt(pri)
             if curr.find(p) < 0 then
                 removedPath.append(p)
@@ -219,13 +219,13 @@ func main(...) as int
         int rn = removedPath.length
         int an = addedPath.length
         int rri = 0
-        while rri < rn do
+        while rri < rn
             string rName = removedPath[rri]
             if rName != "" then
                 int rSize = removedSize[rri]
                 int matchAi = -1
                 int aj = 0
-                while aj < an do
+                while aj < an
                     if addedPath[aj] != "" and addedSize[aj] == rSize then
                         matchAi = aj
                         break
@@ -246,14 +246,14 @@ func main(...) as int
         int addedReal = 0
         int removedReal = 0
         int ai = 0
-        while ai < an do
+        while ai < an
             if addedPath[ai] != "" then
                 addedReal += 1
             end
             ai += 1
         end
         int ri = 0
-        while ri < rn do
+        while ri < rn
             if removedPath[ri] != "" then
                 removedReal += 1
             end
@@ -266,26 +266,26 @@ func main(...) as int
         else
             string prefix = "Scan " + string(scanNo) + ": "
             int ei = 0
-            while ei < renFrom.length do
+            while ei < renFrom.length
                 println(prefix + "[RENAMED] " + renFrom[ei] + " → " + renTo[ei])
                 ei += 1
             end
             ei = 0
-            while ei < an do
+            while ei < an
                 if addedPath[ei] != "" then
                     println(prefix + "[ADDED] " + addedPath[ei])
                 end
                 ei += 1
             end
             ei = 0
-            while ei < rn do
+            while ei < rn
                 if removedPath[ei] != "" then
                     println(prefix + "[REMOVED] " + removedPath[ei])
                 end
                 ei += 1
             end
             ei = 0
-            while ei < modPath.length do
+            while ei < modPath.length
                 println(prefix + "[MODIFIED] " + modPath[ei] + " (" + string(modOldSize[ei]) + " → " + string(modNewSize[ei]) + " bytes)")
                 ei += 1
             end

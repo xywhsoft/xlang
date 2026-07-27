@@ -24,7 +24,7 @@ int s=0
 for i in range(0,n)
 s=s+i
 end
-while n>0 do
+while n>0
 n=n-1
 end
 return 0

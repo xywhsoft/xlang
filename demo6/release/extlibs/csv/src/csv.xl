@@ -67,7 +67,7 @@ class Reader
     func row() as array<string>
         array<string> result = array<string>[]
         int i = 0
-        while i < self.count do
+        while i < self.count
             result.append(self.field(i))
             i += 1
         end
@@ -104,7 +104,7 @@ class Writer
             throw CsvError __csv_error()
         end
         int i = 0
-        while i < fields.length do
+        while i < fields.length
             if not self.fieldNative(fields[i]) then
                 throw CsvError __csv_error()
             end
@@ -166,7 +166,7 @@ class DictReader
         end
         set<string> seen = set<string>{}
         int i = 0
-        while i < self.countNative() do
+        while i < self.countNative()
             string name = self.field(i)
             if name in seen then
                 throw CsvError "CSV dictionary header contains a duplicate field: " + name
@@ -201,7 +201,7 @@ class DictReader
     func row() as dict<string>
         dict<string> result = dict<string>{}
         int i = 0
-        while i < self.fieldNames.length do
+        while i < self.fieldNames.length
             result[self.fieldNames[i]] = self.field(i)
             i += 1
         end
@@ -233,7 +233,7 @@ class DictWriter
     func configure(array<string> headers, bool writeHeader)
         set<string> seen = set<string>{}
         int i = 0
-        while i < headers.length do
+        while i < headers.length
             if headers[i] in seen then
                 throw CsvError "CSV dictionary header contains a duplicate field: " + headers[i]
             end
@@ -251,7 +251,7 @@ class DictWriter
             throw CsvError __csv_error()
         end
         int i = 0
-        while i < fields.length do
+        while i < fields.length
             if not self.fieldNative(fields[i]) then
                 throw CsvError __csv_error()
             end
@@ -266,7 +266,7 @@ class DictWriter
         array<string> fields = array<string>[]
         int matched = 0
         int i = 0
-        while i < self.fieldNames.length do
+        while i < self.fieldNames.length
             string name = self.fieldNames[i]
             if name in values then
                 fields.append(values[name])
@@ -334,7 +334,7 @@ export func parse(string text, string delimiter = ",", string quote = "\"",
     Reader source = open(data, delimiter, quote, strict, maxInput, maxOutput,
         maxField, maxRows, maxFields)
     array<var> result = array<var>[]
-    while source.next() do
+    while source.next()
         array<string> row = source.row()
         var rowValue = row
         result.append(rowValue)
@@ -379,7 +379,7 @@ export func stringify(array<array<string>> rows, string delimiter = ",",
     bool writeBOM = false) as string
     Writer output = create(delimiter, quote, newline, quoteAll, writeBOM)
     int i = 0
-    while i < rows.length do
+    while i < rows.length
         output.write(rows[i])
         i += 1
     end

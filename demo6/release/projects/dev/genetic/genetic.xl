@@ -112,7 +112,7 @@ array<float> g_dist = array[]
 func initOneMax() as var
     array<int> chrom = array[]
     int i = 0
-    while i < g_geneLen do
+    while i < g_geneLen
         chrom.push(random.range(0, 1))
         i += 1
     end
@@ -123,7 +123,7 @@ func evalOneMax(var c) as float
     int sum = 0
     int i = 0
     int n = c.length
-    while i < n do
+    while i < n
         sum += int(c[i])
         i += 1
     end
@@ -135,11 +135,11 @@ func crossOneMax(var a, var b) as var
     int cut = random.range(0, n - 1)
     array<int> child = array[]
     int i = 0
-    while i < cut do
+    while i < cut
         child.push(int(a[i]))
         i += 1
     end
-    while i < n do
+    while i < n
         child.push(int(b[i]))
         i += 1
     end
@@ -150,7 +150,7 @@ func mutateOneMax(var c) as var
     int n = c.length
     array<int> child = array[]
     int i = 0
-    while i < n do
+    while i < n
         int bit = int(c[i])
         if randFloat() < g_mRate then
             bit = 1 - bit
@@ -165,7 +165,7 @@ end
 func initFuncOpt() as var
     array<float> chrom = array[]
     int i = 0
-    while i < g_dim do
+    while i < g_dim
         chrom.push(randFloatRange(g_lower, g_upper))
         i += 1
     end
@@ -176,7 +176,7 @@ func evalFuncOpt(var c) as float
     float sum = 0.0
     int i = 0
     int n = c.length
-    while i < n do
+    while i < n
         float x = float(c[i])
         sum += x * math.sin(x)
         i += 1
@@ -189,7 +189,7 @@ func crossFuncOpt(var a, var b) as var
     float alpha = randFloat()
     array<float> child = array[]
     int i = 0
-    while i < n do
+    while i < n
         float va = float(a[i])
         float vb = float(b[i])
         child.push(alpha * va + (1.0 - alpha) * vb)
@@ -202,7 +202,7 @@ func mutateFuncOpt(var c) as var
     int n = c.length
     array<float> child = array[]
     int i = 0
-    while i < n do
+    while i < n
         float v = float(c[i])
         if randFloat() < g_mRate then
             v = v + randGauss() * g_span * 0.1
@@ -223,12 +223,12 @@ end
 func initTSP() as var
     array<int> perm = array[]
     int i = 0
-    while i < g_n do
+    while i < g_n
         perm.push(i)
         i += 1
     end
     int s = g_n - 1
-    while s > 0 do
+    while s > 0
         int r = random.range(0, s)
         int tmp = perm[s]
         perm[s] = perm[r]
@@ -253,22 +253,22 @@ func crossTSP(var a, var b) as var
     end
     array<int> child = array[]
     int k = 0
-    while k < n do
+    while k < n
         child.push(-1)
         k += 1
     end
     k = start
-    while k <= endIdx do
+    while k <= endIdx
         child[k] = int(a[k])
         k += 1
     end
     int fill = (endIdx + 1) % n
     int bi = (endIdx + 1) % n
-    while fill != start do
+    while fill != start
         int gene = int(b[bi])
         bool present = false
         int ci = 0
-        while ci < n do
+        while ci < n
             if child[ci] == gene then
                 present = true
             end
@@ -287,7 +287,7 @@ func mutateTSP(var c) as var
     array<int> child = array[]
     int k = 0
     int n = g_n
-    while k < n do
+    while k < n
         child.push(int(c[k]))
         k += 1
     end
@@ -299,7 +299,7 @@ func mutateTSP(var c) as var
             i1 = i2
             i2 = t
         end
-        while i1 < i2 do
+        while i1 < i2
             int tmp = child[i1]
             child[i1] = child[i2]
             child[i2] = tmp
@@ -315,7 +315,7 @@ func cloneIntChrom(var c) as var
     int n = c.length
     array<int> child = array[]
     int i = 0
-    while i < n do
+    while i < n
         child.push(int(c[i]))
         i += 1
     end
@@ -326,7 +326,7 @@ func cloneFloatChrom(var c) as var
     int n = c.length
     array<float> child = array[]
     int i = 0
-    while i < n do
+    while i < n
         child.push(float(c[i]))
         i += 1
     end
@@ -385,7 +385,7 @@ end
 func gaEvaluate(array<Individual> pop)
     int i = 0
     int n = pop.length
-    while i < n do
+    while i < n
         if not pop[i].evaluated then
             var chrom = pop[i].chromosome
             float f = evalStep(chrom)
@@ -400,10 +400,10 @@ end
 func gaSort(array<Individual> pop)
     int n = pop.length
     int i = 0
-    while i < n do
+    while i < n
         int best = i
         int j = i + 1
-        while j < n do
+        while j < n
             if pop[j].fitness > pop[best].fitness then
                 best = j
             end
@@ -422,7 +422,7 @@ func gaAvgFitness(array<Individual> pop) as float
     float s = 0.0
     int i = 0
     int n = pop.length
-    while i < n do
+    while i < n
         s += pop[i].fitness
         i += 1
     end
@@ -440,7 +440,7 @@ func tournamentSelect(array<Individual> pop, int k) as Individual
     end
     Individual best = pop[random.range(0, n - 1)]
     int c = 1
-    while c < k do
+    while c < k
         Individual cand = pop[random.range(0, n - 1)]
         if cand.fitness > best.fitness then
             best = cand
@@ -458,7 +458,7 @@ func rouletteSelect(array<Individual> pop) as Individual
     end
     float minF = pop[0].fitness
     int i = 1
-    while i < n do
+    while i < n
         if pop[i].fitness < minF then
             minF = pop[i].fitness
         end
@@ -466,7 +466,7 @@ func rouletteSelect(array<Individual> pop) as Individual
     end
     float total = 0.0
     i = 0
-    while i < n do
+    while i < n
         total += (pop[i].fitness - minF) + 0.001
         i += 1
     end
@@ -476,7 +476,7 @@ func rouletteSelect(array<Individual> pop) as Individual
     float r = randFloat() * total
     float acc = 0.0
     i = 0
-    while i < n do
+    while i < n
         acc += (pop[i].fitness - minF) + 0.001
         if acc >= r then
             return pop[i]
@@ -501,7 +501,7 @@ func gaRun(GAConfig cfg, int mode, bool verbose) as Individual
     g_mode = mode
     array<Individual> pop = array[]
     int i = 0
-    while i < cfg.populationSize do
+    while i < cfg.populationSize
         pop.append(Individual(initStep()))
         i += 1
     end
@@ -509,7 +509,7 @@ func gaRun(GAConfig cfg, int mode, bool verbose) as Individual
     gaSort(pop)
 
     int g = 0
-    while g < cfg.generations do
+    while g < cfg.generations
         if verbose then
             if g % 50 == 0 or g == cfg.generations - 1 then
                 println("  gen " + string(g) +
@@ -527,12 +527,12 @@ func gaRun(GAConfig cfg, int mode, bool verbose) as Individual
             eliteCount = cfg.populationSize
         end
         int e = 0
-        while e < eliteCount do
+        while e < eliteCount
             newPop.append(pop[e])
             e += 1
         end
 
-        while newPop.length < cfg.populationSize do
+        while newPop.length < cfg.populationSize
             Individual p1 = gaSelect(pop, cfg)
             Individual p2 = gaSelect(pop, cfg)
             var c1 = p1.chromosome
@@ -570,14 +570,14 @@ func buildDistMatrix(array<float> coords, int n) as array<float>
     array<float> dist = array[]
     int total = n * n
     int z = 0
-    while z < total do
+    while z < total
         dist.push(0.0)
         z += 1
     end
     int i = 0
-    while i < n do
+    while i < n
         int j = 0
-        while j < n do
+        while j < n
             float dx = coords[i * 2] - coords[j * 2]
             float dy = coords[i * 2 + 1] - coords[j * 2 + 1]
             dist[i * n + j] = math.sqrt(dx * dx + dy * dy)
@@ -592,7 +592,7 @@ end
 func tourLength(var c, array<float> dist, int n) as float
     float total = 0.0
     int k = 0
-    while k < n do
+    while k < n
         int a = int(c[k])
         int b = int(c[(k + 1) % n])
         total += dist[a * n + b]
@@ -605,12 +605,12 @@ end
 func isValidPermutation(var c, int n) as bool
     array<int> seen = array[]
     int z = 0
-    while z < n do
+    while z < n
         seen.push(0)
         z += 1
     end
     int i = 0
-    while i < n do
+    while i < n
         int v = int(c[i])
         if v < 0 or v >= n then
             return false
@@ -627,7 +627,7 @@ end
 func printRoute(var c, int n)
     print("  route: ")
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             print(" -> ")
         end
@@ -643,7 +643,7 @@ func printVector(var c)
     print("  x = [")
     int i = 0
     int n = c.length
-    while i < n do
+    while i < n
         if i > 0 then
             print(", ")
         end
@@ -680,7 +680,7 @@ func loadCities(string path) as array<float>
     end
     array<float> coords = array[]
     int i = 0
-    while i < n do
+    while i < n
         var item = cities[i]
         float x = 0.0
         float y = 0.0
@@ -747,7 +747,7 @@ func bfRec(array<float> dist, int n, int startCity, int prev, int count, float c
         return
     end
     int k = 0
-    while k < n do
+    while k < n
         if visited[k] == 0 then
             visited[k] = 1
             bfRec(dist, n, startCity, k, count + 1, curLen + dist[prev * n + k], visited)
@@ -761,7 +761,7 @@ func bruteForceTSP(array<float> coords, int n) as float
     array<float> dist = buildDistMatrix(coords, n)
     array<int> visited = array[]
     int i = 0
-    while i < n do
+    while i < n
         visited.push(0)
         i += 1
     end
@@ -822,13 +822,13 @@ func runTests() as int
     // 基线：单个随机个体
     array<float> sample = array[]
     int si = 0
-    while si < 5 do
+    while si < 5
         sample.push(randFloatRange(0.0, 10.0))
         si += 1
     end
     float baseline = 0.0
     si = 0
-    while si < 5 do
+    while si < 5
         float x = sample[si]
         baseline += x * math.sin(x)
         si += 1

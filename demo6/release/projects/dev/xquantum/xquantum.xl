@@ -104,7 +104,7 @@ end
 func stateDim(int n) as int
     int d = 1
     int i = 0
-    while i < n do
+    while i < n
         d = d * 2
         i += 1
     end
@@ -117,7 +117,7 @@ func stateZero(int n) as (array<float>, array<float>)
     array<float> re = array[]
     array<float> im = array[]
     int i = 0
-    while i < dim do
+    while i < dim
         if i == 0 then
             re.append(1.0)
         else
@@ -134,7 +134,7 @@ func stateBlank(int dim) as (array<float>, array<float>)
     array<float> re = array[]
     array<float> im = array[]
     int i = 0
-    while i < dim do
+    while i < dim
         re.append(0.0)
         im.append(0.0)
         i += 1
@@ -146,7 +146,7 @@ end
 func stateSetBasis(array<float> re, array<float> im, int index)
     int dim = re.length
     int i = 0
-    while i < dim do
+    while i < dim
         if i == index then
             re[i] = 1.0
             im[i] = 0.0
@@ -164,7 +164,7 @@ func stateCopy(array<float> re, array<float> im) as (array<float>, array<float>)
     array<float> nr = array[]
     array<float> ni = array[]
     int i = 0
-    while i < dim do
+    while i < dim
         nr.append(re[i])
         ni.append(im[i])
         i += 1
@@ -177,7 +177,7 @@ func stateNorm(array<float> re, array<float> im) as float
     int dim = re.length
     float sum = 0.0
     int i = 0
-    while i < dim do
+    while i < dim
         float r = re[i]
         float c = im[i]
         sum = sum + r * r + c * c
@@ -194,7 +194,7 @@ func stateNormalize(array<float> re, array<float> im)
     end
     float f = 1.0 / math.sqrt(norm)
     int i = 0
-    while i < re.length do
+    while i < re.length
         re[i] = re[i] * f
         im[i] = im[i] * f
         i += 1
@@ -205,7 +205,7 @@ end
 func binString(int i, int n) as string
     string s = ""
     int bit = n - 1
-    while bit >= 0 do
+    while bit >= 0
         if ((i >> bit) & 1) == 1 then
             s = s + "1"
         else
@@ -221,7 +221,7 @@ func statePrint(array<float> re, array<float> im, int n)
     int dim = re.length
     println("State vector (" + string(n) + " qubits, dim=" + string(dim) + "):")
     int i = 0
-    while i < dim do
+    while i < dim
         float r = re[i]
         float c = im[i]
         float prob = r * r + c * c
@@ -462,7 +462,7 @@ func gateToffoli() as (array<float>, array<float>)
     ]
     array<float> im = array[]
     int i = 0
-    while i < 64 do
+    while i < 64
         im.append(0.0)
         i += 1
     end
@@ -485,7 +485,7 @@ func gateFredkin() as (array<float>, array<float>)
     ]
     array<float> im = array[]
     int i = 0
-    while i < 64 do
+    while i < 64
         im.append(0.0)
         i += 1
     end
@@ -498,7 +498,7 @@ func matrixZero(int dim) as (array<float>, array<float>)
     array<float> im = array[]
     int total = dim * dim
     int i = 0
-    while i < total do
+    while i < total
         re.append(0.0)
         im.append(0.0)
         i += 1
@@ -519,19 +519,19 @@ func matMul(array<float> aRe, array<float> aIm,
     array<float> im = array[]
     int total = aRows * bCols
     int z = 0
-    while z < total do
+    while z < total
         re.append(0.0)
         im.append(0.0)
         z += 1
     end
     int r = 0
-    while r < aRows do
+    while r < aRows
         int c = 0
-        while c < bCols do
+        while c < bCols
             float sr = 0.0
             float si = 0.0
             int k = 0
-            while k < aCols do
+            while k < aCols
                 float ar = aRe[r * aCols + k]
                 float ai = aIm[r * aCols + k]
                 float br = bRe[k * bCols + c]
@@ -560,21 +560,21 @@ func tensorProduct(array<float> aRe, array<float> aIm,
     array<float> im = array[]
     int total = cd * cd
     int z = 0
-    while z < total do
+    while z < total
         re.append(0.0)
         im.append(0.0)
         z += 1
     end
     int i = 0
-    while i < a do
+    while i < a
         int j = 0
-        while j < a do
+        while j < a
             float ar = aRe[i * a + j]
             float ai = aIm[i * a + j]
             int p = 0
-            while p < b do
+            while p < b
                 int q = 0
-                while q < b do
+                while q < b
                     float br = bRe[p * b + q]
                     float bi = bIm[p * b + q]
                     re[(i * b + p) * cd + (j * b + q)] = ar * br - ai * bi
@@ -596,9 +596,9 @@ func identityN(int n) as (array<float>, array<float>)
     array<float> re = array[]
     array<float> im = array[]
     int i = 0
-    while i < dim do
+    while i < dim
         int j = 0
-        while j < dim do
+        while j < dim
             if i == j then
                 re.append(1.0)
             else
@@ -618,15 +618,15 @@ func dagger(array<float> re, array<float> im, int dim) as (array<float>, array<f
     array<float> ni = array[]
     int total = dim * dim
     int z = 0
-    while z < total do
+    while z < total
         nr.append(0.0)
         ni.append(0.0)
         z += 1
     end
     int i = 0
-    while i < dim do
+    while i < dim
         int j = 0
-        while j < dim do
+        while j < dim
             nr[j * dim + i] = re[i * dim + j]
             ni[j * dim + i] = -im[i * dim + j]
             j += 1
@@ -640,10 +640,10 @@ end
 func matrixPrint(array<float> re, array<float> im, int dim, string title)
     println(title + " (" + string(dim) + "x" + string(dim) + "):")
     int i = 0
-    while i < dim do
+    while i < dim
         string row = "  ["
         int j = 0
-        while j < dim do
+        while j < dim
             row = row + fmtComplex(re[i * dim + j], im[i * dim + j])
             if j + 1 < dim then
                 row = row + ", "
@@ -666,7 +666,7 @@ func subIndex(int idx, array<int> targets) as int
     int s = 0
     int k = targets.length
     int j = 0
-    while j < k do
+    while j < k
         if ((idx >> targets[j]) & 1) == 1 then
             s = s | (1 << j)
         end
@@ -681,7 +681,7 @@ func clearTargets(int idx, array<int> targets) as int
     int v = idx
     int k = targets.length
     int j = 0
-    while j < k do
+    while j < k
         int b = targets[j]
         if ((v >> b) & 1) == 1 then
             v = v ^ (1 << b)
@@ -696,7 +696,7 @@ func embedSub(int cleared, int sp, array<int> targets) as int
     int v = cleared
     int k = targets.length
     int j = 0
-    while j < k do
+    while j < k
         if ((sp >> j) & 1) == 1 then
             v = v | (1 << targets[j])
         end
@@ -721,19 +721,19 @@ func applyGate(array<float> re, array<float> im,
     array<float> newRe = array[]
     array<float> newIm = array[]
     int z = 0
-    while z < dim do
+    while z < dim
         newRe.append(0.0)
         newIm.append(0.0)
         z += 1
     end
     int idx = 0
-    while idx < dim do
+    while idx < dim
         int s = subIndex(idx, targets)
         int cleared = clearTargets(idx, targets)
         float accRe = 0.0
         float accIm = 0.0
         int sp = 0
-        while sp < gDim do
+        while sp < gDim
             int partner = embedSub(cleared, sp, targets)
             float gr = gRe[s * gDim + sp]
             float gi = gIm[s * gDim + sp]
@@ -783,7 +783,7 @@ func probQubitZero(array<float> re, array<float> im, int q) as float
     int dim = re.length
     float sum = 0.0
     int i = 0
-    while i < dim do
+    while i < dim
         if ((i >> q) & 1) == 0 then
             float r = re[i]
             float c = im[i]
@@ -799,7 +799,7 @@ func probDistribution(array<float> re, array<float> im) as array<float>
     int dim = re.length
     array<float> p = array[]
     int i = 0
-    while i < dim do
+    while i < dim
         float r = re[i]
         float c = im[i]
         p.append(r * r + c * c)
@@ -822,7 +822,7 @@ func measureQubit(array<float> re, array<float> im, int q) as int
     end
     // 坍缩：清零另一组，缩放命中组。
     int i = 0
-    while i < dim do
+    while i < dim
         int bit = (i >> q) & 1
         if bit != outcome then
             re[i] = 0.0
@@ -842,7 +842,7 @@ func measureQubit(array<float> re, array<float> im, int q) as int
     end
     float f = 1.0 / math.sqrt(pout)
     int j = 0
-    while j < dim do
+    while j < dim
         re[j] = re[j] * f
         im[j] = im[j] * f
         j += 1
@@ -857,7 +857,7 @@ func measureAll(array<float> re, array<float> im) as int
     float r = randomUnit()
     float cum = 0.0
     int i = 0
-    while i < dim do
+    while i < dim
         cum = cum + p[i]
         if r < cum then
             return i
@@ -872,7 +872,7 @@ end
 func sampleMany(array<float> re, array<float> im, int shots) as dict<int>
     dict<int> counts = dict<int>{}
     int s = 0
-    while s < shots do
+    while s < shots
         int r = measureAll(re, im)
         string key = string(r)
         if key in counts then
@@ -889,7 +889,7 @@ end
 func printHistogram(array<float> re, array<float> im, int n, int width)
     int dim = re.length
     int i = 0
-    while i < dim do
+    while i < dim
         float r = re[i]
         float c = im[i]
         float p = r * r + c * c
@@ -897,7 +897,7 @@ func printHistogram(array<float> re, array<float> im, int n, int width)
         int bars = int(p * float(width) + 0.5)
         string bar = ""
         int b = 0
-        while b < bars do
+        while b < bars
             bar = bar + "#"
             b += 1
         end
@@ -910,7 +910,7 @@ end
 func printCounts(dict<int> counts, int n, int shots, int width)
     int dim = stateDim(n)
     int i = 0
-    while i < dim do
+    while i < dim
         int cnt = 0
         string ckey = string(i)
         if ckey in counts then
@@ -921,7 +921,7 @@ func printCounts(dict<int> counts, int n, int shots, int width)
         int bars = int(frac * float(width) + 0.5)
         string bar = ""
         int b = 0
-        while b < bars do
+        while b < bars
             bar = bar + "#"
             b += 1
         end
@@ -945,7 +945,7 @@ end
 func phaseFlipStates(array<float> re, array<float> im, array<int> marked)
     int n = marked.length
     int i = 0
-    while i < n do
+    while i < n
         phaseFlipState(re, im, marked[i])
         i += 1
     end
@@ -958,7 +958,7 @@ func groverDiffusion(array<float> re, array<float> im)
     float sumRe = 0.0
     float sumIm = 0.0
     int i = 0
-    while i < dim do
+    while i < dim
         sumRe = sumRe + re[i]
         sumIm = sumIm + im[i]
         i += 1
@@ -967,7 +967,7 @@ func groverDiffusion(array<float> re, array<float> im)
     float avgRe = sumRe / n
     float avgIm = sumIm / n
     int j = 0
-    while j < dim do
+    while j < dim
         re[j] = 2.0 * avgRe - re[j]
         im[j] = 2.0 * avgIm - im[j]
         j += 1
@@ -1040,7 +1040,7 @@ class Circuit
         re, im = stateZero(self.n)
         int i = 0
         int count = self.ops.length
-        while i < count do
+        while i < count
             GateOp op = self.ops[i]
             re, im = applyGate(re, im, op.re, op.im, op.dim, op.targets)
             i += 1
@@ -1052,11 +1052,11 @@ class Circuit
     func dump()
         println("Circuit (n=" + string(self.n) + ", gates=" + string(self.ops.length) + "):")
         int i = 0
-        while i < self.ops.length do
+        while i < self.ops.length
             GateOp op = self.ops[i]
             string t = ""
             int j = 0
-            while j < op.targets.length do
+            while j < op.targets.length
                 if j > 0 then
                     t = t + ","
                 end
@@ -1122,7 +1122,7 @@ func deutschOracle(string fType) as (array<float>, array<float>)
     re, im = matrixZero(4)
     // 对每个输入 s=0..3，输出 = s XOR (f(q0) << 0)（f 作用在 q1 即 bit 0）。
     int s = 0
-    while s < 4 do
+    while s < 4
         int q0 = (s >> 1) & 1
         int fval = 0
         if fType == "const0" then
@@ -1193,7 +1193,7 @@ func algoDeutsch() as int
         "f(x)=1-x    (balanced)"
     ]
     int i = 0
-    while i < 4 do
+    while i < 4
         int res
         string verdict
         res, verdict = runDeutschOnce(types[i])
@@ -1257,12 +1257,12 @@ func algoGrover(int n, int marked) as int
     array<float> hi
     hr, hi = gateH()
     int q = 0
-    while q < n do
+    while q < n
         reA, imA = applySingle(reA, imA, hr, hi, q)
         q += 1
     end
     int it = 0
-    while it < R do
+    while it < R
         phaseFlipState(reA, imA, marked)
         groverDiffusion(reA, imA)
         it += 1
@@ -1287,7 +1287,7 @@ func algoGrover(int n, int marked) as int
     array<float> imB
     reB, imB = stateZero(n)
     q = 0
-    while q < n do
+    while q < n
         reB, imB = applySingle(reB, imB, hr, hi, q)
         q += 1
     end
@@ -1296,7 +1296,7 @@ func algoGrover(int n, int marked) as int
     array<float> oIm
     oRe, oIm = matrixZero(dim)
     int d0 = 0
-    while d0 < dim do
+    while d0 < dim
         if d0 == marked then
             oRe[d0 * dim + d0] = -1.0
         else
@@ -1309,9 +1309,9 @@ func algoGrover(int n, int marked) as int
     array<float> dIm
     dRe, dIm = matrixZero(dim)
     int r0 = 0
-    while r0 < dim do
+    while r0 < dim
         int c0 = 0
-        while c0 < dim do
+        while c0 < dim
             float v = 2.0 / float(dim)
             if r0 == c0 then
                 v = v - 1.0
@@ -1324,12 +1324,12 @@ func algoGrover(int n, int marked) as int
     // 全空间 targets = [0, 1, ..., n-1]。
     array<int> allQ = array[]
     int t = 0
-    while t < n do
+    while t < n
         allQ.append(t)
         t += 1
     end
     int it2 = 0
-    while it2 < R do
+    while it2 < R
         reB, imB = applyGate(reB, imB, oRe, oIm, dim, allQ)
         reB, imB = applyGate(reB, imB, dRe, dIm, dim, allQ)
         it2 += 1
@@ -1350,7 +1350,7 @@ func algoGrover(int n, int marked) as int
     // 交叉验证：两路终态应几乎相同（最大振幅差 < EPS）。
     float maxDiff = 0.0
     int i = 0
-    while i < dim do
+    while i < dim
         float dr = reA[i] - reB[i]
         float di = imA[i] - imB[i]
         float mag = math.sqrt(dr * dr + di * di)
@@ -1391,10 +1391,10 @@ func buildQFTCircuit(int n) as Circuit
     array<float> hi
     hr, hi = gateH()
     int j = 0
-    while j < n do
+    while j < n
         c.add1("H", hr, hi, j)
         int k = j + 1
-        while k < n do
+        while k < n
             float angle = math.pi / float(1 << (k - j))
             array<float> pr
             array<float> pi
@@ -1409,7 +1409,7 @@ func buildQFTCircuit(int n) as Circuit
     array<float> si
     sr, si = gateSWAP()
     int s2 = 0
-    while s2 < n / 2 do
+    while s2 < n / 2
         c.add2("SWAP", sr, si, s2, n - 1 - s2)
         s2 += 1
     end
@@ -1424,7 +1424,7 @@ func qftReferenceUniform(int n) as (array<float>, array<float>)
     array<float> re = array[]
     array<float> im = array[]
     int y = 0
-    while y < dim do
+    while y < dim
         // 输入 |0...0>，只有 x=0 贡献：|y> = invN * e^0 = invN。
         re.append(invN)
         im.append(0.0)
@@ -1455,7 +1455,7 @@ func algoQFT(int n) as int
     refRe, refIm = qftReferenceUniform(n)
     float maxDiff = 0.0
     int i = 0
-    while i < re.length do
+    while i < re.length
         float dr = re[i] - refRe[i]
         float di = im[i] - refIm[i]
         float mag = math.sqrt(dr * dr + di * di)
@@ -1483,7 +1483,7 @@ func algoQFT(int n) as int
         Circuit c2 = buildQFTCircuit(n)
         // Circuit.run 总从 |0> 起；这里需从 |3> 起，故手动施加门序列。
         int g = 0
-        while g < c2.ops.length do
+        while g < c2.ops.length
             GateOp op = c2.ops[g]
             re2, im2 = applyGate(re2, im2, op.re, op.im, op.dim, op.targets)
             g += 1
@@ -1505,7 +1505,7 @@ func statesApprox(array<float> r1, array<float> i1,
         return false
     end
     int i = 0
-    while i < r1.length do
+    while i < r1.length
         float dr = r1[i] - r2[i]
         float di = i1[i] - i2[i]
         float mag = math.sqrt(dr * dr + di * di)
@@ -1526,9 +1526,9 @@ func checkUnitary(array<float> re, array<float> im, int dim, string name) as boo
     array<float> pIm
     pRe, pIm = matMul(dRe, dIm, re, im, dim, dim, dim)
     int i = 0
-    while i < dim do
+    while i < dim
         int j = 0
-        while j < dim do
+        while j < dim
             float expect = 0.0
             if i == j then
                 expect = 1.0
@@ -1732,7 +1732,7 @@ func runSelfTest() as int
     array<float> p = probDistribution(r4, i4)
     float psum = 0.0
     int pi = 0
-    while pi < p.length do
+    while pi < p.length
         psum = psum + p[pi]
         pi += 1
     end
@@ -1749,14 +1749,14 @@ func runSelfTest() as int
     array<float> gAi
     gA, gAi = stateZero(3)
     int qq = 0
-    while qq < 3 do
+    while qq < 3
         gA, gAi = applySingle(gA, gAi, hr, hi, qq)
         qq += 1
     end
     int marked = 5
     int it = 0
     int R = groverOptimalIters(3)
-    while it < R do
+    while it < R
         phaseFlipState(gA, gAi, marked)
         groverDiffusion(gA, gAi)
         it += 1
@@ -1767,7 +1767,7 @@ func runSelfTest() as int
     array<float> gBi
     gB, gBi = stateZero(3)
     qq = 0
-    while qq < 3 do
+    while qq < 3
         gB, gBi = applySingle(gB, gBi, hr, hi, qq)
         qq += 1
     end
@@ -1775,7 +1775,7 @@ func runSelfTest() as int
     array<float> oIm
     oRe, oIm = matrixZero(dim3)
     int d0 = 0
-    while d0 < dim3 do
+    while d0 < dim3
         if d0 == marked then
             oRe[d0 * dim3 + d0] = -1.0
         else
@@ -1787,9 +1787,9 @@ func runSelfTest() as int
     array<float> dfIm
     dfRe, dfIm = matrixZero(dim3)
     int rr = 0
-    while rr < dim3 do
+    while rr < dim3
         int cc = 0
-        while cc < dim3 do
+        while cc < dim3
             float v = 2.0 / float(dim3)
             if rr == cc then
                 v = v - 1.0
@@ -1801,7 +1801,7 @@ func runSelfTest() as int
     end
     array<int> all3 = array<int>[0, 1, 2]
     it = 0
-    while it < R do
+    while it < R
         gB, gBi = applyGate(gB, gBi, oRe, oIm, dim3, all3)
         gB, gBi = applyGate(gB, gBi, dfRe, dfIm, dim3, all3)
         it += 1
@@ -1833,7 +1833,7 @@ func runSelfTest() as int
     array<string> dTypes = array<string>["const0", "const1", "id", "not"]
     bool deutschOk = true
     int di = 0
-    while di < 4 do
+    while di < 4
         int res
         string verdict
         res, verdict = runDeutschOnce(dTypes[di])

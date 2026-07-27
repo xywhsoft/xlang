@@ -745,7 +745,7 @@ func parse_array_json(int depth) as string
 	end
 	auto items = ""
 	int i = 0
-	while i < count do
+	while i < count
 		auto item = parse_value_json(depth + 1)
 		if item == "" then
 			return ""
@@ -776,7 +776,7 @@ func parse_map_json(int depth) as string
 	end
 	auto pairs = ""
 	int i = 0
-	while i < count do
+	while i < count
 		auto key = parse_value_json(depth + 1)
 		if key == "" then
 			return ""
@@ -814,7 +814,7 @@ func parse_set_json(int depth) as string
 	end
 	auto items = ""
 	int i = 0
-	while i < count do
+	while i < count
 		auto item = parse_value_json(depth + 1)
 		if item == "" then
 			return ""
@@ -896,7 +896,7 @@ func command_raw(Client client, string encoded) as string
 		return json_error(client.last_error_text)
 	end
 	reader_reset("")
-	while string.len(g_resp_buffer) < 16777216 do
+	while string.len(g_resp_buffer) < 16777216
 		auto chunk = xredis_tcp_recv_native(client.socket, 4096, client.timeout_ms)
 		if chunk == "" then
 			client.last_error_text = "redis receive timeout or closed connection"
@@ -996,7 +996,7 @@ end
 export func cluster_command_redirect_retry_json(Client client, string argv_json, int max_redirects, int timeout_ms) as string
 	auto result = command_json(client, argv_json)
 	int redirects = 0
-	while cluster_redirect_type(result) != "" and redirects < max_redirects do
+	while cluster_redirect_type(result) != "" and redirects < max_redirects
 		auto redirect_type = cluster_redirect_type(result)
 		auto target = cluster_connect_redirect(result, timeout_ms)
 		if target.valid() == false then
@@ -1049,7 +1049,7 @@ func command_pipeline_raw(Client client, string encoded, int count) as string
 	reader_reset("")
 	auto items = ""
 	int parsed_count = 0
-	while string.len(g_resp_buffer) < 16777216 do
+	while string.len(g_resp_buffer) < 16777216
 		auto parsed = parse_one_json()
 		if parsed != "" then
 			if g_resp_error != "" then
@@ -1090,7 +1090,7 @@ export func read_response_json(Client client) as string
 	if reader_available() <= 0 then
 		reader_reset("")
 	end
-	while string.len(g_resp_buffer) < 16777216 do
+	while string.len(g_resp_buffer) < 16777216
 		auto parsed = parse_one_json()
 		if parsed != "" then
 			if g_resp_error != "" then
@@ -1488,7 +1488,7 @@ export func sentinel_command_master_retry_json(Client sentinel, string name, str
 	end
 	int attempt = 0
 	auto result = ""
-	while attempt < max_attempts do
+	while attempt < max_attempts
 		result = sentinel_command_master_once_json(sentinel, name, argv_json, timeout_ms)
 		if response_type(result) != "error" then
 			return result
@@ -1508,7 +1508,7 @@ export func sentinel_command_master_retry_password_json(Client sentinel, string 
 	end
 	int attempt = 0
 	auto result = ""
-	while attempt < max_attempts do
+	while attempt < max_attempts
 		result = sentinel_command_master_once_password_json(sentinel, name, password, argv_json, timeout_ms)
 		if response_type(result) != "error" then
 			return result
@@ -1528,7 +1528,7 @@ export func sentinel_command_master_retry_auth_json(Client sentinel, string name
 	end
 	int attempt = 0
 	auto result = ""
-	while attempt < max_attempts do
+	while attempt < max_attempts
 		result = sentinel_command_master_once_auth_json(sentinel, name, username, password, argv_json, timeout_ms)
 		if response_type(result) != "error" then
 			return result
@@ -1913,7 +1913,7 @@ end
 export func cluster_command_slot_retry_json(Client seed, string slots_response_json, string key, string argv_json, int max_redirects, int timeout_ms) as string
 	auto result = cluster_command_slot_once_json(seed, slots_response_json, key, argv_json, timeout_ms)
 	int redirects = 0
-	while cluster_redirect_type(result) != "" and redirects < max_redirects do
+	while cluster_redirect_type(result) != "" and redirects < max_redirects
 		auto redirect_type = cluster_redirect_type(result)
 		auto target = cluster_connect_redirect(result, timeout_ms)
 		if target.valid() == false then
@@ -1947,7 +1947,7 @@ end
 export func cluster_command_slot_retry_password_json(Client seed, string slots_response_json, string key, string password, string argv_json, int max_redirects, int timeout_ms) as string
 	auto result = cluster_command_slot_once_password_json(seed, slots_response_json, key, password, argv_json, timeout_ms)
 	int redirects = 0
-	while cluster_redirect_type(result) != "" and redirects < max_redirects do
+	while cluster_redirect_type(result) != "" and redirects < max_redirects
 		auto redirect_type = cluster_redirect_type(result)
 		auto target = cluster_connect_redirect(result, timeout_ms)
 		if target.valid() == false then
@@ -1987,7 +1987,7 @@ end
 export func cluster_command_slot_retry_auth_json(Client seed, string slots_response_json, string key, string username, string password, string argv_json, int max_redirects, int timeout_ms) as string
 	auto result = cluster_command_slot_once_auth_json(seed, slots_response_json, key, username, password, argv_json, timeout_ms)
 	int redirects = 0
-	while cluster_redirect_type(result) != "" and redirects < max_redirects do
+	while cluster_redirect_type(result) != "" and redirects < max_redirects
 		auto redirect_type = cluster_redirect_type(result)
 		auto target = cluster_connect_redirect(result, timeout_ms)
 		if target.valid() == false then

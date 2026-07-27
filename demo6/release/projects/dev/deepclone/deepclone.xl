@@ -428,7 +428,7 @@ end
 
 func main(...) as int
     int i = 1
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "--help" or a == "-h" then
             printHelp()

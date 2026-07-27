@@ -42,7 +42,7 @@ end
 func stripLeadZeros(string body) as string
     int n = string.len(body)
     int i = 0
-    while i < n do
+    while i < n
         if string.charAt(body, i) != "0" then
             break
         end
@@ -83,7 +83,7 @@ func isValidNumber(string s) as bool
         end
     end
     int i = start
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -117,7 +117,7 @@ func cmpAbs(string a, string b) as int
         return -1
     end
     int i = 0
-    while i < la do
+    while i < la
         int da = string.byteAt(a, i) - 48
         int db = string.byteAt(b, i) - 48
         if da > db then
@@ -144,7 +144,7 @@ func addAbs(string a, string b) as string
     string outputValue = ""
     int carry = 0
     int i = 0
-    while i < n do
+    while i < n
         int da = 0
         int db = 0
         if i < la then
@@ -173,7 +173,7 @@ func subAbs(string a, string b) as string
     string outputValue = ""
     int borrow = 0
     int i = 0
-    while i < la do
+    while i < la
         int da = string.byteAt(ra, i) - 48
         int db = 0
         if i < lb then
@@ -202,14 +202,14 @@ func mulDigit(string a, int d) as string
     string outputValue = ""
     int carry = 0
     int i = 0
-    while i < la do
+    while i < la
         int da = string.byteAt(ra, i) - 48
         int prod = da * d + carry
         carry = prod / 10
         outputValue = outputValue + string.charAt("0123456789", prod - carry * 10)
         i += 1
     end
-    while carry > 0 do
+    while carry > 0
         int m = carry % 10
         outputValue = outputValue + string.charAt("0123456789", m)
         carry = carry / 10
@@ -226,7 +226,7 @@ func mulAbs(string a, string b) as string
     int lb = string.len(rb)
     string result = "0"
     int j = 0
-    while j < lb do
+    while j < lb
         int db = string.byteAt(rb, j) - 48
         string row = mulDigit(a, db)
         if row != "0" then
@@ -295,12 +295,12 @@ func divmodAbs(string a, string b) as (string, string)
     string quot = ""
     int la = string.len(a)
     int i = 0
-    while i < la do
+    while i < la
         int d = string.byteAt(a, i) - 48
         rem = stripLeadZeros(rem + string.charAt("0123456789", d))
         int q = 0
         int k = 9
-        while k >= 1 do
+        while k >= 1
             if cmpAbs(mulDigit(b, k), rem) <= 0 then
                 q = k
                 break
@@ -349,7 +349,7 @@ func div2(string a) as string
     int rem = 0
     int n = string.len(a)
     int i = 0
-    while i < n do
+    while i < n
         int d = string.byteAt(a, i) - 48 + rem * 10
         outputValue = outputValue + string.charAt("0123456789", d / 2)
         rem = d % 2
@@ -385,7 +385,7 @@ func bigModPow(string base, string exp, string mod) as string
     string result = "1"
     string b = bigMod(base, m)
     string e = normalize(exp)
-    while e != "0" do
+    while e != "0"
         if isOdd(e) then
             result = bigMod(bigMul(result, b), m)
         end
@@ -403,7 +403,7 @@ end
 func bigGcd(string a, string b) as string
     string x = normalize(a)
     string y = normalize(b)
-    while y != "0" do
+    while y != "0"
         string r = bigMod(x, y)
         x = y
         y = r
@@ -417,7 +417,7 @@ func modInverse(string e, string phi) as string
     string r = normalize(phi)
     string oldS = "1"
     string s = "0"
-    while r != "0" do
+    while r != "0"
         string q = bigDiv(oldR, r)
         string newR = bigSub(oldR, bigMul(q, r))
         string newS = bigSub(oldS, bigMul(q, s))
@@ -453,7 +453,7 @@ func millerRabin(string n) as bool
     string n1 = bigSub(nn, "1")
     string d = n1
     int r = 0
-    while isEven(d) do
+    while isEven(d)
         d = div2(d)
         r += 1
     end
@@ -468,7 +468,7 @@ func millerRabin(string n) as bool
         end
         bool composite = true
         int j = 0
-        while j < r - 1 do
+        while j < r - 1
             x = bigModPow(x, "2", nn)
             if x == n1 then
                 composite = false
@@ -492,7 +492,7 @@ func rsaKeygen(string p, string q) as array<string>
     array<string> cands = array["17", "65537", "11", "13", "7", "5", "3"]
     string e = "0"
     int ci = 0
-    while ci < cands.length do
+    while ci < cands.length
         if bigGcd(cands[ci], phi) == "1" then
             e = cands[ci]
             break
@@ -501,7 +501,7 @@ func rsaKeygen(string p, string q) as array<string>
     end
     if e == "0" then
         e = "3"
-        while bigGcd(e, phi) != "1" do
+        while bigGcd(e, phi) != "1"
             e = bigAdd(e, "2")
         end
     end
@@ -588,7 +588,7 @@ func cmdTest() as int
 
     // 0..25 字符消息 roundtrip
     int mi = 0
-    while mi <= 25 do
+    while mi <= 25
         string m = string(mi)
         string c = rsaEncrypt(m, e, n)
         string r = rsaDecrypt(c, d, n)
@@ -603,7 +603,7 @@ func cmdTest() as int
     // 教科书样例 m=65 -> c=2790 -> m=65
     array<string> extra = array["65", "3232", "123", "2048"]
     int ei = 0
-    while ei < extra.length do
+    while ei < extra.length
         string m = extra[ei]
         string c = rsaEncrypt(m, e, n)
         string r = rsaDecrypt(c, d, n)

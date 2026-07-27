@@ -51,7 +51,7 @@ class Term
         self.cells = array[]
         int total = w * h
         int i = 0
-        while i < total do
+        while i < total
             self.cells.push(" ")
             i += 1
         end
@@ -89,10 +89,10 @@ class Term
 
     func scrollUp()
         int row = 0
-        while row < self.height - 1 do
+        while row < self.height - 1
             int srcRow = row + 1
             int col = 0
-            while col < self.width do
+            while col < self.width
                 self.cells[row * self.width + col] = self.cells[srcRow * self.width + col]
                 col += 1
             end
@@ -100,7 +100,7 @@ class Term
         end
         int col = 0
         int base = (self.height - 1) * self.width
-        while col < self.width do
+        while col < self.width
             self.cells[base + col] = " "
             col += 1
         end
@@ -110,7 +110,7 @@ class Term
     func clearAll()
         int total = self.width * self.height
         int i = 0
-        while i < total do
+        while i < total
             self.cells[i] = " "
             i += 1
         end
@@ -120,16 +120,16 @@ class Term
         // 当前行从光标到行尾
         int base = self.curRow * self.width
         int col = self.curCol
-        while col < self.width do
+        while col < self.width
             self.cells[base + col] = " "
             col += 1
         end
         // 下方所有行整行清
         int row = self.curRow + 1
-        while row < self.height do
+        while row < self.height
             int b = row * self.width
             int c = 0
-            while c < self.width do
+            while c < self.width
                 self.cells[b + c] = " "
                 c += 1
             end
@@ -140,10 +140,10 @@ class Term
     func clearToCursor()
         // 上方所有行整行清
         int row = 0
-        while row < self.curRow do
+        while row < self.curRow
             int b = row * self.width
             int c = 0
-            while c < self.width do
+            while c < self.width
                 self.cells[b + c] = " "
                 c += 1
             end
@@ -152,7 +152,7 @@ class Term
         // 当前行从开头到光标
         int base = self.curRow * self.width
         int col = 0
-        while col <= self.curCol and col < self.width do
+        while col <= self.curCol and col < self.width
             self.cells[base + col] = " "
             col += 1
         end
@@ -162,19 +162,19 @@ class Term
         int base = self.curRow * self.width
         if mode == 0 then
             int col = self.curCol
-            while col < self.width do
+            while col < self.width
                 self.cells[base + col] = " "
                 col += 1
             end
         elseif mode == 1 then
             int col = 0
-            while col <= self.curCol and col < self.width do
+            while col <= self.curCol and col < self.width
                 self.cells[base + col] = " "
                 col += 1
             end
         elseif mode == 2 then
             int col = 0
-            while col < self.width do
+            while col < self.width
                 self.cells[base + col] = " "
                 col += 1
             end
@@ -186,12 +186,12 @@ class Term
         if count < 1 then count = 1 end
         int base = self.curRow * self.width
         int dst = self.curCol
-        while dst + count < self.width do
+        while dst + count < self.width
             self.cells[base + dst] = self.cells[base + dst + count]
             dst += 1
         end
         int b = self.width - count
-        while b < self.width do
+        while b < self.width
             self.cells[base + b] = " "
             b += 1
         end
@@ -201,12 +201,12 @@ class Term
         if count < 1 then count = 1 end
         int base = self.curRow * self.width
         int src = self.width - count - 1
-        while src >= self.curCol do
+        while src >= self.curCol
             self.cells[base + src + count] = self.cells[base + src]
             src -= 1
         end
         int c = self.curCol
-        while c < self.curCol + count and c < self.width do
+        while c < self.curCol + count and c < self.width
             self.cells[base + c] = " "
             c += 1
         end
@@ -215,19 +215,19 @@ class Term
     func deleteLines(int count)
         if count < 1 then count = 1 end
         int row = self.curRow
-        while row + count < self.height do
+        while row + count < self.height
             int srcRow = row + count
             int col = 0
-            while col < self.width do
+            while col < self.width
                 self.cells[row * self.width + col] = self.cells[srcRow * self.width + col]
                 col += 1
             end
             row += 1
         end
         int r = self.height - count
-        while r < self.height do
+        while r < self.height
             int col = 0
-            while col < self.width do
+            while col < self.width
                 self.cells[r * self.width + col] = " "
                 col += 1
             end
@@ -238,19 +238,19 @@ class Term
     func insertLines(int count)
         if count < 1 then count = 1 end
         int row = self.height - 1
-        while row >= self.curRow + count do
+        while row >= self.curRow + count
             int srcRow = row - count
             int col = 0
-            while col < self.width do
+            while col < self.width
                 self.cells[row * self.width + col] = self.cells[srcRow * self.width + col]
                 col += 1
             end
             row -= 1
         end
         int r = self.curRow
-        while r < self.curRow + count and r < self.height do
+        while r < self.curRow + count and r < self.height
             int col = 0
-            while col < self.width do
+            while col < self.width
                 self.cells[r * self.width + col] = " "
                 col += 1
             end
@@ -440,7 +440,7 @@ class Term
         string line = ""
         int col = 0
         int base = row * self.width
-        while col < self.width do
+        while col < self.width
             line = line + self.cells[base + col]
             col += 1
         end
@@ -451,7 +451,7 @@ class Term
     func render() as string
         string outputValue = ""
         int row = 0
-        while row < self.height do
+        while row < self.height
             outputValue = outputValue + self.rowText(row)
             outputValue = outputValue + "\n"
             row += 1
@@ -513,7 +513,7 @@ func cmdInfo(string path) as int
     int outBytes = 0
     int parseErrors = 0
     int i = 1
-    while i < lines.length do
+    while i < lines.length
         string ln = string(lines[i])
         if ln != "" then
             try
@@ -613,7 +613,7 @@ func cmdPlay(string path, float speed, bool pauseMode, bool noClear) as int
     int frames = 0
     int outEvents = 0
     int i = 1
-    while i < lines.length do
+    while i < lines.length
         string ln = string(lines[i])
         if ln != "" then
             try
@@ -881,7 +881,7 @@ func main(...) as int
         bool pauseMode = false
         bool noClear = false
         int ai = 3
-        while ai < arg.length do
+        while ai < arg.length
             string a = string(arg[ai])
             if a == "--speed" and ai + 1 < arg.length then
                 speed = parseSpeed(string(arg[ai + 1]))

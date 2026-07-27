@@ -84,7 +84,7 @@ func tokenize(string s) as array<Tok>
     array<Tok> toks = array[]
     int i = 0
     int n = string.len(s)
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
 
         // 跳过空白（空格 32、制表 9、回车 13）
@@ -97,7 +97,7 @@ func tokenize(string s) as array<Tok>
         if b == 34 then
             i += 1
             string txt = ""
-            while i < n do
+            while i < n
                 int bb = string.byteAt(s, i)
                 if bb == 34 then
                     // "" 转义为一个字面引号
@@ -123,7 +123,7 @@ func tokenize(string s) as array<Tok>
             string num = ""
             bool hasDot = false
             bool hasE = false
-            while i < n do
+            while i < n
                 int bb = string.byteAt(s, i)
                 if bb >= 48 and bb <= 57 then
                     num = num + string.charAt(s, i)
@@ -163,7 +163,7 @@ func tokenize(string s) as array<Tok>
         // 标识符（关键字 / 变量名 / 函数名）
         if isIdentStart(b) then
             string id = ""
-            while i < n do
+            while i < n
                 int bb = string.byteAt(s, i)
                 if isIdentByte(bb) then
                     id = id + string.charAt(s, i)
@@ -226,7 +226,7 @@ end
 func leadingKw(string stmt) as string
     int i = 0
     int n = string.len(stmt)
-    while i < n do
+    while i < n
         int b = string.byteAt(stmt, i)
         if b == 32 or b == 9 or b == 13 then
             i += 1
@@ -235,7 +235,7 @@ func leadingKw(string stmt) as string
         end
     end
     string w = ""
-    while i < n do
+    while i < n
         int b = string.byteAt(stmt, i)
         if isIdentByte(b) then
             w = w + string.charAt(stmt, i)
@@ -317,7 +317,7 @@ class Interp
     func lineNoExists(int lineNo) as bool
         int i = 0
         int n = self.lineNos.length
-        while i < n do
+        while i < n
             if self.lineNos[i] == lineNo then
                 return true
             end
@@ -335,12 +335,12 @@ class Interp
         int count = lines.length
         int nextAuto = 1
         int i = 0
-        while i < count do
+        while i < count
             string raw = string(lines[i])
             int rn = string.len(raw)
             // 跳过前导空白
             int p = 0
-            while p < rn do
+            while p < rn
                 int b = string.byteAt(raw, p)
                 if b == 32 or b == 9 then
                     p += 1
@@ -355,7 +355,7 @@ class Interp
             end
             // 读前导数字（行号）
             int q = p
-            while q < rn do
+            while q < rn
                 int b = string.byteAt(raw, q)
                 if b >= 48 and b <= 57 then
                     q += 1
@@ -368,7 +368,7 @@ class Interp
             if q > p then
                 lineNo = int(string.slice(raw, p, q - p))
                 p = q
-                while p < rn do
+                while p < rn
                     int b = string.byteAt(raw, p)
                     if b == 32 or b == 9 then
                         p += 1
@@ -381,7 +381,7 @@ class Interp
             else
                 stmt = string.slice(raw, p)
                 lineNo = nextAuto
-                while self.lineNoExists(lineNo) do
+                while self.lineNoExists(lineNo)
                     lineNo += 1
                 end
                 nextAuto = lineNo + 1
@@ -394,10 +394,10 @@ class Interp
         // 按行号升序排序三张并行表（兼容非升序输入）
         int n = self.lineNos.length
         int a = 0
-        while a < n - 1 do
+        while a < n - 1
             int best = a
             int b = a + 1
-            while b < n do
+            while b < n
                 if self.lineNos[b] < self.lineNos[best] then
                     best = b
                 end
@@ -424,7 +424,7 @@ class Interp
     func findLineIndex(int lineNo) as int
         int lo = 0
         int hi = self.lineNos.length - 1
-        while lo <= hi do
+        while lo <= hi
             int mid = (lo + hi) / 2
             int mv = self.lineNos[mid]
             if mv == lineNo then
@@ -453,7 +453,7 @@ class Interp
         int depth = 0
         int i = fromIdx
         int n = self.firstKws.length
-        while i < n do
+        while i < n
             string kw = self.firstKws[i]
             if kw == "FOR" then
                 depth += 1
@@ -647,7 +647,7 @@ class Interp
     func getVar(string name) as var
         int i = 0
         int n = self.vars.length
-        while i < n do
+        while i < n
             if string(self.vars[i]) == name then
                 return self.vars[i + 1]
             end
@@ -662,7 +662,7 @@ class Interp
     func setVar(string name, var val)
         int i = 0
         int n = self.vars.length
-        while i < n do
+        while i < n
             if string(self.vars[i]) == name then
                 self.vars[i + 1] = val
                 return
@@ -677,7 +677,7 @@ class Interp
         var a = []
         bool isStr = string.endsWith(name, "$")
         int i = 0
-        while i < count do
+        while i < count
             if isStr then
                 a.push("")
             else
@@ -691,7 +691,7 @@ class Interp
     func ensureArray(string name, int count)
         int i = 0
         int n = self.arrays.length
-        while i < n do
+        while i < n
             if string(self.arrays[i]) == name then
                 self.arrays[i + 1] = self.makeDefaultArray(name, count)
                 return
@@ -705,7 +705,7 @@ class Interp
     func findArray(string name) as int
         int i = 0
         int n = self.arrays.length
-        while i < n do
+        while i < n
             if string(self.arrays[i]) == name then
                 return i
             end
@@ -774,7 +774,7 @@ class Interp
 
     func parseOr() as var
         var v = self.parseAnd()
-        while self.curIsKw("OR") do
+        while self.curIsKw("OR")
             self.advance()
             var r = self.parseAnd()
             if self.truthy(v) or self.truthy(r) then
@@ -788,7 +788,7 @@ class Interp
 
     func parseAnd() as var
         var v = self.parseNot()
-        while self.curIsKw("AND") do
+        while self.curIsKw("AND")
             self.advance()
             var r = self.parseNot()
             if self.truthy(v) and self.truthy(r) then
@@ -878,7 +878,7 @@ class Interp
 
     func parseCmp() as var
         var v = self.parseAdd()
-        while true do
+        while true
             string k = self.curKind()
             if k == "=" or k == "<>" or k == "<=" or k == ">=" or k == "<" or k == ">" then
                 self.advance()
@@ -893,7 +893,7 @@ class Interp
 
     func parseAdd() as var
         var v = self.parseMul()
-        while self.curKind() == "+" or self.curKind() == "-" do
+        while self.curKind() == "+" or self.curKind() == "-"
             string k = self.curKind()
             self.advance()
             var r = self.parseMul()
@@ -912,7 +912,7 @@ class Interp
 
     func parseMul() as var
         var v = self.parseUnary()
-        while true do
+        while true
             string k = self.curKind()
             if k == "*" then
                 self.advance()
@@ -1108,7 +1108,7 @@ class Interp
                     var args = []
                     if self.curKind() != ")" then
                         args.push(self.parseOr())
-                        while self.curKind() == "," do
+                        while self.curKind() == ","
                             self.advance()
                             args.push(self.parseOr())
                         end
@@ -1224,7 +1224,7 @@ class Interp
         end
         bool suppress = false
         int col = 0
-        while self.curKind() != "eof" do
+        while self.curKind() != "eof"
             if self.curKind() == ";" then
                 self.advance()
                 if self.curKind() == "eof" then
@@ -1236,7 +1236,7 @@ class Interp
             if self.curKind() == "," then
                 self.advance()
                 int tgt = (col / 14 + 1) * 14
-                while col < tgt do
+                while col < tgt
                     self.emit(" ")
                     col += 1
                 end
@@ -1360,7 +1360,7 @@ class Interp
     end
 
     func doDim()
-        while true do
+        while true
             Tok t = self.peek()
             if t.kind != "ident" then
                 throw "BASIC: DIM 期望数组名"
@@ -1388,7 +1388,7 @@ class Interp
         self.stopped = false
         int nlines = self.stmts.length
         int steps = 0
-        while self.pc < nlines and not self.stopped do
+        while self.pc < nlines and not self.stopped
             // REM 行不分词（注释可能含任意字符），直接跳过
             if self.firstKws[self.pc] == "REM" then
                 self.toks = array[]

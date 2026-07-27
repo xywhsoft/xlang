@@ -97,10 +97,10 @@ end
 // 把角度规范化到 [-pi, pi)
 func normalizeAngle(float a) as float
     float r = a
-    while r >= PI do
+    while r >= PI
         r = r - TWO_PI
     end
-    while r < 0.0 - PI do
+    while r < 0.0 - PI
         r = r + TWO_PI
     end
     return r
@@ -164,7 +164,7 @@ end
 func makeIntArray(int length, int initVal) as array<int>
     array<int> a = array[initVal]
     int i = 1
-    while i < length do
+    while i < length
         a.push(initVal)
         i = i + 1
     end
@@ -175,7 +175,7 @@ end
 func makeFloatArray(int length, float initVal) as array<float>
     array<float> a = array[initVal]
     int i = 1
-    while i < length do
+    while i < length
         a.push(initVal)
         i = i + 1
     end
@@ -190,7 +190,7 @@ func makeStrArray(int length) as array<string>
     end
     array<string> a = array[""]
     int i = 1
-    while i < length do
+    while i < length
         a.push("")
         i = i + 1
     end
@@ -507,7 +507,7 @@ class World
         bool hit = false
         int i = 0
         int n = self.walls.length
-        while i < n do
+        while i < n
             LineSeg w = self.walls[i]
             bool h
             float t
@@ -520,7 +520,7 @@ class World
         end
         int j = 0
         int m = self.circles.length
-        while j < m do
+        while j < m
             Circle c = self.circles[j]
             bool h
             float t
@@ -542,7 +542,7 @@ class World
         float best = INF
         int i = 0
         int n = self.walls.length
-        while i < n do
+        while i < n
             LineSeg w = self.walls[i]
             float d = pointSegDist(px, py, w.x1, w.y1, w.x2, w.y2)
             if d < best then
@@ -552,7 +552,7 @@ class World
         end
         int j = 0
         int m = self.circles.length
-        while j < m do
+        while j < m
             Circle c = self.circles[j]
             float dx = px - c.cx
             float dy = py - c.cy
@@ -608,7 +608,7 @@ func worldSegmentFree(World w, float ax, float ay, float bx, float by, float rob
         steps = 400
     end
     int i = 0
-    while i <= steps do
+    while i <= steps
         float t = float(i) / float(steps)
         float px = ax + ex * t
         float py = ay + ey * t
@@ -760,7 +760,7 @@ class GridMap
         int occ = 0
         int n = self.cells.length
         int i = 0
-        while i < n do
+        while i < n
             float v = self.cells[i]
             if v <= EPS then
                 unknown = unknown + 1
@@ -797,7 +797,7 @@ class GridMap
         int cx = x0
         int cy = y0
         bool done = false
-        while not done do
+        while not done
             bool reachedEnd = (cx == x1) and (cy == y1)
             if reachedEnd then
                 if endIsHit and self.inBounds(cx, cy) then
@@ -833,7 +833,7 @@ class GridMap
         end
         int n = ranges.length
         int i = 0
-        while i < n do
+        while i < n
             float rng = ranges[i]
             if rng > 0.0 then
                 float ang = pose.theta + angleMin + float(i) * angleStep
@@ -861,7 +861,7 @@ class GridMap
         // 边界与墙：把每条墙栅格化成占据
         int i = 0
         int n = w.walls.length
-        while i < n do
+        while i < n
             LineSeg seg = w.walls[i]
             self.bakeSegment(seg.x1, seg.y1, seg.x2, seg.y2)
             i = i + 1
@@ -869,7 +869,7 @@ class GridMap
         // 圆形：扫描其外接圆周并填充
         int j = 0
         int m = w.circles.length
-        while j < m do
+        while j < m
             Circle c = w.circles[j]
             self.bakeCircle(c.cx, c.cy, c.radius)
             j = j + 1
@@ -912,13 +912,13 @@ class GridMap
         int cx = axc
         int cy = ayc
         bool done = false
-        while not done do
+        while not done
             // 在每个 Bresenham 步进点周围标记 3x3 块为占据（加粗墙体，便于规划避让）
             if self.inBounds(cx, cy) then
                 int ddx = -1
-                while ddx <= 1 do
+                while ddx <= 1
                     int ddy = -1
-                    while ddy <= 1 do
+                    while ddy <= 1
                         int tx = cx + ddx
                         int ty = cy + ddy
                         if self.inBounds(tx, ty) then
@@ -955,9 +955,9 @@ class GridMap
             return
         end
         int i = 0 - rad
-        while i <= rad do
+        while i <= rad
             int j = 0 - rad
-            while j <= rad do
+            while j <= rad
                 float d2 = float(i * i + j * j)
                 float dist = math.sqrt(d2)
                 if dist <= float(rad) then
@@ -977,7 +977,7 @@ class GridMap
     func inflateFree()
         int n = self.cells.length
         int i = 0
-        while i < n do
+        while i < n
             if self.cells[i] < EPS then
                 self.cells[i] = CELL_FREE
             end
@@ -997,14 +997,14 @@ class GridMap
     func computeFrontiers() as array<int>
         array<int> outputValue = array[]
         int cy = 1
-        while cy < self.height - 1 do
+        while cy < self.height - 1
             int cx = 1
-            while cx < self.width - 1 do
+            while cx < self.width - 1
                 float v = self.cells[cy * self.width + cx]
                 if v > FREE_THRESHOLD and v < OCC_THRESHOLD then
                     // 4 邻居中有未知格则把未知格加入
                     int k = 0
-                    while k < 4 do
+                    while k < 4
                         int nx = cx
                         int ny = cy
                         if k == 0 then
@@ -1036,10 +1036,10 @@ class GridMap
     func render(array<string> marks) as array<string>
         array<string> rows = array[]
         int cy = self.height - 1
-        while cy >= 0 do
+        while cy >= 0
             string line = ""
             int cx = 0
-            while cx < self.width do
+            while cx < self.width
                 int idx = cy * self.width + cx
                 string mk = marks[idx]
                 if string.len(mk) > 0 then
@@ -1130,7 +1130,7 @@ class MinHeap
     end
 
     func siftUp(int i)
-        while i > 0 do
+        while i > 0
             int parent = (i - 1) / 2
             HeapItem ii = self.data[i]
             HeapItem pp = self.data[parent]
@@ -1147,7 +1147,7 @@ class MinHeap
     func siftDown(int i)
         int n = self.data.length
         bool done = false
-        while not done do
+        while not done
             int left = 2 * i + 1
             int right = 2 * i + 2
             int smallest = i
@@ -1274,7 +1274,7 @@ class AStarPlanner
         bool reached = false
 
         bool done = false
-        while not done do
+        while not done
             bool ok
             float pr
             int cur
@@ -1292,7 +1292,7 @@ class AStarPlanner
                         int cx = cur % w
                         int cy = cur / w
                         int k = 0
-                        while k < 8 do
+                        while k < 8
                             int nx = cx + self.neighborDx[k]
                             int ny = cy + self.neighborDy[k]
                             if self.passable(nx, ny) then
@@ -1325,7 +1325,7 @@ class AStarPlanner
             array<int> revY = array[]
             int cur = goalId
             bool traceDone = false
-            while not traceDone do
+            while not traceDone
                 int cx = cur % w
                 int cy = cur / w
                 revX.push(cx)
@@ -1344,7 +1344,7 @@ class AStarPlanner
             // 反转
             int len = revX.length
             int i = len - 1
-            while i >= 0 do
+            while i >= 0
                 result.pathX.push(revX[i])
                 result.pathY.push(revY[i])
                 i = i - 1
@@ -1423,7 +1423,7 @@ class RRTPlanner
         float bestD2 = INF
         int n = nodes.length
         int i = 0
-        while i < n do
+        while i < n
             RRTNode nn = nodes[i]
             float dx = nn.x - x
             float dy = nn.y - y
@@ -1452,7 +1452,7 @@ class RRTPlanner
         int iter = 0
         bool reached = false
         bool done = false
-        while not done do
+        while not done
             iter = iter + 1
             if iter > maxIter then
                 done = true
@@ -1510,7 +1510,7 @@ class RRTPlanner
             array<float> revY = array[]
             int cur = nodes.length - 1
             bool backDone = false
-            while not backDone do
+            while not backDone
                 RRTNode cn = nodes[cur]
                 revX.push(cn.x)
                 revY.push(cn.y)
@@ -1522,7 +1522,7 @@ class RRTPlanner
             end
             int len = revX.length
             int i = len - 1
-            while i >= 0 do
+            while i >= 0
                 result.pathX.push(revX[i])
                 result.pathY.push(revY[i])
                 i = i - 1
@@ -1596,7 +1596,7 @@ class VFHController extends ControllerBase
         int n = ranges.length
         int i = 0
         bool tooClose = false
-        while i < n do
+        while i < n
             float r = ranges[i]
             if r < self.safeDist then
                 float ang = angleMin + float(i) * angleStep
@@ -1644,7 +1644,7 @@ class VFHController extends ControllerBase
         int bestBin = -1
         float bestCost = INF
         int k = 0
-        while k < numSect do
+        while k < numSect
             if hist[k] < self.sectorThreshold then
                 int diff = int(math.abs(float(k - goalBin)))
                 int wrap = numSect - diff
@@ -1722,7 +1722,7 @@ class PotentialController extends ControllerBase
         float repY = 0.0
         int n = ranges.length
         int i = 0
-        while i < n do
+        while i < n
             float r = ranges[i]
             if r < self.repRange and r > EPS then
                 float ang = angleMin + float(i) * angleStep
@@ -1951,7 +1951,7 @@ class Robot
     func senseLidar(World w)
         int i = 0
         int n = self.lidarCount
-        while i < n do
+        while i < n
             float ang = self.theta + self.lidarMin + float(i) * self.lidarStep
             float dx = math.cos(ang)
             float dy = math.sin(ang)
@@ -1986,7 +1986,7 @@ class Robot
         array<float> outputValue = array[]
         int n = self.ranges.length
         int i = 0
-        while i < n do
+        while i < n
             outputValue.push(self.ranges[i])
             i = i + 1
         end
@@ -1998,7 +1998,7 @@ class Robot
         float best = self.lidarMaxRange
         int n = self.lidarCount
         int i = 0
-        while i < n do
+        while i < n
             float ang = self.lidarMin + float(i) * self.lidarStep
             if math.abs(ang) < degToRad(30.0) then
                 if self.ranges[i] < best then
@@ -2187,7 +2187,7 @@ func buildMarksForMap(GridMap m, Robot r, array<int> pathX, array<int> pathY,
     if showPath then
         int n = pathX.length
         int i = 0
-        while i < n do
+        while i < n
             int cx = pathX[i]
             int cy = pathY[i]
             if m.inBounds(cx, cy) then
@@ -2211,7 +2211,7 @@ func printMapRows(array<string> rows, string title)
     println(bar)
     int i = 0
     int n = rows.length
-    while i < n do
+    while i < n
         println(rows[i])
         i = i + 1
     end
@@ -2234,7 +2234,7 @@ func pickFrontierGoal(GridMap m, Pose cur) as (bool, float, float)
     float bestY = 0.0
     float bestD = INF
     int i = 0
-    while i + 1 < n do
+    while i + 1 < n
         int cx = fr[i]
         int cy = fr[i + 1]
         float wx
@@ -2298,7 +2298,7 @@ func cmdExplore(int maxSteps, string controllerName) as int
     println("[explore] world=" + string(w.wallCount()) + " walls, " + string(w.circleCount()) + " circles")
     println("[explore] controller=" + ctrl.describe() + " steps=" + string(maxSteps) + " dt=" + float.format(dt, ".2") + "s")
 
-    while step < maxSteps do
+    while step < maxSteps
         // 选前沿目标
         if not hasGoal then
             bool ok
@@ -2462,7 +2462,7 @@ func cmdNavigate(string plannerName) as int
             int i = 0
             int prevCx = -1
             int prevCy = -1
-            while i < n do
+            while i < n
                 bool ok
                 int cx
                 int cy
@@ -2490,7 +2490,7 @@ func cmdNavigate(string plannerName) as int
         if found then
             int n = res2.pathX.length
             int i = 0
-            while i < n do
+            while i < n
                 pathX.push(res2.pathX[i])
                 pathY.push(res2.pathY[i])
                 i = i + 1
@@ -2526,7 +2526,7 @@ func cmdNavigate(string plannerName) as int
     float totalDriven = 0.0
     int bumpCount = 0
 
-    while simStep < maxSimSteps and not reached do
+    while simStep < maxSimSteps and not reached
         int newCursor
         float v
         float wcmd
@@ -2790,7 +2790,7 @@ func testAStar()
     // 直线无障碍场景：先把全图置为 free（默认 unknown 不可通行）
     GridMap m2 = GridMap(20, 20, 0.5, 0.0, 0.0)
     int ci = 0
-    while ci < m2.sizeCells() do
+    while ci < m2.sizeCells()
         m2.cells[ci] = CELL_FREE
         ci = ci + 1
     end
@@ -2863,7 +2863,7 @@ func testSlam()
     checkTrue(slam.scanCount == 1, "SLAM scanCount after 1 update")
     // 走几步再更新
     int i = 0
-    while i < 5 do
+    while i < 5
         r.setCommand(0.3, 0.0, 0.5)
         r.senseLidar(w)
         slam.update(r)
@@ -2886,7 +2886,7 @@ func testSensors()
     float minR = INF
     int i = 0
     int n = r.ranges.length
-    while i < n do
+    while i < n
         if r.ranges[i] < minR then
             minR = r.ranges[i]
         end
@@ -2950,7 +2950,7 @@ func cmdBenchmark() as int
     int rays = 0
     float t0 = time.timer()
     int iter = 0
-    while iter < 200 do
+    while iter < 200
         r.senseLidar(w)
         rays = rays + r.lidarCount
         iter = iter + 1
@@ -2968,7 +2968,7 @@ func cmdBenchmark() as int
     int scans = 0
     float t1 = time.timer()
     int iter2 = 0
-    while iter2 < 50 do
+    while iter2 < 50
         r.senseLidar(w)
         slam.update(r)
         scans = scans + 1
@@ -3002,7 +3002,7 @@ func cmdBenchmark() as int
     int bestVisited = 0
     int bestLen = 0
     int k = 0
-    while k < 5 do
+    while k < 5
         AStarResult rr = asp.plan(sx, sy, gx, gy)
         if rr.elapsed < bestT then
             bestT = rr.elapsed
@@ -3022,7 +3022,7 @@ func cmdBenchmark() as int
     int rrtBestLen = 0
     int rrtBestIter = 0
     int k2 = 0
-    while k2 < 5 do
+    while k2 < 5
         RRTResult rr = rrt.plan(0.7, 0.7, 9.3, 9.3, 5000)
         if rr.found and rr.elapsed < rrtBestT then
             rrtBestT = rr.elapsed
@@ -3045,7 +3045,7 @@ func cmdBenchmark() as int
     VFHController vfc = VFHController(0.5, 1.0)
     float t2 = time.timer()
     int citer = 0
-    while citer < 10000 do
+    while citer < 10000
         float va
         float wa
         va, wa = vfc.computeCommand(pp, g, sampleRanges, 0.0 - PI, TWO_PI / 180.0)
@@ -3072,7 +3072,7 @@ func parseArgInt(string s, int defValue) as int
         end
     end
     int i = start
-    while i < string.len(s) do
+    while i < string.len(s)
         string ch = string.slice(s, i, 1)
         if string.indexOf("0123456789", ch) < 0 then
             return defValue

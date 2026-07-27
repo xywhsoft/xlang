@@ -90,7 +90,7 @@ class PageTable
     func find(int vpn) as int
         int n = self.pages.length
         int i = 0
-        while i < n do
+        while i < n
             if self.pages[i] == vpn then
                 return i
             end
@@ -109,7 +109,7 @@ class PageTable
     end
 
     func ensureDir(int d)
-        while self.dirOccupancy.length <= d do
+        while self.dirOccupancy.length <= d
             self.dirOccupancy.append(0)
         end
     end
@@ -182,7 +182,7 @@ class PageTable
         array<int> outputValue = array[]
         int n = self.pages.length
         int i = 0
-        while i < n do
+        while i < n
             outputValue.append(self.pages[i])
             i += 1
         end
@@ -194,7 +194,7 @@ class PageTable
         int c = 0
         int n = self.dirOccupancy.length
         int i = 0
-        while i < n do
+        while i < n
             if self.dirOccupancy[i] > 0 then
                 c += 1
             end
@@ -218,7 +218,7 @@ end
 func nextUse(int page, int fromIdx, array<int> trace) as int
     int j = fromIdx + 1
     int n = trace.length
-    while j < n do
+    while j < n
         if trace[j] == page then
             return j
         end
@@ -254,7 +254,7 @@ class TLB
     func find(int vpn) as int
         int n = self.pages.length
         int i = 0
-        while i < n do
+        while i < n
             if self.pages[i] == vpn then
                 return i
             end
@@ -293,7 +293,7 @@ class TLB
         else
             int victim = 0
             int i = 1
-            while i < self.pages.length do
+            while i < self.pages.length
                 if self.stamp[i] < self.stamp[victim] then
                     victim = i
                 end
@@ -357,7 +357,7 @@ func snapshot(array<int> frames) as string
     string s = "["
     int n = frames.length
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             s = s + ","
         end
@@ -387,7 +387,7 @@ func simulate(array<int> trace, int numFrames, string algo, int tlbCap) as SimRe
 
     array<int> frames = array[]
     int fi = 0
-    while fi < numFrames do
+    while fi < numFrames
         frames.append(-1)
         fi += 1
     end
@@ -406,7 +406,7 @@ func simulate(array<int> trace, int numFrames, string algo, int tlbCap) as SimRe
 
     int n = trace.length
     int idx = 0
-    while idx < n do
+    while idx < n
         int vpn = trace[idx]
         accesses += 1
         tick += 1
@@ -430,7 +430,7 @@ func simulate(array<int> trace, int numFrames, string algo, int tlbCap) as SimRe
                 pageFaults += 1
                 int targetFrame = -1
                 int ff = 0
-                while ff < numFrames do
+                while ff < numFrames
                     if frames[ff] == -1 then
                         targetFrame = ff
                         ff = numFrames
@@ -450,7 +450,7 @@ func simulate(array<int> trace, int numFrames, string algo, int tlbCap) as SimRe
                         victimPage = rp[0]
                         int bestStamp = pt.lastUsedOf(victimPage)
                         int li = 1
-                        while li < rp.length do
+                        while li < rp.length
                             int s = pt.lastUsedOf(rp[li])
                             if s < bestStamp then
                                 bestStamp = s
@@ -461,7 +461,7 @@ func simulate(array<int> trace, int numFrames, string algo, int tlbCap) as SimRe
                     elseif algo == "clock" then
                         // 二次机会: 手绕帧环形扫描, ref=1 清零前进, ref=0 淘汰.
                         int guard = 0
-                        while guard < numFrames + 1 do
+                        while guard < numFrames + 1
                             guard += 1
                             int pg = frames[clockHand]
                             if pt.referencedOf(pg) == 1 then
@@ -479,7 +479,7 @@ func simulate(array<int> trace, int numFrames, string algo, int tlbCap) as SimRe
                         victimPage = rp[0]
                         int bestNext = nextUse(victimPage, idx, trace)
                         int oi = 1
-                        while oi < rp.length do
+                        while oi < rp.length
                             int nxt = nextUse(rp[oi], idx, trace)
                             if nxt > bestNext then
                                 bestNext = nxt
@@ -533,7 +533,7 @@ func parseTrace(string content) as array<int>
     string norm = string.replace(content, "\t", " ")
     array lines = string.splitLines(norm)
     int li = 0
-    while li < lines.length do
+    while li < lines.length
         string s = string.trim(string(lines[li]))
         li += 1
         if s == "" then
@@ -541,7 +541,7 @@ func parseTrace(string content) as array<int>
         end
         array toks = string.split(s, " ")
         int ti = 0
-        while ti < toks.length do
+        while ti < toks.length
             string t = string.trim(string(toks[ti]))
             ti += 1
             if t == "" then
@@ -628,7 +628,7 @@ func renderReplay(SimResult res)
     println(string.padRight("Step", 7) + string.padRight("Page", 7) + string.padRight("TLB", 7) + string.padRight("Fault", 8) + "Frames")
     println(string.repeat("-", 42))
     int i = 0
-    while i < res.log.length do
+    while i < res.log.length
         TraceStep st = res.log[i]
         string tlbStr = "miss"
         if st.tlbHit == 1 then
@@ -693,7 +693,7 @@ func runCompare(array<int> trace, int frames)
     array<int> fFaults = array[]
     array<int> fTlbHits = array[]
     int k = 0
-    while k < 4 do
+    while k < 4
         SimResult res = simulate(trace, frames, algos[k], 4)
         fFaults.append(res.pageFaults)
         fTlbHits.append(res.tlbHits)
@@ -703,14 +703,14 @@ func runCompare(array<int> trace, int frames)
     println(string.padRight("Algorithm", 12) + string.padLeft("Faults", 9) + string.padLeft("FaultRate", 12) + string.padLeft("TLB-Hit", 10) + string.padLeft("TLB-Rate", 10))
     println(string.repeat("-", 53))
     k = 0
-    while k < 4 do
+    while k < 4
         println(string.padRight(algoName(algos[k]), 12) + string.padLeft(string(fFaults[k]), 9) + string.padLeft(pct(fFaults[k], trace.length), 12) + string.padLeft(string(fTlbHits[k]), 10) + string.padLeft(pct(fTlbHits[k], trace.length), 10))
         k += 1
     end
     println(string.repeat("-", 53))
     int best = 0
     k = 1
-    while k < 4 do
+    while k < 4
         if fFaults[k] < fFaults[best] then
             best = k
         end
@@ -745,7 +745,7 @@ end
 // 在 arg[start..] 中找 frames=N, 返回 N; 没有返回 defaultFrames; 非法返回 -1.
 func parseFrames(var arg, int start, int defaultFrames) as int
     int i = start
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if string.startsWith(a, "frames=") then
             string rest = string.mid(a, 7)

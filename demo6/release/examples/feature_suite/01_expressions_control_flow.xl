@@ -85,7 +85,7 @@ expect(sign(0), 0)
 // while。
 int i = 0
 int total = 0
-while i < 5 do
+while i < 5
     i += 1
     total += i
 end
@@ -95,7 +95,7 @@ expect(total, 15)
 int once = 0
 do
     once += 1
-while once < 1
+while once < 1 end
 expect(once, 1)
 
 // range：range(stop)、range(start, stop)、range(start, stop, step)。

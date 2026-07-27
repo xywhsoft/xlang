@@ -227,7 +227,7 @@ func reapThread()
 end
 
 func joinThreads()
-    while true do
+    while true
         g_threadMu.lock()
         bool done = g_threadActive <= 0
         g_threadMu.unlock()
@@ -244,7 +244,7 @@ end
 
 func findIdx(array<string> names, string name) as int
     int i = 0
-    while i < names.length do
+    while i < names.length
         if names[i] == name then
             return i
         end
@@ -260,7 +260,7 @@ end
 func initRegistries()
     // message-queue slots
     int i = 0
-    while i < MAX_MSGQ do
+    while i < MAX_MSGQ
         g_mqName.push("")
         g_mqStatus.push(ST_FREE)
         g_mqCap.push(0)
@@ -268,14 +268,14 @@ func initRegistries()
     end
     // pipe slots
     i = 0
-    while i < MAX_PIPE do
+    while i < MAX_PIPE
         g_pipeName.push("")
         g_pipeStatus.push(ST_FREE)
         i = i + 1
     end
     // sem slots
     i = 0
-    while i < MAX_SEM do
+    while i < MAX_SEM
         g_semName.push("")
         g_semStatus.push(ST_FREE)
         g_semInit.push(0)
@@ -284,13 +284,13 @@ func initRegistries()
     end
     // shm slab
     i = 0
-    while i < SHM_SLAB_SIZE do
+    while i < SHM_SLAB_SIZE
         g_shmData.push(0)
         i = i + 1
     end
     // rpc response slots
     i = 0
-    while i < MAX_RPC_RESP do
+    while i < MAX_RPC_RESP
         g_rpcRespStatus.push(ST_FREE)
         g_rpcArg.push(0)
         g_rpcHandlerIdx.push(-1)
@@ -299,7 +299,7 @@ func initRegistries()
     end
     // bus slots
     i = 0
-    while i < MAX_BUS do
+    while i < MAX_BUS
         g_busTopic.push("")
         g_busStatus.push(ST_FREE)
         g_busRecv.push(0)
@@ -398,7 +398,7 @@ func msgq_create(string name, int capacity) as int
         return -1
     end
     int slot = 0
-    while slot < MAX_MSGQ do
+    while slot < MAX_MSGQ
         if g_mqStatus[slot] == ST_FREE then
             break
         end
@@ -446,7 +446,7 @@ func msgq_send(string name, int msg) as bool
         return false
     end
     // blocking send with backpressure retry; bail if the queue was closed
-    while true do
+    while true
         if mqSendSlot(slot, msg) then
             return true
         end
@@ -464,7 +464,7 @@ func msgq_recv(string name, int timeout) as int
         return MSGQ_FAIL
     end
     int tries = 0
-    while tries < timeout do
+    while tries < timeout
         array<int> r = mqTryRecvSlot(slot)
         if r[0] == 1 then
             return r[1]
@@ -535,7 +535,7 @@ func shm_create(string name, int size) as int
     g_shmStatus.push(ST_ACTIVE)
     // zero the region
     int i = 0
-    while i < size do
+    while i < size
         g_shmData[base + i] = 0
         i = i + 1
     end
@@ -699,7 +699,7 @@ func pipe_create(string name) as int
         return -1
     end
     int slot = 0
-    while slot < MAX_PIPE do
+    while slot < MAX_PIPE
         if g_pipeStatus[slot] == ST_FREE then
             break
         end
@@ -745,7 +745,7 @@ func pipe_write(string name, int data) as bool
     if slot < 0 then
         return false
     end
-    while true do
+    while true
         if pipeSendSlot(slot, data) then
             return true
         end
@@ -763,7 +763,7 @@ func pipe_read(string name, int timeout) as int
         return PIPE_FAIL
     end
     int tries = 0
-    while tries < timeout do
+    while tries < timeout
         array<int> r = pipeTryRecvSlot(slot)
         if r[0] == 1 then
             return r[1]
@@ -907,7 +907,7 @@ func sem_create(string name, int initial, int maxCount) as int
         return -1
     end
     int slot = 0
-    while slot < MAX_SEM do
+    while slot < MAX_SEM
         if g_semStatus[slot] == ST_FREE then
             break
         end
@@ -1042,7 +1042,7 @@ end
 
 // the RPC worker: loops forever draining g_rpcReq
 auto g_rpcWorker = func() as int
-    while true do
+    while true
         int callId = -1
         if g_rpcReq.tryRecvInto(callId) then
             if callId < 0 or callId >= MAX_RPC_RESP then
@@ -1059,7 +1059,7 @@ auto g_rpcWorker = func() as int
                 end
                 // retry send until the response channel accepts
                 int attempts = 0
-                while attempts < 500 do
+                while attempts < 500
                     if rpcRespSend(callId, result) then
                         break
                     end
@@ -1104,7 +1104,7 @@ end
 func rpc_allocSlot() as int
     g_rpcMu.lock()
     int i = 0
-    while i < MAX_RPC_RESP do
+    while i < MAX_RPC_RESP
         if g_rpcRespStatus[i] == ST_FREE then
             g_rpcRespStatus[i] = ST_ACTIVE
             g_rpcMu.unlock()
@@ -1143,7 +1143,7 @@ func rpc_call(string name, int args) as int
     // enqueue the request
     int attempts = 0
     bool enqueued = false
-    while attempts < 500 do
+    while attempts < 500
         if g_rpcReq.send(callId) then
             enqueued = true
             break
@@ -1158,7 +1158,7 @@ func rpc_call(string name, int args) as int
     // block for the response
     int waitTicks = 0
     int result = RPC_FAIL
-    while waitTicks < 5000 do
+    while waitTicks < 5000
         array<int> r = rpcRespTryRecv(callId)
         if r[0] == 1 then
             result = r[1]
@@ -1228,7 +1228,7 @@ end
 func bus_subscribe(string topic) as int
     g_regMu.lock()
     int slot = 0
-    while slot < MAX_BUS do
+    while slot < MAX_BUS
         if g_busStatus[slot] == ST_FREE then
             break
         end
@@ -1267,12 +1267,12 @@ func bus_publish(string topic, int event) as int
     int delivered = 0
     g_regMu.lock()
     int slot = 0
-    while slot < MAX_BUS do
+    while slot < MAX_BUS
         if g_busStatus[slot] == ST_ACTIVE and g_busTopic[slot] == topic then
             // attempt delivery with brief retry on a full channel
             int attempts = 0
             bool ok = false
-            while attempts < 200 do
+            while attempts < 200
                 if busSendSlot(slot, event) then
                     ok = true
                     break
@@ -1295,7 +1295,7 @@ func bus_recv(int slot, int timeout) as int
         return BUS_FAIL
     end
     int tries = 0
-    while tries < timeout do
+    while tries < timeout
         array<int> r = busTryRecvSlot(slot)
         if r[0] == 1 then
             g_regMu.lock()
@@ -1361,7 +1361,7 @@ end
 
 func rag_addEdge(int fromNode, int toNode)
     int i = 0
-    while i < g_ragEdgeFrom.length do
+    while i < g_ragEdgeFrom.length
         if g_ragEdgeFrom[i] == fromNode and g_ragEdgeTo[i] == toNode then
             return
         end
@@ -1373,7 +1373,7 @@ end
 
 func rag_removeEdge(int fromNode, int toNode)
     int i = 0
-    while i < g_ragEdgeFrom.length do
+    while i < g_ragEdgeFrom.length
         if g_ragEdgeFrom[i] == fromNode and g_ragEdgeTo[i] == toNode then
             g_ragEdgeFrom.remove(i)
             g_ragEdgeTo.remove(i)
@@ -1385,7 +1385,7 @@ end
 
 func rag_hasEdge(int fromNode, int toNode) as bool
     int i = 0
-    while i < g_ragEdgeFrom.length do
+    while i < g_ragEdgeFrom.length
         if g_ragEdgeFrom[i] == fromNode and g_ragEdgeTo[i] == toNode then
             return true
         end
@@ -1425,24 +1425,24 @@ func rag_detect() as bool
     // reset colors to white
     g_ragColor = array[]
     int k = 0
-    while k < n do
+    while k < n
         g_ragColor.push(0)
         k = k + 1
     end
     int start = 0
-    while start < n do
+    while start < n
         if g_ragColor[start] == 0 then
             // begin an iterative DFS from `start`
             g_ragStack = array[]
             g_ragStack.push(start)
             g_ragColor[start] = 1
-            while g_ragStack.length > 0 do
+            while g_ragStack.length > 0
                 int top = g_ragStack[g_ragStack.length - 1]
                 // find an unvisited or gray neighbor of `top`
                 int v = -1
                 int backEdgeTo = -1
                 int i = 0
-                while i < g_ragEdgeFrom.length do
+                while i < g_ragEdgeFrom.length
                     if g_ragEdgeFrom[i] == top then
                         int cand = g_ragEdgeTo[i]
                         if g_ragColor[cand] == 1 then
@@ -1479,32 +1479,32 @@ func rag_cycle() as string
     int n = g_ragName.length
     g_ragColor = array[]
     int k = 0
-    while k < n do
+    while k < n
         g_ragColor.push(0)
         k = k + 1
     end
     g_ragStack = array[]
     int s = 0
-    while s < n do
+    while s < n
         if g_ragColor[s] == 0 then
             g_ragStack.push(s)
             g_ragColor[s] = 1
-            while g_ragStack.length > 0 do
+            while g_ragStack.length > 0
                 int top = g_ragStack[g_ragStack.length - 1]
                 int advanced = -1
                 int i = 0
-                while i < g_ragEdgeFrom.length do
+                while i < g_ragEdgeFrom.length
                     if g_ragEdgeFrom[i] == top then
                         int cand = g_ragEdgeTo[i]
                         if g_ragColor[cand] == 1 then
                             // build path from first occurrence of cand
                             int j = 0
                             string path = ""
-                            while j < g_ragStack.length do
+                            while j < g_ragStack.length
                                 if g_ragStack[j] == cand then
                                     path = g_ragName[g_ragStack[j]]
                                     int m = j + 1
-                                    while m < g_ragStack.length do
+                                    while m < g_ragStack.length
                                         path = path + " -> " + g_ragName[g_ragStack[m]]
                                         m = m + 1
                                     end
@@ -1538,7 +1538,7 @@ end
 func rag_dump()
     println("  RAG nodes:")
     int i = 0
-    while i < g_ragName.length do
+    while i < g_ragName.length
         string kind = "PROC"
         if g_ragKind[i] == RAG_RES then
             kind = "RES "
@@ -1548,7 +1548,7 @@ func rag_dump()
     end
     println("  RAG edges:")
     i = 0
-    while i < g_ragEdgeFrom.length do
+    while i < g_ragEdgeFrom.length
         println("    ", g_ragName[g_ragEdgeFrom[i]], " -> ", g_ragName[g_ragEdgeTo[i]])
         i = i + 1
     end
@@ -1567,7 +1567,7 @@ array<int> g_mqTestValues = array[]
 func makeMqProducer(int pid, string qname, int count) as func() as int
     return func() as int
         int i = 1
-        while i <= count do
+        while i <= count
             int msg = pid * 1000 + i
             if msgq_send(qname, msg) then
                 g_mqTestMu.lock()
@@ -1585,7 +1585,7 @@ end
 func makeMqConsumer(int cid, string qname, int expect) as func() as int
     return func() as int
         int got = 0
-        while got < expect do
+        while got < expect
             int v = msgq_recv(qname, 3000)
             if v == MSGQ_FAIL then
                 // timeout: stop early
@@ -1668,7 +1668,7 @@ int   g_shmTestSum = 0
 func makeShmWriter(int wid, string name, int base, int count) as func() as int
     return func() as int
         int i = 0
-        while i < count do
+        while i < count
             // each writer claims a distinct offset
             int off = base + i
             shm_write(name, off, wid * 10 + i)
@@ -1683,7 +1683,7 @@ func makeShmAccumulator(string name, int size) as func() as int
     return func() as int
         int s = 0
         int i = 0
-        while i < size do
+        while i < size
             s = s + shm_read(name, i)
             i = i + 1
         end
@@ -1757,7 +1757,7 @@ end
 func makePipeEndpointA(string name, int count) as func() as int
     return func() as int
         int i = 1
-        while i <= count do
+        while i <= count
             pipe_write(name, i * 10)
             i = i + 1
         end
@@ -1769,7 +1769,7 @@ end
 func makePipeEndpointB(string name, int expect) as func() as int
     return func() as int
         int got = 0
-        while got < expect do
+        while got < expect
             int v = pipe_read(name, 3000)
             if v == PIPE_FAIL then
                 break
@@ -1813,7 +1813,7 @@ func test_pipe()
     pipe_create("p3")
     int ok = 0
     int i = 1
-    while i <= 20 do
+    while i <= 20
         if pipe_write("p3", i) then
             ok = ok + 1
         end
@@ -1822,7 +1822,7 @@ func test_pipe()
     verify(ok == 20, "pipe bulk write 20 items")
     int readBack = 0
     i = 0
-    while i < 20 do
+    while i < 20
         int v = pipe_read("p3", 200)
         if v == i + 1 then
             readBack = readBack + 1
@@ -1864,7 +1864,7 @@ end
 func makeSemPoster(string name, int count, int delayMs) as func() as int
     return func() as int
         int i = 0
-        while i < count do
+        while i < count
             time.sleep(delayMs)
             sem_post(name)
             i = i + 1
@@ -2015,7 +2015,7 @@ array<int> g_busTestLog = array[]
 func makeBusListener(int slot, string tag, int expect) as func() as int
     return func() as int
         int got = 0
-        while got < expect do
+        while got < expect
             int v = bus_recv(slot, 3000)
             if v == BUS_FAIL then
                 break
@@ -2235,7 +2235,7 @@ int   g_demoShmSum       = 0
 func demoProducer(string qname) as func() as int
     return func() as int
         int i = 1
-        while i <= DEMO_JOBS do
+        while i <= DEMO_JOBS
             msgq_send(qname, i)
             g_demoMu.lock()
             g_demoJobsProduced = g_demoJobsProduced + 1
@@ -2253,7 +2253,7 @@ end
 func demoWorker(string qname, string shmname, string pipename, string topic) as func() as int
     return func() as int
         int processed = 0
-        while true do
+        while true
             int job = msgq_recv(qname, 4000)
             if job == MSGQ_FAIL then
                 break
@@ -2282,7 +2282,7 @@ func demoLogger(string pipename, int pipeSlot, string topic, int busSlot, int ex
         int pipeGot = 0
         int busGot = 0
         // alternate probing the pipe and the bus until both are satisfied
-        while pipeGot < expect or busGot < expect do
+        while pipeGot < expect or busGot < expect
             if pipeGot < expect then
                 int v = pipe_read(pipename, 200)
                 if v != PIPE_FAIL then
@@ -2338,7 +2338,7 @@ func runDemo() as int
     println("shared memory region 'accum':")
     int i = 1
     bool shmOk = true
-    while i <= DEMO_JOBS do
+    while i <= DEMO_JOBS
         int val = shm_read("accum", i - 1)
         println("  accum[", i - 1, "] = ", val, " (expected ", i * 2, ")")
         if val != i * 2 then

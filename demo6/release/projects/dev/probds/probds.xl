@@ -56,7 +56,7 @@ class BloomFilter
         self.count = 0
         self.bits = []
         int i = 0
-        while i < self.nWords do
+        while i < self.nWords
             self.bits.append(0)
             i += 1
         end
@@ -85,7 +85,7 @@ class BloomFilter
             h2 = 1
         end
         int i = 0
-        while i < self.kHash do
+        while i < self.kHash
             uint64 pos = (h1 + uint64(i) * h2) % mm
             int idx = int(pos)
             self.setBit(idx)
@@ -103,7 +103,7 @@ class BloomFilter
             h2 = 1
         end
         int i = 0
-        while i < self.kHash do
+        while i < self.kHash
             uint64 pos = (h1 + uint64(i) * h2) % mm
             int idx = int(pos)
             if not self.getBit(idx) then
@@ -125,7 +125,7 @@ class BloomFilter
         if inner < 0.0 then inner = 0.0 end
         float r = 1.0
         int i = 0
-        while i < self.kHash do
+        while i < self.kHash
             r = r * inner
             i += 1
         end
@@ -135,7 +135,7 @@ class BloomFilter
     func stats() as string
         int nz = 0
         int i = 0
-        while i < self.nWords do
+        while i < self.nWords
             if self.bits[i] != 0 then nz += 1 end
             i += 1
         end
@@ -168,7 +168,7 @@ class CountMinSketch
         self.seenKeys = []
         int n = depth * width
         int i = 0
-        while i < n do
+        while i < n
             self.counters.append(0)
             i += 1
         end
@@ -182,7 +182,7 @@ class CountMinSketch
     func update(string key, int c)
         int base = 0
         int r = 0
-        while r < self.depth do
+        while r < self.depth
             uint64 h = hash.u64WithSeed(key, uint64(r + 1))
             int idx = int(h % uint64(self.width))
             int p = base + idx
@@ -204,7 +204,7 @@ class CountMinSketch
         int base = 0
         int best = 0
         int r = 0
-        while r < self.depth do
+        while r < self.depth
             uint64 h = hash.u64WithSeed(key, uint64(r + 1))
             int idx = int(h % uint64(self.width))
             int v = self.counters[base + idx]
@@ -225,7 +225,7 @@ class CountMinSketch
         array<int> vals
         int i = 0
         int n = self.seenKeys.length
-        while i < n do
+        while i < n
             string k = self.seenKeys[i]
             int est = self.estimate(k)
             if est >= threshold then
@@ -237,10 +237,10 @@ class CountMinSketch
         // 选择排序 (按 val 降序)
         int m = keys.length
         int a = 0
-        while a < m do
+        while a < m
             int best = a
             int b = a + 1
-            while b < m do
+            while b < m
                 if vals[b] > vals[best] then best = b end
                 b += 1
             end
@@ -274,7 +274,7 @@ func hllRho(uint64 w, int width) as int
         return width + 1
     end
     int b = width - 1
-    while b >= 0 do
+    while b >= 0
         uint64 mask = uint64(1) << b
         if (w & mask) != 0 then
             return width - b
@@ -295,7 +295,7 @@ class HyperLogLog
         self.p = p
         int mm = 1
         int i = 0
-        while i < p do
+        while i < p
             mm = mm * 2
             i += 1
         end
@@ -304,14 +304,14 @@ class HyperLogLog
         // 低 wBits 位掩码: (1 << wBits) - 1。int 在 xlang 是 64-bit, 1<<50 安全。
         int maskBits = 1
         int k = 0
-        while k < self.wBits do
+        while k < self.wBits
             maskBits = maskBits * 2
             k += 1
         end
         self.wMask = uint64(maskBits - 1)
         self.regs = []
         int j = 0
-        while j < self.m do
+        while j < self.m
             self.regs.append(0)
             j += 1
         end
@@ -345,7 +345,7 @@ class HyperLogLog
         float s = 0.0
         int zeros = 0
         int i = 0
-        while i < self.m do
+        while i < self.m
             int r = self.regs[i]
             s = s + self.pow2neg(r)
             if r == 0 then zeros += 1 end
@@ -363,7 +363,7 @@ class HyperLogLog
     // 合并另一个 HLL (per-register max)
     func merge(HyperLogLog other)
         int i = 0
-        while i < self.m do
+        while i < self.m
             int ov = other.regs[i]
             int cv = self.regs[i]
             if ov > cv then
@@ -376,7 +376,7 @@ class HyperLogLog
     func stats() as string
         int zeros = 0
         int i = 0
-        while i < self.m do
+        while i < self.m
             if self.regs[i] == 0 then zeros += 1 end
             i += 1
         end
@@ -427,7 +427,7 @@ func testBloom() as int
 
     // 插入 10000 个 key
     int i = 0
-    while i < cap do
+    while i < cap
         bf.add(makeKey2("in", i))
         i += 1
     end
@@ -437,7 +437,7 @@ func testBloom() as int
     // 验证: 已插入的 key 全部命中 (无假阴性)
     int falseNeg = 0
     int j = 0
-    while j < cap do
+    while j < cap
         if not bf.contains(makeKey2("in", j)) then falseNeg += 1 end
         j += 1
     end
@@ -446,7 +446,7 @@ func testBloom() as int
     // 验证: 未插入的 key 测量假阳性率
     int falsePos = 0
     int k = 0
-    while k < cap do
+    while k < cap
         if bf.contains(makeKey2("out", k)) then falsePos += 1 end
         k += 1
     end
@@ -473,7 +473,7 @@ func testCMS() as int
     // 已知计数: key-i 出现 (i % 100 + 1) 次
     int n = 5000
     int i = 0
-    while i < n do
+    while i < n
         int c = (i % 100) + 1
         cms.update(makeKey(i), c)
         i += 1
@@ -520,7 +520,7 @@ func testHLL() as int
     // 加入 10000 个不同 key 的哈希
     int n = 10000
     int i = 0
-    while i < n do
+    while i < n
         hll.addKey(makeKey(i))
         i += 1
     end
@@ -533,7 +533,7 @@ func testHLL() as int
 
     // 重复加入相同 key 不改变基数
     int j = 0
-    while j < n do
+    while j < n
         hll.addKey(makeKey(j))
         j += 1
     end
@@ -544,12 +544,12 @@ func testHLL() as int
     HyperLogLog a = HyperLogLog(14)
     HyperLogLog b = HyperLogLog(14)
     int x = 0
-    while x < 5000 do
+    while x < 5000
         a.addKey(makeKey2("a", x))
         x += 1
     end
     int y = 0
-    while y < 5000 do
+    while y < 5000
         b.addKey(makeKey2("b", y))
         y += 1
     end
@@ -607,7 +607,7 @@ func benchBloom(int n) as float
     // 预热: 先插入
     float t0 = time.timer()
     int i = 0
-    while i < n do
+    while i < n
         bf.add(makeKey(i))
         i += 1
     end
@@ -617,7 +617,7 @@ func benchBloom(int n) as float
     float t2 = time.timer()
     int hits = 0
     int j = 0
-    while j < n do
+    while j < n
         if bf.contains(makeKey(j)) then hits += 1 end
         j += 1
     end
@@ -627,7 +627,7 @@ func benchBloom(int n) as float
     float t4 = time.timer()
     int miss = 0
     int k = 0
-    while k < n do
+    while k < n
         if bf.contains(makeKey2("miss", k)) then miss += 1 end
         k += 1
     end
@@ -642,7 +642,7 @@ func benchCMS(int n) as float
     CountMinSketch cms = CountMinSketch(5, 20000)
     float t0 = time.timer()
     int i = 0
-    while i < n do
+    while i < n
         cms.update(makeKey(i), 1)
         i += 1
     end
@@ -651,7 +651,7 @@ func benchCMS(int n) as float
     float t2 = time.timer()
     int sum = 0
     int j = 0
-    while j < n do
+    while j < n
         sum += cms.estimate(makeKey(j))
         j += 1
     end
@@ -666,7 +666,7 @@ func benchHLL(int n) as float
     HyperLogLog hll = HyperLogLog(14)
     float t0 = time.timer()
     int i = 0
-    while i < n do
+    while i < n
         hll.addKey(makeKey(i))
         i += 1
     end
@@ -680,7 +680,7 @@ func benchHLL(int n) as float
     int nz = hll.m
     int z = 0
     int k = 0
-    while k < nz do
+    while k < nz
         if hll.regs[k] == 0 then z += 1 end
         k += 1
     end

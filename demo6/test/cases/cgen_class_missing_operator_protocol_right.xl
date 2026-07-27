@@ -1,0 +1,9 @@
+class NoArithmetic
+    int value = 0
+end
+
+func main(...) as int
+    var right = NoArithmetic()
+    var invalid = 1 - right
+    return int(invalid)
+end

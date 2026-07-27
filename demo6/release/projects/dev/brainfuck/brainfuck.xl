@@ -59,7 +59,7 @@ string SIERP_SRC = "++++++[>+++++++>++++<<-]>>++++++++>++++++++++<<.>><<.>><<.>>
 func makeArray(int n, int initVal) as array<int>
     array<int> a = array[initVal]
     int i = 1
-    while i < n do
+    while i < n
         a.push(initVal)
         i += 1
     end
@@ -79,7 +79,7 @@ func looksInt(string s) as bool
             return false
         end
     end
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -98,7 +98,7 @@ func stringToBytes(string s) as array<int>
     end
     array<int> a = array[string.byteAt(s, 0)]
     int i = 1
-    while i < n do
+    while i < n
         a.push(string.byteAt(s, i))
         i += 1
     end
@@ -115,7 +115,7 @@ func buildJumpTable(array<int> prog) as array<int>
     array<int> jt = makeArray(n, -1)
     array<int> stack = []
     int i = 0
-    while i < n do
+    while i < n
         int c = prog[i]
         if c == C_LBRA then
             stack.push(i)
@@ -140,7 +140,7 @@ func interp(array<int> prog) as string
     int dp = 0
     int ip = 0
     Buffer outputValue = Buffer()
-    while ip < n do
+    while ip < n
         int c = prog[ip]
         if c == C_PLUS then
             mem[dp] = (mem[dp] + 1) & 0xFF
@@ -196,12 +196,12 @@ func optimize(array<int> prog) as array<int>
     array<int> bstack = []   // byte offsets of pending JZ (code[2k])
 
     int i = 0
-    while i < n do
+    while i < n
         int c = prog[i]
 
         if c == C_PLUS or c == C_MINUS then
             int net = 0
-            while i < n do
+            while i < n
                 int cc = prog[i]
                 if cc == C_PLUS then
                     net += 1
@@ -217,7 +217,7 @@ func optimize(array<int> prog) as array<int>
 
         elseif c == C_GT or c == C_LT then
             int net = 0
-            while i < n do
+            while i < n
                 int cc = prog[i]
                 if cc == C_GT then
                     net += 1
@@ -285,7 +285,7 @@ func runOptimized(array<int> code) as string
     int dp = 0
     int pc = 0
     Buffer outputValue = Buffer()
-    while pc < n do
+    while pc < n
         int op = code[pc]
         int arg = code[pc + 1]
         if op == OP_ADD then
@@ -409,7 +409,7 @@ func cmdDisasm(string path) as int
     int numOps = code.length / 2
     println("; disasm of " + path + "  (" + string(prog.length) + " src bytes -> " + string(numOps) + " ops)")
     int k = 0
-    while k < numOps do
+    while k < numOps
         int op = code[k * 2]
         int arg = code[k * 2 + 1]
         string name = opName(op)
@@ -440,7 +440,7 @@ func cmdBench(string path, int rounds) as int
 
     float t0 = time.timer()
     int r = 0
-    while r < rounds do
+    while r < rounds
         refOut = interp(prog)
         r += 1
     end
@@ -449,7 +449,7 @@ func cmdBench(string path, int rounds) as int
 
     t0 = time.timer()
     r = 0
-    while r < rounds do
+    while r < rounds
         optOut = runOptimized(code)
         r += 1
     end

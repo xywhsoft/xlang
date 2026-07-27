@@ -86,7 +86,7 @@ end
 
 func breakThroughFinally() as int
     int count = 0
-    while true do
+    while true
         try
             count = count + 1
             break
@@ -100,7 +100,7 @@ end
 func continueThroughFinally() as int
     int index = 0
     int count = 0
-    while index < 3 do
+    while index < 3
         index = index + 1
         try
             if index < 3 then
@@ -116,8 +116,8 @@ end
 
 func multiLevelBreak() as int
     int count = 0
-    while true do
-        while true do
+    while true
+        while true
             try
                 break 2
             finally
@@ -131,9 +131,9 @@ end
 func multiLevelContinue() as int
     int outer = 0
     int count = 0
-    while outer < 2 do
+    while outer < 2
         outer = outer + 1
-        while true do
+        while true
             try
                 continue 2
             finally

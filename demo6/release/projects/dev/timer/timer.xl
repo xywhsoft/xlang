@@ -33,7 +33,7 @@ func timerCountdown(int seconds)
     end
     println("Countdown: " + string(seconds) + " seconds")
     int remain = seconds
-    while remain >= 0 do
+    while remain >= 0
         println(timerFormatMS(remain))
         if remain > 0 then
             time.sleep(1000)
@@ -53,7 +53,7 @@ func timerStopwatch(int seconds)
     end
     println("Stopwatch: " + string(seconds) + " seconds")
     int elapsed = 0
-    while elapsed < seconds do
+    while elapsed < seconds
         time.sleep(1000)
         elapsed += 1
         println(timerFormatMS(elapsed))
@@ -67,7 +67,7 @@ func timerPomodoro(int workMinutes, int breakMinutes)
     println("-- Work --")
     int workSec = workMinutes * 60
     int remain = workSec
-    while remain >= 0 do
+    while remain >= 0
         println("Work " + timerFormatMS(remain))
         if remain > 0 then
             time.sleep(1000)
@@ -78,7 +78,7 @@ func timerPomodoro(int workMinutes, int breakMinutes)
     println("-- Break --")
     int breakSec = breakMinutes * 60
     remain = breakSec
-    while remain >= 0 do
+    while remain >= 0
         println("Break " + timerFormatMS(remain))
         if remain > 0 then
             time.sleep(1000)
@@ -120,7 +120,7 @@ func timerAlarm(string target)
     end
     println("Alarm at " + target + " (in " + string(diff) + " seconds)")
     int remain = diff
-    while remain >= 0 do
+    while remain >= 0
         println(timerFormatMS(remain))
         if remain > 0 then
             time.sleep(1000)

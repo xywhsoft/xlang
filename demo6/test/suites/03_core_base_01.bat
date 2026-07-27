@@ -11,7 +11,7 @@ if errorlevel 1 (
     echo cgen_array_negative_index.c missing signed array write helper.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_get_at(typedValues, (long long)((-1LL)))" build\test\cgen_array_negative_index.c >nul
+findstr /C:"xl6_xrt_typed_array_get_at(__xl6_user_global_typedValues, (long long)((-1LL)))" build\test\cgen_array_negative_index.c >nul
 if errorlevel 1 (
     echo cgen_array_negative_index.c missing signed typed array read.
     exit /b 1
@@ -347,17 +347,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_default_init.xl --emit build\test\cgen_default_init.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long count;" build\test\cgen_default_init.c >nul
+findstr /C:"long long __xl6_user_global_count;" build\test\cgen_default_init.c >nul
 if errorlevel 1 (
     echo cgen_default_init.c missing int default init.
     exit /b 1
 )
-findstr /C:"name = xrtCopyStr(\"\", 0u);" build\test\cgen_default_init.c >nul
+findstr /C:"__xl6_user_global_name = xrtCopyStr(\"\", 0u);" build\test\cgen_default_init.c >nul
 if errorlevel 1 (
     echo cgen_default_init.c missing string default init.
     exit /b 1
 )
-findstr /C:"void* handle;" build\test\cgen_default_init.c >nul
+findstr /C:"void* __xl6_user_global_handle;" build\test\cgen_default_init.c >nul
 if errorlevel 1 (
     echo cgen_default_init.c missing point default init.
     exit /b 1
@@ -401,7 +401,7 @@ if errorlevel 1 (
     echo cgen_union_var_box.c missing union hash type op.
     exit /b 1
 )
-findstr /C:"xl6_box_XL_Union_Payload(p)" build\test\cgen_union_var_box.c >nul
+findstr /C:"xl6_box_XL_Union_Payload(__xl6_user_global_p)" build\test\cgen_union_var_box.c >nul
 if errorlevel 1 (
     echo cgen_union_var_box.c missing union var boxing helper call.
     exit /b 1
@@ -411,7 +411,7 @@ if errorlevel 1 (
     echo cgen_union_var_box.c missing typed union array descriptor.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_to_xvalue(xl6_type_desc_XL_Union_Payload(), copied)" build\test\cgen_union_var_box.c >nul
+findstr /C:"xl6_xrt_typed_array_to_xvalue(xl6_type_desc_XL_Union_Payload(), __xl6_user_global_copied)" build\test\cgen_union_var_box.c >nul
 if errorlevel 1 (
     echo cgen_union_var_box.c missing typed union array boxing.
     exit /b 1

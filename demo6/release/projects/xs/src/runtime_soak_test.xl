@@ -14,7 +14,7 @@ end
 string configPath = "projects/xs/tests/config/multiservice.json"
 string includeDir = path.join(path.abs("projects/xs"), "include")
 int cycle = 0
-while cycle < 5 do
+while cycle < 5
     auto runtime = service_runtime.open(configPath, includeDir)
     require(runtime.ready(), "soak runtime prepare failed: " + runtime.lastError())
     require(runtime.start(), "soak runtime start failed: " + runtime.lastError())
@@ -27,7 +27,7 @@ while cycle < 5 do
     UdpSocket udpClient = UdpSocket(udp.bind(0, "127.0.0.1"))
 
     int round = 0
-    while round < 60 do
+    while round < 60
         string payload = cycle.toString() + ":" + round.toString()
         HttpClientResponse httpResponse = http.post(
             "http://127.0.0.1:" + httpPort.toString() + "/echo",

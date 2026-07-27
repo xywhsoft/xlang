@@ -1,0 +1,38 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectText(string actual, string expected)
+
+class Builder<T>
+    T value
+
+    create(T value)
+        self.value = value
+    end
+
+    func set(T value) as Builder<T>
+        self.value = value
+        return self
+    end
+
+    func get() as T
+        return self.value
+    end
+end
+
+Builder<int> numbers = Builder::<int>(1)
+Builder<int> sameNumbers = numbers.set(41).set(42)
+expect(numbers.get(), 42)
+expect(sameNumbers.get(), 42)
+
+Builder<string> text = Builder::<string>("first")
+Builder<string> sameText = text.set("second").set("third")
+expectText(text.get(), "third")
+expectText(sameText.get(), "third")
+
+func verifyLocal()
+    Builder<int> local = Builder::<int>(7)
+    Builder<int> sameLocal = local.set(8).set(9)
+    expect(local.get(), 9)
+    expect(sameLocal.get(), 9)
+end
+
+verifyLocal()

@@ -41,7 +41,7 @@ func makeArray(int n, int v) as array<int>
     end
     array<int> a = array[v]
     int i = 1
-    while i < n do
+    while i < n
         a.push(v)
         i += 1
     end
@@ -51,7 +51,7 @@ end
 func sub(array<int> arr, int start, int len) as array<int>
     array<int> outputValue = makeArray(len, 0)
     int i = 0
-    while i < len do
+    while i < len
         outputValue[i] = arr[start + i]
         i += 1
     end
@@ -65,12 +65,12 @@ end
 func concat(array<int> a, array<int> b) as array<int>
     array<int> outputValue = makeArray(a.length + b.length, 0)
     int i = 0
-    while i < a.length do
+    while i < a.length
         outputValue[i] = a[i]
         i += 1
     end
     int j = 0
-    while j < b.length do
+    while j < b.length
         outputValue[a.length + j] = b[j]
         j += 1
     end
@@ -84,7 +84,7 @@ func xorArrays(array<int> a, array<int> b) as array<int>
     end
     array<int> outputValue = makeArray(n, 0)
     int i = 0
-    while i < n do
+    while i < n
         outputValue[i] = a[i] ^ b[i]
         i += 1
     end
@@ -96,7 +96,7 @@ func arrEquals(array<int> a, array<int> b) as bool
         return false
     end
     int i = 0
-    while i < a.length do
+    while i < a.length
         if a[i] != b[i] then
             return false
         end
@@ -113,7 +113,7 @@ end
 func gmul8(int a, int b) as int
     int r = 0
     int i = 0
-    while i < 8 do
+    while i < 8
         if (b & 1) != 0 then
             r = r ^ a
         end
@@ -158,7 +158,7 @@ func gfInverse(int b) as int
         return 0
     end
     int x = 1
-    while x < 256 do
+    while x < 256
         if gmul8(b, x) == 1 then
             return x
         end
@@ -171,7 +171,7 @@ end
 func buildSbox() as array<int>
     array<int> s = makeArray(256, 0)
     int p = 0
-    while p < 256 do
+    while p < 256
         int inv = gfInverse(p)
         // affine transform: s = inv ^ rotl(inv,1) ^ rotl(inv,2) ^ rotl(inv,3) ^ rotl(inv,4) ^ 0x63
         int af = inv ^ rotl8(inv, 1) ^ rotl8(inv, 2) ^ rotl8(inv, 3) ^ rotl8(inv, 4) ^ 0x63
@@ -185,7 +185,7 @@ end
 func buildInvSbox(array<int> sbox) as array<int>
     array<int> inv = makeArray(256, 0)
     int i = 0
-    while i < 256 do
+    while i < 256
         inv[sbox[i]] = i
         i += 1
     end
@@ -221,13 +221,13 @@ func expandKey(array<int> key) as array<int>
 
     // copy original key
     int i = 0
-    while i < key.length do
+    while i < key.length
         w[i] = key[i]
         i += 1
     end
 
     int word = nk
-    while word < totalWords do
+    while word < totalWords
         // temp = w[word-1] (4 bytes)
         int t0 = w[(word - 1) * 4]
         int t1 = w[(word - 1) * 4 + 1]
@@ -275,7 +275,7 @@ end
 func addRoundKey(array<int> state, array<int> rk, int round) as array<int>
     array<int> s = copyArray(state)
     int i = 0
-    while i < 16 do
+    while i < 16
         s[i] = s[i] ^ rk[round * 16 + i]
         i += 1
     end
@@ -285,7 +285,7 @@ end
 func subBytes(array<int> state) as array<int>
     array<int> s = copyArray(state)
     int i = 0
-    while i < 16 do
+    while i < 16
         s[i] = SBOX[s[i]]
         i += 1
     end
@@ -295,7 +295,7 @@ end
 func invSubBytes(array<int> state) as array<int>
     array<int> s = copyArray(state)
     int i = 0
-    while i < 16 do
+    while i < 16
         s[i] = INV_SBOX[s[i]]
         i += 1
     end
@@ -305,9 +305,9 @@ end
 func shiftRows(array<int> state) as array<int>
     array<int> s = makeArray(16, 0)
     int row = 0
-    while row < 4 do
+    while row < 4
         int col = 0
-        while col < 4 do
+        while col < 4
             // new[row + 4*col] = old[row + 4*((col + row) mod 4)]
             s[row + 4 * col] = state[row + 4 * ((col + row) % 4)]
             col += 1
@@ -320,9 +320,9 @@ end
 func invShiftRows(array<int> state) as array<int>
     array<int> s = makeArray(16, 0)
     int row = 0
-    while row < 4 do
+    while row < 4
         int col = 0
-        while col < 4 do
+        while col < 4
             // new[row + 4*col] = old[row + 4*((col - row + 4) mod 4)]
             s[row + 4 * col] = state[row + 4 * ((col - row + 4) % 4)]
             col += 1
@@ -335,7 +335,7 @@ end
 func mixColumns(array<int> state) as array<int>
     array<int> s = makeArray(16, 0)
     int col = 0
-    while col < 4 do
+    while col < 4
         int s0 = state[4 * col]
         int s1 = state[4 * col + 1]
         int s2 = state[4 * col + 2]
@@ -352,7 +352,7 @@ end
 func invMixColumns(array<int> state) as array<int>
     array<int> s = makeArray(16, 0)
     int col = 0
-    while col < 4 do
+    while col < 4
         int s0 = state[4 * col]
         int s1 = state[4 * col + 1]
         int s2 = state[4 * col + 2]
@@ -372,7 +372,7 @@ end
 func encryptBlock(array<int> block, array<int> rk, int nr) as array<int>
     array<int> s = addRoundKey(block, rk, 0)
     int round = 1
-    while round < nr do
+    while round < nr
         s = subBytes(s)
         s = shiftRows(s)
         s = mixColumns(s)
@@ -388,7 +388,7 @@ end
 func decryptBlock(array<int> block, array<int> rk, int nr) as array<int>
     array<int> s = addRoundKey(block, rk, nr)
     int round = nr - 1
-    while round >= 1 do
+    while round >= 1
         s = invShiftRows(s)
         s = invSubBytes(s)
         s = addRoundKey(s, rk, round)
@@ -413,11 +413,11 @@ func ecbEncrypt(array<int> pt, array<int> rk, int nr) as array<int>
     end
     array<int> outputValue = makeArray(n, 0)
     int off = 0
-    while off < n do
+    while off < n
         array<int> blk = sub(pt, off, 16)
         array<int> ct = encryptBlock(blk, rk, nr)
         int i = 0
-        while i < 16 do
+        while i < 16
             outputValue[off + i] = ct[i]
             i += 1
         end
@@ -433,11 +433,11 @@ func ecbDecrypt(array<int> ct, array<int> rk, int nr) as array<int>
     end
     array<int> outputValue = makeArray(n, 0)
     int off = 0
-    while off < n do
+    while off < n
         array<int> blk = sub(ct, off, 16)
         array<int> pt = decryptBlock(blk, rk, nr)
         int i = 0
-        while i < 16 do
+        while i < 16
             outputValue[off + i] = pt[i]
             i += 1
         end
@@ -457,11 +457,11 @@ func pkcs7Pad(array<int> data) as array<int>
     end
     array<int> outputValue = makeArray(n + padLen, 0)
     int i = 0
-    while i < n do
+    while i < n
         outputValue[i] = data[i]
         i += 1
     end
-    while i < n + padLen do
+    while i < n + padLen
         outputValue[i] = padLen
         i += 1
     end
@@ -478,7 +478,7 @@ func pkcs7Unpad(array<int> data) as array<int>
         throw "invalid PKCS#7 padding: bad pad byte"
     end
     int i = n - padLen
-    while i < n do
+    while i < n
         if data[i] != padLen then
             throw "invalid PKCS#7 padding: inconsistent"
         end
@@ -496,12 +496,12 @@ func cbcEncrypt(array<int> pt, array<int> iv, array<int> rk, int nr) as array<in
     array<int> outputValue = makeArray(n, 0)
     array<int> prev = copyArray(iv)
     int off = 0
-    while off < n do
+    while off < n
         array<int> blk = sub(padded, off, 16)
         blk = xorArrays(blk, prev)
         array<int> ct = encryptBlock(blk, rk, nr)
         int i = 0
-        while i < 16 do
+        while i < 16
             outputValue[off + i] = ct[i]
             prev[i] = ct[i]
             i += 1
@@ -519,12 +519,12 @@ func cbcDecrypt(array<int> ct, array<int> iv, array<int> rk, int nr) as array<in
     array<int> padded = makeArray(n, 0)
     array<int> prev = copyArray(iv)
     int off = 0
-    while off < n do
+    while off < n
         array<int> blk = sub(ct, off, 16)
         array<int> dec = decryptBlock(blk, rk, nr)
         dec = xorArrays(dec, prev)
         int i = 0
-        while i < 16 do
+        while i < 16
             padded[off + i] = dec[i]
             prev[i] = blk[i]
             i += 1
@@ -541,7 +541,7 @@ end
 func incCounter(array<int> ctr) as array<int>
     array<int> c = copyArray(ctr)
     int i = 15
-    while i >= 0 do
+    while i >= 0
         c[i] = (c[i] + 1) & 0xFF
         if c[i] != 0 then
             break
@@ -556,14 +556,14 @@ func ctrXor(array<int> data, array<int> iv, array<int> rk, int nr) as array<int>
     array<int> outputValue = makeArray(n, 0)
     array<int> counter = copyArray(iv)
     int off = 0
-    while off < n do
+    while off < n
         array<int> ks = encryptBlock(counter, rk, nr)
         int chunk = 16
         if off + chunk > n then
             chunk = n - off
         end
         int i = 0
-        while i < chunk do
+        while i < chunk
             outputValue[off + i] = data[off + i] ^ ks[i]
             i += 1
         end
@@ -583,13 +583,13 @@ func ghashMul(array<int> X, array<int> H) as array<int>
     array<int> Z = makeArray(16, 0)
     array<int> v = copyArray(H)
     int i = 0
-    while i < 128 do
+    while i < 128
         // bit i of X: byte i/8, bit position (7 - i%8) [leftmost = bit 0]
         int byteIdx = i / 8
         int bitIdx = 7 - (i % 8)
         if ((X[byteIdx] >> bitIdx) & 1) != 0 then
             int j = 0
-            while j < 16 do
+            while j < 16
                 Z[j] = Z[j] ^ v[j]
                 j += 1
             end
@@ -597,7 +597,7 @@ func ghashMul(array<int> X, array<int> H) as array<int>
         // shift v right by 1 (toward byte 15)
         int lsb = v[15] & 1
         int j = 15
-        while j > 0 do
+        while j > 0
             v[j] = (v[j] >> 1) | ((v[j - 1] & 1) << 7)
             j -= 1
         end
@@ -615,20 +615,20 @@ end
 func ghashBlocks(array<int> Y, array<int> data, int dataLen, array<int> H) as array<int>
     array<int> y = copyArray(Y)
     int off = 0
-    while off < dataLen do
+    while off < dataLen
         int chunk = 16
         if off + chunk > dataLen then
             chunk = dataLen - off
         end
         array<int> block = makeArray(16, 0)
         int i = 0
-        while i < chunk do
+        while i < chunk
             block[i] = data[off + i]
             i += 1
         end
         // Y = (Y XOR block) * H
         int j = 0
-        while j < 16 do
+        while j < 16
             y[j] = y[j] ^ block[j]
             j += 1
         end
@@ -643,7 +643,7 @@ func inc32(array<int> block) as array<int>
     array<int> b = copyArray(block)
     // increment bytes 12..15 as a 32-bit big-endian counter
     int i = 15
-    while i >= 12 do
+    while i >= 12
         b[i] = (b[i] + 1) & 0xFF
         if b[i] != 0 then
             break
@@ -662,14 +662,14 @@ func gctr(array<int> data, array<int> icb, array<int> rk, int nr) as array<int>
     array<int> outputValue = makeArray(n, 0)
     array<int> cb = copyArray(icb)
     int off = 0
-    while off < n do
+    while off < n
         array<int> ks = encryptBlock(cb, rk, nr)
         int chunk = 16
         if off + chunk > n then
             chunk = n - off
         end
         int i = 0
-        while i < chunk do
+        while i < chunk
             outputValue[off + i] = data[off + i] ^ ks[i]
             i += 1
         end
@@ -690,14 +690,14 @@ func ghashTagInput(array<int> aad, array<int> ct, array<int> H) as array<int>
     int64 lenCBits = ct.length * 8
     array<int> lenBlock = makeArray(16, 0)
     int i = 7
-    while i >= 0 do
+    while i >= 0
         lenBlock[i] = int((lenABits >> ((7 - i) * 8)) & 0xFF)
         lenBlock[8 + i] = int((lenCBits >> ((7 - i) * 8)) & 0xFF)
         i -= 1
     end
     // Y = (Y XOR lenBlock) * H
     int j = 0
-    while j < 16 do
+    while j < 16
         y[j] = y[j] ^ lenBlock[j]
         j += 1
     end
@@ -712,7 +712,7 @@ func buildJ0(array<int> iv, array<int> H) as array<int>
     if iv.length == 12 then
         array<int> j0 = makeArray(16, 0)
         int i = 0
-        while i < 12 do
+        while i < 12
             j0[i] = iv[i]
             i += 1
         end
@@ -724,12 +724,12 @@ func buildJ0(array<int> iv, array<int> H) as array<int>
     array<int> lenBlock = makeArray(16, 0)
     int64 lenIVBits = iv.length * 8
     int i = 7
-    while i >= 0 do
+    while i >= 0
         lenBlock[8 + i] = int((lenIVBits >> ((7 - i) * 8)) & 0xFF)
         i -= 1
     end
     int j = 0
-    while j < 16 do
+    while j < 16
         y[j] = y[j] ^ lenBlock[j]
         j += 1
     end
@@ -797,7 +797,7 @@ func parseHex(string s) as array<int>
     int n = string.len(h) / 2
     array<int> outputValue = makeArray(n, 0)
     int i = 0
-    while i < n do
+    while i < n
         int hi = hexVal(string.byteAt(h, i * 2))
         int lo = hexVal(string.byteAt(h, i * 2 + 1))
         if hi < 0 or lo < 0 then
@@ -820,7 +820,7 @@ end
 func toHex(array<int> bytes) as string
     string outputValue = ""
     int i = 0
-    while i < bytes.length do
+    while i < bytes.length
         outputValue = outputValue + toHexByte(bytes[i] & 0xFF)
         i += 1
     end
@@ -956,7 +956,7 @@ func checkSboxKnown() as bool
     end
     // verify inverse property: invSbox[sbox[i]] == i for all i
     int i = 0
-    while i < 256 do
+    while i < 256
         if INV_SBOX[SBOX[i]] != i then
             println("  FAIL invSbox[sbox[" + int.format(i, "x2") + "]] mismatch")
             return false
@@ -1277,10 +1277,10 @@ func main(...) as int
     if cmd == "sbox" then
         println("S-Box (first 32):")
         int row = 0
-        while row < 2 do
+        while row < 2
             string line = ""
             int col = 0
-            while col < 16 do
+            while col < 16
                 line = line + toHexByte(SBOX[row * 16 + col]) + " "
                 col += 1
             end
@@ -1289,10 +1289,10 @@ func main(...) as int
         end
         println("InvS-Box (first 32):")
         row = 0
-        while row < 2 do
+        while row < 2
             string line = ""
             int col = 0
-            while col < 16 do
+            while col < 16
                 line = line + toHexByte(INV_SBOX[row * 16 + col]) + " "
                 col += 1
             end

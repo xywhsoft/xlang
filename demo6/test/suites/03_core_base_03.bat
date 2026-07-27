@@ -145,7 +145,7 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup before return.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'nestedDictTotal = \(\(nestedDictTotal \+ \(outerScore \* 10LL\)\) \+ innerScore\);[\s\S]*?if \(innerKey != 0\) \{[\s\S]*?xrtFree\(\(void\*\)innerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_dict_snapshot_(\d+)\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\1\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_user_global_nestedDictTotal = \(\(__xl6_user_global_nestedDictTotal \+ \(outerScore \* 10LL\)\) \+ innerScore\);[\s\S]*?if \(innerKey != 0\) \{[\s\S]*?xrtFree\(\(void\*\)innerKey\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_dict_snapshot_(\d+)\);[\s\S]*?xrtTypedDictDestroy\(__xl6_typed_iter_\1\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing nested typed dict inner cleanup before break.
     exit /b 1
@@ -165,7 +165,7 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed list string copy before return cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'listContinueBreakTotal = index;[\s\S]*?xrtTypedListDestroy\(__xl6_typed_iter_(\d+)\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_user_global_listContinueBreakTotal = index;[\s\S]*?xrtTypedListDestroy\(__xl6_typed_iter_(\d+)\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed list cleanup before break.
     exit /b 1
@@ -180,7 +180,7 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed set cleanup before return.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'setContinueBreakValue = id;[\s\S]*?xrtTypedSetDestroy\(__xl6_typed_iter_(\d+)\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_user_global_setContinueBreakValue = id;[\s\S]*?xrtTypedSetDestroy\(__xl6_typed_iter_(\d+)\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed set cleanup before break.
     exit /b 1
@@ -195,7 +195,7 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed array cleanup before return.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'arrayContinueBreakValue = value;[\s\S]*?xrtTypedArrayDestroy\(__xl6_typed_iter_(\d+)\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_user_global_arrayContinueBreakValue = value;[\s\S]*?xrtTypedArrayDestroy\(__xl6_typed_iter_(\d+)\);[\s\S]*?goto __xl6_break_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed array cleanup before break.
     exit /b 1
@@ -210,7 +210,7 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed array cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'memberDirectTotal = 0LL;[\s\S]*?xtarray __xl6_typed_iter_(\d+) = [^\r\n]*\.values\.signature == 0xDAD5AD8DCC27AA57ULL[\s\S]*?memberDirectTotal = \(memberDirectTotal \+ value\);[\s\S]*?xrtTypedArrayDestroy\(__xl6_typed_iter_\1\);'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch '__xl6_user_global_memberDirectTotal = 0LL;[\s\S]*?xtarray __xl6_typed_iter_(\d+) = 0;[\s\S]*?__xl6_typed_iter_\1 = [^\r\n]*\.values.signature == 0xDAD5AD8DCC27AA57ULL[\s\S]*?__xl6_user_global_memberDirectTotal = \(__xl6_user_global_memberDirectTotal \+ value\);[\s\S]*?xrtTypedArrayDestroy\(__xl6_typed_iter_\1\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing direct member returned typed array for-in cleanup.
     exit /b 1
@@ -229,29 +229,9 @@ for /L %%I in (1,1,3) do (
 
 release\xl.exe cgen test\cases\cgen_typed_container_box_to_var.xl --emit build\test\cgen_typed_container_box_to_var.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_array_to_xvalue" build\test\cgen_typed_container_box_to_var.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_typed_container_box_to_var.c' -Raw; if(([regex]::Matches($t, 'xl6_xrt_typed_container_box_ref\(')).Count -lt 4){exit 1}; if($t.Contains('xl6_xrt_bind_type(xl6_xrt_typed_')){exit 2}"
 if errorlevel 1 (
-    echo cgen_typed_container_box_to_var.c missing typed array boxing helper.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_typed_list_to_xvalue" build\test\cgen_typed_container_box_to_var.c >nul
-if errorlevel 1 (
-    echo cgen_typed_container_box_to_var.c missing typed list boxing helper.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_typed_set_to_xvalue" build\test\cgen_typed_container_box_to_var.c >nul
-if errorlevel 1 (
-    echo cgen_typed_container_box_to_var.c missing typed set boxing helper.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_typed_dict_to_xvalue" build\test\cgen_typed_container_box_to_var.c >nul
-if errorlevel 1 (
-    echo cgen_typed_container_box_to_var.c missing typed dict boxing helper.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_bind_type(xl6_xrt_typed_array_to_xvalue" build\test\cgen_typed_container_box_to_var.c >nul
-if errorlevel 1 (
-    echo cgen_typed_container_box_to_var.c missing runtime type binding for boxed typed containers.
+    echo cgen_typed_container_box_to_var.c did not preserve typed container handles.
     exit /b 1
 )
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_typed_container_box_to_var.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_typed_container_box_to_var.exe
@@ -293,27 +273,27 @@ if errorlevel 1 (
     echo cgen_typed_container_copy_assign.c missing typed dict shared retain.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayCount(valuesCopy)" build\test\cgen_typed_container_copy_assign.c >nul
+findstr /C:"xrtTypedArrayCount(__xl6_user_global_valuesCopy)" build\test\cgen_typed_container_copy_assign.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_assign.c missing typed container length lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_set_contains_value_release(idsCopy" build\test\cgen_typed_container_copy_assign.c >nul
+findstr /C:"xl6_xrt_typed_set_contains_value_release(__xl6_user_global_idsCopy" build\test\cgen_typed_container_copy_assign.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_assign.c missing typed set contains lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_contains_value_release(values" build\test\cgen_typed_container_copy_assign.c >nul
+findstr /C:"xl6_xrt_typed_array_contains_value_release(__xl6_user_global_values" build\test\cgen_typed_container_copy_assign.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_assign.c missing typed array contains lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_list_contains_value_release(names" build\test\cgen_typed_container_copy_assign.c >nul
+findstr /C:"xl6_xrt_typed_list_contains_value_release(__xl6_user_global_names" build\test\cgen_typed_container_copy_assign.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_assign.c missing typed list contains lowering.
     exit /b 1
 )
-findstr /C:"xrtTypedDictExists(scoresCopy" build\test\cgen_typed_container_copy_assign.c >nul
+findstr /C:"xrtTypedDictExists(__xl6_user_global_scoresCopy" build\test\cgen_typed_container_copy_assign.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_assign.c missing typed dict contains lowering.
     exit /b 1
@@ -330,22 +310,22 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_copy_objects_functions.xl --emit build\test\cgen_typed_container_copy_objects_functions.c
 if errorlevel 1 exit /b 1
-findstr /C:"xrtTypedArrayRetain(funcs)" build\test\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"xrtTypedArrayRetain(__xl6_user_global_funcs)" build\test\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed function array shared retain.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayRetain(boxes)" build\test\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"xrtTypedArrayRetain(__xl6_user_global_boxes)" build\test\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed class array shared retain.
     exit /b 1
 )
-findstr /C:"xrtTypedDictRetain(named)" build\test\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"xrtTypedDictRetain(__xl6_user_global_named)" build\test\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed class dict shared retain.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayRetain(natives)" build\test\cgen_typed_container_copy_objects_functions.c >nul
+findstr /C:"xrtTypedArrayRetain(__xl6_user_global_natives)" build\test\cgen_typed_container_copy_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_copy_objects_functions.c missing typed native-backed class array shared retain.
     exit /b 1
@@ -382,27 +362,27 @@ if errorlevel 1 (
     echo cgen_typed_container_functions.c missing guarded callable to function bridge.
     exit /b 1
 )
-findstr /C:"xl6_function_call_var_release(xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(funcs" build\test\cgen_typed_container_functions.c >nul
+findstr /C:"xl6_function_call_var_release(xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(__xl6_user_global_funcs" build\test\cgen_typed_container_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_functions.c missing release fallback for direct typed function array item call.
     exit /b 1
 )
-findstr /C:"xl6_function_call_var_release(xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xrtTypedListGet(listed" build\test\cgen_typed_container_functions.c >nul
+findstr /C:"xl6_function_call_var_release(xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xrtTypedListGet(__xl6_user_global_listed" build\test\cgen_typed_container_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_functions.c missing release fallback for direct typed function list item call.
     exit /b 1
 )
-findstr /C:"xl6_function_call_var_release(xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xrtTypedDictGet(named" build\test\cgen_typed_container_functions.c >nul
+findstr /C:"xl6_function_call_var_release(xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item(xrtTypedDictGet(__xl6_user_global_named" build\test\cgen_typed_container_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_functions.c missing release fallback for direct typed function dict item call.
     exit /b 1
 )
-findstr /C:"xrt_typed_array_get_at(funcs, (unsigned int)(0LL)))).invoke)" build\test\cgen_typed_container_functions.c >nul
+findstr /C:"xrt_typed_array_get_at(__xl6_user_global_funcs, (unsigned int)(0LL)))).invoke)" build\test\cgen_typed_container_functions.c >nul
 if not errorlevel 1 (
     echo cgen_typed_container_functions.c should not repeat direct typed function array item invoke.
     exit /b 1
 )
-findstr /C:"xl6_function_call_var(first" build\test\cgen_typed_container_functions.c >nul
+findstr /C:"xl6_function_call_var(__xl6_user_global_first" build\test\cgen_typed_container_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_functions.c missing function fallback call.
     exit /b 1
@@ -486,7 +466,7 @@ if errorlevel 1 (
     echo cgen_typed_container_function_field_objects.c missing class handle assignment path.
     exit /b 1
 )
-findstr /C:"xl6_function_call_var((*((XL_Class_FnBox*)xl6_class_data(fromArray" build\test\cgen_typed_container_function_field_objects.c >nul
+findstr /C:"xl6_function_call_var((*((XL_Class_FnBox*)xl6_class_data(__xl6_user_global_fromArray" build\test\cgen_typed_container_function_field_objects.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_function_field_objects.c missing member function call lowering.
     exit /b 1
@@ -506,7 +486,7 @@ if errorlevel 1 (
     echo cgen_typed_container_function_field_objects.c missing var-call fallback runtime.
     exit /b 1
 )
-findstr /C:"fromArray = xl6_xrt_move_to_shared(xl6_xrt_bind_type(xl6_xrt_retain(*((xvalue*)" build\test\cgen_typed_container_function_field_objects.c >nul
+findstr /C:"__xl6_user_global_fromArray = xl6_xrt_move_to_shared(xl6_xrt_retain(*((xvalue*)xl6_xrt_typed_require_item(" build\test\cgen_typed_container_function_field_objects.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_function_field_objects.c missing typed index class handle retain.
     exit /b 1

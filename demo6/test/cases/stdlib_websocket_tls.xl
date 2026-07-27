@@ -61,7 +61,7 @@ assert(wssVerifySeen > 0)
 assert(wssClient.send("hello") == 0)
 
 int wssWaitCount = 0
-while wssClientText == "" and wssWaitCount < 500 do
+while wssClientText == "" and wssWaitCount < 500
     time.sleep(10)
     wssWaitCount += 1
 end

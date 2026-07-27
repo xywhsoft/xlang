@@ -97,7 +97,7 @@ func escapeStr(string s) as string
     string outputValue = ""
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         int blen = string.byteLen(c)
         if c == "\"" then
@@ -151,7 +151,7 @@ func stringifyValue(var v, bool pretty, int indent) as string
         if pretty then childPad = string.repeat("  ", indent + 1) end
         string outputValue = "["
         int i = 0
-        while i < n do
+        while i < n
             if i > 0 then outputValue = outputValue + "," end
             if pretty then outputValue = outputValue + "\n" + childPad end
             outputValue = outputValue + stringifyValue(v[i], pretty, indent + 1)
@@ -219,7 +219,7 @@ class PathParser
     end
 
     func skipWs()
-        while self.pos < self.len do
+        while self.pos < self.len
             string c = string.charAt(self.src, self.pos)
             if c == " " or c == "\t" then
                 self.pos += 1
@@ -248,7 +248,7 @@ class PathParser
             segs.push({"kind": "root"})
             self.pos = 1
         end
-        while self.pos < self.len do
+        while self.pos < self.len
             string c = string.charAt(self.src, self.pos)
             if c == "." then
                 self.parseDot(segs)
@@ -301,7 +301,7 @@ class PathParser
     func parseChildName(var segs)
         string name = ""
         bool any = false
-        while self.pos < self.len do
+        while self.pos < self.len
             string c = string.charAt(self.src, self.pos)
             if c == "." or c == "[" then break end
             name = name + c
@@ -331,7 +331,7 @@ class PathParser
         string quote = self.peek()
         self.pos += 1
         string key = ""
-        while not self.atEnd() do
+        while not self.atEnd()
             string c = string.charAt(self.src, self.pos)
             if c == quote then
                 self.pos += 1
@@ -371,7 +371,7 @@ class PathParser
             // 提取括号内表达式文本（处理嵌套括号）
             int depth = 1
             int startExpr = self.pos
-            while self.pos < self.len do
+            while self.pos < self.len
                 string cc = string.charAt(self.src, self.pos)
                 if cc == "(" then
                     depth += 1
@@ -396,7 +396,7 @@ class PathParser
             var names = []
             names.push(self.readQuotedKey())
             self.skipWs()
-            while not self.atEnd() do
+            while not self.atEnd()
                 string nc = self.peek()
                 if nc == "," then
                     self.pos += 1
@@ -424,7 +424,7 @@ class PathParser
         end
         // 数字：下标 / 切片 / 多下标
         string body = ""
-        while not self.atEnd() do
+        while not self.atEnd()
             string cc = self.peek()
             if cc == "]" then break end
             body = body + cc
@@ -459,7 +459,7 @@ class PathParser
             string cur = ""
             int bi = 0
             int bn = string.len(body)
-            while bi < bn do
+            while bi < bn
                 string ch = string.charAt(body, bi)
                 if ch == "," then
                     cur = string.trim(cur)
@@ -530,7 +530,7 @@ class FParser
     end
 
     func skipWs()
-        while self.pos < self.len do
+        while self.pos < self.len
             string c = string.charAt(self.src, self.pos)
             if c == " " or c == "\t" or c == "\n" or c == "\r" then
                 self.pos += 1
@@ -569,7 +569,7 @@ class FParser
     func parseOr() as var
         var left = self.parseAnd()
         self.skipWs()
-        while not self.atEnd() do
+        while not self.atEnd()
             if self.peek() == "|" and self.peek2() == "|" then
                 self.pos += 2
                 var right = self.parseAnd()
@@ -587,7 +587,7 @@ class FParser
     func parseAnd() as var
         var left = self.parseNot()
         self.skipWs()
-        while not self.atEnd() do
+        while not self.atEnd()
             if self.peek() == "&" and self.peek2() == "&" then
                 self.pos += 2
                 var right = self.parseNot()
@@ -706,7 +706,7 @@ class FParser
         self.pos += 1
         var steps = []
         bool ok = true
-        while ok do
+        while ok
             if self.atEnd() then break end
             string c = self.peek()
             if c == "." then
@@ -714,7 +714,7 @@ class FParser
                 // 读取字段名
                 string name = ""
                 bool anyName = false
-                while not self.atEnd() do
+                while not self.atEnd()
                     string cc = self.peek()
                     if cc == "." or cc == "[" then break end
                     // 遇到运算符/逻辑符则停止
@@ -740,7 +740,7 @@ class FParser
                         string q = cc
                         self.pos += 1
                         string k = ""
-                        while not self.atEnd() do
+                        while not self.atEnd()
                             string ch = self.peek()
                             if ch == q then break end
                             k = k + ch
@@ -758,7 +758,7 @@ class FParser
                         steps.push({"kind": "f", "name": k})
                     else
                         string num = ""
-                        while not self.atEnd() do
+                        while not self.atEnd()
                             string ch = self.peek()
                             if ch == "]" then break end
                             num = num + ch
@@ -782,7 +782,7 @@ class FParser
         string q = self.peek()
         self.pos += 1
         string s = ""
-        while not self.atEnd() do
+        while not self.atEnd()
             string c = self.peek()
             if c == q then
                 self.pos += 1
@@ -822,7 +822,7 @@ class FParser
         if not self.atEnd() and self.peek() == "-" then
             self.pos += 1
         end
-        while not self.atEnd() do
+        while not self.atEnd()
             string c = self.peek()
             if c >= "0" and c <= "9" then
                 self.pos += 1
@@ -834,7 +834,7 @@ class FParser
         if not self.atEnd() and self.peek() == "." then
             isFloat = true
             self.pos += 1
-            while not self.atEnd() do
+            while not self.atEnd()
                 string c = self.peek()
                 if c >= "0" and c <= "9" then
                     self.pos += 1
@@ -854,7 +854,7 @@ class FParser
                         self.pos += 1
                     end
                 end
-                while not self.atEnd() do
+                while not self.atEnd()
                     string cc = self.peek()
                     if cc >= "0" and cc <= "9" then
                         self.pos += 1
@@ -873,7 +873,7 @@ class FParser
 
     func parseIdentLit() as var
         int startp = self.pos
-        while not self.atEnd() do
+        while not self.atEnd()
             string c = self.peek()
             if (c >= "a" and c <= "z") or (c >= "A" and c <= "Z") or (c >= "0" and c <= "9") or c == "_" then
                 self.pos += 1
@@ -907,7 +907,7 @@ func resolveValue(var current, var root, var steps) as var
     end
     int i = 0
     int n = steps.length
-    while i < n do
+    while i < n
         var step = steps[i]
         string kind = string(step["kind"])
         if kind == "f" then
@@ -939,7 +939,7 @@ func collectAll(var node, var outputValue)
     if isArr(node) then
         int i = 0
         int n = node.length
-        while i < n do
+        while i < n
             collectAll(node[i], outputValue)
             i += 1
         end
@@ -985,7 +985,7 @@ func applySlice(int startv, int endv, bool hasStart, bool hasEnd, var node, var 
         if realEnd > n then realEnd = n end
     end
     int i = realStart
-    while i < realEnd do
+    while i < realEnd
         outputValue.push(node[i])
         i += 1
     end
@@ -1016,7 +1016,7 @@ func applySegment(var node, var seg, var root, var outputValue)
         if isArr(node) then
             int i = 0
             int n = node.length
-            while i < n do
+            while i < n
                 outputValue.push(node[i])
                 i += 1
             end
@@ -1039,7 +1039,7 @@ func applySegment(var node, var seg, var root, var outputValue)
         var idxs = seg["idxs"]
         int i = 0
         int n = idxs.length
-        while i < n do
+        while i < n
             applyIndex(int(idxs[i]), node, outputValue)
             i += 1
         end
@@ -1050,7 +1050,7 @@ func applySegment(var node, var seg, var root, var outputValue)
         if isDict(node) then
             int i = 0
             int n = names.length
-            while i < n do
+            while i < n
                 string nm = string(names[i])
                 if node.contains(nm) then
                     outputValue.push(node[nm])
@@ -1065,7 +1065,7 @@ func applySegment(var node, var seg, var root, var outputValue)
         if isArr(node) then
             int i = 0
             int n = node.length
-            while i < n do
+            while i < n
                 if evalFilter(ast, node[i], root) then
                     outputValue.push(node[i])
                 end
@@ -1088,7 +1088,7 @@ func evalPath(var root, var segs) as var
     current.push(root)
     int i = 0
     int n = segs.length
-    while i < n do
+    while i < n
         var seg = segs[i]
         string kind = string(seg["kind"])
         if kind == "recursive" then
@@ -1096,7 +1096,7 @@ func evalPath(var root, var segs) as var
             var expanded = []
             int ci = 0
             int cn = current.length
-            while ci < cn do
+            while ci < cn
                 collectAll(current[ci], expanded)
                 ci += 1
             end
@@ -1105,7 +1105,7 @@ func evalPath(var root, var segs) as var
             var next = []
             int ci = 0
             int cn = current.length
-            while ci < cn do
+            while ci < cn
                 applySegment(current[ci], seg, root, next)
                 ci += 1
             end
@@ -1318,7 +1318,7 @@ func pluck(var results, string field) as var
     var outputValue = []
     int i = 0
     int n = results.length
-    while i < n do
+    while i < n
         var item = results[i]
         if isDict(item) then
             if item.contains(field) then
@@ -1345,7 +1345,7 @@ func expectContainsStr(var results, string want, string label)
     bool found = false
     int i = 0
     int n = results.length
-    while i < n do
+    while i < n
         var item = results[i]
         if item == want then
             found = true
@@ -1364,7 +1364,7 @@ func expectContainsNum(var results, float want, string label)
     bool found = false
     int i = 0
     int n = results.length
-    while i < n do
+    while i < n
         var item = results[i]
         if isNum(item) then
             float f = toFloat(item)

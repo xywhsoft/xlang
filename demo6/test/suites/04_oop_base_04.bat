@@ -77,7 +77,7 @@ if errorlevel 1 (
     echo cgen_class_overloads.c missing class string method overload symbol.
     exit /b 1
 )
-findstr /C:"xl_class_Base__pick(&((XL_Class_Child*)xl6_class_data(child" build\test\cgen_class_overloads.c >nul
+findstr /C:"xl_class_Base__pick(&((XL_Class_Child*)xl6_class_data(__xl6_user_global_child" build\test\cgen_class_overloads.c >nul
 if errorlevel 1 (
     echo cgen_class_overloads.c missing inherited method base receiver path.
     exit /b 1
@@ -126,7 +126,7 @@ if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded local variable.
     exit /b 1
 )
-findstr /C:"xvalue _u5750__u6807_;" build\test\cgen_unicode_identifiers.c >nul
+findstr /C:"xvalue __xl6_user_global__u5750__u6807_;" build\test\cgen_unicode_identifiers.c >nul
 if errorlevel 1 (
     echo cgen_unicode_identifiers.c missing encoded class variable.
     exit /b 1
@@ -226,7 +226,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_native_class_field_method.xl --emit build\test\cgen_native_class_field_method.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_class_NativeBox__value(((XL_Class_NativeBox*)xl6_class_data(__xl6_call_receiver_" build\test\cgen_native_class_field_method.c >nul
+findstr /C:"xl_class_NativeBox__value(((XL_Class_NativeBox*)xl6_class_data(self->box" build\test\cgen_native_class_field_method.c >nul
 if errorlevel 1 (
     echo cgen_native_class_field_method.c missing native-backed class field method call.
     exit /b 1
@@ -245,7 +245,7 @@ if errorlevel 1 (
     echo cgen_native_class_overloads.c missing int native-backed overload ABI wrapper.
     exit /b 1
 )
-findstr /C:"xl_class_NativeScore__add__int(((XL_Class_NativeScore*)xl6_class_data(score" build\test\cgen_native_class_overloads.c >nul
+findstr /C:"xl_class_NativeScore__add__int(((XL_Class_NativeScore*)xl6_class_data(__xl6_user_global_score" build\test\cgen_native_class_overloads.c >nul
 if errorlevel 1 (
     echo cgen_native_class_overloads.c missing int native-backed direct overload call.
     exit /b 1
@@ -255,7 +255,7 @@ if errorlevel 1 (
     echo cgen_native_class_overloads.c missing string native-backed overload ABI wrapper.
     exit /b 1
 )
-findstr /C:"xl_class_NativeScore__add__string(((XL_Class_NativeScore*)xl6_class_data(score" build\test\cgen_native_class_overloads.c >nul
+findstr /C:"xl_class_NativeScore__add__string(((XL_Class_NativeScore*)xl6_class_data(__xl6_user_global_score" build\test\cgen_native_class_overloads.c >nul
 if errorlevel 1 (
     echo cgen_native_class_overloads.c missing string native-backed direct overload call.
     exit /b 1
@@ -277,7 +277,7 @@ if errorlevel 1 (
     echo cgen_overloads.c missing string overload symbol.
     exit /b 1
 )
-findstr /C:"chosen = xl_fn_pick__int(41LL);" build\test\cgen_overloads.c >nul
+findstr /C:"__xl6_user_global_chosen = xl_fn_pick__int(41LL);" build\test\cgen_overloads.c >nul
 if errorlevel 1 (
     echo cgen_overloads.c missing resolved overload call.
     exit /b 1
@@ -335,7 +335,7 @@ if errorlevel 1 (
     echo cgen_generic_explicit_overload.c should choose array explicit generic overload.
     exit /b 1
 )
-findstr /C:"scalarValue = xl_gen_pick__int__sig__int(1LL);" build\test\cgen_generic_explicit_overload.c >nul
+findstr /C:"__xl6_user_global_scalarValue = xl_gen_pick__int__sig__int(1LL);" build\test\cgen_generic_explicit_overload.c >nul
 if errorlevel 1 (
     echo cgen_generic_explicit_overload.c should choose scalar explicit generic overload.
     exit /b 1
@@ -369,12 +369,12 @@ if errorlevel 1 (
     echo cgen_generic_function.c missing string generic instance prototype.
     exit /b 1
 )
-findstr /C:"number = xl_gen_identity__int(41LL);" build\test\cgen_generic_function.c >nul
+findstr /C:"__xl6_user_global_number = xl_gen_identity__int(41LL);" build\test\cgen_generic_function.c >nul
 if errorlevel 1 (
     echo cgen_generic_function.c missing int generic call.
     exit /b 1
 )
-findstr /C:"text = xrtCopyStr(xl_gen_identity__string(\"ok\"), 0u);" build\test\cgen_generic_function.c >nul
+findstr /C:"__xl6_user_global_text = xrtCopyStr(xl_gen_identity__string(\"ok\"), 0u);" build\test\cgen_generic_function.c >nul
 if errorlevel 1 (
     echo cgen_generic_function.c missing string generic call.
     exit /b 1
@@ -448,27 +448,27 @@ if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred function-param generic instance.
     exit /b 1
 )
-findstr /C:"number = xl_gen_identity__int(41LL);" build\test\cgen_generic_infer.c >nul
+findstr /C:"__xl6_user_global_number = xl_gen_identity__int(41LL);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred int call.
     exit /b 1
 )
-findstr /C:"text = xrtCopyStr(xl_gen_identity__string(\"ok\"), 0u);" build\test\cgen_generic_infer.c >nul
+findstr /C:"__xl6_user_global_text = xrtCopyStr(xl_gen_identity__string(\"ok\"), 0u);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred string call.
     exit /b 1
 )
-findstr /C:"chosen = xl_gen_choose__int(1LL, 2LL);" build\test\cgen_generic_infer.c >nul
+findstr /C:"__xl6_user_global_chosen = xl_gen_choose__int(1LL, 2LL);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred choose call.
     exit /b 1
 )
-findstr /C:"copied = xl_gen_identity__int(seed);" build\test\cgen_generic_infer.c >nul
+findstr /C:"__xl6_user_global_copied = xl_gen_identity__int(__xl6_user_global_seed);" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing inferred call from auto variable.
     exit /b 1
 )
-findstr /C:"explicitNested = __xl6_global_init_" build\test\cgen_generic_infer.c >nul
+findstr /C:"__xl6_user_global_explicitNested = __xl6_global_init_" build\test\cgen_generic_infer.c >nul
 if errorlevel 1 (
     echo cgen_generic_infer.c missing explicit nested generic call.
     exit /b 1
@@ -490,7 +490,7 @@ if not errorlevel 1 (
     echo cgen_generic_alias.c should not mangle transparent alias into generic symbol.
     exit /b 1
 )
-findstr /C:"explicitAlias = xl_gen_identity__int(41LL);" build\test\cgen_generic_alias.c >nul
+findstr /C:"__xl6_user_global_explicitAlias = xl_gen_identity__int(41LL);" build\test\cgen_generic_alias.c >nul
 if errorlevel 1 (
     echo cgen_generic_alias.c missing canonical explicit alias call.
     exit /b 1
@@ -512,7 +512,7 @@ if not errorlevel 1 (
     echo cgen_generic_class_alias.c should not mangle transparent alias into class symbol.
     exit /b 1
 )
-findstr /C:"xvalue aliasBox;" build\test\cgen_generic_class_alias.c >nul
+findstr /C:"xvalue __xl6_user_global_aliasBox;" build\test\cgen_generic_class_alias.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_alias.c missing managed canonical alias variable.
     exit /b 1

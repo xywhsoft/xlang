@@ -253,12 +253,12 @@ end
 
 
 func skipWsAndComments()
-    while g_pos < g_len do
+    while g_pos < g_len
         string c = curChar()
         if isWs(c) then
             g_pos += 1
         elseif c == "/" and peekChar(1) == "/" then
-            while g_pos < g_len do
+            while g_pos < g_len
                 string cc = curChar()
                 if cc == "\n" then
                     break
@@ -276,7 +276,7 @@ func lexNumber() as var
     string buf = ""
     bool hasDot = false
     bool hasE = false
-    while g_pos < g_len do
+    while g_pos < g_len
         string c = curChar()
         if isDigitChar(c) then
             buf = buf + c
@@ -317,7 +317,7 @@ end
 func lexStringLit() as var
     g_pos += 1
     string buf = ""
-    while g_pos < g_len do
+    while g_pos < g_len
         string c = curChar()
         if c == "\"" then
             g_pos += 1
@@ -356,7 +356,7 @@ end
 
 func lexIdent() as var
     string buf = ""
-    while g_pos < g_len do
+    while g_pos < g_len
         string c = curChar()
         if isIdentChar(c) then
             buf = buf + c
@@ -495,7 +495,7 @@ func tokenize(string src) as array<var>
     g_pos = 0
     g_len = string.len(src)
     array<var> outputValue = []
-    while true do
+    while true
         skipWsAndComments()
         if g_pos >= g_len then
             break
@@ -784,7 +784,7 @@ end
 // 解析整个程序。
 func parseProgram() as var
     var prog = astProgram()
-    while curTokKind() != "eof" do
+    while curTokKind() != "eof"
         var s = parseStmt()
         if s != null then
             prog["stmts"].append(s)
@@ -802,7 +802,7 @@ func parseParams() as array<var>
         advanceTok()
         return params
     end
-    while true do
+    while true
         string pt = expectType()
         string pn = expectId()
         params.append(astParam(pt, pn))
@@ -820,7 +820,7 @@ end
 // 解析语句块直到遇到块终止关键字（end/else/elseif/eof）。
 func parseBlock() as array<var>
     array<var> body = []
-    while not atBlockEnd() do
+    while not atBlockEnd()
         var s = parseStmt()
         if s != null then
             body.append(s)
@@ -873,7 +873,7 @@ end
 
 // 消费可选的语句分隔符（换行已不可见，所以这里只吃 ';'）。
 func consumeSep()
-    while isOp(";") do
+    while isOp(";")
         advanceTok()
     end
 end
@@ -916,7 +916,7 @@ func parseIf() as var
     array<var> thenBody = parseBlock()
     var node = astIf(cond, thenBody, [])
     // elseif 链
-    while isKw("elseif") do
+    while isKw("elseif")
         advanceTok()
         var ec = parseExpr()
         if isKw("then") then
@@ -942,7 +942,6 @@ end
 func parseWhile() as var
     expectKw("while")
     var cond = parseExpr()
-    expectKw("do")
     array<var> body = parseBlock()
     expectKw("end")
     return astWhile(cond, body)
@@ -1022,7 +1021,7 @@ end
 
 func parseOr() as var
     var left = parseAnd()
-    while isOp("||") or isKw("or") do
+    while isOp("||") or isKw("or")
         advanceTok()
         var right = parseAnd()
         left = astBinary("||", left, right)
@@ -1033,7 +1032,7 @@ end
 
 func parseAnd() as var
     var left = parseNot()
-    while isOp("&&") or isKw("and") do
+    while isOp("&&") or isKw("and")
         advanceTok()
         var right = parseNot()
         left = astBinary("&&", left, right)
@@ -1054,7 +1053,7 @@ end
 
 func parseCmp() as var
     var left = parseAdd()
-    while true do
+    while true
         if isOp("==") then
             advanceTok()
             var r = parseAdd()
@@ -1089,7 +1088,7 @@ end
 
 func parseAdd() as var
     var left = parseMul()
-    while true do
+    while true
         if isOp("+") then
             advanceTok()
             var r = parseMul()
@@ -1108,7 +1107,7 @@ end
 
 func parseMul() as var
     var left = parseUnary()
-    while true do
+    while true
         if isOp("*") then
             advanceTok()
             var r = parseUnary()
@@ -1174,7 +1173,7 @@ func parsePrimary() as var
             advanceTok()
             array<var> args = []
             if not isOp(")") then
-                while true do
+                while true
                     var a = parseExpr()
                     args.append(a)
                     if isOp(",") then
@@ -1243,7 +1242,7 @@ end
 // 查找变量的声明类型；找不到返回空串。
 func lookupVar(string name) as string
     int i = g_scopes.length - 1
-    while i >= 0 do
+    while i >= 0
         var s = g_scopes[i]
         if s[name] != null then
             return string(s[name])
@@ -1523,7 +1522,7 @@ func cQuote(string s) as string
     string outputValue = "\""
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if c == "\\" then
             outputValue = outputValue + "\\\\"
@@ -1617,7 +1616,7 @@ func genCall(var e) as string
     end
     string s = name + "("
     int i = 0
-    while i < args.length do
+    while i < args.length
         if i > 0 then
             s = s + ", "
         end
@@ -1638,7 +1637,7 @@ func genCallArg(var e) as string
         if sl >= 2 and string.charAt(code, 0) == "(" and string.charAt(code, sl - 1) == ")" then
             string inner = ""
             int j = 1
-            while j < sl - 1 do
+            while j < sl - 1
                 inner = inner + string.charAt(code, j)
                 j += 1
             end
@@ -1661,7 +1660,7 @@ func genPrintCall(string name, var args) as string
     // 多参数：用拼接方式依次输出。
     string outputValue = ""
     int i = 0
-    while i < args.length do
+    while i < args.length
         var a = args[i]
         string t = inferType(a)
         string code = genExpr(a)
@@ -1698,7 +1697,7 @@ end
 func genIndent(int level) as string
     string s = ""
     int i = 0
-    while i < level do
+    while i < level
         s = s + "    "
         i += 1
     end
@@ -1758,7 +1757,7 @@ func genFunc(var f, int level) as string
         head = head + "void"
     else
         int i = 0
-        while i < params.length do
+        while i < params.length
             if i > 0 then
                 head = head + ", "
             end
@@ -1770,7 +1769,7 @@ func genFunc(var f, int level) as string
     head = head + ") {\n"
     pushScope()
     int i = 0
-    while i < params.length do
+    while i < params.length
         var p = params[i]
         declareVar(string(p["pname"]), string(p["ptype"]))
         i += 1
@@ -1978,7 +1977,7 @@ end
 func dumpTokens(var toks) as string
     string outputValue = ""
     int i = 0
-    while i < toks.length do
+    while i < toks.length
         var t = toks[i]
         outputValue = outputValue + "[" + string(i) + "] " + t["kind"] + " '" + t["text"] + "'\n"
         i += 1
@@ -1995,7 +1994,7 @@ func dumpAst(var node, int depth) as string
     string nt = string(node["nt"])
     string pad = ""
     int i = 0
-    while i < depth do
+    while i < depth
         pad = pad + "  "
         i += 1
     end
@@ -2413,7 +2412,7 @@ func testParseWhile()
     println("[test] 语法分析 - while")
     tReset()
     try
-        string src = "while x > 0 do\n    x = x - 1\nend"
+        string src = "while x > 0\n    x = x - 1\nend"
         array<var> toks = tokenize(src)
         var prog = parseTokens(toks)
         var ss = prog["stmts"]
@@ -2541,7 +2540,7 @@ func testGenWhile()
     println("[test] 代码生成 - while")
     tReset()
     try
-        string src = "func f() as int\n    int x = 10\n    while x > 0 do\n        x = x - 1\n    end\n    return x\nend"
+        string src = "func f() as int\n    int x = 10\n    while x > 0\n        x = x - 1\n    end\n    return x\nend"
         string c = compileSource(src)
         tCheckHas(c, "while ((x > 0))", "while cond")
         tCheckHas(c, "x = (x - 1)", "assign in loop")
@@ -2600,7 +2599,7 @@ func testGenBreakContinue()
     println("[test] 代码生成 - break/continue")
     tReset()
     try
-        string src = "func f() as int\n    int i = 0\n    while i < 10 do\n        if i == 5 then\n            break\n        end\n        i = i + 1\n    end\n    return i\nend"
+        string src = "func f() as int\n    int i = 0\n    while i < 10\n        if i == 5 then\n            break\n        end\n        i = i + 1\n    end\n    return i\nend"
         string c = compileSource(src)
         tCheckHas(c, "break;", "break")
     catch e
@@ -2749,7 +2748,7 @@ func testEndToEndLoop()
         src = src + "func sum(int n) as int\n"
         src = src + "    int total = 0\n"
         src = src + "    int i = 1\n"
-        src = src + "    while i <= n do\n"
+    src = src + "    while i <= n\n"
         src = src + "        total = total + i\n"
         src = src + "        i = i + 1\n"
         src = src + "    end\n"

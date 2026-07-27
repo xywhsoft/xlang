@@ -1,0 +1,33 @@
+// 移位计数必须位于 [0, 类型位宽)，非法计数统一抛出 RangeError。
+
+int caught = 0
+
+try
+    int ignored = 1 << -1
+catch error
+    caught += 1
+end
+
+try
+    int ignored = 1 << 64
+catch error
+    caught += 1
+end
+
+try
+    int ignored = 8 >> 64
+catch error
+    caught += 1
+end
+
+var dynamicCount = 64
+try
+    var ignored = 1 << dynamicCount
+catch error
+    caught += 1
+end
+
+assert caught == 4, "all invalid shift counts must raise RangeError"
+assert (1 << 3) == 8 and (16 >> 2) == 4, "valid shifts must remain unchanged"
+
+println("shift range errors ok")

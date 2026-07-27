@@ -18,7 +18,7 @@ func makeGrid(int width, int height) as array<int>
     int total = width * height
     array<int> g = array[0]
     int i = 1
-    while i < total do
+    while i < total
         g.push(0)
         i += 1
     end
@@ -34,9 +34,9 @@ end
 func countNeighbors(array<int> g, int width, int height, int row, int col) as int
     int count = 0
     int dr = -1
-    while dr <= 1 do
+    while dr <= 1
         int dc = -1
-        while dc <= 1 do
+        while dc <= 1
             if not (dr == 0 and dc == 0) then
                 int rr = row + dr
                 int cc = col + dc
@@ -65,9 +65,9 @@ end
 func step(array<int> g, int width, int height) as array<int>
     array<int> next = makeGrid(width, height)
     int row = 0
-    while row < height do
+    while row < height
         int col = 0
-        while col < width do
+        while col < width
             int idx = row * width + col
             int alive = g[idx]
             int n = countNeighbors(g, width, height, row, col)
@@ -93,7 +93,7 @@ end
 func population(array<int> g) as int
     int total = 0
     int i = 0
-    while i < g.length do
+    while i < g.length
         total = total + g[i]
         i += 1
     end
@@ -104,10 +104,10 @@ end
 func render(array<int> g, int width, int height) as string
     string outputValue = ""
     int row = 0
-    while row < height do
+    while row < height
         string line = ""
         int col = 0
-        while col < width do
+        while col < width
             if g[row * width + col] == 1 then
                 line = line + "#"
             else
@@ -128,7 +128,7 @@ end
 // coords = [r0, c0, r1, c1, ...]。
 func placePattern(array<int> g, int width, int originRow, int originCol, array<int> coords)
     int k = 0
-    while k + 1 < coords.length do
+    while k + 1 < coords.length
         int r = originRow + coords[k]
         int c = originCol + coords[k + 1]
         setCell(g, width, r, c, 1)
@@ -139,7 +139,7 @@ end
 // 运行并打印 generations 代。
 func runLife(array<int> g, int width, int height, int generations)
     int gen = 0
-    while gen <= generations do
+    while gen <= generations
         int pop = population(g)
         string bar = string.repeat("-", width)
         println(bar)
@@ -229,9 +229,9 @@ func main(...) as int
         end
         array<int> g = makeGrid(width, height)
         int row = 0
-        while row < height do
+        while row < height
             int col = 0
-            while col < width do
+            while col < width
                 // 约 30% 初始密度
                 if random.range(0, 9) < 3 then
                     setCell(g, width, row, col, 1)

@@ -367,12 +367,14 @@ ptr xrtTypedArrayGet(xtarray pArray, uint32 iPos);
 bool xrtTypedArrayRemove(xtarray pArray, uint32 iPos, uint32 iCount);
 bool xrtTypedArrayClear(xtarray pArray);
 bool xrtTypedArrayReverse(xtarray pArray);
+bool xrtTypedArraySwap(xtarray pArray, uint32 iPosA, uint32 iPosB);
 int64 xrtTypedArrayIndexOfValue(xtarray pArray, xvalue pVal);
 bool xrtTypedArrayContainsValue(xtarray pArray, xvalue pVal);
 bool xrtTypedArrayExtend(xtarray pArray, xtarray pItems);
 xtarray xrtTypedArrayConcat(xtarray pA, xtarray pB);
 bool xrtTypedArrayEquals(xtarray pA, xtarray pB);
 uint32 xrtTypedArrayCount(xtarray pArray);
+const xrt_type_desc* xrtTypedArrayItemType(xtarray pArray);
 xtlist xrtTypedListCreate(const xrt_type_desc* pItemType, uint32 iMode);
 xtlist xrtTypedListFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
 void xrtTypedListDestroy(xtlist pList);
@@ -387,6 +389,7 @@ bool xrtTypedListMerge(xtlist pA, xtlist pB);
 xtlist xrtTypedListClone(xtlist pList);
 bool xrtTypedListEquals(xtlist pA, xtlist pB);
 uint32 xrtTypedListCount(xtlist pList);
+const xrt_type_desc* xrtTypedListItemType(xtlist pList);
 xtset xrtTypedSetCreate(const xrt_type_desc* pItemType, uint32 iMode);
 xtset xrtTypedSetFromValue(xvalue pValue, const xrt_type_desc* pItemType, uint32 iMode);
 void xrtTypedSetDestroy(xtset pSet);
@@ -421,6 +424,7 @@ bool xrtTypedDictClear(xtdict pDict);
 bool xrtTypedDictMerge(xtdict pA, xtdict pB);
 xtdict xrtTypedDictClone(xtdict pDict);
 bool xrtTypedDictEquals(xtdict pA, xtdict pB);
+const xrt_type_desc* xrtTypedDictItemType(xtdict pDict);
 bool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, ptr pOut);
 void xrtTypeDropValue(const xrt_type_desc* pType, ptr pObj);
 
@@ -445,6 +449,24 @@ static xvalue xl6_xrt_retain(xvalue value)
     if ( value != 0 ) { xvoAddRef(value); }
     return value;
 }
+
+/*
+    静态泛型容器放入 var 后仍由原 XRT 容器保存数据。
+    这里先声明动态派发入口，具体实现放在 typed container 运行时段。
+*/
+static uint32 xl6_xrt_typed_container_kind(xvalue value);
+static const xrt_type_desc* xl6_xrt_typed_container_item_type(xvalue value);
+static xvalue xl6_xrt_typed_container_box_ref(const xrt_type_desc* type, void* handle);
+static xvalue xl6_xrt_typed_container_snapshot(xvalue values);
+static uint32 xl6_xrt_typed_container_count(xvalue values);
+static xvalue xl6_xrt_typed_container_get_i64(xvalue values, int64 index);
+static xvalue xl6_xrt_typed_container_get_key(xvalue values, const char* key);
+static bool xl6_xrt_typed_container_set_i64_owned(xvalue values, int64 index, xvalue item);
+static bool xl6_xrt_typed_container_set_key_owned(xvalue values, const char* key, xvalue item);
+static bool xl6_xrt_typed_container_set_key_borrow(xvalue values, const char* key, xvalue item);
+static int xl6_xrt_typed_container_contains(xvalue values, xvalue item);
+static int xl6_xrt_typed_container_clear(xvalue values);
+static int xl6_xrt_typed_array_remove_value_release(xtarray values, xvalue item);
 
 static xvalue xl6_xrt_value_copy_release(xvalue value, int deep)
 {
@@ -765,12 +787,18 @@ void xl6_xrt_writeln(const char* text)
 
 static xvalue xl6_xrt_index_safe_get_i64(xvalue values, int64 index)
 {
-    return xvoIndexGetI64(values, index);
+    if ( xl6_xrt_typed_container_kind(values) != XL6_XRT_TYPE_KIND_INVALID ) {
+        return xl6_xrt_typed_container_get_i64(values, index);
+    }
+    return xl6_xrt_retain(xvoIndexGetI64(values, index));
 }
 
 static xvalue xl6_xrt_index_safe_get_key(xvalue values, const char* key)
 {
-    return xvoIndexGetKey(values, (str)key, 0);
+    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_DICT ) {
+        return xl6_xrt_typed_container_get_key(values, key);
+    }
+    return xl6_xrt_retain(xvoIndexGetKey(values, (str)key, 0));
 }
 
 static xvalue xl6_xrt_dict_get_var_key(xvalue values, xvalue key)
@@ -782,7 +810,12 @@ static xvalue xl6_xrt_dict_get_var_key(xvalue values, xvalue key)
 
 static xvalue xl6_xrt_index_safe_get_var_key(xvalue values, xvalue key)
 {
-    xvalue result = xvoIndexGetValue(values, key);
+    xvalue result;
+    if ( key != 0 && xvoType(key) == XL6_XVO_DT_TEXT ) {
+        result = xl6_xrt_index_safe_get_key(values, xvoGetText(key));
+    } else {
+        result = xl6_xrt_index_safe_get_i64(values, key != 0 ? xvoGetInt(key) : 0);
+    }
     if ( key != 0 ) { xvoUnref(key); }
     return result;
 }
@@ -805,21 +838,21 @@ static xvalue xl6_xrt_null_release(xvalue values)
 
 static xvalue xl6_xrt_array_index_retain_release(xvalue values, int64 index)
 {
-    xvalue result = xl6_xrt_retain(xvoIndexGetI64(values, index));
+    xvalue result = xl6_xrt_index_safe_get_i64(values, index);
     if ( values != 0 ) { xvoUnref(values); }
     return result;
 }
 
 static xvalue xl6_xrt_list_index_retain_release(xvalue values, int64 index)
 {
-    xvalue result = xl6_xrt_retain(xvoListGetValue(values, index));
+    xvalue result = xl6_xrt_index_safe_get_i64(values, index);
     if ( values != 0 ) { xvoUnref(values); }
     return result;
 }
 
 static xvalue xl6_xrt_dict_get_key_retain_release(xvalue values, const char* key)
 {
-    xvalue result = xl6_xrt_retain(xvoTableGetValue(values, key, 0));
+    xvalue result = xl6_xrt_index_safe_get_key(values, key);
     if ( values != 0 ) { xvoUnref(values); }
     return result;
 }
@@ -834,22 +867,21 @@ static xvalue xl6_xrt_dict_get_var_key_retain_release(xvalue values, xvalue key)
 
 static xvalue xl6_xrt_index_safe_get_i64_retain_release(xvalue values, int64 index)
 {
-    xvalue result = xl6_xrt_retain(xvoIndexGetI64(values, index));
+    xvalue result = xl6_xrt_index_safe_get_i64(values, index);
     if ( values != 0 ) { xvoUnref(values); }
     return result;
 }
 
 static xvalue xl6_xrt_index_safe_get_key_retain_release(xvalue values, const char* key)
 {
-    xvalue result = xl6_xrt_retain(xvoIndexGetKey(values, (str)key, 0));
+    xvalue result = xl6_xrt_index_safe_get_key(values, key);
     if ( values != 0 ) { xvoUnref(values); }
     return result;
 }
 
 static xvalue xl6_xrt_index_safe_get_var_key_retain_release(xvalue values, xvalue key)
 {
-    xvalue result = xl6_xrt_retain(xvoIndexGetValue(values, key));
-    if ( key != 0 ) { xvoUnref(key); }
+    xvalue result = xl6_xrt_index_safe_get_var_key(values, key);
     if ( values != 0 ) { xvoUnref(values); }
     return result;
 }
@@ -859,6 +891,9 @@ static uint32 xl6_xrt_member_length(xvalue values)
     int type;
     if ( values == 0 || xvoIsNull(values) ) { return 0; }
     type = xvoType(values);
+    if ( xl6_xrt_typed_container_kind(values) != XL6_XRT_TYPE_KIND_INVALID ) {
+        return xl6_xrt_typed_container_count(values);
+    }
     if ( type == XL6_XVO_DT_ARRAY ) { return xvoArrayItemCount(values); }
     if ( type == XL6_XVO_DT_LIST ) { return xvoListItemCount(values); }
     if ( type == XL6_XVO_DT_COLL ) { return xvoCollItemCount(values); }
@@ -911,6 +946,13 @@ static int xl6_xrt_basic_compare(xvalue left, xvalue right, int* outResult)
 
 static int xl6_xrt_basic_equal(xvalue left, xvalue right)
 {
+    uint32 leftKind = xl6_xrt_typed_container_kind(left);
+    uint32 rightKind = xl6_xrt_typed_container_kind(right);
+    if ( leftKind != XL6_XRT_TYPE_KIND_INVALID || rightKind != XL6_XRT_TYPE_KIND_INVALID ) {
+        return leftKind == rightKind &&
+               xrtTypeSame(xvoTypeDesc(left), xvoTypeDesc(right)) &&
+               xvoGetHandleData(left) == xvoGetHandleData(right);
+    }
     return xvoBasicEqual(left, right) ? 1 : (left == right);
 }
 
@@ -1055,6 +1097,9 @@ static xvalue xl6_xrt_basic_binary(xvalue left, xvalue right, int op)
 
 static int xl6_xrt_value_truthy(xvalue value)
 {
+    if ( xl6_xrt_typed_container_kind(value) != XL6_XRT_TYPE_KIND_INVALID ) {
+        return xl6_xrt_typed_container_count(value) != 0u;
+    }
     return xvoValueTruthy(value) ? 1 : 0;
 }
 
@@ -1103,7 +1148,12 @@ static xvalue xl6_xrt_basic_binary_release(xvalue left, xvalue right, int op)
 
 static int xl6_xrt_value_contains(xvalue values, xvalue item)
 {
-    int found = xvoValueContains(values, item) ? 1 : 0;
+    int found;
+    if ( xl6_xrt_typed_container_kind(values) != XL6_XRT_TYPE_KIND_INVALID ) {
+        found = xl6_xrt_typed_container_contains(values, item);
+    } else {
+        found = xvoValueContains(values, item) ? 1 : 0;
+    }
     if ( item != 0 ) { xvoUnref(item); }
     return found;
 }
@@ -1121,6 +1171,27 @@ static int xl6_xrt_set_contains(xvalue values, xvalue item) { return xl6_xrt_val
 static int xl6_xrt_array_contains_release(xvalue values, xvalue item) { return xl6_xrt_value_contains_release(values, item); }
 static int xl6_xrt_list_contains_release(xvalue values, xvalue item) { return xl6_xrt_value_contains_release(values, item); }
 static int xl6_xrt_set_contains_release(xvalue values, xvalue item) { return xl6_xrt_value_contains_release(values, item); }
+
+static int64 xl6_xrt_array_index_of(xvalue values, xvalue item)
+{
+    uint32 count = 0;
+    uint32 i;
+    int64 result = -1;
+
+    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_ARRAY ) {
+        result = xrtTypedArrayIndexOfValue((xtarray)xvoGetHandleData(values), item);
+    } else if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {
+        count = xvoArrayItemCount(values);
+        for ( i = 0; i < count; ++i ) {
+            if ( xl6_xrt_basic_equal(xvoArrayGetValue(values, i), item) ) {
+                result = (int64)i;
+                break;
+            }
+        }
+    }
+    if ( item != 0 ) { xvoUnref(item); }
+    return result;
+}
 
 static int xl6_xrt_array_remove_value_release(xvalue values, xvalue item)
 {
@@ -1143,7 +1214,9 @@ static int xl6_xrt_array_remove_value_release(xvalue values, xvalue item)
 static int xl6_xrt_value_remove_value_release(xvalue values, xvalue item)
 {
     int ok = 0;
-    if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {
+    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_ARRAY ) {
+        ok = xl6_xrt_typed_array_remove_value_release((xtarray)xvoGetHandleData(values), item);
+    } else if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {
         ok = xl6_xrt_array_remove_value_release(values, item);
     } else if ( item != 0 ) {
         xvoUnref(item);
@@ -1389,6 +1462,9 @@ static int xl6_xrt_typed_set_remove_value_release(xtset values, xvalue item)
 
 static int xl6_xrt_container_push_value(xvalue values, xvalue item)
 {
+    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_ARRAY ) {
+        return xl6_xrt_typed_array_append_value_release((xtarray)xvoGetHandleData(values), item);
+    }
     if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {
         return xl6_xrt_array_push_value(values, item);
     }
@@ -1398,6 +1474,9 @@ static int xl6_xrt_container_push_value(xvalue values, xvalue item)
 
 static int xl6_xrt_container_add_value(xvalue values, xvalue item)
 {
+    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_SET ) {
+        return xl6_xrt_typed_set_add_value_release((xtset)xvoGetHandleData(values), item);
+    }
     if ( values != 0 && xvoType(values) == XL6_XVO_DT_COLL ) {
         return xl6_xrt_set_add_value(values, item);
     }
@@ -1408,7 +1487,14 @@ static int xl6_xrt_container_add_value(xvalue values, xvalue item)
 static int xl6_xrt_container_insert_value(xvalue values, xvalue index, xvalue item)
 {
     int ok = 0;
-    if ( values != 0 && index != 0 &&
+    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_ARRAY &&
+         index != 0 && xvoType(index) == XL6_XVO_DT_INT ) {
+        ok = xrtTypedArrayInsertValue(
+            (xtarray)xvoGetHandleData(values),
+            (uint32)xvoGetInt(index) + 1u,
+            item) ? 1 : 0;
+        if ( item != 0 ) { xvoUnref(item); }
+    } else if ( values != 0 && index != 0 &&
          xvoType(values) == XL6_XVO_DT_ARRAY &&
          xvoType(index) == XL6_XVO_DT_INT ) {
         ok = xl6_xrt_array_insert_value(values, (uint32)xvoGetInt(index), item);
@@ -1424,7 +1510,19 @@ static int xl6_xrt_container_remove_value(xvalue values, xvalue key, uint32 coun
     int ok = 0;
     int valuesType = values != 0 ? xvoType(values) : -1;
     int keyType = key != 0 ? xvoType(key) : -1;
-    if ( valuesType == XL6_XVO_DT_ARRAY && keyType == XL6_XVO_DT_INT ) {
+    uint32 typedKind = xl6_xrt_typed_container_kind(values);
+    if ( typedKind == XL6_XRT_TYPE_KIND_ARRAY && keyType == XL6_XVO_DT_INT ) {
+        ok = xrtTypedArrayRemove(
+            (xtarray)xvoGetHandleData(values),
+            (uint32)xvoGetInt(key) + 1u,
+            hasCount ? count : 1u) ? 1 : 0;
+    } else if ( !hasCount && typedKind == XL6_XRT_TYPE_KIND_LIST && keyType == XL6_XVO_DT_INT ) {
+        ok = xrtTypedListRemove((xtlist)xvoGetHandleData(values), xvoGetInt(key)) ? 1 : 0;
+    } else if ( !hasCount && typedKind == XL6_XRT_TYPE_KIND_SET ) {
+        ok = xrtTypedSetRemoveValue((xtset)xvoGetHandleData(values), key) ? 1 : 0;
+    } else if ( !hasCount && typedKind == XL6_XRT_TYPE_KIND_DICT && keyType == XL6_XVO_DT_TEXT ) {
+        ok = xrtTypedDictRemove((xtdict)xvoGetHandleData(values), xvoGetText(key), 0) ? 1 : 0;
+    } else if ( valuesType == XL6_XVO_DT_ARRAY && keyType == XL6_XVO_DT_INT ) {
         ok = xvoArrayRemove(values, (uint32)xvoGetInt(key), hasCount ? count : 1u) ? 1 : 0;
     } else if ( !hasCount && valuesType == XL6_XVO_DT_LIST && keyType == XL6_XVO_DT_INT ) {
         ok = xvoListRemove(values, xvoGetInt(key)) ? 1 : 0;
@@ -1447,7 +1545,16 @@ static xvalue xl6_xrt_container_take_value(xvalue values, xvalue key)
     xvalue result = 0;
     int valuesType = values != 0 ? xvoType(values) : -1;
     int keyType = key != 0 ? xvoType(key) : -1;
-    if ( valuesType == XL6_XVO_DT_ARRAY && keyType == XL6_XVO_DT_INT ) {
+    uint32 typedKind = xl6_xrt_typed_container_kind(values);
+    if ( typedKind == XL6_XRT_TYPE_KIND_ARRAY && keyType == XL6_XVO_DT_INT ) {
+        result = xrtTypedArrayTakeValue(
+            (xtarray)xvoGetHandleData(values),
+            (uint32)xvoGetInt(key) + 1u);
+    } else if ( typedKind == XL6_XRT_TYPE_KIND_LIST && keyType == XL6_XVO_DT_INT ) {
+        result = xrtTypedListTakeValue((xtlist)xvoGetHandleData(values), xvoGetInt(key));
+    } else if ( typedKind == XL6_XRT_TYPE_KIND_DICT && keyType == XL6_XVO_DT_TEXT ) {
+        result = xrtTypedDictTakeValue((xtdict)xvoGetHandleData(values), xvoGetText(key), 0);
+    } else if ( valuesType == XL6_XVO_DT_ARRAY && keyType == XL6_XVO_DT_INT ) {
         result = xvoArrayTakeValue(values, (uint32)xvoGetInt(key));
     } else if ( valuesType == XL6_XVO_DT_LIST && keyType == XL6_XVO_DT_INT ) {
         result = xvoListTakeValue(values, xvoGetInt(key));
@@ -1461,7 +1568,9 @@ static xvalue xl6_xrt_container_take_value(xvalue values, xvalue key)
 static xvalue xl6_xrt_container_pop_value(xvalue values)
 {
     xvalue result = 0;
-    if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {
+    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_ARRAY ) {
+        result = xrtTypedArrayPopValue((xtarray)xvoGetHandleData(values));
+    } else if ( values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ) {
         result = xvoArrayPopValue(values);
     }
     return result != 0 ? result : xvoCreateNull();
@@ -1470,6 +1579,9 @@ static xvalue xl6_xrt_container_pop_value(xvalue values)
 static int xl6_xrt_container_clear(xvalue values)
 {
     int type = values != 0 ? xvoType(values) : -1;
+    if ( xl6_xrt_typed_container_kind(values) != XL6_XRT_TYPE_KIND_INVALID ) {
+        return xl6_xrt_typed_container_clear(values);
+    }
     if ( type == XL6_XVO_DT_ARRAY ) { return xvoArrayClear(values) ? 1 : 0; }
     if ( type == XL6_XVO_DT_LIST ) { return xvoListClear(values) ? 1 : 0; }
     if ( type == XL6_XVO_DT_COLL ) { return xvoSetClear(values) ? 1 : 0; }
@@ -1479,11 +1591,18 @@ static int xl6_xrt_container_clear(xvalue values)
 
 static int xl6_xrt_container_reserve(xvalue values, uint32 count)
 {
+    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_ARRAY ) {
+        (void)count;
+        return 1;
+    }
     return values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ? (xvoArrayAlloc(values, count) ? 1 : 0) : 0;
 }
 
 static int xl6_xrt_container_swap(xvalue values, uint32 index1, uint32 index2)
 {
+    if ( xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_ARRAY ) {
+        return xrtTypedArraySwap((xtarray)xvoGetHandleData(values), index1 + 1u, index2 + 1u) ? 1 : 0;
+    }
     return values != 0 && xvoType(values) == XL6_XVO_DT_ARRAY ? (xvoArraySwap(values, index1, index2) ? 1 : 0) : 0;
 }
 
@@ -1589,7 +1708,48 @@ static void* xl6_xrt_value_to_point_release(xvalue value)
 static xvalue xl6_xrt_typed_box_or_null(const xrt_type_desc* type, const void* item)
 {
     if ( item == 0 ) { return xvoCreateNull(); }
-    return xrtTypeBoxValue(type, item);
+    {
+        xvalue boxed = xrtTypeBoxValue(type, item);
+        return boxed != 0 ? boxed : xvoCreateNull();
+    }
+}
+
+static uint32 xl6_xrt_typed_container_kind(xvalue value)
+{
+    const xrt_type_desc* type;
+    if ( value == 0 || xvoType(value) != XL6_XVO_DT_NATIVE ) {
+        return XL6_XRT_TYPE_KIND_INVALID;
+    }
+    type = xvoTypeDesc(value);
+    if ( type == 0 || type->Kind < XL6_XRT_TYPE_KIND_ARRAY || type->Kind > XL6_XRT_TYPE_KIND_DICT ) {
+        return XL6_XRT_TYPE_KIND_INVALID;
+    }
+    return type->Kind;
+}
+
+static const xrt_type_desc* xl6_xrt_typed_container_item_type(xvalue value)
+{
+    const xrt_type_desc* type = value != 0 ? xvoTypeDesc(value) : 0;
+    const xrt_generic_type* generic = type != 0 ? (const xrt_generic_type*)type->Extra : 0;
+    return generic != 0 && generic->ArgCount == 1u ? generic->Args[0] : 0;
+}
+
+static xvalue xl6_xrt_typed_container_box_ref(const xrt_type_desc* type, void* handle)
+{
+    void* owned = 0;
+    xvalue result;
+    if ( handle == 0 ) { return xvoCreateNull(); }
+    if ( type == 0 || type->Ops == 0 || type->Ops->copy == 0 || type->Ops->drop == 0 ) {
+        return xvoCreateNull();
+    }
+    type->Ops->copy(&owned, &handle);
+    if ( owned == 0 ) { return xvoCreateNull(); }
+    result = xvoCreateHandle(type, owned, XL6_XRT_HANDLE_FLAG_OWNED | XL6_XRT_HANDLE_FLAG_NULLABLE);
+    if ( result == 0 ) {
+        type->Ops->drop(&owned);
+        return xvoCreateNull();
+    }
+    return result;
 }
 
 static xtarray xl6_xrt_typed_array_from_value_release(const xrt_type_desc* type, xvalue value, uint32 mode)
@@ -1622,9 +1782,29 @@ static xtdict xl6_xrt_typed_dict_from_value_release(const xrt_type_desc* type, x
 
 typedef xvalue (*xl6_xrt_typed_item_box_fn)(void* item);
 
-static void* xl6_xrt_typed_require_item(void* item)
+/* typed 容器越界通过统一异常运行时报告，声明必须早于内联助手。 */
+static void xl6_error_raise(
+    const char* kind,
+    const char* message,
+    const char* file,
+    int line,
+    int column);
+
+static void* xl6_xrt_typed_require_item(
+    void* item,
+    const xrt_type_desc* type,
+    const char* file,
+    int line,
+    int column)
 {
-    if ( item == 0 ) { xl6_runtime_fatal(3); }
+    if ( item == 0 ) {
+        size_t size = type != 0 && type->Size > 0 ? type->Size : sizeof(void*);
+        void* fallback = xrtTempMemory(size);
+        if ( fallback == 0 ) { xl6_runtime_fatal(2); }
+        memset(fallback, 0, size);
+        xl6_error_raise("RangeError", "typed container index is out of range", file, line, column);
+        return fallback;
+    }
     return item;
 }
 
@@ -1803,6 +1983,131 @@ static xtdict xl6_xrt_typed_dict_copy_mode(const xrt_type_desc* type, xtdict val
 static xtdict xl6_xrt_typed_dict_copy(const xrt_type_desc* type, xtdict values)
 {
     return xl6_xrt_typed_dict_copy_mode(type, values, XRT_OBJMODE_LOCAL);
+}
+
+/*
+    var 只持有静态容器句柄；元素在动态读取边界按需装箱。
+    for-in 需要稳定快照时再显式转换，普通读写始终作用于原容器。
+*/
+static xvalue xl6_xrt_typed_container_box_item(xvalue values, const void* item)
+{
+    return xl6_xrt_typed_box_or_null(xl6_xrt_typed_container_item_type(values), item);
+}
+
+static xvalue xl6_xrt_typed_container_snapshot(xvalue values)
+{
+    uint32 kind = xl6_xrt_typed_container_kind(values);
+    void* handle = values != 0 ? xvoGetHandleData(values) : 0;
+    const xrt_type_desc* itemType = xl6_xrt_typed_container_item_type(values);
+    xvalue result;
+    if ( kind == XL6_XRT_TYPE_KIND_INVALID ) { return values; }
+    if ( kind == XL6_XRT_TYPE_KIND_ARRAY ) {
+        result = xl6_xrt_typed_array_to_xvalue(itemType, (xtarray)handle);
+    } else if ( kind == XL6_XRT_TYPE_KIND_LIST ) {
+        result = xl6_xrt_typed_list_to_xvalue(itemType, (xtlist)handle);
+    } else if ( kind == XL6_XRT_TYPE_KIND_SET ) {
+        result = xl6_xrt_typed_set_to_xvalue(itemType, (xtset)handle);
+    } else {
+        result = xl6_xrt_typed_dict_to_xvalue(itemType, (xtdict)handle);
+    }
+    if ( values != 0 ) { xvoUnref(values); }
+    return result != 0 ? result : xvoCreateNull();
+}
+
+static uint32 xl6_xrt_typed_container_count(xvalue values)
+{
+    uint32 kind = xl6_xrt_typed_container_kind(values);
+    void* handle = values != 0 ? xvoGetHandleData(values) : 0;
+    if ( kind == XL6_XRT_TYPE_KIND_ARRAY ) { return xrtTypedArrayCount((xtarray)handle); }
+    if ( kind == XL6_XRT_TYPE_KIND_LIST ) { return xrtTypedListCount((xtlist)handle); }
+    if ( kind == XL6_XRT_TYPE_KIND_SET ) { return xrtTypedSetCount((xtset)handle); }
+    if ( kind == XL6_XRT_TYPE_KIND_DICT ) { return xrtTypedDictCount((xtdict)handle); }
+    return 0u;
+}
+
+static xvalue xl6_xrt_typed_container_get_i64(xvalue values, int64 index)
+{
+    uint32 kind = xl6_xrt_typed_container_kind(values);
+    void* handle = values != 0 ? xvoGetHandleData(values) : 0;
+    const void* item = 0;
+    if ( kind == XL6_XRT_TYPE_KIND_ARRAY ) {
+        item = xl6_xrt_typed_array_get_at((xtarray)handle, index);
+    } else if ( kind == XL6_XRT_TYPE_KIND_LIST ) {
+        item = xrtTypedListGet((xtlist)handle, index);
+    } else if ( kind == XL6_XRT_TYPE_KIND_SET && index >= 0 && (uint64)index <= 0xFFFFFFFFULL ) {
+        item = xrtTypedSetItemAt((xtset)handle, (uint32)index);
+    }
+    return item != 0 ? xl6_xrt_typed_container_box_item(values, item) : xvoCreateNull();
+}
+
+static xvalue xl6_xrt_typed_container_get_key(xvalue values, const char* key)
+{
+    void* item;
+    if ( xl6_xrt_typed_container_kind(values) != XL6_XRT_TYPE_KIND_DICT ) {
+        return xvoCreateNull();
+    }
+    item = xrtTypedDictGet((xtdict)xvoGetHandleData(values), key != 0 ? key : "", 0);
+    return item != 0 ? xl6_xrt_typed_container_box_item(values, item) : xvoCreateNull();
+}
+
+static bool xl6_xrt_typed_container_set_i64_owned(xvalue values, int64 index, xvalue item)
+{
+    uint32 kind = xl6_xrt_typed_container_kind(values);
+    void* handle = values != 0 ? xvoGetHandleData(values) : 0;
+    uint32 resolved = 0;
+    bool ok = false;
+    if ( kind == XL6_XRT_TYPE_KIND_ARRAY &&
+         xl6_xrt_typed_array_resolve_index((xtarray)handle, index, &resolved) ) {
+        ok = xrtTypedArraySetValue((xtarray)handle, resolved + 1u, item);
+    } else if ( kind == XL6_XRT_TYPE_KIND_LIST ) {
+        ok = xrtTypedListSetValue((xtlist)handle, index, item);
+    }
+    if ( ok && item != 0 ) { xvoUnref(item); }
+    return ok;
+}
+
+static bool xl6_xrt_typed_container_set_key_owned(xvalue values, const char* key, xvalue item)
+{
+    bool ok = xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_DICT &&
+              xrtTypedDictSetValue((xtdict)xvoGetHandleData(values), key != 0 ? key : "", 0, item);
+    if ( ok && item != 0 ) { xvoUnref(item); }
+    return ok;
+}
+
+static bool xl6_xrt_typed_container_set_key_borrow(xvalue values, const char* key, xvalue item)
+{
+    return xl6_xrt_typed_container_kind(values) == XL6_XRT_TYPE_KIND_DICT &&
+           xrtTypedDictSetValue((xtdict)xvoGetHandleData(values), key != 0 ? key : "", 0, item);
+}
+
+static int xl6_xrt_typed_container_contains(xvalue values, xvalue item)
+{
+    uint32 kind = xl6_xrt_typed_container_kind(values);
+    void* handle = values != 0 ? xvoGetHandleData(values) : 0;
+    if ( kind == XL6_XRT_TYPE_KIND_ARRAY ) {
+        return xrtTypedArrayContainsValue((xtarray)handle, item) ? 1 : 0;
+    }
+    if ( kind == XL6_XRT_TYPE_KIND_LIST ) {
+        return xrtTypedListContainsValue((xtlist)handle, item) ? 1 : 0;
+    }
+    if ( kind == XL6_XRT_TYPE_KIND_SET ) {
+        return xrtTypedSetExistsValue((xtset)handle, item) ? 1 : 0;
+    }
+    if ( kind == XL6_XRT_TYPE_KIND_DICT && item != 0 && xvoType(item) == XL6_XVO_DT_TEXT ) {
+        return xrtTypedDictExists((xtdict)handle, xvoGetText(item), 0) ? 1 : 0;
+    }
+    return 0;
+}
+
+static int xl6_xrt_typed_container_clear(xvalue values)
+{
+    uint32 kind = xl6_xrt_typed_container_kind(values);
+    void* handle = values != 0 ? xvoGetHandleData(values) : 0;
+    if ( kind == XL6_XRT_TYPE_KIND_ARRAY ) { return xrtTypedArrayClear((xtarray)handle) ? 1 : 0; }
+    if ( kind == XL6_XRT_TYPE_KIND_LIST ) { return xrtTypedListClear((xtlist)handle) ? 1 : 0; }
+    if ( kind == XL6_XRT_TYPE_KIND_SET ) { return xrtTypedSetClear((xtset)handle) ? 1 : 0; }
+    if ( kind == XL6_XRT_TYPE_KIND_DICT ) { return xrtTypedDictClear((xtdict)handle) ? 1 : 0; }
+    return 0;
 }
 
 typedef struct XL6_XrtIterItem {

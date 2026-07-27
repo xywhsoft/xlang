@@ -28,12 +28,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_param_mutation.xl --emit build\test\cgen_typed_container_param_mutation.c
 if errorlevel 1 exit /b 1
-findstr /C:"mutateArray(arrayValue);" build\test\cgen_typed_container_param_mutation.c >nul
+findstr /C:"xl_fn_mutateArray(__xl6_user_global_arrayValue);" build\test\cgen_typed_container_param_mutation.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_param_mutation.c should borrow named typed-container arguments.
     exit /b 1
 )
-findstr /C:"xl_fn_mutateArray((*((XL_Class_Store*)xl6_class_data(store" build\test\cgen_typed_container_param_mutation.c >nul
+findstr /C:"xl_fn_mutateArray((*((XL_Class_Store*)xl6_class_data(__xl6_user_global_store" build\test\cgen_typed_container_param_mutation.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_param_mutation.c should borrow typed-container field arguments.
     exit /b 1
@@ -43,7 +43,7 @@ if not errorlevel 1 (
     echo cgen_typed_container_param_mutation.c passed a dynamic literal to a static container parameter.
     exit /b 1
 )
-findstr /C:"nestedValue = (xl_fn_consumeArray(__xl6_call_arg_" build\test\cgen_typed_container_param_mutation.c >nul
+findstr /C:"__xl6_user_global_nestedValue = (xl_fn_consumeArray(__xl6_call_arg_" build\test\cgen_typed_container_param_mutation.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_param_mutation.c missing nested assignment argument lowering.
     exit /b 1
@@ -71,7 +71,7 @@ if errorlevel 1 (
 
 release\xl.exe cgen test\cases\cgen_class_param_value_ownership.xl --emit build\test\cgen_class_param_value_ownership.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_fn_mutateCopy(xl6_xrt_bind_type(xl6_xrt_retain(source)" build\test\cgen_class_param_value_ownership.c >nul
+findstr /C:"xl_fn_mutateCopy(xl6_xrt_retain(__xl6_user_global_source)" build\test\cgen_class_param_value_ownership.c >nul
 if errorlevel 1 (
     echo cgen_class_param_value_ownership.c missing retained byval managed handle.
     exit /b 1

@@ -46,11 +46,11 @@ func tryCombos(float v0, float v1, float v2, float v3)
     string f3 = string(int(v3))
 
     int o1 = 0
-    while o1 < 4 do
+    while o1 < 4
         int o2 = 0
-        while o2 < 4 do
+        while o2 < 4
             int o3 = 0
-            while o3 < 4 do
+            while o3 < 4
                 string s1 = opSym(o1)
                 string s2 = opSym(o2)
                 string s3 = opSym(o3)
@@ -109,12 +109,12 @@ end
 
 func solve(array<int> cards)
     int p0 = 0
-    while p0 < 4 do
+    while p0 < 4
         int p1 = 0
-        while p1 < 4 do
+        while p1 < 4
             if p1 != p0 then
                 int p2 = 0
-                while p2 < 4 do
+                while p2 < 4
                     if p2 != p0 and p2 != p1 then
                         int p3 = 6 - p0 - p1 - p2
                         float v0 = float(cards[p0])
@@ -153,7 +153,7 @@ func main(...) as int
     int found = solutions.length
     println("Solutions found:", found)
     int i = 0
-    while i < found do
+    while i < found
         println("  ", solutions[i], " = 24")
         i = i + 1
     end

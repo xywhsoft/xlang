@@ -205,7 +205,7 @@ static void xl6CgenEmitRuntimeTypeHelpers(XL6_CgenContext* ctx)
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if (!xl6_runtime_type_is(xl6_runtime_value_type_desc(value), target)) {\n", out);
     xl6OutputPuts("        if (release && value != 0) { xvoUnref(value); }\n", out);
-    xl6OutputPuts("        xl6_runtime_fatal(4);\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0);\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if (!release && value != 0) { xvoAddRef(value); }\n", out);
@@ -248,7 +248,7 @@ static void xl6CgenEmitRuntimeTypeHelpers(XL6_CgenContext* ctx)
     xl6OutputPuts("    bool ok = xl6_runtime_value_is(value, target, false);\n", out);
     xl6OutputPuts("    if (ok) { result = xvoGetInt(value); }\n", out);
     xl6OutputPuts("    if (release && value != 0) { xvoUnref(value); }\n", out);
-    xl6OutputPuts("    if (!ok) { xl6_runtime_fatal(4); }\n", out);
+    xl6OutputPuts("    if (!ok) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
@@ -258,7 +258,7 @@ static void xl6CgenEmitRuntimeTypeHelpers(XL6_CgenContext* ctx)
     xl6OutputPuts("    bool ok = xl6_runtime_value_is(value, target, false);\n", out);
     xl6OutputPuts("    if (ok) { result = xvoGetFloat(value); }\n", out);
     xl6OutputPuts("    if (release && value != 0) { xvoUnref(value); }\n", out);
-    xl6OutputPuts("    if (!ok) { xl6_runtime_fatal(4); }\n", out);
+    xl6OutputPuts("    if (!ok) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
@@ -268,7 +268,7 @@ static void xl6CgenEmitRuntimeTypeHelpers(XL6_CgenContext* ctx)
     xl6OutputPuts("    bool ok = xl6_runtime_value_is(value, target, false);\n", out);
     xl6OutputPuts("    if (ok) { result = xvoGetBool(value) ? 1 : 0; }\n", out);
     xl6OutputPuts("    if (release && value != 0) { xvoUnref(value); }\n", out);
-    xl6OutputPuts("    if (!ok) { xl6_runtime_fatal(4); }\n", out);
+    xl6OutputPuts("    if (!ok) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
@@ -290,7 +290,7 @@ static void xl6CgenEmitRuntimeTypeHelpers(XL6_CgenContext* ctx)
     xl6OutputPuts("    bool ok = xl6_runtime_value_is(value, target, false);\n", out);
     xl6OutputPuts("    if (ok) { result = xl6_runtime_temp_cstr(xvoGetText(value)); }\n", out);
     xl6OutputPuts("    if (release && value != 0) { xvoUnref(value); }\n", out);
-    xl6OutputPuts("    if (!ok) { xl6_runtime_fatal(4); }\n", out);
+    xl6OutputPuts("    if (!ok) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
@@ -300,7 +300,7 @@ static void xl6CgenEmitRuntimeTypeHelpers(XL6_CgenContext* ctx)
     xl6OutputPuts("    bool ok = xl6_runtime_value_is(value, target, false);\n", out);
     xl6OutputPuts("    if (ok) { result = xvoGetPoint(value); }\n", out);
     xl6OutputPuts("    if (release && value != 0) { xvoUnref(value); }\n", out);
-    xl6OutputPuts("    if (!ok) { xl6_runtime_fatal(4); }\n", out);
+    xl6OutputPuts("    if (!ok) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
@@ -342,7 +342,7 @@ static void xl6CgenEmitRuntimeTypeRecordCastHelper(XL6_CgenContext* ctx, const X
         xl6OutputPuts("    if (!xl6_runtime_value_as_record(value, ", ctx->out);
     }
     xl6CgenEmitXrtTypeDescRef(ctx, concreteTarget);
-    xl6OutputPuts(", &result, release)) { xl6_runtime_fatal(4); }\n", ctx->out);
+    xl6OutputPuts(", &result, release)) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", ctx->out);
     xl6OutputPuts("    return result;\n", ctx->out);
     xl6OutputPuts("}\n", ctx->out);
     xl6OutputPuts("#endif\n\n", ctx->out);
@@ -467,7 +467,7 @@ static void xl6CgenEmitRuntimeTypeClassRecordCastHelper(XL6_CgenContext* ctx, co
     xl6OutputPrintf(ctx->out, "static %s xl6_runtime_value_as_%s(xvalue value, bool release)\n", targetCType, targetCType);
     xl6OutputPuts("{\n", ctx->out);
     xl6OutputPrintf(ctx->out, "    %s result = {0};\n", targetCType);
-    xl6OutputPrintf(ctx->out, "    if (!xl6_runtime_value_as_class_%s(value, &result, release)) { xl6_runtime_fatal(4); }\n", targetCType);
+    xl6OutputPrintf(ctx->out, "    if (!xl6_runtime_value_as_class_%s(value, &result, release)) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", targetCType);
     xl6OutputPuts("    return result;\n", ctx->out);
     xl6OutputPuts("}\n", ctx->out);
 }

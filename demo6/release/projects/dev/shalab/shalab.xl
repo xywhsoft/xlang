@@ -52,7 +52,7 @@ func makeArr64(int n, int64 v) as array<int64>
     end
     array<int64> a = array<int64>[v]
     int i = 1
-    while i < n do
+    while i < n
         a.push(v)
         i += 1
     end
@@ -95,12 +95,12 @@ func padMessage(string msg) as array<int>
     int L = string.byteLen(msg)
     array<int> M = []
     int i = 0
-    while i < L do
+    while i < L
         M.push(string.byteAt(msg, i))
         i += 1
     end
     M.push(0x80)
-    while (M.length % 64) != 56 do
+    while (M.length % 64) != 56
         M.push(0)
     end
     // bit length as a 64-bit big-endian integer (L*8; L fits in <2^60 in practice)
@@ -127,13 +127,13 @@ func sha1Compress(int off)
 
     // 1. load 16 big-endian words
     int j = 0
-    while j < 16 do
+    while j < 16
         g_w1[j] = beWord(off + j * 4)
         j += 1
     end
 
     // 2. message schedule: W[t] = ROTL1(W[t-3] ^ W[t-8] ^ W[t-14] ^ W[t-16])
-    while j < 80 do
+    while j < 80
         int64 v = g_w1[j - 3] ^ g_w1[j - 8] ^ g_w1[j - 14] ^ g_w1[j - 16]
         g_w1[j] = rotl32(v, 1)
         j += 1
@@ -148,7 +148,7 @@ func sha1Compress(int off)
 
     // 4. 80 rounds, 4 groups of 20 with different f / K
     int t = 0
-    while t < 80 do
+    while t < 80
         int64 f = 0
         int64 k = 0
         if t < 20 then
@@ -191,13 +191,13 @@ func sha1(string msg) as string
     g_msg = padMessage(msg)
     int off = 0
     int n = g_msg.length
-    while off < n do
+    while off < n
         sha1Compress(off)
         off += 64
     end
     string outputValue = ""
     int i = 0
-    while i < 5 do
+    while i < 5
         outputValue = outputValue + int.format(g_h1[i], "X8")
         i += 1
     end
@@ -225,7 +225,7 @@ func sha256Compress(int off)
 
     // 1. load 16 big-endian words
     int j = 0
-    while j < 16 do
+    while j < 16
         g_w256[j] = beWord(off + j * 4)
         j += 1
     end
@@ -234,7 +234,7 @@ func sha256Compress(int off)
     //    σ0 = ROTR7 ^ ROTR18 ^ SHR3
     //    σ1 = ROTR17 ^ ROTR19 ^ SHR10
     //    W[t] = W[t-16] + σ0 + W[t-7] + σ1  (mod 2^32)
-    while j < 64 do
+    while j < 64
         int64 w0 = g_w256[j - 15]
         int64 w1 = g_w256[j - 2]
         int64 s0 = rotr32(w0, 7) ^ rotr32(w0, 18) ^ (w0 >> 3)
@@ -255,7 +255,7 @@ func sha256Compress(int off)
 
     // 4. 64 rounds
     int t = 0
-    while t < 64 do
+    while t < 64
         // Σ1 = ROTR6 ^ ROTR11 ^ ROTR25 ; Ch = (e AND f) XOR ((NOT e) AND g)
         int64 bigS1 = rotr32(e, 6) ^ rotr32(e, 11) ^ rotr32(e, 25)
         int64 ch    = (e & f) ^ ((~e & M32) & g)
@@ -293,13 +293,13 @@ func sha256(string msg) as string
     g_msg = padMessage(msg)
     int off = 0
     int n = g_msg.length
-    while off < n do
+    while off < n
         sha256Compress(off)
         off += 64
     end
     string outputValue = ""
     int i = 0
-    while i < 8 do
+    while i < 8
         outputValue = outputValue + int.format(g_h256[i], "X8")
         i += 1
     end

@@ -6,7 +6,7 @@ end
 
 func tcpStressWorker(int port, int workerId, int rounds) as bool
     int round = 0
-    while round < rounds do
+    while round < rounds
         string payload = workerId.toString() + ":" + round.toString()
         TcpStream stream = TcpStream(tcp.connect("127.0.0.1", port, 3000))
         if stream.handle == null then return false end
@@ -147,7 +147,7 @@ require(stressService.start(), "stress service must start: " + stressService.las
 array<future<bool>> jobs = []
 func(int, int, int) as bool stressWorker = tcpStressWorker
 int worker = 0
-while worker < 12 do
+while worker < 12
     jobs.append(task.spawn(stressWorker, stressService.port(), worker, 25))
     worker += 1
 end

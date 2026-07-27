@@ -3,7 +3,7 @@ import "./http_service.xl"
 
 func requestWorker(int port, int workerId, int rounds) as bool
     int index = 0
-    while index < rounds do
+    while index < rounds
         HttpClientRequest request = HttpClientRequest("http://127.0.0.1:" + port.toString() + "/")
         request.header("Host", "example.test")
         request.header("X-Worker", workerId.toString())
@@ -30,13 +30,13 @@ const int ROUNDS = 75
 array<future<bool>> jobs = []
 func(int, int, int) as bool worker = requestWorker
 int index = 0
-while index < WORKERS do
+while index < WORKERS
     jobs.append(task.spawn(worker, service.port(), index, ROUNDS))
     index += 1
 end
 
 index = 0
-while index < 5 do
+while index < 5
     time.sleep(20)
     assert service.reloadHandlers(), service.lastError()
     index += 1

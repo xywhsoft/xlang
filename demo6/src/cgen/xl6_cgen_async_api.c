@@ -64,12 +64,7 @@ static int xl6CgenChannelCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
 static void xl6CgenChannelReceiverExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
 {
     if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
-        if ( xl6CgenAnonCaptureIndex(ctx->currentAnonFunc, receiver->text) >= 0 ) {
-            xl6OutputPuts("__env->", ctx->out);
-            xl6CgenFputsCIdent(ctx->out, receiver->text);
-            return;
-        }
-        xl6CgenFputsCIdent(ctx->out, receiver->text);
+        xl6CgenNamedValueReference(ctx, receiver->text);
         return;
     }
     xl6CgenExpr(ctx, receiver);
@@ -179,7 +174,7 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
             xl6OutputPuts(isTimeoutRecv ? "xl6_channel_recv_string_timeout(" : "xl6_channel_recv_string(", ctx->out);
             xl6CgenChannelReceiverExpr(ctx, receiver);
             xl6OutputPuts(", &", ctx->out);
-            xl6CgenFputsCIdent(ctx->out, argExpr->text);
+            xl6CgenNamedValueReference(ctx, argExpr->text);
             if ( isTimeoutRecv ) {
                 xl6OutputPuts(", ", ctx->out);
                 xl6CgenExpr(ctx, timeoutExpr);
@@ -197,7 +192,7 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
             xl6CgenChannelReceiverExpr(ctx, receiver);
             xl6OutputPuts(", &", ctx->out);
             if ( argExpr != NULL && argExpr->kind == XL6_AST_NAME ) {
-                xl6CgenFputsCIdent(ctx->out, argExpr->text);
+                xl6CgenNamedValueReference(ctx, argExpr->text);
             } else {
                 xl6CgenExpr(ctx, argExpr);
             }
@@ -217,7 +212,7 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
         xl6CgenChannelReceiverExpr(ctx, receiver);
         xl6OutputPuts(", &", ctx->out);
         if ( argExpr != NULL && argExpr->kind == XL6_AST_NAME ) {
-            xl6CgenFputsCIdent(ctx->out, argExpr->text);
+            xl6CgenNamedValueReference(ctx, argExpr->text);
         } else {
             xl6CgenExpr(ctx, argExpr);
         }
@@ -246,12 +241,7 @@ static void xl6CgenTaskFutureArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* ex
 static void xl6CgenFutureReceiverExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
 {
     if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
-        if ( xl6CgenAnonCaptureIndex(ctx->currentAnonFunc, receiver->text) >= 0 ) {
-            xl6OutputPuts("__env->", ctx->out);
-            xl6CgenFputsCIdent(ctx->out, receiver->text);
-            return;
-        }
-        xl6CgenFputsCIdent(ctx->out, receiver->text);
+        xl6CgenNamedValueReference(ctx, receiver->text);
         return;
     }
     xl6CgenExpr(ctx, receiver);
@@ -767,12 +757,7 @@ static int xl6CgenSyncDefaultCtorExpr(XL6_CgenContext* ctx, const XL6_AstNode* t
 static void xl6CgenSyncReceiver(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
 {
     if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
-        if ( xl6CgenAnonCaptureIndex(ctx->currentAnonFunc, receiver->text) >= 0 ) {
-            xl6OutputPuts("__env->", ctx->out);
-            xl6CgenFputsCIdent(ctx->out, receiver->text);
-            return;
-        }
-        xl6CgenFputsCIdent(ctx->out, receiver->text);
+        xl6CgenNamedValueReference(ctx, receiver->text);
         return;
     }
     xl6CgenExpr(ctx, receiver);
@@ -997,12 +982,7 @@ static int xl6CgenThreadCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, 
 static void xl6CgenThreadReceiver(XL6_CgenContext* ctx, const XL6_AstNode* receiver)
 {
     if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
-        if ( xl6CgenAnonCaptureIndex(ctx->currentAnonFunc, receiver->text) >= 0 ) {
-            xl6OutputPuts("__env->", ctx->out);
-            xl6CgenFputsCIdent(ctx->out, receiver->text);
-            return;
-        }
-        xl6CgenFputsCIdent(ctx->out, receiver->text);
+        xl6CgenNamedValueReference(ctx, receiver->text);
         return;
     }
     xl6CgenExpr(ctx, receiver);

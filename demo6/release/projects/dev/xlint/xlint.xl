@@ -1,7 +1,6 @@
 // xlint - xlang lint 工具（用 xlang 分析 xlang 自身代码）
 //
 // 通过 `xl parse <file.xl> --format json` 取 AST，递归遍历应用规则：
-//   no-while-without-do  while 必须带 do（源码扫描，捕获无法解析的坏代码）
 //   no-undefined-var     变量使用前必须声明
 //   consistent-naming    变量 snake_case / 类名 PascalCase
 //   no-magic-numbers     未命名的魔法数字（可配置阈值，默认 >= 100）
@@ -229,7 +228,7 @@ end
 func maxLine(var n) as int
     int m = 0
     var sn = [n]
-    while sn.length > 0 do
+    while sn.length > 0
         int last = sn.length - 1
         var node = sn[last]
         sn.remove(last)
@@ -277,7 +276,7 @@ func mergeIssueRuns(array<Issue> left, array<Issue> right) as array<Issue>
     array<Issue> result = []
     int li = 0
     int ri = 0
-    while li < left.length and ri < right.length do
+    while li < left.length and ri < right.length
         // 相等时保留左侧元素，保证排序稳定。
         if issueLess(right[ri], left[li]) then
             result.push(right[ri])
@@ -287,11 +286,11 @@ func mergeIssueRuns(array<Issue> left, array<Issue> right) as array<Issue>
             li += 1
         end
     end
-    while li < left.length do
+    while li < left.length
         result.push(left[li])
         li += 1
     end
-    while ri < right.length do
+    while ri < right.length
         result.push(right[ri])
         ri += 1
     end
@@ -307,7 +306,7 @@ func mergeSortIssues(array<Issue> items) as array<Issue>
     array<Issue> left = []
     array<Issue> right = []
     int i = 0
-    while i < items.length do
+    while i < items.length
         if i < middle then
             left.push(items[i])
         else
@@ -357,50 +356,6 @@ func startsUnderscore(string name) as bool
     return string.mid(name, 0, 1) == "_"
 end
 
-// ===== 规则：no-while-without-do（源码扫描） =====
-
-func containsWord(string s, string w) as bool
-    return regex.isMatch(s, "\\b" + w + "\\b")
-end
-
-func checkWhileDo(array<string> lines)
-    int i = 0
-    while i < lines.length do
-        string raw = lines[i]
-        int cpos = string.indexOf(raw, "//")
-        string code = raw
-        if cpos >= 0 then
-            code = string.left(raw, cpos)
-        end
-        if containsWord(code, "while") and not containsWord(code, "do") then
-            // 多行 while 条件：向后看最多 4 行是否出现独立的 do
-            bool seen = false
-            int j = i + 1
-            int stop = i + 4
-            if stop >= lines.length then
-                stop = lines.length - 1
-            end
-            while j <= stop do
-                string raw2 = lines[j]
-                int cp2 = string.indexOf(raw2, "//")
-                string code2 = raw2
-                if cp2 >= 0 then
-                    code2 = string.left(raw2, cp2)
-                end
-                if containsWord(code2, "do") then
-                    seen = true
-                    break
-                end
-                j += 1
-            end
-            if not seen then
-                addIssue(i + 1, 1, "no-while-without-do", "error", "'while' without 'do'")
-            end
-        end
-        i += 1
-    end
-end
-
 // ===== 合并遍历 A：gatherDeclared + consistent-naming + no-magic-numbers + max-function-length + no-deep-nesting =====
 
 func isPlainInt(string raw) as bool
@@ -419,7 +374,7 @@ func passA(var root, int depth0, bool skip0)
     var sn = [root]
     var sd = [depth0]
     var ss = [skipint0]
-    while sn.length > 0 do
+    while sn.length > 0
         int last = sn.length - 1
         var node = sn[last]
         int depth = int(sd[last])
@@ -589,7 +544,7 @@ end
 
 func passB(var root)
     var sn = [root]
-    while sn.length > 0 do
+    while sn.length > 0
         int last = sn.length - 1
         var node = sn[last]
         sn.remove(last)
@@ -632,7 +587,7 @@ end
 
 func collectLocals(var blk)
     var sn = [blk]
-    while sn.length > 0 do
+    while sn.length > 0
         int last = sn.length - 1
         var node = sn[last]
         sn.remove(last)
@@ -653,7 +608,7 @@ end
 func countNameUses(var blk, string name) as int
     int cnt = 0
     var sn = [blk]
-    while sn.length > 0 do
+    while sn.length > 0
         int last = sn.length - 1
         var node = sn[last]
         sn.remove(last)
@@ -689,10 +644,6 @@ func lintFile(string filePath)
 
     string src = file.readText(filePath)
     array<string> lines = splitLinesSafe(src)
-
-    if ruleOn("no-while-without-do") then
-        checkWhileDo(lines)
-    end
 
     if string.len(g_xl) == 0 then
         addIssue(0, 0, "xlint", "error", "xl.exe not found; AST-based rules skipped")
@@ -847,9 +798,9 @@ func printUsage()
     println("  xlint <file.xl> --strict        exit non-zero on findings")
     println("")
     println("Rules:")
-    println("  no-while-without-do   no-undefined-var   consistent-naming")
-    println("  no-magic-numbers      require-doc        max-function-length")
-    println("  no-deep-nesting       unused-variable")
+    println("  no-undefined-var   consistent-naming   no-magic-numbers")
+    println("  require-doc        max-function-length  no-deep-nesting")
+    println("  unused-variable")
     println("")
     println("Config: .xlintrc.json with {\"rules\":{...},\"thresholds\":{...}}")
 end
@@ -903,7 +854,7 @@ func main(...) as int
     bool noBanner = false
 
     int i = 1
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "-r" then
             recursive = true
@@ -951,7 +902,6 @@ func main(...) as int
 
     var cfg = loadConfig(target, configPath)
 
-    enable("no-while-without-do", cfgRule(cfg, "no-while-without-do", true))
     enable("no-undefined-var", cfgRule(cfg, "no-undefined-var", true))
     enable("consistent-naming", cfgRule(cfg, "consistent-naming", true))
     enable("no-magic-numbers", cfgRule(cfg, "no-magic-numbers", true))

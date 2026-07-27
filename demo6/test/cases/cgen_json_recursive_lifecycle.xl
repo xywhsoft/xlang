@@ -37,7 +37,7 @@ func expectedTreeNodeCount(int depth) as int
     int count = 1
     int level = 0
 
-    while level <= depth do
+    while level <= depth
         if level > 0 then
             count = count * 2 + 1
         end
@@ -52,12 +52,12 @@ func exerciseTypedStacks(int count)
     array<bool> flags = []
     int index = 0
 
-    while index < count do
+    while index < count
         values.push(index)
         flags.push(index % 2 == 0)
         index += 1
     end
-    while values.length > 0 do
+    while values.length > 0
         values.remove(values.length - 1)
         flags.remove(flags.length - 1)
     end
@@ -70,7 +70,7 @@ int expected = expectedTreeNodeCount(8)
 array<LifecycleIssue> issues = []
 int iteration = 0
 
-while iteration < 40 do
+while iteration < 40
     var root = json.parse(source)
     int actual = treeNodeCount(root)
     assert actual == expected, "recursive JSON tree traversal failed"

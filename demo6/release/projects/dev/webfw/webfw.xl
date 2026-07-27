@@ -97,7 +97,7 @@ func numTry(var v) as (float, bool)
     if i >= slen then
         return 0.0, false
     end
-    while i < slen do
+    while i < slen
         int b = string.byteAt(s, i)
         if b >= 48 and b <= 57 then
             hasDigit = true
@@ -266,7 +266,7 @@ func jsonFromVar(var v) as string
         string outputValue = "["
         int i = 0
         int n = v.length
-        while i < n do
+        while i < n
             if i > 0 then
                 outputValue = outputValue + ","
             end
@@ -311,7 +311,7 @@ func parseCookies(string header) as var
     var parts = string.split(header, ";")
     int i = 0
     int n = parts.length
-    while i < n do
+    while i < n
         string pair = string.trim(string(parts[i]))
         if not string.isEmpty(pair) then
             int eq = string.indexOf(pair, "=")
@@ -336,7 +336,7 @@ func parseForm(string body) as var
     var parts = string.split(body, "&")
     int i = 0
     int n = parts.length
-    while i < n do
+    while i < n
         string pair = string(parts[i])
         if not string.isEmpty(pair) then
             int eq = string.indexOf(pair, "=")
@@ -410,7 +410,7 @@ func parsePattern(string pattern) as var
     var parts = string.split(p, "/")
     int i = 0
     int n = parts.length
-    while i < n do
+    while i < n
         string seg = string(parts[i])
         if seg == "*" then
             var ws = {}
@@ -494,7 +494,7 @@ func routerMatch(string method, string path) as var
 
     int ri = 0
     int rn = gRoutes.length
-    while ri < rn do
+    while ri < rn
         var r = gRoutes[ri]
         if string(r["method"]) != m then
             ri += 1
@@ -507,7 +507,7 @@ func routerMatch(string method, string path) as var
         bool usedWildcard = false
         int pi = 0
         int si = 0
-        while si < sn do
+        while si < sn
             var seg = segs[si]
             string kind = string(seg["kind"])
             if kind == "static" then
@@ -528,7 +528,7 @@ func routerMatch(string method, string path) as var
             elseif kind == "wildcard" then
                 // 吞掉剩余所有段，拼回成 "a/b/c"
                 string rest = ""
-                while pi < pathLen do
+                while pi < pathLen
                     if not string.isEmpty(rest) then
                         rest = rest + "/"
                     end
@@ -570,7 +570,7 @@ func computeSpecificity(var segs) as int
     int score = 0
     int i = 0
     int n = segs.length
-    while i < n do
+    while i < n
         string k = string(segs[i]["kind"])
         if k == "static" then
             score += 2
@@ -588,7 +588,7 @@ func routerDump() as string
     string outputValue = ""
     int i = 0
     int n = gRoutes.length
-    while i < n do
+    while i < n
         var r = gRoutes[i]
         outputValue = outputValue + r["method"] + " " + r["pattern"] + " -> " + r["handler"] + "\n"
         i += 1
@@ -656,7 +656,7 @@ func dbMaxId(var records) as int
     int maxId = 0
     int i = 0
     int n = records.length
-    while i < n do
+    while i < n
         var rec = records[i]
         if "id" in rec then
             float fv = 0.0
@@ -691,7 +691,7 @@ func dbFindById(string collection, int id) as var
     var records = dbLoad(collection)
     int i = 0
     int n = records.length
-    while i < n do
+    while i < n
         var rec = records[i]
         if "id" in rec then
             float fv = 0.0
@@ -712,7 +712,7 @@ func dbUpdate(string collection, int id, var fields) as bool
     var records = dbLoad(collection)
     int i = 0
     int n = records.length
-    while i < n do
+    while i < n
         var rec = records[i]
         float fv = 0.0
         bool ok = false
@@ -738,7 +738,7 @@ func dbDelete(string collection, int id) as bool
     var records = dbLoad(collection)
     int i = 0
     int n = records.length
-    while i < n do
+    while i < n
         var rec = records[i]
         float fv = 0.0
         bool ok = false
@@ -777,7 +777,7 @@ end
 func matchAll(var conditions, var rec) as bool
     int i = 0
     int n = conditions.length
-    while i < n do
+    while i < n
         if not matchCondition(rec, conditions[i]) then
             return false
         end
@@ -791,10 +791,10 @@ end
 func sortRecords(var arr, string field, bool desc)
     int n = arr.length
     int i = 0
-    while i < n do
+    while i < n
         int best = i
         int j = i + 1
-        while j < n do
+        while j < n
             var ra = arr[best]
             var rb = arr[j]
             var va = ""
@@ -890,7 +890,7 @@ class Query
         var outputValue = []
         int i = 0
         int n = records.length
-        while i < n do
+        while i < n
             var rec = records[i]
             if matchAll(self.conditions, rec) then
                 outputValue.push(rec)
@@ -930,7 +930,7 @@ class Query
         int c = 0
         int i = 0
         int n = records.length
-        while i < n do
+        while i < n
             if matchAll(self.conditions, records[i]) then
                 c += 1
             end
@@ -952,7 +952,7 @@ func sliceArray(var arr, int start, int endIdx) as var
         endIdx = n
     end
     int i = start
-    while i < endIdx do
+    while i < endIdx
         outputValue.push(arr[i])
         i += 1
     end
@@ -991,7 +991,7 @@ func tplCompile(string src) as var
     var nodes = []
     int pos = 0
     int n = toks.length
-    while pos < n do
+    while pos < n
         var tk = toks[pos]
         string ty = string(tk["type"])
         if ty == "text" then
@@ -1038,7 +1038,7 @@ func tplTokenize(string src) as var
     string buf = ""
     int i = 0
     int n = string.len(src)
-    while i < n do
+    while i < n
         int b = string.byteAt(src, i)
         // 字面量 {{ 或 }}
         if b == 123 and i + 1 < n and string.byteAt(src, i + 1) == 123 then
@@ -1075,7 +1075,7 @@ func tplTokenize(string src) as var
             // 找匹配的 '}'
             int j = i + 1
             bool closed = false
-            while j < n do
+            while j < n
                 if string.byteAt(src, j) == 125 then
                     closed = true
                     break
@@ -1146,7 +1146,7 @@ func tplParseIf(var toks, int start) as (var, int)
     int pos = start + 1
     int n = toks.length
     bool ok = true
-    while pos < n do
+    while pos < n
         var body
         int consumed
         body, consumed = tplParseUntilCtrl(toks, pos)
@@ -1202,7 +1202,7 @@ func tplParseUntilCtrl(var toks, int start) as (var, int)
     var nodes = []
     int pos = start
     int n = toks.length
-    while pos < n do
+    while pos < n
         var tk = toks[pos]
         string ty = string(tk["type"])
         if ty == "text" then
@@ -1280,7 +1280,7 @@ func tplRender(var nodes, var scope) as string
     string outputValue = ""
     int i = 0
     int n = nodes.length
-    while i < n do
+    while i < n
         var nd = nodes[i]
         string ty = string(nd["type"])
         if ty == "text" then
@@ -1302,7 +1302,7 @@ func tplRenderIf(var nd, var scope) as string
     var branches = nd["branches"]
     int i = 0
     int n = branches.length
-    while i < n do
+    while i < n
         var br = branches[i]
         if tplEvalIf(string(br["expr"]), scope) then
             return tplRender(br["nodes"], scope)
@@ -1332,7 +1332,7 @@ func tplRenderForeach(var nd, var scope) as string
     if isArr then
         int i = 0
         int n = lst.length
-        while i < n do
+        while i < n
             var child = tplChildScope(scope)
             child[itemVar] = lst[i]
             if not string.isEmpty(indexVar) then
@@ -1384,7 +1384,7 @@ func tplLookup(var scope, string path) as var
     var cur = scope
     int i = 0
     int n = parts.length
-    while i < n do
+    while i < n
         string p = string(parts[i])
         bool isDict = false
         if type(cur) == type({}) then
@@ -1422,7 +1422,7 @@ func tplEvalIf(string expr, var scope) as bool
     // 优先 2 字符
     var ops2 = ["<=", ">=", "==", "!="]
     int oi = 0
-    while oi < 4 do
+    while oi < 4
         int p = string.indexOf(expr, string(ops2[oi]))
         if p > 0 then
             opAt = p
@@ -1434,7 +1434,7 @@ func tplEvalIf(string expr, var scope) as bool
     if opAt < 0 then
         var ops1 = ["<", ">", "="]
         int oi2 = 0
-        while oi2 < 3 do
+        while oi2 < 3
             int p = string.indexOf(expr, string(ops1[oi2]))
             if p > 0 then
                 opAt = p
@@ -1549,7 +1549,7 @@ end
 func mwRun(var ctx) as bool
     int i = 0
     int n = gMiddlewares.length
-    while i < n do
+    while i < n
         bool cont = mwExec(string(gMiddlewares[i]), ctx)
         if not cont then
             return false
@@ -1763,7 +1763,7 @@ func authFindByName(string username) as var
     var users = authLoad()
     int i = 0
     int n = users.length
-    while i < n do
+    while i < n
         var u = users[i]
         if string(u["username"]) == username then
             return u
@@ -1778,7 +1778,7 @@ func authFindById(int id) as var
     var users = authLoad()
     int i = 0
     int n = users.length
-    while i < n do
+    while i < n
         var u = users[i]
         float fv = 0.0
         bool ok = false
@@ -1806,7 +1806,7 @@ func authRegister(string username, string password) as var
     int newId = 1
     int i = 0
     int n = users.length
-    while i < n do
+    while i < n
         float fv = 0.0
         bool ok = false
         if "id" in users[i] then
@@ -2009,7 +2009,7 @@ func frameworkRoute(point reqHandle, point respHandle) as bool
         var safe = []
         int ui = 0
         int un = users.length
-        while ui < un do
+        while ui < un
             var one = {}
             one["id"] = users[ui]["id"]
             one["username"] = users[ui]["username"]
@@ -2044,7 +2044,7 @@ func frameworkRoute(point reqHandle, point respHandle) as bool
         var clean = []
         int ci = 0
         int cn = arr.length
-        while ci < cn do
+        while ci < cn
             var one = {}
             one["id"] = arr[ci]["id"]
             one["username"] = arr[ci]["username"]
@@ -2207,7 +2207,7 @@ func buildServer(int port) as point
     point server = http.server.create(port, "127.0.0.1", 128, 1048576, 1048576, 100, 65536, 2)
     int ri = 0
     int rn = gRoutes.length
-    while ri < rn do
+    while ri < rn
         var r = gRoutes[ri]
         string m = string(r["method"])
         if m == "GET" then
@@ -2947,7 +2947,7 @@ func cmdServe(int port) as int
     println("data dir: " + gDataDir)
     println("demo login: admin / admin")
     println("press Ctrl+C to stop")
-    while true do
+    while true
         time.sleep(5000)
         println("[stats] requests=" + http.server.requestCount(server).toString() +
                 " connections=" + http.server.connectionCount(server).toString())
@@ -2963,7 +2963,7 @@ func cmdBench(int port) as int
     int fail = 0
     int i = 0
     float t0 = time.timer()
-    while i < N do
+    while i < N
         HttpClientRequest req = HttpClientRequest(base + "/health")
         req.method("GET")
         req.timeout(5000)

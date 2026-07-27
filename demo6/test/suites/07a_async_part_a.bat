@@ -12,13 +12,15 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_async_class_conditional_await.xl --emit build\test\cgen_async_class_conditional_await.c
 if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_async_class_conditional_await.c',[Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); [IO.File]::WriteAllText('build\test\cgen_async_class_conditional_await.assert.c',$text,(New-Object Text.UTF8Encoding($false)))"
+if errorlevel 1 exit /b 1
 
-findstr /C:"xl6_future_await_xvalue_release" build\test\cgen_async_class_conditional_await.c >nul
+findstr /C:"xl6_future_await_xvalue_release" build\test\cgen_async_class_conditional_await.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_class_conditional_await.c missing managed class await release helper.
     exit /b 1
 )
-findstr /C:"xl6_future_add_ref_if_needed(missingConditionalAwaitBox)" build\test\cgen_async_class_conditional_await.c >nul
+findstr /C:"xl6_future_add_ref_if_needed(missingConditionalAwaitBox)" build\test\cgen_async_class_conditional_await.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_class_conditional_await.c missing borrowed/null future add-ref guard.
     exit /b 1
@@ -46,326 +48,328 @@ for /L %%I in (1,1,5) do (
 
 release\xl.exe cgen test\cases\cgen_async_exception_propagation.xl --emit build\test\cgen_async_exception_propagation.c
 if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_async_exception_propagation.c',[Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); [IO.File]::WriteAllText('build\test\cgen_async_exception_propagation.assert.c',$text,(New-Object Text.UTF8Encoding($false)))"
+if errorlevel 1 exit /b 1
 
-findstr /C:"xl6_error_raise(\"Error\", \"async boom\"" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_error_raise(\"Error\", \"async boom\"" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing async throw raise.
     exit /b 1
 )
 
-findstr /C:"xl6_future_await_value" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_future_await_value" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing await helper.
     exit /b 1
 )
 
-findstr /C:"xl6_future_await_value(failed" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_future_await_value(failed" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing borrowed named future await.
     exit /b 1
 )
 
-findstr /C:"long long secondValue = (*(long long*)xl6_future_await_value(failed" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"long long secondValue = (*(long long*)xl6_future_await_value(failed" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing repeated await for failed named future.
     exit /b 1
 )
 
-findstr /C:"cancelFailed = xl6_task_cancel_value(failed, 0)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"cancelFailed = xl6_task_cancel_value(failed, 0)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c should pass failed future cancel as borrowed.
     exit /b 1
 )
 
-findstr /C:"xl6_future_await_i64_release(xl_fn_failAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_future_await_i64_release(xl_fn_failAsync()" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing owned temporary future await release.
     exit /b 1
 )
 
-findstr /C:"xl6_future_await_value(failedVoid" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_future_await_value(failedVoid" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed void named future await.
     exit /b 1
 )
 
-findstr /C:"xl6_task_cancel_value(failedVoid, 0)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_task_cancel_value(failedVoid, 0)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c should pass failed void future cancel as borrowed.
     exit /b 1
 )
 
-findstr /C:"xl6_future_await_void_release(xl_fn_failVoidAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_future_await_void_release(xl_fn_failVoidAsync()" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing temporary failed void await release.
     exit /b 1
 )
 
-findstr /C:"failedStringValueA = xrtCopyStr(xl6_future_await_cstr_copy(failedString" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedStringValueA = xrtCopyStr(xl6_future_await_cstr_copy(failedString" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed string first await copy.
     exit /b 1
 )
 
-findstr /C:"xl6_task_cancel_value(failedString, 0)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_task_cancel_value(failedString, 0)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c should pass failed string future cancel as borrowed.
     exit /b 1
 )
 
-findstr /C:"failedStringValueB = xrtCopyStr(xl6_future_await_cstr_copy(failedString" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedStringValueB = xrtCopyStr(xl6_future_await_cstr_copy(failedString" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed string repeated await copy.
     exit /b 1
 )
 
-findstr /C:"failedBoolValueA = (*(int*)xl6_future_await_value(failedBool" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedBoolValueA = (*(int*)xl6_future_await_value(failedBool" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed bool first await.
     exit /b 1
 )
 
-findstr /C:"xl6_task_cancel_value(failedBool, 0)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_task_cancel_value(failedBool, 0)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c should pass failed bool future cancel as borrowed.
     exit /b 1
 )
 
-findstr /C:"failedBoolValueB = (*(int*)xl6_future_await_value(failedBool" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedBoolValueB = (*(int*)xl6_future_await_value(failedBool" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed bool repeated await.
     exit /b 1
 )
 
-findstr /C:"failedFloatValueA = (*(double*)xl6_future_await_value(failedFloat" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedFloatValueA = (*(double*)xl6_future_await_value(failedFloat" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed float first await.
     exit /b 1
 )
 
-findstr /C:"xl6_task_cancel_value(failedFloat, 0)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_task_cancel_value(failedFloat, 0)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c should pass failed float future cancel as borrowed.
     exit /b 1
 )
 
-findstr /C:"failedFloatValueB = (*(double*)xl6_future_await_value(failedFloat" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedFloatValueB = (*(double*)xl6_future_await_value(failedFloat" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed float repeated await.
     exit /b 1
 )
 
-findstr /C:"failedVarValueA = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(failedVar" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedVarValueA = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(failedVar" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed var first await retain.
     exit /b 1
 )
 
-findstr /C:"xl6_task_cancel_value(failedVar, 0)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_task_cancel_value(failedVar, 0)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c should pass failed var future cancel as borrowed.
     exit /b 1
 )
 
-findstr /C:"failedVarValueB = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(failedVar" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedVarValueB = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(failedVar" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed var repeated await retain.
     exit /b 1
 )
 
-findstr /C:"failedFunctionValueA = (*(XL6_Function*)xl6_future_await_value(failedFunction" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedFunctionValueA = (*(XL6_Function*)xl6_future_await_value(failedFunction" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed function first await.
     exit /b 1
 )
 
-findstr /C:"failedFunctionValueA.retain(failedFunctionValueA.env)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedFunctionValueA.retain(failedFunctionValueA.env)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed function first await retain.
     exit /b 1
 )
 
-findstr /C:"xl6_task_cancel_value(failedFunction, 0)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_task_cancel_value(failedFunction, 0)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c should pass failed function future cancel as borrowed.
     exit /b 1
 )
 
-findstr /C:"failedFunctionValueB = (*(XL6_Function*)xl6_future_await_value(failedFunction" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedFunctionValueB = (*(XL6_Function*)xl6_future_await_value(failedFunction" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed function repeated await.
     exit /b 1
 )
 
-findstr /C:"failedFunctionValueB.retain(failedFunctionValueB.env)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedFunctionValueB.retain(failedFunctionValueB.env)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed function repeated await retain.
     exit /b 1
 )
 
-findstr /C:"failedBoxValueA = xl6_xrt_bind_type(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(failedBox" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedBoxValueA = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(failedBox" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed class first await.
     exit /b 1
 )
 
-findstr /C:"xl6_task_cancel_value(failedBox, 0)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_task_cancel_value(failedBox, 0)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c should pass failed class future cancel as borrowed.
     exit /b 1
 )
 
-findstr /C:"failedBoxValueB = xl6_xrt_bind_type(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(failedBox" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedBoxValueB = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(failedBox" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed class repeated await.
     exit /b 1
 )
 
-findstr /C:"failedItemsValueA = xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(failedItems" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedItemsValueA = xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(failedItems" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed array first await retain.
     exit /b 1
 )
 
-findstr /C:"xl6_task_cancel_value(failedItems, 0)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_task_cancel_value(failedItems, 0)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c should pass failed typed array future cancel as borrowed.
     exit /b 1
 )
 
-findstr /C:"failedItemsValueB = xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(failedItems" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedItemsValueB = xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(failedItems" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed array repeated await retain.
     exit /b 1
 )
 
-findstr /C:"failedListValueA = xrtTypedListRetain((*(xtlist*)xl6_future_await_value(failedList" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedListValueA = xrtTypedListRetain((*(xtlist*)xl6_future_await_value(failedList" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed list first await retain.
     exit /b 1
 )
 
-findstr /C:"xl6_task_cancel_value(failedList, 0)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_task_cancel_value(failedList, 0)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c should pass failed typed list future cancel as borrowed.
     exit /b 1
 )
 
-findstr /C:"failedListValueB = xrtTypedListRetain((*(xtlist*)xl6_future_await_value(failedList" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedListValueB = xrtTypedListRetain((*(xtlist*)xl6_future_await_value(failedList" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed list repeated await retain.
     exit /b 1
 )
 
-findstr /C:"failedSetValueA = xrtTypedSetRetain((*(xtset*)xl6_future_await_value(failedSet" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedSetValueA = xrtTypedSetRetain((*(xtset*)xl6_future_await_value(failedSet" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed set first await retain.
     exit /b 1
 )
 
-findstr /C:"xl6_task_cancel_value(failedSet, 0)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_task_cancel_value(failedSet, 0)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c should pass failed typed set future cancel as borrowed.
     exit /b 1
 )
 
-findstr /C:"failedSetValueB = xrtTypedSetRetain((*(xtset*)xl6_future_await_value(failedSet" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedSetValueB = xrtTypedSetRetain((*(xtset*)xl6_future_await_value(failedSet" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed set repeated await retain.
     exit /b 1
 )
 
-findstr /C:"failedDictValueA = xrtTypedDictRetain((*(xtdict*)xl6_future_await_value(failedDict" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedDictValueA = xrtTypedDictRetain((*(xtdict*)xl6_future_await_value(failedDict" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed dict first await retain.
     exit /b 1
 )
 
-findstr /C:"xl6_task_cancel_value(failedDict, 0)" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_task_cancel_value(failedDict, 0)" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c should pass failed typed dict future cancel as borrowed.
     exit /b 1
 )
 
-findstr /C:"failedDictValueB = xrtTypedDictRetain((*(xtdict*)xl6_future_await_value(failedDict" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"failedDictValueB = xrtTypedDictRetain((*(xtdict*)xl6_future_await_value(failedDict" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed dict repeated await retain.
     exit /b 1
 )
 
-findstr /C:"tempStringValue = xrtCopyStr(xl6_future_await_cstr_release(xl_fn_failStringAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"tempStringValue = xrtCopyStr(xl6_future_await_cstr_release(xl_fn_failStringAsync()" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing temporary failed string await release.
     exit /b 1
 )
 
-findstr /C:"tempItemsValue = xl6_future_await_handle_release(xl_fn_failItemsAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"tempItemsValue = xl6_future_await_handle_release(xl_fn_failItemsAsync()" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing temporary failed typed array await release.
     exit /b 1
 )
 
-findstr /C:"tempListValue = xl6_future_await_handle_release(xl_fn_failListAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"tempListValue = xl6_future_await_handle_release(xl_fn_failListAsync()" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing temporary failed typed list await release.
     exit /b 1
 )
 
-findstr /C:"tempSetValue = xl6_future_await_handle_release(xl_fn_failSetAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"tempSetValue = xl6_future_await_handle_release(xl_fn_failSetAsync()" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing temporary failed typed set await release.
     exit /b 1
 )
 
-findstr /C:"tempDictValue = xl6_future_await_handle_release(xl_fn_failDictAsync()" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"tempDictValue = xl6_future_await_handle_release(xl_fn_failDictAsync()" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing temporary failed typed dict await release.
     exit /b 1
 )
 
-findstr /C:"static int xl_async_worker_xl_fn_asyncFinallyCatchAsync" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"static int xl_async_worker_xl_fn_asyncFinallyCatchAsync" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing async finally worker.
     exit /b 1
 )
 
-findstr /C:"goto __xl6_try_finally_" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"goto __xl6_try_finally_" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing async finally control path.
     exit /b 1
 )
 
-findstr /C:"xl6_error_raise(\"Error\", \"async finally override boom\"" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_error_raise(\"Error\", \"async finally override boom\"" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing async finally override error.
     exit /b 1
 )
 
-findstr /C:"xl6_error_raise(\"Error\", \"async finally void override boom\"" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_error_raise(\"Error\", \"async finally void override boom\"" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing async void finally override error.
     exit /b 1
 )
 
-findstr /C:"finallyCatchRepeated = (*(long long*)xl6_future_await_value(finallyCatchFuture" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"finallyCatchRepeated = (*(long long*)xl6_future_await_value(finallyCatchFuture" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing async finally repeated await.
     exit /b 1
 )
 
-findstr /C:"finallyOverrideState = 84LL" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"finallyOverrideState = 84LL" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing async finally repeated error state.
     exit /b 1
 )
 
-findstr /C:"xl6_future_await_value(finallyVoidFuture" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"xl6_future_await_value(finallyVoidFuture" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing async void finally await.
     exit /b 1
 )
 
-findstr /C:"finallyVoidState = 84LL" build\test\cgen_async_exception_propagation.c >nul
+findstr /C:"finallyVoidState = 84LL" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing async void finally repeated error state.
     exit /b 1

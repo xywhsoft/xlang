@@ -178,7 +178,7 @@ func makeInt(int n, int v) as array<int>
     end
     array<int> a = array[v]
     int i = 1
-    while i < n do
+    while i < n
         a.push(v)
         i += 1
     end
@@ -192,7 +192,7 @@ func makeFloat(int n, float v) as array<float>
     end
     array<float> a = array[v]
     int i = 1
-    while i < n do
+    while i < n
         a.push(v)
         i += 1
     end
@@ -206,7 +206,7 @@ func makeBool(int n, bool v) as array<bool>
     end
     array<bool> a = array[v]
     int i = 1
-    while i < n do
+    while i < n
         a.push(v)
         i += 1
     end
@@ -220,7 +220,7 @@ func makeStr(int n, string v) as array<string>
     end
     array<string> a = array[v]
     int i = 1
-    while i < n do
+    while i < n
         a.push(v)
         i += 1
     end
@@ -370,7 +370,7 @@ func loadLevel(array<string> rows) as bool
     end
     int w = 0
     int i = 0
-    while i < h do
+    while i < h
         int L = string.len(rows[i])
         if L > w then
             w = L
@@ -388,11 +388,11 @@ func loadLevel(array<string> rows) as bool
 
     // 第一遍：按字符填充瓦片 / 生成实体
     int r = 0
-    while r < h do
+    while r < h
         string row = rows[r]
         int len = string.len(row)
         int c = 0
-        while c < w do
+        while c < w
             string ch = " "
             if c < len then
                 ch = string.charAt(row, c)
@@ -427,7 +427,7 @@ func loadLevel(array<string> rows) as bool
 
     // 第二遍：密封边界为墙（保留已存在的出口瓦片）
     int c2 = 0
-    while c2 < w do
+    while c2 < w
         int topIdx = 0 * w + c2
         int botIdx = (h - 1) * w + c2
         if g_tiles[topIdx] != T_EXIT then
@@ -439,7 +439,7 @@ func loadLevel(array<string> rows) as bool
         c2 += 1
     end
     int r2 = 0
-    while r2 < h do
+    while r2 < h
         int leftIdx = r2 * w + 0
         int rightIdx = r2 * w + (w - 1)
         if g_tiles[leftIdx] != T_EXIT then
@@ -485,9 +485,9 @@ func overlapsTileType(float x, float y, float w, float h, int tileType) as bool
     int rowT = floorI(y)
     int rowB = floorI(y + h - 0.0001)
     int r = rowT
-    while r <= rowB do
+    while r <= rowB
         int c = colL
-        while c <= colR do
+        while c <= colR
             if tileAt(c, r) == tileType then
                 if aabbRaw(x, y, w, h, float(c), float(r), 1.0, 1.0) then
                     return true
@@ -523,7 +523,7 @@ func physicsMove(float x, float y, float vx, float vy, float w, float h) as (flo
             int probe = colR
             int r = rowT
             bool blocked = false
-            while r <= rowB do
+            while r <= rowB
                 if isSolidX(probe, r) then
                     blocked = true
                 end
@@ -538,7 +538,7 @@ func physicsMove(float x, float y, float vx, float vy, float w, float h) as (flo
             int probe = colL
             int r = rowT
             bool blocked = false
-            while r <= rowB do
+            while r <= rowB
                 if isSolidX(probe, r) then
                     blocked = true
                 end
@@ -561,7 +561,7 @@ func physicsMove(float x, float y, float vx, float vy, float w, float h) as (flo
             // 下落：探测底部行
             int probe = floorI(y + h - 0.0001)
             int c = colL
-            while c <= colR do
+            while c <= colR
                 int t = tileAt(c, probe)
                 bool hit = false
                 if t == T_WALL then
@@ -585,7 +585,7 @@ func physicsMove(float x, float y, float vx, float vy, float w, float h) as (flo
             // 上升：探测顶部行（只被实心墙挡）
             int probe = floorI(y)
             int c = colL
-            while c <= colR do
+            while c <= colR
                 int t = tileAt(c, probe)
                 if t == T_WALL then
                     y = float(probe + 1)
@@ -694,7 +694,7 @@ end
 func updateEnemies()
     int n = g_eAlive.length
     int i = 0
-    while i < n do
+    while i < n
         if g_eAlive[i] then
             updateOneEnemy(i)
         end
@@ -814,9 +814,9 @@ func collectCoinTile()
     int rowT = floorI(g_py)
     int rowB = floorI(g_py + g_ph - 0.0001)
     int r = rowT
-    while r <= rowB do
+    while r <= rowB
         int c = colL
-        while c <= colR do
+        while c <= colR
             if tileAt(c, r) == T_COIN then
                 if aabbRaw(g_px, g_py, g_pw, g_ph, float(c), float(r), 1.0, 1.0) then
                     setTile(c, r, T_EMPTY)
@@ -857,7 +857,7 @@ func handleInteractions()
     // 与敌人接触 -> 伤害
     int n = g_eAlive.length
     int i = 0
-    while i < n do
+    while i < n
         if g_eAlive[i] then
             if aabbRaw(g_px, g_py, g_pw, g_ph,
                        g_eX[i], g_eY[i], g_eW[i], g_eH[i]) then
@@ -919,7 +919,7 @@ end
 func clearScreen()
     int n = g_screen.length
     int i = 0
-    while i < n do
+    while i < n
         g_screen[i] = " "
         i += 1
     end
@@ -942,9 +942,9 @@ func renderScene()
 
     // 1) 瓦片
     int r = 0
-    while r < g_viewH do
+    while r < g_viewH
         int c = 0
-        while c < g_viewW do
+        while c < g_viewW
             int wc = g_camCol + c
             int wr = g_camRow + r
             int t = tileAt(wc, wr)
@@ -958,7 +958,7 @@ func renderScene()
 
     // 2) 敌人
     int i = 0
-    while i < g_eAlive.length do
+    while i < g_eAlive.length
         if g_eAlive[i] then
             int col = floorI(g_eX[i]) - g_camCol
             int row = floorI(g_eY[i]) - g_camRow
@@ -988,10 +988,10 @@ func renderToString() as string
     string border = "+" + string.repeat("-", g_viewW) + "+"
     string outputValue = border + "\n"
     int r = 0
-    while r < g_viewH do
+    while r < g_viewH
         string line = "|"
         int c = 0
-        while c < g_viewW do
+        while c < g_viewW
             line = line + g_screen[r * g_viewW + c]
             c += 1
         end
@@ -1004,7 +1004,7 @@ func renderToString() as string
     // HUD
     string hpBar = ""
     int k = 0
-    while k < g_php do
+    while k < g_php
         hpBar = hpBar + "*"
         k += 1
     end
@@ -1073,7 +1073,7 @@ func decideAction() as int
     // 前方是否有敌人
     bool enemyAhead = false
     int i = 0
-    while i < g_eAlive.length do
+    while i < g_eAlive.length
         if g_eAlive[i] then
             float dx = g_eX[i] - g_px
             float dy = g_eY[i] - g_py
@@ -1127,7 +1127,7 @@ func runDemo(int frames) as int
     float lastX = g_px
     float lastY = g_py
 
-    while g_frame < frames do
+    while g_frame < frames
         int act = decideAction()
         stepFrame(act)
 
@@ -1199,7 +1199,7 @@ end
 // 让玩家在当前关卡中自由下落直到站定（用于物理测试）。
 func settlePlayer(int maxFrames)
     int guard = 0
-    while guard < maxFrames do
+    while guard < maxFrames
         updatePlayer(ACT_NONE)
         if g_pOnGround and absF(g_pvy) < 0.001 then
             return
@@ -1292,7 +1292,7 @@ func testPhysicsGravity() as bool
     bool ok = check("vy increased by gravity", approxF(g_pvy, GRAVITY, 0.0001))
     // 再跑 40 帧：应到达终端速度 MAX_FALL 且仍在空中（未触地）
     int k = 0
-    while k < 40 do
+    while k < 40
         updatePlayer(ACT_NONE)
         k += 1
     end
@@ -1337,7 +1337,7 @@ func testPhysicsWallBlock() as bool
     settlePlayer(100)           // 先站定
     // 持续向右走
     int k = 0
-    while k < 20 do
+    while k < 20
         updatePlayer(ACT_RIGHT)
         k += 1
     end
@@ -1524,7 +1524,7 @@ func testEnemyPatrolFlip() as bool
     int k = 0
     bool flipped = false
     int lastDir = initDir
-    while k < 400 do
+    while k < 400
         updateOneEnemy(idx)
         if g_eDir[idx] != lastDir then
             flipped = true
@@ -1557,7 +1557,7 @@ func testEnemyChaseState() as bool
     // 玩家走远 -> 回到巡逻
     g_px = 50.0
     int k = 0
-    while k < 2 do
+    while k < 2
         updateOneEnemy(idx)
         k += 1
     end
@@ -1664,7 +1664,7 @@ func testFullRun() as bool
     string errMsg = ""
     try
         int f = 0
-        while f < 60 do
+        while f < 60
             int act = decideAction()
             stepFrame(act)
             if g_victory or g_gameOver then
@@ -1750,7 +1750,7 @@ func looksInt(string s) as bool
         return false
     end
     int i = 0
-    while i < string.len(s) do
+    while i < string.len(s)
         string ch = string.charAt(s, i)
         if i == 0 and (ch == "-" or ch == "+") then
             i += 1

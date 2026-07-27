@@ -106,7 +106,7 @@ end
 func makeFloatBuf(int n) as array<float>
     array<float> a = array[0.0]
     int i = 1
-    while i < n do
+    while i < n
         a.push(0.0)
         i += 1
     end
@@ -117,7 +117,7 @@ end
 func makeIntBuf(int n) as array<int>
     array<int> a = array[0]
     int i = 1
-    while i < n do
+    while i < n
         a.push(0)
         i += 1
     end
@@ -328,7 +328,7 @@ end
 func filterLowpass(array<float> buf, int start, int len, float a, array<float> state) as float
     float prev = state[0]
     int i = 0
-    while i < len do
+    while i < len
         float x = buf[start + i]
         prev = a * x + (1.0 - a) * prev
         buf[start + i] = prev
@@ -344,7 +344,7 @@ func filterHighpass(array<float> buf, int start, int len, float a, array<float> 
     float prevX = state[0]
     float prevY = state[1]
     int i = 0
-    while i < len do
+    while i < len
         float x = buf[start + i]
         float y = a * (prevY + x - prevX)
         prevX = x
@@ -441,7 +441,7 @@ func noteNameToMidi(string name) as int
     int octave = 4
     if idx < n then
         string octStr = ""
-        while idx < n do
+        while idx < n
             int b2 = string.byteAt(name, idx)
             if b2 >= 48 and b2 <= 57 then
                 octStr = octStr + string.charAt(name, idx)
@@ -566,9 +566,9 @@ array<int> PENTATONIC_SCALE = array[0, 2, 4, 7, 9, 12]
 func buildScale(int rootMidi, array<int> intervals, int octaves) as array<int>
     array<int> outputValue = array[]
     int o = 0
-    while o < octaves do
+    while o < octaves
         int k = 0
-        while k < intervals.length do
+        while k < intervals.length
             outputValue.push(rootMidi + o * 12 + intervals[k])
             k += 1
         end
@@ -621,7 +621,7 @@ end
 // it (derive value) and lose the mutation.
 func getOrAddTrackIndex(array<Track> tracks, int idx) as int
     int i = 0
-    while i < tracks.length do
+    while i < tracks.length
         if tracks[i].index == idx then
             return i
         end
@@ -655,7 +655,7 @@ func renderDrum(int drumType, int vel, int offset, array<float> outputValue, int
         // sine with a fast pitch drop from ~140 Hz to ~50 Hz
         int n = secToSamples(0.35)
         int i = 0
-        while i < n do
+        while i < n
             if offset + i >= outLen then
                 return i
             end
@@ -671,7 +671,7 @@ func renderDrum(int drumType, int vel, int offset, array<float> outputValue, int
         // noise body + low sine fundamental, two decays
         int n = secToSamples(0.20)
         int i = 0
-        while i < n do
+        while i < n
             if offset + i >= outLen then
                 return i
             end
@@ -687,7 +687,7 @@ func renderDrum(int drumType, int vel, int offset, array<float> outputValue, int
         // short bright noise burst (effectively high-passed by the fast decay)
         int n = secToSamples(0.06)
         int i = 0
-        while i < n do
+        while i < n
             if offset + i >= outLen then
                 return i
             end
@@ -700,7 +700,7 @@ func renderDrum(int drumType, int vel, int offset, array<float> outputValue, int
     elseif drumType == DRUM_TOM then
         int n = secToSamples(0.30)
         int i = 0
-        while i < n do
+        while i < n
             if offset + i >= outLen then
                 return i
             end
@@ -713,7 +713,7 @@ func renderDrum(int drumType, int vel, int offset, array<float> outputValue, int
     elseif drumType == DRUM_CRASH then
         int n = secToSamples(0.8)
         int i = 0
-        while i < n do
+        while i < n
             if offset + i >= outLen then
                 return i
             end
@@ -726,7 +726,7 @@ func renderDrum(int drumType, int vel, int offset, array<float> outputValue, int
     elseif drumType == DRUM_CLAP then
         int n = secToSamples(0.18)
         int i = 0
-        while i < n do
+        while i < n
             if offset + i >= outLen then
                 return i
             end
@@ -810,7 +810,7 @@ func renderPitchedNote(Note nt, Track tr, int startSample, array<float> outputVa
     end
 
     int i = 0
-    while i < endSample do
+    while i < endSample
         int idx = startSample + i
 
         // ---- inline ADSR envelope ----
@@ -878,7 +878,7 @@ end
 func renderTrack(Track tr, int totalSamples) as array<float>
     array<float> buf = makeFloatBuf(totalSamples)
     int k = 0
-    while k < tr.notes.length do
+    while k < tr.notes.length
         Note nt = tr.notes[k]
         int startSample = secToSamples(nt.startTime)
         if nt.drumType != DRUM_NONE then
@@ -903,7 +903,7 @@ func renderTrack(Track tr, int totalSamples) as array<float>
     if tr.gain != 1.0 then
         bool needGain = false
         int gk = 0
-        while gk < tr.notes.length do
+        while gk < tr.notes.length
             if tr.notes[gk].drumType != DRUM_NONE then
                 needGain = true
                 break
@@ -912,7 +912,7 @@ func renderTrack(Track tr, int totalSamples) as array<float>
         end
         if needGain then
             int i = 0
-            while i < totalSamples do
+            while i < totalSamples
                 buf[i] = buf[i] * tr.gain
                 i += 1
             end
@@ -928,11 +928,11 @@ end
 func scoreDuration(Score sc) as float
     float endT = 0.0
     int t = 0
-    while t < sc.tracks.length do
+    while t < sc.tracks.length
         Track tr = sc.tracks[t]
         float rel = tr.release
         int k = 0
-        while k < tr.notes.length do
+        while k < tr.notes.length
             Note nt = tr.notes[k]
             float e = nt.startTime + nt.gateDur + rel
             if e > endT then
@@ -954,11 +954,11 @@ func mixdown(Score sc) as array<float>
     int total = secToSamples(dur) + SAMPLE_RATE / 4    // +0.25s safety tail
     array<float> master = makeFloatBuf(total)
     int t = 0
-    while t < sc.tracks.length do
+    while t < sc.tracks.length
         Track tr = sc.tracks[t]
         array<float> tb = renderTrack(tr, total)
         int i = 0
-        while i < total do
+        while i < total
             master[i] += tb[i]
             i += 1
         end
@@ -972,7 +972,7 @@ end
 func normalizeAndLimit(array<float> buf, float targetPeak) as float
     float peak = 0.0
     int i = 0
-    while i < buf.length do
+    while i < buf.length
         float a = buf[i]
         if a < 0.0 then
             a = -a
@@ -987,7 +987,7 @@ func normalizeAndLimit(array<float> buf, float targetPeak) as float
     end
     float g = targetPeak / peak
     i = 0
-    while i < buf.length do
+    while i < buf.length
         float s = buf[i] * g
         // soft tanh-like saturation via cubic: keeps peaks below 1.0
         if s > 1.0 then
@@ -1030,7 +1030,7 @@ end
 // append a 4-char ASCII tag to a byte array
 func appendTag(array<int> b, string tag) as array<int>
     int i = 0
-    while i < 4 do
+    while i < 4
         b.push(string.byteAt(tag, i))
         i += 1
     end
@@ -1062,7 +1062,7 @@ func buildWavBytes(array<float> samples) as array<int>
     b = appendLE32(b, dataSize)
     // Inlined PCM conversion + LE16 push to avoid per-sample function calls.
     int i = 0
-    while i < numSamples do
+    while i < numSamples
         float sv = samples[i] * 32767.0
         if sv > 32767.0 then
             sv = 32767.0
@@ -1090,7 +1090,7 @@ func writeWavFile(string outPath, array<int> bytes) as bool
     Buffer buf = Buffer()
     buf.reserve(bytes.length)
     int i = 0
-    while i < bytes.length do
+    while i < bytes.length
         buf.appendByte(bytes[i] & 0xFF)
         i += 1
     end
@@ -1173,7 +1173,7 @@ func parseMidiEvents(string text, int defaultPPQ) as Score
     float tempo = 500000.0    // default 120 BPM
     array lines = string.splitLines(text)
     int li = 0
-    while li < lines.length do
+    while li < lines.length
         string line = string.trim(string(lines[li]))
         li += 1
         if string.len(line) == 0 then
@@ -1186,7 +1186,7 @@ func parseMidiEvents(string text, int defaultPPQ) as Score
         // collect non-empty tokens
         array<string> tok = array[]
         int pi = 0
-        while pi < parts.length do
+        while pi < parts.length
             string p = string.trim(string(parts[pi]))
             if string.len(p) > 0 then
                 tok.push(p)
@@ -1224,12 +1224,12 @@ func parseMidiEvents(string text, int defaultPPQ) as Score
     float secPerTick = tempo / 1000000.0 / float(defaultPPQ)
     // pair note-ons with the next note-off of the same (channel, note)
     int i = 0
-    while i < events.length do
+    while i < events.length
         MidiEvent eon = events[i]
         if eon.isOn == 1 and eon.vel > 0 then
             int j = i + 1
             int found = -1
-            while j < events.length do
+            while j < events.length
                 MidiEvent eoff = events[j]
                 if (eoff.channel == eon.channel and eoff.note == eon.note and
                     (eoff.isOn == 0 or eoff.vel == 0)) then
@@ -1258,7 +1258,7 @@ func parseMidiEvents(string text, int defaultPPQ) as Score
     end
     // assign default wave types: channel 9 (index 9) is the MIDI drum channel
     int t = 0
-    while t < sc.tracks.length do
+    while t < sc.tracks.length
         if sc.tracks[t].index == 9 then
             sc.tracks[t].waveType = WAVE_NOISE
         else
@@ -1301,7 +1301,7 @@ func toSeconds(float v, Score sc) as float
 end
 
 func ensureTrackCursor(array<float> cursors, int trackIndex)
-    while cursors.length <= trackIndex do
+    while cursors.length <= trackIndex
         cursors.append(0.0)
     end
 end
@@ -1321,7 +1321,7 @@ func looksFloat(string s) as bool
     end
     bool sawDot = false
     bool sawDigit = false
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b == 46 then
             if sawDot then
@@ -1343,7 +1343,7 @@ func tokenize(string line) as array<string>
     array parts = string.split(line, " ")
     array<string> tok = array[]
     int i = 0
-    while i < parts.length do
+    while i < parts.length
         string p = string.trim(string(parts[i]))
         if string.len(p) > 0 then
             tok.push(p)
@@ -1361,7 +1361,7 @@ func parseScore(string text) as Score
     ensureTrackCursor(cursors, 0)
     array lines = string.splitLines(text)
     int li = 0
-    while li < lines.length do
+    while li < lines.length
         string raw = string(lines[li])
         li += 1
         string line = string.trim(raw)
@@ -1657,10 +1657,10 @@ func songDrums() as Score
     sc.tracks[ksIdx].gain = 0.9
     int bars = 4
     int bar = 0
-    while bar < bars do
+    while bar < bars
         float base = float(bar) * eighth * 8.0
         int e = 0
-        while e < 8 do
+        while e < 8
             float t = base + float(e) * eighth
             // hihat on every eighth
             Note hn = Note()
@@ -1711,7 +1711,7 @@ func songMix() as Score
     float bar = 2.0      // 2s per bar (4 quarter notes)
     int i = 0
     array<string> roots = array["C3", "C3", "G3", "G3", "F3", "F3", "C3", "C3"]
-    while i < roots.length do
+    while i < roots.length
         Note nt = Note()
         nt.startTime = float(i) * bar
         nt.gateDur = bar * 0.9
@@ -1730,7 +1730,7 @@ func songMix() as Score
     base.tracks[ksIdx].gain = 0.5
     int beats = 32
     int b = 0
-    while b < beats do
+    while b < beats
         float t = float(b) * 0.5
         if b % 2 == 0 then
             Note kn = Note()
@@ -1765,7 +1765,7 @@ func describeScore(Score sc) as string
     end
     lines.push("tracks: " + string(sc.tracks.length))
     int t = 0
-    while t < sc.tracks.length do
+    while t < sc.tracks.length
         Track tr = sc.tracks[t]
         string filt = "none"
         if tr.filterType == FILT_LOWPASS then
@@ -1783,7 +1783,7 @@ func describeScore(Score sc) as string
     // join
     string outputValue = ""
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         outputValue = outputValue + lines[i] + "\n"
         i += 1
     end
@@ -1970,7 +1970,7 @@ func cmdTest() as int
     // noise within [-1,1]
     bool noiseOk = true
     int i = 0
-    while i < 200 do
+    while i < 200
         float v = oscNoise()
         if v < -1.0 or v > 1.0 then
             noiseOk = false
@@ -2012,7 +2012,7 @@ func cmdTest() as int
     // apply low-pass to a DC step: output should monotonically approach input
     array<float> step = makeFloatBuf(100)
     int j = 0
-    while j < 100 do
+    while j < 100
         step[j] = 1.0
         j += 1
     end
@@ -2023,7 +2023,7 @@ func cmdTest() as int
     // high-pass on a constant signal drives it toward 0
     array<float> dc = makeFloatBuf(200)
     int k = 0
-    while k < 200 do
+    while k < 200
         dc[k] = 1.0
         k += 1
     end
@@ -2037,7 +2037,7 @@ func cmdTest() as int
     println("[5] WAV encode / decode round-trip")
     array<float> probe = makeFloatBuf(1000)
     int p = 0
-    while p < 1000 do
+    while p < 1000
         probe[p] = math.sin(float(p) * TWO_PI * 440.0 / float(SAMPLE_RATE))
         p += 1
     end
@@ -2137,7 +2137,7 @@ func cmdTest() as int
     check(mix.length > SAMPLE_RATE, "mixdown buffer longer than 1s")
     float mixPeak = 0.0
     int mi = 0
-    while mi < mix.length do
+    while mi < mix.length
         float a = mix[mi]
         if a < 0.0 then
             a = -a
@@ -2212,7 +2212,7 @@ func cmdTest() as int
     bool drumHasKick = false
     bool drumHasSnare = false
     int di = 0
-    while di < drm.tracks[1].notes.length do
+    while di < drm.tracks[1].notes.length
         if drm.tracks[1].notes[di].drumType == DRUM_KICK then
             drumHasKick = true
         end
@@ -2232,7 +2232,7 @@ func cmdTest() as int
     check(written > 0, "kick renders >0 samples")
     bool kickHasSignal = false
     int ki = 0
-    while ki < written do
+    while ki < written
         if drumOut[ki] != 0.0 then
             kickHasSignal = true
         end

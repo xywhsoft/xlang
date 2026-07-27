@@ -133,7 +133,7 @@ end
 
 func allRuleByName(string name) as int
     int i = 0
-    while i < g_allRules.length do
+    while i < g_allRules.length
         if g_allRules[i].name == name then
             return i
         end
@@ -257,7 +257,7 @@ func computePlan(string target) as bool
     array<string> reach = []
     reach.push(target)
     int head = 0
-    while head < reach.length do
+    while head < reach.length
         string cur = reach[head]
         head += 1
         Rule cr = g_allRules[allRuleByName(cur)]
@@ -277,12 +277,12 @@ func computePlan(string target) as bool
     // 入度：仅统计在可达集中的依赖
     array<int> indeg = []
     int k = 0
-    while k < n do
+    while k < n
         indeg.push(0)
         k += 1
     end
     k = 0
-    while k < n do
+    while k < n
         Rule cr = g_allRules[allRuleByName(reach[k])]
         for dep in cr.depNames
             if reach.contains(dep) then
@@ -296,19 +296,19 @@ func computePlan(string target) as bool
     array<int> order = []
     array<int> q = []
     k = 0
-    while k < n do
+    while k < n
         if indeg[k] == 0 then
             q.push(k)
         end
         k += 1
     end
     int qh = 0
-    while qh < q.length do
+    while qh < q.length
         int cur = q[qh]
         qh += 1
         order.push(cur)
         int j = 0
-        while j < n do
+        while j < n
             if dependsOn(reach[j], reach[cur]) then
                 indeg[j] = indeg[j] - 1
                 if indeg[j] == 0 then
@@ -325,7 +325,7 @@ func computePlan(string target) as bool
 
     // 按拓扑序填充 plan
     k = 0
-    while k < n do
+    while k < n
         g_plan.push(g_allRules[allRuleByName(reach[order[k]])])
         g_result.push("")
         g_line.push("")
@@ -337,7 +337,7 @@ end
 
 func planIndexOf(string name) as int
     int i = 0
-    while i < g_plan.length do
+    while i < g_plan.length
         if g_plan[i].name == name then
             return i
         end
@@ -352,13 +352,13 @@ func computeLevels()
     int n = g_plan.length
     g_levels.clear()
     int k = 0
-    while k < n do
+    while k < n
         g_levels.push(0)
         k += 1
     end
     int maxL = 0
     k = 0
-    while k < n do
+    while k < n
         int ml = 0
         Rule r = g_plan[k]
         for dep in r.depNames
@@ -441,7 +441,7 @@ end
 // ===== worker（线程入口：从当前层的任务队列取规则执行）=====
 
 func levelWorker() as int
-    while true do
+    while true
         g_mu.lock()
         int t = g_nextTask
         g_nextTask = g_nextTask + 1
@@ -550,10 +550,10 @@ func executeBuild(string target) as int
     end
     println(cBold("xmake: ") + "building '" + cCyan(target) + "' (" + string(n) + " rules, " + string(g_maxLevel + 1) + " levels, -j" + string(g_jobs) + ")")
     int lv = 0
-    while lv <= g_maxLevel do
+    while lv <= g_maxLevel
         array<int> tasks = []
         int i = 0
-        while i < n do
+        while i < n
             if g_levels[i] == lv then
                 tasks.push(i)
             end
@@ -828,7 +828,7 @@ func main(...) as int
     string sub = ""
     string target = ""
     int i = 1
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i]) + ""
         if a == "-h" or a == "--help" or a == "help" then
             sub = "help"

@@ -130,7 +130,7 @@ end
 
 func putBytes(Buffer outputValue, array<int> bs)
     int i = 0
-    while i < bs.length do
+    while i < bs.length
         outputValue.appendByte(bs[i] & 0xFF)
         i += 1
     end
@@ -139,7 +139,7 @@ end
 func putText(Buffer outputValue, string s)
     array bs = string.bytes(s)
     int i = 0
-    while i < bs.length do
+    while i < bs.length
         outputValue.appendByte(int(bs[i]))
         i += 1
     end
@@ -147,7 +147,7 @@ end
 
 func putBuffer(Buffer outputValue, Buffer src, int len)
     int i = 0
-    while i < len do
+    while i < len
         outputValue.appendByte(src.byteAt(i))
         i += 1
     end
@@ -168,7 +168,7 @@ end
 func fmtMac(Buffer buf, int off) as string
     string s = ""
     int i = 0
-    while i < 6 do
+    while i < 6
         if i > 0 then
             s = s + ":"
         end
@@ -252,7 +252,7 @@ func bytesToStr(Buffer buf, int off, int len) as string
     end
     Buffer t = Buffer()
     int i = 0
-    while i < len do
+    while i < len
         t.appendByte(buf.byteAt(off + i))
         i += 1
     end
@@ -267,7 +267,7 @@ func hexPreview(Buffer buf, int off, int len, int maxBytes) as string
     end
     string s = ""
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             s = s + " "
         end
@@ -292,7 +292,7 @@ func looksInt(string s) as bool
             return false
         end
     end
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -482,7 +482,7 @@ func parsePcap(Buffer buf) as PcapFile
 
     int off = 24
     int idx = 0
-    while off + 16 <= total do
+    while off + 16 <= total
         int tsSec = rdU32e(buf, off, le)
         int tsFrac = rdU32e(buf, off + 4, le)
         int inclLen = rdU32e(buf, off + 8, le)
@@ -688,7 +688,7 @@ func parseHttp(Buffer buf, int poff, int plen, var rec)
         return
     end
     int lineEnd = 0
-    while lineEnd < plen do
+    while lineEnd < plen
         int c = buf.byteAt(poff + lineEnd)
         if c == 13 or c == 10 then
             break
@@ -757,7 +757,7 @@ func parseDnsName(Buffer buf, int off, int limit) as (string, int)
     int consumed = 0
     bool first = true
     bool done = false
-    while i < limit and not done do
+    while i < limit and not done
         int b = buf.byteAt(off + i)
         if b == 0 then
             i += 1
@@ -774,7 +774,7 @@ func parseDnsName(Buffer buf, int off, int limit) as (string, int)
             end
             first = false
             int j = 0
-            while j < labLen and (i + 1 + j) < limit do
+            while j < labLen and (i + 1 + j) < limit
                 name.appendByte(buf.byteAt(off + i + 1 + j))
                 j += 1
             end
@@ -812,7 +812,7 @@ func tokenize(string s) as array<string>
     array<string> toks = array[]
     int i = 0
     int n = string.len(s)
-    while i < n do
+    while i < n
         int c = string.byteAt(s, i)
         if c == 32 or c == 9 then
             i += 1
@@ -865,7 +865,7 @@ func tokenize(string s) as array<string>
         end
         // 单词 / 数字 / IP / tcp-syn
         int start = i
-        while i < n do
+        while i < n
             if isWord(string.byteAt(s, i)) then
                 i += 1
             else
@@ -907,7 +907,7 @@ end
 func parseOr(PState st) as FNode
     FNode left = parseAnd(st)
     bool loop = true
-    while loop do
+    while loop
         string t = psPeek(st)
         if t == "or" or t == "||" then
             psNext(st)
@@ -927,7 +927,7 @@ end
 func parseAnd(PState st) as FNode
     FNode left = parseNot(st)
     bool loop = true
-    while loop do
+    while loop
         string t = psPeek(st)
         if t == "and" or t == "&&" then
             psNext(st)
@@ -1294,7 +1294,7 @@ func cmdAnalyze(string path) as int
     println(string.repeat("-", 72))
 
     int i = 0
-    while i < pf.count do
+    while i < pf.count
         var pkt = pf.packets[i]
         printPacket(pkt, buf)
         i += 1
@@ -1325,7 +1325,7 @@ func cmdFilter(string expr, string path) as int
 
     int matched = 0
     int i = 0
-    while i < pf.count do
+    while i < pf.count
         var p = pf.packets[i]
         if evalMatch(f, p) then
             printPacket(p, buf)
@@ -1367,9 +1367,9 @@ func printTopN(var d, string title, int topN)
         return
     end
     int a = 0
-    while a < cnt do
+    while a < cnt
         int b = a + 1
-        while b < cnt do
+        while b < cnt
             if vals[b] > vals[a] then
                 int tv = vals[a]
                 vals[a] = vals[b]
@@ -1387,7 +1387,7 @@ func printTopN(var d, string title, int topN)
         limit = cnt
     end
     int i = 0
-    while i < limit do
+    while i < limit
         println("  " + string.padLeft(string(vals[i]), 6) + "  " + keys[i])
         i += 1
     end
@@ -1430,7 +1430,7 @@ func cmdStats(string path) as int
     int tcpPayloadBytes = 0
 
     int i = 0
-    while i < pf.count do
+    while i < pf.count
         var p = pf.packets[i]
         bumpDict(protoCount, "frames")
         if bool(p.hasEth) then
@@ -1492,7 +1492,7 @@ func cmdStats(string path) as int
     println("")
     println("Size distribution (origLen):")
     int bi2 = 0
-    while bi2 < 7 do
+    while bi2 < 7
         println("  " + string.padLeft(bucketNames[bi2], 12) + " : " + string(buckets[bi2]))
         bi2 += 1
     end
@@ -1520,13 +1520,13 @@ func cmdFlows(Buffer buf, PcapFile pf) as int
     list<string> uniq
     int uniqCount = 0
     int i = 0
-    while i < n do
+    while i < n
         var p = pf.packets[i]
         if p.hasTcp and p.payloadLen > 0 then
             string k = flowKey(p)
             bool found = false
             int j = 0
-            while j < uniqCount do
+            while j < uniqCount
                 if uniq[j] == k then
                     found = true
                     break
@@ -1549,7 +1549,7 @@ func cmdFlows(Buffer buf, PcapFile pf) as int
     println(string.repeat("-", 72))
 
     int fi = 0
-    while fi < uniqCount do
+    while fi < uniqCount
         string k = uniq[fi]
 
         // 收集该流所有 payload 段 (seq, off, len)
@@ -1558,7 +1558,7 @@ func cmdFlows(Buffer buf, PcapFile pf) as int
         list<int> segLen
         int segCount = 0
         int si = 0
-        while si < n do
+        while si < n
             var p = pf.packets[si]
             if bool(p.hasTcp) and int(p.payloadLen) > 0 and flowKey(p) == k then
                 segSeq[segCount] = int(p.tcpSeq)
@@ -1571,9 +1571,9 @@ func cmdFlows(Buffer buf, PcapFile pf) as int
 
         // 按 seq 升序排序 (携带 off/len 一起)
         int a = 0
-        while a < segCount do
+        while a < segCount
             int b = a + 1
-            while b < segCount do
+            while b < segCount
                 if segSeq[b] < segSeq[a] then
                     int t1 = segSeq[a]; segSeq[a] = segSeq[b]; segSeq[b] = t1
                     int t2 = segOff[a]; segOff[a] = segOff[b]; segOff[b] = t2
@@ -1591,9 +1591,9 @@ func cmdFlows(Buffer buf, PcapFile pf) as int
         int shown = 0
         int cap256 = 256
         int ri = 0
-        while ri < segCount do
+        while ri < segCount
             int j = 0
-            while j < segLen[ri] and shown < cap256 do
+            while j < segLen[ri] and shown < cap256
                 rb.appendByte(buf.byteAt(segOff[ri] + j))
                 shown += 1
                 j += 1
@@ -1638,12 +1638,12 @@ end
 func ipChecksum(array<int> h) as int
     int sum = 0
     int i = 0
-    while i < 20 do
+    while i < 20
         int w = ((h[i] & 0xFF) << 8) | (h[i + 1] & 0xFF)
         sum += w
         i += 2
     end
-    while (sum >> 16) != 0 do
+    while (sum >> 16) != 0
         sum = (sum & 0xFFFF) + (sum >> 16)
     end
     return sum ^ 0xFFFF
@@ -1723,11 +1723,11 @@ func buildDnsSection(Buffer dns, string name, int qtype)
     putBe16(dns, 0)                  // arcount
     array labels = string.split(name, ".")
     int li = 0
-    while li < labels.length do
+    while li < labels.length
         array lb = string.bytes(string(labels[li]))
         dns.appendByte(lb.length)
         int j = 0
-        while j < lb.length do
+        while j < lb.length
             dns.appendByte(int(lb[j]))
             j += 1
         end
@@ -1877,13 +1877,13 @@ func cmdTest() as int
     list<string> uniq
     int uniqCount = 0
     int ti = 0
-    while ti < pf.count do
+    while ti < pf.count
         var tp = pf.packets[ti]
         if bool(tp.hasTcp) and int(tp.payloadLen) > 0 then
             string fk = flowKey(tp)
             bool found = false
             int tj = 0
-            while tj < uniqCount do
+            while tj < uniqCount
                 if uniq[tj] == fk then
                     found = true
                     break
@@ -1990,7 +1990,7 @@ func main(...) as int
         string file = string(arg[last])
         string expr = ""
         int i = 2
-        while i < last do
+        while i < last
             if string.len(expr) > 0 then
                 expr = expr + " "
             end

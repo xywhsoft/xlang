@@ -73,7 +73,7 @@ func looksLikeInt(string s) as bool
     if i >= string.len(s) then
         return false
     end
-    while i < string.len(s) do
+    while i < string.len(s)
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -97,7 +97,7 @@ func looksLikeFloat(string s) as bool
         i = 1
     end
     bool seenDigit = false
-    while i < string.len(s) do
+    while i < string.len(s)
         int b = string.byteAt(s, i)
         if b >= 48 and b <= 57 then
             seenDigit = true
@@ -316,7 +316,7 @@ func main(...) as int
         // value 支持空格：把 arg[3] 起所有参数用空格拼回。
         string rawValue = ""
         int vi = 3
-        while vi < arg.length do
+        while vi < arg.length
             if string.isEmpty(rawValue) then
                 rawValue = string(arg[vi])
             else

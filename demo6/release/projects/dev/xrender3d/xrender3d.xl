@@ -143,7 +143,7 @@ func parseArgInt(string s, int defValue) as int
         end
     end
     int i = start
-    while i < string.len(s) do
+    while i < string.len(s)
         string ch = string.slice(s, i, 1)
         if string.indexOf("0123456789", ch) < 0 then
             return defValue
@@ -276,7 +276,7 @@ class Mat4
 
     create()
         int i = 0
-        while i < 16 do
+        while i < 16
             self.m.append(0.0)
             i = i + 1
         end
@@ -296,12 +296,12 @@ class Mat4
     func mul(Mat4 other) as Mat4
         Mat4 result = Mat4()
         int r = 0
-        while r < 4 do
+        while r < 4
             int c = 0
-            while c < 4 do
+            while c < 4
                 float sum = 0.0
                 int k = 0
-                while k < 4 do
+                while k < 4
                     float a = self.m[r * 4 + k]
                     float b = other.m[k * 4 + c]
                     sum = sum + a * b
@@ -545,7 +545,7 @@ func tokenize(string line) as array<string>
     array<string> tokens = array[]
     int len = string.len(line)
     int i = 0
-    while i < len do
+    while i < len
         int c = string.byteAt(line, i)
         // 跳过空白 (space=32, tab=9, \r=13, \n=10)
         if c == 32 or c == 9 or c == 13 or c == 10 then
@@ -554,7 +554,7 @@ func tokenize(string line) as array<string>
         end
         // 读取 token
         int start = i
-        while i < len do
+        while i < len
             int ch = string.byteAt(line, i)
             if ch == 32 or ch == 9 or ch == 13 or ch == 10 then
                 break
@@ -656,7 +656,7 @@ func loadObj(string path) as Mesh
     int triCount = 0
 
     int li = 0
-    while li < lines.length do
+    while li < lines.length
         string rawLine = string(lines[li])
         string line = string.trim(rawLine)
 
@@ -712,7 +712,7 @@ func loadObj(string path) as Mesh
             end
 
             int fi = 2
-            while fi < toks.length - 1 do
+            while fi < toks.length - 1
                 int v1 = -1
                 int t1 = -1
                 int n1 = -1
@@ -763,7 +763,7 @@ func meshBounds(Mesh mesh) as (float, float, float, float, float, float)
     float mxy = v0.y
     float mxz = v0.z
     int i = 1
-    while i < vc do
+    while i < vc
         Vec3 v = mesh.getVert(i)
         if v.x < mnx then
             mnx = v.x
@@ -799,48 +799,48 @@ func mergeMesh(Mesh a, Mesh b) as Mesh
 
     // 复制顶点
     int i = 0
-    while i < a.verts.length do
+    while i < a.verts.length
         outputValue.verts.append(a.verts[i])
         i = i + 1
     end
     i = 0
-    while i < b.verts.length do
+    while i < b.verts.length
         outputValue.verts.append(b.verts[i])
         i = i + 1
     end
 
     // 复制 UV
     i = 0
-    while i < a.uvs.length do
+    while i < a.uvs.length
         outputValue.uvs.append(a.uvs[i])
         i = i + 1
     end
     i = 0
-    while i < b.uvs.length do
+    while i < b.uvs.length
         outputValue.uvs.append(b.uvs[i])
         i = i + 1
     end
 
     // 复制法线
     i = 0
-    while i < a.norms.length do
+    while i < a.norms.length
         outputValue.norms.append(a.norms[i])
         i = i + 1
     end
     i = 0
-    while i < b.norms.length do
+    while i < b.norms.length
         outputValue.norms.append(b.norms[i])
         i = i + 1
     end
 
     // 复制面（a 的索引不变，b 的索引加偏移）
     i = 0
-    while i < a.faces.length do
+    while i < a.faces.length
         outputValue.faces.append(a.faces[i])
         i = i + 1
     end
     i = 0
-    while i < b.faces.length do
+    while i < b.faces.length
         int mod = i % 3
         int val = b.faces[i]
         if mod == 0 and val >= 0 then
@@ -954,7 +954,7 @@ func buildCubeTextured() as Mesh
 
     // 6 面 x 2 三角形 = 12 三角形
     int face = 0
-    while face < 6 do
+    while face < 6
         int b = face * 4
         m.addTriangle(b, b, b, b + 1, b + 1, b + 1, b + 2, b + 2, b + 2)
         m.addTriangle(b, b, b, b + 2, b + 2, b + 2, b + 3, b + 3, b + 3)
@@ -983,12 +983,12 @@ func buildSphere(int sectors, int stacks) as Mesh
 
     // 生成顶点 + UV + 法线 (法线 = 归一化位置)
     int st = 0
-    while st <= stacks do
+    while st <= stacks
         float phi = PI * float(st) / float(stacks)
         float sp = math.sin(phi)
         float cp = math.cos(phi)
         int sc = 0
-        while sc <= sectors do
+        while sc <= sectors
             float theta = 2.0 * PI * float(sc) / float(sectors)
             float st_ = math.sin(theta)
             float ct = math.cos(theta)
@@ -1005,9 +1005,9 @@ func buildSphere(int sectors, int stacks) as Mesh
 
     // 生成三角形（四边形拆分为两个三角形）
     st = 0
-    while st < stacks do
+    while st < stacks
         int sc = 0
-        while sc < sectors do
+        while sc < sectors
             int v00 = st * (sectors + 1) + sc
             int v01 = v00 + 1
             int v10 = (st + 1) * (sectors + 1) + sc
@@ -1039,7 +1039,7 @@ func buildGroundPlane(float halfSize) as Mesh
     m.addVert(0.0 - halfSize, 0.0, halfSize)          // 3
 
     int ni = 0
-    while ni < 4 do
+    while ni < 4
         m.addNormal(0.0, 1.0, 0.0)
         ni = ni + 1
     end
@@ -1075,7 +1075,7 @@ class Texture
         self.height = height
         int total = width * height * 3
         int i = 0
-        while i < total do
+        while i < total
             self.pixels.append(0)
             i = i + 1
         end
@@ -1118,9 +1118,9 @@ end
 func buildCheckerTexture(int w, int h, int cellSize, int r1, int g1, int b1, int r2, int g2, int b2) as Texture
     Texture tex = Texture(w, h)
     int y = 0
-    while y < h do
+    while y < h
         int x = 0
-        while x < w do
+        while x < w
             int cx = x / cellSize
             int cy = y / cellSize
             int sum = cx + cy
@@ -1180,12 +1180,12 @@ class RenderTarget
         self.height = height
         int total = width * height
         int i = 0
-        while i < total * 3 do
+        while i < total * 3
             self.fb.append(0)
             i = i + 1
         end
         i = 0
-        while i < total do
+        while i < total
             self.zb.append(DEPTH_INF)
             i = i + 1
         end
@@ -1194,7 +1194,7 @@ class RenderTarget
     func clear(int r, int g, int b)
         int total = self.width * self.height
         int i = 0
-        while i < total do
+        while i < total
             self.fb[i * 3] = r
             self.fb[i * 3 + 1] = g
             self.fb[i * 3 + 2] = b
@@ -1313,7 +1313,7 @@ func shadePhong(
 
     // 逐光源累加
     int li = 0
-    while li < g_lightCount do
+    while li < g_lightCount
         int base = li * 7
         float lx = g_lights[base]
         float ly = g_lights[base + 1]
@@ -1395,7 +1395,7 @@ func rasterizeModel(
     float fh = float(height)
 
     int t = 0
-    while t < tc do
+    while t < tc
         int fbase = t * 9
         int vi0 = mesh.faces[fbase]
         int ti0 = mesh.faces[fbase + 1]
@@ -1566,10 +1566,10 @@ func rasterizeModel(
 
         // 逐像素光栅化（重心坐标 + 透视校正）
         int py = minY
-        while py <= maxY do
+        while py <= maxY
             float pyc = float(py) + 0.5
             int px = minX
-            while px <= maxX do
+            while px <= maxX
                 float pxc = float(px) + 0.5
 
                 // 重心坐标（边函数）
@@ -1671,7 +1671,7 @@ func rasterizeShadow(
     float fh = float(height)
 
     int t = 0
-    while t < tc do
+    while t < tc
         int fbase = t * 9
         int vi0 = mesh.faces[fbase]
         int vi1 = mesh.faces[fbase + 3]
@@ -1794,10 +1794,10 @@ func rasterizeShadow(
 
         // 逐像素光栅化阴影
         int py = minY
-        while py <= maxY do
+        while py <= maxY
             float pyc = float(py) + 0.5
             int px = minX
-            while px <= maxX do
+            while px <= maxX
                 float pxc = float(px) + 0.5
 
                 float b0 = ((sx1f - pxc) * (sy2f - pyc) - (sy1f - pyc) * (sx2f - pxc)) * invArea
@@ -1843,10 +1843,10 @@ func writePpm(string path, RenderTarget rt)
     lines.append(string(rt.width) + " " + string(rt.height))
     lines.append("255")
     int y = 0
-    while y < rt.height do
+    while y < rt.height
         string rowLine = ""
         int x = 0
-        while x < rt.width do
+        while x < rt.width
             int idx = (y * rt.width + x) * 3
             int r = rt.fb[idx]
             int g = rt.fb[idx + 1]
@@ -1862,7 +1862,7 @@ func writePpm(string path, RenderTarget rt)
     end
     string body = ""
     int li = 0
-    while li < lines.length do
+    while li < lines.length
         if li > 0 then
             body = body + "\n"
         end
@@ -1881,7 +1881,7 @@ func countNonBg(RenderTarget rt, int bgR, int bgG, int bgB) as int
     int total = rt.width * rt.height
     int count = 0
     int i = 0
-    while i < total do
+    while i < total
         int r = rt.fb[i * 3]
         int g = rt.fb[i * 3 + 1]
         int b = rt.fb[i * 3 + 2]
@@ -2057,7 +2057,7 @@ func cmdRenderScene(int sceneChoice, int width, int height, string outPath) as i
         Mesh sph = buildSphere(16, 12)
         // 将球体平移到右侧
         int si = 0
-        while si < sph.verts.length do
+        while si < sph.verts.length
             float vx = sph.verts[si]
             float vy = sph.verts[si + 1]
             float vz = sph.verts[si + 2]
@@ -2149,7 +2149,7 @@ func cmdBench(int width, int height) as int
     println("================================================================")
 
     int round = 0
-    while round < 2 do
+    while round < 2
         Mesh mesh = buildCubeTextured()
         Mat4 model = normalizeModelMat(mesh, 2.0, 1.5, degToRad(30.0))
 
@@ -2277,7 +2277,7 @@ func cmdTest() as int
     Mat4 ident2 = ident.mul(ident)
     bool identOk = true
     int i = 0
-    while i < 16 do
+    while i < 16
         float expect = 0.0
         if i == 0 or i == 5 or i == 10 or i == 15 then
             expect = 1.0

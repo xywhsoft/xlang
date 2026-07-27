@@ -175,7 +175,7 @@ end
 
 func drainMailbox(int idx)
     bool more = true
-    while more do
+    while more
         bool ok = false
         int v = 0
         ok, v = tryRecv(idx)
@@ -187,7 +187,7 @@ end
 
 // Counter: increments internal value by the message amount. RESET clears it.
 func counterBody(int idx) as int
-    while true do
+    while true
         bool ok = false
         int msg = 0
         ok, msg = recv(idx)
@@ -211,7 +211,7 @@ end
 
 // Echo: stores the last received positive value as its state.
 func echoBody(int idx) as int
-    while true do
+    while true
         bool ok = false
         int msg = 0
         ok, msg = recv(idx)
@@ -235,7 +235,7 @@ end
 
 // Worker: squares each positive message and accumulates the result.
 func workerBody(int idx) as int
-    while true do
+    while true
         bool ok = false
         int msg = 0
         ok, msg = recv(idx)
@@ -261,7 +261,7 @@ func pickWorker(int parentIdx, int rr) as int
     int first = -1
     int count = 0
     int i = 0
-    while i < g_totalActors do
+    while i < g_totalActors
         if g_parent[i] == parentIdx and g_kind[i] == KIND_WORKER then
             if g_status[i] != STATUS_STOPPED then
                 if first < 0 then
@@ -282,7 +282,7 @@ end
 // When idle (no message), monitors children for failures.
 func supervisorBody(int idx) as int
     int rr = 0
-    while true do
+    while true
         bool ok = false
         int msg = 0
         ok, msg = tryRecv(idx)
@@ -311,7 +311,7 @@ end
 // Recursively send STOP to all children of parentIdx (graceful shutdown).
 func stopChildren(int parentIdx)
     int i = 0
-    while i < g_totalActors do
+    while i < g_totalActors
         if g_parent[i] == parentIdx then
             tell(i, MSG_STOP)
         end
@@ -328,7 +328,7 @@ func monitorChildren(int parentIdx)
     g_lock.lock()
     array<int> failed
     int i = 0
-    while i < g_totalActors do
+    while i < g_totalActors
         if g_parent[i] == parentIdx and g_status[i] == STATUS_FAILED then
             failed.push(i)
         end
@@ -336,7 +336,7 @@ func monitorChildren(int parentIdx)
     end
     g_lock.unlock()
     int j = 0
-    while j < failed.length do
+    while j < failed.length
         int cidx = failed[j]
         int strat = g_strategy[cidx]
         applyStrategy(cidx, strat)
@@ -421,7 +421,7 @@ end
 
 func spawnAll()
     int i = 0
-    while i < g_totalActors do
+    while i < g_totalActors
         spawnThread(i)
         i = i + 1
     end
@@ -431,7 +431,7 @@ end
 
 func waitForHandled(int idx, int expected, int timeoutMs) as bool
     int waited = 0
-    while waited < timeoutMs do
+    while waited < timeoutMs
         if g_msgsHandled[idx] >= expected then
             return true
         end
@@ -443,7 +443,7 @@ end
 
 func waitForRestart(int idx, int baseline, int timeoutMs) as bool
     int waited = 0
-    while waited < timeoutMs do
+    while waited < timeoutMs
         if g_restarts[idx] > baseline then
             return true
         end
@@ -455,7 +455,7 @@ end
 
 func waitForStatus(int idx, int expected, int timeoutMs) as bool
     int waited = 0
-    while waited < timeoutMs do
+    while waited < timeoutMs
         if g_status[idx] == expected then
             return true
         end
@@ -477,7 +477,7 @@ end
 
 func waitForAllActive(int timeoutMs) as bool
     int waited = 0
-    while waited < timeoutMs do
+    while waited < timeoutMs
         g_lock.lock()
         int active = g_activeThreads
         g_lock.unlock()
@@ -563,7 +563,7 @@ func runTests() as int
     waitForHandled(1, cH0 + 1, 2000)
     int cH1 = g_msgsHandled[1]
     int i = 0
-    while i < 50 do
+    while i < 50
         tell(1, 1)
         i = i + 1
     end
@@ -592,7 +592,7 @@ end
 func shutdown()
     tell(0, MSG_STOP)
     int waited = 0
-    while waited < 5000 do
+    while waited < 5000
         g_lock.lock()
         int active = g_activeThreads
         g_lock.unlock()

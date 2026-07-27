@@ -29,7 +29,7 @@ int g_activeConsumers = 0
 func makeProducer(int id) as func() as int
     return func() as int
         int produced = 0
-        while true do
+        while true
             g_lock.lock()
             int item = 0
             if g_nextItem <= g_totalItems then
@@ -44,7 +44,7 @@ func makeProducer(int id) as func() as int
             // bounded buffer is full OR when the channel is closed. Retry on a
             // full buffer; bail only if the channel was closed.
             bool sent = false
-            while true do
+            while true
                 if g_ch.send(item) then
                     sent = true
                     break
@@ -74,7 +74,7 @@ end
 func makeConsumer(int id) as func() as int
     return func() as int
         int consumed = 0
-        while true do
+        while true
             int v = 0
             if g_ch.tryRecvInto(v) then
                 consumed = consumed + 1
@@ -172,21 +172,21 @@ func main(...) as int
     println("------------------------")
 
     int i = 1
-    while i <= p do
+    while i <= p
         thread(makeProducer(i))
         i = i + 1
     end
     i = 1
-    while i <= c do
+    while i <= c
         thread(makeConsumer(i))
         i = i + 1
     end
 
-    while readActive(0) > 0 do
+    while readActive(0) > 0
         time.sleep(5)
     end
     g_ch.close()
-    while readActive(1) > 0 do
+    while readActive(1) > 0
         time.sleep(5)
     end
 

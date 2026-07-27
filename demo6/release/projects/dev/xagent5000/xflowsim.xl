@@ -140,7 +140,7 @@ func looksLikeInt(string s) as bool
     int fb = string.byteAt(s, 0)
     if fb == 45 or fb == 43 then i = 1 end
     if i >= string.len(s) then return false end
-    while i < string.len(s) do
+    while i < string.len(s)
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then return false end
         i += 1
@@ -157,7 +157,7 @@ func looksLikeFloat(string s) as bool
     int fb = string.byteAt(s, 0)
     if fb == 45 or fb == 43 then i = 1 end
     bool seenDigit = false
-    while i < string.len(s) do
+    while i < string.len(s)
         int b = string.byteAt(s, i)
         if b >= 48 and b <= 57 then
             seenDigit = true
@@ -201,7 +201,7 @@ end
 func joinStr(var arr, string sep) as string
     string r = ""
     int i = 0
-    while i < arr.length do
+    while i < arr.length
         if i > 0 then r = r + sep end
         r = r + strVal(arr[i])
         i += 1
@@ -226,7 +226,7 @@ end
 func padField(string s, int width) as string
     string r = s
     int n = string.len(r)
-    while n < width do
+    while n < width
         r = r + " "
         n += 1
     end
@@ -245,10 +245,10 @@ func splitRaw(string s, string sep) as var
     int i = 0
     int seplen = string.len(sep)
     int n = string.len(s)
-    while i < n do
+    while i < n
         bool match = true
         int j = 0
-        while j < seplen do
+        while j < seplen
             if i + j >= n then
                 match = false
                 break
@@ -277,7 +277,7 @@ func splitFields(string s) as var
     var raw = splitRaw(s, " ")
     var r = []
     int i = 0
-    while i < raw.length do
+    while i < raw.length
         string t = trimStr(string(raw[i]))
         if not isEmptyStr(t) then r.append(t) end
         i += 1
@@ -291,7 +291,7 @@ func splitCommaList(string s) as var
     if isEmptyStr(s) then return r end
     var raw = splitRaw(s, ",")
     int i = 0
-    while i < raw.length do
+    while i < raw.length
         string t = trimStr(string(raw[i]))
         if not isEmptyStr(t) then r.append(t) end
         i += 1
@@ -314,11 +314,11 @@ end
 func sortByNumField(var arr, string field) as var
     int n = arr.length
     int i = 1
-    while i < n do
+    while i < n
         var cur = arr[i]
         float curKey = float(cur[field])
         int j = i - 1
-        while j >= 0 do
+        while j >= 0
             if float(arr[j][field]) > curKey then
                 arr[j + 1] = arr[j]
                 j -= 1
@@ -336,11 +336,11 @@ end
 func sortByStrField(var arr, string field) as var
     int n = arr.length
     int i = 1
-    while i < n do
+    while i < n
         var cur = arr[i]
         string curKey = string(cur[field])
         int j = i - 1
-        while j >= 0 do
+        while j >= 0
             if string(arr[j][field]) > curKey then
                 arr[j + 1] = arr[j]
                 j -= 1
@@ -364,7 +364,7 @@ end
 func sumInts(var arr) as int
     int s = 0
     int i = 0
-    while i < arr.length do
+    while i < arr.length
         s += int(arr[i])
         i += 1
     end
@@ -391,12 +391,12 @@ end
 func concatArr(var a, var b) as var
     var r = []
     int i = 0
-    while i < a.length do
+    while i < a.length
         r.append(a[i])
         i += 1
     end
     i = 0
-    while i < b.length do
+    while i < b.length
         r.append(b[i])
         i += 1
     end
@@ -525,7 +525,7 @@ func decideOutcome(var scenario, string jobId, int attempt) as string
     end
     var rules = scenario["failRules"]
     int i = 0
-    while i < rules.length do
+    while i < rules.length
         var rule = rules[i]
         if ruleApplies(rule, j, jobId) then
             float rate = float(rule["rate"])
@@ -620,7 +620,7 @@ end
 func parseArgs(var fields, var positional) as var
     var named = {}
     int i = 0
-    while i < fields.length do
+    while i < fields.length
         string t = string(fields[i])
         int eq = string.indexOf(t, "=")
         if eq > 0 then
@@ -776,7 +776,7 @@ func parseJobDirective(var scenario, var fields, var errs)
     if not isEmptyStr(namedStr(named, "deps", "")) then
         var deps = splitCommaList(namedStr(named, "deps", ""))
         int i = 0
-        while i < deps.length do
+        while i < deps.length
             j["deps"].append(string(deps[i]))
             i += 1
         end
@@ -805,7 +805,7 @@ func parseFailDirective(var scenario, var fields, var errs)
     // Everything after the kind is parsed for positional target + key=value.
     var rest = []
     int ri = 1
-    while ri < fields.length do
+    while ri < fields.length
         rest.append(fields[ri])
         ri += 1
     end
@@ -902,7 +902,7 @@ func parseLine(var scenario, string line, int lineNo, var errs)
     string directive = lowerStr(string(fields[0]))
     var rest = []
     int i = 1
-    while i < fields.length do
+    while i < fields.length
         rest.append(fields[i])
         i += 1
     end
@@ -951,7 +951,7 @@ func parseScenario(string text) as var
     text = string.replace(text, "\\n", "\n")
     var lines = string.splitLines(text)
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         parseLine(scenario, string(lines[i]), i + 1, errs)
         i += 1
     end
@@ -992,7 +992,7 @@ func finalizeScenario(var scenario, var errs)
     // Fold explicit edges into dependency lists (idempotent, de-duplicated).
     var edges = scenario["edges"]
     int ei = 0
-    while ei < edges.length do
+    while ei < edges.length
         string fromId = string(edges[ei]["from"])
         string toId = string(edges[ei]["to"])
         if toId in jobs then
@@ -1003,7 +1003,7 @@ func finalizeScenario(var scenario, var errs)
     end
     // Recompute pool totals (idempotent).
     int pi = 0
-    while pi < scenario["pools"].length do
+    while pi < scenario["pools"].length
         var pool = scenario["pools"][pi]
         int w = int(pool["workers"])
         int c = int(pool["cpu"])
@@ -1079,7 +1079,7 @@ func buildAdjacency(var scenario) as var
     for jid, j in scenario["jobs"]
         var deps = j["deps"]
         int i = 0
-        while i < deps.length do
+        while i < deps.length
             string d = string(deps[i])
             if d in pred then
                 // dependency d -> jid (d precedes jid)
@@ -1242,12 +1242,12 @@ func generateScenario(int seed, var opts) as var
     var prevLayer = []
     int totalJobs = 0
     int li = 0
-    while li < layers and totalJobs < maxJobs do
+    while li < layers and totalJobs < maxJobs
         int count = perLayer
         if li == 0 then count = rng.range(1, perLayer) end
         var curLayer = []
         int ji = 0
-        while ji < count and totalJobs < maxJobs do
+        while ji < count and totalJobs < maxJobs
             string jid = "j" + string(li) + "_" + string(ji)
             addJob(s, jid)
             var j = s["jobs"][jid]
@@ -1270,7 +1270,7 @@ func generateScenario(int seed, var opts) as var
                 if rng.chance(0.4) and prevLayer.length >= 2 then ndeps = 2 end
                 int placed = 0
                 int guard = 0
-                while placed < ndeps and guard < 20 do
+                while placed < ndeps and guard < 20
                     string cand = string(prevLayer[rng.range(0, prevLayer.length - 1)])
                     if not (cand in j["deps"]) then
                         j["deps"].append(cand)
@@ -1361,7 +1361,7 @@ func validateGraph(var scenario) as var
     var jobs = scenario["jobs"]
     var poolIds = {}
     int pi = 0
-    while pi < scenario["pools"].length do
+    while pi < scenario["pools"].length
         poolIds[string(scenario["pools"][pi]["id"])] = true
         pi += 1
     end
@@ -1370,7 +1370,7 @@ func validateGraph(var scenario) as var
     for jid, j in jobs
         var deps = j["deps"]
         int i = 0
-        while i < deps.length do
+        while i < deps.length
             string d = string(deps[i])
             if d == jid then
                 errs.append("job '" + jid + "' depends on itself")
@@ -1397,7 +1397,7 @@ func validateGraph(var scenario) as var
     // 2. Duplicate and self edges.
     var seenEdge = {}
     int ei = 0
-    while ei < scenario["edges"].length do
+    while ei < scenario["edges"].length
         string f = string(scenario["edges"][ei]["from"])
         string t = string(scenario["edges"][ei]["to"])
         if f == t then
@@ -1452,7 +1452,7 @@ func validateGraph(var scenario) as var
 
     // 5. Failure-rule references.
     int ri = 0
-    while ri < scenario["failRules"].length do
+    while ri < scenario["failRules"].length
         var rule = scenario["failRules"][ri]
         string kind = string(rule["kind"])
         string target = string(rule["target"])
@@ -1474,7 +1474,7 @@ func validateGraph(var scenario) as var
 
     // 6. Cache/invalidate references (warnings only).
     int ii = 0
-    while ii < scenario["invalidateRules"].length do
+    while ii < scenario["invalidateRules"].length
         var iv = scenario["invalidateRules"][ii]
         string onJob = string(iv["onJob"])
         if not (onJob in jobs) then
@@ -1503,12 +1503,12 @@ func detectCycle(var scenario, var adj) as var
     var ids = sortedJobIds(scenario)
     var color = {}
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         color[string(ids[i])] = 0
         i += 1
     end
     i = 0
-    while i < ids.length do
+    while i < ids.length
         string root = string(ids[i])
         if int(color[root]) != 0 then
             i += 1
@@ -1521,7 +1521,7 @@ func detectCycle(var scenario, var adj) as var
         posOf[root] = 0
         color[root] = 1
         childIdx[root] = 0
-        while path.length > 0 do
+        while path.length > 0
             string top = string(path[path.length - 1])
             var children = succ[top]
             int ci = int(childIdx[top])
@@ -1534,7 +1534,7 @@ func detectCycle(var scenario, var adj) as var
                     int start = int(posOf[child])
                     var cyc = []
                     int p = start
-                    while p < path.length do
+                    while p < path.length
                         cyc.append(path[p])
                         p += 1
                     end
@@ -1565,13 +1565,13 @@ func topologicalOrder(var scenario, var adj) as var
     var ids = sortedJobIds(scenario)
     var indeg = {}
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         indeg[string(ids[i])] = 0
         i += 1
     end
     for jid, lst in succ
         int k = 0
-        while k < lst.length do
+        while k < lst.length
             indeg[string(lst[k])] = int(indeg[string(lst[k])]) + 1
             k += 1
         end
@@ -1580,18 +1580,18 @@ func topologicalOrder(var scenario, var adj) as var
     // Ready set: jobs with indegree 0; kept sorted for determinism.
     var ready = []
     i = 0
-    while i < ids.length do
+    while i < ids.length
         if int(indeg[string(ids[i])]) == 0 then ready.append(ids[i]) end
         i += 1
     end
     sortByStrField(ready, "id")
-    while ready.length > 0 do
+    while ready.length > 0
         string n = string(ready[0])
         ready.remove(0)
         order.append(n)
         var children = succ[n]
         int k = 0
-        while k < children.length do
+        while k < children.length
             string c = string(children[k])
             indeg[c] = int(indeg[c]) - 1
             if int(indeg[c]) == 0 then ready.append(c) end
@@ -1618,7 +1618,7 @@ func stronglyConnectedComponents(var scenario, var adj) as var
     var indexMap = {}   // id -> int index value (mirrors index for arithmetic)
     int idx = 0
     int i = 0
-    while i < n do
+    while i < n
         index[string(ids[i])] = -1
         lowlink[string(ids[i])] = 0
         onStack[string(ids[i])] = false
@@ -1628,7 +1628,7 @@ func stronglyConnectedComponents(var scenario, var adj) as var
     var components = []
 
     i = 0
-    while i < n do
+    while i < n
         string root = string(ids[i])
         if int(index[root]) == -1 then
             // Iterative strongConnect.
@@ -1637,7 +1637,7 @@ func stronglyConnectedComponents(var scenario, var adj) as var
             frame["v"] = root
             frame["ci"] = 0
             callStack.append(frame)
-            while callStack.length > 0 do
+            while callStack.length > 0
                 var f = callStack[callStack.length - 1]
                 string v = string(f["v"])
                 int ci = int(f["ci"])
@@ -1666,7 +1666,7 @@ func stronglyConnectedComponents(var scenario, var adj) as var
                     // Done exploring v's children.
                     if int(lowlink[v]) == int(index[v]) then
                         var comp = []
-                        while true do
+                        while true
                             string w = string(stack[stack.length - 1])
                             stack.pop()
                             onStack[w] = false
@@ -1697,7 +1697,7 @@ end
 func isDag(var scenario, var adj) as bool
     var comps = stronglyConnectedComponents(scenario, adj)
     int i = 0
-    while i < comps.length do
+    while i < comps.length
         if comps[i].length > 1 then return false end
         i += 1
     end
@@ -1731,13 +1731,13 @@ func criticalPath(var scenario, var adj) as var
     end
     // Forward pass (topological order).
     int i = 0
-    while i < order.length do
+    while i < order.length
         string v = string(order[i])
         int dur = int(scenario["jobs"][v]["dur"])
         int maxPredEf = 0
         var preds = pred[v]
         int k = 0
-        while k < preds.length do
+        while k < preds.length
             string p = string(preds[k])
             if int(ef[p]) > maxPredEf then maxPredEf = int(ef[p]) end
             k += 1
@@ -1753,7 +1753,7 @@ func criticalPath(var scenario, var adj) as var
     end
     // Backward pass (reverse topological order).
     i = order.length - 1
-    while i >= 0 do
+    while i >= 0
         string v = string(order[i])
         int dur = int(scenario["jobs"][v]["dur"])
         var children = succ[v]
@@ -1762,7 +1762,7 @@ func criticalPath(var scenario, var adj) as var
         else
             int minChildLs = cpl
             int k = 0
-            while k < children.length do
+            while k < children.length
                 string c = string(children[k])
                 if int(ls[c]) < minChildLs then minChildLs = int(ls[c]) end
                 k += 1
@@ -1795,7 +1795,7 @@ func criticalPath(var scenario, var adj) as var
         for jid, j in scenario["jobs"]
             seen[jid] = false
         end
-        while true do
+        while true
             if bool(seen[cur]) then break end
             seen[cur] = true
             path.append(cur)
@@ -1803,7 +1803,7 @@ func criticalPath(var scenario, var adj) as var
             var children = succ[cur]
             string next = ""
             int k = 0
-            while k < children.length do
+            while k < children.length
                 string c = string(children[k])
                 if bool(isCrit[c]) and int(es[c]) == int(ef[cur]) then
                     if isEmptyStr(next) or string(c) < next then next = c end
@@ -1831,7 +1831,7 @@ func sourceJobs(var scenario, var adj) as var
     var ids = sortedJobIds(scenario)
     var src = []
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         if adj["pred"][string(ids[i])].length == 0 then src.append(ids[i]) end
         i += 1
     end
@@ -1843,7 +1843,7 @@ func sinkJobs(var scenario, var adj) as var
     var ids = sortedJobIds(scenario)
     var sk = []
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         if adj["succ"][string(ids[i])].length == 0 then sk.append(ids[i]) end
         i += 1
     end
@@ -1887,7 +1887,7 @@ func heapPush(var state, var ev)
     var h = state["heap"]
     h.append(ev)
     int i = h.length - 1
-    while i > 0 do
+    while i > 0
         int parent = (i - 1) / 2
         if eventBefore(h[i], h[parent]) then
             var tmp = h[i]
@@ -1908,7 +1908,7 @@ func heapPop(var state) as var
     h.pop()
     int n = h.length
     int i = 0
-    while true do
+    while true
         int l = 2 * i + 1
         int r = 2 * i + 2
         int smallest = i
@@ -2001,7 +2001,7 @@ func initState(var scenario) as var
     end
 
     int pi = 0
-    while pi < scenario["pools"].length do
+    while pi < scenario["pools"].length
         var pool = scenario["pools"][pi]
         string pid = string(pool["id"])
         var use = {}
@@ -2033,7 +2033,7 @@ func initState(var scenario) as var
     // computed above (state["sortedIds"]) rather than re-sorting the jobs.
     var ids = state["sortedIds"]
     int si = 0
-    while si < ids.length do
+    while si < ids.length
         string jid = string(ids[si])
         if int(state["depRemaining"][jid]) == 0 then
             markReady(state, jid, 0)
@@ -2043,7 +2043,7 @@ func initState(var scenario) as var
 
     // Schedule cancellation rules.
     int ci = 0
-    while ci < scenario["cancelRules"].length do
+    while ci < scenario["cancelRules"].length
         var cr = scenario["cancelRules"][ci]
         string jid = string(cr["job"])
         if jid in jobs then
@@ -2107,7 +2107,7 @@ end
 func removeFromReady(var state, string jid)
     var ready = state["ready"]
     int i = 0
-    while i < ready.length do
+    while i < ready.length
         if string(ready[i]) == jid then
             ready.remove(i)
             return
@@ -2146,7 +2146,7 @@ end
 func applyInvalidations(var state, string jid, string event)
     var rules = state["scenario"]["invalidateRules"]
     int i = 0
-    while i < rules.length do
+    while i < rules.length
         var iv = rules[i]
         if string(iv["onJob"]) == jid then
             string ev = string(iv["onEvent"])
@@ -2222,7 +2222,7 @@ func computeBackoff(var job, int attempt) as int
     if cap < base then cap = base end
     int bo = base
     int p = 1
-    while p < attempt do
+    while p < attempt
         bo = bo * 2
         if bo > cap then
             bo = cap
@@ -2266,10 +2266,10 @@ func orderReady(var state)
     var r = state["ready"]
     int n = r.length
     int i = 1
-    while i < n do
+    while i < n
         string cur = string(r[i])
         int j = i - 1
-        while j >= 0 do
+        while j >= 0
             if readyLess(state, cur, string(r[j])) then
                 r[j + 1] = r[j]
                 j -= 1
@@ -2287,7 +2287,7 @@ end
 func bumpFairness(var state, string dispatchedJid)
     var r = state["ready"]
     int i = 0
-    while i < r.length do
+    while i < r.length
         string jid = string(r[i])
         if jid == dispatchedJid then
             state["fairDeficit"][jid] = 0
@@ -2409,7 +2409,7 @@ func dispatch(var state)
     // allocation, on every event. The allocation set and order are unchanged.
     orderReady(state)
     int i = 0
-    while i < state["ready"].length do
+    while i < state["ready"].length
         string jid = string(state["ready"][i])
         if shouldCancelForDeadline(state, jid) then
             state["ready"].remove(i)
@@ -2438,7 +2438,7 @@ end
 func releaseDependents(var state, string jid)
     var succ = state["adj"]["succ"][jid]
     int k = 0
-    while k < succ.length do
+    while k < succ.length
         string c = string(succ[k])
         int rem = int(state["depRemaining"][c]) - 1
         state["depRemaining"][c] = rem
@@ -2592,7 +2592,7 @@ func finalizeRun(var state)
         runningIds.append(jid)
     end
     int ri = 0
-    while ri < runningIds.length do
+    while ri < runningIds.length
         string jid = string(runningIds[ri])
         releasePool(state, jid)
         state["running"].remove(jid)
@@ -2603,10 +2603,10 @@ func finalizeRun(var state)
     end
     // Iteratively mark jobs BLOCKED whose any predecessor is non-completed.
     bool changed = true
-    while changed do
+    while changed
         changed = false
         int i = 0
-        while i < ids.length do
+        while i < ids.length
             string jid = string(ids[i])
             string st = string(state["jobState"][jid])
             if isTerminalState(st) then
@@ -2616,7 +2616,7 @@ func finalizeRun(var state)
             var preds = state["adj"]["pred"][jid]
             bool blocked = false
             int k = 0
-            while k < preds.length do
+            while k < preds.length
                 string ps = string(state["jobState"][string(preds[k])])
                 if ps == ST_FAILED or ps == ST_TIMEOUT or ps == ST_CANCELLED or ps == ST_BLOCKED then
                     blocked = true
@@ -2635,7 +2635,7 @@ func finalizeRun(var state)
     end
     // Remaining non-terminal jobs are cancelled (starved by horizon/resources).
     int j = 0
-    while j < ids.length do
+    while j < ids.length
         string jid = string(ids[j])
         string st = string(state["jobState"][jid])
         if not isTerminalState(st) then
@@ -2655,7 +2655,7 @@ func runSimulation(var scenario) as var
     dispatch(state)
     int guard = 0
     int guardLimit = 200000 + 20 * jobCount(scenario)
-    while heapSize(state) > 0 do
+    while heapSize(state) > 0
         guard += 1
         if guard > guardLimit then
             // Safety valve; a valid DAG with bounded horizon cannot reach here.
@@ -2688,10 +2688,10 @@ end
 func sortedInts(var arr) as var
     int n = arr.length
     int i = 1
-    while i < n do
+    while i < n
         int cur = int(arr[i])
         int j = i - 1
-        while j >= 0 do
+        while j >= 0
             if int(arr[j]) > cur then
                 arr[j + 1] = arr[j]
                 j -= 1
@@ -2723,7 +2723,7 @@ func meanInts(var arr) as float
     if arr.length == 0 then return 0.0 end
     int s = 0
     int i = 0
-    while i < arr.length do
+    while i < arr.length
         s += int(arr[i])
         i += 1
     end
@@ -2734,7 +2734,7 @@ func maxOf(var arr) as int
     if arr.length == 0 then return 0 end
     int m = int(arr[0])
     int i = 1
-    while i < arr.length do
+    while i < arr.length
         if int(arr[i]) > m then m = int(arr[i]) end
         i += 1
     end
@@ -2768,7 +2768,7 @@ func computeMetrics(var state) as var
     int totalCacheHits = 0
     int makespan = 0
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         string jid = string(ids[i])
         string st = string(state["jobState"][jid])
         if st in counts then
@@ -2853,7 +2853,7 @@ func computeMetrics(var state) as var
     // Per-pool utilization.
     var poolUtil = []
     int pi = 0
-    while pi < scenario["pools"].length do
+    while pi < scenario["pools"].length
         var pool = scenario["pools"][pi]
         string pid = string(pool["id"])
         int totalCpu = int(pool["totalCpu"])
@@ -2900,7 +2900,7 @@ func buildCriticalReport(var scenario, var metrics) as var
     var actualVsPlanned = []
     var ids = sortedJobIds(scenario)
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         string jid = string(ids[i])
         var pj = findPerJob(metrics, jid)
         if pj != null and string(pj["state"]) == ST_DONE then
@@ -2921,7 +2921,7 @@ end
 func findPerJob(var metrics, string jid) as var
     var perJob = metrics["perJob"]
     int i = 0
-    while i < perJob.length do
+    while i < perJob.length
         if string(perJob[i]["id"]) == jid then return perJob[i] end
         i += 1
     end
@@ -2965,7 +2965,7 @@ func formatPoolUtil(var metrics) as string
     lines.append(padField("pool", 10) + padField("workers", 8) + padField("cpuUtil", 10) + padField("memUtil", 10) + padField("slotUtil", 10) + padField("peakCpu", 8) + padField("peakMem", 9) + padField("peakSlots", 9))
     var pu = metrics["poolUtil"]
     int i = 0
-    while i < pu.length do
+    while i < pu.length
         var u = pu[i]
         lines.append(padField(string(u["pool"]), 10) + padField(string(int(u["workers"])), 8) + padField(pct(float(u["cpuUtil"])), 10) + padField(pct(float(u["memUtil"])), 10) + padField(pct(float(u["slotUtil"])), 10) + padField(string(int(u["peakCpu"])), 8) + padField(string(int(u["peakMem"])), 9) + padField(string(int(u["peakSlots"])), 9))
         i += 1
@@ -2980,7 +2980,7 @@ func formatCriticalReport(var rpt) as string
     var avp = rpt["actualVsPlanned"]
     lines.append(padField("job", 14) + padField("planned", 9) + padField("actual", 9) + padField("slack", 8) + padField("delay", 8))
     int i = 0
-    while i < avp.length do
+    while i < avp.length
         var row = avp[i]
         lines.append(padField(string(row["job"]), 14) + padField(string(int(row["plannedFinish"])), 9) + padField(string(int(row["actualFinish"])), 9) + padField(string(int(row["slack"])), 8) + padField(string(int(row["delay"])), 8))
         i += 1
@@ -2993,7 +2993,7 @@ func formatPerJob(var metrics) as string
     lines.append(padField("job", 14) + padField("state", 12) + padField("ready", 7) + padField("start", 7) + padField("finish", 8) + padField("queue", 7) + padField("exec", 7) + padField("att", 5) + padField("cache", 6))
     var perJob = metrics["perJob"]
     int i = 0
-    while i < perJob.length do
+    while i < perJob.length
         var pj = perJob[i]
         lines.append(padField(string(pj["id"]), 14) + padField(string(pj["state"]), 12) + padField(string(int(pj["readyT"])), 7) + padField(string(int(pj["startT"])), 7) + padField(string(int(pj["finishT"])), 8) + padField(string(int(pj["queueTime"])), 7) + padField(string(int(pj["execTime"])), 7) + padField(string(int(pj["attempts"])), 5) + padField(string(int(pj["cacheHits"])), 6))
         i += 1
@@ -3041,12 +3041,12 @@ func runInvariants(var scenario, var state, var metrics) as var
     // Reuse the run's cached sorted-id list instead of re-sorting the jobs.
     var ids = stateSortedIds(state)
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         string jid = string(ids[i])
         if string(state["jobState"][jid]) == ST_DONE then
             var preds = adj["pred"][jid]
             int k = 0
-            while k < preds.length do
+            while k < preds.length
                 string ps = string(state["jobState"][string(preds[k])])
                 if ps != ST_DONE then
                     viol.append("job " + jid + " completed but predecessor " + string(preds[k]) + " is " + ps)
@@ -3058,7 +3058,7 @@ func runInvariants(var scenario, var state, var metrics) as var
     end
     // 2. No job ran more attempts than 1 + retry.
     i = 0
-    while i < ids.length do
+    while i < ids.length
         string jid = string(ids[i])
         int att = int(state["attempt"][jid])
         int maxAtt = int(scenario["jobs"][jid]["retry"]) + 1
@@ -3089,7 +3089,7 @@ func runInvariants(var scenario, var state, var metrics) as var
     // 4. A completed job finishes at or after its start.
     var perJob = metrics["perJob"]
     int j = 0
-    while j < perJob.length do
+    while j < perJob.length
         var pj = perJob[j]
         if string(pj["state"]) == ST_DONE then
             if int(pj["finishT"]) < int(pj["startT"]) then
@@ -3104,7 +3104,7 @@ func runInvariants(var scenario, var state, var metrics) as var
     //    double-allocation or failed-release defect.
     var pools = scenario["pools"]
     int p5 = 0
-    while p5 < pools.length do
+    while p5 < pools.length
         var pool = pools[p5]
         string pid5 = string(pool["id"])
         int pkSlots = int(state["peakPoolUse"][pid5]["slots"])
@@ -3127,7 +3127,7 @@ func runInvariants(var scenario, var state, var metrics) as var
     // 6. Every job must be terminal after finalizeRun (no PENDING/READY/RUNNING
     //    /WAIT_RETRY leftovers).
     int p6 = 0
-    while p6 < ids.length do
+    while p6 < ids.length
         string jid6 = string(ids[p6])
         string stt = string(state["jobState"][jid6])
         if not isTerminalState(stt) then
@@ -3155,7 +3155,7 @@ end
 func historyDigest(var history) as string
     string acc = ""
     int i = 0
-    while i < history.length do
+    while i < history.length
         var h = history[i]
         acc = acc + canonicalEvent(h)
         acc = acc + "\n"
@@ -3187,7 +3187,7 @@ func finalStateMap(var state) as var
     var ids = sortedJobIds(state["scenario"])
     var rows = []
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         string jid = string(ids[i])
         var row = {}
         row["id"] = jid
@@ -3209,7 +3209,7 @@ func finalStateDigest(var state) as string
     var rows = finalStateMap(state)
     string acc = ""
     int i = 0
-    while i < rows.length do
+    while i < rows.length
         var r = rows[i]
         acc = acc + string(r["id"]) + ":" + string(r["state"]) + ":" + string(int(r["finishT"])) + ":" + string(int(r["attempts"])) + ":" + string(int(r["cacheHits"])) + "\n"
         i += 1
@@ -3332,7 +3332,7 @@ func parseFlags(var arg, int startIdx) as var
     f["saveSnapshot"] = ""
     f["positionals"] = []
     int i = startIdx
-    while i < arg.length do
+    while i < arg.length
         string tok = string(arg[i])
         if string.startsWith(tok, "--") then
             string name = string.slice(tok, 2, string.len(tok) - 2)
@@ -3500,7 +3500,7 @@ func cmdValidate(var arg) as int
         println("strongly-connected components: " + string(comps.length))
         int multi = 0
         int ci = 0
-        while ci < comps.length do
+        while ci < comps.length
             if comps[ci].length > 1 then multi += 1 end
             ci += 1
         end
@@ -3653,7 +3653,7 @@ func cmdStress(var arg) as int
     int crashes = 0
     int seed = first
     println("stress seeds " + string(first) + ".." + string(last) + " (inclusive)")
-    while seed <= last do
+    while seed <= last
         try
             var scenario = null
             if "builtin" in opts then
@@ -3681,7 +3681,7 @@ func cmdStress(var arg) as int
             println("  " + formatOneLiner(scenario, m) + " inv=" + string(viol.length))
             if viol.length > 0 then
                 int vi = 0
-                while vi < viol.length and vi < 3 do
+                while vi < viol.length and vi < 3
                     println("    - " + string(viol[vi]))
                     vi += 1
                 end
@@ -3717,13 +3717,13 @@ func cmdBenchmark(var arg) as int
     var benchList = []
     benchList.append("demo")
     int sz = 0
-    while sz < 3 do
+    while sz < 3
         benchList.append("gen:" + string(sz))
         sz += 1
     end
     println("benchmark: iters=" + string(iters) + " scenarios=" + string(benchList.length))
     int bi = 0
-    while bi < benchList.length do
+    while bi < benchList.length
         string label = string(benchList[bi])
         var scenario = null
         if string.startsWith(label, "gen:") then
@@ -3742,7 +3742,7 @@ func cmdBenchmark(var arg) as int
         var m0 = computeMetrics(st0)
         int t0 = nowMs()
         int k = 0
-        while k < iters do
+        while k < iters
             var s = runSimulation(scenario)
             computeMetrics(s)
             k += 1
@@ -3776,7 +3776,7 @@ func scenarioToText(var scenario) as string
     lines.append("unit " + string(meta["unit"]))
     lines.append("")
     int pi = 0
-    while pi < scenario["pools"].length do
+    while pi < scenario["pools"].length
         var pool = scenario["pools"][pi]
         string pl = "pool " + string(pool["id"]) + " workers=" + string(int(pool["workers"])) + " cpu=" + string(int(pool["cpu"])) + " mem=" + string(int(pool["mem"]))
         if not isEmptyStr(string(pool["tags"])) then pl = pl + " tags=" + string(pool["tags"]) end
@@ -3786,7 +3786,7 @@ func scenarioToText(var scenario) as string
     lines.append("")
     var ids = sortedJobIds(scenario)
     int ii = 0
-    while ii < ids.length do
+    while ii < ids.length
         string jid = string(ids[ii])
         var j = scenario["jobs"][jid]
         var parts = []
@@ -3809,7 +3809,7 @@ func scenarioToText(var scenario) as string
     if scenario["failRules"].length > 0 then
         lines.append("")
         int ri = 0
-        while ri < scenario["failRules"].length do
+        while ri < scenario["failRules"].length
             var rule = scenario["failRules"][ri]
             string rl = "fail " + string(rule["kind"])
             if string(rule["kind"]) != FR_RANDOM then rl = rl + " " + string(rule["target"]) end
@@ -3822,7 +3822,7 @@ func scenarioToText(var scenario) as string
     if scenario["cancelRules"].length > 0 then
         lines.append("")
         int ci = 0
-        while ci < scenario["cancelRules"].length do
+        while ci < scenario["cancelRules"].length
             var c = scenario["cancelRules"][ci]
             lines.append("cancel " + string(c["job"]) + " at=" + string(int(c["at"])))
             ci += 1
@@ -3831,7 +3831,7 @@ func scenarioToText(var scenario) as string
     if scenario["invalidateRules"].length > 0 then
         lines.append("")
         int ivi = 0
-        while ivi < scenario["invalidateRules"].length do
+        while ivi < scenario["invalidateRules"].length
             var iv = scenario["invalidateRules"][ivi]
             lines.append("invalidate " + string(iv["key"]) + " on " + string(iv["onJob"]) + " " + string(iv["onEvent"]))
             ivi += 1
@@ -3859,17 +3859,17 @@ func transitiveClosure(var scenario, var adj) as var
     var reach = {}
     var ids = sortedJobIds(scenario)
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         reach[string(ids[i])] = {}
         i += 1
     end
     // Seed with direct edges.
     int di = 0
-    while di < ids.length do
+    while di < ids.length
         string u = string(ids[di])
         var direct = succ[u]
         int j = 0
-        while j < direct.length do
+        while j < direct.length
             reach[u][string(direct[j])] = true
             j += 1
         end
@@ -3880,11 +3880,11 @@ func transitiveClosure(var scenario, var adj) as var
     // gives the correct closure because reach[kk] is complete for all
     // intermediates processed before kk.
     int k = 0
-    while k < ids.length do
+    while k < ids.length
         string kk = string(ids[k])
         var reachK = reach[kk]
         int a = 0
-        while a < ids.length do
+        while a < ids.length
             string aa = string(ids[a])
             if aa != kk and (kk in reach[aa]) then
                 for v, flag in reachK
@@ -3908,16 +3908,16 @@ func transitiveReduction(var scenario, var adj) as var
     var ids = sortedJobIds(scenario)
     var kept = []
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         string u = string(ids[i])
         var direct = succ[u]
         int j = 0
-        while j < direct.length do
+        while j < direct.length
             string v = string(direct[j])
             bool redundant = false
             // Edge u->v is redundant if some other successor w of u can reach v.
             int k = 0
-            while k < direct.length do
+            while k < direct.length
                 string w = string(direct[k])
                 if w != v then
                     if v in reach[w] then
@@ -3949,12 +3949,12 @@ func layerAssignment(var scenario, var adj) as var
     var order = topo["order"]
     var level = {}
     int i = 0
-    while i < order.length do
+    while i < order.length
         string v = string(order[i])
         int lvl = 0
         var preds = pred[v]
         int k = 0
-        while k < preds.length do
+        while k < preds.length
             int pl = int(level[string(preds[k])])
             if pl + 1 > lvl then lvl = pl + 1 end
             k += 1
@@ -3980,7 +3980,7 @@ func jainsIndex(var values) as float
     float s = 0.0
     float sq = 0.0
     int i = 0
-    while i < n do
+    while i < n
         float x = float(int(values[i]))
         s += x
         sq += x * x
@@ -4007,7 +4007,7 @@ func histogram(var sortedValues, int bucketCount) as var
     if hi == lo then hi = lo + 1 end
     int span = hi - lo
     int i = 0
-    while i < bucketCount do
+    while i < bucketCount
         int blo = lo + (span * i) / bucketCount
         int bhi = lo + (span * (i + 1)) / bucketCount
         if i == bucketCount - 1 then bhi = hi end
@@ -4016,7 +4016,7 @@ func histogram(var sortedValues, int bucketCount) as var
         i += 1
     end
     i = 0
-    while i < sortedValues.length do
+    while i < sortedValues.length
         int v = int(sortedValues[i])
         int idx = ((v - lo) * bucketCount) / span
         if idx < 0 then idx = 0 end
@@ -4034,7 +4034,7 @@ func formatHistogram(var h, string title) as string
     var counts = h["counts"]
     int maxCount = maxOf(counts)
     int i = 0
-    while i < buckets.length do
+    while i < buckets.length
         int c = int(counts[i])
         int blo = int(buckets[i]["lo"])
         int bhi = int(buckets[i]["hi"])
@@ -4042,7 +4042,7 @@ func formatHistogram(var h, string title) as string
         if maxCount > 0 then barLen = (c * 30) / maxCount end
         string bar = ""
         int b = 0
-        while b < barLen do
+        while b < barLen
             bar = bar + "#"
             b += 1
         end
@@ -4061,7 +4061,7 @@ func formatEventLog(var state, int maxRows) as string
     int limit = hist.length
     if maxRows > 0 and maxRows < limit then limit = maxRows end
     int i = 0
-    while i < limit do
+    while i < limit
         var h = hist[i]
         string detail = ""
         if "attempt" in h then detail = detail + "a=" + string(int(h["attempt"])) + " " end
@@ -4087,7 +4087,7 @@ func jobCharMap(var scenario) as var
     string charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
     var ids = sortedJobIds(scenario)
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         string jid = string(ids[i])
         m[jid] = string.charAt(charset, i % string.len(charset))
         i += 1
@@ -4100,7 +4100,7 @@ func collectIntervals(var state) as var
     var perPool = {}
     var perPoolNames = []
     int pi = 0
-    while pi < state["scenario"]["pools"].length do
+    while pi < state["scenario"]["pools"].length
         string pid = string(state["scenario"]["pools"][pi]["id"])
         perPool[pid] = []
         perPoolNames.append(pid)
@@ -4110,7 +4110,7 @@ func collectIntervals(var state) as var
     var ids = sortedJobIds(state["scenario"])
     var chars = jobCharMap(state["scenario"])
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         string jid = string(ids[i])
         int att = int(state["attempt"][jid])
         if att > 0 then
@@ -4157,7 +4157,7 @@ func formatGantt(var state, var metrics) as string
     // Time axis.
     string axis = padField("time", 12)
     int col = 0
-    while col < width do
+    while col < width
         int tick = col * scale
         if col % 10 == 0 then
             axis = axis + "|"
@@ -4168,7 +4168,7 @@ func formatGantt(var state, var metrics) as string
     end
     lines.append(axis)
     int pi = 0
-    while pi < poolNames.length do
+    while pi < poolNames.length
         string lane = string(poolNames[pi])
         var intervals = perPool[lane]
         if intervals.length == 0 then
@@ -4185,10 +4185,10 @@ func formatGantt(var state, var metrics) as string
         // Assign each interval to the lowest slot free at its start.
         var slotRows = []
         int si = 0
-        while si < workers do
+        while si < workers
             var grid = []
             int ci = 0
-            while ci < width do
+            while ci < width
                 grid.append(".")
                 ci += 1
             end
@@ -4197,12 +4197,12 @@ func formatGantt(var state, var metrics) as string
         end
         var slotFinish = []
         int sf = 0
-        while sf < workers do
+        while sf < workers
             slotFinish.append(0)
             sf += 1
         end
         int ii = 0
-        while ii < intervals.length do
+        while ii < intervals.length
             var iv = intervals[ii]
             int st = int(iv["start"])
             int ft = int(iv["finish"])
@@ -4210,7 +4210,7 @@ func formatGantt(var state, var metrics) as string
             // pick lowest free slot
             int slot = 0
             int pick = -1
-            while slot < workers do
+            while slot < workers
                 if int(slotFinish[slot]) <= st then
                     pick = slot
                     break
@@ -4225,7 +4225,7 @@ func formatGantt(var state, var metrics) as string
             if cEnd > width then cEnd = width end
             var grid = slotRows[pick]
             int c = cStart
-            while c < cEnd do
+            while c < cEnd
                 grid[c] = ch
                 c += 1
             end
@@ -4235,11 +4235,11 @@ func formatGantt(var state, var metrics) as string
         end
         // Render slot rows.
         int ri = 0
-        while ri < slotRows.length do
+        while ri < slotRows.length
             string row = padField(lane + "#" + string(ri), 12)
             var grid = slotRows[ri]
             int c = 0
-            while c < width do
+            while c < width
                 row = row + string(grid[c])
                 c += 1
             end
@@ -4253,7 +4253,7 @@ func formatGantt(var state, var metrics) as string
     var ids = sortedJobIds(state["scenario"])
     string legend = "legend: "
     int li = 0
-    while li < ids.length do
+    while li < ids.length
         string jid = string(ids[li])
         if int(state["attempt"][jid]) > 0 then
             legend = legend + string(chars[jid]) + "=" + jid + " "
@@ -4385,7 +4385,7 @@ func test02GraphValidation()
     checkT(not bool(cvr["ok"]), "cyclic scenario is invalid")
     bool foundCycle = false
     int i = 0
-    while i < cvr["errors"].length do
+    while i < cvr["errors"].length
         if string.contains(string(cvr["errors"][i]), "cycle") then foundCycle = true end
         i += 1
     end
@@ -4432,7 +4432,7 @@ end
 
 func indexOfStr(var arr, string key) as int
     int i = 0
-    while i < arr.length do
+    while i < arr.length
         if string(arr[i]) == key then return i end
         i += 1
     end
@@ -4449,7 +4449,7 @@ func test04Scc()
     checkEqInt(comps.length, 4, "acyclic diamond has 4 singleton SCCs")
     bool allSingle = true
     int i = 0
-    while i < comps.length do
+    while i < comps.length
         if comps[i].length != 1 then allSingle = false end
         i += 1
     end
@@ -4460,7 +4460,7 @@ func test04Scc()
     checkT(ccomps.length < 3, "cyclic graph collapses into fewer SCCs")
     bool hasMulti = false
     int j = 0
-    while j < ccomps.length do
+    while j < ccomps.length
         if ccomps[j].length > 1 then hasMulti = true end
         j += 1
     end
@@ -4538,7 +4538,7 @@ func test08Retry()
     bool withinLimit = true
     var ids = sortedJobIds(state["scenario"])
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         string jid = string(ids[i])
         int att = int(state["attempt"][jid])
         if att > 4 then withinLimit = false end
@@ -4780,7 +4780,7 @@ func test18Invariants()
     sectionT("[test 18] post-run invariants")
     var names = listBuiltinScenarios()
     int i = 0
-    while i < names.length do
+    while i < names.length
         string n = string(names[i])
         if n == "cycle" then
             i += 1
@@ -4861,7 +4861,7 @@ func test22StressDeterminism()
     var opts = defaultGenOpts()
     int seed = 1
     int checked = 0
-    while seed <= 12 do
+    while seed <= 12
         var s = generateScenario(seed, opts)
         var vr = validateGraph(s)
         if bool(vr["ok"]) then
@@ -4884,7 +4884,7 @@ func test23Rng()
     Rng b = Rng("t", uint64(99))
     bool same = true
     int i = 0
-    while i < 50 do
+    while i < 50
         if a.nextU32() != b.nextU32() then same = false end
         i += 1
     end
@@ -4923,7 +4923,7 @@ func test24EdgeCases()
     string chain = "pool p workers=1 cpu=1 mem=64\n"
     int n = 30
     int k = 0
-    while k < n do
+    while k < n
         if k == 0 then
             chain = chain + "job c0 dur=1 cpu=1 mem=64\n"
         else
@@ -4944,7 +4944,7 @@ func test25Catalogue()
     sectionT("[test 25] built-in scenario catalogue")
     var names = listBuiltinScenarios()
     int i = 0
-    while i < names.length do
+    while i < names.length
         string n = string(names[i])
         string txt = builtinScenarioText(n)
         checkT(not isEmptyStr(txt), "scenario '" + n + "' has source text")
@@ -4985,7 +4985,7 @@ func test26Serializer()
     // Every original job id must survive the round trip.
     var ids = sortedJobIds(s)
     int i = 0
-    while i < ids.length do
+    while i < ids.length
         string jid = string(ids[i])
         checkT(dictHas(s2["jobs"], jid), "job '" + jid + "' survives round-trip")
         i += 1
@@ -5041,7 +5041,7 @@ job C dur=10 deps=A,B"""
     bool hasAB = false
     bool hasBC = false
     int i = 0
-    while i < kept.length do
+    while i < kept.length
         string f = string(kept[i]["from"])
         string t = string(kept[i]["to"])
         if f == "A" and t == "C" then hasAC = true end
@@ -5091,7 +5091,7 @@ func test30FairnessHistogram()
     var h = histogram(vals, 5)
     int total = 0
     int i = 0
-    while i < h["counts"].length do
+    while i < h["counts"].length
         total += int(h["counts"][i])
         i += 1
     end
@@ -5105,7 +5105,7 @@ func test30FairnessHistogram()
     var hs = histogram(single, 4)
     int stotal = 0
     int j = 0
-    while j < hs["counts"].length do
+    while j < hs["counts"].length
         stotal += int(hs["counts"][j])
         j += 1
     end
@@ -5144,7 +5144,7 @@ func test32GraphDiagnostics()
     var names = listBuiltinScenarios()
     int checked = 0
     int i = 0
-    while i < names.length do
+    while i < names.length
         string n = string(names[i])
         i += 1
         if n == "cycle" then continue end
@@ -5160,7 +5160,7 @@ func test32GraphDiagnostics()
         int origEdges = 0
         var jids = sortedJobIds(s)
         int ji = 0
-        while ji < jids.length do
+        while ji < jids.length
             origEdges += adj["succ"][string(jids[ji])].length
             ji += 1
         end
@@ -5169,11 +5169,11 @@ func test32GraphDiagnostics()
         // Reachability must be a superset of direct successors.
         bool superOK = true
         int si = 0
-        while si < jids.length do
+        while si < jids.length
             string u = string(jids[si])
             var direct = adj["succ"][u]
             int di = 0
-            while di < direct.length do
+            while di < direct.length
                 string w = string(direct[di])
                 if not (w in reach[u]) then superOK = false end
                 di += 1
@@ -5206,7 +5206,7 @@ func test33ReportDeterminism()
     // Generated scenarios: serializer round-trips for a couple of seeds.
     int gseed = 0
     int okRT = 0
-    while gseed < 4 do
+    while gseed < 4
         var opts = {}
         opts["layers"] = 3
         opts["perLayer"] = 3
@@ -5232,7 +5232,7 @@ func test34MalformedDsl()
     checkT(not bool(eu["ok"]), "unknown directive is rejected")
     bool unkFound = false
     int ui = 0
-    while ui < eu["errors"].length do
+    while ui < eu["errors"].length
         if string.contains(string(eu["errors"][ui]), "unknown directive") then unkFound = true end
         ui += 1
     end
@@ -5287,7 +5287,7 @@ func test35CyclesTopoDeterminism()
     checkT(not bool(c2v["ok"]), "two-node cycle rejected")
     bool c2found = false
     int c2i = 0
-    while c2i < c2v["errors"].length do
+    while c2i < c2v["errors"].length
         if string.contains(string(c2v["errors"][c2i]), "cycle") then c2found = true end
         c2i += 1
     end
@@ -5302,7 +5302,7 @@ func test35CyclesTopoDeterminism()
     int termAll = 0
     var c3ids = sortedJobIds(c3["scenario"])
     int ti = 0
-    while ti < c3ids.length do
+    while ti < c3ids.length
         if isTerminalState(string(c3state["jobState"][string(c3ids[ti])])) then termAll += 1 end
         ti += 1
     end
@@ -5336,11 +5336,11 @@ job E dur=1 deps=D"""
     checkT(bool(ro["ok"]), "richer graph has a complete topo order")
     bool topoValid = true
     int ri = 0
-    while ri < ro["order"].length do
+    while ri < ro["order"].length
         string v = string(ro["order"][ri])
         var preds = radj["pred"][v]
         int pk = 0
-        while pk < preds.length do
+        while pk < preds.length
             int pi = indexOfStr(ro["order"], string(preds[pk]))
             if pi >= ri then topoValid = false end
             pk += 1
@@ -5372,7 +5372,7 @@ job D dur=5 deps=B,C"""
     int sumDur = 0
     var ids = sortedJobIds(pr["scenario"])
     int si = 0
-    while si < ids.length do
+    while si < ids.length
         sumDur += int(pr["scenario"]["jobs"][string(ids[si])]["dur"])
         si += 1
     end
@@ -5437,7 +5437,7 @@ fail job x rate=1.0"""
     // Backoff sequence recorded in RETRY_SCHEDULED events: base, 2*base.
     var backoffs = []
     int hi = 0
-    while hi < st["history"].length do
+    while hi < st["history"].length
         var h = st["history"][hi]
         if string(h["kind"]) == "RETRY_SCHEDULED" then backoffs.append(int(h["backoff"])) end
         hi += 1
@@ -5538,7 +5538,7 @@ func test40SnapshotPercentileLimits()
     // final-state digest, across several generated seeds (incl. failures).
     int eqOk = 0
     int gs = 1
-    while gs <= 8 do
+    while gs <= 8
         var opts = {}
         opts["layers"] = 3
         opts["perLayer"] = 3
@@ -5573,7 +5573,7 @@ job b dur=10 cpu=1 mem=64 deps=a"""
     var violT = runInvariants(pr["scenario"], state, m)
     bool termHit = false
     int ti = 0
-    while ti < violT.length do
+    while ti < violT.length
         if string.contains(string(violT[ti]), "not terminal") then termHit = true end
         ti += 1
     end
@@ -5586,7 +5586,7 @@ job b dur=10 cpu=1 mem=64 deps=a"""
     var violR = runInvariants(pr["scenario"], state, m)
     bool resHit = false
     int ri = 0
-    while ri < violR.length do
+    while ri < violR.length
         if string.contains(string(violR[ri]), "peak cpu") then resHit = true end
         ri += 1
     end
@@ -5654,7 +5654,7 @@ func test43ReplayEquivalenceScenarios()
     var names = ["retry", "cache"]
     int ni = 0
     int checkedScenarios = 0
-    while ni < names.length do
+    while ni < names.length
         string nm = string(names[ni])
         var pr = parseText(builtinScenarioText(nm))
         var state = runSimulation(pr["scenario"])

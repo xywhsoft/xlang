@@ -271,7 +271,7 @@ class HttpService
     func prepareReload() as bool
         self.discardPreparedReload()
         int index = 0
-        while index < int(self.prepareReloadCallbacks.length) do
+        while index < int(self.prepareReloadCallbacks.length)
             func() as point prepareOne = self.prepareReloadCallbacks[index]
             point prepared = prepareOne()
             if prepared == null then
@@ -293,7 +293,7 @@ class HttpService
             return false
         end
         int index = 0
-        while index < int(self.preparedReloads.length) do
+        while index < int(self.preparedReloads.length)
             func(point) as bool commitOne = self.commitReloadCallbacks[index]
             if not commitOne(self.preparedReloads[index]) then
                 func() as string getError = self.errorCallbacks[index]
@@ -310,7 +310,7 @@ class HttpService
 
     func discardPreparedReload() as bool
         int index = 0
-        while index < int(self.preparedReloads.length) do
+        while index < int(self.preparedReloads.length)
             func(point) as bool discardOne = self.discardReloadCallbacks[index]
             discardOne(self.preparedReloads[index])
             index += 1

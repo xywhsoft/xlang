@@ -49,7 +49,7 @@ func loadItems(string path_) as array<TodoItem>
     end
     int n = items.length
     int i = 0
-    while i < n do
+    while i < n
         var elem = items[i]
         TodoItem item = json.parse::<TodoItem>(json.stringify(elem))
         result.append(item)
@@ -76,7 +76,7 @@ func nextId(array<TodoItem> items) as int
     int maxId = 0
     int i = 0
     int n = items.length
-    while i < n do
+    while i < n
         TodoItem item = items[i]
         if item.id > maxId then
             maxId = item.id
@@ -91,7 +91,7 @@ end
 func findById(array<TodoItem> items, int id) as int
     int i = 0
     int n = items.length
-    while i < n do
+    while i < n
         TodoItem item = items[i]
         if item.id == id then
             return i
@@ -130,7 +130,7 @@ func cmdList(string scriptPath)
 
     int i = 0
     int n = items.length
-    while i < n do
+    while i < n
         TodoItem item = items[i]
         string mark = item.done ? "[x]" : "[ ]"
         println("[" + string(item.id) + "] " + mark + " " + item.text)
@@ -231,7 +231,7 @@ func cmdClear(string scriptPath)
     array<TodoItem> kept = array[]
     int i = 0
     int n = items.length
-    while i < n do
+    while i < n
         TodoItem item = items[i]
         if item.done then
             removed += 1

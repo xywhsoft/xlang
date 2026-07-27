@@ -163,6 +163,77 @@ static const XL6_StdlibFunc* xl6StdlibFindFunc(const char* ns, const char* name,
     return NULL;
 }
 
+typedef struct XL6_StdlibImplicitMethod {
+    const char* typeName;
+    const char* methodName;
+    const char* functionName;
+} XL6_StdlibImplicitMethod;
+
+/*
+    隐性基础类只复用标准库函数，不另造一套实现。
+    表中仅放适合作为实例方法、且第一个参数就是接收者的函数。
+*/
+static const XL6_StdlibImplicitMethod xl6StdlibImplicitMethods[] = {
+    {"string", "byteLen", "byteLen"},
+    {"string", "compare", "compare"},
+    {"string", "equals", "equals"},
+    {"string", "contains", "contains"},
+    {"string", "indexOf", "indexOf"},
+    {"string", "lastIndexOf", "lastIndexOf"},
+    {"string", "count", "count"},
+    {"string", "startsWith", "startsWith"},
+    {"string", "endsWith", "endsWith"},
+    {"string", "hasAny", "hasAny"},
+    {"string", "like", "like"},
+    {"string", "approx", "approx"},
+    {"string", "sim", "sim"},
+    {"string", "isUtf8", "isUtf8"},
+    {"string", "lower", "lower"},
+    {"string", "toLower", "lower"},
+    {"string", "upper", "upper"},
+    {"string", "toUpper", "upper"},
+    {"string", "trim", "trim"},
+    {"string", "ltrim", "ltrim"},
+    {"string", "rtrim", "rtrim"},
+    {"string", "filter", "filter"},
+    {"string", "replace", "replace"},
+    {"string", "split", "split"},
+    {"string", "slice", "slice"},
+    {"string", "left", "left"},
+    {"string", "right", "right"},
+    {"string", "mid", "mid"},
+    {"string", "charAt", "charAt"},
+    {"string", "byteAt", "byteAt"},
+    {"string", "repeat", "repeat"}
+};
+
+static const XL6_StdlibImplicitMethod* xl6StdlibFindImplicitMethod(
+    const char* typeName,
+    const char* methodName)
+{
+    size_t i;
+
+    for ( i = 0; i < sizeof(xl6StdlibImplicitMethods) / sizeof(xl6StdlibImplicitMethods[0]); ++i ) {
+        if ( xl6StdlibTextEquals(xl6StdlibImplicitMethods[i].typeName, typeName) &&
+             xl6StdlibTextEquals(xl6StdlibImplicitMethods[i].methodName, methodName) ) {
+            return &xl6StdlibImplicitMethods[i];
+        }
+    }
+    return NULL;
+}
+
+const char* xl6StdlibImplicitMethodInternalName(const char* typeName, const char* methodName)
+{
+    const XL6_StdlibImplicitMethod* method = xl6StdlibFindImplicitMethod(typeName, methodName);
+    const XL6_StdlibFunc* func;
+
+    if ( method == NULL ) {
+        return NULL;
+    }
+    func = xl6StdlibFindFunc(method->typeName, method->functionName, NULL);
+    return func != NULL ? func->internalName : NULL;
+}
+
 static const XL6_StdlibConst* xl6StdlibFindConst(const char* ns, const char* name)
 {
     size_t i;
@@ -681,6 +752,14 @@ static int xl6StdlibRewriteRefsScoped(
                 return 0;
             }
         }
+
+        /* 接收者类型尚未确定，此处只登记隐性方法所需的标准库实现。 */
+        {
+            const XL6_StdlibImplicitMethod* method = xl6StdlibFindImplicitMethod("string", node->text);
+            if ( method != NULL ) {
+                xl6StdlibMarkFuncUsed(used, method->typeName, method->functionName);
+            }
+        }
     }
 
     ok = 1;
@@ -735,6 +814,7 @@ static int xl6StdlibNeedsBufferClass(const XL6_AstNode* root, const int* used)
                 return 1;
             }
         }
+
     }
     if ( xl6StdlibFindFunc("encoding", "toBytes", &index) != NULL && used[index] ) {
         return 1;

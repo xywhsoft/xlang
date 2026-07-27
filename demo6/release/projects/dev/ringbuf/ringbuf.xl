@@ -59,7 +59,7 @@ class RingBuffer
         self._count = 0
         self.buf.clear()
         int i = 0
-        while i < capacity do
+        while i < capacity
             self.buf.append(zero)
             i = i + 1
         end
@@ -135,7 +135,7 @@ class RingBuffer
     func pushBatch(var items) as int
         int pushed = 0
         int i = 0
-        while i < items.length do
+        while i < items.length
             if self.push(items[i]) then
                 pushed = pushed + 1
             elseif not self.overwrite then
@@ -157,7 +157,7 @@ class RingBuffer
             want = 0
         end
         int i = 0
-        while i < want do
+        while i < want
             bool ok = false
             var v = self.zero
             ok, v = self.pop()
@@ -172,7 +172,7 @@ class RingBuffer
     // 排空所有元素追加到 out (引用语义，修改调用方数组)，返回排空数。
     func drainTo(var outputValue) as int
         int drained = 0
-        while self._count > 0 do
+        while self._count > 0
             bool ok = false
             var v = self.zero
             ok, v = self.pop()
@@ -293,7 +293,7 @@ func testOverwriteMode() as int
     // 连续覆盖多轮: cap=2, push 0..5, 现存应为 4,5
     RingBuffer ow = RingBuffer(2, true, 0)
     int i = 0
-    while i <= 5 do
+    while i <= 5
         ow.push(i)
         i = i + 1
     end
@@ -314,7 +314,7 @@ func testWraparound() as int
     // cap=3, 多轮 push+pop 让 head/tail 绕一圈以上
     RingBuffer rb = RingBuffer(3, false, 0)
     int i = 1
-    while i <= 30 do
+    while i <= 30
         check(rb.push(i), "iter " + string(i) + " push(" + string(i) + ")")
         bool ok = false
         var v = 0
@@ -354,7 +354,7 @@ func testBatchOps() as int
     RingBuffer rb = RingBuffer(4, false, 0)
     array<int> src = array<int>[]
     int i = 1
-    while i <= 6 do
+    while i <= 6
         src.append(i)
         i = i + 1
     end
@@ -391,7 +391,7 @@ func testBatchOps() as int
     RingBuffer ow = RingBuffer(3, true, 0)
     array<int> big = array<int>[]
     int j = 1
-    while j <= 8 do
+    while j <= 8
         big.append(j)
         j = j + 1
     end
@@ -453,7 +453,7 @@ func cqResetBook()
     g_consumedSeq.clear()
     g_seen.clear()
     int i = 0
-    while i < 256 do
+    while i < 256
         g_seen.append(false)
         i = i + 1
     end
@@ -476,7 +476,7 @@ end
 // 阻塞入队: 满时等待 notFull。
 func cqPush(int item) as bool
     g_cqMu.lock()
-    while g_cq.isFull() do
+    while g_cq.isFull()
         g_cqNotFull.wait(g_cqMu)
     end
     bool ok = g_cq.push(item)
@@ -488,7 +488,7 @@ end
 // 阻塞出队: 空时等待 notEmpty。
 func cqPop() as int
     g_cqMu.lock()
-    while g_cq.isEmpty() do
+    while g_cq.isEmpty()
         g_cqNotEmpty.wait(g_cqMu)
     end
     bool ok = false
@@ -503,7 +503,7 @@ end
 func cqPushTimeout(int item, int ms) as bool
     g_cqMu.lock()
     float deadline = time.timer() * 1000.0 + float(ms)
-    while g_cq.isFull() do
+    while g_cq.isFull()
         float remain = deadline - time.timer() * 1000.0
         if remain <= 0.0 then
             break
@@ -523,7 +523,7 @@ end
 func cqPopTimeout(int ms) as (bool, int)
     g_cqMu.lock()
     float deadline = time.timer() * 1000.0 + float(ms)
-    while g_cq.isEmpty() do
+    while g_cq.isEmpty()
         float remain = deadline - time.timer() * 1000.0
         if remain <= 0.0 then
             break
@@ -545,7 +545,7 @@ end
 func makePusher(int lo, int hi) as func() as int
     return func() as int
         int i = lo
-        while i <= hi do
+        while i <= hi
             cqPush(i)
             i = i + 1
         end
@@ -556,7 +556,7 @@ end
 func makeRecordingPopper(int n) as func() as int
     return func() as int
         int i = 0
-        while i < n do
+        while i < n
             int v = cqPop()
             recordItem(v)
             i = i + 1
@@ -569,7 +569,7 @@ func makeDelayedPopper(int delayMs, int count) as func() as int
     return func() as int
         time.sleep(delayMs)
         int i = 0
-        while i < count do
+        while i < count
             cqPop()
             i = i + 1
         end
@@ -609,7 +609,7 @@ func testBlockingProdCons() as int
     int sum = g_sum
     bool ordered = true
     int i = 0
-    while i < g_consumedSeq.length do
+    while i < g_consumedSeq.length
         if g_consumedSeq[i] != i + 1 then
             ordered = false
             break
@@ -703,7 +703,7 @@ func testMultiProdCons() as int
     int sum = g_sum
     bool allSeen = true
     int i = 1
-    while i <= 200 do
+    while i <= 200
         if not g_seen[i] then
             allSeen = false
             break
@@ -772,7 +772,7 @@ func benchPush(int n) as float
     int s = 0
     float t0 = time.timer()
     int i = 0
-    while i < n do
+    while i < n
         if rb.push(i) then
             s = s + i
         end
@@ -786,14 +786,14 @@ end
 func benchPop(int n) as float
     RingBuffer rb = RingBuffer(n, false, 0)
     int i = 0
-    while i < n do
+    while i < n
         rb.push(i)
         i = i + 1
     end
     int s = 0
     float t0 = time.timer()
     int j = 0
-    while j < n do
+    while j < n
         bool ok = false
         var v = 0
         ok, v = rb.pop()
@@ -813,7 +813,7 @@ func benchRoundtrip(int n) as float
     int s = 0
     float t0 = time.timer()
     int i = 0
-    while i < n do
+    while i < n
         rb.push(i)
         bool ok = false
         var v = 0
@@ -832,7 +832,7 @@ end
 func benchBatch(int n) as float
     array<int> src = array<int>[]
     int i = 0
-    while i < n do
+    while i < n
         src.append(i)
         i = i + 1
     end
@@ -843,7 +843,7 @@ func benchBatch(int n) as float
     rb.pushBatch(src)
     rb.drainTo(dst)
     int k = 0
-    while k < dst.length do
+    while k < dst.length
         s = s + int(dst[k])
         k = k + 1
     end

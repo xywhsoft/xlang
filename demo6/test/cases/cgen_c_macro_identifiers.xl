@@ -1,0 +1,39 @@
+int NULL = 1
+
+class MacroBox
+    int EOF = 2
+
+    func sum(int RAND_MAX) as int
+        int EXIT_SUCCESS = 4
+        int SIZE_MAX = 5
+        int INT8_MAX = 6
+        int INT64_MIN = 7
+        int CHAR_BIT = 8
+        return self.EOF + RAND_MAX + EXIT_SUCCESS + SIZE_MAX + INT8_MAX + INT64_MIN + CHAR_BIT
+    end
+end
+
+int pascal = 10
+
+class TccNameBox
+    int near = 11
+    int __volatile = 12
+
+    func total(int cdecl, int stdcall) as int
+        int asm = 3
+        int __restrict = 4
+        int __inline = 5
+        return self.near + self.__volatile + cdecl + stdcall + asm + __restrict + __inline
+    end
+end
+
+func main(...) as int
+    MacroBox box = MacroBox()
+    TccNameBox tccBox = TccNameBox()
+    assert NULL == 1
+    assert box.sum(3) == 35
+    assert pascal == 10
+    assert tccBox.total(1, 2) == 38
+    println("cgen_c_macro_identifiers ok")
+    return 0
+end

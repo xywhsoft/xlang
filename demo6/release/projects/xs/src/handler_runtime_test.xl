@@ -17,7 +17,7 @@ func verifyHandler(string sourcePath, string expectedPrefix)
     assert slot.generation() == 1, "initial generation mismatch"
 
     int i = 0
-    while i < 20 do
+    while i < 20
         Buffer response = Buffer(64)
         int result = slot.call(1, "test", "/echo", "hello", response, "127.0.0.1", 9000)
         assert result == 0, "handler call failed: " + slot.lastError

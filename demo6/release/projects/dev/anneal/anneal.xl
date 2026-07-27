@@ -107,10 +107,10 @@ func saRun(SAConfig cfg, SAProblem p, bool verbose) as SAResult
     int accepts = 0
     int step = 0
 
-    while T > cfg.Tmin do
+    while T > cfg.Tmin
         int i = 0
         int stepAccepts = 0
-        while i < cfg.itersPerTemp do
+        while i < cfg.itersPerTemp
             var cand = p.myNeighbor(state)
             float eCand = p.myEnergy(cand)
             float dE = eCand - e
@@ -185,14 +185,14 @@ func buildDistMatrix(array<float> coords, int n) as array<float>
     array<float> dist = array[]
     int total = n * n
     int z = 0
-    while z < total do
+    while z < total
         dist.push(0.0)
         z += 1
     end
     int i = 0
-    while i < n do
+    while i < n
         int j = 0
-        while j < n do
+        while j < n
             float dx = coords[i * 2] - coords[j * 2]
             float dy = coords[i * 2 + 1] - coords[j * 2 + 1]
             dist[i * n + j] = math.sqrt(dx * dx + dy * dy)
@@ -207,7 +207,7 @@ end
 func tourLength(var c, array<float> dist, int n) as float
     float total = 0.0
     int k = 0
-    while k < n do
+    while k < n
         int a = int(c[k])
         int b = int(c[(k + 1) % n])
         total += dist[a * n + b]
@@ -220,12 +220,12 @@ end
 func isValidPermutation(var c, int n) as bool
     array<int> seen = array[]
     int z = 0
-    while z < n do
+    while z < n
         seen.push(0)
         z += 1
     end
     int i = 0
-    while i < n do
+    while i < n
         int v = int(c[i])
         if v < 0 or v >= n then
             return false
@@ -242,7 +242,7 @@ end
 func printRoute(var c, int n)
     print("  route: ")
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             print(" -> ")
         end
@@ -258,7 +258,7 @@ func printVector(var c)
     print("  x = [")
     int i = 0
     int n = c.length
-    while i < n do
+    while i < n
         if i > 0 then
             print(", ")
         end
@@ -273,7 +273,7 @@ func countConflictsVar(var colors, array<int> edges) as int
     int m = edges.length / 2
     int conflicts = 0
     int i = 0
-    while i < m do
+    while i < m
         int u = edges[i * 2]
         int v = edges[i * 2 + 1]
         if int(colors[u]) == int(colors[v]) then
@@ -311,7 +311,7 @@ func loadCities(string path) as array<float>
     end
     array<float> coords = array[]
     int i = 0
-    while i < n do
+    while i < n
         var item = cities[i]
         float x = 0.0
         float y = 0.0
@@ -350,7 +350,7 @@ func loadGraph(string path) as array<int>
         throw "need at least 1 edge, got " + string(n)
     end
     int i = 0
-    while i < n do
+    while i < n
         var ee = edges[i]
         result.push(int(ee[0]))
         result.push(int(ee[1]))
@@ -363,7 +363,7 @@ func countVertices(array<int> edges) as int
     int maxV = -1
     int m = edges.length / 2
     int i = 0
-    while i < m do
+    while i < m
         if edges[i * 2] > maxV then
             maxV = edges[i * 2]
         end
@@ -390,7 +390,7 @@ func bfRec(array<float> dist, int n, int startCity, int prev, int count, float c
         return
     end
     int k = 0
-    while k < n do
+    while k < n
         if visited[k] == 0 then
             visited[k] = 1
             bfRec(dist, n, startCity, k, count + 1, curLen + dist[prev * n + k], visited)
@@ -404,7 +404,7 @@ func bruteForceTSP(array<float> coords, int n) as float
     array<float> dist = buildDistMatrix(coords, n)
     array<int> visited = array[]
     int i = 0
-    while i < n do
+    while i < n
         visited.push(0)
         i += 1
     end
@@ -426,12 +426,12 @@ class TSPProblem extends SAProblem
         // 随机排列初始化（Fisher-Yates 洗牌）
         array<int> perm = array[]
         int i = 0
-        while i < self.n do
+        while i < self.n
             perm.push(i)
             i += 1
         end
         int s = self.n - 1
-        while s > 0 do
+        while s > 0
             int r = random.range(0, s)
             int tmp = perm[s]
             perm[s] = perm[r]
@@ -449,13 +449,13 @@ class TSPProblem extends SAProblem
     override func myNeighbor(var c) as var
         array<int> child = array[]
         int k = 0
-        while k < self.n do
+        while k < self.n
             child.push(int(c[k]))
             k += 1
         end
         int i = random.range(0, self.n - 2)
         int j = random.range(i + 1, self.n - 1)
-        while i < j do
+        while i < j
             int tmp = child[i]
             child[i] = child[j]
             child[j] = tmp
@@ -468,7 +468,7 @@ class TSPProblem extends SAProblem
     override func myClone(var c) as var
         array<int> child = array[]
         int k = 0
-        while k < self.n do
+        while k < self.n
             child.push(int(c[k]))
             k += 1
         end
@@ -496,7 +496,7 @@ class ColoringProblem extends SAProblem
     override func myInit() as var
         array<int> cols = array[]
         int i = 0
-        while i < self.n do
+        while i < self.n
             cols.push(random.range(0, self.k - 1))
             i += 1
         end
@@ -507,7 +507,7 @@ class ColoringProblem extends SAProblem
         int conflicts = 0
         int m = self.edges.length / 2
         int i = 0
-        while i < m do
+        while i < m
             int u = self.edges[i * 2]
             int v = self.edges[i * 2 + 1]
             if int(c[u]) == int(c[v]) then
@@ -522,14 +522,14 @@ class ColoringProblem extends SAProblem
     override func myNeighbor(var c) as var
         array<int> child = array[]
         int i = 0
-        while i < self.n do
+        while i < self.n
             child.push(int(c[i]))
             i += 1
         end
         int v = random.range(0, self.n - 1)
         int old = child[v]
         int nc = old
-        while nc == old do
+        while nc == old
             nc = random.range(0, self.k - 1)
         end
         child[v] = nc
@@ -539,7 +539,7 @@ class ColoringProblem extends SAProblem
     override func myClone(var c) as var
         array<int> child = array[]
         int i = 0
-        while i < self.n do
+        while i < self.n
             child.push(int(c[i]))
             i += 1
         end
@@ -570,7 +570,7 @@ class FuncProblem extends SAProblem
     override func myInit() as var
         array<float> x = array[]
         int i = 0
-        while i < self.D do
+        while i < self.D
             x.push(randFloatRange(self.lower, self.upper))
             i += 1
         end
@@ -581,7 +581,7 @@ class FuncProblem extends SAProblem
     override func myEnergy(var c) as float
         float s = 10.0 * float(self.D)
         int i = 0
-        while i < self.D do
+        while i < self.D
             float x = float(c[i])
             s += x * x - 10.0 * math.cos(2.0 * math.pi * x)
             i += 1
@@ -593,7 +593,7 @@ class FuncProblem extends SAProblem
     override func myNeighbor(var c) as var
         array<float> child = array[]
         int i = 0
-        while i < self.D do
+        while i < self.D
             child.push(float(c[i]))
             i += 1
         end
@@ -617,7 +617,7 @@ class FuncProblem extends SAProblem
     override func myClone(var c) as var
         array<float> child = array[]
         int i = 0
-        while i < self.D do
+        while i < self.D
             child.push(float(c[i]))
             i += 1
         end
@@ -826,7 +826,7 @@ func main(...) as int
                 "  (iters=" + string(r.iters) + ", accepts=" + string(r.accepts) + ")")
         print("  colors: [")
         int i = 0
-        while i < nv do
+        while i < nv
             if i > 0 then
                 print(", ")
             end

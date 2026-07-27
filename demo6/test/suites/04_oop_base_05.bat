@@ -26,12 +26,12 @@ if errorlevel 1 (
     echo cgen_generic_class.c missing string field substitution.
     exit /b 1
 )
-findstr /C:"xvalue intBox;" build\test\cgen_generic_class.c >nul
+findstr /C:"static xvalue __xl6_user_global_intBox;" build\test\cgen_generic_class.c >nul
 if errorlevel 1 (
     echo cgen_generic_class.c missing int variable declaration.
     exit /b 1
 )
-findstr /C:"xvalue stringBox;" build\test\cgen_generic_class.c >nul
+findstr /C:"static xvalue __xl6_user_global_stringBox;" build\test\cgen_generic_class.c >nul
 if errorlevel 1 (
     echo cgen_generic_class.c missing string variable declaration.
     exit /b 1
@@ -48,7 +48,7 @@ if errorlevel 1 (
     echo cgen_generic_class_fields.c missing int class instance.
     exit /b 1
 )
-findstr /C:"(*((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_fields.c >nul
+findstr /C:"(*((XL_Class_Box__int*)xl6_class_data(__xl6_user_global_intBox" build\test\cgen_generic_class_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_fields.c missing generic class field assignment.
     exit /b 1
@@ -80,7 +80,7 @@ if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic class box helper.
     exit /b 1
 )
-findstr /C:"xl6_function_call_var((*((XL_Class_Mapper__int*)xl6_class_data(copied" build\test\cgen_generic_class_function_fields.c >nul
+findstr /C:"xl6_function_call_var((*((XL_Class_Mapper__int*)xl6_class_data(__xl6_user_global_copied" build\test\cgen_generic_class_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic member function call lowering.
     exit /b 1
@@ -221,7 +221,7 @@ if errorlevel 1 (
     echo cgen_generic_class_methods.c missing generic class method body.
     exit /b 1
 )
-findstr /C:"value = xl_class_Box__int__valueOf(((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_methods.c >nul
+findstr /C:"__xl6_user_global_value = xl_class_Box__int__valueOf(((XL_Class_Box__int*)xl6_class_data(__xl6_user_global_intBox" build\test\cgen_generic_class_methods.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_methods.c missing generic class method call.
     exit /b 1
@@ -233,12 +233,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_class_auto.xl --emit build\test\cgen_generic_class_auto.c
 if errorlevel 1 exit /b 1
-findstr /C:"fromField = (*((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_auto.c >nul
+findstr /C:"__xl6_user_global_fromField = (*((XL_Class_Box__int*)xl6_class_data(__xl6_user_global_intBox" build\test\cgen_generic_class_auto.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_auto.c missing generic field auto inference.
     exit /b 1
 )
-findstr /C:"fromMethod = xl_class_Box__int__valueOf(((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_auto.c >nul
+findstr /C:"__xl6_user_global_fromMethod = xl_class_Box__int__valueOf(((XL_Class_Box__int*)xl6_class_data(__xl6_user_global_intBox" build\test\cgen_generic_class_auto.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_auto.c missing generic method return auto inference.
     exit /b 1
@@ -260,12 +260,12 @@ if errorlevel 1 (
     echo cgen_generic_class_overloads.c missing string generic class overload prototype.
     exit /b 1
 )
-findstr /C:"expect_i64(xl_class_Box__int__pick__int(((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_overloads.c >nul
+findstr /C:"expect_i64(xl_class_Box__int__pick__int(((XL_Class_Box__int*)xl6_class_data(__xl6_user_global_intBox" build\test\cgen_generic_class_overloads.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_overloads.c missing int generic class overload call.
     exit /b 1
 )
-findstr /C:"expect_i64(xl_class_Box__int__pick__string(((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_overloads.c >nul
+findstr /C:"expect_i64(xl_class_Box__int__pick__string(((XL_Class_Box__int*)xl6_class_data(__xl6_user_global_intBox" build\test\cgen_generic_class_overloads.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_overloads.c missing string generic class overload call.
     exit /b 1
@@ -292,7 +292,7 @@ if errorlevel 1 (
     echo cgen_generic_class_ctor.c missing generic class create call.
     exit /b 1
 )
-findstr /C:"value = xl_class_Box__int__valueOf(((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_ctor.c >nul
+findstr /C:"__xl6_user_global_value = xl_class_Box__int__valueOf(((XL_Class_Box__int*)xl6_class_data(__xl6_user_global_intBox" build\test\cgen_generic_class_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_ctor.c missing generic class method call after create.
     exit /b 1
@@ -331,7 +331,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_class_explicit_ctor.xl --emit build\test\cgen_generic_class_explicit_ctor.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue intBox;" build\test\cgen_generic_class_explicit_ctor.c >nul
+findstr /C:"static xvalue __xl6_user_global_intBox;" build\test\cgen_generic_class_explicit_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing explicit generic class variable declaration.
     exit /b 1
@@ -341,7 +341,7 @@ if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing explicit generic class create call.
     exit /b 1
 )
-findstr /C:"value = xl_class_Box__int__valueOf(((XL_Class_Box__int*)xl6_class_data(intBox" build\test\cgen_generic_class_explicit_ctor.c >nul
+findstr /C:"__xl6_user_global_value = xl_class_Box__int__valueOf(((XL_Class_Box__int*)xl6_class_data(__xl6_user_global_intBox" build\test\cgen_generic_class_explicit_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing method call after explicit create.
     exit /b 1
@@ -353,17 +353,17 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_class_type_values.xl --emit build\test\cgen_generic_class_type_values.c
 if errorlevel 1 exit /b 1
-findstr /C:"leftType = 0x" build\test\cgen_generic_class_type_values.c >nul
+findstr /C:"__xl6_user_global_leftType = 0x" build\test\cgen_generic_class_type_values.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_type_values.c missing generic class type value.
     exit /b 1
 )
-findstr /C:"expect_i64((leftType == rightType), 1LL);" build\test\cgen_generic_class_type_values.c >nul
+findstr /C:"expect_i64((__xl6_user_global_leftType == __xl6_user_global_rightType), 1LL);" build\test\cgen_generic_class_type_values.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_type_values.c missing equal generic class type comparison.
     exit /b 1
 )
-findstr /C:"expect_i64((leftType == textType), 0LL);" build\test\cgen_generic_class_type_values.c >nul
+findstr /C:"expect_i64((__xl6_user_global_leftType == __xl6_user_global_textType), 0LL);" build\test\cgen_generic_class_type_values.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_type_values.c missing distinct generic class type comparison.
     exit /b 1

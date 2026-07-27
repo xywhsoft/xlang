@@ -153,7 +153,7 @@ func colToLetter(int col) as string
     string ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     string outputValue = ""
     int n = col
-    while n > 0 do
+    while n > 0
         int rem = (n - 1) % 26
         outputValue = string.charAt(ALPHABET, rem) + outputValue
         n = (n - 1) / 26
@@ -168,7 +168,7 @@ func letterToCol(string letters) as int
     if n == 0 then return 0 end
     int col = 0
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(letters, i)
         if not isAlpha(c) then return 0 end
         int b = string.byteAt(letters, i)
@@ -200,7 +200,7 @@ func isRefName(string s) as bool
     if n < 2 then return false end
     int i = 0
     int alphaCount = 0
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if not isAlpha(c) then break end
         alphaCount += 1
@@ -208,7 +208,7 @@ func isRefName(string s) as bool
     end
     if alphaCount == 0 then return false end
     int digitCount = 0
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if not isDigit(c) then return false end
         digitCount += 1
@@ -224,14 +224,14 @@ func parseRef(string s) as (int, int, bool)
     int n = string.len(s)
     int i = 0
     string letters = ""
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if not isAlpha(c) then break end
         letters = letters + c
         i += 1
     end
     string digits = ""
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         digits = digits + c
         i += 1
@@ -278,9 +278,9 @@ func expandRange(string firstRaw, string lastRaw) as var
     end
     var outputValue = []
     int r = rowA
-    while r <= rowB do
+    while r <= rowB
         int c = colA
-        while c <= colB do
+        while c <= colB
             outputValue.push(makeRef(c, r))
             c += 1
         end
@@ -333,7 +333,7 @@ func looksLikeInt(string s) as bool
         i = 1
         if n == 1 then return false end
     end
-    while i < n do
+    while i < n
         if not isDigit(string.charAt(s, i)) then return false end
         i += 1
     end
@@ -350,7 +350,7 @@ func looksLikeFloat(string s) as bool
     int i = 0
     int b0 = string.byteAt(s, 0)
     if b0 == 45 or b0 == 43 then i = 1 end
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if isDigit(c) then
             hasDigit = true
@@ -393,7 +393,7 @@ func formatNum(var v) as string
     int last = n
     int dot = string.indexOf(s, ".")
     if dot < 0 then return s end
-    while last > dot + 1 do
+    while last > dot + 1
         string c = string.charAt(s, last - 1)
         if c == "0" then
             last -= 1
@@ -459,7 +459,7 @@ class Lexer
     end
 
     func skipWs()
-        while self.pos < self.len do
+        while self.pos < self.len
             string c = string.charAt(self.src, self.pos)
             if c == " " or c == "\t" or c == "\r" or c == "\n" then
                 self.pos += 1
@@ -474,7 +474,7 @@ class Lexer
         string buf = ""
         bool hasDot = false
         bool hasE = false
-        while self.pos < self.len do
+        while self.pos < self.len
             string c = string.charAt(self.src, self.pos)
             if isDigit(c) then
                 buf = buf + c
@@ -508,7 +508,7 @@ class Lexer
     func readString() as Token
         self.pos += 1
         string outputValue = ""
-        while self.pos < self.len do
+        while self.pos < self.len
             string c = string.charAt(self.src, self.pos)
             if c == "\"" then
                 self.pos += 1
@@ -545,7 +545,7 @@ class Lexer
     // 读取一个名字（字母开头，含字母/数字/下划线）。
     func readName() as Token
         string buf = ""
-        while self.pos < self.len do
+        while self.pos < self.len
             string c = string.charAt(self.src, self.pos)
             if isAlphaNum(c) then
                 buf = buf + c
@@ -734,7 +734,7 @@ class Parser
     // additive := term (("+"|"-"|"&") term)*
     func parseAdditive() as Node
         Node left = self.parseTerm()
-        while self.cur.kind == "+" or self.cur.kind == "-" or self.cur.kind == "&" do
+        while self.cur.kind == "+" or self.cur.kind == "-" or self.cur.kind == "&"
             string op = self.cur.kind
             self.advance()
             Node right = self.parseTerm()
@@ -746,7 +746,7 @@ class Parser
     // term := power (("*"|"/") power)*
     func parseTerm() as Node
         Node left = self.parsePower()
-        while self.cur.kind == "*" or self.cur.kind == "/" do
+        while self.cur.kind == "*" or self.cur.kind == "/"
             string op = self.cur.kind
             self.advance()
             Node right = self.parsePower()
@@ -807,7 +807,7 @@ class Parser
                 if self.cur.kind != ")" then
                     Node first = self.parseExpr()
                     args.push(first)
-                    while self.accept(",") do
+                    while self.accept(",")
                         Node a = self.parseExpr()
                         args.push(a)
                     end
@@ -884,7 +884,7 @@ func collectDeps(var nVar, var outputValue)
         Node lastNode = n.last as Node
         var refs = expandRange(firstNode.text, lastNode.text)
         int i = 0
-        while i < refs.length do
+        while i < refs.length
             string r = string(refs[i])
             if not (r in outputValue) then outputValue[r] = true end
             i += 1
@@ -902,7 +902,7 @@ func collectDeps(var nVar, var outputValue)
     end
     if n.kind == "call" then
         int i = 0
-        while i < n.args.length do
+        while i < n.args.length
             collectDeps(n.args[i] as Node, outputValue)
             i += 1
         end
@@ -928,10 +928,10 @@ end
 func sortRefs(var arr)
     int n = arr.length
     int i = 1
-    while i < n do
+    while i < n
         string key = string(arr[i])
         int j = i - 1
-        while j >= 0 and refLess(key, string(arr[j])) do
+        while j >= 0 and refLess(key, string(arr[j]))
             arr[j + 1] = arr[j]
             j -= 1
         end
@@ -1089,14 +1089,14 @@ end
 func flattenNumArgs(var args) as var
     var outputValue = []
     int i = 0
-    while i < args.length do
+    while i < args.length
         Node a = args[i] as Node
         if a.kind == "range" then
             Node firstNode = a.first as Node
             Node lastNode = a.last as Node
             var refs = expandRange(firstNode.text, lastNode.text)
             int j = 0
-            while j < refs.length do
+            while j < refs.length
                 Cell c = cellAt(string(refs[j]))
                 if not c.isNull and not c.isError and isNum(c.value) then
                     outputValue.push(c.value)
@@ -1117,14 +1117,14 @@ end
 func flattenAllArgs(var args) as var
     var outputValue = []
     int i = 0
-    while i < args.length do
+    while i < args.length
         Node a = args[i] as Node
         if a.kind == "range" then
             Node firstNode = a.first as Node
             Node lastNode = a.last as Node
             var refs = expandRange(firstNode.text, lastNode.text)
             int j = 0
-            while j < refs.length do
+            while j < refs.length
                 Cell c = cellAt(string(refs[j]))
                 if not c.isNull and not c.isError and c.value != null then
                     outputValue.push(c.value)
@@ -1211,14 +1211,14 @@ end
 func sumNums(var nums) as var
     bool allInt = true
     int i = 0
-    while i < nums.length do
+    while i < nums.length
         if not (nums[i] is int) then allInt = false end
         i += 1
     end
     if allInt then
         int isum = 0
         i = 0
-        while i < nums.length do
+        while i < nums.length
             isum += int(nums[i])
             i += 1
         end
@@ -1226,7 +1226,7 @@ func sumNums(var nums) as var
     end
     float fsum = 0.0
     i = 0
-    while i < nums.length do
+    while i < nums.length
         fsum += asNum(nums[i])
         i += 1
     end
@@ -1236,7 +1236,7 @@ end
 func minNums(var nums) as var
     var best = nums[0]
     int i = 1
-    while i < nums.length do
+    while i < nums.length
         if asNum(nums[i]) < asNum(best) then best = nums[i] end
         i += 1
     end
@@ -1246,7 +1246,7 @@ end
 func maxNums(var nums) as var
     var best = nums[0]
     int i = 1
-    while i < nums.length do
+    while i < nums.length
         if asNum(nums[i]) > asNum(best) then best = nums[i] end
         i += 1
     end
@@ -1276,7 +1276,7 @@ func topoSort(var refs) as var
     // fset: 公式单元格集合
     var fset = {}
     int i = 0
-    while i < refs.length do
+    while i < refs.length
         fset[string(refs[i])] = true
         i += 1
     end
@@ -1286,18 +1286,18 @@ func topoSort(var refs) as var
     var inDegree = {}
     var dependents = {}
     i = 0
-    while i < refs.length do
+    while i < refs.length
         string r = string(refs[i])
         inDegree[r] = 0
         dependents[r] = []
         i += 1
     end
     i = 0
-    while i < refs.length do
+    while i < refs.length
         string r = string(refs[i])
         Cell c = cellAt(r)
         int j = 0
-        while j < c.deps.length do
+        while j < c.deps.length
             string d = string(c.deps[j])
             if d in fset then
                 inDegree[r] = int(inDegree[r]) + 1
@@ -1311,20 +1311,20 @@ func topoSort(var refs) as var
     // Kahn
     var queue = []
     i = 0
-    while i < refs.length do
+    while i < refs.length
         string r = string(refs[i])
         if int(inDegree[r]) == 0 then queue.push(r) end
         i += 1
     end
     var order = []
     int head = 0
-    while head < queue.length do
+    while head < queue.length
         string r = string(queue[head])
         head += 1
         order.push(r)
         var deps = dependents[r]
         int j = 0
-        while j < deps.length do
+        while j < deps.length
             string d = string(deps[j])
             inDegree[d] = int(inDegree[d]) - 1
             if int(inDegree[d]) == 0 then queue.push(d) end
@@ -1335,7 +1335,7 @@ func topoSort(var refs) as var
     // 剩余 inDegree>0 的单元格成环
     var cyclic = []
     i = 0
-    while i < refs.length do
+    while i < refs.length
         string r = string(refs[i])
         if int(inDegree[r]) > 0 then cyclic.push(r) end
         i += 1
@@ -1361,7 +1361,7 @@ func recalcAll()
 
     // 先标记成环单元格
     int i = 0
-    while i < cyclic.length do
+    while i < cyclic.length
         string r = string(cyclic[i])
         Cell c = cellAt(r)
         c.isError = true
@@ -1373,7 +1373,7 @@ func recalcAll()
 
     // 清除非环节点的错误标记（重算前）
     i = 0
-    while i < order.length do
+    while i < order.length
         string r = string(order[i])
         Cell c = cellAt(r)
         c.isError = false
@@ -1384,7 +1384,7 @@ func recalcAll()
 
     // 按拓扑序逐个求值
     i = 0
-    while i < order.length do
+    while i < order.length
         string r = string(order[i])
         Cell c = cellAt(r)
         try
@@ -1515,7 +1515,7 @@ func renderShow() as string
     // 各列宽度（至少为列头宽度）
     var colW = {}
     int ci = 1
-    while ci <= maxCol do
+    while ci <= maxCol
         colW[string(ci)] = string.len(colToLetter(ci))
         ci += 1
     end
@@ -1536,7 +1536,7 @@ func renderShow() as string
     string sep = ""
     outputValue = outputValue + padRight("", labelW) + " |"
     ci = 1
-    while ci <= maxCol do
+    while ci <= maxCol
         int w = int(colW[string(ci)])
         sep = sep + string.repeat("-", w) + "+"
         outputValue = outputValue + " " + padLeft(colToLetter(ci), w)
@@ -1548,10 +1548,10 @@ func renderShow() as string
     outputValue = outputValue + string.repeat("-", labelW) + "-+" + sep + "\n"
 
     int r = 1
-    while r <= maxRow do
+    while r <= maxRow
         outputValue = outputValue + padLeft(string(r), labelW) + " |"
         ci = 1
-        while ci <= maxCol do
+        while ci <= maxCol
             string key = makeRef(ci, r)
             int w = int(colW[string(ci)])
             string t = cellDisplay(key)
@@ -1590,7 +1590,7 @@ func renderDump() as string
     sortRefs(refs)
     string outputValue = ""
     int i = 0
-    while i < refs.length do
+    while i < refs.length
         string r = string(refs[i])
         Cell c = cellAt(r)
         if i > 0 then outputValue = outputValue + "\n" end
@@ -1598,7 +1598,7 @@ func renderDump() as string
         string depsStr = ""
         if c.deps != null then
             int j = 0
-            while j < c.deps.length do
+            while j < c.deps.length
                 if j > 0 then depsStr = depsStr + "," end
                 depsStr = depsStr + string(c.deps[j])
                 j += 1
@@ -1624,14 +1624,14 @@ func renderRefs() as string
     if refs.length == 0 then return "(no formula cells)" end
     string outputValue = ""
     int i = 0
-    while i < refs.length do
+    while i < refs.length
         string r = string(refs[i])
         Cell c = cellAt(r)
         if i > 0 then outputValue = outputValue + "\n" end
         outputValue = outputValue + r + " -> ["
         if c.deps != null then
             int j = 0
-            while j < c.deps.length do
+            while j < c.deps.length
                 if j > 0 then outputValue = outputValue + ", " end
                 outputValue = outputValue + string(c.deps[j])
                 j += 1
@@ -1669,10 +1669,10 @@ func exportCsv() as string
     if maxCol == 0 then return "" end
     string outputValue = ""
     int r = 1
-    while r <= maxRow do
+    while r <= maxRow
         string line = ""
         int c = 1
-        while c <= maxCol do
+        while c <= maxCol
             if c > 1 then line = line + "," end
             line = line + csvQuote(cellDisplay(makeRef(c, r)))
             c += 1
@@ -1692,7 +1692,7 @@ func parseCsv(string text) as var
     bool inQuotes = false
     int i = 0
     int n = string.len(text)
-    while i < n do
+    while i < n
         string c = string.charAt(text, i)
         if inQuotes then
             if c == "\"" then
@@ -1749,10 +1749,10 @@ end
 func importCsv(string text)
     var rows = parseCsv(text)
     int r = 0
-    while r < rows.length do
+    while r < rows.length
         var fields = rows[r]
         int c = 0
-        while c < fields.length do
+        while c < fields.length
             string raw = string.trim(string(fields[c]))
             if raw != "" then
                 string ref = makeRef(c + 1, r + 1)
@@ -1940,7 +1940,7 @@ func runScript(string path) as int
     string text = file.readText(path)
     var lines = string.splitLines(text)
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         string line = string(lines[i])
         string outputValue = executeCommand(line)
         if outputValue != "" then
@@ -1955,7 +1955,7 @@ end
 // 依次执行多条命令行（每个 argv 元素是一条完整命令）。
 func runArgs(var cmds) as int
     int i = 0
-    while i < cmds.length do
+    while i < cmds.length
         string outputValue = executeCommand(string(cmds[i]))
         if outputValue != "" then
             println(outputValue)
@@ -1991,7 +1991,7 @@ func runDemo() as int
     demo.push("refs")
 
     int i = 0
-    while i < demo.length do
+    while i < demo.length
         string line = string(demo[i])
         println("> " + line)
         string outputValue = executeCommand(line)
@@ -2380,7 +2380,7 @@ func main(...) as int
     if mode == "do" then
         var cmds = []
         int i = 2
-        while i < arg.length do
+        while i < arg.length
             cmds.push(arg[i])
             i += 1
         end

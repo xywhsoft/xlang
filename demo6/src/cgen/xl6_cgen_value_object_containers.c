@@ -88,7 +88,8 @@ static int xl6CgenContainerMethodSupported(XL6_CgenContainerMethodKind kind, int
                xl6CTextEquals(name, "reserve") ||
                xl6CTextEquals(name, "swap") ||
                xl6CTextEquals(name, "add") ||
-               xl6CTextEquals(name, "contains");
+               xl6CTextEquals(name, "contains") ||
+               xl6CTextEquals(name, "indexOf");
     }
     if ( kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ) {
         if ( typed ) {
@@ -577,8 +578,15 @@ static int xl6CgenContainerMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* c
             xl6OutputPuts(", ", ctx->out);
             xl6CgenContainerValueArgExpr(ctx, arg0);
             xl6OutputPutc(')', ctx->out);
+        } else if ( kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ||
+                    kind == XL6_CGEN_CONTAINER_METHOD_VAR ) {
+            xl6OutputPuts("xl6_xrt_array_index_of(", ctx->out);
+            xl6CgenContainerReceiverExpr(ctx, receiver);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenContainerValueArgExpr(ctx, arg0);
+            xl6OutputPutc(')', ctx->out);
         } else {
-            xl6CgenError(ctx, call, "indexOf requires typed array receiver");
+            xl6CgenError(ctx, call, "indexOf requires array receiver");
             xl6OutputPuts("-1", ctx->out);
         }
         xl6AstFree(receiverType);

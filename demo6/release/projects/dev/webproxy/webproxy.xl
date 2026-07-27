@@ -252,7 +252,7 @@ func proxyRoute(point reqHandle, point respHandle) as bool
 
     int bn = backends.length
     int bi = 0
-    while bi < bn do
+    while bi < bn
         var be = backends[bi]
         string pattern = string(be["pattern"])
         if patternMatch(pattern, path) then
@@ -290,7 +290,7 @@ func proxyRoute(point reqHandle, point respHandle) as bool
     end
 
     int attempts = scount
-    while attempts > 0 do
+    while attempts > 0
         attempts -= 1
         int pick = nextServerIndex(scount)
         string targetServer = string(matchedServers[pick])
@@ -307,7 +307,7 @@ func proxyRoute(point reqHandle, point respHandle) as bool
             // copy request headers (skip hop-by-hop)
             int hc = req.headerCount()
             int hi = 0
-            while hi < hc do
+            while hi < hc
                 string hn = req.headerName(hi)
                 if not isHopHeader(hn) then
                     breq.header(hn, req.headerValue(hi))
@@ -375,7 +375,7 @@ func(int, string, point, point) as bool proxyErrorHandler = proxyError
 // Health checks publish one immutable status string under the state lock.
 // ============================================================
 func healthWorker() as int
-    while true do
+    while true
         time.sleep(gHealthInterval * 1000)
         var cfg = gConfig
         if cfg == null then
@@ -388,12 +388,12 @@ func healthWorker() as int
                 string result = ""
                 int bn = backends.length
                 int bi = 0
-                while bi < bn do
+                while bi < bn
                     var be = backends[bi]
                     var srvs = be["servers"]
                     int sn = srvs.length
                     int si = 0
-                    while si < sn do
+                    while si < sn
                         string srv = string(srvs[si])
                         bool alive = false
                         try
@@ -747,7 +747,7 @@ func runServe() as int
     if backends != null then
         int bn = backends.length
         int bi = 0
-        while bi < bn do
+        while bi < bn
             var be = backends[bi]
             string bname = string(be["name"])
             string bpattern = string(be["pattern"])
@@ -755,7 +755,7 @@ func runServe() as int
             int sn = srvs.length
             println("  [" + bname + "] " + bpattern + " -> " + sn.toString() + " server(s)")
             int si = 0
-            while si < sn do
+            while si < sn
                 println("       " + string(srvs[si]))
                 si += 1
             end
@@ -774,7 +774,7 @@ func runServe() as int
     func() as int hfn = healthWorker
     thread hthread = thread(hfn)
 
-    while true do
+    while true
         time.sleep(5000)
         auto total, errors, roundRobin = statsSnapshot()
         println("[stats] total=" + total.toString() + " errors=" + errors.toString() + " rr=" + roundRobin.toString())

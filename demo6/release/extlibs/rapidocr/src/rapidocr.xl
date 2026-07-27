@@ -484,7 +484,7 @@ func rapidocr_run_xlang_pipeline(string img_path, bool use_det, bool use_cls, bo
 		int boxes_count = rapidocr_box_count_native(boxes)
 		string parts = "["
 		int i = 0
-		while i < boxes_count do
+		while i < boxes_count
 			int w0 = rapidocr_box_rec_target_width_native(boxes, i, rec_img_w, rec_img_h)
 			int w1 = rapidocr_box_rec_target_width_native(boxes, i + 1, rec_img_w, rec_img_h)
 			int w2 = rapidocr_box_rec_target_width_native(boxes, i + 2, rec_img_w, rec_img_h)

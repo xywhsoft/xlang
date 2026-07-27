@@ -11,7 +11,7 @@ class Res
 end
 
 func risky(int p) as int
-    while p > 0 do
+    while p > 0
         if p == 5 then
             break
         end

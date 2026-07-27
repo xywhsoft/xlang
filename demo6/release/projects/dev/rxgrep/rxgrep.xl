@@ -27,7 +27,7 @@
 func nextNonEmptyMatch(Regex re, string line, int charPos) as RegexMatch
     int lineLen = string.len(line)
     int pos = charPos
-    while pos <= lineLen do
+    while pos <= lineLen
         RegexMatch match = re.match(line, pos)
         if not match.ok or match.start != match.end then
             return match
@@ -43,7 +43,7 @@ end
 func countLineMatches(Regex re, string line) as int
     int count = 0
     int charPos = 0
-    while charPos <= string.len(line) do
+    while charPos <= string.len(line)
         RegexMatch match = nextNonEmptyMatch(re, line, charPos)
         if not match.ok or match.start == match.end then break end
         count += 1
@@ -82,7 +82,7 @@ func main(...) as int
     bool ignoreCase = false      // -i
 
     int i = 1
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "-o" or a == "--only-matching" then
             onlyMatch = true
@@ -157,7 +157,7 @@ func main(...) as int
     string fileName = path.nameExt(target)
 
     int li = 0
-    while li < n do
+    while li < n
         string line = string(lines[li])
         int lineNo = li + 1
         li += 1
@@ -168,7 +168,7 @@ func main(...) as int
         int lineLen = string.len(line)
         bool headerPrinted = false
 
-        while charPos <= lineLen do
+        while charPos <= lineLen
             RegexMatch mm = nextNonEmptyMatch(re, line, charPos)
             if not mm.ok or mm.start == mm.end then
                 break

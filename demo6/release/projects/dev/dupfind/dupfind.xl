@@ -58,7 +58,7 @@ func hashFile(string filePath) as string
     File stream = file.open(filePath, true, encoding.binary)
     Sha256 digest = crypto.sha256Stream()
 
-    while not stream.eof do
+    while not stream.eof
         Buffer chunk = stream.readBytes(HASH_CHUNK_SIZE)
         if chunk.len() == 0 then
             break
@@ -84,7 +84,7 @@ func main(...) as int
     bool recursive = false
 
     int i = 1
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "-r" or a == "-R" or a == "--recursive" then
             recursive = true
@@ -113,7 +113,7 @@ func main(...) as int
     array raw = dir.entries(target, recursive)
     int n = raw.length
     int k = 0
-    while k < n do
+    while k < n
         var e = raw[k]
         if bool(e["isFile"]) then
             paths.append(string(e["path"]))
@@ -132,7 +132,7 @@ func main(...) as int
     // ---- Phase 2: count size buckets in one pass (level-1 filter). ----
     dict<int> sizeCounts = dict{}
     int c = 0
-    while c < len do
+    while c < len
         string sizeKey = string(sizes[c])
         if sizeKey in sizeCounts then
             sizeCounts[sizeKey] += 1
@@ -148,7 +148,7 @@ func main(...) as int
     dict<int> groupCounts = dict{}
     int skipped = 0
     int h = 0
-    while h < len do
+    while h < len
         string hash = ""
         string sizeKey = string(sizes[h])
         if sizeCounts[sizeKey] >= 2 then
@@ -178,7 +178,7 @@ func main(...) as int
     int totalDupFiles = 0
 
     int a = 0
-    while a < len do
+    while a < len
         if hashes[a] == "" then
             a += 1
             continue
@@ -193,7 +193,7 @@ func main(...) as int
         // Gather group members (same size AND same hash as a).
         array<int> gIdx = array[]
         int b = 0
-        while b < len do
+        while b < len
             if sizes[b] == sizes[a] and hashes[b] == hashes[a] then
                 gIdx.append(b)
             end
@@ -208,7 +208,7 @@ func main(...) as int
             // Compute max display-name width so columns line up.
             int maxName = 0
             int g = 0
-            while g < gLen do
+            while g < gLen
                 string disp = relName(target, paths[gIdx[g]])
                 int dl = string.len(disp)
                 if dl > maxName then
@@ -221,7 +221,7 @@ func main(...) as int
             println("Group " + string(groupCount) + " (SHA: " + shortSha + "):")
 
             g = 0
-            while g < gLen do
+            while g < gLen
                 int idx = gIdx[g]
                 string disp = relName(target, paths[idx])
                 string szStr = formatSize(sizes[idx])

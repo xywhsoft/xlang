@@ -159,7 +159,7 @@ func makeInt(int n, int v) as array<int>
     end
     array<int> a = array[v]
     int i = 1
-    while i < n do
+    while i < n
         a.push(v)
         i += 1
     end
@@ -173,7 +173,7 @@ func makeFloat(int n, float v) as array<float>
     end
     array<float> a = array[v]
     int i = 1
-    while i < n do
+    while i < n
         a.push(v)
         i += 1
     end
@@ -187,7 +187,7 @@ func makeBool(int n, bool v) as array<bool>
     end
     array<bool> a = array[v]
     int i = 1
-    while i < n do
+    while i < n
         a.push(v)
         i += 1
     end
@@ -201,7 +201,7 @@ func makeStr(int n, string v) as array<string>
     end
     array<string> a = array[v]
     int i = 1
-    while i < n do
+    while i < n
         a.push(v)
         i += 1
     end
@@ -450,7 +450,7 @@ end
 func runWorldSystems(World w)
     int n = w.systems.length
     int i = 0
-    while i < n do
+    while i < n
         System s = w.systems[i]
         if s.enabled then
             s.update(w)
@@ -583,7 +583,7 @@ class World
     func clearScreen()
         int n = self.screen.length
         int i = 0
-        while i < n do
+        while i < n
             self.screen[i] = " "
             self.screenFg[i] = CLR_DEFAULT
             self.screenBg[i] = CLR_DEFAULT
@@ -728,9 +728,9 @@ func entityOverlapsTileType(int id, World w, int tileType) as bool
     int rowT = floorI(y)
     int rowB = floorI(y + hh - 0.0001)
     int r = rowT
-    while r <= rowB do
+    while r <= rowB
         int c = colL
-        while c <= colR do
+        while c <= colR
             if w.tileAt(c, r) == tileType then
                 if aabbOverlapRaw(x, y, ww, hh, float(c), float(r), 1.0, 1.0) then
                     return true
@@ -773,7 +773,7 @@ class MovementSystem extends System
     override func update(World w)
         int n = g_alive.length
         int i = 0
-        while i < n do
+        while i < n
             if not g_alive[i] then
                 i += 1
                 continue
@@ -809,7 +809,7 @@ class PhysicsSystem extends System
     override func update(World w)
         int n = g_alive.length
         int i = 0
-        while i < n do
+        while i < n
             if not g_alive[i] then
                 i += 1
                 continue
@@ -863,7 +863,7 @@ func moveAndCollide(World w, int id)
         if vx > 0.0 then
             int probeCol = colR
             int r = rowT
-            while r <= rowB do
+            while r <= rowB
                 if w.isSolidX(probeCol, r) then
                     blocked = true
                 end
@@ -876,7 +876,7 @@ func moveAndCollide(World w, int id)
         else
             int probeCol = colL
             int r = rowT
-            while r <= rowB do
+            while r <= rowB
                 if w.isSolidX(probeCol, r) then
                     blocked = true
                 end
@@ -903,7 +903,7 @@ func moveAndCollide(World w, int id)
         if vy > 0.0 then
             int probeRow = floorI(y + ch - 0.0001)
             int c = colL
-            while c <= colR do
+            while c <= colR
                 int t = w.tileAt(c, probeRow)
                 bool hit = false
                 if t == T_WALL then
@@ -926,7 +926,7 @@ func moveAndCollide(World w, int id)
         else
             int probeRow = floorI(y)
             int c = colL
-            while c <= colR do
+            while c <= colR
                 int t = w.tileAt(c, probeRow)
                 if t == T_WALL then
                     y = float(probeRow + 1)
@@ -977,7 +977,7 @@ class AISystem extends System
     override func update(World w)
         int n = g_alive.length
         int i = 0
-        while i < n do
+        while i < n
             if not g_alive[i] then
                 i += 1
                 continue
@@ -1131,7 +1131,7 @@ class CombatSystem extends System
     override func update(World w)
         int n = g_alive.length
         int i = 0
-        while i < n do
+        while i < n
             if not g_alive[i] then
                 i += 1
                 continue
@@ -1172,7 +1172,7 @@ func handlePlayerInteractions(World w, int p)
     // 3) 与敌人接触
     int n = g_alive.length
     int i = 0
-    while i < n do
+    while i < n
         if i == p or not g_alive[i] then
             i += 1
             continue
@@ -1186,7 +1186,7 @@ func handlePlayerInteractions(World w, int p)
     end
     // 4) 收集金币
     i = 0
-    while i < n do
+    while i < n
         if i == p or not g_alive[i] then
             i += 1
             continue
@@ -1214,13 +1214,13 @@ end
 func handleProjectiles(World w)
     int n = g_alive.length
     int i = 0
-    while i < n do
+    while i < n
         if not g_alive[i] or not hasComp(i, C_PROJECTILE) then
             i += 1
             continue
         end
         int j = 0
-        while j < n do
+        while j < n
             if j == i or not g_alive[j] or not hasComp(j, C_ENEMY) then
                 j += 1
                 continue
@@ -1259,7 +1259,7 @@ end
 func cleanupDead()
     int n = g_alive.length
     int i = 0
-    while i < n do
+    while i < n
         if g_alive[i] and g_dead[i] then
             destroyEntity(i)
         end
@@ -1280,9 +1280,9 @@ class RenderSystem extends System
         w.clearScreen()
         // 1) 画瓦片（只画视口范围内的）
         int r = 0
-        while r < w.viewH do
+        while r < w.viewH
             int c = 0
-            while c < w.viewW do
+            while c < w.viewW
                 int worldCol = w.camCol + c
                 int worldRow = w.camRow + r
                 int t = w.tileAt(worldCol, worldRow)
@@ -1296,7 +1296,7 @@ class RenderSystem extends System
         // 2) 画 entity sprite
         int n = g_alive.length
         int i = 0
-        while i < n do
+        while i < n
             if not g_alive[i] then
                 i += 1
                 continue
@@ -1330,10 +1330,10 @@ func renderToString(World w) as string
     string top = "+" + string.repeat("-", w.viewW) + "+"
     string outputValue = top + "\n"
     int r = 0
-    while r < w.viewH do
+    while r < w.viewH
         string line = "|"
         int c = 0
-        while c < w.viewW do
+        while c < w.viewW
             line = line + w.screen[r * w.viewW + c]
             c += 1
         end
@@ -1347,7 +1347,7 @@ func renderToString(World w) as string
     if w.player >= 0 and hasComp(w.player, C_HEALTH) then
         int hp = g_hp[w.player]
         int k = 0
-        while k < hp do
+        while k < hp
             hpBar = hpBar + "*"
             k += 1
         end
@@ -1427,7 +1427,7 @@ func buildLevel(array<string> rows, int viewW, int viewH) as World
     int h = rows.length
     int w = 0
     int i = 0
-    while i < h do
+    while i < h
         int L = string.len(rows[i])
         if L > w then
             w = L
@@ -1442,11 +1442,11 @@ func buildLevel(array<string> rows, int viewW, int viewH) as World
     wld.screenBg = makeInt(viewW * viewH, CLR_DEFAULT)
 
     int r = 0
-    while r < h do
+    while r < h
         string row = rows[r]
         int c = 0
         int len = string.len(row)
-        while c < w do
+        while c < w
             string ch = " "
             if c < len then
                 ch = string.charAt(row, c)
@@ -1476,11 +1476,11 @@ func buildLevel(array<string> rows, int viewW, int viewH) as World
     // 第二遍：生成 entity（玩家、敌人、金币）
     int player = -1
     r = 0
-    while r < h do
+    while r < h
         string row = rows[r]
         int c = 0
         int len = string.len(row)
-        while c < len do
+        while c < len
             string ch = string.charAt(row, c)
             if ch == "P" then
                 int id = createNamed("player")
@@ -1505,7 +1505,7 @@ func buildLevel(array<string> rows, int viewW, int viewH) as World
     wld.player = player
     // 把所有敌人的 target 设为玩家
     int k = 0
-    while k < g_alive.length do
+    while k < g_alive.length
         if g_alive[k] and hasComp(k, C_ENEMY) then
             g_aiTarget[k] = player
         end
@@ -1560,7 +1560,7 @@ func autoDecide(World w) as int
     bool enemyAhead = false
     int n = g_alive.length
     int i = 0
-    while i < n do
+    while i < n
         if g_alive[i] and hasComp(i, C_ENEMY) then
             float dx = g_posX[i] - px
             float dy = g_posY[i] - py
@@ -1632,7 +1632,7 @@ func runDemo(int frames) as int
     float lastPX = -1.0
     float lastPY = -1.0
 
-    while w.frame < frames do
+    while w.frame < frames
         int inp = autoDecide(w)
         applyInput(w, inp)
         runWorldSystems(w)
@@ -1835,7 +1835,7 @@ func testPhysicsGravity() as bool
     bool ok = check("vy increased by gravity", absF(g_velY[e] - GRAVITY_ACCEL) < 0.001)
     // 多帧后接近 MAX_FALL
     int k = 0
-    while k < 100 do
+    while k < 100
         ps.update(w)
         k += 1
     end
@@ -1857,13 +1857,13 @@ func testPhysicsLanding() as bool
     World w = World(10, 10)
     // 第 9 行整行是墙
     int c = 0
-    while c < 10 do
+    while c < 10
         w.setTile(c, 9, T_WALL)
         c += 1
     end
     PhysicsSystem ps = PhysicsSystem()
     int guard = 0
-    while guard < 60 do
+    while guard < 60
         ps.update(w)
         guard += 1
     end
@@ -1884,7 +1884,7 @@ func testPhysicsWallBlock() as bool
     setCollider(e, 1.0, 1.0)
     World w = World(10, 10)
     int c = 0
-    while c < 10 do
+    while c < 10
         w.setTile(c, 9, T_WALL)
         c += 1
     end
@@ -1892,7 +1892,7 @@ func testPhysicsWallBlock() as bool
     w.setTile(7, 8, T_WALL)
     PhysicsSystem ps = PhysicsSystem()
     int guard = 0
-    while guard < 10 do
+    while guard < 10
         ps.update(w)
         guard += 1
     end
@@ -1943,7 +1943,7 @@ func testAIStateMachine() as bool
     // 玩家走远（>leashRange）
     setPosition(player, 30.0, 0.0)
     int guard = 0
-    while guard < 2 do
+    while guard < 2
         ai.update(w)
         guard += 1
     end
@@ -2108,7 +2108,7 @@ func testOneWayPlatform() as bool
     w.setTile(2, 8, T_PLATFORM)
     PhysicsSystem ps = PhysicsSystem()
     int guard = 0
-    while guard < 50 do
+    while guard < 50
         ps.update(w)
         guard += 1
     end
@@ -2157,7 +2157,7 @@ func testFullSceneRun() as bool
     string errMsg = ""
     try
         int f = 0
-        while f < 30 do
+        while f < 30
             applyInput(w, IN_RIGHT)
             runWorldSystems(w)
             f += 1
@@ -2243,7 +2243,7 @@ func looksInt(string s) as bool
         return false
     end
     int i = 0
-    while i < string.len(s) do
+    while i < string.len(s)
         string ch = string.charAt(s, i)
         if i == 0 and (ch == "-" or ch == "+") then
             i += 1

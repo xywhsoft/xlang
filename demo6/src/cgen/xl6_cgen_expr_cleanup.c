@@ -17,7 +17,7 @@ static void xl6CgenAddCleanupEntry(XL6_CgenContext* ctx, const char* name, XL6_C
         ctx->cleanups = newItems;
         ctx->cleanupCapacity = newCapacity;
     }
-    xl6CgenCIdentText(cName, sizeof(cName), name);
+    xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), name);
     ctx->cleanups[ctx->cleanupCount].name = xrtCopyStr(cName, strlen(cName));
     ctx->cleanups[ctx->cleanupCount].kind = kind;
     ctx->cleanups[ctx->cleanupCount].typeNode = typeNode;
@@ -206,7 +206,7 @@ static int xl6CgenNativeClassCleanupIsTracked(XL6_CgenContext* ctx, const char* 
     if ( ctx == NULL || name == NULL ) {
         return 0;
     }
-    xl6CgenCIdentText(cName, sizeof(cName), name);
+    xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), name);
     for ( i = ctx->cleanupCount; i > 0; --i ) {
         const XL6_CgenCleanup* cleanup = &ctx->cleanups[i - 1];
         if ( cleanup->kind == XL6_CGEN_CLEANUP_NATIVE_CLASS &&
@@ -226,7 +226,7 @@ static int xl6CgenClassCleanupIsTracked(XL6_CgenContext* ctx, const char* name)
     if ( ctx == NULL || name == NULL ) {
         return 0;
     }
-    xl6CgenCIdentText(cName, sizeof(cName), name);
+    xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), name);
     for ( i = ctx->cleanupCount; i > 0; --i ) {
         const XL6_CgenCleanup* cleanup = &ctx->cleanups[i - 1];
         if ( cleanup->kind == XL6_CGEN_CLEANUP_CLASS &&
@@ -246,7 +246,7 @@ static void xl6CgenClearMovedNativeClassReturnSource(XL6_CgenContext* ctx, const
          !xl6CgenNativeClassCleanupIsTracked(ctx, expr->text) ) {
         return;
     }
-    xl6CgenCIdentText(cName, sizeof(cName), expr->text);
+    xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), expr->text);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s.handle = 0;\n", cName);
 }
@@ -523,7 +523,7 @@ static void xl6CgenRetainFunctionValue(XL6_CgenContext* ctx, const char* name)
 {
     char cName[512];
 
-    xl6CgenCIdentText(cName, sizeof(cName), name);
+    xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), name);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (%s.retain != 0 && %s.env != 0) {\n", cName, cName);
     ctx->indent += 1;
@@ -538,7 +538,7 @@ static void xl6CgenReleaseFunctionValue(XL6_CgenContext* ctx, const char* name)
 {
     char cName[512];
 
-    xl6CgenCIdentText(cName, sizeof(cName), name);
+    xl6CgenValueStorageNameText(ctx, cName, sizeof(cName), name);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (%s.release != 0 && %s.env != 0) {\n", cName, cName);
     ctx->indent += 1;
@@ -618,7 +618,6 @@ static int xl6CgenExprIsXValueBorrow(XL6_CgenContext* ctx, const XL6_AstNode* ex
     }
     if ( expr->kind == XL6_AST_INDEX || expr->kind == XL6_AST_SAFE_INDEX ) {
         const XL6_AstNode* receiver = expr->childCount > 0 ? expr->children[0] : NULL;
-        const XL6_AstNode* index = expr->childCount > 1 ? expr->children[1] : NULL;
         XL6_AstNode* receiverType;
         int receiverIsVar;
 
@@ -633,8 +632,7 @@ static int xl6CgenExprIsXValueBorrow(XL6_CgenContext* ctx, const XL6_AstNode* ex
          * 字符串安全索引和 var 字符串索引通过 record-field 桥返回拥有值。
          * 数值索引与运行期 var key 则直接借用容器元素，必须跟随 receiver 的所有权。
          */
-        if ( xl6CgenExprStaticTypeIs(ctx, index, "string") &&
-             (expr->kind == XL6_AST_SAFE_INDEX || receiverIsVar) ) {
+        if ( expr->kind == XL6_AST_SAFE_INDEX || receiverIsVar ) {
             return 0;
         }
         return xl6CgenExprIsXValueBorrow(ctx, receiver);
@@ -653,6 +651,10 @@ static int xl6CgenExprIsXValueBorrow(XL6_CgenContext* ctx, const XL6_AstNode* ex
     }
     if ( expr->kind != XL6_AST_NAME ) {
         return 0;
+    }
+    if ( ctx->currentClass != NULL &&
+         (xl6CTextEquals(expr->text, "self") || xl6CTextEquals(expr->text, "base")) ) {
+        return 1;
     }
     if ( xl6CgenExprUsesTypedContainerStorage(ctx, expr) ) {
         return 0;

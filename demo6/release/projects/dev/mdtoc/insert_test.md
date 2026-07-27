@@ -46,7 +46,7 @@ xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<to
 - 输出：`print(args...)` 不加换行；`println(args...)` 加换行。参数间自动加空格。
 - 函数返回类型用 `as`，不是 `->`：`func f(int a) as int`。
 - 语句分隔：换行或 `;`。`()`/`[]`/`{}` 内可换行。
-- 控制流：`if ... then ... elseif ... else ... end`；`for x in ... ... end`（**无 `do`**）；`while cond do ... end`（**必须有 `do`**）；`do ... while cond`。
+- 控制流：`if ... then ... elseif ... else ... end`；`for x in ... ... end`；`while cond ... end`；`do ... while cond end`。
 - 类型：`var` = 动态类型；`auto` = 类型推断；无 `void`。
 - 容器字面量：`[1,2,3]` = array；`{}` = dict；`array[...]`/`list[...]`/`dict{...}`/`set{...}` 显式。
 - 转换：`int(expr)`、`float(expr)`、`string(expr)` 等构造函数，不是 `as`。
@@ -98,7 +98,7 @@ xl build projects\dev\<tool_name>\<tool_name>.xl -o projects\dev\<tool_name>\<to
 | **list 无 append** | list 是 int64 稀疏存储，用 `li[index] = value` 扩容 |
 | **`#` 不是注释** | `//` 才是注释；`#` 开启时间字面量 |
 
-**正向验证通过**（可放心使用）：class 递归方法、generator、异常 throw/catch（含 return）、derive json（含容器）、random/crypto/math/time/string/dir/file/regex API、UTF-8 文件名、递归函数、var 字典字段访问、class 运算符/索引/属性协议、async/await/task.all、TCP/HTTP 网络、HttpClientRequest 全流程、float 全精度、`while cond do ... end`。
+**正向验证通过**（可放心使用）：class 递归方法、generator、异常 throw/catch（含 return）、derive json（含容器）、random/crypto/math/time/string/dir/file/regex API、UTF-8 文件名、递归函数、var 字典字段访问、class 运算符/索引/属性协议、async/await/task.all、TCP/HTTP 网络、HttpClientRequest 全流程、float 全精度、`while cond ... end`。
 
 ## BUG 记录
 

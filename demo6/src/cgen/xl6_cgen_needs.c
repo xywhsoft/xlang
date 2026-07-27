@@ -303,8 +303,10 @@ static int xl6CgenTypeConvertCallNeedsRuntime(XL6_CgenContext* ctx, const XL6_As
     source = sourceType != NULL ? sourceType->text : NULL;
     result = 0;
 
-    if ( (xl6CgenIsIntegerTypeName(target) || xl6CgenIsFloatTypeName(target) || xl6CTextEquals(target, "time")) &&
-         xl6CTextEquals(source, "string") ) {
+    if ( xl6CgenIsIntegerTypeName(target) && xl6CgenIsFloatTypeName(source) ) {
+        result = 1;
+    } else if ( (xl6CgenIsIntegerTypeName(target) || xl6CgenIsFloatTypeName(target) || xl6CTextEquals(target, "time")) &&
+                xl6CTextEquals(source, "string") ) {
         result = 1;
     } else if ( xl6CTextEquals(target, "string") &&
                 (xl6CgenIsIntegerTypeName(source) || xl6CgenIsFloatTypeName(source) ||
@@ -421,10 +423,12 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
         iterableType = xl6CgenCloneExprTypeForInference(ctx, iterable);
         if ( targets != NULL ) {
             for ( i = 0; i < targets->childCount; ++i ) {
-                const char* typeName = xl6CgenIsRangeCall(iterable)
-                    ? "int"
-                    : xl6CgenForTargetTypeName(ctx, iterableType, i, targets->childCount);
-                xl6CgenRegisterLoopTargetType(ctx, targets->children[i], typeName);
+                const XL6_AstNode* storageType =
+                    xl6CgenForTargetStorageType(ctx, node, i);
+                xl6CgenRegisterLoopTargetTypeNode(
+                    ctx,
+                    targets->children[i],
+                    storageType);
             }
         }
         result = xl6CgenNodeNeedsTypeConvertRuntime(ctx, body);
@@ -607,10 +611,12 @@ static int xl6CgenNodeNeedsDynamicForInErrorRuntime(XL6_CgenContext* ctx, const 
         }
         if ( targets != NULL ) {
             for ( i = 0; i < targets->childCount; ++i ) {
-                const char* typeName = xl6CgenIsRangeCall(iterable)
-                    ? "int"
-                    : xl6CgenForTargetTypeName(ctx, iterableType, i, targets->childCount);
-                xl6CgenRegisterLoopTargetType(ctx, targets->children[i], typeName);
+                const XL6_AstNode* storageType =
+                    xl6CgenForTargetStorageType(ctx, node, i);
+                xl6CgenRegisterLoopTargetTypeNode(
+                    ctx,
+                    targets->children[i],
+                    storageType);
             }
         }
         result = xl6CgenNodeNeedsDynamicForInErrorRuntime(ctx, body);
@@ -809,10 +815,12 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
         iterableType = xl6CgenCloneExprTypeForInference(ctx, iterable);
         if ( targets != NULL ) {
             for ( i = 0; i < targets->childCount; ++i ) {
-                const char* typeName = xl6CgenIsRangeCall(iterable)
-                    ? "int"
-                    : xl6CgenForTargetTypeName(ctx, iterableType, i, targets->childCount);
-                xl6CgenRegisterLoopTargetType(ctx, targets->children[i], typeName);
+                const XL6_AstNode* storageType =
+                    xl6CgenForTargetStorageType(ctx, node, i);
+                xl6CgenRegisterLoopTargetTypeNode(
+                    ctx,
+                    targets->children[i],
+                    storageType);
             }
         }
         result = xl6CgenNodeNeedsFunctionVarRuntime(ctx, body);

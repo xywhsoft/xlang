@@ -44,7 +44,7 @@ class Meter
         // 零维：返回 data 总和
         int total = 0
         int i = 0
-        while i < self.data.length do
+        while i < self.data.length
             total += self.data[i]
             i += 1
         end
@@ -54,7 +54,7 @@ class Meter
     let value(int v)
         // 零维 let：把所有元素统一设为 v
         int i = 0
-        while i < self.data.length do
+        while i < self.data.length
             self.data[i] = v
             i += 1
         end

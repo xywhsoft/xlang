@@ -32,7 +32,6 @@ xlint.exe <file.xl|dir> [options]
 
 | 规则 | 严重度 | 说明 |
 |---|---|---|
-| `no-while-without-do` | error | `while` 必须带 `do`（源码扫描，能捕获无法解析的坏代码） |
 | `no-undefined-var` | error | 变量使用前必须声明（小写开头的裸标识符；大写视作类型/类名跳过） |
 | `consistent-naming` | warning | 变量 snake_case（或常量 SCREAMING_SNAKE）/ 类名 PascalCase |
 | `no-magic-numbers` | warning | 未命名的魔法数字（不在命名声明初始化里，绝对值 ≥ 阈值，默认 100） |

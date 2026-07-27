@@ -1,0 +1,5 @@
+func main(...)
+    auto a = [1, 2]
+    auto d = [1, "x"]
+    println(string(a.length) + " " + string(d.length))
+end

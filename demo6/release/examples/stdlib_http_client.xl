@@ -126,7 +126,7 @@ HttpDiagnostics diag = secondResp.diagnostics()
 
 int cookieCount = 0
 int i = 0
-while i < secondResp.headerCount() do
+while i < secondResp.headerCount()
     if secondResp.headerName(i) == "Set-Cookie" then
         cookieCount += 1
     end

@@ -146,6 +146,13 @@ static int xl6CgenIntTypeInfo(const char* name, XL6_CgenIntTypeInfo* outInfo)
     return info.bits > 0;
 }
 
+static int xl6CgenIsUnsignedIntegerTypeName(const char* name)
+{
+    XL6_CgenIntTypeInfo info;
+
+    return xl6CgenIntTypeInfo(name, &info) && !info.isSigned;
+}
+
 static int xl6CgenFloatTypeBits(const char* name)
 {
     if ( xl6CTextEquals(name, "float32") || xl6CTextEquals(name, "c_float") ) {
@@ -328,6 +335,7 @@ static int xl6CgenIsXValueTypeName(const char* name)
 
 static int xl6CgenIsStringTypeNode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
+    typeNode = xl6CgenSubstituteGenericType(ctx, typeNode);
     typeNode = xl6CgenResolveAliasType(ctx, typeNode);
     return typeNode != NULL && xl6CTextEquals(typeNode->text, "string");
 }

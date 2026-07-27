@@ -1,0 +1,17 @@
+int p1 = 2 ** 10
+int p2 = (-2) ** 3
+int p3 = 0 ** 0
+int p4 = 2 ** -1
+int p5 = 10 ** 18
+
+assert p1 == 1024, "2 ** 10"
+assert p2 == -8, "(-2) ** 3"
+assert p3 == 1, "0 ** 0"
+assert p4 == 0, "negative exponent truncates to 0"
+assert p5 == 1000000000000000000, "10 ** 18 in range"
+
+int acc = 3
+acc **= 3
+assert acc == 27, "**= compound"
+
+println("operators_pow_int_bounds ok")

@@ -187,7 +187,7 @@ func hashString(string s) as int
     int h = 0
     int n = string.byteLen(s)
     int i = 0
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         h = h * 31 + b
         i += 1
@@ -219,7 +219,7 @@ func splitWords(string line, bool lower) as array<string>
     int n = string.byteLen(line)
     int i = 0
     string cur = ""
-    while i < n do
+    while i < n
         int b = string.byteAt(line, i)
         bool letter = (b >= 65 and b <= 90) or (b >= 97 and b <= 122)
         bool digit = (b >= 48 and b <= 57)
@@ -253,7 +253,7 @@ func loadFileLines(string path) as array<string>
     int n = raw.length
     array<string> result = array[]
     int i = 0
-    while i < n do
+    while i < n
         result.append(toStr(raw[i]))
         i += 1
     end
@@ -265,10 +265,10 @@ end
 func sortKVByKey(array<KV> a)
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         int sel = i
         int j = i + 1
-        while j < n do
+        while j < n
             if string.compare(a[j].key, a[sel].key) < 0 then
                 sel = j
             end
@@ -287,10 +287,10 @@ end
 func sortKVByKeyDesc(array<KV> a)
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         int sel = i
         int j = i + 1
-        while j < n do
+        while j < n
             if string.compare(a[j].key, a[sel].key) > 0 then
                 sel = j
             end
@@ -318,7 +318,7 @@ func looksLikeInt(string s) as bool
     if i >= string.len(s) then
         return false
     end
-    while i < string.len(s) do
+    while i < string.len(s)
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -364,7 +364,7 @@ func buildSplits() as array<InputSplit>
     array<InputSplit> result = array[]
     int fi = 0
     int fcount = g_job.inputFiles.length
-    while fi < fcount do
+    while fi < fcount
         string fp = g_job.inputFiles[fi]
         array<string> lines = array[]
         bool ok = true
@@ -377,7 +377,7 @@ func buildSplits() as array<InputSplit>
         if ok then
             int total = lines.length
             int idx = 0
-            while idx < total do
+            while idx < total
                 InputSplit sp = InputSplit()
                 sp.source = fp
                 int take = g_job.linesPerSplit
@@ -389,7 +389,7 @@ func buildSplits() as array<InputSplit>
                     endIdx = total
                 end
                 int k = idx
-                while k < endIdx do
+                while k < endIdx
                     sp.lines.append(lines[k])
                     k += 1
                 end
@@ -470,12 +470,12 @@ func combineLocal(string kind, array<KV> src, array<KV> dstOut) as bool
     sortKVByKey(src)
     int n = src.length
     int i = 0
-    while i < n do
+    while i < n
         string key = src[i].key
         array<string> values = array[]
         values.append(src[i].value)
         int j = i + 1
-        while j < n do
+        while j < n
             if string.equals(src[j].key, key) then
                 values.append(src[j].value)
                 j += 1
@@ -521,7 +521,7 @@ func runMapTask(int tid) as bool
     array<KV> ctxOut = array[]
     int li = 0
     int ln = sp.lines.length
-    while li < ln do
+    while li < ln
         dispatchMap(g_job.kind, sp.source, sp.lines[li], ctxOut)
         li += 1
     end
@@ -550,7 +550,7 @@ end
 func makeMapWorker(int wid) as func() as int
     return func() as int
         int handled = 0
-        while true do
+        while true
             int tid = -1
             bool got = g_mapCh.tryRecvInto(tid)
             if got then
@@ -578,7 +578,7 @@ func makeMapWorker(int wid) as func() as int
                         // 重新入队重试（通道仍打开）。
                         bool sentok = false
                         int tries = 0
-                        while tries < 200 do
+                        while tries < 200
                             if g_mapCh.send(tid) then
                                 sentok = true
                                 break
@@ -632,14 +632,14 @@ func shufflePartition()
         R = 1
     end
     int pid = 0
-    while pid < R do
+    while pid < R
         array<KV> entries = array[]
         int mi = 0
         int mcount = g_mapOut.length
-        while mi < mcount do
+        while mi < mcount
             int kn = g_mapOut[mi].pairs.length
             int ki = 0
-            while ki < kn do
+            while ki < kn
                 KV pair = g_mapOut[mi].pairs[ki]
                 if defaultPartition(pair.key, R) == pid then
                     entries.append(pair)
@@ -664,7 +664,7 @@ func shuffleReport()
     int R = g_parts.length
     println("---- shuffle summary ----")
     int i = 0
-    while i < R do
+    while i < R
         int sz = g_parts[i].entries.length
         string lo = "(empty)"
         string hi = "(empty)"
@@ -696,12 +696,12 @@ func runReduceTask(int rid) as bool
     array<KV> rctxOut = array[]
     int n = entries.length
     int i = 0
-    while i < n do
+    while i < n
         string key = entries[i].key
         array<string> values = array[]
         values.append(entries[i].value)
         int j = i + 1
-        while j < n do
+        while j < n
             if string.equals(entries[j].key, key) then
                 values.append(entries[j].value)
                 j += 1
@@ -721,7 +721,7 @@ end
 func makeReduceWorker(int wid) as func() as int
     return func() as int
         int handled = 0
-        while true do
+        while true
             int rid = -1
             bool got = g_redCh.tryRecvInto(rid)
             if got then
@@ -747,7 +747,7 @@ func makeReduceWorker(int wid) as func() as int
                         g_lock.unlock()
                         bool sentok = false
                         int tries = 0
-                        while tries < 200 do
+                        while tries < 200
                             if g_redCh.send(rid) then
                                 sentok = true
                                 break
@@ -793,7 +793,7 @@ func formatReduceOutput(string kind, array<KV> outputValue) as string
     string text = ""
     int n = outputValue.length
     int i = 0
-    while i < n do
+    while i < n
         if kind == "wordcount" then
             text = text + outputValue[i].key + "\t" + outputValue[i].value + "\n"
         elseif kind == "inverted-index" then
@@ -841,7 +841,7 @@ func runMapPhase() as bool
 
     // 预置输出/尝试计数槽。
     int i = 0
-    while i < g_mapTotal do
+    while i < g_mapTotal
         MapResult mr = MapResult()
         g_mapOut.append(mr)
         g_mapAttempts.append(0)
@@ -852,7 +852,7 @@ func runMapPhase() as bool
     // 通道容量 >= 任务数，保证重排 send 不会因满而失败。
     g_mapCh = channel::<int>(g_mapTotal + 8)
     int ti = 0
-    while ti < g_mapTotal do
+    while ti < g_mapTotal
         g_mapCh.send(ti)
         ti += 1
     end
@@ -866,10 +866,10 @@ func runMapPhase() as bool
 
     // 顺序执行所有 map task（跨线程写入 typed array 不可靠，改为单线程顺序）。
     int mapTid = 0
-    while mapTid < g_mapTotal do
+    while mapTid < g_mapTotal
         bool mok = false
         int attempt = 0
-        while not mok and attempt <= g_job.maxRetries do
+        while not mok and attempt <= g_job.maxRetries
             g_mapAttempts[mapTid] = attempt
             mok = runMapTask(mapTid)
             if not mok and attempt < g_job.maxRetries then
@@ -887,7 +887,7 @@ func runMapPhase() as bool
 
     int retriesUsed = 0
     int r = 0
-    while r < g_mapRetries.length do
+    while r < g_mapRetries.length
         retriesUsed += g_mapRetries[r]
         r += 1
     end
@@ -919,7 +919,7 @@ func runReducePhase() as bool
     end
 
     int i = 0
-    while i < g_redTotal do
+    while i < g_redTotal
         g_redOut.append("")
         g_redAttempts.append(0)
         g_redRetries.append(0)
@@ -928,7 +928,7 @@ func runReducePhase() as bool
 
     g_redCh = channel::<int>(g_redTotal + 8)
     int ri = 0
-    while ri < g_redTotal do
+    while ri < g_redTotal
         g_redCh.send(ri)
         ri += 1
     end
@@ -936,7 +936,7 @@ func runReducePhase() as bool
     println("==== reduce phase ====")
     // 顺序执行所有 reduce task（跨线程写入 typed array 不可靠，改为单线程顺序）。
     int redTid = 0
-    while redTid < g_redTotal do
+    while redTid < g_redTotal
         bool rok = runReduceTask(redTid)
         if rok then
             g_redDone += 1
@@ -948,7 +948,7 @@ func runReducePhase() as bool
 
     int retriesUsed = 0
     int r = 0
-    while r < g_redRetries.length do
+    while r < g_redRetries.length
         retriesUsed += g_redRetries[r]
         r += 1
     end
@@ -973,7 +973,7 @@ func collectOutput() as string
     string text = ""
     int i = 0
     int n = g_redOut.length
-    while i < n do
+    while i < n
         text = text + g_redOut[i]
         i += 1
     end
@@ -986,11 +986,11 @@ func collectSortOutput() as string
     array<KV> all = array[]
     int p = 0
     int pn = g_parts.length
-    while p < pn do
+    while p < pn
         // 重跑 reduce 收集（reduce 输出已是 key 列表，这里直接从 entries 取 key）。
         int e = 0
         int en = g_parts[p].entries.length
-        while e < en do
+        while e < en
             KV pair = makeKV(g_parts[p].entries[e].key, "")
             all.append(pair)
             e += 1
@@ -1007,7 +1007,7 @@ func collectSortOutput() as string
     string text = ""
     int i = 0
     int n = all.length
-    while i < n do
+    while i < n
         text = text + all[i].key + "\n"
         i += 1
     end
@@ -1018,10 +1018,10 @@ end
 func sortNumericKV(array<KV> a, bool asc)
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         int sel = i
         int j = i + 1
-        while j < n do
+        while j < n
             int kj = int(a[j].key)
             int ks = int(a[sel].key)
             bool take = false
@@ -1094,15 +1094,15 @@ func runJob() as string
     int uniqKeys = 0
     int totalKv = 0
     int pi = 0
-    while pi < g_parts.length do
+    while pi < g_parts.length
         totalKv += g_parts[pi].entries.length
         // 估算独立 key 数：扫描相邻去重。
         int ei = 0
         int en = g_parts[pi].entries.length
-        while ei < en do
+        while ei < en
             uniqKeys += 1
             int ej = ei + 1
-            while ej < en do
+            while ej < en
                 if string.equals(g_parts[pi].entries[ej].key, g_parts[pi].entries[ei].key) then
                     ej += 1
                 else
@@ -1127,7 +1127,7 @@ func wcMap(string source, string line, array<KV> outputValue)
     array<string> words = splitWords(line, true)
     int i = 0
     int n = words.length
-    while i < n do
+    while i < n
         if string.len(words[i]) > 0 then
             outputValue.append(makeKV(words[i], "1"))
         end
@@ -1141,7 +1141,7 @@ func wcCombine(string key, array<string> values, array<KV> outputValue)
     int sum = 0
     int i = 0
     int n = values.length
-    while i < n do
+    while i < n
         sum += int(values[i])
         i += 1
     end
@@ -1153,7 +1153,7 @@ func wcReduce(string key, array<string> values, array<KV> outputValue)
     int sum = 0
     int i = 0
     int n = values.length
-    while i < n do
+    while i < n
         sum += int(values[i])
         i += 1
     end
@@ -1167,7 +1167,7 @@ func sortWordCountOutput(string text) as string
     int n = lines.length
     array<KV> rows = array[]
     int i = 0
-    while i < n do
+    while i < n
         string s = toStr(lines[i])
         if string.len(s) > 0 then
             // 形如 "word\tN"
@@ -1185,7 +1185,7 @@ func sortWordCountOutput(string text) as string
     string outputValue = ""
     int j = 0
     int rn = rows.length
-    while j < rn do
+    while j < rn
         outputValue = outputValue + rows[j].value + "\t" + rows[j].key + "\n"
         j += 1
     end
@@ -1203,7 +1203,7 @@ func iiMap(string source, string line, array<KV> outputValue)
     array<string> words = splitWords(line, true)
     int i = 0
     int n = words.length
-    while i < n do
+    while i < n
         if string.len(words[i]) > 0 then
             outputValue.append(makeKV(words[i], name))
         end
@@ -1217,7 +1217,7 @@ func iiReduce(string key, array<string> values, array<KV> outputValue)
     array<string> files = array[]
     int i = 0
     int n = values.length
-    while i < n do
+    while i < n
         if not files.contains(values[i]) then
             files.append(values[i])
         end
@@ -1228,7 +1228,7 @@ func iiReduce(string key, array<string> values, array<KV> outputValue)
     string joined = ""
     int j = 0
     int fn = files.length
-    while j < fn do
+    while j < fn
         if j > 0 then
             joined = joined + ","
         end
@@ -1242,10 +1242,10 @@ end
 func sortStringsAsc(array<string> a)
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         int sel = i
         int j = i + 1
-        while j < n do
+        while j < n
             if string.compare(a[j], a[sel]) < 0 then
                 sel = j
             end
@@ -1308,7 +1308,7 @@ end
 // --out/--quiet），写入 g_job。返回消费的参数个数；遇到未知选项打印并返回 -1。
 func parseCommonOptions(int start) as int
     int i = start
-    while i < g_args.length do
+    while i < g_args.length
         string a = string(g_args[i])
         if a == "--workers" then
             if i + 1 >= g_args.length then
@@ -1423,7 +1423,7 @@ func cmdInvertedIndex() as int
     end
     g_job.kind = "inverted-index"
     int i = 0
-    while i < n do
+    while i < n
         g_job.inputFiles.append(string(files[i]))
         i += 1
     end
@@ -1538,7 +1538,7 @@ func runSampleWordCount(string base, bool useCombiner, int workers, int failRate
     array lines = string.splitLines(output)
     int i = 0
     int n = lines.length
-    while i < n do
+    while i < n
         string row = toStr(lines[i])
         if string.len(row) > 0 then
             int tab = string.indexOf(row, "\t")
@@ -1583,7 +1583,7 @@ func runSampleInvertedIndex(string base) as bool
     array lines = string.splitLines(output)
     int i = 0
     int n = lines.length
-    while i < n do
+    while i < n
         string row = toStr(lines[i])
         if string.len(row) > 0 then
             int tab = string.indexOf(row, "\t")
@@ -1630,7 +1630,7 @@ func runSampleSort(string base) as bool
     array<int> seq = array[]
     int i = 0
     int n = lines.length
-    while i < n do
+    while i < n
         string s = string.trim(toStr(lines[i]))
         if string.len(s) > 0 then
             seq.append(int(s))
@@ -1639,7 +1639,7 @@ func runSampleSort(string base) as bool
     end
     bool ok = (seq.length == 10)
     int k = 1
-    while k <= 10 do
+    while k <= 10
         if k - 1 >= seq.length then
             ok = false
             break
@@ -1680,10 +1680,10 @@ func runSampleDedup(string base) as bool
     bool uniq = true
     int i = 0
     int n = lines.length
-    while i < n do
+    while i < n
         string a = toStr(lines[i])
         int j = i + 1
-        while j < n do
+        while j < n
             if string.equals(a, toStr(lines[j])) then
                 uniq = false
             end

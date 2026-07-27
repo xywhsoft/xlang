@@ -1,5 +1,5 @@
 int value = 0
 
-while value do
+while value
     value = value + 1
 end

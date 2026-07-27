@@ -108,7 +108,7 @@ func bufferFromBytes(array<int> bytes) as Buffer
     int cap = bytes.length + 4
     Buffer b = Buffer(cap)
     int i = 0
-    while i < bytes.length do
+    while i < bytes.length
         b.appendByte(int(bytes[i]) & 255)
         i += 1
     end
@@ -118,7 +118,7 @@ end
 func bytesToBuffer(array<int> bytes, int start, int len) as Buffer
     Buffer b = Buffer(len + 4)
     int i = 0
-    while i < len do
+    while i < len
         b.appendByte(int(bytes[start + i]) & 255)
         i += 1
     end
@@ -129,7 +129,7 @@ func bufSlice(Buffer src, int start, int len) as Buffer
     Buffer outputValue = Buffer(len + 4)
     if start < 0 or len < 0 then return outputValue end
     int i = 0
-    while i < len do
+    while i < len
         outputValue.appendByte(src.byteAt(start + i))
         i += 1
     end
@@ -139,7 +139,7 @@ end
 func bufAppendBuf(Buffer dst, Buffer src) as int
     int i = 0
     int n = src.len()
-    while i < n do
+    while i < n
         dst.appendByte(src.byteAt(i))
         i += 1
     end
@@ -153,7 +153,7 @@ end
 func bytesToHex(array<int> bytes, int start, int len) as string
     string s = ""
     int i = 0
-    while i < len do
+    while i < len
         s = s + intToHex2(int(bytes[start + i]) & 255)
         i += 1
     end
@@ -211,7 +211,7 @@ func progressBar(float frac, int width) as string
     string bar = "["
     int filled = clampInt(int(frac * float(width) + 0.000001), 0, width)
     int i = 0
-    while i < width do
+    while i < width
         if i < filled then bar = bar + "#" else bar = bar + "-" end
         i += 1
     end
@@ -221,7 +221,7 @@ end
 func makePeerId(string tag) as string
     string id = PEER_ID_PREFIX + string.upper(tag)
     Random rng = Random(uint64(0xA11CE), uint64(0xBEFE))
-    while string.len(id) < 20 do
+    while string.len(id) < 20
         id = id + rng.string(1, "0123456789ABCDEF")
     end
     if string.len(id) > 20 then id = string.left(id, 20) end
@@ -231,11 +231,11 @@ end
 func sortStringArray(array keys) as array
     int n = keys.length
     int i = 1
-    while i < n do
+    while i < n
         string cur = string(keys[i])
         int j = i - 1
         bool moved = false
-        while j >= 0 do
+        while j >= 0
             string prev = string(keys[j])
             if string.compare(prev, cur, false) <= 0 then
                 j = -1
@@ -277,7 +277,7 @@ func bnReadNumberUntil(Buffer src, int terminator) as int
             g_pos += 1
         end
     end
-    while g_pos < srclen do
+    while g_pos < srclen
         int b = src.byteAt(g_pos)
         if b == terminator then
             g_pos += 1
@@ -316,7 +316,7 @@ func bnReadBytestring(Buffer src) as BNode
     BNode n = BNode()
     n.tag = "s"
     int i = 0
-    while i < len do
+    while i < len
         n.bytes.push(src.byteAt(g_pos + i))
         i += 1
     end
@@ -329,7 +329,7 @@ func bnReadList(Buffer src) as BNode
     BNode n = BNode()
     n.tag = "l"
     int srclen = src.len()
-    while g_pos < srclen do
+    while g_pos < srclen
         int b = src.byteAt(g_pos)
         if b == 101 then
             g_pos += 1
@@ -349,7 +349,7 @@ func bnReadDict(Buffer src) as BNode
     BNode n = BNode()
     n.tag = "d"
     int srclen = src.len()
-    while g_pos < srclen do
+    while g_pos < srclen
         int b = src.byteAt(g_pos)
         if b == 101 then
             g_pos += 1
@@ -436,7 +436,7 @@ func bnText(BNode n) as string
     int n2 = n.bytes.length
     Buffer b = Buffer(n2 + 4)
     int i = 0
-    while i < n2 do
+    while i < n2
         b.appendByte(int(n.bytes[i]) & 255)
         i += 1
     end
@@ -471,7 +471,7 @@ func bnHasKey(BNode n, string key) as bool
     if not bnIsDict(n) then return false end
     int i = 0
     int k = n.keys.length
-    while i < k do
+    while i < k
         if string(n.keys[i]) == key then return true end
         i += 1
     end
@@ -482,7 +482,7 @@ func bnGet(BNode n, string key) as BNode
     if not bnIsDict(n) then return BNode() end
     int i = 0
     int k = n.keys.length
-    while i < k do
+    while i < k
         if string(n.keys[i]) == key then
             var v = n.items[i]
             return v as BNode
@@ -518,7 +518,7 @@ func bStrText(string s) as BNode
     b.append(s)
     int i = 0
     int k = b.len()
-    while i < k do
+    while i < k
         n.bytes.push(b.byteAt(i))
         i += 1
     end
@@ -529,7 +529,7 @@ func bStrBytes(array<int> bytes) as BNode
     BNode n = BNode()
     n.tag = "s"
     int i = 0
-    while i < bytes.length do
+    while i < bytes.length
         n.bytes.push(int(bytes[i]) & 255)
         i += 1
     end
@@ -556,7 +556,7 @@ end
 func bDictPut(BNode d, string key, BNode val) as BNode
     int i = 0
     int k = d.keys.length
-    while i < k do
+    while i < k
         if string(d.keys[i]) == key then
             d.items[i] = val
             return d
@@ -575,12 +575,12 @@ func encWriteUint(Buffer outputValue, int n) as int
     end
     array<int> digits = array[]
     int v = n
-    while v > 0 do
+    while v > 0
         digits.push(48 + (v % 10))
         v = v / 10
     end
     int i = digits.length - 1
-    while i >= 0 do
+    while i >= 0
         outputValue.appendByte(int(digits[i]))
         i -= 1
     end
@@ -608,7 +608,7 @@ func encNode(Buffer outputValue, BNode n) as int
         outputValue.appendByte(58)
         int i = 0
         int k = n.bytes.length
-        while i < k do
+        while i < k
             outputValue.appendByte(int(n.bytes[i]) & 255)
             i += 1
         end
@@ -618,7 +618,7 @@ func encNode(Buffer outputValue, BNode n) as int
         var ni = n.items
         int i = 0
         int k = ni.length
-        while i < k do
+        while i < k
             encNode(outputValue, ni[i] as BNode)
             i += 1
         end
@@ -631,17 +631,17 @@ func encNode(Buffer outputValue, BNode n) as int
         int k = nkeys.length
         array<int> order = array[]
         int i = 0
-        while i < k do
+        while i < k
             order.push(i)
             i += 1
         end
         int a = 1
-        while a < k do
+        while a < k
             int cur = order[a]
             string curKey = string(nkeys[cur])
             int j = a - 1
             bool moved = false
-            while j >= 0 do
+            while j >= 0
                 string prevKey = string(nkeys[order[j]])
                 if string.compare(prevKey, curKey, false) <= 0 then
                     j = -1
@@ -655,14 +655,14 @@ func encNode(Buffer outputValue, BNode n) as int
             a += 1
         end
         int m = 0
-        while m < k do
+        while m < k
             int idx = int(order[m])
             string keyStr = string(nkeys[idx])
             encWriteUint(outputValue, string.byteLen(keyStr))
             outputValue.appendByte(58)
             int bi = 0
             int blen = string.byteLen(keyStr)
-            while bi < blen do
+            while bi < blen
                 outputValue.appendByte(string.byteAt(keyStr, bi))
                 bi += 1
             end
@@ -689,7 +689,7 @@ func bnodeEqual(BNode a, BNode b) as bool
     if ta == "s" then
         if a.bytes.length != b.bytes.length then return false end
         int i = 0
-        while i < a.bytes.length do
+        while i < a.bytes.length
             if int(a.bytes[i]) != int(b.bytes[i]) then return false end
             i += 1
         end
@@ -699,7 +699,7 @@ func bnodeEqual(BNode a, BNode b) as bool
         if bnListLen(a) != bnListLen(b) then return false end
         int i = 0
         int k = bnListLen(a)
-        while i < k do
+        while i < k
             if not bnodeEqual(bnListItem(a, i), bnListItem(b, i)) then return false end
             i += 1
         end
@@ -709,7 +709,7 @@ func bnodeEqual(BNode a, BNode b) as bool
         if bnDictLen(a) != bnDictLen(b) then return false end
         int i = 0
         int k = bnDictLen(a)
-        while i < k do
+        while i < k
             string key = bnDictKey(a, i)
             if not bnHasKey(b, key) then return false end
             if not bnodeEqual(bnDictVal(a, i), bnGet(b, key)) then return false end
@@ -733,7 +733,7 @@ func splitPiecesHashes(array<int> rawBytes, int pieceLength, int totalLength) as
         pieceCount = rawBytes.length / HASH_BYTES
     end
     int i = 0
-    while i < pieceCount do
+    while i < pieceCount
         string h = bytesToHex(rawBytes, i * HASH_BYTES, HASH_BYTES)
         int off = i * pieceLength
         int remain = totalLength - off
@@ -753,12 +753,12 @@ func parseAnnounceList(BNode root) as array
     array result = []
     int i = 0
     int tiers = bnListLen(al)
-    while i < tiers do
+    while i < tiers
         BNode tier = bnListItem(al, i)
         if bnIsList(tier) then
             int j = 0
             int urls = bnListLen(tier)
-            while j < urls do
+            while j < urls
                 string u = bnText(bnListItem(tier, j))
                 if string.len(u) > 0 then result.push(u) end
                 j += 1
@@ -775,7 +775,7 @@ func parseFileList(BNode info, string fallbackName) as array
         BNode fl = bnGet(info, "files")
         int n = bnListLen(fl)
         int i = 0
-        while i < n do
+        while i < n
             BNode f = bnListItem(fl, i)
             int flen = bnGetInt(f, "length")
             BNode pathNode = bnGet(f, "path")
@@ -783,7 +783,7 @@ func parseFileList(BNode info, string fallbackName) as array
             if bnIsList(pathNode) then
                 int j = 0
                 int pn = bnListLen(pathNode)
-                while j < pn do
+                while j < pn
                     segs.push(bnText(bnListItem(pathNode, j)))
                     j += 1
                 end
@@ -803,7 +803,7 @@ end
 func totalLengthOf(array files) as int
     int total = 0
     int i = 0
-    while i < files.length do
+    while i < files.length
         var f = files[i]
         total += int(f["length"])
         i += 1
@@ -865,7 +865,7 @@ func nameSeed(string name) as uint64
     uint64 h = uint64(1469598103934665603)
     int i = 0
     int n = string.byteLen(name)
-    while i < n do
+    while i < n
         int c = string.byteAt(name, i)
         h = h ^ uint64(c)
         h = h * uint64(1099511628211)
@@ -881,7 +881,7 @@ func generateContent(string name, int totalLength) as Buffer
     uint64 seed = nameSeed(name)
     Random rng = Random(seed, uint64(0x9E3779B97F4A7C15))
     int i = 0
-    while i < totalLength do
+    while i < totalLength
         int idx = int(rng.u64() % uint64(plen))
         outputValue.appendByte(string.byteAt(printable, idx))
         i += 1
@@ -892,7 +892,7 @@ end
 func computePieceHashes(Buffer content, int pieceLength, int pieceCount) as array<string>
     array<string> hashes = array[]
     int i = 0
-    while i < pieceCount do
+    while i < pieceCount
         int off = i * pieceLength
         int remain = content.len() - off
         int plen = pieceLength
@@ -911,7 +911,7 @@ end
 func makeBitmap(int bits) as array<int>
     array<int> bm = array[]
     int i = 0
-    while i < bits do
+    while i < bits
         bm.push(0)
         i += 1
     end
@@ -934,7 +934,7 @@ end
 func bmCount(array<int> bm) as int
     int c = 0
     int i = 0
-    while i < bm.length do
+    while i < bm.length
         if int(bm[i]) == 1 then c += 1 end
         i += 1
     end
@@ -944,7 +944,7 @@ end
 func bmString(array<int> bm) as string
     string s = ""
     int i = 0
-    while i < bm.length do
+    while i < bm.length
         if int(bm[i]) == 1 then s = s + "1" else s = s + "0" end
         i += 1
     end
@@ -964,7 +964,7 @@ func bitfieldCount(string bf) as int
     int c = 0
     int i = 0
     int n = string.len(bf)
-    while i < n do
+    while i < n
         if string.charAt(bf, i) == "1" then c += 1 end
         i += 1
     end
@@ -979,7 +979,7 @@ func piecesComplete(var table) as int
     int c = 0
     int i = 0
     int n = table.length
-    while i < n do
+    while i < n
         var p = table[i]
         if bool(p["have"]) then c += 1 end
         i += 1
@@ -991,7 +991,7 @@ func bytesDownloaded(var table) as int
     int c = 0
     int i = 0
     int n = table.length
-    while i < n do
+    while i < n
         var p = table[i]
         if bool(p["have"]) then
             c += int(p["length"])
@@ -1011,10 +1011,10 @@ func recomputeAvailability(array peers, var table)
     int i = 0
     int np = peers.length
     int tn = table.length
-    while i < tn do
+    while i < tn
         int av = 0
         int j = 0
-        while j < np do
+        while j < np
             var peer = peers[j]
             string bf = string(peer["bitfield"])
             if bitfieldGet(bf, i) then av += 1 end
@@ -1033,7 +1033,7 @@ func selectRarestFromPeer(var peer, var table, array<int> ours, Random rng) as i
     string peerBf = string(peer["bitfield"])
     int i = 0
     int tn = table.length
-    while i < tn do
+    while i < tn
         var p = table[i]
         if bool(p["have"]) then
             i += 1
@@ -1089,7 +1089,7 @@ func buildHandshake(string infoHashHex, string peerId) as Buffer
     b.appendByte(HANDSHAKE_PSTRLEN)
     b.append(PROTOCOL)
     int i = 0
-    while i < RESERVED_LEN do
+    while i < RESERVED_LEN
         b.appendByte(0)
         i += 1
     end
@@ -1146,7 +1146,7 @@ func buildBitfieldFromBm(array<int> bm) as Buffer
     int plen = bm.length + 4
     Buffer payload = Buffer(plen)
     int i = 0
-    while i < bm.length do
+    while i < bm.length
         payload.appendByte((int(bm[i]) & 1) + 48)
         i += 1
     end
@@ -1211,14 +1211,14 @@ end
 
 func makeSimPeer(int index, int pieceCount, Random rng) as var
     string id = PEER_ID_PREFIX + "P" + string.format(index, "03")
-    while string.len(id) < 20 do
+    while string.len(id) < 20
         id = id + "0"
     end
     id = string.left(id, 20)
     string bf = ""
     int haveCount = 0
     int i = 0
-    while i < pieceCount do
+    while i < pieceCount
         int roll = int(rng.u64() % uint64(100))
         if roll < 75 then
             bf = bf + "1"
@@ -1232,7 +1232,7 @@ func makeSimPeer(int index, int pieceCount, Random rng) as var
         int only = int(rng.u64() % uint64(pieceCount))
         bf = ""
         int k = 0
-        while k < pieceCount do
+        while k < pieceCount
             if k == only then bf = bf + "1" else bf = bf + "0" end
             k += 1
         end
@@ -1250,7 +1250,7 @@ end
 func buildPeerPool(int count, int pieceCount, Random rng) as array
     array peers = []
     int i = 0
-    while i < count do
+    while i < count
         peers.push(makeSimPeer(i, pieceCount, rng))
         i += 1
     end
@@ -1265,17 +1265,17 @@ func sortPeerIndicesByRate(array peers) as array<int>
     int n = peers.length
     array<int> idx = array[]
     int i = 0
-    while i < n do
+    while i < n
         idx.push(i)
         i += 1
     end
     int a = 1
-    while a < n do
+    while a < n
         int cur = int(idx[a])
         float curRate = float(peers[cur]["downRate"])
         int j = a - 1
         bool moved = false
-        while j >= 0 do
+        while j >= 0
             float prevRate = float(peers[int(idx[j])]["downRate"])
             if prevRate >= curRate then
                 j = -1
@@ -1293,7 +1293,7 @@ end
 
 func intArrayContains(array<int> a, int v) as bool
     int i = 0
-    while i < a.length do
+    while i < a.length
         if int(a[i]) == v then return true end
         i += 1
     end
@@ -1305,7 +1305,7 @@ func runChokeAlgorithm(array peers, int round) as var
     array<int> order = sortPeerIndicesByRate(peers)
     array<int> unchoked = array[]
     int i = 0
-    while i < n and unchoked.length < MAX_UNCHOKE do
+    while i < n and unchoked.length < MAX_UNCHOKE
         int pi = int(order[i])
         var peer = peers[pi]
         if bool(peer["peerInterested"]) or float(peer["downRate"]) > 0.0 then
@@ -1314,7 +1314,7 @@ func runChokeAlgorithm(array peers, int round) as var
         i += 1
     end
     int k = 0
-    while k < n and unchoked.length < MAX_UNCHOKE do
+    while k < n and unchoked.length < MAX_UNCHOKE
         int pi = int(order[k])
         if not intArrayContains(unchoked, pi) then unchoked.push(pi) end
         k += 1
@@ -1323,7 +1323,7 @@ func runChokeAlgorithm(array peers, int round) as var
     if round % OPTIMISTIC_ROUND == 0 then
         array<int> candidates = array[]
         int j = 0
-        while j < n do
+        while j < n
             if not intArrayContains(unchoked, j) then candidates.push(j) end
             j += 1
         end
@@ -1334,7 +1334,7 @@ func runChokeAlgorithm(array peers, int round) as var
         end
     end
     int m = 0
-    while m < n do
+    while m < n
         var peer = peers[m]
         if intArrayContains(unchoked, m) then
             peer["amChoking"] = false
@@ -1345,7 +1345,7 @@ func runChokeAlgorithm(array peers, int round) as var
     end
     var result = []
     int u = 0
-    while u < unchoked.length do
+    while u < unchoked.length
         result.push(int(unchoked[u]))
         u += 1
     end
@@ -1404,7 +1404,7 @@ end
 func joinSegments(array<string> parts) as string
     string outputValue = parts[0]
     int i = 1
-    while i < parts.length do
+    while i < parts.length
         outputValue = path.join(outputValue, parts[i])
         i += 1
     end
@@ -1420,7 +1420,7 @@ func assembleFiles(Buffer content, var torrent, string outputDir) as array
     bool singleFile = fileCount == 1
     int offset = 0
     int i = 0
-    while i < fileCount do
+    while i < fileCount
         var f = files[i]
         int flen = int(f["length"])
         string outPath
@@ -1432,7 +1432,7 @@ func assembleFiles(Buffer content, var torrent, string outputDir) as array
             parts.push(rootDir)
             int sn = segsVar.length
             int j = 0
-            while j < sn do
+            while j < sn
                 parts.push(string(segsVar[j]))
                 j += 1
             end
@@ -1453,7 +1453,7 @@ func verifyAssembledFile(string pathStr, int pieceLength, var expectedHashes) as
     Buffer content = file.readBytes(pathStr)
     int i = 0
     int okCount = 0
-    while i < count do
+    while i < count
         int off = i * pieceLength
         int remain = content.len() - off
         int plen = pieceLength
@@ -1483,7 +1483,7 @@ func simulateDownload(var torrent, string outputDir, int peerCount) as var
 
     var table = torrent["pieces"]
     int ti = 0
-    while ti < pieceCount do
+    while ti < pieceCount
         var p = table[ti]
         p["hash"] = string(workingHashes[ti])
         p["have"] = false
@@ -1504,7 +1504,7 @@ func simulateDownload(var torrent, string outputDir, int peerCount) as var
     float start = time.timer()
     int totalBlocks = 0
     int bi = 0
-    while bi < pieceCount do
+    while bi < pieceCount
         var pzc = table[bi]
         int plen = int(pzc["length"])
         totalBlocks += (plen + BLOCK_SIZE - 1) / BLOCK_SIZE
@@ -1522,7 +1522,7 @@ func simulateDownload(var torrent, string outputDir, int peerCount) as var
     println("")
 
     int lastReportPieces = -1
-    while piecesComplete(table) < pieceCount do
+    while piecesComplete(table) < pieceCount
         round += 1
         if round == 1 or round % 3 == 0 then
             choke = runChokeAlgorithm(peers, round)
@@ -1531,7 +1531,7 @@ func simulateDownload(var torrent, string outputDir, int peerCount) as var
         var unchoked = choke["unchoked"]
         int unchokedCount = unchoked.length
         int ui = 0
-        while ui < unchokedCount do
+        while ui < unchokedCount
             var peer = peers[int(unchoked[ui])]
             if bool(peer["amChoking"]) then
                 ui += 1
@@ -1551,7 +1551,7 @@ func simulateDownload(var torrent, string outputDir, int peerCount) as var
         end
 
         int ui2 = 0
-        while ui2 < unchokedCount do
+        while ui2 < unchokedCount
             var peer = peers[int(unchoked[ui2])]
             int pieceIdx = int(peer["activePiece"])
             if pieceIdx < 0 then
@@ -1630,7 +1630,7 @@ func simulateDownload(var torrent, string outputDir, int peerCount) as var
 
     int verifiedCount = 0
     int vi = 0
-    while vi < table.length do
+    while vi < table.length
         var p = table[vi]
         if bool(p["have"]) then verifiedCount += 1 end
         vi += 1
@@ -1680,7 +1680,7 @@ func printTorrentInfo(var torrent, bool verbose) as int
         println("announce-list: " + string(al.length) + " tracker(s)")
         if verbose then
             int i = 0
-            while i < al.length do
+            while i < al.length
                 println("               " + al[i])
                 i += 1
             end
@@ -1713,7 +1713,7 @@ func printTorrentInfo(var torrent, bool verbose) as int
     var files = torrent["files"]
     println("files        : " + string(files.length))
     int i = 0
-    while i < files.length do
+    while i < files.length
         var f = files[i]
         println("               " + f["pathText"] + "  (" + humanSize(float(int(f["length"]))) + ")")
         i += 1
@@ -1726,7 +1726,7 @@ func printTorrentInfo(var torrent, bool verbose) as int
         println("")
         println("piece hashes (first " + string(show) + " of " + string(table.length) + "):")
         int j = 0
-        while j < show do
+        while j < show
             var p = table[j]
             string pieceHash = string(p["hash"])
             println("  #" + string.format(int(p["index"]), "04") + "  " + pieceHash)
@@ -1781,7 +1781,7 @@ func printDownloadResult(var torrent, var result) as int
     var written = result["written"]
     println("  output files    : " + string(written.length))
     int i = 0
-    while i < written.length do
+    while i < written.length
         var w = written[i]
         string okText = "ok"
         if not bool(w["ok"]) then okText = "FAILED" end
@@ -1953,7 +1953,7 @@ func testRarestFirst() as int
     int pieceCount = 8
     array table = []
     int i = 0
-    while i < pieceCount do
+    while i < pieceCount
         table.push({"index": i, "hash": "", "offset": i * 100, "length": 100,
             "have": false, "requested": false, "downloaded": 0, "availability": 0})
         i += 1
@@ -1964,10 +1964,10 @@ func testRarestFirst() as int
     Random rng = Random(uint64(1), uint64(2))
     array peers = []
     int p = 0
-    while p < 5 do
+    while p < 5
         string bf = ""
         int q = 0
-        while q < pieceCount do
+        while q < pieceCount
             bf = bf + "0"
             q += 1
         end
@@ -2006,7 +2006,7 @@ func testChokeAlgorithm() as int
     int n = 8
     array peers = []
     int i = 0
-    while i < n do
+    while i < n
         peers.push({"index": i, "amChoking": true, "amInterested": false,
             "peerInterested": true, "downRate": float((i + 1) * 100), "activePiece": -1})
         i += 1
@@ -2017,7 +2017,7 @@ func testChokeAlgorithm() as int
     fails += assertOk("choke at least max", u1.length >= MAX_UNCHOKE)
     int choked = 0
     int j = 0
-    while j < n do
+    while j < n
         if bool(peers[j]["amChoking"]) then choked += 1 end
         j += 1
     end
@@ -2042,7 +2042,7 @@ func testSha1Verification() as int
     fails += assertOk("piece hashes count", hashes.length == 4)
     int i = 0
     int matched = 0
-    while i < 4 do
+    while i < 4
         int off = i * 256
         int plen = 256
         if off + plen > content.len() then plen = content.len() - off end
@@ -2060,10 +2060,10 @@ func buildSampleTorrentNode(string name, int pieceLength, Buffer content, int to
     array<string> hashes = computePieceHashes(content, pieceLength, pieceCount)
     array<int> piecesBytes = array[]
     int i = 0
-    while i < pieceCount do
+    while i < pieceCount
         Buffer h = hexToBuffer(string(hashes[i]))
         int j = 0
-        while j < h.len() do
+        while j < h.len()
             piecesBytes.push(h.byteAt(j))
             j += 1
         end
@@ -2079,7 +2079,7 @@ func buildSampleTorrentNode(string name, int pieceLength, Buffer content, int to
     else
         BNode flist = bList()
         int j = 0
-        while j < files.length do
+        while j < files.length
             var finfo = files[j]
             BNode fnode = bDict()
             bDictPut(fnode, "length", bInt(int(finfo["length"])))
@@ -2087,7 +2087,7 @@ func buildSampleTorrentNode(string name, int pieceLength, Buffer content, int to
             var segsVar = finfo["path"]
             int sn = segsVar.length
             int k = 0
-            while k < sn do
+            while k < sn
                 bListPush(pathList, bStrText(string(segsVar[k])))
                 k += 1
             end
@@ -2175,7 +2175,7 @@ func testFullDownloadSingleFile() as int
     fails += assertOk("sample file size", back.len() == totalLength)
     int i = 0
     int byteMatch = 1
-    while i < totalLength do
+    while i < totalLength
         if back.byteAt(i) != content.byteAt(i) then byteMatch = 0 end
         i += 1
     end
@@ -2221,7 +2221,7 @@ func testFullDownloadMultiFile() as int
     fails += assertOk("multi written count", written.length == 3)
     int i = 0
     int allOk = 1
-    while i < written.length do
+    while i < written.length
         if not bool(written[i]["ok"]) then allOk = 0 end
         i += 1
     end
@@ -2320,7 +2320,7 @@ func main(...) as int
     if cmd == "parse" then
         array rest = []
         int i = 2
-        while i < arg.length do
+        while i < arg.length
             rest.push(arg[i])
             i += 1
         end
@@ -2328,7 +2328,7 @@ func main(...) as int
     elseif cmd == "download" then
         array rest = []
         int i = 2
-        while i < arg.length do
+        while i < arg.length
             rest.push(arg[i])
             i += 1
         end

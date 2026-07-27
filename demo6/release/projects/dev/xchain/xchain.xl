@@ -141,7 +141,7 @@ func nextPow2(int n) as int
         return 1
     end
     int p = 1
-    while p < n do
+    while p < n
         p = p * 2
     end
     return p
@@ -151,7 +151,7 @@ end
 func leadingZeros(string h) as int
     int n = string.len(h)
     int i = 0
-    while i < n do
+    while i < n
         if string.charAt(h, i) != "0" then
             return i
         end
@@ -173,7 +173,7 @@ func looksInt(string s) as bool
             return false
         end
     end
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -189,7 +189,7 @@ func splitOn(string s, string delim) as array<string>
     array<string> cleaned = array[]
     int i = 0
     int n = outputValue.length
-    while i < n do
+    while i < n
         string t = string.trim(string(outputValue[i]))
         if string.len(t) > 0 then
             cleaned.push(t)
@@ -287,21 +287,21 @@ func merkleRoot(array<string> leafHashes) as string
     // 复制到工作集（避免修改入参）
     array<string> level = array[]
     int i = 0
-    while i < n do
+    while i < n
         level.push(leafHashes[i])
         i = i + 1
     end
     // 补齐到 2 的幂：复制最后一个叶子
     int padded = nextPow2(n)
-    while level.length < padded do
+    while level.length < padded
         level.push(level[level.length - 1])
     end
     // 自底向上两两归并
-    while level.length > 1 do
+    while level.length > 1
         array<string> next = array[]
         int k = 0
         int m = level.length
-        while k < m do
+        while k < m
             string a = level[k]
             string b = level[k + 1]
             next.push(hashPair(a, b))
@@ -318,7 +318,7 @@ func verifyMerkleProof(string leafHash, var proof, string rootHash) as bool
     string h = leafHash
     int n = proof.length
     int i = 0
-    while i < n do
+    while i < n
         var entry = proof[i]
         string sib = string(entry[0])
         int dir = int(entry[1])
@@ -482,7 +482,7 @@ class Block
         array<string> hashes = array[]
         int n = self.txs.length
         int i = 0
-        while i < n do
+        while i < n
             Transaction t = self.txs[i]
             hashes.push(t.hash)
             i = i + 1
@@ -496,7 +496,7 @@ class Block
     func mine() as int
         self.computeMerkle()
         int n = 0
-        while n < 2000000000 do
+        while n < 2000000000
             string h = self.hashWith(n)
             if leadingZeros(h) >= self.difficulty then
                 self.nonce = n
@@ -538,7 +538,7 @@ class Block
         var txList = []
         int i = 0
         int n = self.txs.length
-        while i < n do
+        while i < n
             Transaction t = self.txs[i]
             txList.push(t.toDict())
             i = i + 1
@@ -557,7 +557,7 @@ func blockFromDict(var d) as Block
     var txList = d["txs"]
     int n = txList.length
     int i = 0
-    while i < n do
+    while i < n
         Transaction t = txFromDict(txList[i])
         b.txs.push(t)
         i = i + 1
@@ -574,7 +574,7 @@ end
 func opNameToCode(string name) as string
     string up = string.upper(name)
     int i = 0
-    while i < NUM_OPS do
+    while i < NUM_OPS
         if gOpNames[i] == up then
             return string(i)
         end
@@ -587,7 +587,7 @@ end
 func findLabel(array<string> names, array<int> addrs, string name) as int
     int i = 0
     int n = names.length
-    while i < n do
+    while i < n
         if names[i] == name then
             return addrs[i]
         end
@@ -614,13 +614,13 @@ func assemble(string src) as array<int>
 
     int addr = 0
     int li = 0
-    while li < numLines do
+    while li < numLines
         string raw = string(rawLines[li])
         // 去行尾 ";" 注释
         string body = ""
         int blen = string.len(raw)
         int bi = 0
-        while bi < blen do
+        while bi < blen
             if string.charAt(raw, bi) == ";" then
                 bi = blen
             else
@@ -631,7 +631,7 @@ func assemble(string src) as array<int>
         array<string> tokens = string.split(body, " ")
         int nt = tokens.length
         int ti = 0
-        while ti < nt do
+        while ti < nt
             string tok = string.trim(tokens[ti])
             if string.len(tok) == 0 then
                 ti = ti + 1
@@ -680,7 +680,7 @@ func assemble(string src) as array<int>
     // Pass 2: 发射字节码，解析标签引用
     int ii = 0
     int ni = instrMnem.length
-    while ii < ni do
+    while ii < ni
         string mnem = instrMnem[ii]
         string operand = instrOperand[ii]
         int opcode = int(opNameToCode(mnem))
@@ -719,7 +719,7 @@ func disassemble(array<int> code) as string
     string outputValue = ""
     int n = code.length
     int p = 0
-    while p < n do
+    while p < n
         int op = code[p]
         string name = "UNK" + string(op)
         int hasOp = 0
@@ -771,7 +771,7 @@ class Contract
         self.labelAddrs = array[]
         self.slots = array[]
         int i = 0
-        while i < VM_SLOT_COUNT do
+        while i < VM_SLOT_COUNT
             self.slots.push(0)
             i = i + 1
         end
@@ -790,12 +790,12 @@ class Contract
         // 重算 addr 与 pass1 一致
         int addr = 0
         int li = 0
-        while li < numLines do
+        while li < numLines
             string raw = string(rawLines[li])
             string body = ""
             int blen = string.len(raw)
             int bi = 0
-            while bi < blen do
+            while bi < blen
                 if string.charAt(raw, bi) == ";" then
                     bi = blen
                 else
@@ -806,7 +806,7 @@ class Contract
             array<string> tokens = string.split(body, " ")
             int nt = tokens.length
             int ti = 0
-            while ti < nt do
+            while ti < nt
                 string tok = string.trim(tokens[ti])
                 if string.len(tok) == 0 then
                     ti = ti + 1
@@ -860,7 +860,7 @@ class Contract
         int steps = 0
         string errMsg = ""
 
-        while true do
+        while true
             if steps > VM_MAX_STEPS then
                 var fail = [1, 0, "max steps exceeded"]
                 return fail
@@ -1081,14 +1081,14 @@ class Contract
         var codeList = []
         int i = 0
         int cn = self.code.length
-        while i < cn do
+        while i < cn
             codeList.push(self.code[i])
             i = i + 1
         end
         d["code"] = codeList
         var slotList = []
         int j = 0
-        while j < VM_SLOT_COUNT do
+        while j < VM_SLOT_COUNT
             slotList.push(self.slots[j])
             j = j + 1
         end
@@ -1104,7 +1104,7 @@ func contractFromDict(var d) as Contract
     var codeList = d["code"]
     int cn = codeList.length
     int i = 0
-    while i < cn do
+    while i < cn
         c.code.push(int(codeList[i]))
         i = i + 1
     end
@@ -1114,7 +1114,7 @@ func contractFromDict(var d) as Contract
     var slotList = d["slots"]
     int sn = slotList.length
     int j = 0
-    while j < VM_SLOT_COUNT and j < sn do
+    while j < VM_SLOT_COUNT and j < sn
         c.slots[j] = int(slotList[j])
         j = j + 1
     end
@@ -1142,7 +1142,7 @@ func printEvents(string typeFilter) as int
     int n = g_events.length
     int i = 0
     int shown = 0
-    while i < n do
+    while i < n
         var e = g_events[i]
         string etype = string(e["type"])
         if string.len(typeFilter) == 0 or etype == typeFilter then
@@ -1165,7 +1165,7 @@ func createGenesis(array<string> founderAddrs, int difficulty) as Block
     Block g = Block(0, nowTs(), "", difficulty, "")
     int i = 0
     int n = founderAddrs.length
-    while i < n do
+    while i < n
         Transaction cb = makeCoinbase(founderAddrs[i], GENESIS_ALLOC, i)
         g.txs.push(cb)
         i = i + 1
@@ -1189,7 +1189,7 @@ func initChain(int difficulty)
     array<string> founders = array["alice", "bob", "carol"]
     array<string> founderAddrs = array[]
     int i = 0
-    while i < founders.length do
+    while i < founders.length
         string addr = ensureAccount(founders[i])
         founderAddrs.push(addr)
         i = i + 1
@@ -1243,7 +1243,7 @@ func appendBlock(Block b) as bool
     // 交易校验
     int ti = 0
     int tn = b.txs.length
-    while ti < tn do
+    while ti < tn
         Transaction t = b.txs[ti]
         if not t.isValid() then
             emitEvent(b.index, "block.reject", b.miner, "invalid tx " + shortHash(t.hash))
@@ -1266,7 +1266,7 @@ end
 func pathFromTip(string tipHash) as array<string>
     array<string> path = array[]
     string cur = tipHash
-    while cur in g_blockIndex do
+    while cur in g_blockIndex
         path.push(cur)
         Block b = g_blockIndex[cur] as Block
         if b.index == 0 then
@@ -1277,7 +1277,7 @@ func pathFromTip(string tipHash) as array<string>
     // 反转：创世在前
     array<string> reversed = array[]
     int i = path.length - 1
-    while i >= 0 do
+    while i >= 0
         reversed.push(path[i])
         i = i - 1
     end
@@ -1293,7 +1293,7 @@ func longestChain() as array<string>
     string bestTip = ""
     int tn = g_tips.length
     int i = 0
-    while i < tn do
+    while i < tn
         array<string> p = pathFromTip(g_tips[i])
         int plen = p.length
         if plen > bestLen then
@@ -1348,7 +1348,7 @@ func mineNextBlock(int difficulty) as Block
     int packed = 0
     int mi = 0
     int mn = g_mempool.length
-    while mi < mn and packed < MAX_TX_PER_BLOCK do
+    while mi < mn and packed < MAX_TX_PER_BLOCK
         Transaction t = g_mempool[mi]
         if t.isValid() then
             b.txs.push(t)
@@ -1366,7 +1366,7 @@ func mineNextBlock(int difficulty) as Block
 
     // 清空已打包的 mempool（这里简单清空全部；保留未打包的留给下块）
     array<Transaction> leftover = array<Transaction>[]
-    while mi < mn do
+    while mi < mn
         leftover.push(g_mempool[mi])
         mi = mi + 1
     end
@@ -1383,7 +1383,7 @@ func validateLongestChain() as int
     array<string> chain = longestChain()
     int n = chain.length
     int i = 0
-    while i < n do
+    while i < n
         Block b = g_blockIndex[chain[i]] as Block
         if not b.sealsCorrectly() then
             return i
@@ -1404,7 +1404,7 @@ func validateLongestChain() as int
         // 交易签名校验
         int ti = 0
         int tn = b.txs.length
-        while ti < tn do
+        while ti < tn
             Transaction t = b.txs[ti]
             if not t.isValid() then
                 return i
@@ -1423,11 +1423,11 @@ func balanceOf(string addr) as int
     int bal = 0
     int ci = 0
     int cn = chain.length
-    while ci < cn do
+    while ci < cn
         Block b = g_blockIndex[chain[ci]] as Block
         int ti = 0
         int tn = b.txs.length
-        while ti < tn do
+        while ti < tn
             Transaction t = b.txs[ti]
             if t.to == addr then
                 bal = bal + t.amount
@@ -1508,7 +1508,7 @@ func loadState(string statePath) as bool
     var pool = root["mempool"]
     int pn = pool.length
     int pi = 0
-    while pi < pn do
+    while pi < pn
         Transaction t = txFromDict(pool[pi])
         g_mempool.push(t)
         pi = pi + 1
@@ -1518,7 +1518,7 @@ func loadState(string statePath) as bool
     var evts = root["events"]
     int en = evts.length
     int ei = 0
-    while ei < en do
+    while ei < en
         g_events.push(evts[ei])
         ei = ei + 1
     end
@@ -1552,7 +1552,7 @@ func saveState(string statePath) as bool
     var pool = []
     int pn = g_mempool.length
     int pi = 0
-    while pi < pn do
+    while pi < pn
         Transaction t = g_mempool[pi]
         pool.push(t.toDict())
         pi = pi + 1
@@ -1622,7 +1622,7 @@ func callContract(string addr, string method, string argsCsv) as var
         array<string> parts = splitOn(argsCsv, ",")
         int i = 0
         int n = parts.length
-        while i < n do
+        while i < n
             if looksInt(parts[i]) then
                 args.push(int(parts[i]))
             else
@@ -1859,7 +1859,7 @@ func cmdTest() as int
     array<string> b2leaves = array[]
     int b2i = 0
     int b2n = b2.txs.length
-    while b2i < b2n do
+    while b2i < b2n
         Transaction t = b2.txs[b2i]
         b2leaves.push(t.hash)
         b2i = b2i + 1
@@ -2044,7 +2044,7 @@ func cmdMine(string scriptPath, int difficulty) as int
     println("  txs      = " + string(b.txs.length))
     int i = 0
     int n = b.txs.length
-    while i < n do
+    while i < n
         Transaction t = b.txs[i]
         println("    " + t.describe())
         i = i + 1
@@ -2149,7 +2149,7 @@ func cmdChain(string scriptPath) as int
     end
     println("longest chain: " + string(n) + " blocks, difficulty=" + string(g_difficulty))
     int i = 0
-    while i < n do
+    while i < n
         Block b = g_blockIndex[chain[i]] as Block
         println("  " + b.describe())
         i = i + 1

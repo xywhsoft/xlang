@@ -147,7 +147,7 @@ class ZipArchive
     func names() as array<string>
         array<string> result = array<string>[]
         int i = 0
-        while i < self.count do
+        while i < self.count
             result.append(self.nameAt(i))
             i += 1
         end

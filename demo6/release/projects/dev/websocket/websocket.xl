@@ -111,7 +111,7 @@ func parseFrameHeader(Buffer buf, int offset) as int
         end
         int64 L = 0
         int k = 0
-        while k < 8 do
+        while k < 8
             L = (L << 8) | int64(buf.byteAt(idx + k) & 0xFF)
             k += 1
         end
@@ -146,7 +146,7 @@ func copyPayload(Buffer buf, Buffer outputValue) as bool
         int m1 = buf.byteAt(g_maskOffset + 1)
         int m2 = buf.byteAt(g_maskOffset + 2)
         int m3 = buf.byteAt(g_maskOffset + 3)
-        while int64(i) < L do
+        while int64(i) < L
             int b = buf.byteAt(base + i)
             int j = i & 3
             if j == 0 then
@@ -162,7 +162,7 @@ func copyPayload(Buffer buf, Buffer outputValue) as bool
             i += 1
         end
     else
-        while int64(i) < L do
+        while int64(i) < L
             outputValue.appendByte(buf.byteAt(base + i) & 0xFF)
             i += 1
         end
@@ -201,7 +201,7 @@ func appendServerFrame(Buffer outputValue, int opcode, bool fin, Buffer payload)
         outputValue.appendByte(n & 0xFF)
     end
     int i = 0
-    while i < n do
+    while i < n
         outputValue.appendByte(payload.byteAt(i) & 0xFF)
         i += 1
     end
@@ -237,7 +237,7 @@ func appendClientFrame(Buffer outputValue, int opcode, bool fin, Buffer payload,
     outputValue.appendByte(maskKey[2] & 0xFF)
     outputValue.appendByte(maskKey[3] & 0xFF)
     int i = 0
-    while i < n do
+    while i < n
         int b = (payload.byteAt(i) ^ maskKey[i & 3]) & 0xFF
         outputValue.appendByte(b)
         i += 1
@@ -251,7 +251,7 @@ end
 func makeRepeatByte(int b, int n) as string
     Buffer p = Buffer()
     int i = 0
-    while i < n do
+    while i < n
         p.appendByte(b)
         i += 1
     end
@@ -479,7 +479,7 @@ func runTests() as int
     int firstOp = -1
     int lastOp = -1
     bool sawFin = false
-    while pos < frag.len() do
+    while pos < frag.len()
         p = parseFrameHeader(frag, pos)
         if p < 0 then
             fragOk = false

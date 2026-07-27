@@ -19,7 +19,7 @@ func makeAnchor(string text) as string
     string result = ""
     int n = chs.length
     int i = 0
-    while i < n do
+    while i < n
         string c = string(chs[i])
         int b = string.byteAt(c, 0)
         if b >= 128 then
@@ -41,7 +41,7 @@ end
 func countLeadingHash(string s) as int
     int level = 0
     int n = string.len(s)
-    while level < n do
+    while level < n
         if string.charAt(s, level) == "#" then
             level = level + 1
         else
@@ -72,7 +72,7 @@ func main(...) as int
     bool parseOk = true
 
     int ai = 2
-    while ai < arg.length do
+    while ai < arg.length
         string a = string(arg[ai])
         if a == "-o" or a == "--stdout" then
             stdoutOnly = true
@@ -156,7 +156,7 @@ func main(...) as int
     array levels = []
     array titles = []
     int i = 0
-    while i < totalLines do
+    while i < totalLines
         string line = string(lines[i])
         string trimmed = string.trim(line)
         if string.startsWith(trimmed, "#") then
@@ -188,7 +188,7 @@ func main(...) as int
     tocLines.push("## 目录")
     int headCount = levels.length
     int hi = 0
-    while hi < headCount do
+    while hi < headCount
         int level = int(levels[hi])
         string title = string(titles[hi])
         if level >= minLevel and level <= maxLevel then
@@ -204,7 +204,7 @@ func main(...) as int
     if stdoutOnly then
         int ti = 0
         int tn = tocLines.length
-        while ti < tn do
+        while ti < tn
             println(string(tocLines[ti]))
             ti = ti + 1
         end
@@ -217,7 +217,7 @@ func main(...) as int
     if totalLines > 0 then
         if string.trim(string(lines[0])) == "---" then
             int j = 1
-            while j < totalLines do
+            while j < totalLines
                 if string.trim(string(lines[j])) == "---" then
                     insertAt = j + 1
                     found = true
@@ -229,7 +229,7 @@ func main(...) as int
     end
     if not found then
         int k = 0
-        while k < totalLines do
+        while k < totalLines
             string lt = string.trim(string(lines[k]))
             if lt == "" or lt == "---" then
                 insertAt = k + 1
@@ -243,7 +243,7 @@ func main(...) as int
     // 组装输出行：原 [0..insertAt) + (空行) + TOC + (空行) + 原 [insertAt..)
     array outLines = []
     int oi = 0
-    while oi < insertAt do
+    while oi < insertAt
         outLines.push(string(lines[oi]))
         oi = oi + 1
     end
@@ -255,13 +255,13 @@ func main(...) as int
     end
     int tli = 0
     int tln = tocLines.length
-    while tli < tln do
+    while tli < tln
         outLines.push(string(tocLines[tli]))
         tli = tli + 1
     end
     // TOC 后补一个空行，与后续内容分隔
     outLines.push("")
-    while oi < totalLines do
+    while oi < totalLines
         outLines.push(string(lines[oi]))
         oi = oi + 1
     end
@@ -270,7 +270,7 @@ func main(...) as int
     string newContent = ""
     int on = outLines.length
     int ox = 0
-    while ox < on do
+    while ox < on
         newContent = newContent + outLines[ox] + "\n"
         ox = ox + 1
     end

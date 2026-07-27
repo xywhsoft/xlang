@@ -1,3 +1,3 @@
-while true do
+while true
     break 2
 end

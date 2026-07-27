@@ -32,7 +32,7 @@ URL 和任务分别使用 `array<string>` 与 `array<future<int>>`。`runUrls` �
 
 ```xlang
 array<future<int>> jobs = []
-while i < stop do
+while i < stop
     jobs.push(fetchOne(i, urls.length, urls[i], timeout))
     i += 1
 end

@@ -172,7 +172,7 @@ class Mat4
 
     create()
         int i = 0
-        while i < 16 do
+        while i < 16
             self.m.append(0.0)
             i = i + 1
         end
@@ -202,12 +202,12 @@ class Mat4
     func mul(Mat4 other) as Mat4
         Mat4 result = Mat4()
         int r = 0
-        while r < 4 do
+        while r < 4
             int c = 0
-            while c < 4 do
+            while c < 4
                 float sum = 0.0
                 int k = 0
-                while k < 4 do
+                while k < 4
                     float a = self.m[r * 4 + k]
                     float b = other.m[k * 4 + c]
                     sum = sum + a * b
@@ -469,32 +469,32 @@ func mergeMesh(Mesh a, Mesh b) as Mesh
     Mesh outputValue = Mesh()
     int av = a.vertCount()
     int i = 0
-    while i < a.verts.length do
+    while i < a.verts.length
         outputValue.verts.append(a.verts[i])
         i = i + 1
     end
     i = 0
-    while i < b.verts.length do
+    while i < b.verts.length
         outputValue.verts.append(b.verts[i])
         i = i + 1
     end
     i = 0
-    while i < a.tris.length do
+    while i < a.tris.length
         outputValue.tris.append(a.tris[i])
         i = i + 1
     end
     i = 0
-    while i < b.tris.length do
+    while i < b.tris.length
         outputValue.tris.append(b.tris[i] + av)
         i = i + 1
     end
     i = 0
-    while i < a.colors.length do
+    while i < a.colors.length
         outputValue.colors.append(a.colors[i])
         i = i + 1
     end
     i = 0
-    while i < b.colors.length do
+    while i < b.colors.length
         outputValue.colors.append(b.colors[i])
         i = i + 1
     end
@@ -517,12 +517,12 @@ class RenderTarget
         self.height = height
         int total = width * height
         int i = 0
-        while i < total * 3 do
+        while i < total * 3
             self.fb.append(0)
             i = i + 1
         end
         i = 0
-        while i < total do
+        while i < total
             self.zb.append(DEPTH_INF)
             i = i + 1
         end
@@ -532,7 +532,7 @@ class RenderTarget
     func clear(int r, int g, int b)
         int total = self.width * self.height
         int i = 0
-        while i < total do
+        while i < total
             self.fb[i * 3] = r
             self.fb[i * 3 + 1] = g
             self.fb[i * 3 + 2] = b
@@ -564,7 +564,7 @@ func rasterizeMesh(Mesh mesh, Mat4 mvp, Mat4 modelMat, RenderTarget rt, Vec3 lig
     int height = rt.height
     int triCount = mesh.triCount()
     int t = 0
-    while t < triCount do
+    while t < triCount
         int base = t * 3
         int i0 = mesh.tris[base]
         int i1 = mesh.tris[base + 1]
@@ -676,10 +676,10 @@ func rasterizeMesh(Mesh mesh, Mat4 mvp, Mat4 modelMat, RenderTarget rt, Vec3 lig
 
         // 逐像素光栅化（重心坐标）
         int py = minY
-        while py <= maxY do
+        while py <= maxY
             float pyc = float(py) + 0.5
             int px = minX
-            while px <= maxX do
+            while px <= maxX
                 float pxc = float(px) + 0.5
                 // 重心坐标（边函数）
                 float w0c = ((sx1f - pxc) * (sy2f - pyc) - (sy1f - pyc) * (sx2f - pxc)) * invArea
@@ -716,10 +716,10 @@ func writePpm(string path, RenderTarget rt)
     lines.append("255")
     int total = rt.width * rt.height
     int i = 0
-    while i < total do
+    while i < total
         string rowLine = ""
         int x = 0
-        while x < rt.width do
+        while x < rt.width
             int idx = (i + x) * 3
             int r = rt.fb[idx]
             int g = rt.fb[idx + 1]
@@ -746,7 +746,7 @@ func countNonBg(RenderTarget rt, int bgR, int bgG, int bgB) as int
     int total = rt.width * rt.height
     int count = 0
     int i = 0
-    while i < total do
+    while i < total
         int r = rt.fb[i * 3]
         int g = rt.fb[i * 3 + 1]
         int b = rt.fb[i * 3 + 2]
@@ -775,7 +775,7 @@ func parseArgInt(string s, int defValue) as int
         end
     end
     int i = start
-    while i < string.len(s) do
+    while i < string.len(s)
         string ch = string.slice(s, i, 1)
         if string.indexOf("0123456789", ch) < 0 then
             return defValue
@@ -888,7 +888,7 @@ func cmdBench(int width, int height) as int
 
     // 两轮：预热 + 计时
     int which = 0
-    while which < 2 do
+    while which < 2
         Mesh mesh
         Mat4 model
         mesh, model = buildScene(2)
@@ -996,7 +996,7 @@ func cmdTest() as int
     Mat4 produced = ident.mul(ident)
     bool identOk = true
     int i = 0
-    while i < 16 do
+    while i < 16
         float expect = 0.0
         if i == 0 or i == 5 or i == 10 or i == 15 then
             expect = 1.0

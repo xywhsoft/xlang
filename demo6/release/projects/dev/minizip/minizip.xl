@@ -60,10 +60,10 @@ array<int> gCrcTable = array[]
 
 func initCrcTable()
     int i = 0
-    while i < 256 do
+    while i < 256
         int c = i
         int j = 0
-        while j < 8 do
+        while j < 8
             if (c & 1) != 0 then
                 c = (c >> 1) ^ 0xEDB88320
             else
@@ -79,7 +79,7 @@ end
 func crc32Buf(Buffer buf, int n) as int
     int crc = 0xFFFFFFFF
     int i = 0
-    while i < n do
+    while i < n
         int idx = (crc ^ buf.byteAt(i)) & 0xFF
         crc = (crc >> 8) ^ gCrcTable[idx]
         i += 1
@@ -91,7 +91,7 @@ func crc32Arr(array<int> data) as int
     int crc = 0xFFFFFFFF
     int n = data.length
     int i = 0
-    while i < n do
+    while i < n
         int idx = (crc ^ data[i]) & 0xFF
         crc = (crc >> 8) ^ gCrcTable[idx]
         i += 1
@@ -119,25 +119,25 @@ func lz77Compress(Buffer input) as array<int>
     array<int> head = array[]
     array<int> prevArr = array[]
     int hi = 0
-    while hi < HASH_SIZE do
+    while hi < HASH_SIZE
         head.push(-1)
         hi += 1
     end
     int pi = 0
-    while pi < WINDOW_SIZE do
+    while pi < WINDOW_SIZE
         prevArr.push(-1)
         pi += 1
     end
 
     int pos = 0
-    while pos < n do
+    while pos < n
         // Reserve flag byte slot; fill after block completes
         int flagPos = outputValue.length
         outputValue.push(0)
         int flagByte = 0
         int bits = 0
 
-        while bits < 8 and pos < n do
+        while bits < 8 and pos < n
             int bestOff = 0
             int bestLen = 0
 
@@ -155,7 +155,7 @@ func lz77Compress(Buffer input) as array<int>
                     maxLen = n - pos
                 end
 
-                while candidate >= 0 and candidate >= windowStart and chain < MAX_CHAIN do
+                while candidate >= 0 and candidate >= windowStart and chain < MAX_CHAIN
                     // Quick reject: if we already have a match, the byte
                     // at candidate+bestLen must also match
                     if bestLen > 0 then
@@ -168,7 +168,7 @@ func lz77Compress(Buffer input) as array<int>
 
                     // Compare bytes
                     int ml = 0
-                    while ml < maxLen and input.byteAt(candidate + ml) == input.byteAt(pos + ml) do
+                    while ml < maxLen and input.byteAt(candidate + ml) == input.byteAt(pos + ml)
                         ml += 1
                     end
 
@@ -196,7 +196,7 @@ func lz77Compress(Buffer input) as array<int>
 
                 // Insert hash entries for all matched positions
                 int ip = pos
-                while ip < pos + bestLen do
+                while ip < pos + bestLen
                     if ip + MIN_MATCH <= n then
                         int ih = hash3(input.byteAt(ip), input.byteAt(ip + 1), input.byteAt(ip + 2))
                         prevArr[ip & WINDOW_MASK] = head[ih]
@@ -241,12 +241,12 @@ func lz77Decompress(array<int> compressed, int originalSize) as array<int>
     int ci = 0
     int cn = compressed.length
 
-    while ci < cn and outputValue.length < originalSize do
+    while ci < cn and outputValue.length < originalSize
         int flag = compressed[ci]
         ci += 1
         int bit = 7
 
-        while bit >= 0 and ci < cn and outputValue.length < originalSize do
+        while bit >= 0 and ci < cn and outputValue.length < originalSize
             if ((flag >> bit) & 1) != 0 then
                 // Match token (2 bytes)
                 int b0 = compressed[ci]
@@ -259,7 +259,7 @@ func lz77Decompress(array<int> compressed, int originalSize) as array<int>
 
                 int srcPos = outputValue.length - offset
                 int k = 0
-                while k < length and outputValue.length < originalSize do
+                while k < length and outputValue.length < originalSize
                     outputValue.push(outputValue[srcPos + k])
                     k += 1
                 end
@@ -290,7 +290,7 @@ end
 func readName(Buffer buf, int pos, int nameLen) as string
     Buffer nb = Buffer()
     int i = 0
-    while i < nameLen do
+    while i < nameLen
         nb.appendByte(buf.byteAt(pos + i))
         i += 1
     end
@@ -300,7 +300,7 @@ end
 func extractBytes(Buffer buf, int pos, int count) as array<int>
     array<int> result = array[]
     int i = 0
-    while i < count do
+    while i < count
         result.push(buf.byteAt(pos + i))
         i += 1
     end
@@ -366,7 +366,7 @@ func buildArchive(array<string> files) as array<int>
     outputValue.push(0)
 
     int fi = 0
-    while fi < fileCount do
+    while fi < fileCount
         string filePath = files[fi]
         Buffer data = file.readBytes(filePath)
         int origSize = data.len()
@@ -394,7 +394,7 @@ func buildArchive(array<string> files) as array<int>
 
         // Name bytes
         int ni = 0
-        while ni < nameLen do
+        while ni < nameLen
             outputValue.push(string.byteAt(name, ni))
             ni += 1
         end
@@ -423,14 +423,14 @@ func buildArchive(array<string> files) as array<int>
         // Data bytes
         if method == METHOD_LZSS then
             int ci = 0
-            while ci < compSize do
+            while ci < compSize
                 outputValue.push(compressed[ci])
                 ci += 1
             end
         else
             // Stored: raw original bytes
             int bi = 0
-            while bi < origSize do
+            while bi < origSize
                 outputValue.push(data.byteAt(bi))
                 bi += 1
             end
@@ -482,7 +482,7 @@ func cmdCompress(string inputPath, string outputPath) as int
     arch.push(nameLen & 0xFF)
     arch.push((nameLen >> 8) & 0xFF)
     int ni = 0
-    while ni < nameLen do
+    while ni < nameLen
         arch.push(string.byteAt(name, ni))
         ni += 1
     end
@@ -501,13 +501,13 @@ func cmdCompress(string inputPath, string outputPath) as int
     arch.push((crc >> 24) & 0xFF)
     if method == METHOD_LZSS then
         int ci = 0
-        while ci < compSize do
+        while ci < compSize
             arch.push(compressed[ci])
             ci += 1
         end
     else
         int bi = 0
-        while bi < origSize do
+        while bi < origSize
             arch.push(data.byteAt(bi))
             bi += 1
         end
@@ -516,7 +516,7 @@ func cmdCompress(string inputPath, string outputPath) as int
     // Write archive
     Buffer outBuf = Buffer()
     int oi = 0
-    while oi < arch.length do
+    while oi < arch.length
         outBuf.appendByte(arch[oi])
         oi += 1
     end
@@ -592,7 +592,7 @@ func cmdDecompress(string inputPath, string outputPath) as int
     // Write output
     Buffer outBuf = Buffer()
     int oi = 0
-    while oi < origData.length do
+    while oi < origData.length
         outBuf.appendByte(origData[oi])
         oi += 1
     end
@@ -618,7 +618,7 @@ end
 func cmdArchiveCreate(string archivePath, array<string> files) as int
     // Pre-validate all files exist
     int fi = 0
-    while fi < files.length do
+    while fi < files.length
         if not file.exists(files[fi]) then
             println("minizip: file not found: " + files[fi])
             return 1
@@ -630,7 +630,7 @@ func cmdArchiveCreate(string archivePath, array<string> files) as int
 
     Buffer outBuf = Buffer()
     int oi = 0
-    while oi < arch.length do
+    while oi < arch.length
         outBuf.appendByte(arch[oi])
         oi += 1
     end
@@ -646,12 +646,12 @@ func cmdArchiveCreate(string archivePath, array<string> files) as int
     println("  " + string.padRight("#", 4) + string.padRight("name", 28) + string.padRight("method", 8) + string.padRight("original", 12) + string.padRight("stored", 12) + "ratio")
 
     fi = 0
-    while fi < fileCount do
+    while fi < fileCount
         int nameLen = arch[pos] | (arch[pos + 1] << 8)
         pos += 2
         Buffer nb = Buffer()
         int ni = 0
-        while ni < nameLen do
+        while ni < nameLen
             nb.appendByte(arch[pos + ni])
             ni += 1
         end
@@ -712,7 +712,7 @@ func cmdArchiveList(string archivePath) as int
     int totalOrig = 0
     int totalStored = 0
     int fi = 0
-    while fi < fileCount do
+    while fi < fileCount
         int nameLen = readU16(buf, pos)
         pos += 2
         string nm = readName(buf, pos, nameLen)
@@ -766,7 +766,7 @@ func cmdArchiveExtract(string archivePath) as int
     println("minizip: extracting from " + archivePath)
     int extracted = 0
     int fi = 0
-    while fi < fileCount do
+    while fi < fileCount
         int nameLen = readU16(buf, pos)
         pos += 2
         string nm = readName(buf, pos, nameLen)
@@ -796,7 +796,7 @@ func cmdArchiveExtract(string archivePath) as int
         // Write file
         Buffer outBuf = Buffer()
         int oi = 0
-        while oi < origData.length do
+        while oi < origData.length
             outBuf.appendByte(origData[oi])
             oi += 1
         end
@@ -846,7 +846,7 @@ func verifyRoundtrip(Buffer data, string label) as int
         println("  length mismatch: " + string(decompressed.length) + " vs " + string(origSize))
     else
         int i = 0
-        while i < origSize do
+        while i < origSize
             if decompressed[i] != data.byteAt(i) then
                 match = false
                 println("  byte mismatch at offset " + string(i) + ": " + string(decompressed[i]) + " vs " + string(data.byteAt(i)))
@@ -881,7 +881,7 @@ end
 func cmdSelfTest() as int
     Buffer fixture = Buffer()
     int i = 0
-    while i < 64 do
+    while i < 64
         fixture.append("xlang LZSS roundtrip: 你好, compression!\n")
         i += 1
     end
@@ -916,7 +916,7 @@ func cmdBench(string inputPath, int iterations) as int
     // Benchmark compress
     float tStart = time.timer()
     int ci = 0
-    while ci < iterations do
+    while ci < iterations
         warmCompressed = lz77Compress(data)
         ci += 1
     end
@@ -931,7 +931,7 @@ func cmdBench(string inputPath, int iterations) as int
     // Benchmark decompress
     tStart = time.timer()
     int di = 0
-    while di < iterations do
+    while di < iterations
         array<int> dec = lz77Decompress(warmCompressed, origSize)
         di += 1
     end
@@ -974,7 +974,7 @@ func looksInt(string s) as bool
         return false
     end
     int i = 0
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -1022,7 +1022,7 @@ func main(...) as int
             end
             array<string> files = array[]
             int i = 4
-            while i < arg.length do
+            while i < arg.length
                 files.push(string(arg[i]))
                 i += 1
             end

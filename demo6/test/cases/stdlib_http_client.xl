@@ -159,7 +159,7 @@ HttpClientResponse secondResp = secondReq.execute(client)
 HttpDiagnostics secondDiag = secondResp.diagnostics()
 int cookieCount = 0
 int headerIndex = 0
-while headerIndex < secondResp.headerCount() do
+while headerIndex < secondResp.headerCount()
     if secondResp.headerName(headerIndex) == "Set-Cookie" then
         string cookieValue = secondResp.headerValue(headerIndex)
         if cookieValue == "a=1" or cookieValue == "b=2" then

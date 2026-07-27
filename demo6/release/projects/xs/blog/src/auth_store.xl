@@ -134,7 +134,7 @@ export func auditLog(point handle, int limit = 100) as array
     if statement == null then return rows end
     db.bindInt(statement, 1, limit)
     int code = db.step(statement)
-    while code == sqlite.SQLITE_ROW do
+    while code == sqlite.SQLITE_ROW
         rows.append(db.row(statement))
         code = db.step(statement)
     end

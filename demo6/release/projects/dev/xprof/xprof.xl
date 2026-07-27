@@ -69,7 +69,7 @@ const int __XP_SAMPLE_MS = 2
 const int __XP_MAX_SAMPLES = 200000
 
 func __xp_sampler() as int
-    while true do
+    while true
         time.sleep(__XP_SAMPLE_MS)
         __xp_mu.lock()
         if __xp_stop then
@@ -80,7 +80,7 @@ func __xp_sampler() as int
             var snap = []
             int nn = __xp_names.length
             int ii = 0
-            while ii < nn do
+            while ii < nn
                 snap.push(__xp_names[ii])
                 ii += 1
             end
@@ -164,7 +164,7 @@ func __xprof_dump()
     end
     var samps = []
     int si = 0
-    while si < __xp_samples.length do
+    while si < __xp_samples.length
         samps.push(__xp_samples[si])
         si += 1
     end
@@ -292,7 +292,7 @@ func leadingWS(string s) as string
     string ws = ""
     int i = 0
     int n = string.len(s)
-    while i < n do
+    while i < n
         string c = string.mid(s, i, 1)
         if c == " " or c == "\t" then
             ws = ws + c
@@ -306,7 +306,7 @@ end
 
 func padR(string s, int w) as string
     string r = s
-    while string.len(r) < w do
+    while string.len(r) < w
         r = r + " "
     end
     return r
@@ -314,7 +314,7 @@ end
 
 func padL(string s, int w) as string
     string r = s
-    while string.len(r) < w do
+    while string.len(r) < w
         r = " " + r
     end
     return r
@@ -393,7 +393,7 @@ func findFuncEnd(array<string> lines, int startLine1) as int
     end
     string findent = leadingWS(lines[startLine1 - 1])
     int i = startLine1 + 1
-    while i <= lines.length do
+    while i <= lines.length
         string ln = lines[i - 1]
         if leadingWS(ln) == findent and string.trim(ln) == "end" then
             return i
@@ -546,7 +546,7 @@ func instrumentFile(string src, var root) as string
 
     string outputValue = XP_RUNTIME + "\n"
     int i = 1
-    while i <= lines.length do
+    while i <= lines.length
         string key = string(i)
         if ins.contains(key) then
             var arr = ins[key]
@@ -608,10 +608,10 @@ func renderHotspots(var root) as string
     // 按 selfTime 降序（选择排序，函数数量通常不大）
     int n = rows.length
     int a = 0
-    while a < n do
+    while a < n
         int best = a
         int b = a + 1
-        while b < n do
+        while b < n
             if rows[b].selft > rows[best].selft then
                 best = b
             end
@@ -664,7 +664,7 @@ func renderHotspots(var root) as string
         for snap in samps
             int i = 0
             int L = snap.length
-            while i + 1 < L do
+            while i + 1 < L
                 string ca = string(snap[i])
                 string ce = string(snap[i + 1])
                 string key = ca + ">" + ce
@@ -692,10 +692,10 @@ func renderHotspots(var root) as string
     // 按次数降序
     int en = eds.length
     int ea = 0
-    while ea < en do
+    while ea < en
         int best = ea
         int eb = ea + 1
-        while eb < en do
+        while eb < en
             if eds[eb].count > eds[best].count then best = eb end
             eb += 1
         end
@@ -724,7 +724,7 @@ end
 func flameChild(var parent, string nm) as var
     var kids = parent.kids
     int ki = 0
-    while ki < kids.length do
+    while ki < kids.length
         if kids[ki].name == nm then return kids[ki] end
         ki += 1
     end
@@ -733,7 +733,7 @@ end
 
 // 把火焰树按深度铺到 rows（var array of var array of var dict nodes）
 func flameLay(var rows, var node, int depth)
-    while rows.length <= depth do
+    while rows.length <= depth
         var empty = []
         rows.push(empty)
     end
@@ -741,7 +741,7 @@ func flameLay(var rows, var node, int depth)
     row.push(node)
     var kids = node["kids"]
     int ki = 0
-    while ki < kids.length do
+    while ki < kids.length
         flameLay(rows, kids[ki], depth + 1)
         ki += 1
     end
@@ -762,7 +762,7 @@ func flameBox(string name, int w) as string
     if string.len(inner) > w then
         inner = string.left(inner, w)
     else
-        while string.len(inner) < w do
+        while string.len(inner) < w
             inner = inner + " "
         end
     end
@@ -793,12 +793,12 @@ func renderFlame(var root) as string
         cur["count"] = int(cur["count"]) + 1
         int i = 0
         int L = snap.length
-        while i < L do
+        while i < L
             string nm = string(snap[i])
             var kids = cur["kids"]
             int ki = 0
             var found = null
-            while ki < kids.length do
+            while ki < kids.length
                 if kids[ki]["name"] == nm then
                     found = kids[ki]
                 end
@@ -830,11 +830,11 @@ func renderFlame(var root) as string
     int maxD = rows.length - 1
     if maxD > 25 then maxD = 25 end
     int d = 0
-    while d <= maxD do
+    while d <= maxD
         var row = rows[d]
         string line = ""
         int ri = 0
-        while ri < row.length do
+        while ri < row.length
             var nd = row[ri]
             int w = flameWidth(int(nd["count"]), totalCnt, W)
             line = line + flameBox(string(nd["name"]), w)
@@ -954,7 +954,7 @@ func cmdTest() as int
     tcheck(endA == 6, "findFuncEnd: skips nested if-end, matches func end", "got " + string(endA))
 
     // --- 2. 插桩（需要 xl.exe）---
-    string sample = "func add(int a, int b) as int\n    return a + b\nend\n\nfunc main(...) as int\n    int s = 0\n    int i = 0\n    while i < 5 do\n        s = s + add(i, i)\n        i += 1\n    end\n    return 0\nend\n"
+    string sample = "func add(int a, int b) as int\n    return a + b\nend\n\nfunc main(...) as int\n    int s = 0\n    int i = 0\n    while i < 5\n        s = s + add(i, i)\n        i += 1\n    end\n    return 0\nend\n"
     string tmpXl = path.join(path.temp(), path.random("xprof_", ".xl"))
     string out2 = instrumentSource(sample, tmpXl)
     if string.len(out2) == 0 then

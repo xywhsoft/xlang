@@ -27,7 +27,7 @@ func jsonEscape(string s) as string
     string outputValue = ""
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if c == "\"" then
             outputValue = outputValue + "\\\""
@@ -90,7 +90,7 @@ func csvToJson(string text) as string
     int fieldIndex = 0
 
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(text, i)
 
         if inQuotes then
@@ -225,7 +225,7 @@ func jsonToCsv(string text) as string
     // Header row.
     string output = ""
     int h = 0
-    while h < headerCount do
+    while h < headerCount
         if h > 0 then
             output = output + ","
         end
@@ -236,10 +236,10 @@ func jsonToCsv(string text) as string
 
     // Data rows. Missing keys coerce to empty strings via string(null).
     int r = 0
-    while r < data.length do
+    while r < data.length
         var obj = data[r]
         int h2 = 0
-        while h2 < headerCount do
+        while h2 < headerCount
             if h2 > 0 then
                 output = output + ","
             end
@@ -266,7 +266,7 @@ func prettyJson(string compact) as string
     int indent = 0
     bool inStr = false
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(compact, i)
         if inStr then
             outputValue = outputValue + c

@@ -100,7 +100,7 @@ func parseIntArray(string text) as array<int>
     bool hasDigit = false
     int sign = 1
     int64 acc = 0
-    while i < n do
+    while i < n
         int b = string.byteAt(text, i)
         bool isDigit = false
         if b >= 48 and b <= 57 then
@@ -191,7 +191,7 @@ class SegTree
         end
         int size = 4 * dn + 5
         int k = 0
-        while k < size do
+        while k < size
             self.tree.push(0)
             self.lazy.push(0)
             k = k + 1
@@ -365,7 +365,7 @@ func saveState(string p, int op, array<int> data) as bool
     var arr = []
     int i = 0
     int dn = data.length
-    while i < dn do
+    while i < dn
         arr.push(data[i])
         i = i + 1
     end
@@ -417,7 +417,7 @@ func cmdBuild(array<string> arg) as int
     // 收集 arg[2..]
     var toks = []
     int ti = 2
-    while ti < arg.length do
+    while ti < arg.length
         toks.push(string(arg[ti]))
         ti = ti + 1
     end
@@ -430,7 +430,7 @@ func cmdBuild(array<string> arg) as int
     int op = OP_SUM
     var rest = []
     int ri = 0
-    while ri < toks.length do
+    while ri < toks.length
         string t = string(toks[ri])
         string tl = string.lower(t)
         if tl == "sum" or tl == "max" or tl == "min" then
@@ -452,7 +452,7 @@ func cmdBuild(array<string> arg) as int
         data = parseIntArray(text)
     else
         int di = 0
-        while di < rest.length do
+        while di < rest.length
             data.push(int(string(rest[di])))
             di = di + 1
         end
@@ -508,7 +508,7 @@ func cmdQuery(array<string> arg) as int
     array<int> data = array[]
     int dn = darr.length
     int i = 0
-    while i < dn do
+    while i < dn
         data.push(int(darr[i]))
         i = i + 1
     end
@@ -540,7 +540,7 @@ func cmdUpdate(array<string> arg) as int
     array<int> data = array[]
     int dn = darr.length
     int i = 0
-    while i < dn do
+    while i < dn
         data.push(int(darr[i]))
         i = i + 1
     end
@@ -580,7 +580,7 @@ func cmdUpdateRange(array<string> arg) as int
     array<int> data = array[]
     int dn = darr.length
     int i = 0
-    while i < dn do
+    while i < dn
         data.push(int(darr[i]))
         i = i + 1
     end
@@ -596,7 +596,7 @@ func cmdUpdateRange(array<string> arg) as int
     tree.updateRange(l, r, val)
     // 同步源数组（区间加），落盘保持一致
     int j = l
-    while j <= r do
+    while j <= r
         data[j] = data[j] + val
         j = j + 1
     end
@@ -668,7 +668,7 @@ end
 func naiveQuery(array<int> a, int op, int l, int r) as int
     int res = identityOf(op)
     int i = l
-    while i <= r do
+    while i <= r
         res = mergeVal(op, res, a[i])
         i = i + 1
     end
@@ -778,7 +778,7 @@ func randStress(int op, string label) as int
     int ROUNDS = 1500
     array<int> data = array[]
     int i = 0
-    while i < N do
+    while i < N
         data.push(randInt(0 - 50, 50))
         i = i + 1
     end
@@ -788,7 +788,7 @@ func randStress(int op, string label) as int
     int checked = 0
     int mism = 0
     int r = 0
-    while r < ROUNDS do
+    while r < ROUNDS
         int kind = randNext() % 3
         if kind == 0 then
             // query
@@ -829,7 +829,7 @@ func randStress(int op, string label) as int
             int add = randInt(0 - 10, 10)
             tree.updateRange(l, rr, add)
             int k = l
-            while k <= rr do
+            while k <= rr
                 data[k] = data[k] + add
                 k = k + 1
             end
@@ -865,7 +865,7 @@ func main(...) as int
 // main 负责把命令行参数整理为 array<string>，再传给各子命令。
     array<string> args = array[]
     int ai = 0
-    while ai < arg.length do
+    while ai < arg.length
         args.push(string(arg[ai]))
         ai = ai + 1
     end

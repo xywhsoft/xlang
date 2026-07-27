@@ -109,7 +109,7 @@ export func row(point statement) as var
     var value = {}
     int count = sqlite.sqlite3_column_count(statement)
     int index = 0
-    while index < count do
+    while index < count
         string name = sqlite.sqlite3_column_name(statement, index)
         int kind = sqlite.sqlite3_column_type(statement, index)
         if kind == sqlite.SQLITE_INTEGER then
@@ -131,7 +131,7 @@ export func query(point handle, string sql) as array
     point statement = prepare(handle, sql)
     if statement == null then return rows end
     int code = step(statement)
-    while code == sqlite.SQLITE_ROW do
+    while code == sqlite.SQLITE_ROW
         rows.append(row(statement))
         code = step(statement)
     end

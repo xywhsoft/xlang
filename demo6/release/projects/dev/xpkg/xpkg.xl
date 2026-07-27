@@ -85,7 +85,7 @@ end
 func bestVersion(var versions, string range) as string
     string best = ""
     int i = 0
-    while i < versions.length do
+    while i < versions.length
         string v = string(versions[i])
         if matchRange(v, range) then
             if best == "" or cmpVer(v, best) > 0 then
@@ -110,14 +110,14 @@ func initRegistry(string regPath)
     if not dir.exists(regPath) then return end
     array pkgs = dir.list(regPath, false)
     int i = 0
-    while i < pkgs.length do
+    while i < pkgs.length
         string pkgDir = string(pkgs[i])
         if dir.exists(pkgDir) then
             array versions = dir.list(pkgDir, false)
             int j = 0
             string pkgName = path.name(pkgDir)
             var verList = []
-            while j < versions.length do
+            while j < versions.length
                 string verDir = string(versions[j])
                 string manifestPath = path.join(verDir, "xpkg.json")
                 if file.exists(manifestPath) then
@@ -168,7 +168,7 @@ func resolveDeps(var deps, string parentName)
         n += 1
     end
     int i = 0
-    while i < n do
+    while i < n
         string depName = string(keys[i])
         string range = string(deps[depName])
         var versions = getVersions(depName)
@@ -199,7 +199,7 @@ end
 
 func findInstalled(string name) as int
     int i = 0
-    while i < g_resolvedNames.length do
+    while i < g_resolvedNames.length
         if string(g_resolvedNames[i]) == name then return i end
         i += 1
     end
@@ -211,12 +211,12 @@ func topoSort() as array<string>
     array<int> visited = []
     array<string> order = []
     int i = 0
-    while i < n do
+    while i < n
         visited.append(0)
         i += 1
     end
     i = 0
-    while i < n do
+    while i < n
         if visited[i] == 0 then
             topoVisit(i, visited, order)
         end
@@ -282,7 +282,7 @@ func cmdInstall() as int
 
     println("Resolved", g_resolveCount, "packages:")
     int i = 0
-    while i < order.length do
+    while i < order.length
         println("  " + string(order[i]))
         i += 1
     end
@@ -290,7 +290,7 @@ func cmdInstall() as int
     string lockContent = "{\n"
     lockContent = lockContent + '  "packages": [\n'
     i = 0
-    while i < g_resolvedNames.length do
+    while i < g_resolvedNames.length
         string comma = i < g_resolvedNames.length - 1 ? "," : ""
         lockContent = lockContent + '    {"name":"' + string(g_resolvedNames[i]) + '","version":"' + string(g_resolvedVersions[i]) + '"}' + comma + '\n'
         i += 1
@@ -317,7 +317,7 @@ func cmdList() as int
     int n = pkgs.length
     println("Installed packages (" + string(n) + "):")
     int i = 0
-    while i < n do
+    while i < n
         var pkg = pkgs[i]
         println("  " + string(pkg["name"]) + " @ " + string(pkg["version"]))
         i += 1
@@ -338,7 +338,7 @@ func cmdTree() as int
         if pkgs == null then return 0 end
         int n = pkgs.length
         int i = 0
-        while i < n do
+        while i < n
             var pkg = pkgs[i]
             println(string(pkg["name"]) + "@" + string(pkg["version"]))
             i += 1
@@ -346,7 +346,7 @@ func cmdTree() as int
         return 0
     end
     int i = 0
-    while i < g_resolvedNames.length do
+    while i < g_resolvedNames.length
         string parent = string(g_resolvedDeps[i])
         string prefix = parent == "root" ? "" : "  (via " + parent + ")"
         println("  " + string(g_resolvedNames[i]) + "@" + string(g_resolvedVersions[i]) + prefix)

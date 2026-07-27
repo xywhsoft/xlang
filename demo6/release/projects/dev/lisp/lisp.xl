@@ -44,7 +44,7 @@ func isIntLit(string s) as bool
             return false
         end
     end
-    while i < n do
+    while i < n
         if not isDigitByte(string.byteAt(s, i)) then
             return false
         end
@@ -66,7 +66,7 @@ func isFloatLit(string s) as bool
     if b0 == 45 or b0 == 43 then
         i = 1
     end
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if isDigitByte(b) then
             hasDigit = true
@@ -177,12 +177,12 @@ class Reader
 
     // 跳过空白与 ; 行注释。
     func skipWs()
-        while self.pos < self.len do
+        while self.pos < self.len
             string c = string.charAt(self.src, self.pos)
             if c == " " or c == "\t" or c == "\r" or c == "\n" then
                 self.pos += 1
             elseif c == ";" then
-                while self.pos < self.len do
+                while self.pos < self.len
                     string cc = string.charAt(self.src, self.pos)
                     if cc == "\n" then
                         break
@@ -212,7 +212,7 @@ class Reader
     func readString() as var
         self.pos += 1
         string outputValue = ""
-        while self.pos < self.len do
+        while self.pos < self.len
             string c = string.charAt(self.src, self.pos)
             if c == "\"" then
                 self.pos += 1
@@ -249,7 +249,7 @@ class Reader
     // 读取一个原子 token 并分类。
     func readAtom() as var
         string tok = ""
-        while self.pos < self.len do
+        while self.pos < self.len
             string c = string.charAt(self.src, self.pos)
             if self.atDelim(c) then
                 break
@@ -263,7 +263,7 @@ class Reader
     // 读取一个列表（已消耗起始 '('）。空列表返回 null（即 nil）。
     func readList() as var
         var items = []
-        while true do
+        while true
             self.skipWs()
             if self.pos >= self.len then
                 throw "lisp: unexpected EOF in list"
@@ -321,7 +321,7 @@ class Reader
     // 读取全部顶层表达式，返回一个 var 数组。
     func readAll() as var
         var forms = []
-        while true do
+        while true
             self.skipWs()
             if self.pos >= self.len then
                 break
@@ -346,9 +346,9 @@ end
 // 向上查找变量；找不到抛异常。
 func envLookup(EnvFrame env, string name) as var
     EnvFrame frame = env
-    while frame != null do
+    while frame != null
         int i = frame.names.length - 1
-        while i >= 0 do
+        while i >= 0
             if frame.names[i] == name then
                 return frame.values[i]
             end
@@ -362,9 +362,9 @@ end
 // set!：找到已有绑定并更新；找不到抛异常。
 func envSet(EnvFrame env, string name, var val)
     EnvFrame frame = env
-    while frame != null do
+    while frame != null
         int i = frame.names.length - 1
-        while i >= 0 do
+        while i >= 0
             if frame.names[i] == name then
                 frame.values[i] = val
                 return
@@ -423,7 +423,7 @@ func quoteStr(string s) as string
     string outputValue = "\""
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if c == "\"" then
             outputValue = outputValue + "\\\""
@@ -451,7 +451,7 @@ func listToStr(var lst, bool useWrite) as string
     end
     string outputValue = "("
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             outputValue = outputValue + " "
         end
@@ -520,7 +520,7 @@ end
 func evalSeq(var seq, int start, int endIdx, EnvFrame env) as var
     var result = null
     int i = start
-    while i < endIdx do
+    while i < endIdx
         result = eval(seq[i], env)
         i += 1
     end
@@ -535,7 +535,7 @@ func makeClosure(var paramsRaw, var body, EnvFrame env) as var
     if paramsRaw is array<var> then
         n = paramsRaw.length
     end
-    while i < n do
+    while i < n
         Sym p = paramsRaw[i] as Sym
         names.push(p.name)
         i += 1
@@ -569,14 +569,14 @@ func evalDefine(var expr, EnvFrame env) as var
         var pnames = []
         int j = 1
         int tn = target.length
-        while j < tn do
+        while j < tn
             pnames.push(target[j])
             j += 1
         end
         var body = []
         int k = 2
         int en = expr.length
-        while k < en do
+        while k < en
             body.push(expr[k])
             k += 1
         end
@@ -599,7 +599,7 @@ func evalLambda(var expr, EnvFrame env) as var
     var body = []
     int k = 2
     int n = expr.length
-    while k < n do
+    while k < n
         body.push(expr[k])
         k += 1
     end
@@ -614,7 +614,7 @@ func evalLet(var expr, EnvFrame env) as var
         nb = bindings.length
     end
     int b = 0
-    while b < nb do
+    while b < nb
         var binding = bindings[b]
         Sym vn = binding[0] as Sym
         var vv = eval(binding[1], env)
@@ -627,7 +627,7 @@ end
 func evalCond(var expr, EnvFrame env) as var
     int c = 1
     int n = expr.length
-    while c < n do
+    while c < n
         var clause = expr[c]
         var test = clause[0]
         bool isElse = false
@@ -659,7 +659,7 @@ func evalAnd(var expr, EnvFrame env) as var
     end
     var result = true
     int i = 1
-    while i < n do
+    while i < n
         result = eval(expr[i], env)
         if isTruthy(result) then
             // 继续
@@ -674,7 +674,7 @@ end
 func evalOr(var expr, EnvFrame env) as var
     int n = expr.length
     int i = 1
-    while i < n do
+    while i < n
         var result = eval(expr[i], env)
         if isTruthy(result) then
             return result
@@ -737,7 +737,7 @@ func eval(var expr, EnvFrame env) as var
             int np = params.length
             int ai = 1
             int pi = 0
-            while pi < np do
+            while pi < np
                 string pname = string(params[pi])
                 if ai < n then
                     callEnv.bind(pname, eval(expr[ai], env))
@@ -753,7 +753,7 @@ func eval(var expr, EnvFrame env) as var
             Builtin b = fn as Builtin
             var args = []
             int i = 1
-            while i < n do
+            while i < n
                 args.push(eval(expr[i], env))
                 i += 1
             end
@@ -800,7 +800,7 @@ func applyClosure(Closure c, var args) as var
     int np = params.length
     int na = args.length
     int i = 0
-    while i < np do
+    while i < np
         string pname = string(params[i])
         if i < na then
             callEnv.bind(pname, args[i])
@@ -837,7 +837,7 @@ func argsAllInt(var args, string op) as bool
     bool allInt = true
     int n = args.length
     int i = 0
-    while i < n do
+    while i < n
         var a = args[i]
         if a is int then
             // ok
@@ -943,7 +943,7 @@ func deepEqual(var a, var b) as bool
                 return false
             end
             int i = 0
-            while i < na do
+            while i < na
                 if not deepEqual(a[i], b[i]) then
                     return false
                 end
@@ -964,7 +964,7 @@ func applyBuiltin(string name, var args) as var
         if argsAllInt(args, "+") then
             int sum = 0
             int i = 0
-            while i < n do
+            while i < n
                 sum = sum + int(args[i])
                 i += 1
             end
@@ -972,7 +972,7 @@ func applyBuiltin(string name, var args) as var
         end
         float fsum = 0.0
         int i = 0
-        while i < n do
+        while i < n
             fsum = fsum + toFloat(args[i])
             i += 1
         end
@@ -989,7 +989,7 @@ func applyBuiltin(string name, var args) as var
             end
             int acc = int(args[0])
             int i = 1
-            while i < n do
+            while i < n
                 acc = acc - int(args[i])
                 i += 1
             end
@@ -1000,7 +1000,7 @@ func applyBuiltin(string name, var args) as var
         end
         float facc = toFloat(args[0])
         int i = 1
-        while i < n do
+        while i < n
             facc = facc - toFloat(args[i])
             i += 1
         end
@@ -1011,7 +1011,7 @@ func applyBuiltin(string name, var args) as var
         if argsAllInt(args, "*") then
             int prod = 1
             int i = 0
-            while i < n do
+            while i < n
                 prod = prod * int(args[i])
                 i += 1
             end
@@ -1019,7 +1019,7 @@ func applyBuiltin(string name, var args) as var
         end
         float fprod = 1.0
         int i = 0
-        while i < n do
+        while i < n
             fprod = fprod * toFloat(args[i])
             i += 1
         end
@@ -1036,7 +1036,7 @@ func applyBuiltin(string name, var args) as var
         end
         float facc = toFloat(args[0])
         int i = 1
-        while i < n do
+        while i < n
             float d = toFloat(args[i])
             facc = facc / d
             i += 1
@@ -1050,7 +1050,7 @@ func applyBuiltin(string name, var args) as var
         end
         argsAllInt(args, "=")
         int i = 1
-        while i < n do
+        while i < n
             if numCompare(args[0], args[i]) != 0 then
                 return false
             end
@@ -1062,7 +1062,7 @@ func applyBuiltin(string name, var args) as var
     if name == "<" then
         argsAllInt(args, "<")
         int i = 0
-        while i < n - 1 do
+        while i < n - 1
             if numCompare(args[i], args[i + 1]) >= 0 then
                 return false
             end
@@ -1074,7 +1074,7 @@ func applyBuiltin(string name, var args) as var
     if name == ">" then
         argsAllInt(args, ">")
         int i = 0
-        while i < n - 1 do
+        while i < n - 1
             if numCompare(args[i], args[i + 1]) <= 0 then
                 return false
             end
@@ -1086,7 +1086,7 @@ func applyBuiltin(string name, var args) as var
     if name == "<=" then
         argsAllInt(args, "<=")
         int i = 0
-        while i < n - 1 do
+        while i < n - 1
             if numCompare(args[i], args[i + 1]) > 0 then
                 return false
             end
@@ -1098,7 +1098,7 @@ func applyBuiltin(string name, var args) as var
     if name == ">=" then
         argsAllInt(args, ">=")
         int i = 0
-        while i < n - 1 do
+        while i < n - 1
             if numCompare(args[i], args[i + 1]) < 0 then
                 return false
             end
@@ -1156,7 +1156,7 @@ func applyBuiltin(string name, var args) as var
             end
             var rest = []
             int i = 1
-            while i < m do
+            while i < m
                 rest.push(lst[i])
                 i += 1
             end
@@ -1176,7 +1176,7 @@ func applyBuiltin(string name, var args) as var
         if lst is array<var> then
             int m = lst.length
             int i = 0
-            while i < m do
+            while i < m
                 nl.push(lst[i])
                 i += 1
             end
@@ -1306,12 +1306,12 @@ func applyBuiltin(string name, var args) as var
     if name == "append" then
         var outputValue = []
         int i = 0
-        while i < n do
+        while i < n
             var a = args[i]
             if a is array<var> then
                 int m = a.length
                 int j = 0
-                while j < m do
+                while j < m
                     outputValue.push(a[j])
                     j += 1
                 end
@@ -1337,7 +1337,7 @@ func applyBuiltin(string name, var args) as var
             int m = lst.length
             var outputValue = []
             int i = m - 1
-            while i >= 0 do
+            while i >= 0
                 outputValue.push(lst[i])
                 i -= 1
             end
@@ -1359,7 +1359,7 @@ func applyBuiltin(string name, var args) as var
             var outputValue = []
             int m = lst.length
             int i = 0
-            while i < m do
+            while i < m
                 var one = []
                 one.push(lst[i])
                 outputValue.push(apply(f, one))
@@ -1383,7 +1383,7 @@ func applyBuiltin(string name, var args) as var
             var outputValue = []
             int m = lst.length
             int i = 0
-            while i < m do
+            while i < m
                 var one = []
                 one.push(lst[i])
                 var keep = apply(f, one)
@@ -1408,7 +1408,7 @@ func applyBuiltin(string name, var args) as var
         if lst is array<var> then
             int m = lst.length
             int i = 0
-            while i < m do
+            while i < m
                 var two = []
                 two.push(acc)
                 two.push(lst[i])
@@ -1440,7 +1440,7 @@ func runSource(string src, EnvFrame env)
     var forms = r.readAll()
     int n = forms.length
     int i = 0
-    while i < n do
+    while i < n
         eval(forms[i], env)
         i += 1
     end

@@ -496,11 +496,54 @@ function Is-XlangExpectedFailureCommand($line)
         [regex]::IsMatch($trimmed, '^build\\test\\[^ \t&|<>]+\.exe(\s|$)')
 }
 
-function Add-MatchesToSet($matches, $set)
+function Get-BatchLoopValues($records, $index, $variableName)
+{
+    $values = New-Object System.Collections.Generic.List[string]
+    $foundBodyStart = $false
+    $source = $records[$index].Source
+    $forPattern = '^for\s+%%{0}\s+in\s+\($' -f [regex]::Escape($variableName)
+
+    for ( $i = $index - 1; $i -ge 0; --$i ) {
+        if ( $records[$i].Source -ne $source ) {
+            break
+        }
+
+        $line = $records[$i].Text.Trim()
+        if ( ! $foundBodyStart ) {
+            if ( $line -eq ') do (' ) {
+                $foundBodyStart = $true
+            }
+            continue
+        }
+
+        if ( [regex]::IsMatch($line, $forPattern) ) {
+            $result = $values.ToArray()
+            [array]::Reverse($result)
+            return $result
+        }
+
+        if ( $line.Length -gt 0 ) {
+            if ( ! [regex]::IsMatch($line, '^[A-Za-z0-9_.-]+$') ) {
+                return @()
+            }
+            $values.Add($line)
+        }
+    }
+
+    return @()
+}
+
+function Add-MatchesToSet($matches, $set, $records, $index)
 {
     foreach ( $match in $matches ) {
         $name = $match.Groups[1].Value
-        if ( $name.Length -gt 0 ) {
+        $loopVariable = [regex]::Match($name, '%%([A-Za-z])')
+        if ( $loopVariable.Success ) {
+            $values = @(Get-BatchLoopValues $records $index $loopVariable.Groups[1].Value)
+            foreach ( $value in $values ) {
+                $set.Add($name.Replace($loopVariable.Value, $value)) | Out-Null
+            }
+        } elseif ( $name.Length -gt 0 -and ($name.IndexOf('%') -lt 0) ) {
             $set.Add($name) | Out-Null
         }
     }
@@ -517,7 +560,7 @@ function Get-PreviousCommandLine($lines, $index)
     return ""
 }
 
-function Has-LocalDiagnosticAssertion($lines, $index, $artifactNames)
+function Has-LocalDiagnosticAssertion($lines, $index, $artifactNames, $commandLine)
 {
     $max = [Math]::Min($lines.Count - 1, $index + 12)
     if ( $max -le $index ) {
@@ -527,6 +570,13 @@ function Has-LocalDiagnosticAssertion($lines, $index, $artifactNames)
     $window = $lines[($index + 1)..$max] -join "`n"
     foreach ( $name in $artifactNames ) {
         if ( $window.Contains($name) ) {
+            return $true
+        }
+    }
+
+    foreach ( $match in [regex]::Matches($commandLine, 'build\\test\\([^ \t&|<>]+)') ) {
+        $name = $match.Groups[1].Value
+        if ( $name.Contains('%%') -and $window.Contains($name) ) {
             return $true
         }
     }
@@ -558,8 +608,8 @@ for ( $i = 0; $i -lt $lines.Count; ++$i ) {
 
     $stderrNames = New-Object System.Collections.Generic.SortedSet[string]
     $stdoutNames = New-Object System.Collections.Generic.SortedSet[string]
-    Add-MatchesToSet ([regex]::Matches($commandLine, '2>\s*build\\test\\([^ \t&|<>]+)')) $stderrNames
-    Add-MatchesToSet ([regex]::Matches($commandLine, '(?<![0-9])>\s*build\\test\\([^ \t&|<>]+)')) $stdoutNames
+    Add-MatchesToSet ([regex]::Matches($commandLine, '2>\s*build\\test\\([^ \t&|<>]+)')) $stderrNames $lineRecords $i
+    Add-MatchesToSet ([regex]::Matches($commandLine, '(?<![0-9])>\s*build\\test\\([^ \t&|<>]+)')) $stdoutNames $lineRecords $i
 
     $usedNames = New-Object System.Collections.Generic.SortedSet[string]
     foreach ( $name in $stderrNames ) {
@@ -585,7 +635,7 @@ for ( $i = 0; $i -lt $lines.Count; ++$i ) {
         $artifactNames.Add($name) | Out-Null
     }
 
-    if ( (Has-LocalDiagnosticAssertion $lines $i $usedNames) -or
+    if ( (Has-LocalDiagnosticAssertion $lines $i $usedNames $commandLine) -or
          (Has-CentralDiagnosticExpectation $usedNames) ) {
         $assertedExpectedFailures += 1
     } else {

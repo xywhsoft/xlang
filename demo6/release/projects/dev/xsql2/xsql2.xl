@@ -86,19 +86,19 @@ func tokenize(string s) as array
     array toks = []
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b == 32 or b == 9 or b == 10 or b == 13 then
             i += 1
         elseif b == 45 and i + 1 < n and string.byteAt(s, i + 1) == 45 then
             i += 2
-            while i < n and string.byteAt(s, i) != 10 do
+            while i < n and string.byteAt(s, i) != 10
                 i += 1
             end
         elseif b == 47 and i + 1 < n and string.byteAt(s, i + 1) == 42 then
             i += 2
             bool closed = false
-            while i + 1 < n do
+            while i + 1 < n
                 if string.byteAt(s, i) == 42 and string.byteAt(s, i + 1) == 47 then
                     i += 2
                     closed = true
@@ -113,7 +113,7 @@ func tokenize(string s) as array
             i += 1
             string lit = "'"
             bool closed = false
-            while i < n do
+            while i < n
                 int c = string.byteAt(s, i)
                 if c == 39 then
                     if i + 1 < n and string.byteAt(s, i + 1) == 39 then
@@ -138,7 +138,7 @@ func tokenize(string s) as array
             string num = ""
             bool hasDot = false
             bool hasE = false
-            while i < n do
+            while i < n
                 int c = string.byteAt(s, i)
                 if c >= 48 and c <= 57 then
                     num = num + string.charAt(s, i)
@@ -165,7 +165,7 @@ func tokenize(string s) as array
             toks.append(num)
         elseif (b >= 65 and b <= 90) or (b >= 97 and b <= 122) or b == 95 then
             string ident = ""
-            while i < n do
+            while i < n
                 int c = string.byteAt(s, i)
                 if (c >= 65 and c <= 90) or (c >= 97 and c <= 122) or (c >= 48 and c <= 57) or c == 95 then
                     ident = ident + string.charAt(s, i)
@@ -282,7 +282,7 @@ func tokIsNumberLit(string t) as bool
     bool hasE = false
     int i = 1
     int n = string.len(t)
-    while i < n do
+    while i < n
         int b = string.byteAt(t, i)
         if b == 46 then
             if hasDot or hasE then
@@ -477,7 +477,7 @@ end
 
 func parseOr() as var
     var node = parseAnd()
-    while tokWordIs(tokPeek(), "or") do
+    while tokWordIs(tokPeek(), "or")
         gIx += 1
         var rhs = parseAnd()
         node = {"k":"or", "left":node, "right":rhs}
@@ -487,7 +487,7 @@ end
 
 func parseAnd() as var
     var node = parseNot()
-    while tokWordIs(tokPeek(), "and") do
+    while tokWordIs(tokPeek(), "and")
         gIx += 1
         var rhs = parseNot()
         node = {"k":"and", "left":node, "right":rhs}
@@ -533,7 +533,7 @@ func parsePred() as var
             gIx += 1
             array items = []
             if tokPeek() != ")" then
-                while true do
+                while true
                     items.append(parseExpr())
                     if tokPeek() == "," then
                         gIx += 1
@@ -580,7 +580,7 @@ end
 
 func parseAdd() as var
     var node = parseMul()
-    while tokPeek() == "+" or tokPeek() == "-" or tokPeek() == "||" do
+    while tokPeek() == "+" or tokPeek() == "-" or tokPeek() == "||"
         string op = tokEat()
         var rhs = parseMul()
         node = {"k":"arith", "op":op, "left":node, "right":rhs}
@@ -590,7 +590,7 @@ end
 
 func parseMul() as var
     var node = parseUnary()
-    while tokPeek() == "*" or tokPeek() == "/" or tokPeek() == "%" do
+    while tokPeek() == "*" or tokPeek() == "/" or tokPeek() == "%"
         string op = tokEat()
         var rhs = parseUnary()
         node = {"k":"arith", "op":op, "left":node, "right":rhs}
@@ -705,7 +705,7 @@ func parseCase() as var
     if not tokWordIs(tokPeek(), "when") then
         caseSubject = parseExpr()
     end
-    while tokWordIs(tokPeek(), "when") do
+    while tokWordIs(tokPeek(), "when")
         gIx += 1
         var cond = parseExpr()
         if caseSubject != null then
@@ -743,7 +743,7 @@ func parseBuiltinCall() as var
     tokExpectTok("(")
     array args = []
     if tokPeek() != ")" then
-        while true do
+        while true
             args.append(parseExpr())
             if tokPeek() == "," then
                 gIx += 1
@@ -838,7 +838,7 @@ func parseCreateTable() as var
     tokExpectTok("(")
     array cols = []
     array tCons = []
-    while tokPeek() != ")" and not tokAtEnd() do
+    while tokPeek() != ")" and not tokAtEnd()
         string low = string.lower(tokPeek())
         if low == "primary" or low == "unique" or low == "check" or low == "foreign" or low == "constraint" then
             var tc = parseTableConstraint()
@@ -855,7 +855,7 @@ func parseCreateTable() as var
         end
         if tokPeek() == "(" then
             gIx += 1
-            while tokPeek() != ")" and not tokAtEnd() do
+            while tokPeek() != ")" and not tokAtEnd()
                 gIx += 1
             end
             if tokPeek() == ")" then
@@ -868,7 +868,7 @@ func parseCreateTable() as var
         var defVal = null
         var checkExpr = null
         bool hasDefault = false
-        while true do
+        while true
             string c = string.lower(tokPeek())
             if c == "not" then
                 gIx += 1
@@ -898,14 +898,14 @@ func parseCreateTable() as var
                 tokEatIdent()
                 if tokPeek() == "(" then
                     gIx += 1
-                    while tokPeek() != ")" and not tokAtEnd() do
+                    while tokPeek() != ")" and not tokAtEnd()
                         gIx += 1
                     end
                     if tokPeek() == ")" then
                         gIx += 1
                     end
                 end
-                while tokWordIs(tokPeek(), "on") do
+                while tokWordIs(tokPeek(), "on")
                     gIx += 1
                     tokEat()
                     if tokWordIs(tokPeek(), "cascade") then
@@ -960,7 +960,7 @@ func parseTableConstraint() as var
         tokExpectWord("key")
         tokExpectTok("(")
         array ks = []
-        while tokPeek() != ")" and not tokAtEnd() do
+        while tokPeek() != ")" and not tokAtEnd()
             ks.append(tokEatIdent())
             if tokPeek() == "," then
                 gIx += 1
@@ -973,7 +973,7 @@ func parseTableConstraint() as var
         gIx += 1
         tokExpectTok("(")
         array ks = []
-        while tokPeek() != ")" and not tokAtEnd() do
+        while tokPeek() != ")" and not tokAtEnd()
             ks.append(tokEatIdent())
             if tokPeek() == "," then
                 gIx += 1
@@ -993,7 +993,7 @@ func parseTableConstraint() as var
         gIx += 1
         tokExpectWord("key")
         tokExpectTok("(")
-        while tokPeek() != ")" and not tokAtEnd() do
+        while tokPeek() != ")" and not tokAtEnd()
             gIx += 1
         end
         tokExpectTok(")")
@@ -1002,14 +1002,14 @@ func parseTableConstraint() as var
             tokEatIdent()
             if tokPeek() == "(" then
                 gIx += 1
-                while tokPeek() != ")" and not tokAtEnd() do
+                while tokPeek() != ")" and not tokAtEnd()
                     gIx += 1
                 end
                 if tokPeek() == ")" then
                     gIx += 1
                 end
             end
-            while tokWordIs(tokPeek(), "on") do
+            while tokWordIs(tokPeek(), "on")
                 gIx += 1
                 tokEat()
                 tokEat()
@@ -1026,7 +1026,7 @@ func parseCreateIndex(bool unique) as var
     string tname = tokEatIdent()
     tokExpectTok("(")
     array cols = []
-    while tokPeek() != ")" and not tokAtEnd() do
+    while tokPeek() != ")" and not tokAtEnd()
         cols.append(tokEatIdent())
         if tokPeek() == "," then
             gIx += 1
@@ -1043,7 +1043,7 @@ func parseInsert() as var
     if tokPeek() == "(" then
         gIx += 1
         colNames = []
-        while tokPeek() != ")" and not tokAtEnd() do
+        while tokPeek() != ")" and not tokAtEnd()
             colNames.append(tokEatIdent())
             if tokPeek() == "," then
                 gIx += 1
@@ -1053,10 +1053,10 @@ func parseInsert() as var
     end
     if tokAcceptWord("values") then
         array rows = []
-        while true do
+        while true
             tokExpectTok("(")
             array vals = []
-            while tokPeek() != ")" and not tokAtEnd() do
+            while tokPeek() != ")" and not tokAtEnd()
                 vals.append(parseExpr())
                 if tokPeek() == "," then
                     gIx += 1
@@ -1082,7 +1082,7 @@ end
 func parseSelectStmt() as var
     var first = parseSelect()
     var node = first
-    while true do
+    while true
         string t = tokPeek()
         if tokWordIs(t, "union") then
             gIx += 1
@@ -1116,7 +1116,7 @@ func parseSelect() as var
         distinct = false
     end
     array selItems = []
-    while true do
+    while true
         var expr = parseExpr()
         var alias = null
         if tokAcceptWord("as") then
@@ -1164,7 +1164,7 @@ func parseSelect() as var
     end
 
     array joins = []
-    while true do
+    while true
         var j = tryParseJoin()
         if j == null then
             break
@@ -1181,7 +1181,7 @@ func parseSelect() as var
     if tokAcceptWord("group") then
         tokExpectWord("by")
         groupExprs = []
-        while true do
+        while true
             groupExprs.append(parseExpr())
             if tokPeek() == "," then
                 gIx += 1
@@ -1200,7 +1200,7 @@ func parseSelect() as var
     if tokAcceptWord("order") then
         tokExpectWord("by")
         orderSpecs = []
-        while true do
+        while true
             var oe = parseExpr()
             string dir = "asc"
             if tokAcceptWord("asc") then
@@ -1307,7 +1307,7 @@ func parseUpdate() as var
     string tname = tokEatIdent()
     tokExpectWord("set")
     array sets = []
-    while true do
+    while true
         string col = tokEatIdent()
         tokExpectTok("=")
         var ex = parseExpr()
@@ -1588,16 +1588,16 @@ func likeMatch(string s, string pat) as bool
 end
 
 func likeMatchRec(string s, int si, int sl, string pat, int pi, int pl) as bool
-    while pi < pl do
+    while pi < pl
         int pc = string.byteAt(pat, pi)
         if pc == 37 then
-            while pi < pl and string.byteAt(pat, pi) == 37 do
+            while pi < pl and string.byteAt(pat, pi) == 37
                 pi += 1
             end
             if pi >= pl then
                 return true
             end
-            while si <= sl do
+            while si <= sl
                 if likeMatchRec(s, si, sl, pat, pi, pl) then
                     return true
                 end
@@ -1639,7 +1639,7 @@ end
 func callBuiltin(string name, var args, var row, var aggCache) as var
     array vals = []
     int i = 0
-    while i < args.length do
+    while i < args.length
         vals.append(evalExpr(row, args[i], aggCache))
         i += 1
     end
@@ -1659,7 +1659,7 @@ func callBuiltin(string name, var args, var row, var aggCache) as var
     end
     if name == "coalesce" or name == "ifnull" then
         int k = 0
-        while k < vals.length do
+        while k < vals.length
             if vals[k] != null then
                 return vals[k]
             end
@@ -1699,7 +1699,7 @@ func callBuiltin(string name, var args, var row, var aggCache) as var
         float f = float(v)
         float m = 1.0
         int di = 0
-        while di < digits do
+        while di < digits
             m = m * 10.0
             di += 1
         end
@@ -1845,7 +1845,7 @@ func evalExpr(var row, var e, var aggCache) as var
         var items = e["items"]
         bool found = false
         int i = 0
-        while i < items.length do
+        while i < items.length
             var iv = evalExpr(row, items[i], aggCache)
             if valEq(v, iv) then
                 found = true
@@ -1868,7 +1868,7 @@ func evalExpr(var row, var e, var aggCache) as var
         var rows = res["rows"]
         bool found = false
         int i = 0
-        while i < rows.length do
+        while i < rows.length
             var rv = (rows[i])[0]
             if valEq(v, rv) then
                 found = true
@@ -1913,7 +1913,7 @@ func evalExpr(var row, var e, var aggCache) as var
     if k == "case" then
         var whens = e["whens"]
         int i = 0
-        while i < whens.length do
+        while i < whens.length
             var w = whens[i]
             if truthy(evalExpr(row, w["cond"], aggCache)) then
                 return evalExpr(row, w["val"], aggCache)
@@ -2040,7 +2040,7 @@ func collectAgg(var e)
         collectAgg(e["e"])
         var items = e["items"]
         int ii = 0
-        while ii < items.length do
+        while ii < items.length
             collectAgg(items[ii])
             ii += 1
         end
@@ -2049,7 +2049,7 @@ func collectAgg(var e)
     if k == "case" then
         var whens = e["whens"]
         int wi = 0
-        while wi < whens.length do
+        while wi < whens.length
             collectAgg(whens[wi]["cond"])
             collectAgg(whens[wi]["val"])
             wi += 1
@@ -2064,7 +2064,7 @@ func collectAgg(var e)
     if k == "call" then
         var args = e["args"]
         int ai = 0
-        while ai < args.length do
+        while ai < args.length
             collectAgg(args[ai])
             ai += 1
         end
@@ -2084,7 +2084,7 @@ func computeAgg(var node, var rows) as var
         end
         int cnt = 0
         int i = 0
-        while i < rows.length do
+        while i < rows.length
             var v = evalExpr(rows[i], arg, null)
             if v != null then
                 cnt += 1
@@ -2099,7 +2099,7 @@ func computeAgg(var node, var rows) as var
     if name == "MIN" or name == "MAX" then
         var best = null
         int i = 0
-        while i < rows.length do
+        while i < rows.length
             var v = evalExpr(rows[i], arg, null)
             if v != null then
                 if best == null then
@@ -2122,7 +2122,7 @@ func computeAgg(var node, var rows) as var
     int cnt = 0
     bool allInt = true
     int i = 0
-    while i < rows.length do
+    while i < rows.length
         var v = evalExpr(rows[i], arg, null)
         if v != null then
             if not isNumber(v) then
@@ -2199,7 +2199,7 @@ func exprLabel(var e) as string
         var args = e["args"]
         string label = string(e["name"]) + "("
         int i = 0
-        while i < args.length do
+        while i < args.length
             if i > 0 then
                 label = label + ","
             end
@@ -2235,7 +2235,7 @@ end
 func lowerBoundV(var keys, var k) as int
     int lo = 0
     int hi = keys.length
-    while lo < hi do
+    while lo < hi
         int mid = (lo + hi) / 2
         if valCmp(keys[mid], k) < 0 then
             lo = mid + 1
@@ -2327,7 +2327,7 @@ func bplusRange(var tree, var lo, var hi) as var
     var vals = tree["vals"]
     int start = lowerBoundV(keys, lo)
     int i = start
-    while i < keys.length do
+    while i < keys.length
         if valCmp(keys[i], hi) > 0 then
             i = keys.length
         else
@@ -2342,7 +2342,7 @@ func bplusAllKeys(var tree) as var
     var keys = tree["keys"]
     var result = []
     int i = 0
-    while i < keys.length do
+    while i < keys.length
         result.push(keys[i])
         i += 1
     end
@@ -2357,7 +2357,7 @@ func bplusDepth(var tree) as int
     // 模拟 B+树深度：每 7 个键增加一层
     int d = 1
     int n = keys.length
-    while n > BTREE_MAX_KEYS do
+    while n > BTREE_MAX_KEYS
         d += 1
         n = n / BTREE_ORDER
     end
@@ -2441,7 +2441,7 @@ end
 func tableFindColumnIndex(var t, string cname) as int
     int i = 0
     var cols = t["columns"]
-    while i < cols.length do
+    while i < cols.length
         if string.lower(string(cols[i]["name"])) == string.lower(cname) then
             return i
         end
@@ -2494,7 +2494,7 @@ func tableCheckUnique(var t, var newRow, int excludeRid)
         allKeys.append(uk)
     end
     int ai = 0
-    while ai < allKeys.length do
+    while ai < allKeys.length
         var cols = allKeys[ai]
         var newKeyVals = []
         for cn in cols
@@ -2502,12 +2502,12 @@ func tableCheckUnique(var t, var newRow, int excludeRid)
         end
         int ri = 0
         var rows = t["rows"]
-        while ri < rows.length do
+        while ri < rows.length
             if ri != excludeRid then
                 var rr = rows[ri]
                 bool clash = true
                 int ci = 0
-                while ci < cols.length do
+                while ci < cols.length
                     var v1 = newKeyVals[ci]
                     var v2 = rr[cols[ci]]
                     if not valEq(v1, v2) then
@@ -2646,7 +2646,7 @@ func execCreateIndex(var ast)
     end
     var tree = bplusCreate()
     int ri = 0
-    while ri < t["rows"].length do
+    while ri < t["rows"].length
         var row = t["rows"][ri]
         var keyVals = []
         for cn in ast["cols"]
@@ -2658,7 +2658,7 @@ func execCreateIndex(var ast)
         else
             string kk = ""
             int ci = 0
-            while ci < keyVals.length do
+            while ci < keyVals.length
                 kk = kk + valKey(keyVals[ci])
                 ci += 1
             end
@@ -2754,14 +2754,14 @@ func execInsert(var ast) as int
         var row = tableEmptyRow(t)
         if targetCols != null then
             int k = 0
-            while k < targetCols.length and k < vals.length do
+            while k < targetCols.length and k < vals.length
                 string cn = string(targetCols[k])
                 row[cn] = evalExpr({}, vals[k], null)
                 k += 1
             end
         else
             int k = 0
-            while k < ncol and k < vals.length do
+            while k < ncol and k < vals.length
                 row[colDefs[k]["name"]] = evalExpr({}, vals[k], null)
                 k += 1
             end
@@ -2793,18 +2793,18 @@ func execInsertSelect(var ast) as int
     var targetCols = ast["columns"]
     int count = 0
     int ri = 0
-    while ri < rows.length do
+    while ri < rows.length
         var row = tableEmptyRow(t)
         var vals = rows[ri]
         if targetCols != null then
             int k = 0
-            while k < targetCols.length and k < vals.length do
+            while k < targetCols.length and k < vals.length
                 row[targetCols[k]] = vals[k]
                 k += 1
             end
         else
             int k = 0
-            while k < ncol and k < vals.length do
+            while k < ncol and k < vals.length
                 row[colDefs[k]["name"]] = vals[k]
                 k += 1
             end
@@ -2838,7 +2838,7 @@ func updateIndexesAfterInsert(string tname, var row, int rid)
         else
             string kk = ""
             int ci = 0
-            while ci < cols.length do
+            while ci < cols.length
                 kk = kk + valKey(row[cols[ci]])
                 ci += 1
             end
@@ -2863,12 +2863,12 @@ func execUpdate(var ast) as int
     var whereExpr = ast["where"]
     int count = 0
     int i = 0
-    while i < rows.length do
+    while i < rows.length
         var row = rows[i]
         if whereExpr == null or truthy(evalExpr(row, whereExpr, null)) then
             var newvals = {}
             int s = 0
-            while s < sets.length do
+            while s < sets.length
                 newvals[sets[s]["col"]] = evalExpr(row, sets[s]["expr"], null)
                 s += 1
             end
@@ -2929,7 +2929,7 @@ func rebuildIndexes(string tname)
         var cols = idx["cols"]
         var tree = bplusCreate()
         int ri = 0
-        while ri < rows.length do
+        while ri < rows.length
             var row = rows[ri]
             var k = null
             if cols.length == 1 then
@@ -2937,7 +2937,7 @@ func rebuildIndexes(string tname)
             else
                 string kk = ""
                 int ci = 0
-                while ci < cols.length do
+                while ci < cols.length
                     kk = kk + valKey(row[cols[ci]])
                     ci += 1
                 end
@@ -2975,7 +2975,7 @@ func execSelectCore(var ast) as var
         for r in rows
             var cr = {}
             int ci = 0
-            while ci < cols.length do
+            while ci < cols.length
                 string cn = string(cols[ci])
                 cr[cn] = r[ci]
                 string __subqkey = aliasName + "." + cn
@@ -3011,7 +3011,7 @@ func execSelectCore(var ast) as var
 
     var joins = ast["joins"]
     int ji = 0
-    while ji < joins.length do
+    while ji < joins.length
         var j = joins[ji]
         string jt = string(j["type"])
         var jTable = j["table"]
@@ -3036,7 +3036,7 @@ func execSelectCore(var ast) as var
             for r in rows
                 var cr = {}
                 int ci = 0
-                while ci < cols.length do
+                while ci < cols.length
                     cr[cols[ci]] = r[ci]
                     ci += 1
                 end
@@ -3090,14 +3090,14 @@ func execSelectCore(var ast) as var
         array nr = []
         array rightMatched = []
         int rri = 0
-        while rri < jRows.length do
+        while rri < jRows.length
             rightMatched.append(false)
             rri += 1
         end
         for lr in ctxRows
             bool matched = false
             int ridx = 0
-            while ridx < jRows.length do
+            while ridx < jRows.length
                 var rr = jRows[ridx]
                 var combined = {}
                 for k, v in lr
@@ -3144,7 +3144,7 @@ func execSelectCore(var ast) as var
         if jt == "right" or jt == "full" then
             array leftColNames = collectLeftColNames(ctxRows)
             int ridx2 = 0
-            while ridx2 < jRows.length do
+            while ridx2 < jRows.length
                 if not rightMatched[ridx2] then
                     var rr = jRows[ridx2]
                     var combined = {}
@@ -3197,7 +3197,7 @@ func execSelectCore(var ast) as var
     gAggList = []
     var selItems = ast["select"]
     int si = 0
-    while si < selItems.length do
+    while si < selItems.length
         collectAgg(selItems[si]["expr"])
         si += 1
     end
@@ -3207,7 +3207,7 @@ func execSelectCore(var ast) as var
     if ast["order"] != null then
         var specs = ast["order"]
         int oi = 0
-        while oi < specs.length do
+        while oi < specs.length
             collectAgg(specs[oi]["expr"])
             oi += 1
         end
@@ -3225,7 +3225,7 @@ func execSelectCore(var ast) as var
                 var kv = []
                 string gkey = ""
                 int gi = 0
-                while gi < gp.length do
+                while gi < gp.length
                     var v = evalExpr(r, gp[gi], null)
                     kv.append(v)
                     gkey = gkey + "|" + valKey(v)
@@ -3246,7 +3246,7 @@ func execSelectCore(var ast) as var
             groupOrder.append("__all__")
         end
         int gi2 = 0
-        while gi2 < groupOrder.length do
+        while gi2 < groupOrder.length
             string gk = string(groupOrder[gi2])
             var grp = groups[gk]
             var rep = {}
@@ -3256,7 +3256,7 @@ func execSelectCore(var ast) as var
             end
             var aggCache = {}
             int ai = 0
-            while ai < gAggList.length do
+            while ai < gAggList.length
                 var an = gAggList[ai]
                 aggCache[an["aid"]] = computeAgg(an, grpRows)
                 ai += 1
@@ -3283,20 +3283,20 @@ func execSelectCore(var ast) as var
 
     array projCols = []
     int pi = 0
-    while pi < selItems.length do
+    while pi < selItems.length
         var item = selItems[pi]
         var ex = item["expr"]
         if ex["k"] == "star" then
             array expanded = expandStar(srcAliases)
             int ei = 0
-            while ei < expanded.length do
+            while ei < expanded.length
                 projCols.append(expanded[ei])
                 ei += 1
             end
         elseif ex["k"] == "qstar" then
             array expanded = expandTableStar(ex["table"], srcAliases)
             int ei = 0
-            while ei < expanded.length do
+            while ei < expanded.length
                 projCols.append(expanded[ei])
                 ei += 1
             end
@@ -3337,7 +3337,7 @@ func execSelectCore(var ast) as var
     if offsetVal > 0 then
         array tr = []
         int ix = offsetVal
-        while ix < outCtx.length do
+        while ix < outCtx.length
             tr.append(outCtx[ix])
             ix += 1
         end
@@ -3346,7 +3346,7 @@ func execSelectCore(var ast) as var
     if limitVal >= 0 and outCtx.length > limitVal then
         array tr = []
         int li = 0
-        while li < limitVal do
+        while li < limitVal
             tr.append(outCtx[li])
             li += 1
         end
@@ -3355,7 +3355,7 @@ func execSelectCore(var ast) as var
 
     array colNames = []
     int ci = 0
-    while ci < projCols.length do
+    while ci < projCols.length
         colNames.append(string(projCols[ci]["name"]))
         ci += 1
     end
@@ -3365,7 +3365,7 @@ func execSelectCore(var ast) as var
         g_outerRow = c["row"]
         array vals = []
         int vi = 0
-        while vi < projCols.length do
+        while vi < projCols.length
             vals.append(evalExpr(c["row"], projCols[vi]["expr"], c["agg"]))
             vi += 1
         end
@@ -3391,7 +3391,7 @@ func expandStar(var srcAliases) as array
     array cols = []
     bool qualify = srcAliases.length > 1
     int i = 0
-    while i < srcAliases.length do
+    while i < srcAliases.length
         var entry = srcAliases[i]
         string realName = string(entry["name"])
         string aliasName = string(entry["alias"])
@@ -3415,7 +3415,7 @@ func expandTableStar(var tableNameVar, var srcAliases) as array
     string tableName = string(tableNameVar)
     array cols = []
     int i = 0
-    while i < srcAliases.length do
+    while i < srcAliases.length
         var entry = srcAliases[i]
         string aliasName = string(entry["alias"])
         string realName = string(entry["name"])
@@ -3443,7 +3443,7 @@ end
 
 func orderCompare(var c1, var c2, var orderSpecs, var projCols) as int
     int i = 0
-    while i < orderSpecs.length do
+    while i < orderSpecs.length
         var spec = orderSpecs[i]
         var e = spec["expr"]
         var v1 = null
@@ -3486,7 +3486,7 @@ end
 
 func findProjByName(var projCols, string nm) as int
     int i = 0
-    while i < projCols.length do
+    while i < projCols.length
         if string(projCols[i]["name"]) == nm then
             return i
         end
@@ -3498,10 +3498,10 @@ end
 func insertionSortCtx(var outCtx, var orderSpecs, var projCols) as var
     int n = outCtx.length
     int i = 1
-    while i < n do
+    while i < n
         var cur = outCtx[i]
         int j = i - 1
-        while j >= 0 and orderCompare(outCtx[j], cur, orderSpecs, projCols) > 0 do
+        while j >= 0 and orderCompare(outCtx[j], cur, orderSpecs, projCols) > 0
             outCtx[j + 1] = outCtx[j]
             j -= 1
         end
@@ -3514,7 +3514,7 @@ end
 func ctxRowKey(var c, var projCols) as string
     string key = ""
     int i = 0
-    while i < projCols.length do
+    while i < projCols.length
         var v = evalExpr(c["row"], projCols[i]["expr"], c["agg"])
         key = key + "|" + valKey(v)
         i += 1
@@ -3600,7 +3600,7 @@ func rowKeyOf(var r) as string
     var arr = r
     string kk = ""
     int i = 0
-    while i < arr.length do
+    while i < arr.length
         kk = kk + "|" + valKey(arr[i])
         i += 1
     end
@@ -3678,7 +3678,7 @@ func execLoad(var ast) as int
     gTableIndexes = {}
     var tables = data["tables"]
     int ti = 0
-    while ti < tables.length do
+    while ti < tables.length
         var tbl = tables[ti]
         string tname = string(tbl["name"])
         var cols = tbl["columns"]
@@ -3698,7 +3698,7 @@ func execLoad(var ast) as int
     var indexes = data["indexes"]
     if indexes != null then
         int ii = 0
-        while ii < indexes.length do
+        while ii < indexes.length
             var meta = indexes[ii]
             string iname = string(meta["name"])
             string tname = string(meta["table"])
@@ -3711,7 +3711,7 @@ func execLoad(var ast) as int
             var t = gTables[tname]
             if t != null then
                 int ri = 0
-                while ri < t["rows"].length do
+                while ri < t["rows"].length
                     var row = t["rows"][ri]
                     var k = null
                     if cols.length == 1 then
@@ -3719,7 +3719,7 @@ func execLoad(var ast) as int
                     else
                         string kk = ""
                         int ci = 0
-                        while ci < cols.length do
+                        while ci < cols.length
                             kk = kk + valKey(row[cols[ci]])
                             ci += 1
                         end
@@ -3828,7 +3828,7 @@ end
 func repeatChar(string c, int n) as string
     string r = ""
     int i = 0
-    while i < n do
+    while i < n
         r = r + c
         i += 1
     end
@@ -3872,7 +3872,7 @@ func printTable(var res)
     end
     array widths = []
     int i = 0
-    while i < nc do
+    while i < nc
         widths.append(string.len(string(colsVar[i])))
         i += 1
     end
@@ -3880,7 +3880,7 @@ func printTable(var res)
     for row in rowsVar
         array sr = []
         int j = 0
-        while j < nc do
+        while j < nc
             sr.append(formatVal(row[j]))
             j += 1
         end
@@ -3888,7 +3888,7 @@ func printTable(var res)
     end
     for sr in smatrix
         int j = 0
-        while j < nc do
+        while j < nc
             int wl = string.len(string(sr[j]))
             if wl > int(widths[j]) then
                 widths[j] = wl
@@ -3898,7 +3898,7 @@ func printTable(var res)
     end
     string hline = ""
     int j2 = 0
-    while j2 < nc do
+    while j2 < nc
         if j2 > 0 then
             hline = hline + " | "
         end
@@ -3909,7 +3909,7 @@ func printTable(var res)
     println(hline)
     string sep = ""
     int j3 = 0
-    while j3 < nc do
+    while j3 < nc
         if j3 > 0 then
             sep = sep + "-+-"
         end
@@ -3920,7 +3920,7 @@ func printTable(var res)
     for sr in smatrix
         string line = ""
         int j4 = 0
-        while j4 < nc do
+        while j4 < nc
             if j4 > 0 then
                 line = line + " | "
             end
@@ -3944,7 +3944,7 @@ func runSqlString(string sql) as int
     array toks = tokenize(sql)
     array stmts = splitStatements(toks)
     int i = 0
-    while i < stmts.length do
+    while i < stmts.length
         var stmt = stmts[i]
         if stmt.length > 0 then
             gTox = stmt
@@ -3963,7 +3963,7 @@ func runOneLine(string line)
     array toks = tokenize(line)
     array stmts = splitStatements(toks)
     int i = 0
-    while i < stmts.length do
+    while i < stmts.length
         var stmt = stmts[i]
         if stmt.length > 0 then
             gTox = stmt
@@ -4066,7 +4066,7 @@ func runSilent(string sql) as var
     array toks = tokenize(sql)
     array stmts = splitStatements(toks)
     int i = 0
-    while i < stmts.length do
+    while i < stmts.length
         var stmt = stmts[i]
         if stmt.length > 0 then
             gTox = stmt
@@ -4155,7 +4155,7 @@ func execCreateIndexSilent(var ast)
     end
     var tree = bplusCreate()
     int ri = 0
-    while ri < t["rows"].length do
+    while ri < t["rows"].length
         var row = t["rows"][ri]
         var k = null
         if (ast["cols"]).length == 1 then
@@ -4163,7 +4163,7 @@ func execCreateIndexSilent(var ast)
         else
             string kk = ""
             int ci = 0
-            while ci < (ast["cols"]).length do
+            while ci < (ast["cols"]).length
                 kk = kk + valKey(row[(ast["cols"])[ci]])
                 ci += 1
             end
@@ -4568,7 +4568,7 @@ func testBPlusTreeIndex() as int
     // 直接测试 BPlusTreeV
     var tree = bplusCreate()
     int i = 1
-    while i <= 100 do
+    while i <= 100
         tree = bplusInsert(tree, i, i * 10)
         i += 1
     end
@@ -5199,7 +5199,7 @@ func testIndexRangeQuery() as int
     runSilent("CREATE INDEX idx_val ON big(val)")
 
     int i = 1
-    while i <= 50 do
+    while i <= 50
         runSilent("INSERT INTO big VALUES (" + string(i) + "," + string(i * 2) + ")")
         i += 1
     end

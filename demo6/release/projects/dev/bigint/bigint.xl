@@ -42,7 +42,7 @@ end
 func stripLeadZeros(string body) as string
     int n = string.len(body)
     int i = 0
-    while i < n do
+    while i < n
         if string.charAt(body, i) != "0" then
             break
         end
@@ -83,7 +83,7 @@ func isValidNumber(string s) as bool
         end
     end
     int i = start
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -129,7 +129,7 @@ func cmpAbs(string a, string b) as int
         return -1
     end
     int i = 0
-    while i < la do
+    while i < la
         int da = string.byteAt(a, i) - 48
         int db = string.byteAt(b, i) - 48
         if da > db then
@@ -156,7 +156,7 @@ func addAbs(string a, string b) as string
     string outputValue = ""
     int carry = 0
     int i = 0
-    while i < n do
+    while i < n
         int da = 0
         int db = 0
         if i < la then
@@ -185,7 +185,7 @@ func subAbs(string a, string b) as string
     string outputValue = ""
     int borrow = 0
     int i = 0
-    while i < la do
+    while i < la
         int da = string.byteAt(ra, i) - 48
         int db = 0
         if i < lb then
@@ -214,14 +214,14 @@ func mulDigit(string a, int d) as string
     string outputValue = ""
     int carry = 0
     int i = 0
-    while i < la do
+    while i < la
         int da = string.byteAt(ra, i) - 48
         int prod = da * d + carry
         carry = prod / 10
         outputValue = outputValue + string.charAt("0123456789", prod - carry * 10)
         i += 1
     end
-    while carry > 0 do
+    while carry > 0
         int m = carry % 10
         outputValue = outputValue + string.charAt("0123456789", m)
         carry = carry / 10
@@ -238,7 +238,7 @@ func mulAbs(string a, string b) as string
     int lb = string.len(rb)
     string result = "0"
     int j = 0
-    while j < lb do
+    while j < lb
         int db = string.byteAt(rb, j) - 48
         string row = mulDigit(a, db)
         if row != "0" then
@@ -297,7 +297,7 @@ func bigPow(string base, int exp) as string
     string result = "1"
     string b = normalize(base)
     int e = exp
-    while e > 0 do
+    while e > 0
         if e % 2 == 1 then
             result = bigMul(result, b)
         end
@@ -316,7 +316,7 @@ func bigFact(int n) as string
     end
     string result = "1"
     int i = 2
-    while i <= n do
+    while i <= n
         result = bigMul(result, string(i))
         i += 1
     end
@@ -337,7 +337,7 @@ func bigFib(int n) as string
     string a = "0"
     string b = "1"
     int i = 2
-    while i <= n do
+    while i <= n
         string c = bigAdd(a, b)
         a = b
         b = c
@@ -353,7 +353,7 @@ func parseNonNegInt(string s) as int
         return -1
     end
     int i = 0
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return -1

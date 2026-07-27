@@ -47,7 +47,7 @@ func searchFile(string filePath, string pattern, bool ignoreCase, bool fixed, bo
     int n = lines.length
     int matches = 0
     int i = 0
-    while i < n do
+    while i < n
         string line = string(lines[i])
         if matchLine(line, pattern, ignoreCase, fixed) then
             matches += 1
@@ -82,7 +82,7 @@ func main(...) as int
     bool hasTarget = false
 
     int i = 1
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "-i" or a == "--ignore-case" then
             ignoreCase = true
@@ -138,7 +138,7 @@ func main(...) as int
         array files = dir.files(target, recursive)
         int n = files.length
         int k = 0
-        while k < n do
+        while k < n
             string fp = string(files[k])
             int m = searchFile(fp, pattern, ignoreCase, fixed, showLine, countOnly)
             if m >= 0 then

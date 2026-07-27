@@ -93,7 +93,7 @@ func classMatch(int ci, string c) as bool
     var items = cls["items"]
     int k = 0
     bool any = false
-    while k < items.length do
+    while k < items.length
         var it = items[k]
         string kind = string(it["kind"])
         bool m = false
@@ -171,7 +171,7 @@ class Parser
         string digits = "0123456789"
         int v = 0
         int i = 0
-        while i < string.len(d) do
+        while i < string.len(d)
             string ch = string.charAt(d, i)
             v = v * 10 + string.indexOf(digits, ch)
             i += 1
@@ -189,7 +189,7 @@ class Parser
 
     func parseAlt() as var
         var left = self.parseConcat()
-        while self.peek() == "|" do
+        while self.peek() == "|"
             self.pos += 1
             var right = self.parseConcat()
             left = {"type":"alt", "left":left, "right":right}
@@ -199,7 +199,7 @@ class Parser
 
     func parseConcat() as var
         var items = []
-        while true do
+        while true
             string c = self.peek()
             if c == "" then
                 break
@@ -259,7 +259,7 @@ class Parser
         int mn = 0
         int mx = 0
         string d = ""
-        while true do
+        while true
             string c = self.peek()
             if isDigitChar(c) then
                 d = d + c
@@ -276,7 +276,7 @@ class Parser
             sawComma = true
             self.pos += 1
             d = ""
-            while true do
+            while true
                 string c = self.peek()
                 if isDigitChar(c) then
                     d = d + c
@@ -374,7 +374,7 @@ class Parser
         end
         var items = []
         bool first = true
-        while true do
+        while true
             string c = self.peek()
             if c == "" then
                 throw "unterminated character class"
@@ -397,7 +397,7 @@ class Parser
                             items.push({"kind":"range", "lo":"-", "hi":"-"})
                             int pi = 0
                             var pitems = hi["items"]
-                            while pi < pitems.length do
+                            while pi < pitems.length
                                 items.push(pitems[pi])
                                 pi += 1
                             end
@@ -411,7 +411,7 @@ class Parser
             else
                 var pitems = item["items"]
                 int pi = 0
-                while pi < pitems.length do
+                while pi < pitems.length
                     items.push(pitems[pi])
                     pi += 1
                 end
@@ -570,7 +570,7 @@ func compile(var node)
     if t == "seq" then
         var items = node["items"]
         int k = 0
-        while k < items.length do
+        while k < items.length
             compile(items[k])
             k += 1
         end
@@ -613,7 +613,7 @@ func compileRepeat(var node)
     int mx = int(node["max"])
     bool greedy = bool(node["greedy"])
     int i = 0
-    while i < mn do
+    while i < mn
         compile(child)
         i += 1
     end
@@ -635,7 +635,7 @@ func compileRepeat(var node)
     else
         int extra = mx - mn
         int j = 0
-        while j < extra do
+        while j < extra
             int splitPc = emitOp(OP_SPLIT, "", 0, 0, 0)
             int l2 = gProg.length
             compile(child)
@@ -658,7 +658,7 @@ func resetSaves()
     gSaves = []
     int total = 2 * (gGroupCount + 1)
     int i = 0
-    while i < total do
+    while i < total
         gSaves.push(-1)
         i += 1
     end
@@ -667,7 +667,7 @@ end
 func run(int startPc, int startPos) as bool
     int pc = startPc
     int pos = startPos
-    while true do
+    while true
         var ins = gProg[pc]
         int op = int(ins["op"])
         if op == OP_MATCH then
@@ -707,7 +707,7 @@ func run(int startPc, int startPos) as bool
                     return true
                 end
                 int si = 0
-                while si < snap.length do
+                while si < snap.length
                     gSaves[si] = snap[si]
                     si += 1
                 end
@@ -774,7 +774,7 @@ end
 func copySaves() as var
     var cp = []
     int i = 0
-    while i < gSaves.length do
+    while i < gSaves.length
         cp.push(gSaves[i])
         i += 1
     end
@@ -785,7 +785,7 @@ func search(string text, int startPos) as bool
     gText = text
     gTextLen = string.len(text)
     int p = startPos
-    while p <= gTextLen do
+    while p <= gTextLen
         resetSaves()
         if run(0, p) then
             return true
@@ -800,7 +800,7 @@ func findAll(string text) as var
     gTextLen = string.len(text)
     var results = []
     int p = 0
-    while p <= gTextLen do
+    while p <= gTextLen
         resetSaves()
         if run(0, p) then
             int s = int(gSaves[0])
@@ -808,7 +808,7 @@ func findAll(string text) as var
             var m = {"start":s, "end":e, "text":string.slice(text, s, e - s)}
             var grps = []
             int gi = 1
-            while gi <= gGroupCount do
+            while gi <= gGroupCount
                 int gs = int(gSaves[2 * gi])
                 int ge = int(gSaves[2 * gi + 1])
                 if gs >= 0 and ge >= gs then
@@ -836,7 +836,7 @@ func expandRepl(string repl, string text) as string
     string r = ""
     int i = 0
     int n = string.len(repl)
-    while i < n do
+    while i < n
         string c = string.charAt(repl, i)
         if c == "$" and i + 1 < n then
             string c2 = string.charAt(repl, i + 1)
@@ -877,7 +877,7 @@ func doReplace(string text, string repl) as string
     string outputValue = ""
     int p = 0
     int lastAppend = 0
-    while p <= gTextLen do
+    while p <= gTextLen
         resetSaves()
         if run(0, p) then
             int s = int(gSaves[0])
@@ -906,7 +906,7 @@ func firstGroups(string text) as var
         return grps
     end
     int gi = 1
-    while gi <= gGroupCount do
+    while gi <= gGroupCount
         int gs = int(gSaves[2 * gi])
         int ge = int(gSaves[2 * gi + 1])
         if gs >= 0 and ge >= gs then
@@ -954,7 +954,7 @@ func cmdFind(string txt) as int
         return 1
     end
     int i = 0
-    while i < results.length do
+    while i < results.length
         var m = results[i]
         string line = string(m["text"])
         if gGroupCount > 0 then
@@ -980,7 +980,7 @@ func cmdGroups(string txt) as int
         return 1
     end
     int i = 0
-    while i < grps.length do
+    while i < grps.length
         println("group " + string(i + 1) + ": " + string(grps[i]))
         i += 1
     end
@@ -990,7 +990,7 @@ end
 func joinStr(var arr, string sep) as string
     string r = ""
     int i = 0
-    while i < arr.length do
+    while i < arr.length
         if i > 0 then
             r = r + sep
         end
@@ -1053,7 +1053,7 @@ func tFind(string pat, string txt, string expectJoined) as bool
     var results = findAll(txt)
     var texts = []
     int i = 0
-    while i < results.length do
+    while i < results.length
         texts.push(results[i]["text"])
         i += 1
     end

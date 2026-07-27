@@ -4,6 +4,15 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: current OOP and parameter-mode regressions...
 
+release\xl.exe check test\cases\cgen_var_class_dispatch.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_var_class_dispatch.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_var_class_dispatch.xl -o build\test\cgen_var_class_dispatch.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_var_class_dispatch.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe check test\cases\cgen_generic_multi_return.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_generic_multi_return.xl --emit build\test\cgen_generic_multi_return.c
@@ -33,7 +42,7 @@ release\xl.exe check test\cases\cgen_class_field_module_const.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_class_field_module_const.xl --emit build\test\cgen_class_field_module_const.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_class_field_module_const.c' -Raw; $intDecl=$t.IndexOf('extern long long DEFAULT_SCORE;'); $textDecl=$t.IndexOf('extern const char* DEFAULT_NAME;'); $intUse=$t.IndexOf('= DEFAULT_SCORE', $intDecl + 1); $textUse=$t.IndexOf('DEFAULT_NAME, 0u', $textDecl + 1); if($intDecl -lt 0 -or $textDecl -lt 0 -or $intUse -lt 0 -or $textUse -lt 0 -or $intDecl -ge $intUse -or $textDecl -ge $textUse){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_class_field_module_const.c' -Raw; $intName='__xl6_user_global_DEFAULT__SCORE'; $textName='__xl6_user_global_DEFAULT__NAME'; $intDecl=$t.IndexOf('static long long '+$intName+';'); $textDecl=$t.IndexOf('static const char* '+$textName+';'); $intUse=$t.IndexOf('= '+$intName, $intDecl + 1); $textUse=$t.IndexOf($textName+', 0u', $textDecl + 1); if($intDecl -lt 0 -or $textDecl -lt 0 -or $intUse -lt 0 -or $textUse -lt 0 -or $intDecl -ge $intUse -or $textDecl -ge $textUse){exit 1}"
 if errorlevel 1 (
     echo cgen_class_field_module_const.c has an invalid module constant declaration order.
     exit /b 1
@@ -87,12 +96,12 @@ if errorlevel 1 (
     echo cgen_function_param_modes.c lost the byref pointer ABI.
     exit /b 1
 )
-findstr /C:"incrementer.invoke)(incrementer.env, &(number))" build\test\cgen_function_param_modes.c >nul
+findstr /C:"__xl6_user_global_incrementer.invoke)(__xl6_user_global_incrementer.env, &(__xl6_user_global_number))" build\test\cgen_function_param_modes.c >nul
 if errorlevel 1 (
     echo cgen_function_param_modes.c lost byref function-value address passing.
     exit /b 1
 )
-findstr /C:"producer.invoke)(producer.env, &(result))" build\test\cgen_function_param_modes.c >nul
+findstr /C:"__xl6_user_global_producer.invoke)(__xl6_user_global_producer.env, &(__xl6_user_global_result))" build\test\cgen_function_param_modes.c >nul
 if errorlevel 1 (
     echo cgen_function_param_modes.c lost out function-value address passing.
     exit /b 1
@@ -105,7 +114,7 @@ if errorlevel 1 (
     echo cgen_class_polymorphism.c missing managed derived object allocation.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_append_value_release(values," build\test\cgen_class_polymorphism.c >nul
+findstr /C:"xl6_xrt_typed_array_append_value_release(__xl6_user_global_values," build\test\cgen_class_polymorphism.c >nul
 if errorlevel 1 (
     echo cgen_class_polymorphism.c missing inline class container append.
     exit /b 1
@@ -115,7 +124,7 @@ if errorlevel 1 (
     echo cgen_class_polymorphism.c lost the shared runtime header.
     exit /b 1
 )
-findstr /C:"desc->Kind != XL6_XRT_TYPE_KIND_CLASS" release\include\xl_runtime.h >nul
+findstr /C:"XL6_XRT_TYPE_KIND_CLASS ) {" release\include\xl_runtime.h >nul
 if errorlevel 1 (
     echo xl_runtime.h may overwrite concrete class runtime descriptors.
     exit /b 1
@@ -198,6 +207,17 @@ build\test\cgen_class_recursive_object.exe
 if errorlevel 1 exit /b 1
 if not errorlevel 0 exit /b 1
 
+release\xl.exe check test\cases\cgen_class_self_free_call.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_class_self_free_call.xl
+if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
+release\xl.exe build test\cases\cgen_class_self_free_call.xl -o build\test\cgen_class_self_free_call.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_class_self_free_call.exe
+if errorlevel 1 exit /b 1
+if not errorlevel 0 exit /b 1
+
 release\xl.exe run release\examples\class_reference_model.xl
 if errorlevel 1 exit /b 1
 if not errorlevel 0 exit /b 1
@@ -267,6 +287,44 @@ if errorlevel 1 (
     echo sem_typed_point_mismatch.xl lost concrete typed point diagnostics.
     exit /b 1
 )
+
+release\xl.exe cgen test\cases\cgen_class_missing_operator_protocol.xl --emit build\test\cgen_class_missing_operator_protocol.c > build\test\cgen_class_missing_operator_protocol.err.txt 2>&1
+if not errorlevel 1 (
+    echo cgen_class_missing_operator_protocol.xl should fail.
+    exit /b 1
+)
+findstr /C:"class operator requires matching protocol method" build\test\cgen_class_missing_operator_protocol.err.txt >nul
+if errorlevel 1 (
+    echo cgen_class_missing_operator_protocol.xl missing protocol diagnostic.
+    exit /b 1
+)
+
+release\xl.exe cgen test\cases\cgen_class_missing_operator_protocol_right.xl --emit build\test\cgen_class_missing_operator_protocol_right.c > build\test\cgen_class_missing_operator_protocol_right.err.txt 2>&1
+if not errorlevel 1 (
+    echo cgen_class_missing_operator_protocol_right.xl should fail.
+    exit /b 1
+)
+findstr /C:"class operator requires matching protocol method" build\test\cgen_class_missing_operator_protocol_right.err.txt >nul
+if errorlevel 1 (
+    echo cgen_class_missing_operator_protocol_right.xl missing protocol diagnostic.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\cgen_base_method_static_dispatch.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_base_method_static_dispatch.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_base_method_static_dispatch.xl --emit build\test\cgen_base_method_static_dispatch.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_class_ParentSpeaker__speak(&self->base)" build\test\cgen_base_method_static_dispatch.c >nul
+if errorlevel 1 (
+    echo cgen_base_method_static_dispatch.c did not emit direct parent dispatch.
+    exit /b 1
+)
+release\xl.exe build test\cases\cgen_base_method_static_dispatch.xl -o build\test\cgen_base_method_static_dispatch.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_base_method_static_dispatch.exe
+if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: current OOP and parameter-mode regressions
 exit /b 0

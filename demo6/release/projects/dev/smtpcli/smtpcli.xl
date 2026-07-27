@@ -67,7 +67,7 @@ end
 func sendRetry(TcpStream s, string text) as bool
     int tries = 0
     bool ok = false
-    while tries < SEND_RETRY_TRIES and not ok do
+    while tries < SEND_RETRY_TRIES and not ok
         ok = s.send(text)
         if not ok then
             time.sleep(SEND_RETRY_GAP)
@@ -88,7 +88,7 @@ end
 // Read one CRLF-terminated line. Returns (line, newInbuf, ok).
 // On disconnect/timeout returns ("", inbuf, false).
 func recvLine(TcpStream s, string inbuf, int timeoutMs) as (string, string, bool)
-    while true do
+    while true
         int eol = string.indexOf(inbuf, "\r\n")
         if eol >= 0 then
             int blen = string.len(inbuf)
@@ -111,7 +111,7 @@ end
 // reply text (lines joined by \r\n) + updated inbuf + ok.
 func recvReply(TcpStream s, string inbuf, int timeoutMs) as (string, string, bool)
     string allLines = ""
-    while true do
+    while true
         string line
         string nb
         bool ok
@@ -148,7 +148,7 @@ end
 // Read DATA payload until the "<CRLF>.<CRLF>" terminator.
 // Returns the message content (without terminator), updated inbuf, ok.
 func recvDataTerminator(TcpStream s, string inbuf, int timeoutMs) as (string, string, bool)
-    while true do
+    while true
         int dot = string.indexOf(inbuf, "\r\n.\r\n")
         if dot >= 0 then
             string data = string.slice(inbuf, 0, dot)
@@ -205,7 +205,7 @@ end
 func isAscii(string s) as bool
     array bytes = string.bytes(s)
     int i = 0
-    while i < bytes.length do
+    while i < bytes.length
         if int(bytes[i]) > 127 then
             return false
         end
@@ -219,7 +219,7 @@ func wrapBase64Lines(string b64) as string
     string outputValue = ""
     int total = string.len(b64)
     int i = 0
-    while i < total do
+    while i < total
         int remaining = total - i
         int take = B64_LINE_WIDTH
         if remaining < take then
@@ -294,7 +294,7 @@ func buildEmail(string fromHeader, string toHeader, string ccHeader, string subj
     msg = msg + "\r\n"
     msg = msg + body + "\r\n"
     int i = 0
-    while i < attachments.length do
+    while i < attachments.length
         string fp = attachments[i]
         string part = buildAttachmentPart(fp)
         if part != "" then
@@ -321,7 +321,7 @@ func prepareDataPayload(string message) as string
     end
     string outputValue = ""
     int i = 0
-    while i < n do
+    while i < n
         string ln = string(lines[i])
         if string.startsWith(ln, ".") then
             ln = "." + ln
@@ -425,7 +425,7 @@ func smtpSend(string host, int port, string heloName, string fromAddr, string to
     // ---- RCPT TO (one or more, comma separated) ----
     var rcpts = string.split(toAddrs, ",")
     int r = 0
-    while r < rcpts.length do
+    while r < rcpts.length
         string one = string.trim(string(rcpts[r]))
         if one != "" then
             reply, nb, ok = cmdExchange(sock, inbuf, "RCPT TO:" + smtpAddr(one))
@@ -440,7 +440,7 @@ func smtpSend(string host, int port, string heloName, string fromAddr, string to
     if ccAddrs != "" then
         var ccs = string.split(ccAddrs, ",")
         int c = 0
-        while c < ccs.length do
+        while c < ccs.length
             string one = string.trim(string(ccs[c]))
             if one != "" then
                 reply, nb, ok = cmdExchange(sock, inbuf, "RCPT TO:" + smtpAddr(one))
@@ -508,7 +508,7 @@ func handleSmtpClient(point clientHandle) as int
 
     // command loop
     bool authed = false
-    while true do
+    while true
         reply, nb, ok = recvLine(peer, inbuf, 30000)
         inbuf = nb
         if not ok then
@@ -579,7 +579,7 @@ func runSelfTest(int port) as int
     // retry-connect: the server thread may not have called accept yet
     point cp = ZERO
     int attempts = 0
-    while cp == ZERO and attempts < 60 do
+    while cp == ZERO and attempts < 60
         cp = tcp.connect("127.0.0.1", port, 2000)
         if cp == ZERO then
             time.sleep(50)
@@ -732,7 +732,7 @@ func parsePositiveInt(string s) as int
     end
     int n = 0
     int i = 0
-    while i < string.len(s) do
+    while i < string.len(s)
         string ch = string.slice(s, i, 1)
         if ch < "0" or ch > "9" then
             return -1
@@ -817,7 +817,7 @@ func main(...) as int
     bool useAuth = false
 
     int i = 2
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "--host" then
             if i + 1 >= arg.length then

@@ -107,7 +107,7 @@ class RateLimiter
     // find an existing client slot, or create a new one with fresh state.
     func clientIndex(string id) as int
         int i = 0
-        while i < clients.length do
+        while i < clients.length
             if clients[i] == id then
                 return i
             end
@@ -119,7 +119,7 @@ class RateLimiter
         cLevel.append(0.0)
         cWinCount.append(0)
         int s = 0
-        while s < capacity do
+        while s < capacity
             cWin.append(0.0)
             s = s + 1
         end
@@ -244,7 +244,7 @@ class RateLimiter
         float deadline = now - float(windowMs)
         int w = 0
         int r = 0
-        while r < stamps.length do
+        while r < stamps.length
             float t = stamps[r]
             if t > deadline then
                 if w != r then stamps[w] = t end
@@ -268,7 +268,7 @@ class RateLimiter
         float deadline = now - float(windowMs)
         int w = 0
         int r = 0
-        while r < cnt do
+        while r < cnt
             float t = cWin[base + r]
             if t > deadline then
                 cWin[base + w] = t
@@ -311,7 +311,7 @@ func runTokenTests()
     g_rl.configure("token", 5, 0)
     int passed = 0
     int i = 0
-    while i < 7 do
+    while i < 7
         if g_rl.allow() then passed = passed + 1 end
         i = i + 1
     end
@@ -322,7 +322,7 @@ func runTokenTests()
     // bounded by capacity.
     g_rl.configure("token", 3, 20)
     int j = 0
-    while j < 3 do
+    while j < 3
         g_rl.allow()
         j = j + 1
     end
@@ -330,7 +330,7 @@ func runTokenTests()
     time.sleep(120)
     int after = 0
     int k = 0
-    while k < 10 do
+    while k < 10
         if g_rl.allow() then after = after + 1 end
         k = k + 1
     end
@@ -345,7 +345,7 @@ func runSlidingTests()
     g_rl.configure("sliding", 5, 5)
     int passed = 0
     int i = 0
-    while i < 7 do
+    while i < 7
         if g_rl.allow() then passed = passed + 1 end
         i = i + 1
     end
@@ -356,7 +356,7 @@ func runSlidingTests()
     time.sleep(1100)
     int after = 0
     i = 0
-    while i < 3 do
+    while i < 3
         if g_rl.allow() then after = after + 1 end
         i = i + 1
     end
@@ -371,7 +371,7 @@ func runLeakyTests()
     g_rl.configure("leaky", 5, 0)
     int passed = 0
     int i = 0
-    while i < 7 do
+    while i < 7
         if g_rl.allow() then passed = passed + 1 end
         i = i + 1
     end
@@ -381,7 +381,7 @@ func runLeakyTests()
     // outflow: cap=3, rate=100/sec. Fill, wait for drain, expect bounded refill.
     g_rl.configure("leaky", 3, 100)
     int j = 0
-    while j < 3 do
+    while j < 3
         g_rl.allow()
         j = j + 1
     end
@@ -389,7 +389,7 @@ func runLeakyTests()
     time.sleep(50)
     int after = 0
     i = 0
-    while i < 6 do
+    while i < 6
         if g_rl.allow() then after = after + 1 end
         i = i + 1
     end
@@ -416,13 +416,13 @@ func runMultiClientTests()
     g_rl.configure("sliding", 3, 3)
     int ai = 0
     int i = 0
-    while i < 5 do
+    while i < 5
         if g_rl.allowClient("alice") then ai = ai + 1 end
         i = i + 1
     end
     int bi = 0
     i = 0
-    while i < 5 do
+    while i < 5
         if g_rl.allowClient("bob") then bi = bi + 1 end
         i = i + 1
     end
@@ -440,7 +440,7 @@ func makeBenchWorker(int ci, int reqs) as func() as int
     return func() as int
         string cname = "c" + ci.toString()
         int i = 0
-        while i < reqs do
+        while i < reqs
             g_rl.allowClient(cname)
             i = i + 1
         end
@@ -461,14 +461,14 @@ func runBench(int clients, int reqs)
 
     // spawn fire-and-forget worker threads (non-copyable, not stored).
     int c = 0
-    while c < clients do
+    while c < clients
         thread(makeBenchWorker(c, reqs))
         c = c + 1
     end
 
     // wait for all workers to finish (poll the completion counter).
     int waited = 0
-    while waited < 30000 do
+    while waited < 30000
         g_doneMu.lock()
         int d = g_done
         g_doneMu.unlock()
@@ -560,7 +560,7 @@ func runServe(int port, string algo, int rate)
     int rejectCount = 0
     string url = "http://127.0.0.1:" + boundPort.toString() + "/"
     int i = 0
-    while i < demo do
+    while i < demo
         HttpClientRequest hreq = HttpClientRequest(url)
         hreq.method("GET")
         hreq.timeout(3000)
@@ -581,7 +581,7 @@ func runServe(int port, string algo, int rate)
     println("")
     println("  serving forever (Ctrl+C to stop). examples:")
     println("    curl -i -H \"X-Client: alice\" " + url)
-    while true do
+    while true
         time.sleep(1000)
     end
 end

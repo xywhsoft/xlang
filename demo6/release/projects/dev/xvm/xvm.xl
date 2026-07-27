@@ -107,7 +107,7 @@ func makeArray(int n, int initVal) as array<int>
         return a
     end
     int i = 0
-    while i < n do
+    while i < n
         a.push(initVal)
         i += 1
     end
@@ -127,7 +127,7 @@ func looksInt(string s) as bool
             return false
         end
     end
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then
             return false
@@ -141,7 +141,7 @@ end
 func opNameToCode(string name) as int
     string up = string.upper(name)
     int i = 0
-    while i < NUM_OPS do
+    while i < NUM_OPS
         if gNames[i] == up then
             return i
         end
@@ -156,7 +156,7 @@ func tokenize(string line) as array<string>
     int n = string.len(line)
     int i = 0
     string cur = ""
-    while i < n do
+    while i < n
         string c = string.charAt(line, i)
         if c == " " or c == "\t" or c == "\r" or c == "\n" then
             if string.len(cur) > 0 then
@@ -178,7 +178,7 @@ end
 func stripComment(string line) as string
     int n = string.len(line)
     int i = 0
-    while i < n do
+    while i < n
         if string.charAt(line, i) == ";" then
             return string.mid(line, 0, i)
         end
@@ -191,7 +191,7 @@ end
 func findLabel(array<string> names, array<int> addrs, string name) as int
     int i = 0
     int n = names.length
-    while i < n do
+    while i < n
         if names[i] == name then
             return addrs[i]
         end
@@ -223,13 +223,13 @@ func assemble(string src) as array<int>
 
     int addr = 0
     int li = 0
-    while li < numLines do
+    while li < numLines
         string raw = string(rawLines[li])
         string body = stripComment(raw)
         array<string> tokens = tokenize(body)
         int nt = tokens.length
         int ti = 0
-        while ti < nt do
+        while ti < nt
             string tok = tokens[ti]
             int tokLen = string.len(tok)
             // label definition: "name:"
@@ -274,7 +274,7 @@ func assemble(string src) as array<int>
     // Pass 2: emit bytecode, resolving labels.
     int ii = 0
     int ni = instrMnem.length
-    while ii < ni do
+    while ii < ni
         string mnem = instrMnem[ii]
         string operand = instrOperand[ii]
         int opcode = opNameToCode(mnem)
@@ -316,7 +316,7 @@ func writeBytecode(string path, array<int> code) as bool
     string text = BC_MAGIC + "\n"
     int n = code.length
     int i = 0
-    while i < n do
+    while i < n
         text = text + string(code[i]) + "\n"
         i += 1
     end
@@ -345,7 +345,7 @@ func readBytecode(string path) as array<int>
         return result
     end
     int i = 1
-    while i < n do
+    while i < n
         string s = string.trim(string(lines[i]))
         if string.len(s) > 0 then
             if not looksInt(s) then
@@ -367,7 +367,7 @@ func disassembleCode(array<int> code) as string
     string outputValue = ""
     int n = code.length
     int p = 0
-    while p < n do
+    while p < n
         int op = code[p]
         string name = "UNK" + string(op)
         int hasOp = 0
@@ -377,7 +377,7 @@ func disassembleCode(array<int> code) as string
         end
         // right-align address in 4 chars for readability
         string addrStr = string(p)
-        while string.len(addrStr) < 4 do
+        while string.len(addrStr) < 4
             addrStr = " " + addrStr
         end
         outputValue = outputValue + addrStr + ":  " + name
@@ -756,7 +756,7 @@ class VM
 
     // Run until halted. Returns 0 on clean halt, 1 on error.
     func run() as int
-        while not self.halted do
+        while not self.halted
             self.step()
         end
         if string.len(self.error) > 0 then
@@ -769,7 +769,7 @@ class VM
     func dumpStack() as string
         string outputValue = "["
         int i = 0
-        while i < self.sp do
+        while i < self.sp
             if i > 0 then
                 outputValue = outputValue + " "
             end
@@ -785,7 +785,7 @@ class VM
         string outputValue = ""
         int n = self.codeLen
         int p = 0
-        while p < n do
+        while p < n
             int op = self.code[p]
             string name = "UNK" + string(op)
             int hasOp = 0
@@ -794,7 +794,7 @@ class VM
                 hasOp = gHasOperand[op]
             end
             string addrStr = string(p)
-            while string.len(addrStr) < 4 do
+            while string.len(addrStr) < 4
                 addrStr = " " + addrStr
             end
             outputValue = outputValue + addrStr + ":  " + name
@@ -853,12 +853,12 @@ func cmdDebug(string asmPath) as int
     println("--- trace ---")
     int maxTrace = 500
     int count = 0
-    while not vm.halted and count < maxTrace do
+    while not vm.halted and count < maxTrace
         int curIp = vm.ip
         string instr = traceAt(vm, curIp)
         vm.step()
         string ipStr = string(curIp)
-        while string.len(ipStr) < 4 do
+        while string.len(ipStr) < 4
             ipStr = " " + ipStr
         end
         print(ipStr + "  " + instr + "  ->  stack=" + vm.dumpStack())
@@ -1032,7 +1032,7 @@ func main(...) as int
         string asmPath = string(arg[2])
         string outPath = "out.xb"
         int ai = 3
-        while ai < arg.length do
+        while ai < arg.length
             string a = string(arg[ai])
             if a == "-o" or a == "--output" then
                 if ai + 1 < arg.length then

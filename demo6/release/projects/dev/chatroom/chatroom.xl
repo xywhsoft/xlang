@@ -109,7 +109,7 @@ func messagesAfterJson(int since) as string
     gLock.lock()
     array<string> records = []
     int i = 0
-    while i < gMessageIds.length do
+    while i < gMessageIds.length
         if gMessageIds[i] > since then
             records.push(gMessageJson[i])
         end
@@ -138,7 +138,7 @@ func appendMessage(string username, string text) as int
         array<string> trimmedJson = []
         int start = mlen - MAX_MESSAGES
         int i = start
-        while i < mlen do
+        while i < mlen
             trimmedIds.push(gMessageIds[i])
             trimmedJson.push(gMessageJson[i])
             i += 1
@@ -419,7 +419,7 @@ func route(point reqHandle, point respHandle) as bool
         gLock.unlock()
 
         float deadline = time.timer() + float(timeoutMs) / 1000.0
-        while true do
+        while true
             if latestMessageId() > since then
                 break
             end
@@ -711,7 +711,7 @@ func runSelfTest(int port) as int
 
         // 等服务器确认 poll 已进入等待循环，避免用固定 sleep 猜并发时序。
         float readyStart = time.timer()
-        while activePollCount() == 0 and time.timer() - readyStart < 3.0 do
+        while activePollCount() == 0 and time.timer() - readyStart < 3.0
             time.sleep(10)
         end
         check(activePollCount() > 0, "13. long-poll entered wait loop", "active=" + activePollCount().toString())
@@ -853,7 +853,7 @@ func main(...) as int
     end
     println("listening on http://127.0.0.1:" + port.toString())
     println("open the URL in a browser to chat. press Ctrl+C to stop.")
-    while true do
+    while true
         time.sleep(5000)
         println("[stats] requestCount=" + http.server.requestCount(server).toString() + " connectionCount=" + http.server.connectionCount(server).toString())
     end

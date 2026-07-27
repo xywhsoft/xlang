@@ -1,0 +1,15 @@
+int hexVal = 0x2A
+int octVal = 0o52
+int binVal = 0b101010
+int sepVal = 1_000_000
+int leadingZero = 010
+int hexMaxI64 = 0x7FFFFFFFFFFFFFFF
+
+assert hexVal == 42, "hex literal"
+assert octVal == 42, "octal literal"
+assert binVal == 42, "binary literal"
+assert sepVal == 1000000, "underscore separator"
+assert leadingZero == 10, "leading zero stays decimal"
+assert hexMaxI64 == 9223372036854775807, "hex int64 max"
+
+println("operators_int_literal_forms ok")

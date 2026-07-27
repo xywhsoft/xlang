@@ -33,13 +33,13 @@ func queryPath(var current, string path) as var
     var cur = current
     int i = 0
 
-    while i < n do
+    while i < n
         string c = string.mid(path, i, 1)
 
         if c == "." then
             i += 1
             string key = ""
-            while i < n do
+            while i < n
                 string cc = string.mid(path, i, 1)
                 if cc == "." or cc == "[" then
                     break
@@ -55,7 +55,7 @@ func queryPath(var current, string path) as var
         elseif c == "[" then
             i += 1
             string num = ""
-            while i < n do
+            while i < n
                 string cc = string.mid(path, i, 1)
                 if cc == "]" then
                     break

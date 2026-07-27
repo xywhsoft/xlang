@@ -545,7 +545,7 @@ export func wait_task(string access_key, string secret_key, string session_token
 	if interval <= 0 then
 		interval = 3000
 	end
-	while elapsed <= timeout_ms do
+	while elapsed <= timeout_ms
 		string info = get_task_info(access_key, secret_key, session_token, product_id, task_id, interval)
 		string state = task_state(info)
 		if state == "success" or state == "failed" then

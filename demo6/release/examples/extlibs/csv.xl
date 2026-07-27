@@ -14,7 +14,7 @@ func main(...) as int
     println(data.text())
 
     auto reader = csv.openDict(data)
-    while reader.next() do
+    while reader.next()
         dict<string> row = reader.row()
         println(row["name"] + " lives in " + row["city"])
     end

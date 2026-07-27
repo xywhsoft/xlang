@@ -18,7 +18,7 @@ class Sudoku
     create()
         self.data = array[]
         int i = 0
-        while i < 81 do
+        while i < 81
             self.data.append(0)
             i += 1
         end
@@ -30,7 +30,7 @@ class Sudoku
             throw "puzzle string must contain exactly 81 digits"
         end
         int i = 0
-        while i < 81 do
+        while i < 81
             string ch = string.charAt(s, i)
             int d = int(ch)
             if d < 0 or d > 9 then
@@ -46,7 +46,7 @@ class Sudoku
         int row = pos / 9
         int col = pos % 9
         int i = 0
-        while i < 9 do
+        while i < 9
             if self.data[row * 9 + i] == num then
                 return false
             end
@@ -58,9 +58,9 @@ class Sudoku
         int br = (row / 3) * 3
         int bc = (col / 3) * 3
         int r = 0
-        while r < 3 do
+        while r < 3
             int c = 0
-            while c < 3 do
+            while c < 3
                 int rr = br + r
                 int cc = bc + c
                 if self.data[rr * 9 + cc] == num then
@@ -82,7 +82,7 @@ class Sudoku
             return self.solve(pos + 1)
         end
         int n = 1
-        while n <= 9 do
+        while n <= 9
             if self.isValid(pos, n) then
                 self.data[pos] = n
                 if self.solve(pos + 1) then
@@ -98,16 +98,16 @@ class Sudoku
     // 校验当前棋盘是否为一个合法完整解（无 0、行/列/宫均不冲突）。
     func verify() as bool
         int i = 0
-        while i < 81 do
+        while i < 81
             if self.data[i] == 0 then
                 return false
             end
             i += 1
         end
         int row = 0
-        while row < 9 do
+        while row < 9
             int col = 0
-            while col < 9 do
+            while col < 9
                 int num = self.data[row * 9 + col]
                 self.data[row * 9 + col] = 0
                 bool ok = self.isValid(row * 9 + col, num)
@@ -126,7 +126,7 @@ class Sudoku
     func countEmpty() as int
         int cnt = 0
         int i = 0
-        while i < 81 do
+        while i < 81
             if self.data[i] == 0 then
                 cnt += 1
             end
@@ -142,7 +142,7 @@ class Sudoku
     func digits() as string
         string result = ""
         int i = 0
-        while i < 81 do
+        while i < 81
             result += string(self.data[i])
             i += 1
         end
@@ -153,7 +153,7 @@ class Sudoku
     func printRow(int r)
         int b = r * 9
         int c = 0
-        while c < 9 do
+        while c < 9
             print(self.data[b + c])
             if c == 2 or c == 5 then
                 print(" | ")
@@ -230,7 +230,7 @@ func main(...) as int
             end
             println()
             int rr = 0
-            while rr < 9 do
+            while rr < 9
                 g.printRow(rr)
                 if rr == 2 or rr == 5 then
                     println("------+-------+------")

@@ -121,7 +121,7 @@ static void xl6CgenNameAssignTargetPath(XL6_CgenContext* ctx, const char* name, 
             return;
         }
     }
-    xl6CgenCIdentText(buffer, capacity, name);
+    xl6CgenValueStorageNameText(ctx, buffer, capacity, name);
 }
 
 static int xl6CgenTypedIndexCompoundAssignStmt(
@@ -1075,6 +1075,9 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         if ( xl6CgenAssignTryStaticXValueApproxStmt(ctx, targetType, cType, cName, right) ) {
             return;
         }
+        if ( xl6CgenAssignTryStaticXValueScalarStmt(ctx, targetType, cName, right) ) {
+            return;
+        }
     }
 
     xl6CgenIndent(ctx);
@@ -1159,6 +1162,10 @@ static void xl6CgenAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6OutputPuts(", ", ctx->out);
         xl6CgenExpr(ctx, right);
         xl6OutputPuts(");\n", ctx->out);
+        return;
+    }
+
+    if ( xl6CgenStaticNumericCompoundXValueStmt(ctx, left, op, right) ) {
         return;
     }
 

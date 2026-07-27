@@ -97,7 +97,7 @@ end
 // 去掉首尾的 \r 和 \n (HEAD / ref 文件以换行结尾).
 func stripNewline(string s) as string
     int n = string.len(s)
-    while n > 0 do
+    while n > 0
         string last = string.mid(s, n - 1, 1)
         if last == "\n" or last == "\r" then
             n = n - 1
@@ -115,7 +115,7 @@ func toLines(string content) as array<string>
     array<string> outputValue = array[]
     int n = raw.length
     int i = 0
-    while i < n do
+    while i < n
         outputValue.push(string(raw[i]))
         i += 1
     end
@@ -127,7 +127,7 @@ func joinLines(array<string> lines) as string
     string s = ""
     int n = lines.length
     int i = 0
-    while i < n do
+    while i < n
         if i == 0 then
             s = lines[i]
         else
@@ -146,7 +146,7 @@ func joinLinesVar(var lines) as string
     string s = ""
     int n = lines.length
     int i = 0
-    while i < n do
+    while i < n
         if i == 0 then
             s = string(lines[i])
         else
@@ -164,10 +164,10 @@ end
 func sortStringArray(array<string> a)
     int n = a.length
     int i = 1
-    while i < n do
+    while i < n
         string key = a[i]
         int j = i - 1
-        while j >= 0 do
+        while j >= 0
             if string.compare(a[j], key, false) > 0 then
                 a[j + 1] = a[j]
                 j = j - 1
@@ -286,7 +286,7 @@ func commitParents(string commitHash) as array<string>
     if parents == null then return result end
     int n = parents.length
     int i = 0
-    while i < n do
+    while i < n
         result.push(string(parents[i]))
         i += 1
     end
@@ -305,14 +305,14 @@ func buildNested(var index) as var
     var root = {}
     array<string> paths = sortedKeys(index)
     int pi = 0
-    while pi < paths.length do
+    while pi < paths.length
         string path_ = paths[pi]
         string hash = string(index[path_])
         array parts = string.split(path_, "/")
         int last = parts.length - 1
         var cur = root
         int i = 0
-        while i < last do
+        while i < last
             string seg = string(parts[i])
             if not (seg in cur) then
                 var child = {}
@@ -336,7 +336,7 @@ func writeTreeFromNested(var node) as string
     var entries = {}
     array<string> names = sortedKeys(node)
     int i = 0
-    while i < names.length do
+    while i < names.length
         string nm = names[i]
         var child = node[nm]
         if "kind" in child then
@@ -379,7 +379,7 @@ func flattenTreeRecurse(string treeHash, string prefix, var outputValue)
     if entries == null then return end
     array<string> names = sortedKeys(entries)
     int i = 0
-    while i < names.length do
+    while i < names.length
         string nm = names[i]
         var entry = entries[nm]
         string kind = string(entry["kind"])
@@ -487,7 +487,7 @@ func listBranches() as array<string>
     array raw = dir.entries(d, false)
     int n = raw.length
     int i = 0
-    while i < n do
+    while i < n
         var e = raw[i]
         if bool(e["isFile"]) then
             result.push(string(e["name"]))
@@ -540,7 +540,7 @@ func scanDirRecurse(string dirPath, string prefix, array<string> outputValue)
     array raw = dir.entries(dirPath, false)
     int n = raw.length
     int i = 0
-    while i < n do
+    while i < n
         var e = raw[i]
         string nm = string(e["name"])
         bool isDir = bool(e["isDir"])
@@ -604,7 +604,7 @@ func restoreWorkdir(string commitHash)
     // 删除: 当前 index 跟踪、但目标不在的文件
     array<string> tracked = sortedKeys(currentIndex)
     int i = 0
-    while i < tracked.length do
+    while i < tracked.length
         string p = tracked[i]
         if not (p in target) then
             deleteWorkFile(p)
@@ -614,7 +614,7 @@ func restoreWorkdir(string commitHash)
     // 写入目标文件
     array<string> tpaths = sortedKeys(target)
     int j = 0
-    while j < tpaths.length do
+    while j < tpaths.length
         string p = tpaths[j]
         string content = readBlob(string(target[p]))
         writeFileText(p, content)
@@ -637,15 +637,15 @@ func lcsDiffLines(array<string> a, array<string> b, array<int> ops, array<string
 
     array<int> dp = array[]
     int z = 0
-    while z < total do
+    while z < total
         dp.push(0)
         z += 1
     end
 
     int i = 1
-    while i <= m do
+    while i <= m
         int j = 1
-        while j <= n do
+        while j <= n
             if a[i - 1] == b[j - 1] then
                 dp[i * cols + j] = dp[(i - 1) * cols + (j - 1)] + 1
             else
@@ -665,7 +665,7 @@ func lcsDiffLines(array<string> a, array<string> b, array<int> ops, array<string
     // 回溯收集, 再翻转
     i = m
     int j = n
-    while i > 0 or j > 0 do
+    while i > 0 or j > 0
         if i > 0 then
             if j > 0 then
                 if a[i - 1] == b[j - 1] then
@@ -710,7 +710,7 @@ func printFileDiff(string path_, string oldContent, string newContent)
 
     int total = ops.length
     int i = 0
-    while i < total do
+    while i < total
         if ops[i] != 0 then
             // hunk 起点 (1-based)
             int s = i
@@ -721,7 +721,7 @@ func printFileDiff(string path_, string oldContent, string newContent)
             if end_ >= total then end_ = total - 1 end
             // 推进到该 hunk 末
             int j = s + 1
-            while j < total do
+            while j < total
                 if ops[j] != 0 then
                     int cand = j + context
                     if cand > end_ then end_ = cand end
@@ -735,7 +735,7 @@ func printFileDiff(string path_, string oldContent, string newContent)
             int oldLine = 0
             int newLine = 0
             int k = 0
-            while k < start do
+            while k < start
                 if ops[k] == 0 then
                     oldLine += 1
                     newLine += 1
@@ -751,7 +751,7 @@ func printFileDiff(string path_, string oldContent, string newContent)
             int oldCount = 0
             int newCount = 0
             int kk = start
-            while kk <= end_ do
+            while kk <= end_
                 if ops[kk] == 0 then
                     oldCount += 1
                     newCount += 1
@@ -766,7 +766,7 @@ func printFileDiff(string path_, string oldContent, string newContent)
             if newCount == 0 then newStart = newLine end
             println("@@ -" + string(oldStart) + "," + string(oldCount) + " +" + string(newStart) + "," + string(newCount) + " @@")
             int p = start
-            while p <= end_ do
+            while p <= end_
                 if ops[p] == 0 then
                     println(" " + texts[p])
                 elseif ops[p] == 1 then
@@ -799,14 +799,14 @@ func matchBase(array<string> base, array<string> other) as array<int>
     array<int> dp = array[]
     int total = (m + 1) * cols
     int z = 0
-    while z < total do
+    while z < total
         dp.push(0)
         z += 1
     end
     int i = 1
-    while i <= m do
+    while i <= m
         int j = 1
-        while j <= n do
+        while j <= n
             if base[i - 1] == other[j - 1] then
                 dp[i * cols + j] = dp[(i - 1) * cols + (j - 1)] + 1
             else
@@ -825,13 +825,13 @@ func matchBase(array<string> base, array<string> other) as array<int>
 
     array<int> match = array[]
     int mi = 0
-    while mi < m do
+    while mi < m
         match.push(-1)
         mi += 1
     end
     int bi = m
     int bj = n
-    while bi > 0 and bj > 0 do
+    while bi > 0 and bj > 0
         if base[bi - 1] == other[bj - 1] then
             match[bi - 1] = bj - 1
             bi -= 1
@@ -851,7 +851,7 @@ func sliceEquals(array<string> a, int alo, int ahi, array<string> b, int blo, in
     int lb = bhi - blo
     if la != lb then return false end
     int i = 0
-    while i < la do
+    while i < la
         if a[alo + i] != b[blo + i] then return false end
         i += 1
     end
@@ -861,7 +861,7 @@ end
 // 把 a[lo..hi) 追加到 var lines.
 func appendRange(var lines, array<string> a, int lo, int hi)
     int i = lo
-    while i < hi do
+    while i < hi
         lines.push(a[i])
         i += 1
     end
@@ -916,11 +916,11 @@ func merge3(array<string> base, array<string> ours, array<string> theirs, string
     int ti = 0
     bool done = false
 
-    while not done do
+    while not done
         // 找下一个同步点: base 索引 s >= bi, 且 mo[s] >= oi 且 mt[s] >= ti
         int s = bi
         bool found = false
-        while s < m do
+        while s < m
             if mo[s] >= oi and mt[s] >= ti then
                 found = true
                 break
@@ -966,7 +966,7 @@ end
 func collectAncestors(string commitHash, var set)
     array<string> stack = array[]
     stack.push(commitHash)
-    while stack.length > 0 do
+    while stack.length > 0
         int last = stack.length - 1
         string c = stack[last]
         stack.remove(last)
@@ -975,7 +975,7 @@ func collectAncestors(string commitHash, var set)
         set[c] = true
         array<string> ps = commitParents(c)
         int i = 0
-        while i < ps.length do
+        while i < ps.length
             stack.push(ps[i])
             i += 1
         end
@@ -990,7 +990,7 @@ func findMergeBase(string h1, string h2) as string
     array<string> stack = array[]
     stack.push(h2)
     var seen = {}
-    while stack.length > 0 do
+    while stack.length > 0
         int last = stack.length - 1
         string c = stack[last]
         stack.remove(last)
@@ -1000,7 +1000,7 @@ func findMergeBase(string h1, string h2) as string
         if not objectExists(c) then continue end
         array<string> ps = commitParents(c)
         int i = 0
-        while i < ps.length do
+        while i < ps.length
             stack.push(ps[i])
             i += 1
         end
@@ -1068,7 +1068,7 @@ func addPath(string p, var index) as int
         array<string> files = array[]
         scanDirRecurse(fs, scanPrefix, files)
         int i = 0
-        while i < files.length do
+        while i < files.length
             count += addFileToIndex(files[i], index)
             i += 1
         end
@@ -1092,7 +1092,7 @@ func cmdAdd(array<string> paths) as int
     var index = readIndex()
     int added = 0
     int i = 0
-    while i < paths.length do
+    while i < paths.length
         added += addPath(paths[i], index)
         i += 1
     end
@@ -1157,7 +1157,7 @@ func cmdStatus() as int
     array<string> workFiles = scanWorkdir()
     var workSet = {}
     int wi = 0
-    while wi < workFiles.length do
+    while wi < workFiles.length
         workSet[workFiles[wi]] = true
         wi += 1
     end
@@ -1168,7 +1168,7 @@ func cmdStatus() as int
     var stagedDel = []
     array<string> idxKeys = sortedKeys(index)
     int ii = 0
-    while ii < idxKeys.length do
+    while ii < idxKeys.length
         string p = idxKeys[ii]
         string ih = string(index[p])
         if not (p in headTree) then
@@ -1180,7 +1180,7 @@ func cmdStatus() as int
     end
     array<string> headKeys = sortedKeys(headTree)
     int hi = 0
-    while hi < headKeys.length do
+    while hi < headKeys.length
         string p = headKeys[hi]
         if not (p in index) then
             stagedDel.push(p)
@@ -1193,7 +1193,7 @@ func cmdStatus() as int
     var unstagedDel = []
     var untracked = []
     int ui = 0
-    while ui < idxKeys.length do
+    while ui < idxKeys.length
         string p = idxKeys[ui]
         string fs = toFsPath(p)
         if file.exists(fs) then
@@ -1209,7 +1209,7 @@ func cmdStatus() as int
     end
     // untracked: workdir 中有, index 与 head 均无
     int wj = 0
-    while wj < workFiles.length do
+    while wj < workFiles.length
         string p = workFiles[wj]
         if not (p in index) and not (p in headTree) then
             untracked.push(p)
@@ -1224,17 +1224,17 @@ func cmdStatus() as int
         println("")
         println("Changes to be committed:")
         int k = 0
-        while k < stagedNew.length do
+        while k < stagedNew.length
             println("        new file:   " + string(stagedNew[k]))
             k += 1
         end
         k = 0
-        while k < stagedMod.length do
+        while k < stagedMod.length
             println("        modified:   " + string(stagedMod[k]))
             k += 1
         end
         k = 0
-        while k < stagedDel.length do
+        while k < stagedDel.length
             println("        deleted:    " + string(stagedDel[k]))
             k += 1
         end
@@ -1244,12 +1244,12 @@ func cmdStatus() as int
         println("")
         println("Changes not staged for commit:")
         int k = 0
-        while k < unstagedMod.length do
+        while k < unstagedMod.length
             println("        modified:   " + string(unstagedMod[k]))
             k += 1
         end
         k = 0
-        while k < unstagedDel.length do
+        while k < unstagedDel.length
             println("        deleted:    " + string(unstagedDel[k]))
             k += 1
         end
@@ -1259,7 +1259,7 @@ func cmdStatus() as int
         println("")
         println("Untracked files:")
         int k = 0
-        while k < untracked.length do
+        while k < untracked.length
             println("        " + string(untracked[k]))
             k += 1
         end
@@ -1284,7 +1284,7 @@ func cmdLog() as int
         return 0
     end
     int count = 0
-    while not string.isEmpty(h) do
+    while not string.isEmpty(h)
         if not objectExists(h) then break end
         var c = readObject(h)
         string msg = string(c["message"])
@@ -1294,7 +1294,7 @@ func cmdLog() as int
         int pn = parents.length
         string parentStr = ""
         int pi = 0
-        while pi < pn do
+        while pi < pn
             if pi > 0 then parentStr = parentStr + " " end
             parentStr = parentStr + shortHash(string(parents[pi]))
             pi += 1
@@ -1334,7 +1334,7 @@ func cmdBranch(string name) as int
             return 0
         end
         int i = 0
-        while i < branches.length do
+        while i < branches.length
             if branches[i] == cur then
                 println("* " + branches[i])
             else
@@ -1457,7 +1457,7 @@ func cmdMerge(string branch) as int
     var conflictFiles = []
     array<string> keys = sortedKeys(allPaths)
     int ki = 0
-    while ki < keys.length do
+    while ki < keys.length
         string p = keys[ki]
         bool inB = p in baseTree
         bool inO = p in oursTree
@@ -1514,7 +1514,7 @@ func cmdMerge(string branch) as int
     updateHeadCommit(mc)
     if conflicts > 0 then
         int ci = 0
-        while ci < conflictFiles.length do
+        while ci < conflictFiles.length
             println("  CONFLICT: " + string(conflictFiles[ci]))
             ci += 1
         end
@@ -1540,7 +1540,7 @@ func cmdDiff(array<string> paths, bool cached) as int
         array<string> files = array[]
         if paths.length > 0 then
             int pi = 0
-            while pi < paths.length do
+            while pi < paths.length
                 files.push(normalizeRelPath(paths[pi]))
                 pi += 1
             end
@@ -1555,7 +1555,7 @@ func cmdDiff(array<string> paths, bool cached) as int
             files = sortedKeys(union_)
         end
         int i = 0
-        while i < files.length do
+        while i < files.length
             string p = files[i]
             string oh = p in headTree ? string(headTree[p]) : ""
             string nh = p in index ? string(index[p]) : ""
@@ -1572,7 +1572,7 @@ func cmdDiff(array<string> paths, bool cached) as int
         array<string> files = array[]
         if paths.length > 0 then
             int pi = 0
-            while pi < paths.length do
+            while pi < paths.length
                 files.push(normalizeRelPath(paths[pi]))
                 pi += 1
             end
@@ -1580,7 +1580,7 @@ func cmdDiff(array<string> paths, bool cached) as int
             files = sortedKeys(index)
         end
         int i = 0
-        while i < files.length do
+        while i < files.length
             string p = files[i]
             string ih = p in index ? string(index[p]) : ""
             string fs = toFsPath(p)
@@ -1805,7 +1805,7 @@ func cmdTest() as int
     int adds = 0
     int sames = 0
     int di = 0
-    while di < dop.length do
+    while di < dop.length
         if dop[di] == 0 then
             sames += 1
         elseif dop[di] == 1 then
@@ -1876,7 +1876,7 @@ func cmdTest() as int
     bool hasSep = false
     bool hasTail = false
     int ci = 0
-    while ci < mglines.length do
+    while ci < mglines.length
         string ln = string(mglines[ci])
         if ln == "<<<<<<< HEAD" then hasHead = true end
         if ln == "=======" then hasSep = true end
@@ -1967,7 +1967,7 @@ func main(...) as int
     if cmd == "add" then
         array<string> paths = array[]
         int i = 2
-        while i < arg.length do
+        while i < arg.length
             paths.push(string(arg[i]))
             i += 1
         end
@@ -1977,7 +1977,7 @@ func main(...) as int
     if cmd == "commit" then
         string msg = ""
         int i = 2
-        while i < arg.length do
+        while i < arg.length
             string a = string(arg[i])
             if a == "-m" or a == "--message" then
                 if i + 1 < arg.length then
@@ -2032,7 +2032,7 @@ func main(...) as int
         bool cached = false
         array<string> paths = array[]
         int i = 2
-        while i < arg.length do
+        while i < arg.length
             string a = string(arg[i])
             if a == "--cached" or a == "--staged" then
                 cached = true

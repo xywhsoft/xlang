@@ -155,7 +155,7 @@ func main(...) as int
     int durationOverride = -1
 
     int i = 1
-    while i < arg.length do
+    while i < arg.length
         string key = string(arg[i])
 
         if key == "--help" or key == "-h" then
@@ -232,7 +232,7 @@ func main(...) as int
     end
 
     i = 1
-    while i < arg.length do
+    while i < arg.length
         if string(arg[i]) == "--quiet" then
             cfg.verbose = false
         end
@@ -282,7 +282,7 @@ func main(...) as int
         return 0
     end
 
-    while true do
+    while true
         time.sleep(1000)
     end
 

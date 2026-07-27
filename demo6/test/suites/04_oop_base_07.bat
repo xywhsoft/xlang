@@ -458,6 +458,13 @@ if not errorlevel 1 (
     exit /b 1
 )
 
+release\xl.exe cgen test\cases\cgen_class_implicit_upcast.xl --emit build\test\cgen_class_implicit_upcast.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_record_field_set_borrow(boxedHolder, \"items\"" build\test\cgen_class_implicit_upcast.c >nul
+if errorlevel 1 (
+    echo cgen_class_implicit_upcast.c lost dynamic field assignment through var storage.
+    exit /b 1
+)
 release\xl.exe run test\cases\cgen_class_implicit_upcast.xl
 if errorlevel 1 exit /b 1
 

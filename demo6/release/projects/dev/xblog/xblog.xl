@@ -60,10 +60,10 @@ func findFrom(string text, string token, int from) as int
     end
     int last = n - tn
     int i = from
-    while i <= last do
+    while i <= last
         bool match = true
         int j = 0
-        while j < tn do
+        while j < tn
             if string.charAt(text, i + j) != string.charAt(token, j) then
                 match = false
                 break
@@ -96,7 +96,7 @@ func mdInline(string text) as string
     string outputValue = ""
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         bool matched = false
         string c0 = string.charAt(s, i)
         string c1 = ""
@@ -215,7 +215,7 @@ func renderMarkdown(string md) as string
     string openBlock = ""    // "", "p", "ul", "ol", "code"
 
     int i = 0
-    while i < totalLines do
+    while i < totalLines
         string line = string(lines[i])
         string trimmed = string.trim(line)
 
@@ -256,7 +256,7 @@ func renderMarkdown(string md) as string
         // 标题 #..######
         if string.startsWith(trimmed, "#") then
             int level = 0
-            while level < string.len(trimmed) and string.charAt(trimmed, level) == "#" do
+            while level < string.len(trimmed) and string.charAt(trimmed, level) == "#"
                 level = level + 1
             end
             if level >= 1 and level <= 6 then
@@ -359,7 +359,7 @@ func jsonString(string s) as string
     string outputValue = "\""
     int n = string.len(s)
     int i = 0
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if c == "\"" then
             outputValue = outputValue + "\\\""
@@ -391,7 +391,7 @@ func tagsToJsonArray(var tags) as string
     end
     string outputValue = "["
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             outputValue = outputValue + ","
         end
@@ -420,7 +420,7 @@ func postsToJson(var posts) as string
     end
     string outputValue = "["
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             outputValue = outputValue + ","
         end
@@ -482,7 +482,7 @@ end
 func findPostIndex(var posts, string slug) as int
     int n = posts.length
     int i = 0
-    while i < n do
+    while i < n
         var p = posts[i]
         if string(p["slug"]) == slug then
             return i
@@ -504,7 +504,7 @@ func joinTags(var tags) as string
     end
     string outputValue = ""
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             outputValue = outputValue + ", "
         end
@@ -525,7 +525,7 @@ func buildListData(var posts, string query) as var
     var postList = []
     int n = posts.length
     int i = 0
-    while i < n do
+    while i < n
         var p = posts[i]
         var item = {}
         item["slug"] = p["slug"]
@@ -702,7 +702,7 @@ func route(point reqHandle, point respHandle) as bool
         var newArr = []
         int n = gPosts.length
         int k = 0
-        while k < n do
+        while k < n
             if k != idx then
                 newArr.push(gPosts[k])
             end
@@ -724,7 +724,7 @@ func route(point reqHandle, point respHandle) as bool
         var matches = []
         int n = posts.length
         int i = 0
-        while i < n do
+        while i < n
             var p = posts[i]
             string title = string(p["title"])
             string content = string(p["content"])
@@ -1223,7 +1223,7 @@ func main(...) as int
     end
     println("listening on http://127.0.0.1:" + port.toString())
     println("press Ctrl+C to stop")
-    while true do
+    while true
         time.sleep(5000)
         println("[stats] requestCount=" + http.server.requestCount(server).toString() + " connectionCount=" + http.server.connectionCount(server).toString())
     end

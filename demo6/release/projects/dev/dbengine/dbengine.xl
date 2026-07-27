@@ -119,7 +119,7 @@ func looksLikeInt(string s) as bool
         i = 1
     end
     if i >= string.len(s) then return false end
-    while i < string.len(s) do
+    while i < string.len(s)
         int b = string.byteAt(s, i)
         if b < 48 or b > 57 then return false end
         i += 1
@@ -139,7 +139,7 @@ func looksLikeFloat(string s) as bool
         i = 1
     end
     bool seenDigit = false
-    while i < string.len(s) do
+    while i < string.len(s)
         int b = string.byteAt(s, i)
         if b >= 48 and b <= 57 then
             seenDigit = true
@@ -159,7 +159,7 @@ func unescapeString(string s) as string
     string outputValue = ""
     int i = 0
     int n = string.len(s)
-    while i < n do
+    while i < n
         int b = string.byteAt(s, i)
         if b == 92 then
             i += 1
@@ -222,7 +222,7 @@ func jsonEscape(string s) as string
     string outputValue = ""
     int i = 0
     int n = string.len(s)
-    while i < n do
+    while i < n
         string c = string.charAt(s, i)
         if c == "\"" then
             outputValue = outputValue + "\\\""
@@ -247,7 +247,7 @@ end
 func joinLines(var arr) as string
     string outputValue = ""
     int i = 0
-    while i < arr.length do
+    while i < arr.length
         if i > 0 then outputValue = outputValue + "\n" end
         outputValue = outputValue + string(arr[i])
         i += 1
@@ -281,7 +281,7 @@ func purgeExpired()
         end
     end
     int i = 0
-    while i < expired.length do
+    while i < expired.length
         string k = string(expired[i])
         if k in gStore then
             unindexKey(k, gStore[k])
@@ -569,7 +569,7 @@ func runScript(string scriptPath) as int
     string text = file.readText(scriptPath)
     array lines = string.splitLines(text)
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         string ln = string(lines[i])
         string outputValue = execute(ln)
         if not string.isEmpty(outputValue) then
@@ -614,7 +614,7 @@ func runDemo() as int
     cmds.append("COMMIT")
     cmds.append("GET perm")
     int i = 0
-    while i < cmds.length do
+    while i < cmds.length
         string ln = string(cmds[i])
         string outputValue = execute(ln)
         println("> " + ln)
@@ -1080,7 +1080,7 @@ func main(...) as int
         println("dbengine serving on http://127.0.0.1:" + port.toString())
         println("data file: " + gServeFile)
         println("press Ctrl+C to stop")
-        while true do
+        while true
             time.sleep(1000)
             println("[stats] requestCount=" + http.server.requestCount(server).toString())
         end

@@ -20,6 +20,13 @@ static int xl6CgenNodeNeedsErrorRuntime(const XL6_AstNode* node)
          */
         return 1;
     }
+    if ( node->kind == XL6_AST_BINARY &&
+         (xl6CTextEquals(node->text, "/") ||
+          xl6CTextEquals(node->text, "%") ||
+          xl6CTextEquals(node->text, "<<") ||
+          xl6CTextEquals(node->text, ">>")) ) {
+        return 1;
+    }
     if ( node->kind == XL6_AST_FOR &&
          node->childCount > 1 &&
          xl6CgenIsRangeCall(node->children[1]) &&
@@ -208,6 +215,64 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("    xl6_error_retain(error);\n", out);
     xl6OutputPuts("    xl6_error_set_active(error);\n", out);
     xl6OutputPuts("}\n\n", out);
+
+    /* 整数除法先检查 C 未定义行为，并把错误送入 xlang 异常链。 */
+    xl6OutputPuts("static void xl6_error_raise(const char* kind, const char* message, const char* file, int line, int column);\n\n", out);
+    xl6OutputPuts("static long long xl6_i64_div_checked(long long left, long long right, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( right == 0 ) { xl6_error_raise(\"ZeroDivisionError\", \"integer division by zero\", \"\", line, column); return 0; }\n", out);
+    xl6OutputPuts("    if ( left == (-9223372036854775807LL - 1LL) && right == -1 ) { xl6_error_raise(\"OverflowError\", \"integer division overflow\", \"\", line, column); return 0; }\n", out);
+    xl6OutputPuts("    return left / right;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static long long xl6_i64_mod_checked(long long left, long long right, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( right == 0 ) { xl6_error_raise(\"ZeroDivisionError\", \"integer modulo by zero\", \"\", line, column); return 0; }\n", out);
+    xl6OutputPuts("    if ( left == (-9223372036854775807LL - 1LL) && right == -1 ) { xl6_error_raise(\"OverflowError\", \"integer modulo overflow\", \"\", line, column); return 0; }\n", out);
+    xl6OutputPuts("    return left % right;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static unsigned long long xl6_u64_div_checked(unsigned long long left, unsigned long long right, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( right == 0 ) { xl6_error_raise(\"ZeroDivisionError\", \"integer division by zero\", \"\", line, column); return 0; }\n", out);
+    xl6OutputPuts("    return left / right;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static unsigned long long xl6_u64_mod_checked(unsigned long long left, unsigned long long right, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( right == 0 ) { xl6_error_raise(\"ZeroDivisionError\", \"integer modulo by zero\", \"\", line, column); return 0; }\n", out);
+    xl6OutputPuts("    return left % right;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static unsigned long long xl6_u64_shl_checked(unsigned long long left, long long right, unsigned int width, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( width == 0u || width > 64u || right < 0 || (unsigned long long)right >= (unsigned long long)width ) { xl6_error_raise(\"RangeError\", \"shift count is outside the left operand width\", \"\", line, column); return 0; }\n", out);
+    xl6OutputPuts("    return left << (unsigned int)right;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static unsigned long long xl6_u64_shr_checked(unsigned long long left, long long right, unsigned int width, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( width == 0u || width > 64u || right < 0 || (unsigned long long)right >= (unsigned long long)width ) { xl6_error_raise(\"RangeError\", \"shift count is outside the left operand width\", \"\", line, column); return 0; }\n", out);
+    xl6OutputPuts("    return left >> (unsigned int)right;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("#ifdef XL_RUNTIME_NEED_XVALUE\n", out);
+    xl6OutputPuts("static xvalue xl6_xrt_basic_binary_checked(xvalue left, xvalue right, int op, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    int leftType = xvoType(left);\n", out);
+    xl6OutputPuts("    int rightType = xvoType(right);\n", out);
+    xl6OutputPuts("    if ( (op == 3 || op == 4 || op == 8 || op == 9) && leftType == XL6_XVO_DT_INT && rightType == XL6_XVO_DT_INT ) {\n", out);
+    xl6OutputPuts("        long long l = xvoGetInt(left);\n", out);
+    xl6OutputPuts("        long long r = xvoGetInt(right);\n", out);
+    xl6OutputPuts("        if ( op == 3 ) { long long value = xl6_i64_div_checked(l, r, line, column); return xl6_error_has() ? xvoCreateNull() : xvoCreateInt(value); }\n", out);
+    xl6OutputPuts("        if ( op == 4 ) { long long value = xl6_i64_mod_checked(l, r, line, column); return xl6_error_has() ? xvoCreateNull() : xvoCreateInt(value); }\n", out);
+    xl6OutputPuts("        if ( op == 8 ) { unsigned long long value = xl6_u64_shl_checked((unsigned long long)l, r, 64u, line, column); return xl6_error_has() ? xvoCreateNull() : xvoCreateInt((long long)value); }\n", out);
+    xl6OutputPuts("        { unsigned long long value = xl6_u64_shr_checked((unsigned long long)l, r, 64u, line, column); return xl6_error_has() ? xvoCreateNull() : xvoCreateInt((long long)value); }\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return xl6_xrt_basic_binary(left, right, op);\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static xvalue xl6_xrt_basic_binary_release_checked(xvalue left, xvalue right, int op, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xvalue result = (left != 0 && right != 0) ? xl6_xrt_basic_binary_checked(left, right, op, line, column) : xvoCreateNull();\n", out);
+    xl6OutputPuts("    if ( left != 0 ) { xvoUnref(left); }\n", out);
+    xl6OutputPuts("    if ( right != 0 ) { xvoUnref(right); }\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("#endif\n\n", out);
     xl6OutputPuts("static void xl6_error_raise(const char* kind, const char* message, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_Error* cause = xl6_error_take();\n", out);
@@ -241,7 +306,8 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("static const char* xl6_error_parent_kind(const char* kind)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( kind == 0 || kind[0] == 0 || strcmp(kind, \"Error\") == 0 ) { return 0; }\n", out);
-    xl6OutputPuts("    if ( strcmp(kind, \"AssertionError\") == 0 || strcmp(kind, \"NullReferenceError\") == 0 || strcmp(kind, \"NotImplementedError\") == 0 || strcmp(kind, \"NativeError\") == 0 ) { return \"RuntimeError\"; }\n", out);
+    xl6OutputPuts("    if ( strcmp(kind, \"AssertionError\") == 0 || strcmp(kind, \"NullReferenceError\") == 0 || strcmp(kind, \"NotImplementedError\") == 0 || strcmp(kind, \"NativeError\") == 0 || strcmp(kind, \"ArithmeticError\") == 0 ) { return \"RuntimeError\"; }\n", out);
+    xl6OutputPuts("    if ( strcmp(kind, \"ZeroDivisionError\") == 0 || strcmp(kind, \"OverflowError\") == 0 ) { return \"ArithmeticError\"; }\n", out);
     xl6OutputPuts("    if ( strcmp(kind, \"RangeError\") == 0 ) { return \"ValueError\"; }\n", out);
     xl6OutputPuts("    if ( strcmp(kind, \"IndexError\") == 0 || strcmp(kind, \"KeyError\") == 0 || strcmp(kind, \"AttributeError\") == 0 || strcmp(kind, \"NameError\") == 0 ) { return \"LookupError\"; }\n", out);
     xl6OutputPuts("    if ( strcmp(kind, \"FileError\") == 0 || strcmp(kind, \"EncodingError\") == 0 || strcmp(kind, \"NetworkError\") == 0 || strcmp(kind, \"TimeoutError\") == 0 ) { return \"IOError\"; }\n", out);

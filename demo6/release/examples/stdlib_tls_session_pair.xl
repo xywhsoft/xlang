@@ -7,7 +7,7 @@ end
 // 每次只搬运一小段密文，验证 TLS 状态机能够处理分片输入。
 func moveTlsCipher(TlsSession source, TlsSession target, int chunkSize) as bool
     bool moved = false
-    while source.pendingCipher > 0 do
+    while source.pendingCipher > 0
         Buffer cipher = source.peekCipher(chunkSize)
         if cipher.len() <= 0 then
             return moved
@@ -21,7 +21,7 @@ end
 
 func handshakeTlsPair(TlsSession client, TlsSession server) as bool
     int step = 0
-    while step < 4096 do
+    while step < 4096
         int clientStatus = client.handshake()
         int serverStatus = server.handshake()
         if not tlsStatusOk(clientStatus) or not tlsStatusOk(serverStatus) then

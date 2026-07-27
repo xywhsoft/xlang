@@ -1,5 +1,28 @@
 static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 
+static XL6_AstNode* xl6CgenClassHandleTypeForClassType(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classType)
+{
+    XL6_AstNode* handleType;
+    XL6_AstNode* args;
+    XL6_AstNode* target;
+
+    target = xl6CgenCloneCanonicalTypeNode(ctx, classType);
+    handleType = xl6AstNewText(XL6_AST_TYPE, "__class_handle", 14, NULL);
+    args = xl6AstNew(XL6_AST_LIST, NULL);
+    if ( target == NULL || handleType == NULL || args == NULL ) {
+        xl6AstFree(target);
+        xl6AstFree(handleType);
+        xl6AstFree(args);
+        return NULL;
+    }
+    handleType->flags |= XL6_AST_FLAG_CLASS_HANDLE;
+    xl6AstAddChild(args, target);
+    xl6AstAddChild(handleType, args);
+    return handleType;
+}
+
 static int xl6CgenIsXValueType(const XL6_AstNode* typeNode)
 {
     return typeNode != NULL && typeNode->text != NULL &&
@@ -525,6 +548,30 @@ static int xl6CgenClassNeedsDestroy(XL6_CgenContext* ctx, const XL6_AstNode* cla
         }
     }
     return 0;
+}
+
+/* 泛型字段是否需要释放，必须在当前实例的类型参数环境中判断。 */
+static int xl6CgenGenericClassNeedsDestroy(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* prevParams;
+    const XL6_AstNode* prevArgs;
+    int result;
+
+    if ( ctx == NULL || classNode == NULL || typeNode == NULL || typeNode->childCount == 0 ) {
+        return xl6CgenClassNeedsDestroy(ctx, classNode);
+    }
+
+    prevParams = ctx->currentGenericParams;
+    prevArgs = ctx->currentGenericArgs;
+    ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
+    ctx->currentGenericArgs = typeNode->children[0];
+    result = xl6CgenClassNeedsDestroy(ctx, classNode);
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
+    return result;
 }
 
 static void xl6CgenReleaseFunctionPath(XL6_CgenContext* ctx, const char* path)

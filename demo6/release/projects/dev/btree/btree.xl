@@ -32,7 +32,7 @@ const int MIN_INTERNAL = 1 // ORDER/2 - 1（internal 下限）
 func indexOfKey(array<int> keys, int key) as int
     int i = 0
     int n = keys.length
-    while i < n do
+    while i < n
         if keys[i] == key then
             return i
         end
@@ -45,7 +45,7 @@ end
 func lowerBound(array<int> keys, int key) as int
     int i = 0
     int n = keys.length
-    while i < n do
+    while i < n
         if keys[i] >= key then
             return i
         end
@@ -59,7 +59,7 @@ func intArrayToStr(array<int> a) as string
     string s = "["
     int i = 0
     int n = a.length
-    while i < n do
+    while i < n
         if i > 0 then
             s = s + ","
         end
@@ -73,7 +73,7 @@ end
 func childIndexToDescend(array<int> keys, int key) as int
     int i = 0
     int n = keys.length
-    while i < n do
+    while i < n
         if key < keys[i] then
             return i
         end
@@ -187,7 +187,7 @@ class BPlusTree extends IndexEngine
         self.opCount = self.opCount + 1
         int curId = self.rootId
         bool done = false
-        while not done do
+        while not done
             BPlusTreeNode n = self.getNode(curId)
             if n.leaf then
                 int pos = indexOfKey(n.keys, key)
@@ -240,13 +240,13 @@ class BPlusTree extends IndexEngine
             BPlusTreeNode right = BPlusTreeNode()
             right.leaf = true
             int i = mid
-            while i < lenk do
+            while i < lenk
                 right.keys.push(n.keys[i])
                 right.vals.push(n.vals[i])
                 i = i + 1
             end
             // 裁剪 n 为左半
-            while n.keys.length > mid do
+            while n.keys.length > mid
                 n.keys.remove(n.keys.length - 1)
                 n.vals.remove(n.vals.length - 1)
             end
@@ -289,22 +289,22 @@ class BPlusTree extends IndexEngine
         rightI.leaf = false
         // 右半 keys: mid+1 .. end
         int j = mid + 1
-        while j < lenk do
+        while j < lenk
             rightI.keys.push(n.keys[j])
             j = j + 1
         end
         // 右半 children: mid+1 .. end
         int jlen = lenk + 1
         int c = mid + 1
-        while c < jlen do
+        while c < jlen
             rightI.children.push(n.children[c])
             c = c + 1
         end
         // 裁剪 n：keys 保留 0..mid-1，children 保留 0..mid
-        while n.keys.length > mid do
+        while n.keys.length > mid
             n.keys.remove(n.keys.length - 1)
         end
-        while n.children.length > mid + 1 do
+        while n.children.length > mid + 1
             n.children.remove(n.children.length - 1)
         end
         int rightId2 = self.allocNode(rightI)
@@ -450,7 +450,7 @@ class BPlusTree extends IndexEngine
         if left.leaf then
             int i = 0
             int rn = right.keys.length
-            while i < rn do
+            while i < rn
                 left.keys.push(right.keys[i])
                 left.vals.push(right.vals[i])
                 i = i + 1
@@ -461,13 +461,13 @@ class BPlusTree extends IndexEngine
             left.keys.push(sep)
             int i = 0
             int rn = right.keys.length
-            while i < rn do
+            while i < rn
                 left.keys.push(right.keys[i])
                 i = i + 1
             end
             int j = 0
             int rcn = right.children.length
-            while j < rcn do
+            while j < rcn
                 left.children.push(right.children[j])
                 j = j + 1
             end
@@ -502,7 +502,7 @@ class BPlusTree extends IndexEngine
         int curId = self.rootId
         BPlusTreeNode n = self.getNode(curId)
         bool isLeaf = n.leaf
-        while not isLeaf do
+        while not isLeaf
             int ci = childIndexToDescend(n.keys, lo)
             int nc = n.children.length
             if ci >= nc then
@@ -513,10 +513,10 @@ class BPlusTree extends IndexEngine
             isLeaf = n.leaf
         end
         bool stop = false
-        while not stop do
+        while not stop
             int i = 0
             int kn = n.keys.length
-            while i < kn do
+            while i < kn
                 int k = n.keys[i]
                 if k > hi then
                     stop = true
@@ -544,7 +544,7 @@ class BPlusTree extends IndexEngine
         int curId = self.rootId
         BPlusTreeNode n = self.getNode(curId)
         bool isLeaf = n.leaf
-        while not isLeaf do
+        while not isLeaf
             int ci = childIndexToDescend(n.keys, lo)
             int nc = n.children.length
             if ci >= nc then
@@ -555,10 +555,10 @@ class BPlusTree extends IndexEngine
             isLeaf = n.leaf
         end
         bool stop = false
-        while not stop do
+        while not stop
             int i = 0
             int kn = n.keys.length
-            while i < kn do
+            while i < kn
                 int k = n.keys[i]
                 if k > hi then
                     stop = true
@@ -587,16 +587,16 @@ class BPlusTree extends IndexEngine
         int curId = self.rootId
         BPlusTreeNode n = self.getNode(curId)
         bool isLeaf = n.leaf
-        while not isLeaf do
+        while not isLeaf
             curId = int(n.children[0])
             n = self.getNode(curId)
             isLeaf = n.leaf
         end
         bool stop = false
-        while not stop do
+        while not stop
             int i = 0
             int kn = n.keys.length
-            while i < kn do
+            while i < kn
                 result.push(n.keys[i])
                 i = i + 1
             end
@@ -615,7 +615,7 @@ class BPlusTree extends IndexEngine
         int d = 0
         int curId = self.rootId
         bool stop = false
-        while not stop do
+        while not stop
             BPlusTreeNode n = self.getNode(curId)
             if n.leaf then
                 stop = true
@@ -637,14 +637,14 @@ class BPlusTree extends IndexEngine
         var ns = []
         int total = self.nodes.length
         int i = 0
-        while i < total do
+        while i < total
             BPlusTreeNode n = self.getNode(i)
             var nd = {}
             nd["leaf"] = n.leaf
             var ks = []
             int ki = 0
             int kn = n.keys.length
-            while ki < kn do
+            while ki < kn
                 ks.push(n.keys[ki])
                 ki = ki + 1
             end
@@ -652,7 +652,7 @@ class BPlusTree extends IndexEngine
             var vs = []
             int vi = 0
             int vn = n.vals.length
-            while vi < vn do
+            while vi < vn
                 vs.push(n.vals[vi])
                 vi = vi + 1
             end
@@ -660,7 +660,7 @@ class BPlusTree extends IndexEngine
             var cs = []
             int ci = 0
             int cn = n.children.length
-            while ci < cn do
+            while ci < cn
                 cs.push(n.children[ci])
                 ci = ci + 1
             end
@@ -686,28 +686,28 @@ class BPlusTree extends IndexEngine
         var ns = data["nodes"]
         int total = ns.length
         int i = 0
-        while i < total do
+        while i < total
             var nd = ns[i]
             BPlusTreeNode n = BPlusTreeNode()
             n.leaf = bool(nd["leaf"])
             var ks = nd["keys"]
             int kn = ks.length
             int ki = 0
-            while ki < kn do
+            while ki < kn
                 n.keys.push(int(ks[ki]))
                 ki = ki + 1
             end
             var vs = nd["vals"]
             int vn = vs.length
             int vi = 0
-            while vi < vn do
+            while vi < vn
                 n.vals.push(int(vs[vi]))
                 vi = vi + 1
             end
             var cs = nd["children"]
             int cn = cs.length
             int ci = 0
-            while ci < cn do
+            while ci < cn
                 n.children.push(int(cs[ci]))
                 ci = ci + 1
             end
@@ -723,7 +723,7 @@ class BPlusTree extends IndexEngine
         BPlusTreeNode n = self.getNode(id)
         string pad = ""
         int d = 0
-        while d < depth do
+        while d < depth
             pad = pad + "  "
             d = d + 1
         end
@@ -741,7 +741,7 @@ class BPlusTree extends IndexEngine
         if not n.leaf then
             int i = 0
             int cn = n.children.length
-            while i < cn do
+            while i < cn
                 int cid = int(n.children[i])
                 self.dumpNode(cid, depth + 1)
                 i = i + 1
@@ -802,7 +802,7 @@ end
 func isAscending(var arr) as bool
     int n = arr.length
     int i = 1
-    while i < n do
+    while i < n
         int a = int(arr[i - 1])
         int b = int(arr[i])
         if b < a then
@@ -818,13 +818,13 @@ end
 func shuffledRange(int n) as var
     var arr = []
     int i = 1
-    while i <= n do
+    while i <= n
         arr.push(i)
         i = i + 1
     end
     int seed = 987654321
     int j = n - 1
-    while j > 0 do
+    while j > 0
         seed = seed * 1103515245 + 12345
         seed = seed % 2147483647
         if seed < 0 then
@@ -859,7 +859,7 @@ func cmdTest() as int
     var order = shuffledRange(N)
     int inserted = 0
     int ii = 0
-    while ii < N do
+    while ii < N
         int k = int(order[ii])
         bool isNew = tree.insert(k, k * 10 + 1)
         if isNew then
@@ -878,7 +878,7 @@ func cmdTest() as int
     // ---- 查找：全部命中 ----
     int findHits = 0
     int fi = 1
-    while fi <= N do
+    while fi <= N
         int v = tree.find(fi)
         if v >= 0 then
             findHits = findHits + 1
@@ -949,7 +949,7 @@ func cmdTest() as int
 
     int restoreHits = 0
     int ri = 1
-    while ri <= N do
+    while ri <= N
         if tree2.find(ri) >= 0 then
             restoreHits = restoreHits + 1
         end
@@ -977,7 +977,7 @@ func cmdTest() as int
     // ---- 删除：删掉全部偶数键 ----
     int delCount = 0
     int di = 1
-    while di <= N do
+    while di <= N
         if di % 2 == 0 then
             bool removed = tree.delete(di)
             if removed then
@@ -992,7 +992,7 @@ func cmdTest() as int
     // 偶数已 gone
     int evenMiss = 0
     int ei = 2
-    while ei <= N do
+    while ei <= N
         if tree.find(ei) < 0 then
             evenMiss = evenMiss + 1
         end
@@ -1003,7 +1003,7 @@ func cmdTest() as int
     // 奇数仍在
     int oddHit = 0
     int oi = 1
-    while oi <= N do
+    while oi <= N
         if tree.find(oi) >= 0 then
             oddHit = oddHit + 1
         end
@@ -1021,7 +1021,7 @@ func cmdTest() as int
 
     // 再删剩余奇数 → 树空
     int dii = 1
-    while dii <= N do
+    while dii <= N
         tree.delete(dii)
         dii = dii + 2
     end
@@ -1054,7 +1054,7 @@ func cmdDump() as int
     BPlusTree tree = BPlusTree("demo")
     var ord = shuffledRange(40)
     int i = 0
-    while i < ord.length do
+    while i < ord.length
         int k = int(ord[i])
         tree.insert(k, k * 10)
         i = i + 1
@@ -1075,7 +1075,7 @@ func intArrayToStrVar(var a) as string
     string s = "["
     int n = a.length
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             s = s + ","
         end

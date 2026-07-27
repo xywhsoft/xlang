@@ -139,7 +139,7 @@ func regNode(int id)
     g_electDeadline.push(0.0)
     g_voteCount.push(0)
     int j = 0
-    while j < MAX_LOG do
+    while j < MAX_LOG
         g_logTerm.push(0)
         j = j + 1
     end
@@ -147,14 +147,14 @@ end
 
 func setupCluster()
     int i = 0
-    while i < NODES do
+    while i < NODES
         regNode(i)
         i = i + 1
     end
     int a = 0
-    while a < NODES do
+    while a < NODES
         int b = 0
-        while b < NODES do
+        while b < NODES
             g_link.push(LINK_ON)
             b = b + 1
         end
@@ -162,7 +162,7 @@ func setupCluster()
     end
     int n = NODES * NODES
     int k = 0
-    while k < n do
+    while k < n
         g_nextIndex.push(1)
         g_matchIndex.push(0)
         k = k + 1
@@ -401,7 +401,7 @@ func becomeLeader(int id)
     g_leaderId[id] = id
     int ll = g_logLen[id]
     int f = 0
-    while f < NODES do
+    while f < NODES
         g_nextIndex[id*NODES + f] = ll + 1
         if f == id then
             g_matchIndex[id*NODES + f] = ll
@@ -536,7 +536,7 @@ func advanceCommit(int leader)
     int cur = g_commitIndex[leader]
     int lt = g_term[leader]
     int N = ll
-    while N > cur do
+    while N > cur
         // Only entries from the current term are committed by counting
         // matches (Raft Figure 2 / Section 5.4.2 leader-commit rule).
         if g_logTerm[leader*MAX_LOG + N] != lt then
@@ -544,7 +544,7 @@ func advanceCommit(int leader)
         else
             int cnt = 0
             int f = 0
-            while f < NODES do
+            while f < NODES
                 if g_matchIndex[leader*NODES + f] >= N then cnt = cnt + 1 end
                 f = f + 1
             end
@@ -584,7 +584,7 @@ func leaderHeartbeat(int leader)
     int ni4 = g_nextIndex[leader*NODES + 4]
     g_lock.unlock()
     int f = 0
-    while f < NODES do
+    while f < NODES
         if f != leader then
             if g_link[leader*NODES + f] == LINK_ON then
                 int ni = ni0
@@ -631,7 +631,7 @@ func startElection(int id)
     end
     g_lock.unlock()
     int f = 0
-    while f < NODES do
+    while f < NODES
         if f != id then
             sendVoteReq(id, f, myTerm, id, lastLogIdx, lastLogTerm)
         end
@@ -647,10 +647,10 @@ func nodeLoop(int id) as int
     g_lastContact[id] = now
     randomizeDeadline(id, now)
     g_lock.unlock()
-    while g_running == 1 do
+    while g_running == 1
         // 1. Drain inbox (non-blocking poll).
         bool draining = true
-        while draining do
+        while draining
             bool ok = false
             string wire = ""
             ok, wire = inboxTryRecv(id)
@@ -696,7 +696,7 @@ end
 
 func spawnAll()
     int i = 0
-    while i < NODES do
+    while i < NODES
         thread(makeNodeBody(i))
         i = i + 1
     end
@@ -713,7 +713,7 @@ end
 
 func partitionNode(int n)
     int f = 0
-    while f < NODES do
+    while f < NODES
         if f != n then
             setLink(n, f, LINK_OFF)
         end
@@ -725,9 +725,9 @@ end
 func healAll()
     g_lock.lock()
     int a = 0
-    while a < NODES do
+    while a < NODES
         int b = 0
-        while b < NODES do
+        while b < NODES
             g_link[a*NODES + b] = LINK_ON
             b = b + 1
         end
@@ -745,7 +745,7 @@ func findLeader() as int
     int best = -1
     int bestTerm = -1
     int i = 0
-    while i < NODES do
+    while i < NODES
         if g_state[i] == ST_LEADER then
             if g_term[i] > bestTerm then
                 bestTerm = g_term[i]
@@ -764,7 +764,7 @@ func leaderAmongExcept(int excluded) as int
     int best = -1
     int bestTerm = -1
     int i = 0
-    while i < NODES do
+    while i < NODES
         if i != excluded then
             if g_state[i] == ST_LEADER then
                 if g_term[i] > bestTerm then
@@ -783,7 +783,7 @@ func countLeaders() as int
     g_lock.lock()
     int count = 0
     int i = 0
-    while i < NODES do
+    while i < NODES
         if g_state[i] == ST_LEADER then count = count + 1 end
         i = i + 1
     end
@@ -809,7 +809,7 @@ func countWithLogLen(int targetLen) as int
     g_lock.lock()
     int cnt = 0
     int i = 0
-    while i < NODES do
+    while i < NODES
         if g_logLen[i] >= targetLen then cnt = cnt + 1 end
         i = i + 1
     end
@@ -822,7 +822,7 @@ func countWithLogLenExcept(int targetLen, int excluded) as int
     g_lock.lock()
     int cnt = 0
     int i = 0
-    while i < NODES do
+    while i < NODES
         if i != excluded then
             if g_logLen[i] >= targetLen then cnt = cnt + 1 end
         end
@@ -836,9 +836,9 @@ end
 func verifyLogTerms(int len) as bool
     g_lock.lock()
     int i = 1
-    while i < NODES do
+    while i < NODES
         int p = 1
-        while p <= len do
+        while p <= len
             if g_logTerm[i*MAX_LOG + p] != g_logTerm[0*MAX_LOG + p] then
                 g_lock.unlock()
                 return false
@@ -861,7 +861,7 @@ end
 // Wait for a single stable leader (no competing candidate storms).
 func waitForLeader(int timeoutMs) as int
     int waited = 0
-    while waited < timeoutMs do
+    while waited < timeoutMs
         int leader = findLeader()
         if leader >= 0 then
             time.sleep(150)
@@ -882,7 +882,7 @@ func submitValue(int targetLeader, int timeoutMs) as bool
     g_submitPending = 1
     g_lock.unlock()
     int waited = 0
-    while waited < timeoutMs do
+    while waited < timeoutMs
         g_lock.lock()
         int done = g_submitDone
         g_lock.unlock()
@@ -914,7 +914,7 @@ func printState(string label)
     g_lock.lock()
     println("  [" + label + "]")
     int i = 0
-    while i < NODES do
+    while i < NODES
         println("    node", i,
                 " term=" + string(g_term[i]),
                 " state=" + stateName(g_state[i]),
@@ -977,7 +977,7 @@ func runTests() as int
     println("[test 4] majority partition elects a NEW leader")
     int newLeader = -1
     int w4 = 0
-    while w4 < 4000 do
+    while w4 < 4000
         newLeader = leaderAmongExcept(leaderBefore)
         if newLeader >= 0 then break end
         time.sleep(50)
@@ -1015,7 +1015,7 @@ func runTests() as int
     // followers; it observes the higher term and reverts to follower.
     bool steppedDown = false
     int w6 = 0
-    while w6 < 3000 do
+    while w6 < 3000
         if leaderBefore >= 0 then
             if nodeState(leaderBefore) != ST_LEADER then
                 steppedDown = true

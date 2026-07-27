@@ -155,7 +155,7 @@ func polygonArea(var xs, var ys, int n) as float
     end
     float sum2 = 0.0
     int i = 0
-    while i < n do
+    while i < n
         int j = i + 1
         if j == n then
             j = 0
@@ -401,7 +401,7 @@ func main(...) as int
                         var xs = []
                         var ys = []
                         int idx = 0
-                        while idx < pointCount do
+                        while idx < pointCount
                             pushPoint(xs, ys, string(arg[idx + 3]))
                             idx += 1
                         end

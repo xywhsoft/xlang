@@ -153,7 +153,7 @@ end
 func rdU64BE(Buffer buf, int off) as int64
     int64 v = 0
     int i = 0
-    while i < 8 do
+    while i < 8
         v = (v << 8) | int64(buf.byteAt(off + i) & 0xFF)
         i += 1
     end
@@ -191,7 +191,7 @@ end
 
 func putBe64(Buffer outputValue, int64 v)
     int i = 7
-    while i >= 0 do
+    while i >= 0
         outputValue.appendByte(int((v >> (i * 8)) & 0xFF))
         i -= 1
     end
@@ -200,7 +200,7 @@ end
 func putText(Buffer outputValue, string s)
     array bs = string.bytes(s)
     int i = 0
-    while i < bs.length do
+    while i < bs.length
         outputValue.appendByte(int(bs[i]) & 0xFF)
         i += 1
     end
@@ -208,7 +208,7 @@ end
 
 func putBuffer(Buffer src, Buffer dst, int len)
     int i = 0
-    while i < len do
+    while i < len
         dst.appendByte(src.byteAt(i))
         i += 1
     end
@@ -231,7 +231,7 @@ func bytesToStr(Buffer buf, int off, int len) as string
     end
     Buffer t = Buffer()
     int i = 0
-    while i < len do
+    while i < len
         if off + i >= buf.len() then
             break
         end
@@ -248,7 +248,7 @@ func hexPreview(Buffer buf, int off, int len, int maxBytes) as string
     end
     string s = ""
     int i = 0
-    while i < n do
+    while i < n
         if i > 0 then
             s = s + " "
         end
@@ -392,7 +392,7 @@ func appendFrame(Buffer outputValue, int ftype, int flags, int streamId, Buffer 
     int n = payload.len()
     appendFrameHeader(outputValue, n, ftype, flags, streamId)
     int i = 0
-    while i < n do
+    while i < n
         outputValue.appendByte(payload.byteAt(i))
         i += 1
     end
@@ -411,7 +411,7 @@ func appendSettingsFrame(Buffer outputValue, int flags, array<int> settings)
     int payloadLen = nPairs * 6
     appendFrameHeader(outputValue, payloadLen, FT_SETTINGS, flags, 0)
     int i = 0
-    while i < nPairs do
+    while i < nPairs
         int sid = settings[i * 2]
         int sval = settings[i * 2 + 1]
         putBe16(outputValue, sid)
@@ -495,7 +495,7 @@ func printFrame(Buffer buf, Frame f, int frameOffset)
             int off = f.payloadOffset
             int count = f.length / 6
             int i = 0
-            while i < count do
+            while i < count
                 int sid = rdU16BE(buf, off + i * 6)
                 int sval = rdU32BE(buf, off + i * 6 + 2)
                 println("        setting: " + settingName(sid) + " (" + string(sid) + ") = " + string(sval))
@@ -689,7 +689,7 @@ end
 func findStaticExact(string name, string value) as int
     int i = 1
     int n = gStaticNames.length
-    while i < n do
+    while i < n
         if gStaticNames[i] == name and gStaticValues[i] == value then
             return i
         end
@@ -701,7 +701,7 @@ end
 func findStaticName(string name) as int
     int i = 1
     int n = gStaticNames.length
-    while i < n do
+    while i < n
         if gStaticNames[i] == name then
             return i
         end
@@ -723,7 +723,7 @@ func hpackEncInt(Buffer outputValue, int value, int prefixBits, int prefixFlags)
     else
         outputValue.appendByte((prefixFlags | maxVal) & 0xFF)
         value = value - maxVal
-        while value >= 128 do
+        while value >= 128
             outputValue.appendByte(((value & 0x7F) | 0x80) & 0xFF)
             value = value >> 7
         end
@@ -743,7 +743,7 @@ func hpackDecInt(Buffer buf, int offset, int prefixBits) as (int, int)
     end
     int m = 0
     int n = buf.len()
-    while pos < n do
+    while pos < n
         int b = buf.byteAt(pos)
         pos += 1
         I = I + ((b & 0x7F) << m)
@@ -770,7 +770,7 @@ func hpackEncStr(Buffer outputValue, string s)
     int n = bs.length
     hpackEncInt(outputValue, n, 7, 0x00)
     int i = 0
-    while i < n do
+    while i < n
         outputValue.appendByte(int(bs[i]) & 0xFF)
         i += 1
     end
@@ -781,7 +781,7 @@ func hpackDecStr(Buffer buf, int offset) as (string, int)
     bool huffman = (buf.byteAt(offset) & 0x80) != 0
     Buffer sb = Buffer()
     int i = 0
-    while i < len do
+    while i < len
         if pos + i >= buf.len() then
             break
         end
@@ -833,7 +833,7 @@ class HpackEncoder
     func findDynamicExact(string name, string value) as int
         int i = 0
         int n = dynamicTable.length
-        while i < n do
+        while i < n
             if dynamicTable[i].name == name and dynamicTable[i].value == value then
                 return STATIC_TABLE_SIZE + i
             end
@@ -845,7 +845,7 @@ class HpackEncoder
     func findDynamicName(string name) as int
         int i = 0
         int n = dynamicTable.length
-        while i < n do
+        while i < n
             if dynamicTable[i].name == name then
                 return STATIC_TABLE_SIZE + i
             end
@@ -856,7 +856,7 @@ class HpackEncoder
 
     func addToDynamic(string name, string value)
         int entrySz = self.entrySize(name, value)
-        while curSize + entrySz > maxSize and dynamicTable.length > 0 do
+        while curSize + entrySz > maxSize and dynamicTable.length > 0
             Header old = dynamicTable[dynamicTable.length - 1]
             self.curSize -= self.entrySize(old.name, old.value)
             dynamicTable.remove(dynamicTable.length - 1)
@@ -951,7 +951,7 @@ class HpackDecoder
 
     func addToDynamic(string name, string value)
         int entrySz = self.entrySize(name, value)
-        while curSize + entrySz > maxSize and dynamicTable.length > 0 do
+        while curSize + entrySz > maxSize and dynamicTable.length > 0
             Header old = dynamicTable[dynamicTable.length - 1]
             self.curSize -= self.entrySize(old.name, old.value)
             dynamicTable.remove(dynamicTable.length - 1)
@@ -973,7 +973,7 @@ class HpackDecoder
         self.errorMsg = ""
         int pos = start
         int blockEnd = start + len
-        while pos < blockEnd do
+        while pos < blockEnd
             int b = buf.byteAt(pos)
             if (b & 0x80) != 0 then
                 // Indexed Header Field Representation (Section 6.1)
@@ -1059,7 +1059,7 @@ func appendHeadersFrame(Buffer outputValue, int streamId, int flags, var headers
     int payloadLen = hp.len()
     appendFrameHeader(outputValue, payloadLen, FT_HEADERS, flags, streamId)
     int i = 0
-    while i < payloadLen do
+    while i < payloadLen
         outputValue.appendByte(hp.byteAt(i))
         i += 1
     end
@@ -1228,7 +1228,7 @@ class Connection
     func findStreamIndex(int id) as int
         int i = 0
         int n = streams.length
-        while i < n do
+        while i < n
             if streams[i].id == id then
                 return i
             end
@@ -1264,7 +1264,7 @@ class Connection
     func activeStreamCount() as int
         int count = 0
         int i = 0
-        while i < streams.length do
+        while i < streams.length
             Stream si = streams[i]
             if not si.isClosed() then
                 count += 1
@@ -1329,7 +1329,7 @@ class Connection
         // Adjust per-stream send windows by the delta in INITIAL_WINDOW_SIZE
         int delta = initialWindowSize - DEFAULT_WINDOW
         int i = 0
-        while i < streams.length do
+        while i < streams.length
             self.streams[i].sendWindow += delta
             i += 1
         end
@@ -1372,7 +1372,7 @@ func simulateServerPush(Buffer outputValue, Connection conn, int parentStreamId,
     appendFrameHeader(outputValue, 4 + hpLen, FT_PUSH_PROMISE, FH_END_HEADERS, parentStreamId)
     putBe31(outputValue, promisedStreamId)
     int i = 0
-    while i < hpLen do
+    while i < hpLen
         outputValue.appendByte(hp.byteAt(i))
         i += 1
     end
@@ -1447,7 +1447,7 @@ func interleaveFrames(Buffer outputValue, array<Frame> frames)
     // Simple round-robin: just append all frames in order. Real HTTP/2
     // interleaves at the frame level, so the caller decides ordering.
     int i = 0
-    while i < frames.length do
+    while i < frames.length
         Frame f = frames[i]
         appendFrameHeader(outputValue, f.length, f.frameType, f.flags, f.streamId)
         // Caller must have already written payload to out separately.
@@ -1462,7 +1462,7 @@ end
 func buildInterleavedData(Buffer outputValue, array<int> streamIds, array<string> dataChunks, bool endStream)
     int n = streamIds.length
     int i = 0
-    while i < n do
+    while i < n
         Buffer payload = Buffer()
         payload.append(dataChunks[i])
         int flags = 0
@@ -1826,7 +1826,7 @@ func testFrameCodec() as int
     int off = 0
     int frameCount = 0
     Frame sf = Frame()
-    while off < seq.len() do
+    while off < seq.len()
         int r = sf.parse(seq, off)
         if r < 0 then
             break
@@ -2061,7 +2061,7 @@ func testMultiplexing() as int
     int headersFrames = 0
     int dataFrames = 0
     Frame pf = Frame()
-    while off < wire.len() do
+    while off < wire.len()
         int r = pf.parse(wire, off)
         if r < 0 then
             break
@@ -2126,7 +2126,7 @@ func testServerPush() as int
     int dataCount = 0
     int promisedId = 0
     Frame pf = Frame()
-    while off < wire.len() do
+    while off < wire.len()
         int r = pf.parse(wire, off)
         if r < 0 then
             break
@@ -2150,7 +2150,7 @@ func testServerPush() as int
     // Verify push was on the parent stream's ID in the PUSH_PROMISE
     off = 0
     bool parentOk = false
-    while off < wire.len() do
+    while off < wire.len()
         int r = pf.parse(wire, off)
         if r < 0 then break end
         if pf.frameType == FT_PUSH_PROMISE then
@@ -2231,7 +2231,7 @@ func testEncodeHeadersRoundtrip() as int
     // Verify each header
     bool allMatch = result.length == 5
     int i = 0
-    while i < result.length do
+    while i < result.length
         Header h = result[i]
         string expected = json.stringify(hdrs[h.name])
         // json.stringify wraps value in quotes, so strip them
@@ -2460,7 +2460,7 @@ func cmdDecodeFrames(string path) as int
     int frameNum = 0
     Frame f = Frame()
     println("; decoding " + string(buf.len()) + " bytes from " + path)
-    while off < buf.len() do
+    while off < buf.len()
         int r = f.parse(buf, off)
         if r < 0 then
             println("; parse error at offset " + string(off) + ": " + f.error)
@@ -2477,7 +2477,7 @@ func cmdDecodeFrames(string path) as int
         if f.frameType == FT_SETTINGS and f.length >= 6 then
             int i = 0
             int count = f.length / 6
-            while i < count do
+            while i < count
                 int sid = rdU16BE(buf, f.payloadOffset + i * 6)
                 int sval = rdU32BE(buf, f.payloadOffset + i * 6 + 2)
                 println("    " + settingName(sid) + " = " + string(sval))
@@ -2504,7 +2504,7 @@ func cmdDecodeFrames(string path) as int
                 println("    HPACK error: " + dec.errorMsg)
             else
                 int i = 0
-                while i < hdrs.length do
+                while i < hdrs.length
                     println("    " + hdrs[i].name + ": " + hdrs[i].value)
                     i += 1
                 end

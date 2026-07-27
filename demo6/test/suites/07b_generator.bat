@@ -95,163 +95,165 @@ for /L %%I in (1,1,5) do (
 
 release\xl.exe cgen test\cases\cgen_generator.xl --emit build\test\cgen_generator.c
 if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_generator.c',[Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); [IO.File]::WriteAllText('build\test\cgen_generator.assert.c',$text,(New-Object Text.UTF8Encoding($false)))"
+if errorlevel 1 exit /b 1
 
-findstr /C:"xrtCoCreate" build\test\cgen_generator.c >nul
+findstr /C:"xrtCoCreate" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing xrtCoCreate.
     exit /b 1
 )
-findstr /C:"xl6_generator_yield_copy" build\test\cgen_generator.c >nul
+findstr /C:"xl6_generator_yield_copy" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing generator yield helper.
     exit /b 1
 )
-findstr /C:"xl6_generator_next" build\test\cgen_generator.c >nul
+findstr /C:"xl6_generator_next" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing generator next helper.
     exit /b 1
 )
-findstr /C:"xl6_generator_destroy" build\test\cgen_generator.c >nul
+findstr /C:"xl6_generator_destroy" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing generator cleanup helper.
     exit /b 1
 )
-findstr /C:"xl6_generator_store_active_error" build\test\cgen_generator.c >nul
+findstr /C:"xl6_generator_store_active_error" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing generator stored error helper.
     exit /b 1
 )
-findstr /C:"xl6_generator_raise_stored_error" build\test\cgen_generator.c >nul
+findstr /C:"xl6_generator_raise_stored_error" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing generator stored error rethrow helper.
     exit /b 1
 )
-findstr /C:"xl6_generator_store_active_error(__xl6_gen)" build\test\cgen_generator.c >nul
+findstr /C:"xl6_generator_store_active_error(__xl6_gen)" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing generator worker error capture.
     exit /b 1
 )
-findstr /C:"xl_gen_worker_xl_fn_brokenEarly" build\test\cgen_generator.c >nul
+findstr /C:"xl_gen_worker_xl_fn_brokenEarly" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing generator early-error worker.
     exit /b 1
 )
-findstr /C:"xl_gen_worker_xl_fn_emptyNums" build\test\cgen_generator.c >nul
+findstr /C:"xl_gen_worker_xl_fn_emptyNums" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing empty generator worker.
     exit /b 1
 )
-findstr /C:"xl_gen_worker_xl_fn_toggles" build\test\cgen_generator.c >nul
+findstr /C:"xl_gen_worker_xl_fn_toggles" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing bool generator worker.
     exit /b 1
 )
-findstr /C:"xl_gen_worker_xl_fn_weights" build\test\cgen_generator.c >nul
+findstr /C:"xl_gen_worker_xl_fn_weights" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing float generator worker.
     exit /b 1
 )
-findstr /C:"12:34:56" build\test\cgen_generator.c >nul
+findstr /C:"12:34:56" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing time generator literal lowering.
     exit /b 1
 )
-findstr /C:"generator boom before yield" build\test\cgen_generator.c >nul
+findstr /C:"generator boom before yield" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing generator early-error diagnostic.
     exit /b 1
 )
-findstr /C:"iterate null generator" build\test\cgen_generator.c >nul
+findstr /C:"iterate null generator" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing generator null diagnostic.
     exit /b 1
 )
-findstr /C:"savedBreakGen = xl_fn_nums(3LL);" build\test\cgen_generator.c >nul
+findstr /C:"savedBreakGen = xl_fn_nums(3LL);" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing saved break generator source.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedBreakGen = xl_fn_nums\(3LL\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBreakGen;\s*savedBreakGen = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long index = __xl6_gen_index_\1;[\s\S]*?long long item = 0;[\s\S]*?if \(\(index == 0LL\)\) \{[\s\S]*?goto __xl6_continue_\1;[\s\S]*?savedBreakTotal = \(\(savedBreakTotal \+ \(index \* 100LL\)\) \+ item\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\);[\s\S]*?goto __xl6_break_\1;[\s\S]*?__xl6_continue_\1:[\s\S]*?__xl6_gen_index_\1 \+= 1;[\s\S]*?savedBreakTotal == 102LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedBreakGen = xl_fn_nums\(3LL\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBreakGen;\s*savedBreakGen = 0;\s*long long __xl6_gen_index_\1 = 0;[\s\S]*?long long index = __xl6_gen_index_\1;[\s\S]*?long long item = 0;[\s\S]*?if \(\(index == 0LL\)\) \{[\s\S]*?goto __xl6_continue_\1;[\s\S]*?savedBreakTotal = \(\(savedBreakTotal \+ \(index \* 100LL\)\) \+ item\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\);[\s\S]*?goto __xl6_break_\1;[\s\S]*?__xl6_continue_\1:[\s\S]*?__xl6_gen_index_\1 \+= 1;[\s\S]*?savedBreakTotal == 102LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing saved generator continue/break cleanup.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedBreakAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBreakGen;\s*savedBreakGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedBreakAgainState = 42LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedBreakAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBreakGen;\s*savedBreakGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedBreakAgainState = 42LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing saved generator break second-pass rejection.
     exit /b 1
 )
-findstr /C:"consumedGen = xl_fn_nums(1LL);" build\test\cgen_generator.c >nul
+findstr /C:"consumedGen = xl_fn_nums(1LL);" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing consumed generator source.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = consumedGen;\s*consumedGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?consumedFirstTotal = \(consumedFirstTotal \+ item\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = consumedGen;\s*consumedGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?consumedFirstTotal = \(consumedFirstTotal \+ item\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing consumed generator first-pass move lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = consumedGen;\s*consumedGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""iterate null generator""[\s\S]*?consumedAgainState = 42LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = consumedGen;\s*consumedGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""iterate null generator""[\s\S]*?consumedAgainState = 42LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing consumed generator second-pass null rejection.
     exit /b 1
 )
-findstr /C:"missingGen = 0;" build\test\cgen_generator.c >nul
+findstr /C:"missingGen = 0;" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing null generator initialization.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = missingGen;\s*missingGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""iterate null generator""[\s\S]*?missingGenState = 42LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = missingGen;\s*missingGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""iterate null generator""[\s\S]*?missingGenState = 42LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing null generator rejection.
     exit /b 1
 )
-findstr /C:"XL6_Generator* xl_fn_returnEarlyNums(void)" build\test\cgen_generator.c >nul
+findstr /C:"XL6_Generator* xl_fn_returnEarlyNums(void)" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing return-early generator function.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_xl_fn_returnEarlyNums[\s\S]*?xl6_generator_yield_copy[\s\S]*?\{5LL\}[\s\S]*?return;[\s\S]*?\{50LL\}'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_xl_fn_returnEarlyNums[\s\S]*?xl6_generator_yield_copy[\s\S]*?\{5LL\}[\s\S]*?return;[\s\S]*?\{50LL\}'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing return-early generator worker shape.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnEarlyNums = xl_fn_returnEarlyNums\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnEarlyNums;\s*savedReturnEarlyNums = 0;[\s\S]*?savedReturnEarlyCount = \(savedReturnEarlyCount \+ 1LL\);[\s\S]*?savedReturnEarlyTotal = \(savedReturnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedReturnEarlyCount == 1LL[\s\S]*?savedReturnEarlyTotal == 5LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnEarlyNums = xl_fn_returnEarlyNums\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnEarlyNums;\s*savedReturnEarlyNums = 0;[\s\S]*?savedReturnEarlyCount = \(savedReturnEarlyCount \+ 1LL\);[\s\S]*?savedReturnEarlyTotal = \(savedReturnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedReturnEarlyCount == 1LL[\s\S]*?savedReturnEarlyTotal == 5LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing saved return-early generator move lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnEarlyAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnEarlyNums;\s*savedReturnEarlyNums = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedReturnEarlyAgainState = 42LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnEarlyAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnEarlyNums;\s*savedReturnEarlyNums = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedReturnEarlyAgainState = 42LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing saved return-early generator second-pass rejection.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'returnEarlyCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = xl_fn_returnEarlyNums\(\);[\s\S]*?returnEarlyCount = \(returnEarlyCount \+ 1LL\);[\s\S]*?returnEarlyTotal = \(returnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnEarlyCount == 1LL[\s\S]*?returnEarlyTotal == 5LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'returnEarlyCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = xl_fn_returnEarlyNums\(\);[\s\S]*?returnEarlyCount = \(returnEarlyCount \+ 1LL\);[\s\S]*?returnEarlyTotal = \(returnEarlyTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnEarlyCount == 1LL[\s\S]*?returnEarlyTotal == 5LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing temporary return-early generator lowering.
     exit /b 1
 )
-findstr /C:"XL6_Generator* xl_fn_returnBeforeYieldNums(void)" build\test\cgen_generator.c >nul
+findstr /C:"XL6_Generator* xl_fn_returnBeforeYieldNums(void)" build\test\cgen_generator.assert.c >nul
 if errorlevel 1 (
     echo cgen_generator.c missing pre-yield return generator function.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_xl_fn_returnBeforeYieldNums[\s\S]*?\{\s*XL6_Generator\* __xl6_gen = \(XL6_Generator\*\)__xl6_arg;[\s\S]*?xrtTempScopeEnd\(&__xl6_temp_scope_\d+\);\s*return;[\s\S]*?\{60LL\}'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_xl_fn_returnBeforeYieldNums[\s\S]*?\{\s*XL6_Generator\* __xl6_gen = \(XL6_Generator\*\)__xl6_arg;[\s\S]*?xrtTempScopeEnd\(&__xl6_temp_scope_\d+\);\s*return;[\s\S]*?\{60LL\}'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing pre-yield return generator worker shape.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnBeforeYieldNums = xl_fn_returnBeforeYieldNums\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnBeforeYieldNums;\s*savedReturnBeforeYieldNums = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?savedReturnBeforeYieldCount = \(savedReturnBeforeYieldCount \+ 1LL\);[\s\S]*?savedReturnBeforeYieldTotal = \(savedReturnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedReturnBeforeYieldCount == 0LL[\s\S]*?savedReturnBeforeYieldTotal == 0LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnBeforeYieldNums = xl_fn_returnBeforeYieldNums\(\);[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnBeforeYieldNums;\s*savedReturnBeforeYieldNums = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?savedReturnBeforeYieldCount = \(savedReturnBeforeYieldCount \+ 1LL\);[\s\S]*?savedReturnBeforeYieldTotal = \(savedReturnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?savedReturnBeforeYieldCount == 0LL[\s\S]*?savedReturnBeforeYieldTotal == 0LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing saved pre-yield return generator move lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnBeforeYieldAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnBeforeYieldNums;\s*savedReturnBeforeYieldNums = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedReturnBeforeYieldAgainState = 42LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'savedReturnBeforeYieldAgainState = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedReturnBeforeYieldNums;\s*savedReturnBeforeYieldNums = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?savedReturnBeforeYieldAgainState = 42LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing saved pre-yield return generator second-pass rejection.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'returnBeforeYieldCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = xl_fn_returnBeforeYieldNums\(\);[\s\S]*?returnBeforeYieldCount = \(returnBeforeYieldCount \+ 1LL\);[\s\S]*?returnBeforeYieldTotal = \(returnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnBeforeYieldCount == 0LL[\s\S]*?returnBeforeYieldTotal == 0LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'returnBeforeYieldCount = 0LL;[\s\S]*?XL6_Generator\* __xl6_gen_iter_([0-9]+) = xl_fn_returnBeforeYieldNums\(\);[\s\S]*?returnBeforeYieldCount = \(returnBeforeYieldCount \+ 1LL\);[\s\S]*?returnBeforeYieldTotal = \(returnBeforeYieldTotal \+ value\);[\s\S]*?xl6_generator_destroy\(__xl6_gen_iter_\1\)[\s\S]*?returnBeforeYieldCount == 0LL[\s\S]*?returnBeforeYieldTotal == 0LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing temporary pre-yield return generator lowering.
     exit /b 1
@@ -470,4 +472,3 @@ if errorlevel 1 (
 
 echo DEMO6 suite ok: generator
 exit /b 0
-

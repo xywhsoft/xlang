@@ -14,7 +14,7 @@ func main(...) as int
     Buffer packed = writer.finish()
     auto reader = tar.open(packed)
     int count = 0
-    while reader.next() do
+    while reader.next()
         auto info = reader.info()
         if info.isFile then
             Buffer data = reader.read()

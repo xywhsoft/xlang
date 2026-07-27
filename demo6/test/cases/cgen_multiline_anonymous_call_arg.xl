@@ -1,0 +1,14 @@
+func apply(int value, func(int) as int transform) as int
+    return transform(value)
+end
+
+int result = apply(
+    20,
+    func(int value) as int
+        int adjusted = value + 1
+        return adjusted * 2
+    end
+)
+
+assert result == 42, "multiline anonymous function call argument"
+println("cgen_multiline_anonymous_call_arg ok")

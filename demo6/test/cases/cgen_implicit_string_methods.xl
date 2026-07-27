@@ -1,0 +1,13 @@
+func main(...) as int
+    string text = "  Hello  "
+    string clean = text.trim()
+
+    assert clean == "Hello", "string.trim implicit method failed"
+    assert clean.toLower() == "hello", "string.toLower implicit method failed"
+    assert clean.toUpper() == "HELLO", "string.toUpper implicit method failed"
+    assert clean.contains("ell"), "string.contains implicit method failed"
+    assert clean.indexOf("ll") == 2, "string.indexOf implicit method failed"
+    assert clean.replace("ll", "yy") == "Heyyo", "string.replace implicit method failed"
+    assert "  MiXeD  ".trim().toLower() == "mixed", "chained implicit string methods failed"
+    return 0
+end

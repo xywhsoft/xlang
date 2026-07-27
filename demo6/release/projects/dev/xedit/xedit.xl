@@ -109,7 +109,7 @@ func splitLinesSafe(string content) as array<string>
     array raw = string.splitLines(content)
     int n = raw.length
     int i = 0
-    while i < n do
+    while i < n
         result.push(string(raw[i]))
         i += 1
     end
@@ -124,7 +124,7 @@ func parseCommandTokens(string line) as array<string>
     bool inQuote = false
     int i = 0
     int n = string.len(line)
-    while i < n do
+    while i < n
         string c = string.charAt(line, i)
         if inQuote then
             if c == "\"" then
@@ -165,7 +165,7 @@ end
 func joinTokens(array<string> tokens, int start) as string
     string result = ""
     int i = start
-    while i < tokens.length do
+    while i < tokens.length
         if i > start then
             result = result + " "
         end
@@ -181,7 +181,7 @@ func countWords(string text) as int
     bool inWord = false
     int i = 0
     int n = string.len(text)
-    while i < n do
+    while i < n
         string c = string.charAt(text, i)
         if c == " " or c == "\t" or c == "\r" or c == "\n" then
             if inWord then
@@ -261,7 +261,7 @@ func regexReplaceAll(string text, string pattern, string replacement, bool ignor
     int pos = 0
     int textLen = string.len(text)
     bool done = false
-    while not done do
+    while not done
         if pos > textLen then
             break
         end
@@ -308,7 +308,7 @@ func highlightLine(string line) as string
     string result = ""
     int i = 0
     int n = string.len(line)
-    while i < n do
+    while i < n
         string c = string.charAt(line, i)
 
         // 行注释：// 到行尾
@@ -330,7 +330,7 @@ func highlightLine(string line) as string
                 if qc == "\"" or qc == "'" then
                     int k = i + 2
                     string buf = "f" + qc
-                    while k < n do
+                    while k < n
                         string cc = string.charAt(line, k)
                         buf = buf + cc
                         if cc == qc then
@@ -350,7 +350,7 @@ func highlightLine(string line) as string
                     if qc == "\"" or qc == "'" then
                         int k = i + 3
                         string buf = "rf" + qc
-                        while k < n do
+                        while k < n
                             string cc = string.charAt(line, k)
                             buf = buf + cc
                             if cc == qc then
@@ -372,7 +372,7 @@ func highlightLine(string line) as string
             string qc = c
             string buf = c
             i += 1
-            while i < n do
+            while i < n
                 string cc = string.charAt(line, i)
                 buf = buf + cc
                 i += 1
@@ -387,7 +387,7 @@ func highlightLine(string line) as string
         // 数字：[0-9]+ 或 .[0-9]+
         if isDigitChar(c) then
             string buf = ""
-            while i < n do
+            while i < n
                 string cc = string.charAt(line, i)
                 if isDigitChar(cc) or cc == "." then
                     buf = buf + cc
@@ -403,7 +403,7 @@ func highlightLine(string line) as string
         // 标识符 / 关键字
         if isAlphaChar(c) then
             string buf = ""
-            while i < n do
+            while i < n
                 string cc = string.charAt(line, i)
                 if isIdentChar(cc) then
                     buf = buf + cc
@@ -538,7 +538,7 @@ class TextBuffer
         end
         string result = self.lines[0]
         int i = 1
-        while i < self.lines.length do
+        while i < self.lines.length
             result = result + "\n" + self.lines[i]
             i += 1
         end
@@ -883,7 +883,7 @@ class TextBuffer
         end
         int matches = 0
         int i = 0
-        while i < self.lines.length do
+        while i < self.lines.length
             string line = self.lines[i]
             bool hit = false
             try
@@ -906,7 +906,7 @@ class TextBuffer
     func replaceAllPattern(string pattern, string to, bool ignoreCase) as int
         int count = 0
         int i = 0
-        while i < self.lines.length do
+        while i < self.lines.length
             string old = self.lines[i]
             string newLine = old
             try
@@ -927,7 +927,7 @@ class TextBuffer
     func replaceFirstPattern(string pattern, string to, bool ignoreCase) as int
         int count = 0
         int i = 0
-        while i < self.lines.length do
+        while i < self.lines.length
             string old = self.lines[i]
             string newLine = old
             try
@@ -949,7 +949,7 @@ class TextBuffer
     func charCount() as int
         int total = 0
         int i = 0
-        while i < self.lines.length do
+        while i < self.lines.length
             total += string.len(self.lines[i])
             i += 1
         end
@@ -959,7 +959,7 @@ class TextBuffer
     func wordCount() as int
         int total = 0
         int i = 0
-        while i < self.lines.length do
+        while i < self.lines.length
             total += countWords(self.lines[i])
             i += 1
         end
@@ -988,7 +988,7 @@ class TextBuffer
             width = 3
         end
         int i = s
-        while i <= e do
+        while i <= e
             string numStr = string.padLeft(string(i), width)
             string marker = "  "
             if i - 1 == self.cursorRow then
@@ -1023,7 +1023,7 @@ class TextBuffer
             width = 3
         end
         int i = s
-        while i <= e do
+        while i <= e
             string numStr = string.padLeft(string(i), width)
             string marker = "  "
             if i - 1 == self.cursorRow then
@@ -1139,7 +1139,7 @@ end
 func listBuffersText() as string
     string result = ""
     int i = 0
-    while i < g_buffers.length do
+    while i < g_buffers.length
         TextBuffer buf = g_buffers[i]
         string mark = "   "
         if i == g_currentIdx then
@@ -1731,7 +1731,7 @@ func runScript(string scriptPath) as int
     int executed = 0
     int errors = 0
     int i = 0
-    while i < scriptLines.length do
+    while i < scriptLines.length
         string raw = scriptLines[i]
         string trimmed = string.trim(raw)
         if string.isEmpty(trimmed) then

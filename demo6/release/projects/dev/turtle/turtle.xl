@@ -43,7 +43,7 @@ func fmtNum(float v) as string
     end
     string s = float.format(v, ".2")
     if string.contains(s, ".") then
-        while string.endsWith(s, "0") do
+        while string.endsWith(s, "0")
             s = string.slice(s, 0, string.len(s) - 1)
         end
         if string.endsWith(s, ".") then
@@ -69,7 +69,7 @@ func looksNumber(string s) as bool
         end
     end
     bool seen = false
-    while i < n do
+    while i < n
         int b = string.byteAt(t, i)
         if b >= 48 and b <= 57 then
             seen = true
@@ -129,11 +129,11 @@ end
 func lsystemExpand(string axiom, var rules, int iter) as string
     string cur = axiom
     int it = 0
-    while it < iter do
+    while it < iter
         string nxt = ""
         int n = string.len(cur)
         int i = 0
-        while i < n do
+        while i < n
             string ch = string.charAt(cur, i)
             string rep = string(rules[ch])
             if rep != "" then
@@ -301,7 +301,7 @@ class Turtle
         var stackY = []
         var stackA = []
         int i = 0
-        while i < n do
+        while i < n
             string ch = string.charAt(symbols, i)
             if ch == "F" or ch == "G" or ch == "A" or ch == "B" then
                 self.forward(step)
@@ -346,7 +346,7 @@ class Turtle
         end
         int i = 0
         int n = lines.length
-        while i < n do
+        while i < n
             string line = string.trim(string(lines[i]))
             bool blank = (line == "")
             bool cmt = string.startsWith(line, "//")
@@ -356,7 +356,7 @@ class Turtle
                 array<string> parts = string.split(line, " ")
                 int m = parts.length
                 int j = 0
-                while j < m do
+                while j < m
                     string tt = string.trim(string(parts[j]))
                     if tt != "" then
                         toks.push(tt)
@@ -469,7 +469,7 @@ class Turtle
         float prevY = 0.0
         bool havePrev = false
         int i = 0
-        while i < n do
+        while i < n
             string cmd = self.cmds[i]
             string col = self.cmdColors[i]
             array<string> parts = string.split(cmd, " ")

@@ -188,7 +188,7 @@ func route(point reqHandle, point respHandle) as bool
     if method == "GET" and string.startsWith(path, "/wildcard/") then
         int pc = req.paramCount()
         int pi = 0
-        while pi < pc do
+        while pi < pc
             resp.addHeader("X-Wild-Param-" + pi.toString(), req.paramName(pi) + "=" + req.paramValue(pi))
             pi += 1
         end
@@ -625,7 +625,7 @@ func main(...) as int
     end
     println("listening on http://127.0.0.1:" + port.toString())
     println("press Ctrl+C to stop")
-    while true do
+    while true
         time.sleep(1000)
         println("[stats] requestCount=" + http.server.requestCount(server).toString() + " connectionCount=" + http.server.connectionCount(server).toString())
     end

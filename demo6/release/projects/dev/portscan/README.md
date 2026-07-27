@@ -62,7 +62,7 @@ else                    // OPEN（成功）
 ```xlang
 array<int> ports = array<int>[]
 array<future<int>> jobs = array<future<int>>[]
-while port <= endPort and jobs.length < concurrency do
+while port <= endPort and jobs.length < concurrency
     ports.push(port)
     jobs.push(probe(host, port, timeout))
     port += 1

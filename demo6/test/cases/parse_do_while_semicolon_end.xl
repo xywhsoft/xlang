@@ -1,0 +1,3 @@
+do
+    int value = 1
+while value > 0; end

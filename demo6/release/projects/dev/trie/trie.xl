@@ -93,7 +93,7 @@ class Trie
         int n = chars.length
         int curId = 0
         int i = 0
-        while i < n do
+        while i < n
             TrieNode cur = self.getNode(curId)
             string ch = string(chars[i])
             bool has = ch in cur.children
@@ -113,7 +113,7 @@ class Trie
         int n = chars.length
         int curId = 0
         int i = 0
-        while i < n do
+        while i < n
             TrieNode cur = self.getNode(curId)
             string ch = string(chars[i])
             bool has = ch in cur.children
@@ -225,7 +225,7 @@ class Trie
         int curId = 0
         int lastMatchLen = -1
         int i = 0
-        while i < n do
+        while i < n
             TrieNode cur = self.getNode(curId)
             string ch = string(chars[i])
             bool has = ch in cur.children
@@ -247,7 +247,7 @@ class Trie
         // 取 word 的前 (lastMatchLen+1) 个字符（按字符重建，UTF-8 安全）
         string s = ""
         int k = 0
-        while k <= lastMatchLen do
+        while k <= lastMatchLen
             s = s + string(chars[k])
             k = k + 1
         end
@@ -310,7 +310,7 @@ class Trie
         int wn = chars.length
         var row = []
         int i = 0
-        while i <= wn do
+        while i <= wn
             row.push(i)
             i = i + 1
         end
@@ -334,7 +334,7 @@ class Trie
         curRow.push(int(prevRow[0]) + 1)
         int minInRow = int(prevRow[0]) + 1
         int j = 1
-        while j < columns do
+        while j < columns
             int cost = 1
             string wc = string(chars[j - 1])
             if wc == letter then
@@ -381,7 +381,7 @@ class Trie
         int n = lines.length
         int loaded = 0
         int i = 0
-        while i < n do
+        while i < n
             string w = string(lines[i])
             w = string.replace(w, "\r", "")
             w = string.trim(w)
@@ -401,7 +401,7 @@ class Trie
         var ns = []
         int total = self.nodes.length
         int i = 0
-        while i < total do
+        while i < total
             TrieNode n = self.getNode(i)
             var nd = {}
             nd["isWord"] = n.isWord
@@ -429,7 +429,7 @@ class Trie
         var ns = data["nodes"]
         int total = ns.length
         int i = 0
-        while i < total do
+        while i < total
             var nd = ns[i]
             TrieNode n = TrieNode()
             n.isWord = bool(nd["isWord"])
@@ -501,7 +501,7 @@ end
 func fuzzyDistOf(var results, string word) as int
     int n = results.length
     int i = 0
-    while i < n do
+    while i < n
         var e = results[i]
         if string(e[0]) == word then
             return int(e[1])
@@ -515,7 +515,7 @@ end
 func varContains(var arr, string word) as bool
     int n = arr.length
     int i = 0
-    while i < n do
+    while i < n
         if string(arr[i]) == word then
             return true
         end
@@ -528,10 +528,10 @@ end
 func sortStrings(var arr)
     int n = arr.length
     int i = 0
-    while i < n do
+    while i < n
         int minIdx = i
         int j = i + 1
-        while j < n do
+        while j < n
             if string.compare(string(arr[j]), string(arr[minIdx]), false) < 0 then
                 minIdx = j
             end
@@ -575,7 +575,7 @@ func cmdComplete(string prefix) as int
     // 用一组示例词演示自动补全引擎
     var sample = ["apple", "application", "apply", "app", "banana", "band", "bandana", "can", "cancel"]
     int i = 0
-    while i < sample.length do
+    while i < sample.length
         t.insert(string(sample[i]))
         i = i + 1
     end
@@ -583,7 +583,7 @@ func cmdComplete(string prefix) as int
     sortStrings(matches)
     println("autocomplete '" + prefix + "' -> " + string(matches.length) + " matches:")
     int k = 0
-    while k < matches.length do
+    while k < matches.length
         println("  " + matches[k])
         k = k + 1
     end
@@ -594,7 +594,7 @@ func cmdFuzzy(string word, int maxDist) as int
     Trie t = Trie()
     var sample = ["apple", "application", "apply", "app", "banana", "band", "bandana", "can", "cancel", "cat", "car", "care", "careful"]
     int i = 0
-    while i < sample.length do
+    while i < sample.length
         t.insert(string(sample[i]))
         i = i + 1
     end
@@ -603,7 +603,7 @@ func cmdFuzzy(string word, int maxDist) as int
     // sortStrings（它假定元素为字符串）；按自然 DFS 序输出。
     println("fuzzy '" + word + "' (dist<=" + string(maxDist) + ") -> " + string(matches.length) + " matches:")
     int k = 0
-    while k < matches.length do
+    while k < matches.length
         var e = matches[k]
         println("  " + e[0] + "  (dist=" + e[1] + ")")
         k = k + 1
@@ -712,7 +712,7 @@ func cmdTest() as int
     Trie f = Trie()
     var fwords = ["apple", "apply", "map", "app", "cat", "car", "care", "careful"]
     int fi = 0
-    while fi < fwords.length do
+    while fi < fwords.length
         f.insert(string(fwords[fi]))
         fi = fi + 1
     end
@@ -798,7 +798,7 @@ func cmdTest() as int
     Trie checker = Trie()
     var dictWords = ["receive", "definitely", "separate", "occurrence", "necessary", "restaurant"]
     int di = 0
-    while di < dictWords.length do
+    while di < dictWords.length
         checker.insert(string(dictWords[di]))
         di = di + 1
     end

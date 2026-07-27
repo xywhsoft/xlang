@@ -106,7 +106,7 @@ export func publicArticles(point handle, int page, int pageSize, string category
     db.bindInt(statement, index, pageSize)
     db.bindInt(statement, index + 1, (page - 1) * pageSize)
     int code = db.step(statement)
-    while code == sqlite.SQLITE_ROW do
+    while code == sqlite.SQLITE_ROW
         rows.append(db.row(statement))
         code = db.step(statement)
     end
@@ -151,7 +151,7 @@ export func adminArticles(point handle, string status = "", int limit = 200) as 
     end
     db.bindInt(statement, index, limit)
     int code = db.step(statement)
-    while code == sqlite.SQLITE_ROW do
+    while code == sqlite.SQLITE_ROW
         rows.append(db.row(statement))
         code = db.step(statement)
     end

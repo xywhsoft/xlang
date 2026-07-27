@@ -62,7 +62,7 @@ async func runUrls(array<string> urls, int timeout, int concurrency, float start
     int errors = 0
     int failed = 0
     int offset = 0
-    while offset < c do
+    while offset < c
         int stop = offset + concurrency
         if stop > c then
             stop = c
@@ -70,14 +70,14 @@ async func runUrls(array<string> urls, int timeout, int concurrency, float start
 
         array<future<int>> jobs = []
         int i = offset
-        while i < stop do
+        while i < stop
             jobs.push(fetchOne(i, c, urls[i], timeout))
             i += 1
         end
 
         array<int> codes = await task.all(jobs)
         int j = 0
-        while j < codes.length do
+        while j < codes.length
             int code = codes[j]
             if code == 0 then
                 failed += 1
@@ -211,7 +211,7 @@ func loadUrlsFromFile(string path) as (int, array<string>)
     array lines = string.splitLines(text)
     array<string> urls = array<string>[]
     int i = 0
-    while i < lines.length do
+    while i < lines.length
         string line = string.trim(string(lines[i]))
         // 跳过空行和注释行
         if line == "" then
@@ -240,7 +240,7 @@ func main(...) as int
     bool useFile = false
     bool useDemo = false
     int i = 1
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "-h" or a == "--help" then
             printUsage()

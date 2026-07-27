@@ -114,7 +114,7 @@ func ind(int level) as string
     string s = ""
     int i = 0
     int n = level * INDENT_SIZE
-    while i < n do
+    while i < n
         s = s + " "
         i += 1
     end
@@ -381,7 +381,7 @@ func emitIndex(var e) as string
         end
     else
         int i = 1
-        while i < ch.length do
+        while i < ch.length
             if i > 1 then inner = inner + ", " end
             inner = inner + emitExpr(ch[i])
             i += 1
@@ -757,7 +757,7 @@ func emitWhile(var s, int level) as string
     var cond = ch[0]
     var blk = ch[1]
     array<string> lines = []
-    lines.push(ind(level) + "while " + emitExpr(cond) + " do")
+    lines.push(ind(level) + "while " + emitExpr(cond))
     appendBlockLines(lines, blk, level + 1)
     lines.push(ind(level) + "end")
     return string.join(lines, "\n")
@@ -770,7 +770,7 @@ func emitDoWhile(var s, int level) as string
     array<string> lines = []
     lines.push(ind(level) + "do")
     appendBlockLines(lines, blk, level + 1)
-    lines.push(ind(level) + "while " + emitExpr(cond))
+    lines.push(ind(level) + "while " + emitExpr(cond) + " end")
     return string.join(lines, "\n")
 end
 
@@ -1378,7 +1378,7 @@ func main(...) as int
     bool doCheck = false
 
     int i = 1
-    while i < arg.length do
+    while i < arg.length
         string a = string(arg[i])
         if a == "--write" or a == "-w" then
             doWrite = true
@@ -1430,7 +1430,7 @@ func main(...) as int
         int n = olines.length
         if flines.length < n then n = flines.length end
         int d = 0
-        while d < n do
+        while d < n
             if olines[d] != flines[d] then
                 println("  first diff at line " + string(d + 1) + ":")
                 println("    - " + olines[d])
