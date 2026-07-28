@@ -1,0 +1,37 @@
+import argon2
+
+
+
+func main(...) as int
+    // Hash a password
+    auto h = argon2.hash("mypassword", "somesalt", 1000, 32)
+    assert string.len(h) == 64, "hash is 64 hex chars"
+
+    // Same input produces same hash (deterministic)
+    auto h2 = argon2.hash("mypassword", "somesalt", 1000, 32)
+    assert h == h2, "deterministic"
+
+    // Different password produces different hash
+    auto h3 = argon2.hash("otherpass", "somesalt", 1000, 32)
+    assert h3 != h, "different password"
+
+    // Different salt produces different hash
+    auto h4 = argon2.hash("mypassword", "othersalt", 1000, 32)
+    assert h4 != h, "different salt"
+
+    // Verify
+    assert argon2.verify("mypassword", "somesalt", 1000, 32, h), "verify correct"
+    assert not argon2.verify("wrongpass", "somesalt", 1000, 32, h), "verify wrong"
+
+    // Generate salt
+    auto s1 = argon2.genSalt(12345, 16)
+    assert string.len(s1) == 32, "salt 32 hex chars"
+    auto s2 = argon2.genSalt(99999, 16)
+    assert s1 != s2, "different seeds different salts"
+
+    // Recommendations
+    assert argon2.recommendedIterations() == 10000, "rec iters"
+    assert argon2.recommendedHashLen() == 32, "rec hashlen"
+
+    return 0
+end

@@ -1,0 +1,25 @@
+import clip
+
+func main(...) as int
+    // Models
+    assert clip.model(0) == "ViT-B/32", "model vitb32"
+    assert clip.model(2) == "ViT-L/14", "model vitl14"
+
+    // Cosine similarity: same vector = 1.0
+    float cs = clip.cosineSimilarity("3,4", "3,4")
+    assert cs > 0.99, "cosine same min"
+    assert cs < 1.01, "cosine same max"
+
+    // Preprocess
+    assert clip.preprocess(0) == "resize", "prep resize"
+    assert clip.preprocess(2) == "normalize", "prep norm"
+
+    // Embed dim
+    assert clip.embedDim(0) == 512, "dim vitb32"
+    assert clip.embedDim(2) == 768, "dim vitl14"
+
+    // Tokenizer
+    assert clip.tokenizer(0) == "bpe", "tok bpe"
+
+    return 0
+end

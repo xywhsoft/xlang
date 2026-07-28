@@ -1,0 +1,53 @@
+import geohash
+
+
+
+func main(...) as int
+    // encode: Beijing approx (39.9, 116.4)
+    string h = geohash.encode(39.9, 116.4, 6)
+    assert geohash.precision(h) == 6, "precision should be 6"
+    assert h != "", "encode returns non-empty"
+
+    // decode should be close to original
+    float lat = geohash.decodeLat(h)
+    float lon = geohash.decodeLon(h)
+    assert lat > 39.8 and lat < 40.0, "decoded lat near 39.9"
+    assert lon > 116.3 and lon < 116.5, "decoded lon near 116.4"
+
+    // higher precision = more accurate
+    string h9 = geohash.encode(39.9, 116.4, 9)
+    assert geohash.precision(h9) == 9, "precision 9"
+    float lat9 = geohash.decodeLat(h9)
+    float lon9 = geohash.decodeLon(h9)
+    assert lat9 > 39.89 and lat9 < 39.91, "precision 9 lat closer"
+    assert lon9 > 116.39 and lon9 < 116.41, "precision 9 lon closer"
+
+    // bbox returns 4 comma-separated values
+    string bb = geohash.bbox(h)
+    assert bb != "", "bbox non-empty"
+    assert bb.contains(","), "bbox has commas"
+
+    // neighbors: north/south/east/west should differ from original
+    string n = geohash.north(h)
+    string s = geohash.south(h)
+    string e = geohash.east(h)
+    string w = geohash.west(h)
+    assert n != h, "north differs"
+    assert s != h, "south differs"
+    assert e != h, "east differs"
+    assert w != h, "west differs"
+    assert n != s, "north != south"
+    assert e != w, "east != west"
+
+    // north of south should be back to original (approximately)
+    float nlat = geohash.decodeLat(n)
+    float slat = geohash.decodeLat(s)
+    assert nlat > lat, "north lat > center"
+    assert slat < lat, "south lat < center"
+
+    // known value: (0, 0) with precision 1 should be "s"
+    string origin = geohash.encode(0.0, 0.0, 1)
+    assert origin == "s", "origin geohash is s"
+
+    return 0
+end

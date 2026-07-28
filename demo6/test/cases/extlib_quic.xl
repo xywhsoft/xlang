@@ -1,0 +1,41 @@
+import quic
+
+func main(...) as int
+    // Packet types
+    assert quic.packetType(0) == "Initial", "pkt initial"
+    assert quic.packetType(2) == "Handshake", "pkt handshake"
+    assert quic.packetType(5) == "Short Header (1-RTT)", "pkt short"
+
+    // Frame types
+    assert quic.frameType(0) == "PADDING", "frame padding"
+    assert quic.frameType(1) == "PING", "frame ping"
+    assert quic.frameType(2) == "ACK", "frame ack"
+    assert quic.frameType(6) == "CRYPTO", "frame crypto"
+    assert quic.frameType(8) == "STREAM", "frame stream"
+    assert quic.frameType(0x1c) == "CONNECTION_CLOSE", "frame conn_close"
+
+    // Error codes
+    assert quic.errorName(0) == "NO_ERROR", "err none"
+    assert quic.errorName(3) == "FLOW_CONTROL_ERROR", "err flow"
+    assert quic.errorName(0x0a) == "PROTOCOL_VIOLATION", "err protocol"
+
+    // Transport parameters
+    assert quic.paramName(1) == "max_idle_timeout", "param timeout"
+    assert quic.paramName(4) == "initial_max_data", "param maxdata"
+
+    // Versions
+    assert quic.versionName(1) == "QUIC v1 (RFC 9000)", "ver v1"
+    assert quic.versionName(0) == "Version Negotiation", "ver negotiation"
+
+    // Stream types
+    assert quic.streamType(0) == "client-initiated bidirectional", "stream 0"
+    assert quic.streamType(1) == "server-initiated bidirectional", "stream 1"
+    assert quic.streamType(2) == "client-initiated unidirectional", "stream 2"
+    assert quic.streamType(3) == "server-initiated unidirectional", "stream 3"
+
+    // Varint encoding
+    assert quic.encodeVarint(37) == "25", "varint 37"
+    assert quic.encodeVarint(15293) == "7bbd", "varint 15293"
+
+    return 0
+end

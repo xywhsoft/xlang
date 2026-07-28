@@ -1,0 +1,29 @@
+import whisper
+
+func main(...) as int
+    // Models
+    assert whisper.model(0) == "tiny", "model tiny"
+    assert whisper.model(4) == "large", "model large"
+
+    // Languages
+    assert whisper.language(0) == "en", "lang en"
+    assert whisper.language(1) == "zh", "lang zh"
+
+    // Tasks
+    assert whisper.task(0) == "transcribe", "task transcribe"
+    assert whisper.task(1) == "translate", "task translate"
+
+    // Timestamp: 3661500ms = 01:01:01.500
+    assert whisper.timestamp(3661500) == "01:01:01.500", "timestamp"
+    assert whisper.timestamp(0) == "00:00:00.000", "timestamp zero"
+
+    // Params
+    assert whisper.params(0) == 39, "params tiny"
+    assert whisper.params(4) == 1550, "params large"
+
+    // Strategy
+    assert whisper.strategy(0) == "greedy", "strategy greedy"
+    assert whisper.strategy(1) == "beam_search", "strategy beam"
+
+    return 0
+end

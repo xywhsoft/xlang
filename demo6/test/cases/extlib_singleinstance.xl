@@ -1,0 +1,23 @@
+import singleinstance
+
+
+
+func main(...) as int
+    assert not singleinstance.isAcquired(), "not acquired initially"
+
+    bool ok = singleinstance.acquire("test_app_xlang")
+    assert ok, "first acquire should succeed"
+    assert singleinstance.isAcquired(), "acquired after acquire"
+
+    // second acquire with same name should fail (same process holds it)
+    // Note: on Windows, same process can re-open mutex, so we test release
+    singleinstance.release()
+    assert not singleinstance.isAcquired(), "released"
+
+    // re-acquire should work
+    ok = singleinstance.acquire("test_app_xlang")
+    assert ok, "re-acquire should succeed"
+    singleinstance.release()
+
+    return 0
+end

@@ -1,0 +1,45 @@
+import xlsx
+
+func main(...) as int
+    // Cell types
+    assert xlsx.cellType(0) == "number", "type number"
+    assert xlsx.cellType(1) == "shared string", "type shared"
+    assert xlsx.cellType(4) == "boolean", "type bool"
+    assert xlsx.cellType(6) == "date", "type date"
+
+    // Column letters
+    assert xlsx.colLetter(0) == "A", "col A"
+    assert xlsx.colLetter(25) == "Z", "col Z"
+    assert xlsx.colLetter(26) == "AA", "col AA"
+    assert xlsx.colLetter(27) == "AB", "col AB"
+    assert xlsx.colLetter(701) == "ZZ", "col ZZ"
+
+    // Column index
+    assert xlsx.colIndex("A") == 0, "idx A"
+    assert xlsx.colIndex("Z") == 25, "idx Z"
+    assert xlsx.colIndex("AA") == 26, "idx AA"
+    assert xlsx.colIndex("AZ") == 51, "idx AZ"
+
+    // Cell reference
+    assert xlsx.cellRef(0, 0) == "A1", "ref A1"
+    assert xlsx.cellRef(1, 0) == "B1", "ref B1"
+    assert xlsx.cellRef(0, 9) == "A10", "ref A10"
+    assert xlsx.cellRef(26, 0) == "AA1", "ref AA1"
+
+    // Number formats
+    assert xlsx.numFormat(0) == "General", "fmt general"
+    assert xlsx.numFormat(2) == "0.00", "fmt decimal"
+    assert xlsx.numFormat(9) == "0%", "fmt percent"
+    assert xlsx.numFormat(14) == "mm-dd-yy", "fmt date"
+
+    // Sheet states
+    assert xlsx.sheetState(0) == "visible", "state visible"
+    assert xlsx.sheetState(1) == "hidden", "state hidden"
+
+    // Error names
+    assert xlsx.errorName(1) == "#DIV/0!", "err div0"
+    assert xlsx.errorName(3) == "#REF!", "err ref"
+    assert xlsx.errorName(6) == "#N/A", "err na"
+
+    return 0
+end

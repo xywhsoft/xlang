@@ -1,0 +1,28 @@
+import grpc
+
+func main(...) as int
+    // Status codes
+    assert grpc.status(0) == "OK", "status ok"
+    assert grpc.status(5) == "NOT_FOUND", "status notfound"
+
+    // Compression
+    assert grpc.compression(0) == "none", "comp none"
+    assert grpc.compression(1) == "gzip", "comp gzip"
+
+    // Channel states
+    assert grpc.channelState(0) == "IDLE", "state idle"
+    assert grpc.channelState(2) == "READY", "state ready"
+
+    // Metadata keys
+    assert grpc.metadataKey(0) == "content-type", "meta ct"
+    assert grpc.metadataKey(1) == "authorization", "meta auth"
+
+    // Deadline
+    assert grpc.deadlineMs(30) == 30000, "deadline"
+
+    // Call types
+    assert grpc.callType(0) == "unary", "call unary"
+    assert grpc.callType(3) == "bidirectional", "call bidi"
+
+    return 0
+end

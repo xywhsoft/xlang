@@ -1,0 +1,28 @@
+import chardet
+
+
+
+func main(...) as int
+    // ASCII detection
+    auto enc1 = chardet.detect("Hello World 12345")
+    assert enc1 == "ASCII", "ascii detect: " + enc1
+    assert chardet.isAscii("Hello World 12345"), "isAscii"
+    assert chardet.confidence("Hello World 12345") == 100, "ascii conf"
+
+    // UTF-8 detection (Chinese chars in UTF-8)
+    auto utf8str = "\xe4\xbd\xa0\xe5\xa5\xbd\xe4\xb8\x96\xe7\x95\x8c"
+    auto enc2 = chardet.detect(utf8str)
+    assert enc2 == "UTF-8", "utf8 detect: " + enc2
+    assert chardet.isUtf8(utf8str), "isUtf8"
+    assert chardet.confidence(utf8str) >= 75, "utf8 conf"
+
+    // Not ASCII
+    assert not chardet.isAscii(utf8str), "not ascii"
+
+    // UTF-8 BOM
+    auto bom = "\xef\xbb\xbfHello"
+    auto enc3 = chardet.detect(bom)
+    assert enc3 == "UTF-8-BOM", "bom detect: " + enc3
+
+    return 0
+end

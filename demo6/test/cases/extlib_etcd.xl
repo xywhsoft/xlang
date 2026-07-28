@@ -1,0 +1,51 @@
+import etcd
+
+
+
+func main(...) as int
+    // Method names
+    assert etcd.methodName(0) == "Range", "method range"
+    assert etcd.methodName(1) == "Put", "method put"
+    assert etcd.methodName(3) == "Txn", "method txn"
+    assert etcd.methodName(8) == "Watch", "method watch"
+    assert etcd.methodName(99) == "Unknown", "method unknown"
+
+    // Sort order
+    assert etcd.sortOrder(0) == "NONE", "sort none"
+    assert etcd.sortOrder(1) == "ASCEND", "sort ascend"
+    assert etcd.sortOrder(2) == "DESCEND", "sort descend"
+
+    // Sort target
+    assert etcd.sortTarget(0) == "KEY", "target key"
+    assert etcd.sortTarget(4) == "VALUE", "target value"
+
+    // Event type
+    assert etcd.eventType(0) == "PUT", "event put"
+    assert etcd.eventType(1) == "DELETE", "event delete"
+
+    // Compare result/target
+    assert etcd.compareResult(0) == "EQUAL", "cmp equal"
+    assert etcd.compareResult(3) == "NOT_EQUAL", "cmp not equal"
+    assert etcd.compareTarget(0) == "VERSION", "cmp version"
+    assert etcd.compareTarget(3) == "VALUE", "cmp value"
+
+    // Key encode/decode roundtrip
+    auto enc = etcd.encodeKey("/app/config")
+    auto dec = etcd.decodeKey(enc)
+    assert dec == "/app/config", "key roundtrip"
+
+    // Key validation
+    assert etcd.validKey("/my/key") == 1, "key valid"
+    assert etcd.validKey("") == 0, "key empty"
+
+    // Endpoint format
+    assert etcd.endpoint("localhost", 2379, 0) == "http://localhost:2379", "endpoint http"
+    assert etcd.endpoint("etcd.prod", 2379, 1) == "https://etcd.prod:2379", "endpoint https"
+
+    // Alarm names
+    assert etcd.alarmName(0) == "NONE", "alarm none"
+    assert etcd.alarmName(1) == "NOSPACE", "alarm nospace"
+    assert etcd.alarmName(2) == "CORRUPT", "alarm corrupt"
+
+    return 0
+end

@@ -1,0 +1,41 @@
+import totp
+
+
+
+func main(...) as int
+    // RFC 4226 test vector: secret = base32("12345678901234567890")
+    string secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+
+    // HOTP test vectors from RFC 4226 Appendix D
+    assert totp.hotp(secret, 0) == "755224", "HOTP(0)"
+    assert totp.hotp(secret, 1) == "287082", "HOTP(1)"
+    assert totp.hotp(secret, 2) == "359152", "HOTP(2)"
+    assert totp.hotp(secret, 3) == "969429", "HOTP(3)"
+    assert totp.hotp(secret, 4) == "338314", "HOTP(4)"
+    assert totp.hotp(secret, 5) == "254676", "HOTP(5)"
+    assert totp.hotp(secret, 6) == "287922", "HOTP(6)"
+    assert totp.hotp(secret, 7) == "162583", "HOTP(7)"
+    assert totp.hotp(secret, 8) == "399871", "HOTP(8)"
+    assert totp.hotp(secret, 9) == "520489", "HOTP(9)"
+
+    // TOTP: generateAt with known timestamp
+    // RFC 6238 test: T=59, step=30, SHA1 -> counter=1 -> same as HOTP(1)
+    string code59 = totp.generateAt(secret, 59, 30, 6)
+    assert code59 == "287082", "TOTP at T=59"
+
+    // T=1111111109, step=30 -> counter=37037036
+    // Just verify it produces a 6-digit code
+    string code2 = totp.generateAt(secret, 1111111109, 30, 6)
+    assert string.len(code2) == 6, "TOTP 6 digits"
+
+    // verify: generate then verify at same timestamp
+    string codeNow = totp.generateAt(secret, 1000000, 30, 6)
+    assert totp.verifyAt(secret, codeNow, 1000000, 30, 6, 1), "verify same time"
+    assert not totp.verifyAt(secret, "000000", 1000000, 30, 6, 0), "verify wrong code"
+
+    // 8-digit codes
+    string code8 = totp.hotp(secret, 0, 8)
+    assert string.len(code8) == 8, "8 digit code"
+
+    return 0
+end

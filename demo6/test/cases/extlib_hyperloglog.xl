@@ -1,0 +1,72 @@
+import hyperloglog
+
+
+
+func main(...) as int
+    auto hll = hyperloglog.create()
+    assert hll.valid, "hll should be valid"
+    assert hll.precision == 14, "hll default precision"
+    assert hll.count() == 0, "hll initial count"
+    assert hll.added == 0, "hll initial added"
+
+    hll.add("user:1")
+    hll.add("user:2")
+    hll.add("user:3")
+    hll.add("user:1")
+    hll.add("user:2")
+    assert hll.added == 5, "hll added counts duplicates"
+    int estimate = hll.count()
+    assert estimate >= 2 and estimate <= 5, "hll estimate near 3"
+
+    auto hll2 = hyperloglog.create(10)
+    assert hll2.precision == 10, "hll custom precision"
+
+    int i = 0
+    while i < 1000
+        hll2.add("item:" + int.format(i))
+        i = i + 1
+    end
+    int bigEstimate = hll2.count()
+    assert bigEstimate >= 900 and bigEstimate <= 1100, "hll 1000 items estimate within 10%"
+
+    hll2.clear()
+    assert hll2.count() == 0, "hll count after clear"
+    assert hll2.added == 0, "hll added after clear"
+
+    auto a = hyperloglog.create(12)
+    auto b = hyperloglog.create(12)
+    a.add("x1")
+    a.add("x2")
+    b.add("x3")
+    b.add("x4")
+    a.merge(b)
+    int merged = a.count()
+    assert merged >= 3 and merged <= 6, "hll merge estimate near 4"
+
+    bool caught = false
+    try
+        hyperloglog.create(2)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "hll create(2) must throw ValueError"
+
+    caught = false
+    try
+        hyperloglog.create(20)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "hll create(20) must throw ValueError"
+
+    caught = false
+    try
+        auto p14 = hyperloglog.create(14)
+        auto p10 = hyperloglog.create(10)
+        p14.merge(p10)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "hll merge different precision must throw"
+    return 0
+end

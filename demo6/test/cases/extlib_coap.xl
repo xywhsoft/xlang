@@ -1,0 +1,57 @@
+import coap
+
+
+
+func main(...) as int
+    // GET request
+    auto g = coap.get(0x1234, "/sensors/temp")
+    assert coap.getType(g) == 0, "get type CON"
+    assert coap.getCode(g) == 1, "get code"
+    assert coap.getMsgId(g) == 0x1234, "get msgid"
+    assert coap.typeName(0) == "CON", "CON name"
+    assert coap.codeName(1) == "GET", "GET name"
+
+    // PUT request
+    auto p = coap.put(0x5678, "/devices/led", "on")
+    assert coap.getType(p) == 0, "put type CON"
+    assert coap.getCode(p) == 3, "put code"
+    assert coap.getMsgId(p) == 0x5678, "put msgid"
+    assert coap.codeName(3) == "PUT", "PUT name"
+
+    // Response
+    auto r = coap.response(0x1234, 0x45, "25.5")
+    assert coap.getType(r) == 2, "resp type ACK"
+    assert coap.getCode(r) == 0x45, "resp code"
+    assert coap.typeName(2) == "ACK", "ACK name"
+    assert coap.codeName(0x45) == "2.05 Content", "content name"
+
+    // Header build
+    auto h = coap.buildHeader(1, 0x02, 0xABCD, 0)
+    assert coap.getType(h) == 1, "hdr type NON"
+    assert coap.getCode(h) == 2, "hdr code POST"
+    assert coap.getMsgId(h) == 0xABCD, "hdr msgid"
+    assert coap.typeName(1) == "NON", "NON name"
+    assert coap.codeName(2) == "POST", "POST name"
+
+    // Type names
+    assert coap.typeName(3) == "RST", "RST name"
+    assert coap.typeName(9) == "UNKNOWN", "unknown type"
+
+    // Code names
+    assert coap.codeName(4) == "DELETE", "DELETE"
+    assert coap.codeName(0x41) == "2.01 Created", "Created"
+    assert coap.codeName(0x84) == "4.04 Not Found", "Not Found"
+    assert coap.codeName(0xFF) == "UNKNOWN", "unknown code"
+
+    // Path validation
+    assert coap.validPath("/sensors/temp") == 1, "valid path"
+    assert coap.validPath("/a") == 1, "short path"
+    assert coap.validPath("no-slash") == 0, "no leading slash"
+    assert coap.validPath("") == 0, "empty path"
+
+    // Ports
+    assert coap.defaultPort() == 5683, "default port"
+    assert coap.dtlsPort() == 5684, "dtls port"
+
+    return 0
+end

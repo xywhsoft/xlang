@@ -1,0 +1,39 @@
+import dotenv
+
+
+
+func main(...) as int
+    dotenv.clear()
+    assert dotenv.count() == 0, "initial count 0"
+
+    int n = dotenv.load("test/data/dotenv_test.env")
+    assert n == 7, "loaded 7 vars"
+    assert dotenv.count() == 7, "count matches"
+
+    assert dotenv.get("DB_HOST") == "localhost", "DB_HOST"
+    assert dotenv.get("DB_PORT") == "5432", "DB_PORT"
+    assert dotenv.get("DB_NAME") == "mydb", "DB_NAME strips quotes"
+    assert dotenv.get("API_KEY") == "secret123", "API_KEY strips single quotes"
+    assert dotenv.get("PATH_EXTRA") == "/usr/local/bin", "export prefix handled"
+    assert dotenv.get("EMPTY_VAL") == "", "empty value"
+    assert dotenv.get("SPACED_KEY") == "spaced_value", "spaced key trimmed"
+
+    assert dotenv.has("DB_HOST"), "has DB_HOST"
+    assert not dotenv.has("NONEXIST"), "not has NONEXIST"
+
+    // default value
+    assert dotenv.get("NONEXIST", "fallback") == "fallback", "default value"
+
+    // set / override
+    dotenv.set("DB_HOST", "remotehost")
+    assert dotenv.get("DB_HOST") == "remotehost", "override works"
+
+    dotenv.set("NEW_KEY", "new_val")
+    assert dotenv.get("NEW_KEY") == "new_val", "new key set"
+    assert dotenv.count() == 8, "count after new key"
+
+    dotenv.clear()
+    assert dotenv.count() == 0, "cleared"
+
+    return 0
+end

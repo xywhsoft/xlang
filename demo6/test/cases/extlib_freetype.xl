@@ -1,0 +1,13 @@
+import freetype
+
+func main(...) as int
+    assert freetype.format(0) == "TrueType", "format tt"
+    assert freetype.format(1) == "OpenType", "format ot"
+    assert freetype.style(1) == "Bold", "style bold"
+    assert freetype.style(3) == "BoldItalic", "style bi"
+    assert freetype.emToPx(12.0, 72.0) == 12.0, "em px 72"
+    assert freetype.emToPx(12.0, 96.0) == 16.0, "em px 96"
+    assert freetype.kerning(10.0, -2.0) == 8.0, "kerning"
+    assert freetype.hinting(2) == "normal", "hinting"
+    return 0
+end

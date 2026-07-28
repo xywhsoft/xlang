@@ -1,0 +1,70 @@
+import gmp
+
+
+
+func main(...) as int
+    // Compare
+    assert gmp.compare("123", "123") == 0, "equal"
+    assert gmp.compare("123", "456") < 0, "less"
+    assert gmp.compare("456", "123") > 0, "greater"
+    assert gmp.compare("99", "100") < 0, "99 < 100"
+    assert gmp.compare("007", "7") == 0, "leading zeros"
+
+    // Digits
+    assert gmp.digits("12345") == 5, "5 digits"
+    assert gmp.digits("007") == 1, "1 digit after zeros"
+    assert gmp.digits("0") == 1, "zero is 1 digit"
+
+    // Is zero
+    assert gmp.isZero("0") == 1, "0 is zero"
+    assert gmp.isZero("000") == 1, "000 is zero"
+    assert gmp.isZero("1") == 0, "1 not zero"
+
+    // Is negative
+    assert gmp.isNegative("-5") == 1, "-5 negative"
+    assert gmp.isNegative("5") == 0, "5 not negative"
+
+    // Abs
+    assert gmp.abs("-123") == "123", "abs negative"
+    assert gmp.abs("456") == "456", "abs positive"
+
+    // Base conversion
+    assert gmp.toBase(255, 16) == "ff", "255 to hex"
+    assert gmp.toBase(10, 2) == "1010", "10 to binary"
+    assert gmp.toBase(0, 10) == "0", "0 to decimal"
+    assert gmp.fromBase("ff", 16) == 255, "ff from hex"
+    assert gmp.fromBase("1010", 2) == 10, "1010 from binary"
+
+    // GCD and LCM
+    assert gmp.gcd(12, 8) == 4, "gcd 12,8"
+    assert gmp.gcd(17, 5) == 1, "gcd coprime"
+    assert gmp.lcm(4, 6) == 12, "lcm 4,6"
+    assert gmp.lcm(3, 5) == 15, "lcm 3,5"
+
+    // Modular exponentiation
+    assert gmp.powm(2, 10, 1000) == 24, "2^10 mod 1000"
+    assert gmp.powm(3, 4, 5) == 1, "3^4 mod 5"
+
+    // Prime test
+    assert gmp.probabPrime(17, 10) == 1, "17 prime"
+    assert gmp.probabPrime(15, 10) == 0, "15 not prime"
+    assert gmp.probabPrime(2, 10) == 1, "2 prime"
+    assert gmp.probabPrime(1, 10) == 0, "1 not prime"
+
+    // Factorial
+    assert gmp.factorial(5) == 120, "5!"
+    assert gmp.factorial(0) == 1, "0!"
+    assert gmp.factorial(10) == 3628800, "10!"
+
+    // Binomial
+    assert gmp.binomial(5, 2) == 10, "C(5,2)"
+    assert gmp.binomial(10, 3) == 120, "C(10,3)"
+    assert gmp.binomial(5, 0) == 1, "C(5,0)"
+    assert gmp.binomial(5, 5) == 1, "C(5,5)"
+
+    // Version
+    assert gmp.versionMajor() == 6, "major version"
+    assert gmp.versionMinor() == 2, "minor version"
+
+    return 0
+end

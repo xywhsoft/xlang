@@ -1,0 +1,26 @@
+import hnswlib
+
+func main(...) as int
+    // Space types
+    assert hnswlib.space(0) == "l2", "space l2"
+    assert hnswlib.space(2) == "cosine", "space cosine"
+
+    // Optimal M
+    assert hnswlib.optimalM(16) == 16, "optM small"
+    assert hnswlib.optimalM(100) == 32, "optM medium"
+    assert hnswlib.optimalM(384) == 48, "optM large"
+
+    // Memory per element: M=16, dim=128 -> 16*2*4 + 128*4 + 64 = 128+512+64 = 704
+    assert hnswlib.memoryPerElement(16, 128) == 704, "memory"
+
+    // Params
+    assert hnswlib.param(0) == "M", "param M"
+    assert hnswlib.param(2) == "ef_search", "param ef"
+
+    // L2 squared: "1,2" vs "4,6" -> 9+16 = 25
+    float d = hnswlib.l2sq("1,2", "4,6")
+    assert d > 24.9, "l2sq min"
+    assert d < 25.1, "l2sq max"
+
+    return 0
+end

@@ -1,0 +1,37 @@
+import libsvm
+
+func main(...) as int
+    // SVM types
+    assert libsvm.svmType(0) == "C_SVC", "type csvc"
+    assert libsvm.svmType(3) == "EPSILON_SVR", "type epsvr"
+
+    // Kernels
+    assert libsvm.kernel(0) == "linear", "kernel linear"
+    assert libsvm.kernel(2) == "rbf", "kernel rbf"
+
+    // Linear kernel: "1,2" . "3,4" = 1*3 + 2*4 = 11
+    float lk = libsvm.linearKernel("1,2", "3,4")
+    assert lk > 10.9, "linear min"
+    assert lk < 11.1, "linear max"
+
+    // RBF kernel: same point -> K=1
+    float rk = libsvm.rbfKernel("1,2", "1,2", 1.0)
+    assert rk > 0.99, "rbf same min"
+    assert rk < 1.01, "rbf same max"
+
+    // Params
+    assert libsvm.param(0) == "C", "param C"
+    assert libsvm.param(1) == "gamma", "param gamma"
+
+    // Hinge loss: y=1, fx=2 -> margin=2 >= 1 -> loss=0
+    float h1 = libsvm.hingeLoss(1.0, 2.0)
+    assert h1 > -0.01, "hinge0 min"
+    assert h1 < 0.01, "hinge0 max"
+
+    // Hinge loss: y=1, fx=0.5 -> margin=0.5 -> loss=0.5
+    float h2 = libsvm.hingeLoss(1.0, 0.5)
+    assert h2 > 0.49, "hinge05 min"
+    assert h2 < 0.51, "hinge05 max"
+
+    return 0
+end

@@ -1,0 +1,33 @@
+import taglib
+
+func main(...) as int
+    // Frame names
+    assert taglib.frameName("TIT2") == "Title", "frame title"
+    assert taglib.frameName("TPE1") == "Artist", "frame artist"
+    assert taglib.frameName("TALB") == "Album", "frame album"
+    assert taglib.frameName("TRCK") == "Track Number", "frame track"
+    assert taglib.frameName("TCON") == "Genre", "frame genre"
+    assert taglib.frameName("APIC") == "Attached Picture", "frame pic"
+    assert taglib.frameName("XXXX") == "Unknown", "frame unknown"
+
+    // Genre names
+    assert taglib.genreName(0) == "Blues", "genre blues"
+    assert taglib.genreName(7) == "Hip-Hop", "genre hiphop"
+    assert taglib.genreName(17) == "Rock", "genre rock"
+    assert taglib.genreName(32) == "Classical", "genre classical"
+
+    // Format names
+    assert taglib.formatName("mp3") == "MPEG Audio", "fmt mp3"
+    assert taglib.formatName("flac") == "FLAC", "fmt flac"
+    assert taglib.formatName("ogg") == "Ogg Vorbis", "fmt ogg"
+    assert taglib.formatName("m4a") == "MP4", "fmt m4a"
+    assert taglib.formatName("xyz") == "Unknown", "fmt unknown"
+
+    // ISRC validation
+    assert taglib.validIsrc("USRC17607839") == 1, "isrc valid"
+    assert taglib.validIsrc("GBAYE0601234") == 1, "isrc valid2"
+    assert taglib.validIsrc("short") == 0, "isrc short"
+    assert taglib.validIsrc("123456789012") == 0, "isrc bad start"
+
+    return 0
+end

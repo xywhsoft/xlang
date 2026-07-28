@@ -1,0 +1,33 @@
+import procps
+
+
+
+func main(...) as int
+    // Current process
+    auto mypid = procps.pid()
+    assert mypid > 0, "pid > 0"
+
+    // Parent process
+    auto ppid = procps.ppid()
+    assert ppid >= 0, "ppid >= 0"
+
+    // Self exists
+    assert procps.exists(mypid), "self exists"
+
+    // Fake PID doesn't exist
+    assert not procps.exists(999999), "fake pid not exists"
+
+    // Process name
+    auto nm = procps.name(mypid)
+    assert string.len(nm) > 0, "name non-empty"
+
+    // Process count
+    auto cnt = procps.count()
+    assert cnt >= 1, "at least 1 process"
+
+    // List PIDs
+    auto pids = procps.listPids()
+    assert string.len(pids) > 0, "pids non-empty"
+
+    return 0
+end

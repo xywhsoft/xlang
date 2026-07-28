@@ -1,0 +1,31 @@
+import serial
+
+
+
+func main(...) as int
+    // Test loopback mode (no hardware needed)
+    auto sp = serial.openLoopback(115200)
+    assert sp.valid, "valid"
+    assert sp.isOpen, "is open"
+    assert sp.baudrate == 115200, "baudrate"
+    assert sp.port == "LOOPBACK", "port name"
+
+    // Write and read back (loopback)
+    auto n = sp.write("Hello Serial")
+    assert n == 12, "wrote 12 bytes"
+    assert sp.available == 12, "available 12"
+
+    auto data = sp.read(1024)
+    assert data == "Hello Serial", "read back: " + data
+    assert sp.available == 0, "available 0 after read"
+
+    // Write more
+    sp.write("ABC")
+    assert sp.available == 3, "available 3"
+
+    // Flush clears buffer
+    sp.flush()
+    assert sp.available == 0, "available 0 after flush"
+
+    return 0
+end

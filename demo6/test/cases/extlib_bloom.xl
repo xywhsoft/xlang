@@ -1,0 +1,69 @@
+import bloom
+
+
+
+func main(...) as int
+    auto f = bloom.create(1000)
+    assert f.valid, "bloom filter should be valid"
+    assert f.count == 0, "bloom initial count"
+    assert f.bits > 0, "bloom bit array size"
+    assert f.hashes > 0, "bloom hash count"
+
+    f.add("hello")
+    f.add("world")
+    f.add("xlang")
+    assert f.count == 3, "bloom count after adds"
+    assert f.contains("hello"), "bloom contains hello"
+    assert f.contains("world"), "bloom contains world"
+    assert f.contains("xlang"), "bloom contains xlang"
+    assert not f.contains("missing"), "bloom not contains missing"
+    assert not f.contains(""), "bloom not contains empty (never added)"
+
+    f.clear()
+    assert f.count == 0, "bloom count after clear"
+    assert not f.contains("hello"), "bloom cleared hello"
+
+    auto cf = bloom.createCounting(500)
+    assert cf.valid, "counting bloom should be valid"
+    assert cf.count == 0, "counting bloom initial count"
+    assert cf.slots > 0, "counting bloom slots"
+    assert cf.hashes > 0, "counting bloom hashes"
+
+    cf.add("alpha")
+    cf.add("beta")
+    cf.add("gamma")
+    assert cf.count == 3, "counting bloom count after adds"
+    assert cf.contains("alpha"), "counting bloom contains alpha"
+    assert cf.contains("beta"), "counting bloom contains beta"
+    assert not cf.contains("delta"), "counting bloom not contains delta"
+
+    cf.remove("beta")
+    assert cf.count == 2, "counting bloom count after remove"
+    assert not cf.contains("beta"), "counting bloom removed beta"
+    assert cf.contains("alpha"), "counting bloom still has alpha"
+    assert cf.contains("gamma"), "counting bloom still has gamma"
+
+    cf.remove("nonexistent")
+    assert cf.count == 2, "counting bloom remove nonexistent no-op"
+
+    cf.clear()
+    assert cf.count == 0, "counting bloom count after clear"
+    assert not cf.contains("alpha"), "counting bloom cleared alpha"
+
+    bool caught = false
+    try
+        bloom.create(0)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "bloom create(0) must throw ValueError"
+
+    caught = false
+    try
+        bloom.create(-5)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "bloom create(-5) must throw ValueError"
+    return 0
+end

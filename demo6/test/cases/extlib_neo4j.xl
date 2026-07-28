@@ -1,0 +1,48 @@
+import neo4j
+
+
+
+func main(...) as int
+    // Bolt message names
+    assert neo4j.msgName(0x10) == "RUN", "msg run"
+    assert neo4j.msgName(0x70) == "SUCCESS", "msg success"
+    assert neo4j.msgName(0x7F) == "FAILURE", "msg failure"
+    assert neo4j.msgName(0x71) == "RECORD", "msg record"
+    assert neo4j.msgName(0x0A) == "HELLO", "msg hello"
+    assert neo4j.msgName(0xFF) == "UNKNOWN", "msg unknown"
+
+    // Type names
+    assert neo4j.typeName(0) == "Node", "type node"
+    assert neo4j.typeName(1) == "Relationship", "type rel"
+    assert neo4j.typeName(5) == "String", "type string"
+    assert neo4j.typeName(10) == "DateTime", "type datetime"
+
+    // Escape
+    assert neo4j.escape("hello") == "hello", "escape plain"
+    assert neo4j.escape("it's") == "it\\'s", "escape quote"
+    assert neo4j.escape("back\\slash") == "back\\\\slash", "escape backslash"
+
+    // URI parsing
+    assert neo4j.uriPart("bolt://neo4j:pass@graph.example.com:7687", "user") == "neo4j", "uri user"
+    assert neo4j.uriPart("bolt://neo4j:pass@graph.example.com:7687", "host") == "graph.example.com", "uri host"
+    assert neo4j.uriPart("bolt://neo4j:pass@graph.example.com:7687", "port") == "7687", "uri port"
+    assert neo4j.uriPart("bolt://graph.example.com", "port") == "7687", "uri default port"
+
+    // Transaction state
+    assert neo4j.txState(0) == "disconnected", "tx disconnected"
+    assert neo4j.txState(1) == "ready", "tx ready"
+    assert neo4j.txState(5) == "failed", "tx failed"
+
+    // Access mode
+    assert neo4j.accessMode(0) == "write", "mode write"
+    assert neo4j.accessMode(1) == "read", "mode read"
+
+    // Label validation
+    assert neo4j.validLabel("Person") == 1, "label valid"
+    assert neo4j.validLabel("_internal") == 1, "label underscore"
+    assert neo4j.validLabel("") == 0, "label empty"
+    assert neo4j.validLabel("123bad") == 0, "label digit start"
+    assert neo4j.validLabel("has space") == 0, "label space"
+
+    return 0
+end

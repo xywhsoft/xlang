@@ -1,0 +1,27 @@
+import pinyin
+
+
+
+func main(...) as int
+    // 中国 = zhong guo
+    string r1 = pinyin.convert("\xE4\xB8\xAD\xE5\x9B\xBD")
+    assert r1 == "zhong guo", "zhongguo pinyin"
+
+    // 你好 = ni hao
+    string r2 = pinyin.convert("\xE4\xBD\xA0\xE5\xA5\xBD")
+    assert r2 == "ni hao", "nihao pinyin"
+
+    // initials: 中国 = zg
+    string i1 = pinyin.initials("\xE4\xB8\xAD\xE5\x9B\xBD")
+    assert i1 == "zg", "zhongguo initials"
+
+    // initials: 你好 = nh
+    string i2 = pinyin.initials("\xE4\xBD\xA0\xE5\xA5\xBD")
+    assert i2 == "nh", "nihao initials"
+
+    // mixed ASCII and Chinese
+    string r3 = pinyin.convert("hello")
+    assert r3 == "hello", "ascii passthrough"
+
+    return 0
+end

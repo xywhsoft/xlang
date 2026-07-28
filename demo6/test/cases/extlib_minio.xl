@@ -1,0 +1,53 @@
+import minio
+
+
+
+func main(...) as int
+    // Method names
+    assert minio.methodName(0) == "GET", "method get"
+    assert minio.methodName(1) == "PUT", "method put"
+    assert minio.methodName(2) == "DELETE", "method delete"
+
+    // Storage class
+    assert minio.storageClass(0) == "STANDARD", "class standard"
+    assert minio.storageClass(2) == "GLACIER", "class glacier"
+    assert minio.storageClass(6) == "DEEP_ARCHIVE", "class deep"
+
+    // ACL
+    assert minio.aclName(0) == "private", "acl private"
+    assert minio.aclName(1) == "public-read", "acl public-read"
+
+    // Bucket validation
+    assert minio.validBucket("my-bucket") == 1, "bucket valid"
+    assert minio.validBucket("my.bucket.name") == 1, "bucket dots"
+    assert minio.validBucket("ab") == 0, "bucket too short"
+    assert minio.validBucket("My-Bucket") == 0, "bucket uppercase"
+    assert minio.validBucket("-bad") == 0, "bucket leading dash"
+    assert minio.validBucket("a..b") == 0, "bucket double dot"
+    assert minio.validBucket("192.168.1.1") == 0, "bucket ip"
+
+    // Key validation
+    assert minio.validKey("path/to/file.txt") == 1, "key valid"
+    assert minio.validKey("") == 0, "key empty"
+
+    // Endpoint
+    assert minio.endpoint("s3.amazonaws.com", 0, 1) == "https://s3.amazonaws.com", "endpoint no port"
+    assert minio.endpoint("localhost", 9000, 0) == "http://localhost:9000", "endpoint with port"
+
+    // Object URL
+    auto url = minio.objectUrl("https://s3.example.com", "mybucket", "docs/file.pdf")
+    assert url == "https://s3.example.com/mybucket/docs/file.pdf", "object url"
+
+    // Status names
+    assert minio.statusName(200) == "OK", "status 200"
+    assert minio.statusName(404) == "NotFound", "status 404"
+    assert minio.statusName(403) == "Forbidden", "status 403"
+
+    // Content type
+    assert minio.contentType("file.json") == "application/json", "ct json"
+    assert minio.contentType("image.png") == "image/png", "ct png"
+    assert minio.contentType("page.html") == "text/html", "ct html"
+    assert minio.contentType("data.xyz") == "application/octet-stream", "ct unknown"
+
+    return 0
+end

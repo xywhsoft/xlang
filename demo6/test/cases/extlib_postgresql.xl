@@ -1,0 +1,52 @@
+import postgresql
+
+
+
+func main(...) as int
+    // Connection string parsing
+    assert postgresql.connParam("host=localhost port=5432 dbname=mydb user=admin", "host") == "localhost", "conn host"
+    assert postgresql.connParam("host=localhost port=5432 dbname=mydb user=admin", "port") == "5432", "conn port"
+    assert postgresql.connParam("host=localhost port=5432 dbname=mydb user=admin", "dbname") == "mydb", "conn dbname"
+    assert postgresql.connParam("host=localhost port=5432 dbname=mydb user=admin", "user") == "admin", "conn user"
+    assert postgresql.connParam("host=localhost", "missing") == "", "conn missing"
+
+    // Message type names
+    assert postgresql.msgType(82) == "Authentication", "msg R"
+    assert postgresql.msgType(90) == "ReadyForQuery", "msg Z"
+    assert postgresql.msgType(84) == "RowDescription", "msg T"
+    assert postgresql.msgType(68) == "DataRow", "msg D"
+    assert postgresql.msgType(67) == "CommandComplete", "msg C"
+    assert postgresql.msgType(69) == "ErrorResponse", "msg E"
+
+    // Transaction status
+    assert postgresql.txStatus(73) == "idle", "tx idle"
+    assert postgresql.txStatus(84) == "in_transaction", "tx in"
+    assert postgresql.txStatus(69) == "failed", "tx failed"
+
+    // Type names from OID
+    assert postgresql.typeName(23) == "int4", "type int4"
+    assert postgresql.typeName(25) == "text", "type text"
+    assert postgresql.typeName(701) == "float8", "type float8"
+    assert postgresql.typeName(3802) == "jsonb", "type jsonb"
+    assert postgresql.typeName(9999) == "unknown", "type unknown"
+
+    // SQL escaping
+    assert postgresql.escape("hello") == "hello", "escape plain"
+    assert postgresql.escape("it's") == "it''s", "escape quote"
+    assert postgresql.escape("a''b") == "a''''b", "escape double"
+
+    // Query message starts with 'Q' (0x51)
+    auto qm = postgresql.queryMsg("SELECT 1")
+    assert string.len(qm) > 10, "query msg len"
+
+    // Error field names
+    assert postgresql.errorFieldName(83) == "severity", "err S"
+    assert postgresql.errorFieldName(67) == "code", "err C"
+    assert postgresql.errorFieldName(77) == "message", "err M"
+
+    // DSN formatting
+    auto dsn = postgresql.formatDsn("localhost", 5432, "mydb", "admin")
+    assert dsn == "postgresql://admin@localhost:5432/mydb", "dsn"
+
+    return 0
+end

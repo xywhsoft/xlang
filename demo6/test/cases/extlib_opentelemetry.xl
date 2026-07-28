@@ -1,0 +1,39 @@
+import opentelemetry
+
+func main(...) as int
+    // Signal types
+    assert opentelemetry.signalType(0) == "traces", "signal traces"
+    assert opentelemetry.signalType(1) == "metrics", "signal metrics"
+    assert opentelemetry.signalType(2) == "logs", "signal logs"
+
+    // Span kinds
+    assert opentelemetry.spanKind(0) == "internal", "kind internal"
+    assert opentelemetry.spanKind(1) == "server", "kind server"
+    assert opentelemetry.spanKind(4) == "consumer", "kind consumer"
+
+    // Span status
+    assert opentelemetry.spanStatus(0) == "unset", "status unset"
+    assert opentelemetry.spanStatus(1) == "ok", "status ok"
+    assert opentelemetry.spanStatus(2) == "error", "status error"
+
+    // Exporters
+    assert opentelemetry.exporter(0) == "otlp", "exporter otlp"
+    assert opentelemetry.exporter(1) == "jaeger", "exporter jaeger"
+
+    // Samplers
+    assert opentelemetry.sampler(0) == "always_on", "sampler on"
+    assert opentelemetry.sampler(2) == "trace_id_ratio", "sampler ratio"
+
+    // Propagators
+    assert opentelemetry.propagator(0) == "tracecontext", "prop tc"
+    assert opentelemetry.propagator(2) == "b3", "prop b3"
+
+    // Trace ID generation
+    assert string.len(opentelemetry.genTraceId(42)) == 32, "trace id len"
+
+    // Semantic conventions
+    assert opentelemetry.semconv(0) == "http.method", "semconv http"
+    assert opentelemetry.semconv(3) == "db.system", "semconv db"
+
+    return 0
+end

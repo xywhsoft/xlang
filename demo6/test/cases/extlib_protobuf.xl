@@ -1,0 +1,14 @@
+import protobuf
+
+func main(...) as int
+    assert protobuf.wireType(0) == "Varint", "wire varint"
+    assert protobuf.wireType(2) == "LengthDelimited", "wire len"
+    assert protobuf.varintSize(1) == 1, "varint 1"
+    assert protobuf.varintSize(300) == 2, "varint 300"
+    assert protobuf.tag(1, 0) == 8, "tag 1,0"
+    assert protobuf.tag(2, 2) == 18, "tag 2,2"
+    assert protobuf.fieldNumber(8) == 1, "field num"
+    assert protobuf.wireFromTag(18) == 2, "wire from tag"
+    assert protobuf.typeName(4) == "string", "type string"
+    return 0
+end

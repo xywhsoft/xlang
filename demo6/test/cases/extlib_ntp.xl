@@ -1,0 +1,30 @@
+import ntp
+
+
+
+func main(...) as int
+    // Local time should be positive
+    auto ts = ntp.now()
+    assert ts > 1000000000, "timestamp after 2001"
+
+    // Format UTC
+    auto utc = ntp.formatUtc(ts)
+    assert string.len(utc) > 0, "utc format non-empty"
+    // Should contain 'T' and 'Z'
+    assert string.len(utc) == 20, "utc format length 20"
+
+    // Format local
+    auto local = ntp.formatLocal(ts)
+    assert string.len(local) > 0, "local format non-empty"
+
+    // NTP to Unix conversion (known value)
+    // NTP timestamp for 2020-01-01 00:00:00 UTC = 3786825600
+    auto unix_ts = ntp.ntpToUnix(3786825600)
+    assert unix_ts == 1577836800, "ntp to unix: " + string(unix_ts)
+
+    // Timezone offset should be reasonable (-12h to +14h)
+    auto tz = ntp.tzOffset()
+    assert tz >= -43200 and tz <= 50400, "tz offset in range"
+
+    return 0
+end

@@ -1,0 +1,31 @@
+import llama
+
+func main(...) as int
+    // Model types
+    assert llama.modelType(0) == "llama", "model llama"
+    assert llama.modelType(1) == "mistral", "model mistral"
+
+    // Quant types
+    assert llama.quantType(0) == "Q4_0", "quant q4_0"
+    assert llama.quantType(5) == "F16", "quant f16"
+
+    // Samplers
+    assert llama.sampler(0) == "greedy", "sampler greedy"
+    assert llama.sampler(2) == "top_p", "sampler top_p"
+
+    // Temperature: logit=2.0, temp=0.5 -> 4.0
+    float t = llama.applyTemperature(2.0, 0.5)
+    assert t > 3.99, "temp min"
+    assert t < 4.01, "temp max"
+
+    // Pooling
+    assert llama.pooling(0) == "none", "pool none"
+    assert llama.pooling(1) == "mean", "pool mean"
+
+    // Perplexity: exp(1.0) ~ 2.718
+    float pp = llama.perplexity(1.0)
+    assert pp > 2.7, "ppl min"
+    assert pp < 2.8, "ppl max"
+
+    return 0
+end

@@ -1,0 +1,32 @@
+import blas
+
+func main(...) as int
+    // Levels
+    assert blas.level(1) == "Level 1 (vector-vector)", "level 1"
+    assert blas.level(2) == "Level 2 (matrix-vector)", "level 2"
+    assert blas.level(3) == "Level 3 (matrix-matrix)", "level 3"
+
+    // Operations
+    assert blas.operation(0) == "no-transpose", "op N"
+    assert blas.operation(1) == "transpose", "op T"
+
+    // Uplo / diag / side
+    assert blas.uplo(0) == "upper", "uplo U"
+    assert blas.diag(1) == "unit", "diag unit"
+    assert blas.side(0) == "left", "side L"
+
+    // Dot product: [1,2,3] . [4,5,6] = 4+10+18 = 32
+    assert blas.dot("1,2,3", "4,5,6") == 32.0, "dot"
+
+    // Norm: ||[3,4]|| = 5
+    assert blas.nrm2("3,4") == 5.0, "nrm2"
+
+    // AXPY: 2*[1,2,3] + [10,20,30] = [12,24,36]
+    assert blas.axpy(2.0, "1,2,3", "10,20,30") == "12,24,36", "axpy"
+
+    // Routine names
+    assert blas.routineName(0) == "sdot", "routine sdot"
+    assert blas.routineName(9) == "dgemm", "routine dgemm"
+
+    return 0
+end

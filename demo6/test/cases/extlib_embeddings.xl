@@ -1,0 +1,24 @@
+import embeddings
+
+func main(...) as int
+    // Models
+    assert embeddings.model(0) == "all-MiniLM-L6-v2", "model minilm"
+    assert embeddings.model(3) == "bge-large-en", "model bge"
+
+    // Dimensions
+    assert embeddings.dim(0) == 384, "dim minilm"
+    assert embeddings.dim(5) == 1536, "dim openai"
+
+    // Max tokens
+    assert embeddings.maxTokens(0) == 256, "tokens minilm"
+    assert embeddings.maxTokens(5) == 8191, "tokens openai"
+
+    // Normalize: "3,4" -> "0.6000,0.8000"
+    assert embeddings.normalize("3,4") == "0.6000,0.8000", "normalize"
+
+    // Pooling
+    assert embeddings.pooling(0) == "mean", "pool mean"
+    assert embeddings.pooling(1) == "cls", "pool cls"
+
+    return 0
+end

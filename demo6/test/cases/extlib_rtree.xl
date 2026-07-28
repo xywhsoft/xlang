@@ -1,0 +1,44 @@
+import rtree
+
+
+
+func main(...) as int
+    auto t = rtree.create()
+    assert t.valid, "valid"
+    assert t.count == 0, "initial count 0"
+
+    // Insert some rectangles
+    t.insert(1, 0.0, 0.0, 1.0, 1.0)
+    t.insert(2, 2.0, 2.0, 3.0, 3.0)
+    t.insert(3, 0.5, 0.5, 1.5, 1.5)
+    t.insert(4, 10.0, 10.0, 11.0, 11.0)
+    assert t.count == 4, "count after inserts"
+
+    // Search overlapping region
+    auto cnt = t.searchCount(0.0, 0.0, 1.2, 1.2)
+    assert cnt == 2, "search count overlap: " + string(cnt)
+
+    // Search all
+    auto allcnt = t.searchCount(-100.0, -100.0, 100.0, 100.0)
+    assert allcnt == 4, "search all: " + string(allcnt)
+
+    // Search empty region
+    auto emptycnt = t.searchCount(50.0, 50.0, 60.0, 60.0)
+    assert emptycnt == 0, "search empty"
+
+    // Search results string
+    auto results = t.search(0.0, 0.0, 1.2, 1.2)
+    assert string.len(results) > 0, "results non-empty"
+
+    // Remove
+    assert t.remove(2), "remove 2"
+    assert t.count == 3, "count after remove"
+    assert not t.remove(99), "remove nonexist"
+    assert t.count == 3, "count unchanged"
+
+    // Clear
+    t.clear()
+    assert t.count == 0, "count after clear"
+
+    return 0
+end

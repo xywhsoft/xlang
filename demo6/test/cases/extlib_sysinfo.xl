@@ -1,0 +1,40 @@
+import sysinfo
+
+
+
+func main(...) as int
+    // OS info
+    auto os = sysinfo.osName()
+    assert string.len(os) > 0, "os name non-empty"
+
+    auto arch = sysinfo.arch()
+    assert string.len(arch) > 0, "arch non-empty"
+
+    auto host = sysinfo.hostname()
+    assert string.len(host) > 0, "hostname non-empty"
+
+    // CPU
+    auto cpus = sysinfo.cpuCount()
+    assert cpus >= 1, "at least 1 cpu"
+
+    // Memory
+    auto total = sysinfo.memTotal()
+    assert total > 0, "mem total > 0"
+
+    auto avail = sysinfo.memAvailable()
+    assert avail > 0, "mem avail > 0"
+    assert avail <= total, "avail <= total"
+
+    auto pct = sysinfo.memUsagePct()
+    assert pct >= 0 and pct <= 100, "pct in range"
+
+    // Page size
+    auto ps = sysinfo.pageSize()
+    assert ps >= 4096, "page size >= 4096"
+
+    // Uptime
+    auto up = sysinfo.uptime()
+    assert up >= 0, "uptime >= 0"
+
+    return 0
+end

@@ -1,0 +1,34 @@
+import diff
+
+
+
+func main(...) as int
+    string old = "line1\nline2\nline3\nline4"
+    string new = "line1\nline2 modified\nline3\nline5"
+
+    string result = diff.lines(old, new)
+    assert result != "", "diff non-empty"
+    assert result.contains(" line1"), "unchanged line1"
+    assert result.contains("-line2"), "removed line2"
+    assert result.contains("+line2 modified"), "added line2 modified"
+    assert result.contains(" line3"), "unchanged line3"
+    assert result.contains("-line4"), "removed line4"
+    assert result.contains("+line5"), "added line5"
+
+    // identical texts
+    string same = diff.lines("abc\ndef", "abc\ndef")
+    assert same.contains(" abc"), "same text unchanged"
+    assert not same.contains("-"), "no removals in same"
+    assert not same.contains("+"), "no additions in same"
+
+    // stats
+    string st = diff.stats(old, new)
+    assert st == "2,2,2", "stats: 2 adds, 2 dels, 2 same"
+
+    // empty old
+    string from_empty = diff.lines("", "hello\nworld")
+    assert from_empty.contains("+hello"), "from empty adds hello"
+    assert from_empty.contains("+world"), "from empty adds world"
+
+    return 0
+end

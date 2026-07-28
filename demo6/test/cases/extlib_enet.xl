@@ -1,0 +1,65 @@
+import enet
+
+
+
+func main(...) as int
+    // CONNECT command
+    auto conn = enet.connect(2, 0)
+    assert enet.getCommand(conn) == 2, "connect cmd"
+    assert enet.commandName(2) == "CONNECT", "connect name"
+
+    // DISCONNECT command
+    auto disc = enet.disconnect(42)
+    assert enet.getCommand(disc) == 4, "disconnect cmd"
+    assert enet.commandName(4) == "DISCONNECT", "disconnect name"
+
+    // PING command
+    auto p = enet.ping()
+    assert enet.getCommand(p) == 5, "ping cmd"
+    assert enet.commandName(5) == "PING", "ping name"
+
+    // SEND_RELIABLE
+    auto sr = enet.sendReliable(0, "hello")
+    assert enet.getCommand(sr) == 6, "send_reliable cmd"
+    assert enet.commandName(6) == "SEND_RELIABLE", "send_reliable name"
+
+    // SEND_UNRELIABLE
+    auto su = enet.sendUnreliable(1, "world")
+    assert enet.getCommand(su) == 7, "send_unreliable cmd"
+    assert enet.commandName(7) == "SEND_UNRELIABLE", "send_unreliable name"
+
+    // Command names
+    assert enet.commandName(0) == "NONE", "none"
+    assert enet.commandName(1) == "ACK", "ack"
+    assert enet.commandName(3) == "VERIFY_CONNECT", "verify"
+    assert enet.commandName(8) == "SEND_UNSEQUENCED", "unseq"
+    assert enet.commandName(99) == "UNKNOWN", "unknown cmd"
+
+    // Event names
+    assert enet.eventName(0) == "NONE", "event none"
+    assert enet.eventName(1) == "CONNECT", "event connect"
+    assert enet.eventName(2) == "DISCONNECT", "event disconnect"
+    assert enet.eventName(3) == "RECEIVE", "event receive"
+    assert enet.eventName(9) == "UNKNOWN", "event unknown"
+
+    // Packet flags
+    assert enet.flagReliable() == 1, "flag reliable"
+    assert enet.flagUnsequenced() == 2, "flag unsequenced"
+    assert enet.flagNoAllocate() == 4, "flag no_allocate"
+
+    // Header
+    auto hdr = enet.header(0x1234, 0x5678)
+    assert hdr == "12345678", "header hex"
+
+    // Port and version
+    assert enet.defaultPort() == 7777, "default port"
+    assert enet.protocolVersion() == 1, "protocol version"
+
+    // Channel validation
+    assert enet.validChannels(1) == 1, "valid 1 channel"
+    assert enet.validChannels(255) == 1, "valid 255 channels"
+    assert enet.validChannels(0) == 0, "invalid 0 channels"
+    assert enet.validChannels(256) == 0, "invalid 256 channels"
+
+    return 0
+end

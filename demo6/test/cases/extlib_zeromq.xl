@@ -1,0 +1,59 @@
+import zeromq
+
+
+
+func main(...) as int
+    // Single frame
+    auto f = zeromq.frame("hello", 0)
+    assert zeromq.frameBody(f) == "hello", "frame body"
+    assert zeromq.frameLen(f) == 5, "frame len"
+    assert zeromq.hasMore(f) == 0, "no more"
+
+    // Frame with MORE flag
+    auto fm = zeromq.frame("part1", 1)
+    assert zeromq.hasMore(fm) == 1, "has more"
+    assert zeromq.frameBody(fm) == "part1", "more body"
+
+    // Multi-part message
+    auto mp = zeromq.multipart("topic", "data")
+    assert zeromq.hasMore(mp) == 1, "mp first has more"
+    assert zeromq.frameBody(mp) == "topic", "mp first body"
+
+    // Socket names
+    assert zeromq.socketName(0) == "PAIR", "PAIR"
+    assert zeromq.socketName(1) == "PUB", "PUB"
+    assert zeromq.socketName(2) == "SUB", "SUB"
+    assert zeromq.socketName(3) == "REQ", "REQ"
+    assert zeromq.socketName(4) == "REP", "REP"
+    assert zeromq.socketName(5) == "DEALER", "DEALER"
+    assert zeromq.socketName(6) == "ROUTER", "ROUTER"
+    assert zeromq.socketName(7) == "PULL", "PULL"
+    assert zeromq.socketName(8) == "PUSH", "PUSH"
+    assert zeromq.socketName(99) == "UNKNOWN", "unknown socket"
+
+    // Transport names
+    assert zeromq.transportName(0) == "tcp", "tcp"
+    assert zeromq.transportName(1) == "ipc", "ipc"
+    assert zeromq.transportName(2) == "inproc", "inproc"
+    assert zeromq.transportName(9) == "UNKNOWN", "unknown transport"
+
+    // Endpoint
+    assert zeromq.endpoint(0, "127.0.0.1", 5555) == "tcp://127.0.0.1:5555", "tcp endpoint"
+    assert zeromq.endpoint(1, "/tmp/zmq.sock", 0) == "ipc:///tmp/zmq.sock", "ipc endpoint"
+    assert zeromq.endpoint(2, "queue", 0) == "inproc://queue", "inproc endpoint"
+
+    // Patterns
+    assert zeromq.validPattern(0) == 1, "valid req-rep"
+    assert zeromq.validPattern(3) == 1, "valid pair"
+    assert zeromq.validPattern(4) == 0, "invalid pattern"
+    assert zeromq.patternName(0) == "REQ-REP", "req-rep name"
+    assert zeromq.patternName(1) == "PUB-SUB", "pub-sub name"
+    assert zeromq.patternName(2) == "PUSH-PULL", "push-pull name"
+    assert zeromq.patternName(3) == "PAIR", "pair name"
+
+    // Version and port
+    assert zeromq.zmtpVersion() == 3, "zmtp version"
+    assert zeromq.defaultPort() == 5555, "default port"
+
+    return 0
+end

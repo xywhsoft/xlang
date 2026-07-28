@@ -1,0 +1,42 @@
+import oauth2
+
+
+
+func main(...) as int
+    // Authorization URL
+    auto url = oauth2.authUrl("https://auth.example.com/authorize", "myapp", "http://localhost:8080/callback", "openid profile", "abc12345")
+    assert string.contains(url, "response_type=code"), "has response_type"
+    assert string.contains(url, "client_id=myapp"), "has client_id"
+    assert string.contains(url, "state=abc12345"), "has state"
+
+    // Token body
+    auto body = oauth2.tokenBody("auth_code_123", "myapp", "secret", "http://localhost:8080/callback")
+    assert string.contains(body, "grant_type=authorization_code"), "grant type"
+    assert string.contains(body, "code=auth_code_123"), "has code"
+
+    // Refresh body
+    auto rb = oauth2.refreshBody("refresh_tok", "myapp", "secret")
+    assert string.contains(rb, "grant_type=refresh_token"), "refresh grant"
+
+    // Client credentials
+    auto cc = oauth2.clientCredsBody("myapp", "secret", "read write")
+    assert string.contains(cc, "grant_type=client_credentials"), "cc grant"
+
+    // PKCE
+    auto verifier = oauth2.pkceVerifier(42)
+    assert string.len(verifier) == 43, "verifier 43 chars"
+    auto challenge = oauth2.pkceChallenge(verifier)
+    assert string.len(challenge) > 0, "challenge not empty"
+    // Deterministic
+    assert oauth2.pkceVerifier(42) == verifier, "deterministic verifier"
+
+    // State validation
+    assert oauth2.validState("abcdefgh"), "valid state"
+    assert not oauth2.validState("short"), "invalid state too short"
+
+    // Grant names
+    assert oauth2.grantName("authorization_code") == "Authorization Code", "grant name"
+    assert oauth2.grantName("client_credentials") == "Client Credentials", "cc name"
+
+    return 0
+end

@@ -1,0 +1,40 @@
+import xgboost
+
+func main(...) as int
+    // Objectives
+    assert xgboost.objective(0) == "reg:squarederror", "obj reg"
+    assert xgboost.objective(2) == "binary:logistic", "obj binary"
+
+    // Boosters
+    assert xgboost.booster(0) == "gbtree", "booster gbtree"
+    assert xgboost.booster(2) == "dart", "booster dart"
+
+    // Tree methods
+    assert xgboost.treeMethod(0) == "auto", "tree auto"
+    assert xgboost.treeMethod(3) == "hist", "tree hist"
+
+    // Importance types
+    assert xgboost.importanceType(0) == "weight", "imp weight"
+    assert xgboost.importanceType(1) == "gain", "imp gain"
+
+    // Sigmoid: sigmoid(0) = 0.5
+    float s = xgboost.sigmoid(0.0)
+    assert s > 0.49, "sigmoid min"
+    assert s < 0.51, "sigmoid max"
+
+    // Predict binary: raw=0 -> prob=0.5
+    float p = xgboost.predictBinary(0.0)
+    assert p > 0.49, "predict min"
+    assert p < 0.51, "predict max"
+
+    // Logloss: y=1, pred=0.9 -> -log(0.9) ~ 0.105
+    float ll = xgboost.logloss(1.0, 0.9)
+    assert ll > 0.1, "logloss min"
+    assert ll < 0.11, "logloss max"
+
+    // Params
+    assert xgboost.param(0) == "max_depth", "param depth"
+    assert xgboost.param(1) == "learning_rate", "param lr"
+
+    return 0
+end

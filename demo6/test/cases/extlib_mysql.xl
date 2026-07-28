@@ -1,0 +1,49 @@
+import mysql
+
+
+
+func main(...) as int
+    // Command names
+    assert mysql.cmdName(0x03) == "COM_QUERY", "cmd query"
+    assert mysql.cmdName(0x0E) == "COM_PING", "cmd ping"
+    assert mysql.cmdName(0x16) == "COM_STMT_PREPARE", "cmd prepare"
+    assert mysql.cmdName(0xFF) == "UNKNOWN", "cmd unknown"
+
+    // Column types
+    assert mysql.colType(0x03) == "LONG", "col long"
+    assert mysql.colType(0x05) == "DOUBLE", "col double"
+    assert mysql.colType(0xFD) == "VAR_STRING", "col varchar"
+    assert mysql.colType(0xF5) == "JSON", "col json"
+    assert mysql.colType(0xFC) == "BLOB", "col blob"
+
+    // Status flags
+    auto st = mysql.statusStr(0x0003)
+    assert string.len(st) > 5, "status str"
+
+    // Capability names
+    assert mysql.capName(0x0200) == "PROTOCOL_41", "cap proto41"
+    assert mysql.capName(0x8000) == "SECURE_CONNECTION", "cap secure"
+
+    // Escape
+    assert mysql.escape("hello") == "hello", "escape plain"
+    assert mysql.escape("it's") == "it\\'s", "escape quote"
+    assert mysql.escape("back\\slash") == "back\\\\slash", "escape backslash"
+
+    // DSN format
+    auto dsn = mysql.formatDsn("db.example.com", 3306, "myapp", "root")
+    assert dsn == "mysql://root@db.example.com:3306/myapp", "dsn format"
+
+    // DSN parse
+    assert mysql.dsnPart("mysql://admin@localhost:3306/testdb", "user") == "admin", "dsn user"
+    assert mysql.dsnPart("mysql://admin@localhost:3306/testdb", "host") == "localhost", "dsn host"
+    assert mysql.dsnPart("mysql://admin@localhost:3306/testdb", "port") == "3306", "dsn port"
+    assert mysql.dsnPart("mysql://admin@localhost:3306/testdb", "db") == "testdb", "dsn db"
+
+    // Error class
+    assert mysql.errorClass(1045) == "client", "err client"
+    assert mysql.errorClass(2003) == "server", "err server"
+    assert mysql.errorClass(3000) == "extended", "err extended"
+    assert mysql.errorClass(99) == "unknown", "err unknown"
+
+    return 0
+end

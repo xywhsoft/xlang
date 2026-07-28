@@ -1,0 +1,31 @@
+import tokenizers
+
+func main(...) as int
+    // Models
+    assert tokenizers.model(0) == "BPE", "model bpe"
+    assert tokenizers.model(1) == "WordPiece", "model wp"
+
+    // Normalizers
+    assert tokenizers.normalizer(0) == "NFC", "norm nfc"
+    assert tokenizers.normalizer(4) == "Lowercase", "norm lower"
+
+    // Truncation
+    assert tokenizers.truncation(0) == "longest_first", "trunc longest"
+
+    // Padding
+    assert tokenizers.padding(0) == "right", "pad right"
+    assert tokenizers.padding(1) == "left", "pad left"
+
+    // Count tokens: "hello world" = 2 words
+    assert tokenizers.countTokens("hello world") == 2, "count 2"
+    assert tokenizers.countTokens("a b c d") == 4, "count 4"
+
+    // Char count
+    assert tokenizers.charCount("hello") == 5, "chars 5"
+
+    // Special tokens
+    assert tokenizers.specialToken(0) == "[CLS]", "special cls"
+    assert tokenizers.specialToken(4) == "[MASK]", "special mask"
+
+    return 0
+end

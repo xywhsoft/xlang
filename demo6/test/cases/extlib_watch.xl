@@ -1,0 +1,37 @@
+import watch
+
+
+
+func main(...) as int
+    auto w = watch.create()
+    assert w.valid, "valid"
+    assert w.count == 0, "initial count 0"
+
+    // Watch an existing file
+    auto idx = w.add("test\\cases\\extlib_watch.xl")
+    assert idx >= 0, "add returns index"
+    assert w.count == 1, "count 1"
+
+    // Path retrieval
+    auto p = w.path(idx)
+    assert string.len(p) > 0, "path non-empty"
+
+    // Poll with no changes should return empty
+    auto evt = w.poll()
+    assert evt == "", "no event: " + evt
+
+    // Watch a non-existent file (will detect creation)
+    auto idx2 = w.add("test_watch_nonexist.tmp")
+    assert idx2 >= 0, "add nonexist"
+    assert w.count == 2, "count 2"
+
+    // File exists check
+    assert watch.exists("test\\cases\\extlib_watch.xl"), "existing file"
+    assert not watch.exists("no_such_file_xyz.tmp"), "non-existing file"
+
+    // Remove watch
+    assert w.remove(idx), "remove"
+    assert w.count == 1, "count after remove"
+
+    return 0
+end

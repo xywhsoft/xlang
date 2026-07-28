@@ -1,0 +1,28 @@
+import stablediffusion
+
+func main(...) as int
+    // Models
+    assert stablediffusion.model(0) == "sd-v1-5", "model sd15"
+    assert stablediffusion.model(2) == "sdxl-1.0", "model sdxl"
+
+    // Samplers
+    assert stablediffusion.sampler(0) == "euler", "sampler euler"
+    assert stablediffusion.sampler(5) == "ddim", "sampler ddim"
+
+    // Schedulers
+    assert stablediffusion.scheduler(0) == "default", "sched default"
+    assert stablediffusion.scheduler(2) == "karras", "sched karras"
+
+    // Total steps
+    assert stablediffusion.totalSteps(20, 4) == 80, "steps 80"
+
+    // Output formats
+    assert stablediffusion.outputFormat(0) == "png", "fmt png"
+    assert stablediffusion.outputFormat(1) == "jpeg", "fmt jpeg"
+
+    // Resolutions
+    assert stablediffusion.resolution(0) == 512, "res 512"
+    assert stablediffusion.resolution(2) == 1024, "res 1024"
+
+    return 0
+end

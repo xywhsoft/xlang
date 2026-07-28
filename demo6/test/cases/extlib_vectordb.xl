@@ -1,0 +1,30 @@
+import vectordb
+
+func main(...) as int
+    // Engines
+    assert vectordb.engine(0) == "qdrant", "engine qdrant"
+    assert vectordb.engine(1) == "milvus", "engine milvus"
+
+    // Index types
+    assert vectordb.indexType(0) == "flat", "idx flat"
+    assert vectordb.indexType(2) == "hnsw", "idx hnsw"
+
+    // Metrics
+    assert vectordb.metric(0) == "cosine", "metric cosine"
+    assert vectordb.metric(2) == "euclidean", "metric euclidean"
+
+    // Operations
+    assert vectordb.operation(0) == "upsert", "op upsert"
+    assert vectordb.operation(1) == "search", "op search"
+
+    // Recall estimate: k=10, ef=100 -> 1 - 0.1*0.5 = 0.95
+    float r = vectordb.recallEstimate(10, 100)
+    assert r > 0.94, "recall min"
+    assert r < 0.96, "recall max"
+
+    // Quantization
+    assert vectordb.quantization(0) == "none", "quant none"
+    assert vectordb.quantization(2) == "product", "quant pq"
+
+    return 0
+end

@@ -1,0 +1,37 @@
+import html5
+
+func main(...) as int
+    // Tag categories
+    assert html5.tagCategory(0) == "void", "cat void"
+    assert html5.tagCategory(1) == "normal", "cat normal"
+    assert html5.tagCategory(3) == "raw text", "cat raw"
+
+    // Void elements
+    assert html5.isVoidElement("br") == 1, "void br"
+    assert html5.isVoidElement("img") == 1, "void img"
+    assert html5.isVoidElement("div") == 0, "not void div"
+    assert html5.isVoidElement("input") == 1, "void input"
+
+    // Entities
+    assert html5.entity(0) == "&amp;", "ent amp"
+    assert html5.entity(1) == "&lt;", "ent lt"
+    assert html5.entity(5) == "&nbsp;", "ent nbsp"
+
+    // Input types
+    assert html5.inputType(0) == "text", "input text"
+    assert html5.inputType(2) == "email", "input email"
+    assert html5.inputType(11) == "submit", "input submit"
+
+    // ARIA roles
+    assert html5.ariaRole(1) == "button", "aria button"
+    assert html5.ariaRole(7) == "navigation", "aria nav"
+
+    // HTML escaping
+    assert html5.escape("<b>hi</b>") == "&lt;b&gt;hi&lt;/b&gt;", "escape tags"
+    assert html5.escape("a&b") == "a&amp;b", "escape amp"
+
+    // Doctype
+    assert html5.doctype() == "<!DOCTYPE html>", "doctype"
+
+    return 0
+end

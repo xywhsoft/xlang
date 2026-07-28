@@ -1,0 +1,39 @@
+import jwt
+
+
+
+func main(...) as int
+    // Encode a JWT
+    auto payload = "{\"sub\":\"1234567890\",\"name\":\"Alice\",\"admin\":true}"
+    auto token = jwt.encode(payload, "mysecret")
+    assert string.len(token) > 0, "token not empty"
+
+    // Token has 3 parts separated by dots
+    auto parts = string.split(token, ".")
+    assert parts.length == 3, "three parts"
+
+    // Decode payload
+    auto decoded = jwt.decode(token)
+    assert decoded == payload, "decode matches original"
+
+    // Get header
+    auto hdr = jwt.header(token)
+    assert string.contains(hdr, "HS256"), "header has alg"
+    assert string.contains(hdr, "JWT"), "header has typ"
+
+    // Verify with correct secret
+    assert jwt.verify(token, "mysecret"), "verify correct secret"
+
+    // Verify with wrong secret fails
+    assert not jwt.verify(token, "wrongsecret"), "verify wrong secret"
+
+    // Different payload produces different token
+    auto token2 = jwt.encode("{\"sub\":\"other\"}", "mysecret")
+    assert token2 != token, "different payload different token"
+
+    // Same input is deterministic
+    auto token3 = jwt.encode(payload, "mysecret")
+    assert token3 == token, "deterministic"
+
+    return 0
+end

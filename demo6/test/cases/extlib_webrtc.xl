@@ -1,0 +1,47 @@
+import webrtc
+
+func main(...) as int
+    // ICE candidate types
+    assert webrtc.candidateType(0) == "host", "cand host"
+    assert webrtc.candidateType(1) == "srflx", "cand srflx"
+    assert webrtc.candidateType(3) == "relay", "cand relay"
+
+    // ICE states
+    assert webrtc.iceState(0) == "new", "ice new"
+    assert webrtc.iceState(2) == "connected", "ice connected"
+    assert webrtc.iceState(4) == "failed", "ice failed"
+
+    // PC states
+    assert webrtc.pcState(0) == "new", "pc new"
+    assert webrtc.pcState(2) == "connected", "pc connected"
+    assert webrtc.pcState(5) == "closed", "pc closed"
+
+    // Signaling states
+    assert webrtc.signalingState(0) == "stable", "sig stable"
+    assert webrtc.signalingState(1) == "have-local-offer", "sig offer"
+    assert webrtc.signalingState(2) == "have-remote-offer", "sig remote"
+
+    // SDP types
+    assert webrtc.sdpType(0) == "offer", "sdp offer"
+    assert webrtc.sdpType(2) == "answer", "sdp answer"
+    assert webrtc.sdpType(3) == "rollback", "sdp rollback"
+
+    // Payload names
+    assert webrtc.payloadName(0) == "PCMU (G.711 μ-law)", "pt pcmu"
+    assert webrtc.payloadName(8) == "PCMA (G.711 A-law)", "pt pcma"
+    assert webrtc.payloadName(18) == "G729", "pt g729"
+
+    // Hash algorithms
+    assert webrtc.hashAlgo(2) == "sha-256", "hash sha256"
+    assert webrtc.hashAlgo(4) == "sha-512", "hash sha512"
+
+    // Data channel reliability
+    assert webrtc.dcReliability(0) == "reliable", "dc reliable"
+    assert webrtc.dcReliability(1) == "partial-reliable-ttl", "dc ttl"
+
+    // Bundle policy
+    assert webrtc.bundlePolicy(0) == "balanced", "bundle balanced"
+    assert webrtc.bundlePolicy(2) == "max-bundle", "bundle max"
+
+    return 0
+end

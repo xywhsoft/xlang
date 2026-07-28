@@ -1,0 +1,60 @@
+import mpfr
+
+
+
+func main(...) as int
+    // Rounding mode names
+    assert mpfr.rndName(0) == "MPFR_RNDN", "rndn"
+    assert mpfr.rndName(1) == "MPFR_RNDZ", "rndz"
+    assert mpfr.rndName(2) == "MPFR_RNDU", "rndu"
+    assert mpfr.rndName(3) == "MPFR_RNDD", "rndd"
+    assert mpfr.rndName(4) == "MPFR_RNDA", "rnda"
+    assert mpfr.rndName(9) == "UNKNOWN", "unknown rnd"
+
+    // Precision
+    assert mpfr.defaultPrec() == 53, "default prec"
+    auto p10 = mpfr.precForDigits(10)
+    assert p10 >= 33 and p10 <= 35, "prec for 10 digits"
+    auto d53 = mpfr.digitsForPrec(53)
+    assert d53 >= 15 and d53 <= 16, "digits for 53 bits"
+
+    // Value checks
+    assert mpfr.isZero(0.0) == 1, "0 is zero"
+    assert mpfr.isZero(1.0) == 0, "1 not zero"
+    assert mpfr.sign(5.0) == 1, "positive sign"
+    assert mpfr.sign(-3.0) == -1, "negative sign"
+    assert mpfr.sign(0.0) == 0, "zero sign"
+
+    // Compare with tolerance
+    assert mpfr.compare(1.0, 1.0000001, 0.001) == 0, "equal within tol"
+    assert mpfr.compare(1.0, 2.0, 0.001) < 0, "less than"
+    assert mpfr.compare(2.0, 1.0, 0.001) > 0, "greater than"
+
+    // Format
+    assert mpfr.format(3.14159, 2) == "3.14", "format 2 decimals"
+    assert mpfr.format(100.0, 0) == "100", "format 0 decimals"
+
+    // Scientific
+    auto sci = mpfr.scientific(12345.678, 2)
+    assert string.contains(sci, "e+"), "scientific has e+"
+
+    // Constants
+    auto pi = mpfr.constPi()
+    assert pi > 3.14159 and pi < 3.14160, "pi value"
+    auto e = mpfr.constE()
+    assert e > 2.71828 and e < 2.71829, "e value"
+    auto log2 = mpfr.constLog2()
+    assert log2 > 0.69314 and log2 < 0.69315, "log2 value"
+    auto sqrt2 = mpfr.constSqrt2()
+    assert sqrt2 > 1.41421 and sqrt2 < 1.41422, "sqrt2 value"
+
+    // Epsilon
+    auto eps = mpfr.epsilon()
+    assert eps > 0 and eps < 1e-15, "epsilon small"
+
+    // Version
+    assert mpfr.versionMajor() == 4, "major version"
+    assert mpfr.versionMinor() == 2, "minor version"
+
+    return 0
+end

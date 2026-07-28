@@ -1,0 +1,52 @@
+import trie
+
+
+
+func main(...) as int
+    auto t = trie.create()
+    assert t.valid, "trie should be valid"
+    assert t.count == 0, "trie initial count"
+
+    t.insert("apple")
+    t.insert("app")
+    t.insert("application")
+    t.insert("banana")
+    assert t.count == 4, "trie count after inserts"
+
+    assert t.contains("apple"), "trie contains apple"
+    assert t.contains("app"), "trie contains app"
+    assert t.contains("application"), "trie contains application"
+    assert t.contains("banana"), "trie contains banana"
+    assert not t.contains("appl"), "trie not contains appl"
+    assert not t.contains("ban"), "trie not contains ban"
+    assert not t.contains(""), "trie not contains empty"
+
+    assert t.startsWith("app"), "trie startsWith app"
+    assert t.startsWith("appl"), "trie startsWith appl"
+    assert t.startsWith("ban"), "trie startsWith ban"
+    assert not t.startsWith("cat"), "trie not startsWith cat"
+
+    assert t.countPrefix("app") == 3, "trie countPrefix app"
+    assert t.countPrefix("apple") == 1, "trie countPrefix apple"
+    assert t.countPrefix("b") == 1, "trie countPrefix b"
+    assert t.countPrefix("z") == 0, "trie countPrefix z"
+    assert t.countPrefix("") == 4, "trie countPrefix empty is total"
+
+    t.insert("apple")
+    assert t.count == 4, "trie duplicate insert no change"
+
+    bool removed = t.remove("app")
+    assert removed, "trie remove app"
+    assert t.count == 3, "trie count after remove"
+    assert not t.contains("app"), "trie removed app"
+    assert t.contains("apple"), "trie still has apple"
+    assert t.startsWith("app"), "trie still startsWith app"
+
+    removed = t.remove("nonexistent")
+    assert not removed, "trie remove nonexistent"
+
+    t.clear()
+    assert t.count == 0, "trie count after clear"
+    assert not t.contains("apple"), "trie cleared"
+    return 0
+end

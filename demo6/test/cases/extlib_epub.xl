@@ -1,0 +1,34 @@
+import epub
+
+func main(...) as int
+    // EPUB versions
+    assert epub.version(2) == "EPUB 2.0.1", "ver 2"
+    assert epub.version(3) == "EPUB 3.3", "ver 3"
+
+    // MIME types
+    assert epub.mimetype(0) == "application/epub+zip", "mime epub"
+    assert epub.mimetype(1) == "application/xhtml+xml", "mime xhtml"
+    assert epub.mimetype(3) == "image/jpeg", "mime jpeg"
+
+    // Spine properties
+    assert epub.spineProp(0) == "linear", "spine linear"
+    assert epub.spineProp(5) == "rendition:layout-reflowable", "spine reflow"
+
+    // Nav types
+    assert epub.navType(0) == "toc", "nav toc"
+    assert epub.navType(1) == "landmarks", "nav landmarks"
+
+    // Metadata fields
+    assert epub.metadataField(0) == "dc:title", "meta title"
+    assert epub.metadataField(1) == "dc:creator", "meta creator"
+
+    // ISBN validation (978-0-306-40615-7 is valid)
+    assert epub.validateIsbn("9780306406157") == 1, "isbn valid"
+    assert epub.validateIsbn("9780306406158") == 0, "isbn invalid"
+
+    // Encryption
+    assert epub.encryption(0) == "none", "enc none"
+    assert epub.encryption(1) == "Adobe DRM", "enc adobe"
+
+    return 0
+end

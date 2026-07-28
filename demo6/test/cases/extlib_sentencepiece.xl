@@ -1,0 +1,24 @@
+import sentencepiece
+
+func main(...) as int
+    // Model types
+    assert sentencepiece.modelType(0) == "unigram", "model unigram"
+    assert sentencepiece.modelType(1) == "bpe", "model bpe"
+
+    // Encode: "hello world" -> "_hello_world"
+    assert sentencepiece.encode("hello world") == "_hello_world", "encode"
+
+    // Count pieces: "hello world" = 2 pieces
+    assert sentencepiece.countPieces("hello world") == 2, "pieces 2"
+    assert sentencepiece.countPieces("a b c") == 3, "pieces 3"
+
+    // Control symbols
+    assert sentencepiece.controlSymbol(0) == "<unk>", "ctrl unk"
+    assert sentencepiece.controlSymbol(1) == "<s>", "ctrl bos"
+
+    // Vocab size
+    assert sentencepiece.vocabSize(0) == 32000, "vocab unigram"
+    assert sentencepiece.vocabSize(3) == 256, "vocab char"
+
+    return 0
+end

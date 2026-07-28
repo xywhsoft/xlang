@@ -1,0 +1,52 @@
+import yaml
+
+
+
+func main(...) as int
+    auto doc = "name: Alice\nage: 30\nactive: true\nscore: 9.5\n"
+
+    // Get string value
+    assert yaml.get(doc, "name") == "Alice", "get name"
+
+    // Get int
+    assert yaml.getInt(doc, "age") == 30, "get age"
+
+    // Get bool
+    assert yaml.getBool(doc, "active") == true, "get active"
+
+    // Get float
+    auto sc = yaml.getFloat(doc, "score")
+    assert sc > 9.4 and sc < 9.6, "get score"
+
+    // Has key
+    assert yaml.has(doc, "name"), "has name"
+    assert not yaml.has(doc, "missing"), "not has missing"
+
+    // Count keys
+    assert yaml.countKeys(doc) == 4, "count 4 keys"
+
+    // Key at index
+    assert yaml.keyAt(doc, 0) == "name", "key 0"
+    assert yaml.keyAt(doc, 1) == "age", "key 1"
+
+    // Validate
+    assert yaml.validate(doc), "valid yaml"
+    assert yaml.validate("bad line no colon\n") == false, "invalid yaml"
+
+    // Emit pair
+    auto pair = yaml.emitPair("city", "Beijing")
+    assert pair == "city: Beijing\n", "emit pair"
+
+    // List parsing
+    auto ldoc = "fruits:\n  - apple\n  - banana\n  - cherry\ncolor: red\n"
+    assert yaml.listCount(ldoc, "fruits") == 3, "list count 3"
+    assert yaml.listAt(0) == "apple", "list item 0"
+    assert yaml.listAt(1) == "banana", "list item 1"
+    assert yaml.listAt(2) == "cherry", "list item 2"
+
+    // Quoted values
+    auto qdoc = "greeting: \"hello world\"\n"
+    assert yaml.get(qdoc, "greeting") == "hello world", "quoted value"
+
+    return 0
+end

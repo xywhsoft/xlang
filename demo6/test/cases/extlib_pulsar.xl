@@ -1,0 +1,39 @@
+import pulsar
+
+func main(...) as int
+    // Command names
+    assert pulsar.cmdName(2) == "CONNECT", "cmd connect"
+    assert pulsar.cmdName(6) == "SEND", "cmd send"
+    assert pulsar.cmdName(9) == "MESSAGE", "cmd message"
+    assert pulsar.cmdName(18) == "PING", "cmd ping"
+
+    // Error names
+    assert pulsar.errorName(0) == "UnknownError", "err unknown"
+    assert pulsar.errorName(3) == "AuthenticationError", "err auth"
+    assert pulsar.errorName(11) == "TopicNotFound", "err topic"
+
+    // Subscription types
+    assert pulsar.subType(0) == "Exclusive", "sub exclusive"
+    assert pulsar.subType(1) == "Shared", "sub shared"
+    assert pulsar.subType(3) == "Key_Shared", "sub key_shared"
+
+    // Compression
+    assert pulsar.compression(0) == "NONE", "comp none"
+    assert pulsar.compression(1) == "LZ4", "comp lz4"
+    assert pulsar.compression(3) == "ZSTD", "comp zstd"
+
+    // Schema types
+    assert pulsar.schemaType(1) == "STRING", "schema string"
+    assert pulsar.schemaType(2) == "JSON", "schema json"
+    assert pulsar.schemaType(4) == "AVRO", "schema avro"
+
+    // Topic domain
+    assert pulsar.topicDomain(0) == "persistent", "domain persistent"
+    assert pulsar.topicDomain(1) == "non-persistent", "domain non-persistent"
+
+    // Topic parsing
+    assert pulsar.topicTenant("persistent://my-tenant/my-ns/my-topic") == "my-tenant", "tenant"
+    assert pulsar.topicNamespace("persistent://my-tenant/my-ns/my-topic") == "my-ns", "namespace"
+
+    return 0
+end

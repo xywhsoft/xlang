@@ -1,0 +1,79 @@
+import tdengine
+
+
+
+func main(...) as int
+    // CREATE DATABASE
+    auto db = tdengine.createDb("power", 0)
+    assert string.contains(db, "CREATE DATABASE"), "create db"
+    assert string.contains(db, "power"), "db name"
+    assert string.contains(db, "ms"), "precision ms"
+
+    auto db2 = tdengine.createDb("test", 2)
+    assert string.contains(db2, "ns"), "precision ns"
+
+    // CREATE STABLE
+    auto st = tdengine.createStable("meters", "ts TIMESTAMP, current FLOAT, voltage INT", "location BINARY(64), group_id INT")
+    assert string.contains(st, "CREATE STABLE"), "create stable"
+    assert string.contains(st, "meters"), "stable name"
+    assert string.contains(st, "TAGS"), "has tags"
+
+    // CREATE TABLE
+    auto tb = tdengine.createTable("d1001", "meters", "'California.SanFrancisco', 2")
+    assert string.contains(tb, "CREATE TABLE"), "create table"
+    assert string.contains(tb, "USING meters"), "using stable"
+
+    // INSERT
+    auto ins = tdengine.insert("d1001", 1609459200000, "10.3, 219")
+    assert string.contains(ins, "INSERT INTO d1001"), "insert table"
+    assert string.contains(ins, "1609459200000"), "insert ts"
+
+    // SELECT
+    auto sel = tdengine.select("*", "meters", "")
+    assert sel == "SELECT * FROM meters", "select all"
+
+    auto sel2 = tdengine.select("avg(voltage)", "meters", "group_id = 2")
+    assert string.contains(sel2, "WHERE"), "select with where"
+
+    // Time range
+    auto tr = tdengine.timeRange("d1001", 1000, 2000)
+    assert string.contains(tr, "ts >= 1000"), "time range start"
+    assert string.contains(tr, "ts < 2000"), "time range end"
+
+    // Interval
+    auto iv = tdengine.interval("meters", "AVG", "current", 60000)
+    assert string.contains(iv, "INTERVAL(60000)"), "interval"
+    assert string.contains(iv, "AVG(current)"), "agg func"
+
+    // Type names
+    assert tdengine.typeName(0) == "TIMESTAMP", "timestamp"
+    assert tdengine.typeName(1) == "INT", "int"
+    assert tdengine.typeName(3) == "FLOAT", "float"
+    assert tdengine.typeName(5) == "BINARY", "binary"
+    assert tdengine.typeName(7) == "BOOL", "bool"
+    assert tdengine.typeName(99) == "UNKNOWN", "unknown type"
+
+    // Aggregate names
+    assert tdengine.aggName(0) == "COUNT", "count"
+    assert tdengine.aggName(1) == "AVG", "avg"
+    assert tdengine.aggName(4) == "MAX", "max"
+    assert tdengine.aggName(7) == "STDDEV", "stddev"
+    assert tdengine.aggName(99) == "UNKNOWN", "unknown agg"
+
+    // Validation
+    assert tdengine.validDbName("power") == 1, "valid db name"
+    assert tdengine.validDbName("1invalid") == 0, "db starts with digit"
+    assert tdengine.validDbName("") == 0, "empty db name"
+    assert tdengine.validTableName("d1001") == 1, "valid table name"
+
+    // Ports
+    assert tdengine.port() == 6030, "native port"
+    assert tdengine.restPort() == 6041, "rest port"
+
+    // Precision names
+    assert tdengine.precisionName(0) == "ms", "ms"
+    assert tdengine.precisionName(1) == "us", "us"
+    assert tdengine.precisionName(2) == "ns", "ns"
+
+    return 0
+end

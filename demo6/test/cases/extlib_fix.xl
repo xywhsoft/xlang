@@ -1,0 +1,35 @@
+import fix
+
+func main(...) as int
+    // Message types
+    assert fix.msgType(0) == "Heartbeat", "msg heartbeat"
+    assert fix.msgType(3) == "NewOrderSingle", "msg neworder"
+    assert fix.msgType(4) == "ExecutionReport", "msg execreport"
+
+    // Side
+    assert fix.side(0) == "Buy", "side buy"
+    assert fix.side(1) == "Sell", "side sell"
+
+    // Order types
+    assert fix.ordType(0) == "Market", "ord market"
+    assert fix.ordType(1) == "Limit", "ord limit"
+
+    // Order status
+    assert fix.ordStatus(0) == "New", "status new"
+    assert fix.ordStatus(2) == "Filled", "status filled"
+    assert fix.ordStatus(5) == "Rejected", "status rejected"
+
+    // Time in force
+    assert fix.timeInForce(0) == "Day", "tif day"
+    assert fix.timeInForce(1) == "GoodTillCancel", "tif gtc"
+
+    // Tag names
+    assert fix.tagName(8) == "BeginString", "tag 8"
+    assert fix.tagName(35) == "MsgType", "tag 35"
+    assert fix.tagName(55) == "Symbol", "tag 55"
+
+    // Checksum: "8=FIX.4.2" sum=542, 542%256=30 -> "030"
+    assert fix.checksum("8=FIX.4.2") == "030", "checksum"
+
+    return 0
+end

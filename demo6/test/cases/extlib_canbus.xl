@@ -1,0 +1,31 @@
+import canbus
+
+
+
+func main(...) as int
+    // Standard frame (11-bit ID)
+    auto f1 = canbus.buildStd(0x123, 4, "deadbeef")
+    assert canbus.getId(f1) == 0x123, "std id"
+    assert canbus.getDlc(f1) == 4, "std dlc"
+    assert canbus.getData(f1) == "deadbeef", "std data"
+    assert not canbus.isExtended(f1), "not extended"
+
+    // Extended frame (29-bit ID)
+    auto f2 = canbus.buildExt(0x1ABCDEF, 2, "cafe")
+    assert canbus.getId(f2) == 0x1ABCDEF, "ext id"
+    assert canbus.getDlc(f2) == 2, "ext dlc"
+    assert canbus.getData(f2) == "cafe", "ext data"
+    assert canbus.isExtended(f2), "is extended"
+
+    // Empty data
+    auto f3 = canbus.buildStd(0x7FF, 0, "")
+    assert canbus.getId(f3) == 0x7FF, "max std id"
+    assert canbus.getDlc(f3) == 0, "zero dlc"
+    assert canbus.getData(f3) == "", "no data"
+
+    // Frame length
+    assert canbus.frameLen(f1) == 7, "std frame 7 bytes"
+    assert canbus.frameLen(f2) == 7, "ext frame 7 bytes"
+
+    return 0
+end

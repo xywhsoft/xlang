@@ -1,0 +1,11 @@
+# Runtime-only TCC builtin VFS manifest for Linux x86_64 libxl.so.
+#
+# Linux keeps libc headers and the dynamic linker in the host system. The
+# embedded resources contain only XLang, XRT and TCC-owned files.
+
+dir|include|%XL6_EMBED_TCC_DIST%\include
+
+file|include/xl.h|%XL6_ROOT%/release/include/xl.h
+file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%/release/include/xl_runtime.h
+file|lib/libtcc1.a|%XL6_EMBED_TCC_DIST%/lib/libtcc1.a
+file|lib/xrt/xrt.h|%XL6_ROOT%/lib/xrt/xrt.h

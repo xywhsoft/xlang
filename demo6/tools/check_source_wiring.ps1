@@ -27,10 +27,10 @@ $generatedSourceInputs = @{
 }
 $embeddedRuntimeManifest = Join-Path $Root "src\api\xl_api.c"
 $embeddedRuntimeRequired = @(
-    "src\\api\\xl_api_symbols.c",
-    "src\\api\\xl_api_path.c",
-    "src\\sem\\xl6_sem_docs.c",
-    "src\\sem\\xl6_sem_field_attrs.c"
+    "src/api/xl_api_symbols.c",
+    "src/api/xl_api_path.c",
+    "src/sem/xl6_sem_docs.c",
+    "src/sem/xl6_sem_field_attrs.c"
 )
 $failures = New-Object System.Collections.Generic.List[string]
 

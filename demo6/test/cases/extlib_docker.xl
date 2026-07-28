@@ -1,0 +1,33 @@
+import docker
+
+func main(...) as int
+    // Container states
+    assert docker.containerState(0) == "created", "state created"
+    assert docker.containerState(1) == "running", "state running"
+    assert docker.containerState(5) == "exited", "state exited"
+
+    // Network modes
+    assert docker.networkMode(0) == "bridge", "net bridge"
+    assert docker.networkMode(1) == "host", "net host"
+
+    // Restart policies
+    assert docker.restartPolicy(0) == "no", "restart no"
+    assert docker.restartPolicy(1) == "always", "restart always"
+
+    // Volume drivers
+    assert docker.volumeDriver(0) == "local", "vol local"
+
+    // API endpoints
+    assert docker.apiEndpoint(0) == "/containers/json", "api containers"
+    assert docker.apiEndpoint(5) == "/version", "api version"
+
+    // Port parsing: "8080:80" => 80
+    assert docker.parsePort("8080:80") == 80, "port mapping"
+    assert docker.parsePort("3000") == 3000, "port single"
+
+    // Log drivers
+    assert docker.logDriver(0) == "json-file", "log json"
+    assert docker.logDriver(6) == "none", "log none"
+
+    return 0
+end

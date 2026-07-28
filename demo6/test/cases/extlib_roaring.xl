@@ -1,0 +1,53 @@
+import roaring
+
+
+
+func main(...) as int
+    auto rb = roaring.create()
+    assert rb.valid, "rb should be valid"
+    assert rb.count == 0, "initial count 0"
+
+    rb.add(1)
+    rb.add(100)
+    rb.add(1000)
+    rb.add(100000)
+    assert rb.count == 4, "count after adds"
+    assert rb.contains(1), "contains 1"
+    assert rb.contains(100), "contains 100"
+    assert rb.contains(100000), "contains 100000"
+    assert not rb.contains(50), "not contains 50"
+
+    // duplicate add
+    rb.add(100)
+    assert rb.count == 4, "duplicate add no change"
+
+    // min/max
+    assert rb.min == 1, "min is 1"
+    assert rb.max == 100000, "max is 100000"
+
+    // remove
+    rb.remove(100)
+    assert rb.count == 3, "count after remove"
+    assert not rb.contains(100), "removed 100"
+
+    // remove non-existent
+    rb.remove(999)
+    assert rb.count == 3, "remove nonexist no change"
+
+    // clear
+    rb.clear()
+    assert rb.count == 0, "count after clear"
+    assert not rb.contains(1), "cleared"
+
+    // large values (cross container boundary)
+    rb.add(0)
+    rb.add(65535)
+    rb.add(65536)
+    rb.add(131071)
+    assert rb.count == 4, "cross-container count"
+    assert rb.contains(65536), "contains 65536"
+    assert rb.min == 0, "min 0"
+    assert rb.max == 131071, "max 131071"
+
+    return 0
+end

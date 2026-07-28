@@ -1,0 +1,37 @@
+import duckdb
+
+func main(...) as int
+    // Data types
+    assert duckdb.dataType(0) == "BOOLEAN", "type bool"
+    assert duckdb.dataType(3) == "INTEGER", "type int"
+    assert duckdb.dataType(7) == "VARCHAR", "type varchar"
+    assert duckdb.dataType(15) == "JSON", "type json"
+
+    // Result states
+    assert duckdb.resultState(0) == "success", "state ok"
+    assert duckdb.resultState(1) == "query error", "state err"
+
+    // Function categories
+    assert duckdb.functionCategory(0) == "aggregate", "cat agg"
+    assert duckdb.functionCategory(3) == "window", "cat window"
+
+    // Aggregate functions
+    assert duckdb.aggregateFunc(0) == "count", "agg count"
+    assert duckdb.aggregateFunc(2) == "avg", "agg avg"
+    assert duckdb.aggregateFunc(11) == "approx_count_distinct", "agg acd"
+
+    // Storage formats
+    assert duckdb.storageFormat(0) == "duckdb native", "fmt native"
+    assert duckdb.storageFormat(1) == "parquet", "fmt parquet"
+
+    // Cost estimation: 1000 rows * 5 cols = 5000, no join
+    assert duckdb.estimateCost(1000, 5, 0) == 5000, "cost no join"
+    // With join: 5000 * 3 = 15000
+    assert duckdb.estimateCost(1000, 5, 1) == 15000, "cost join"
+
+    // Extensions
+    assert duckdb.extension(0) == "parquet", "ext parquet"
+    assert duckdb.extension(8) == "spatial", "ext spatial"
+
+    return 0
+end

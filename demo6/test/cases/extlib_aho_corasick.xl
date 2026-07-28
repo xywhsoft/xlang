@@ -1,0 +1,54 @@
+import aho_corasick
+
+
+
+func main(...) as int
+    auto ac = aho_corasick.create()
+    assert ac.valid, "ac should be valid"
+    assert ac.patternCount == 0, "initial pattern count"
+    assert not ac.built, "not built initially"
+
+    ac.addPattern("he")
+    ac.addPattern("she")
+    ac.addPattern("his")
+    ac.addPattern("hers")
+    assert ac.patternCount == 4, "pattern count after adds"
+
+    ac.build()
+    assert ac.built, "built after build()"
+
+    // search "ushers" should find: she@1, he@2, hers@2
+    string result = ac.search("ushers")
+    assert result != "", "search finds matches"
+    assert result.contains("she@1"), "finds she at 1"
+    assert result.contains("he@2"), "finds he at 2"
+    assert result.contains("hers@2"), "finds hers at 2"
+
+    // search with no matches
+    string empty = ac.search("xyz")
+    assert empty == "", "no matches returns empty"
+
+    // overlapping patterns
+    auto ac2 = aho_corasick.create()
+    ac2.addPattern("ab")
+    ac2.addPattern("bc")
+    ac2.addPattern("abc")
+    ac2.build()
+    string r2 = ac2.search("abc")
+    assert r2.contains("ab@0"), "finds ab at 0"
+    assert r2.contains("bc@1"), "finds bc at 1"
+    assert r2.contains("abc@0"), "finds abc at 0"
+
+    // single char patterns
+    auto ac3 = aho_corasick.create()
+    ac3.addPattern("a")
+    ac3.addPattern("b")
+    ac3.build()
+    string r3 = ac3.search("abba")
+    assert r3.contains("a@0"), "finds a at 0"
+    assert r3.contains("b@1"), "finds b at 1"
+    assert r3.contains("b@2"), "finds b at 2"
+    assert r3.contains("a@3"), "finds a at 3"
+
+    return 0
+end

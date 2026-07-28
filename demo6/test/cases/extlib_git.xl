@@ -1,0 +1,37 @@
+import git
+
+func main(...) as int
+    // Object types
+    assert git.objectType(0) == "commit", "obj commit"
+    assert git.objectType(1) == "tree", "obj tree"
+    assert git.objectType(2) == "blob", "obj blob"
+
+    // Reset types
+    assert git.resetType(0) == "soft", "reset soft"
+    assert git.resetType(2) == "hard", "reset hard"
+
+    // Merge strategies
+    assert git.mergeStrategy(0) == "recursive", "merge recursive"
+    assert git.mergeStrategy(1) == "ort", "merge ort"
+
+    // Diff formats
+    assert git.diffFormat(0) == "unified", "diff unified"
+    assert git.diffFormat(2) == "name-only", "diff name"
+
+    // Branch types
+    assert git.branchType(0) == "local", "branch local"
+    assert git.branchType(1) == "remote", "branch remote"
+
+    // Hash object: deterministic, 40 hex chars
+    assert string.len(git.hashObject("hello")) == 40, "hash len"
+    assert git.hashObject("hello") == git.hashObject("hello"), "hash deterministic"
+
+    // Config scopes
+    assert git.configScope(0) == "system", "config system"
+    assert git.configScope(2) == "local", "config local"
+
+    // Submodule status
+    assert git.submoduleStatus(0) == "initialized", "sub init"
+
+    return 0
+end

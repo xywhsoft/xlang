@@ -1,0 +1,25 @@
+import sciter
+
+func main(...) as int
+    // Elements
+    assert sciter.element(0) == "div", "elem div"
+    assert sciter.element(2) == "button", "elem button"
+
+    // Events
+    assert sciter.event(0) == "click", "event click"
+    assert sciter.event(1) == "change", "event change"
+
+    // Style properties
+    assert sciter.styleProp(0) == "width", "prop width"
+    assert sciter.styleProp(6) == "display", "prop display"
+
+    // Display values
+    assert sciter.display(0) == "block", "disp block"
+    assert sciter.display(3) == "flex", "disp flex"
+
+    // Parse px
+    assert sciter.parsePx("100px") == 100, "parse 100"
+    assert sciter.parsePx("50%") == 50, "parse 50"
+
+    return 0
+end

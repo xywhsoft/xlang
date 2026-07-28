@@ -23,6 +23,7 @@
 - `ABI设计.md`：内部 ABI、C ABI、C 兼容类型、class 数据 ABI、成员导出 ABI、符号生成、类型映射和 ABI dump。
 - `C混编设计.md`：C 与 xlang 互相声明、导出、生成头文件和 C ABI wrapper。
 - `命令行设计.md`：CLI、四阶段编译管线、调试 dump、构建、运行和 C 混编命令。
+- `Linux兼容性设计.md`：Linux x86_64 平台边界、构建产物、TCC/VFS、XRT 系统依赖和发布验收口径。
 - `标准库设计.md`：标准库默认注册、短命名空间、XRT/CRT 边界、第一批标准库函数、暂缓能力和后续设计议题。
 - `XRT扩展标准库API.md`：当前已公开的扩展标准库对象、函数、常量、异步语义和 C/XRT 对照接口。
 - `数据格式与归档扩展库设计.md`：JSON/XSON、codec、hash/crypto、archive、template、encoding 等数据格式与归档扩展库设计。
@@ -30,6 +31,7 @@
 - `异常处理与文档注释设计.md`：异常处理、断言、高级错误模型和 `#doc ... #end` 文档注释。
 - `调试器与task_async_generator设计.md`：完整调试器体系、高层 `task` API 和 `async generator<T>` 的设计口径、开发顺序和验收标准。
 - `扩展库系统设计.md`：source import、package、同名 C companion、版本隔离、依赖解析和扩展库分发模型。
+- `扩展库建设Spec.md`：扩展库批量建设范围、交付物、实现顺序和统一验收规范。
 - `DLL嵌入式运行库设计.md`：`xl.dll` / `xlc.dll` 嵌入式 API、上下文、脚本运行、exe 编译、C 函数注册和 XRT 注入。
 - `TCC内嵌与运行入口设计.md`：内嵌 `libtcc`、运行版/编译版 DLL 分层、`xlang_main(xvalue arg)` 入口 ABI、VFS 资源包和 TCC IO 边界。
 - `脚本嵌入与TCC模块设计.md`：`tcc` 模块、脚本嵌入、动态 VFS、运行版/编译版能力边界和按需嵌入裁剪口径。

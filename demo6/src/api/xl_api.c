@@ -1049,16 +1049,29 @@ static int xlEnsureTcc(XL_Context* ctx)
     if ( xlLoadTccFromBasePath(ctx, envPath) ) {
         return 1;
     }
+#ifdef _WIN32
     if ( xlLoadTccFromPath(ctx, "libtcc.dll") ) {
         return 1;
     }
     if ( xlLoadTccFromBasePath(ctx, "release\\libtcc.dll") ) {
         return 1;
     }
+#else
+    if ( xlLoadTccFromPath(ctx, "libtcc.so") ) {
+        return 1;
+    }
+    if ( xlLoadTccFromBasePath(ctx, "release/libtcc.so") ) {
+        return 1;
+    }
+#endif
     if ( xlLoadTccFromBasePath(ctx, XL6_TCC_DLL_PATH) ) {
         return 1;
     }
+#ifdef _WIN32
     xlSetError(ctx, "cannot load libtcc.dll");
+#else
+    xlSetError(ctx, "cannot load libtcc.so");
+#endif
     return 0;
 }
 #endif
@@ -1092,12 +1105,14 @@ static void xlAddDefaultProjectToolchainPaths(TCCState* s)
     if ( xlJoinPathBuffer(path, sizeof(path), root, "src") ) {
         (void)xl__tcc.tcc_add_include_path(s, path);
     }
-    if ( xlJoinPathBuffer(path, sizeof(path), root, "lib\\xrt") ) {
+    if ( xlJoinPathBuffer(path, sizeof(path), root, "lib/xrt") ) {
         (void)xl__tcc.tcc_add_include_path(s, path);
     }
+#ifdef _WIN32
     if ( xlJoinPathBuffer(path, sizeof(path), root, "release\\tcc\\include_win") ) {
         (void)xl__tcc.tcc_add_include_path(s, path);
     }
+#endif
     if ( xlJoinPathBuffer(path, sizeof(path), root, XL6_TCC_INCLUDE_PATH) ) {
         (void)xl__tcc.tcc_add_include_path(s, path);
     }
@@ -1145,7 +1160,7 @@ static int xlConfigureTccStateEnvironment(XL_Context* ctx, TCCState* s, int outp
     (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->baseDir != NULL ? ctx->baseDir : ".");
     xlAddDefaultProjectToolchainPaths(s);
     (void)xl__tcc.tcc_add_include_path(s, "src");
-    (void)xl__tcc.tcc_add_include_path(s, "lib\\xrt");
+    (void)xl__tcc.tcc_add_include_path(s, "lib/xrt");
     (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccIncludePath != NULL ? ctx->tccIncludePath : xlDefaultTccIncludePath());
     (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccWinIncludePath != NULL ? ctx->tccWinIncludePath : xlDefaultTccWinIncludePath());
     (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccWinapiIncludePath != NULL ? ctx->tccWinapiIncludePath : xlDefaultTccWinapiIncludePath());
@@ -1865,20 +1880,24 @@ static int xlAddEmbeddedTccRuntimeSources(
     if ( outputType == TCC_OUTPUT_DLL ) {
         (void)xl__tcc.tcc_set_options(s, "-DLIBTCC_AS_DLL");
     }
-    (void)xl__tcc.tcc_add_include_path(s, "lib\\tcc");
-    (void)xl__tcc.tcc_add_include_path(s, "lib\\lzma");
+    (void)xl__tcc.tcc_add_include_path(s, "lib/tcc");
+    (void)xl__tcc.tcc_add_include_path(s, "lib/lzma");
     (void)xl__tcc.tcc_add_include_path(s, "release");
-    (void)xl__tcc.tcc_add_include_path(s, "release\\include");
+    (void)xl__tcc.tcc_add_include_path(s, "release/include");
     xlAddEmbeddedSourceIncludePaths(s);
 
-    if ( !xlAddTccSourceFile(ctx, s, "lib\\tcc\\libtcc.c") ||
-         !xlAddTccSourceFile(ctx, s, "lib\\tcc\\tcctools.c") ||
-         !xlAddTccSourceFile(ctx, s, "lib\\tcc\\tcc_builtin_vfs.c") ||
-         !xlAddTccSourceFile(ctx, s, "lib\\tcc\\tcc_utf8_io.c") ||
-         !xlAddTccSourceFile(ctx, s, "lib\\lzma\\LzmaDec.c") ||
-        !xlAddTccSourceFile(ctx, s, "build\\tmp\\tcc_builtin_resources_runtime.c") ) {
+    if ( !xlAddTccSourceFile(ctx, s, "lib/tcc/libtcc.c") ||
+         !xlAddTccSourceFile(ctx, s, "lib/tcc/tcctools.c") ||
+         !xlAddTccSourceFile(ctx, s, "lib/tcc/tcc_builtin_vfs.c") ||
+         !xlAddTccSourceFile(ctx, s, "lib/lzma/LzmaDec.c") ||
+         !xlAddTccSourceFile(ctx, s, XL6_TCC_RUNTIME_RESOURCE_SOURCE) ) {
         return 0;
     }
+#ifdef _WIN32
+    if ( !xlAddTccSourceFile(ctx, s, "lib/tcc/tcc_utf8_io.c") ) {
+        return 0;
+    }
+#endif
     return 1;
 }
 
@@ -1889,45 +1908,45 @@ static int xlAddEmbeddedXlangRuntimeSources(
     int outputType)
 {
     static const char* runtimeSources[] = {
-        "src\\api\\xl_api.c",
-        "src\\api\\xl_api_symbols.c",
-        "src\\api\\xl_api_path.c",
-        "src\\abi\\xl6_abi_json.c",
-        "src\\abi\\xl6_callable.c",
-        "src\\backend\\xl6_build_backend.c",
-        "src\\compile\\xl6_compile_unit.c",
-        "src\\compile\\xl6_imports.c",
-        "src\\compile\\xl6_xrt_trim.c",
-        "src\\common\\xl6_console.c",
-        "src\\common\\xl6_output.c",
-        "src\\diag\\xl6_diag.c",
-        "src\\ast\\xl6_ast.c",
-        "src\\cgen\\xl6_cgen_entry.c",
-        "src\\cgen\\xl6_cgen_lifecycle.c",
-        "src\\cgen\\xl6_cgen_runtime.c",
-        "src\\cgen\\xl6_cgen_header.c",
-        "src\\cgen\\xl6_cgen_needs_basic.c",
-        "src\\cgen\\xl6_cgen.c",
-        "src\\lexer\\xl6_token.c",
-        "src\\lexer\\xl6_lexer_api.c",
-        "src\\lexer\\xl6_lexer_gen.c",
-        "src\\parser\\xl6_parser.c",
-        "src\\parser\\xl6_parser_api.c",
-        "src\\ir\\xl6_hir.c",
-        "src\\package\\xl6_package.c",
-        "src\\stdlib\\xl6_stdlib.c",
-        "src\\stdlib\\xl6_stdlib_data.c",
-        "src\\type\\xl6_type_model.c",
-        "src\\sem\\xl6_protocol.c",
-        "src\\sem\\xl6_type_registry.c",
-        "src\\sem\\xl6_sem_docs.c",
-        "src\\sem\\xl6_sem_field_attrs.c",
-        "src\\sem\\xl6_sem.c"
+        "src/api/xl_api.c",
+        "src/api/xl_api_symbols.c",
+        "src/api/xl_api_path.c",
+        "src/abi/xl6_abi_json.c",
+        "src/abi/xl6_callable.c",
+        "src/backend/xl6_build_backend.c",
+        "src/compile/xl6_compile_unit.c",
+        "src/compile/xl6_imports.c",
+        "src/compile/xl6_xrt_trim.c",
+        "src/common/xl6_console.c",
+        "src/common/xl6_output.c",
+        "src/diag/xl6_diag.c",
+        "src/ast/xl6_ast.c",
+        "src/cgen/xl6_cgen_entry.c",
+        "src/cgen/xl6_cgen_lifecycle.c",
+        "src/cgen/xl6_cgen_runtime.c",
+        "src/cgen/xl6_cgen_header.c",
+        "src/cgen/xl6_cgen_needs_basic.c",
+        "src/cgen/xl6_cgen.c",
+        "src/lexer/xl6_token.c",
+        "src/lexer/xl6_lexer_api.c",
+        "src/lexer/xl6_lexer_gen.c",
+        "src/parser/xl6_parser.c",
+        "src/parser/xl6_parser_api.c",
+        "src/ir/xl6_hir.c",
+        "src/package/xl6_package.c",
+        "src/stdlib/xl6_stdlib.c",
+        "src/stdlib/xl6_stdlib_data.c",
+        "src/type/xl6_type_model.c",
+        "src/sem/xl6_protocol.c",
+        "src/sem/xl6_type_registry.c",
+        "src/sem/xl6_sem_docs.c",
+        "src/sem/xl6_sem_field_attrs.c",
+        "src/sem/xl6_sem.c"
     };
     static const char* compilerSources[] = {
-        "src\\abi\\xl6_abi_dump.c",
-        "src\\ast\\xl6_ast_dump.c",
-        "src\\ir\\xl6_ir_dump.c"
+        "src/abi/xl6_abi_dump.c",
+        "src/ast/xl6_ast_dump.c",
+        "src/ir/xl6_ir_dump.c"
     };
     unsigned int features;
     size_t i;
@@ -1958,9 +1977,9 @@ static int xlAddEmbeddedXlangRuntimeSources(
     (void)xl__tcc.tcc_add_include_path(s, ".");
     (void)xl__tcc.tcc_add_include_path(s, "src");
     (void)xl__tcc.tcc_add_include_path(s, "release");
-    (void)xl__tcc.tcc_add_include_path(s, "release\\include");
-    (void)xl__tcc.tcc_add_include_path(s, "lib\\tcc");
-    (void)xl__tcc.tcc_add_include_path(s, "lib\\lzma");
+    (void)xl__tcc.tcc_add_include_path(s, "release/include");
+    (void)xl__tcc.tcc_add_include_path(s, "lib/tcc");
+    (void)xl__tcc.tcc_add_include_path(s, "lib/lzma");
     xlAddEmbeddedSourceIncludePaths(s);
 
     for ( i = 0; i < sizeof(runtimeSources) / sizeof(runtimeSources[0]); ++i ) {
@@ -2043,7 +2062,21 @@ static void xlAddDefaultTccLinkLibraries(TCCState* s)
     }
 # endif
 #else
-    (void)s;
+    /*
+        Linux 版 XRT 依赖 pthread、dl 和 libm。内存运行时这些符号来自
+        宿主进程；生成 ELF 产物时由 TCC 按同一规则链接。
+    */
+# ifdef XL_STATIC_TCC
+    (void)tcc_add_library(s, "pthread");
+    (void)tcc_add_library(s, "dl");
+    (void)tcc_add_library(s, "m");
+# else
+    if ( xl__tcc.tcc_add_library != NULL ) {
+        (void)xl__tcc.tcc_add_library(s, "pthread");
+        (void)xl__tcc.tcc_add_library(s, "dl");
+        (void)xl__tcc.tcc_add_library(s, "m");
+    }
+# endif
 #endif
 }
 
@@ -2384,7 +2417,11 @@ XL_ContextOptions xlDefaultContextOptions(void)
     options.size = (unsigned int)sizeof(options);
     options.version = XL_API_VERSION;
     options.workDir = ".";
+#ifdef _WIN32
     options.tempDir = "build\\tmp";
+#else
+    options.tempDir = "build/tmp";
+#endif
     options.tccDllPath = NULL;
     options.tccLibPath = NULL;
     options.saveTemps = 0;

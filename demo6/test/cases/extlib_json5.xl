@@ -1,0 +1,36 @@
+import json5
+
+
+
+func main(...) as int
+    // valid standard JSON
+    assert json5.valid("{\"a\": 1, \"b\": [2, 3]}"), "standard json valid"
+
+    // JSON5 features: comments, unquoted keys, trailing commas, single quotes
+    string j5 = "{ // comment\n  name: 'hello',\n  value: 42,\n  items: [1, 2, 3,],\n}"
+    assert json5.valid(j5), "json5 with comments and trailing comma"
+
+    // block comments
+    assert json5.valid("{ /* block */ x: 1 }"), "block comment"
+
+    // invalid
+    assert not json5.valid("{invalid"), "invalid json5"
+    assert not json5.valid(""), "empty invalid"
+
+    // get by path
+    string doc = "{name: 'test', nested: {a: 1, b: 'two'}, arr: [10, 20, 30]}"
+    assert json5.get(doc, "name") == "test", "get name"
+    assert json5.get(doc, "nested.a") == "1", "get nested.a"
+    assert json5.get(doc, "nested.b") == "two", "get nested.b"
+    assert json5.get(doc, "arr.0") == "10", "get arr[0]"
+    assert json5.get(doc, "arr.2") == "30", "get arr[2]"
+    assert json5.get(doc, "missing") == "", "get missing"
+
+    // hex numbers
+    assert json5.valid("{x: 0xFF}"), "hex number valid"
+
+    // Infinity and NaN
+    assert json5.valid("{a: Infinity, b: NaN}"), "Infinity NaN valid"
+
+    return 0
+end

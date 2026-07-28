@@ -1,0 +1,52 @@
+import cuckoo
+
+
+
+func main(...) as int
+    auto cf = cuckoo.create(1000)
+    assert cf.valid, "cuckoo should be valid"
+    assert cf.count == 0, "cuckoo initial count"
+    assert cf.buckets > 0, "cuckoo buckets"
+
+    cf.add("hello")
+    cf.add("world")
+    cf.add("xlang")
+    assert cf.count == 3, "cuckoo count after adds"
+    assert cf.contains("hello"), "cuckoo contains hello"
+    assert cf.contains("world"), "cuckoo contains world"
+    assert cf.contains("xlang"), "cuckoo contains xlang"
+    assert not cf.contains("missing"), "cuckoo not contains missing"
+
+    bool removed = cf.remove("world")
+    assert removed, "cuckoo remove world returns true"
+    assert cf.count == 2, "cuckoo count after remove"
+    assert not cf.contains("world"), "cuckoo removed world"
+    assert cf.contains("hello"), "cuckoo still has hello"
+
+    removed = cf.remove("nonexistent")
+    assert not removed, "cuckoo remove nonexistent returns false"
+    assert cf.count == 2, "cuckoo count unchanged"
+
+    cf.clear()
+    assert cf.count == 0, "cuckoo count after clear"
+    assert not cf.contains("hello"), "cuckoo cleared hello"
+
+    int i = 0
+    while i < 500
+        cf.add("key:" + int.format(i))
+        i = i + 1
+    end
+    assert cf.count == 500, "cuckoo bulk insert count"
+    assert cf.contains("key:0"), "cuckoo bulk first"
+    assert cf.contains("key:499"), "cuckoo bulk last"
+    assert not cf.contains("key:500"), "cuckoo bulk absent"
+
+    bool caught = false
+    try
+        cuckoo.create(0)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "cuckoo create(0) must throw ValueError"
+    return 0
+end

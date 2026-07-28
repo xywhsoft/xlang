@@ -1,0 +1,14 @@
+import flatbuffers
+
+func main(...) as int
+    assert flatbuffers.type(5) == "int", "type int"
+    assert flatbuffers.type(10) == "double", "type double"
+    assert flatbuffers.typeSize(5) == 4, "size int"
+    assert flatbuffers.typeSize(7) == 8, "size long"
+    assert flatbuffers.align(5, 4) == 8, "align 5->8"
+    assert flatbuffers.align(8, 4) == 8, "align 8->8"
+    assert flatbuffers.vtableOffset(0) == 4, "vtable 0"
+    assert flatbuffers.vtableOffset(2) == 8, "vtable 2"
+    assert flatbuffers.builderState(3) == "finished", "state done"
+    return 0
+end

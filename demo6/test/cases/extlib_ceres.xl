@@ -1,0 +1,31 @@
+import ceres
+
+func main(...) as int
+    // Solver types
+    assert ceres.solverType(0) == "dense QR", "solver qr"
+    assert ceres.solverType(3) == "iterative Schur", "solver schur"
+
+    // Loss functions
+    assert ceres.lossFunction(0) == "trivial", "loss trivial"
+    assert ceres.lossFunction(1) == "huber", "loss huber"
+    assert ceres.lossFunction(3) == "cauchy", "loss cauchy"
+
+    // Termination
+    assert ceres.termination(0) == "convergence", "term conv"
+    assert ceres.termination(2) == "failure", "term fail"
+
+    // Parameterization
+    assert ceres.parameterization(1) == "quaternion", "param quat"
+
+    // Newton sqrt: sqrt(4) = 2
+    assert ceres.sqrtNewton(4.0) > 1.99, "sqrt low"
+    assert ceres.sqrtNewton(4.0) < 2.01, "sqrt high"
+
+    // Linear fit: points (0,0),(1,1),(2,2) => y = 1*x + 0
+    assert ceres.linearFit("0,0,1,1,2,2") == "1,0", "fit y=x"
+
+    // Ordering
+    assert ceres.orderingType(0) == "natural", "order natural"
+
+    return 0
+end
