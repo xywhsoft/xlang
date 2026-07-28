@@ -1,0 +1,18 @@
+import tabulate
+
+
+
+func main(...) as int
+    auto t = tabulate.create()
+    t.setHeaders("Language,Year,Creator")
+    t.addRow("C,1972,Ritchie")
+    t.addRow("Python,1991,van Rossum")
+    t.addRow("Rust,2010,Hoare")
+    t.addRow("xlang,2024,xlang-team")
+
+    println(t.render())
+    println("rows:", t.rowCount, " cols:", t.colCount)
+
+    println("tabulate example: PASS")
+    return 0
+end

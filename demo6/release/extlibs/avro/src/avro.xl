@@ -1,0 +1,60 @@
+extern "xavro_type_name" func __type_name(int type_code) as string
+extern "xavro_logical_name" func __logical_name(int code) as string
+extern "xavro_zigzag_encode" func __zigzag_encode(int n) as int
+extern "xavro_zigzag_decode" func __zigzag_decode(int n) as int
+extern "xavro_encode_long" func __encode_long(int val) as string
+extern "xavro_decode_long" func __decode_long(string hex) as int
+extern "xavro_encode_string" func __encode_string(string s) as string
+extern "xavro_decode_string" func __decode_string(string hex) as string
+extern "xavro_magic" func __magic() as string
+extern "xavro_codec_name" func __codec_name(int codec) as string
+extern "xavro_sort_order" func __sort_order(int order) as string
+extern "xavro_valid_name" func __valid_name(string name) as int
+
+export func typeName(int type_code) as string
+    return __type_name(type_code)
+end
+
+export func logicalName(int code) as string
+    return __logical_name(code)
+end
+
+export func zigzagEncode(int n) as int
+    return __zigzag_encode(n)
+end
+
+export func zigzagDecode(int n) as int
+    return __zigzag_decode(n)
+end
+
+export func encodeLong(int val) as string
+    return __encode_long(val)
+end
+
+export func decodeLong(string hex) as int
+    return __decode_long(hex)
+end
+
+export func encodeString(string s) as string
+    return __encode_string(s)
+end
+
+export func decodeString(string hex) as string
+    return __decode_string(hex)
+end
+
+export func magic() as string
+    return __magic()
+end
+
+export func codecName(int codec) as string
+    return __codec_name(codec)
+end
+
+export func sortOrder(int order) as string
+    return __sort_order(order)
+end
+
+export func validName(string name) as int
+    return __valid_name(name)
+end

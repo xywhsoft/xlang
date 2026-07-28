@@ -1,0 +1,13 @@
+import harfbuzz
+
+func main(...) as int
+    assert harfbuzz.direction(0) == "LTR", "dir ltr"
+    assert harfbuzz.direction(1) == "RTL", "dir rtl"
+    assert harfbuzz.script(0) == "Latin", "script latin"
+    assert harfbuzz.script(2) == "Han", "script han"
+    assert harfbuzz.totalAdvance("10,20,30") == 60.0, "advance sum"
+    assert harfbuzz.feature(0) == "liga", "feature liga"
+    assert harfbuzz.feature(1) == "kern", "feature kern"
+    assert harfbuzz.detectDir("hello") == 0, "detect ltr"
+    return 0
+end

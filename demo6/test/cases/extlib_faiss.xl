@@ -1,0 +1,32 @@
+import faiss
+
+func main(...) as int
+    // Index types
+    assert faiss.indexType(0) == "IndexFlatL2", "idx flatl2"
+    assert faiss.indexType(4) == "IndexHNSW", "idx hnsw"
+
+    // Metrics
+    assert faiss.metric(0) == "L2", "metric l2"
+    assert faiss.metric(1) == "InnerProduct", "metric ip"
+
+    // L2 distance: "1,2" vs "4,6" -> sqrt(9+16) = 5
+    float d = faiss.l2Distance("1,2", "4,6")
+    assert d > 4.99, "l2 min"
+    assert d < 5.01, "l2 max"
+
+    // Inner product: "1,2" . "3,4" = 3+8 = 11
+    float ip = faiss.innerProduct("1,2", "3,4")
+    assert ip > 10.9, "ip min"
+    assert ip < 11.1, "ip max"
+
+    // Cosine: "3,4" vs "3,4" = 1.0
+    float c = faiss.cosine("3,4", "3,4")
+    assert c > 0.99, "cosine min"
+    assert c < 1.01, "cosine max"
+
+    // Quantizers
+    assert faiss.quantizer(0) == "QT_8bit", "quant 8bit"
+    assert faiss.quantizer(4) == "QT_fp16", "quant fp16"
+
+    return 0
+end

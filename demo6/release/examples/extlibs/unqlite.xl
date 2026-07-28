@@ -1,0 +1,15 @@
+import unqlite
+
+
+
+func main(...) as int
+    println("DB header:  ", unqlite.dbHeader(4096, 50))
+    auto rec = unqlite.record("session:abc", "{\"user\":\"bob\"}")
+    println("Record:     ", rec)
+    println("Key:        ", unqlite.recKey(rec))
+    println("Value:      ", unqlite.recValue(rec))
+    println("Hash:       ", unqlite.hashKey("session:abc"))
+    println("Cursor(2):  ", unqlite.cursorName(2))
+    println("unqlite example: PASS")
+    return 0
+end

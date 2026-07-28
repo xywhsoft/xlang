@@ -1,0 +1,44 @@
+import progress
+
+
+
+func main(...) as int
+    auto bar = progress.create(100)
+    assert bar.valid, "bar should be valid"
+    assert bar.total == 100, "total is 100"
+    assert bar.current == 0, "initial current 0"
+    assert bar.percent == 0, "initial percent 0"
+    assert not bar.done, "not done initially"
+
+    bar.advance(25)
+    assert bar.current == 25, "after advance 25"
+    assert bar.percent == 25, "percent 25"
+
+    bar.advance(25)
+    assert bar.current == 50, "after advance 50"
+    assert bar.percent == 50, "percent 50"
+
+    bar.set(90)
+    assert bar.current == 90, "set to 90"
+    assert bar.percent == 90, "percent 90"
+
+    // clamp to total
+    bar.set(200)
+    assert bar.current == 100, "clamped to total"
+    assert bar.done, "done at 100%"
+
+    // render
+    bar.set(50)
+    string r = bar.render()
+    assert r != "", "render non-empty"
+    assert r.contains("50%"), "render shows 50%"
+    assert r.contains("["), "render has bracket"
+
+    // prefix and width
+    bar.setPrefix("Download")
+    bar.setWidth(20)
+    string r2 = bar.render()
+    assert r2.contains("Download"), "custom prefix"
+
+    return 0
+end

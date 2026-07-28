@@ -1,0 +1,11 @@
+import glad
+
+func main(...) as int
+    println("GL Type 0 = " + glad.glType(0))
+    println("Primitive 0 = " + glad.primitive(0))
+    println("Type size = " + string.int(glad.typeSize(0)))
+    println("Version = " + glad.version(3, 3))
+
+    println("glad example: PASS")
+    return 0
+end

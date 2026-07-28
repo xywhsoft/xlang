@@ -1,0 +1,40 @@
+extern "xdocx_alignment" func __alignment(int align) as string
+extern "xdocx_heading_style" func __heading_style(int level) as string
+extern "xdocx_font_name" func __font_name(int id) as string
+extern "xdocx_page_size" func __page_size(int size) as string
+extern "xdocx_section_break" func __section_break(int type) as string
+extern "xdocx_line_spacing" func __line_spacing(int rule) as string
+extern "xdocx_tab_align" func __tab_align(int align) as string
+extern "xdocx_border_style" func __border_style(int style) as string
+
+export func alignment(int align) as string
+    return __alignment(align)
+end
+
+export func headingStyle(int level) as string
+    return __heading_style(level)
+end
+
+export func fontName(int id) as string
+    return __font_name(id)
+end
+
+export func pageSize(int size) as string
+    return __page_size(size)
+end
+
+export func sectionBreak(int type) as string
+    return __section_break(type)
+end
+
+export func lineSpacing(int rule) as string
+    return __line_spacing(rule)
+end
+
+export func tabAlign(int align) as string
+    return __tab_align(align)
+end
+
+export func borderStyle(int style) as string
+    return __border_style(style)
+end

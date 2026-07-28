@@ -1,0 +1,38 @@
+import socks
+
+
+
+func main(...) as int
+    // Version
+    assert socks.version() == 5, "socks5"
+
+    // Build greeting (no auth)
+    auto glen = socks.buildGreeting(false)
+    assert glen == 3, "greeting len 3"
+
+    // Build greeting (with auth)
+    auto glen2 = socks.buildGreeting(true)
+    assert glen2 == 4, "greeting auth len 4"
+
+    // Build connect to IP
+    auto clen = socks.buildConnect("192.168.1.1", 8080)
+    assert clen == 10, "connect ip len 10"
+
+    // Build connect to domain
+    auto dlen = socks.buildConnect("example.com", 443)
+    assert dlen > 10, "connect domain len"
+
+    // Build auth
+    auto alen = socks.buildAuth("user", "pass")
+    assert alen == 11, "auth len"
+
+    // Reply strings
+    assert socks.replyString(0) == "succeeded", "reply 0"
+    assert socks.replyString(5) == "connection refused", "reply 5"
+
+    // Valid greeting check
+    assert socks.validGreeting("0500", 2), "valid greeting"
+    assert not socks.validGreeting("0400", 2), "invalid greeting"
+
+    return 0
+end

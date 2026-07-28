@@ -1,0 +1,30 @@
+extern "xad_op" func __op(int id) as string
+extern "xad_sigmoid_grad" func __sigmoid_grad(float x) as float
+extern "xad_tanh_grad" func __tanh_grad(float x) as float
+extern "xad_relu_grad" func __relu_grad(float x) as float
+extern "xad_mse_grad" func __mse_grad(float pred, float target, int n) as float
+extern "xad_mode" func __mode(int id) as string
+
+export func op(int id) as string
+    return __op(id)
+end
+
+export func sigmoidGrad(float x) as float
+    return __sigmoid_grad(x)
+end
+
+export func tanhGrad(float x) as float
+    return __tanh_grad(x)
+end
+
+export func reluGrad(float x) as float
+    return __relu_grad(x)
+end
+
+export func mseGrad(float pred, float target, int n) as float
+    return __mse_grad(pred, target, n)
+end
+
+export func mode(int id) as string
+    return __mode(id)
+end

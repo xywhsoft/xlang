@@ -1,0 +1,30 @@
+import s2geometry
+
+
+
+func main(...) as int
+    // Encode some locations
+    auto beijing = s2geometry.fromLatLng(39.9042, 116.4074, 15)
+    auto london = s2geometry.fromLatLng(51.5074, -0.1278, 15)
+    auto nyc = s2geometry.fromLatLng(40.7128, -74.0060, 15)
+
+    println("Beijing cell: ", beijing)
+    println("  level: ", s2geometry.level(beijing))
+    println("  face: ", s2geometry.face(beijing))
+    println("  token: ", s2geometry.token(beijing))
+    println("  decode lat: ", s2geometry.toLat(beijing))
+    println("  decode lng: ", s2geometry.toLng(beijing))
+
+    println("London cell: ", london)
+    println("  token: ", s2geometry.token(london))
+
+    println("NYC cell: ", nyc)
+    println("  token: ", s2geometry.token(nyc))
+
+    // Parent hierarchy
+    auto p = s2geometry.parent(beijing)
+    println("Beijing parent (level ", s2geometry.level(p), "): ", s2geometry.token(p))
+
+    println("s2geometry example: PASS")
+    return 0
+end

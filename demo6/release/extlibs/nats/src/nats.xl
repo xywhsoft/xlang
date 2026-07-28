@@ -1,0 +1,40 @@
+extern "xnats_op_name" func __op_name(int op) as string
+extern "xnats_error_name" func __error_name(int code) as string
+extern "xnats_subject_match" func __subject_match(string pattern, string subject) as int
+extern "xnats_storage_type" func __storage_type(int type) as string
+extern "xnats_ack_policy" func __ack_policy(int policy) as string
+extern "xnats_deliver_policy" func __deliver_policy(int policy) as string
+extern "xnats_replay_policy" func __replay_policy(int policy) as string
+extern "xnats_valid_url" func __valid_url(string url) as int
+
+export func opName(int op) as string
+    return __op_name(op)
+end
+
+export func errorName(int code) as string
+    return __error_name(code)
+end
+
+export func subjectMatch(string pattern, string subject) as int
+    return __subject_match(pattern, subject)
+end
+
+export func storageType(int type) as string
+    return __storage_type(type)
+end
+
+export func ackPolicy(int policy) as string
+    return __ack_policy(policy)
+end
+
+export func deliverPolicy(int policy) as string
+    return __deliver_policy(policy)
+end
+
+export func replayPolicy(int policy) as string
+    return __replay_policy(policy)
+end
+
+export func validUrl(string url) as int
+    return __valid_url(url)
+end

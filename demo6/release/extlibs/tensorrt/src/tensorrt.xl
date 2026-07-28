@@ -1,0 +1,30 @@
+extern "xtrt_precision" func __precision(int id) as string
+extern "xtrt_layer" func __layer(int id) as string
+extern "xtrt_builder_flag" func __builder_flag(int id) as string
+extern "xtrt_profile" func __profile(int id) as string
+extern "xtrt_workspace_mb" func __workspace_mb(int bytes) as int
+extern "xtrt_network_flag" func __network_flag(int id) as string
+
+export func precision(int id) as string
+    return __precision(id)
+end
+
+export func layer(int id) as string
+    return __layer(id)
+end
+
+export func builderFlag(int id) as string
+    return __builder_flag(id)
+end
+
+export func profile(int id) as string
+    return __profile(id)
+end
+
+export func workspaceMb(int bytes) as int
+    return __workspace_mb(bytes)
+end
+
+export func networkFlag(int id) as string
+    return __network_flag(id)
+end

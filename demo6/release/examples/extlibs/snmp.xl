@@ -1,0 +1,15 @@
+import snmp
+
+
+
+func main(...) as int
+    println("Version(1):    ", snmp.versionName(1))
+    println("PDU(0xA0):     ", snmp.pduName(0xA0))
+    println("BER(0x06):     ", snmp.berName(0x06))
+    println("OID encode:    ", snmp.oidEncode("1.3.6.1.2.1"))
+    println("OID decode:    ", snmp.oidDecode("2b06010201"))
+    println("Int encode(42):", snmp.intEncode(42))
+    println("OID name:      ", snmp.oidName("1.3.6.1.2.1.1.1"))
+    println("snmp example: PASS")
+    return 0
+end

@@ -1,0 +1,47 @@
+import leveldb
+
+
+
+func main(...) as int
+    // Internal key encode/decode
+    auto ikey = leveldb.internalKey("mykey", 12345, 1)
+    assert leveldb.userKey(ikey) == "mykey", "user key"
+    assert leveldb.sequence(ikey) == 12345, "sequence"
+    assert leveldb.keyType(ikey) == 1, "key type VALUE"
+
+    // Deletion type
+    auto dkey = leveldb.internalKey("del", 999, 0)
+    assert leveldb.userKey(dkey) == "del", "del user key"
+    assert leveldb.sequence(dkey) == 999, "del sequence"
+    assert leveldb.keyType(dkey) == 0, "del type"
+
+    // Type names
+    assert leveldb.typeName(0) == "DELETION", "deletion name"
+    assert leveldb.typeName(1) == "VALUE", "value name"
+    assert leveldb.typeName(9) == "UNKNOWN", "unknown type"
+
+    // Block entry
+    auto entry = leveldb.blockEntry("key1", "val1", 0)
+    assert string.len(entry) > 0, "entry not empty"
+
+    // SST size estimate
+    auto size = leveldb.sstSize(10000, 20, 100)
+    assert size > 0, "positive size"
+
+    // Compression names
+    assert leveldb.compressionName(0) == "NONE", "no compression"
+    assert leveldb.compressionName(1) == "SNAPPY", "snappy"
+    assert leveldb.compressionName(2) == "ZLIB", "zlib"
+    assert leveldb.compressionName(9) == "UNKNOWN", "unknown compression"
+
+    // Defaults
+    assert leveldb.blockSize() == 4096, "block size"
+    assert leveldb.writeBufferSize() == 4194304, "write buffer"
+    assert leveldb.maxOpenFiles() == 1000, "max open files"
+
+    // Key validation
+    assert leveldb.validKey("valid") == 1, "valid key"
+    assert leveldb.validKey("") == 1, "empty key valid in leveldb"
+
+    return 0
+end

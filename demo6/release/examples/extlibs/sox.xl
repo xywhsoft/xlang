@@ -1,0 +1,18 @@
+import sox
+
+func main(...) as int
+    // SoX audio processing helpers
+
+    // Effects
+    println("FX 15 = " + sox.effectName(15))
+    println("FX 35 = " + sox.effectName(35))
+
+    // Encodings
+    println("Enc 2 = " + sox.encoding(2))
+
+    // Channels
+    println("Ch 0 = " + sox.channelName(0))
+
+    println("sox example: PASS")
+    return 0
+end

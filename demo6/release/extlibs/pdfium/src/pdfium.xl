@@ -1,0 +1,35 @@
+extern "xpdfium_object_type" func __object_type(int id) as string
+extern "xpdfium_page_object" func __page_object(int id) as string
+extern "xpdfium_annotation" func __annotation(int id) as string
+extern "xpdfium_form_field" func __form_field(int id) as string
+extern "xpdfium_render_flag" func __render_flag(int id) as string
+extern "xpdfium_dpi_scale_x1000" func __dpi_scale_x1000(int dpi) as int
+extern "xpdfium_error_code" func __error_code(int code) as string
+
+export func objectType(int id) as string
+    return __object_type(id)
+end
+
+export func pageObject(int id) as string
+    return __page_object(id)
+end
+
+export func annotation(int id) as string
+    return __annotation(id)
+end
+
+export func formField(int id) as string
+    return __form_field(id)
+end
+
+export func renderFlag(int id) as string
+    return __render_flag(id)
+end
+
+export func dpiScaleX1000(int dpi) as int
+    return __dpi_scale_x1000(dpi)
+end
+
+export func errorCode(int code) as string
+    return __error_code(code)
+end

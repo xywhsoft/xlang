@@ -1,0 +1,80 @@
+extern "xrtGetError" func __progress_error() as string
+
+
+
+class ProgressBar
+    native point handle
+    extern "xprog_create" create(int total)
+    extern "xprog_destroy" destroy()
+
+    extern "xprog_advance" func advanceNative(int n)
+    extern "xprog_set" func setNative(int current)
+    extern "xprog_set_prefix" func setPrefixNative(string prefix)
+    extern "xprog_set_width" func setWidthNative(int width)
+    extern "xprog_percent" func percentNative() as int
+    extern "xprog_is_done" func isDoneNative() as bool
+    extern "xprog_current" func currentNative() as int
+    extern "xprog_total" func totalNative() as int
+    extern "xprog_render" func renderNative() as string
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get percent() as int
+        return self.percentNative()
+    end
+
+    get done() as bool
+        return self.isDoneNative()
+    end
+
+    get current() as int
+        return self.currentNative()
+    end
+
+    get total() as int
+        return self.totalNative()
+    end
+
+    func advance(int n = 1)
+        if self.handle == null then
+            throw RuntimeError "progress: instance is destroyed"
+        end
+        self.advanceNative(n)
+    end
+
+    func set(int current)
+        if self.handle == null then
+            throw RuntimeError "progress: instance is destroyed"
+        end
+        self.setNative(current)
+    end
+
+    func setPrefix(string prefix)
+        if self.handle == null then
+            throw RuntimeError "progress: instance is destroyed"
+        end
+        self.setPrefixNative(prefix)
+    end
+
+    func setWidth(int width)
+        if self.handle == null then
+            throw RuntimeError "progress: instance is destroyed"
+        end
+        self.setWidthNative(width)
+    end
+
+    func render() as string
+        if self.handle == null then
+            throw RuntimeError "progress: instance is destroyed"
+        end
+        return self.renderNative()
+    end
+end
+
+
+
+export func create(int total) as ProgressBar
+    return ProgressBar(total)
+end

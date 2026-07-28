@@ -1,0 +1,43 @@
+import ldap
+
+func main(...) as int
+    // Result codes
+    assert ldap.resultName(0) == "success", "result success"
+    assert ldap.resultName(32) == "noSuchObject", "result nosuch"
+    assert ldap.resultName(49) == "invalidCredentials", "result invalid"
+    assert ldap.resultName(50) == "insufficientAccessRights", "result access"
+
+    // Operations
+    assert ldap.operationName(0) == "bindRequest", "op bind"
+    assert ldap.operationName(3) == "searchRequest", "op search"
+    assert ldap.operationName(6) == "modifyRequest", "op modify"
+    assert ldap.operationName(10) == "delRequest", "op del"
+
+    // Search scope
+    assert ldap.scopeName(0) == "baseObject", "scope base"
+    assert ldap.scopeName(1) == "singleLevel", "scope single"
+    assert ldap.scopeName(2) == "wholeSubtree", "scope subtree"
+
+    // Deref aliases
+    assert ldap.derefName(0) == "neverDerefAliases", "deref never"
+    assert ldap.derefName(3) == "derefAlways", "deref always"
+
+    // Modify operations
+    assert ldap.modifyOp(0) == "add", "mod add"
+    assert ldap.modifyOp(1) == "delete", "mod delete"
+    assert ldap.modifyOp(2) == "replace", "mod replace"
+
+    // Attribute descriptions
+    assert ldap.attrDesc("cn") == "Common Name", "attr cn"
+    assert ldap.attrDesc("mail") == "Email Address", "attr mail"
+    assert ldap.attrDesc("uid") == "User ID", "attr uid"
+    assert ldap.attrDesc("unknown") == "Unknown Attribute", "attr unknown"
+
+    // DN validation
+    assert ldap.validDn("cn=admin,dc=example,dc=com") == 1, "dn valid"
+    assert ldap.validDn("uid=john,ou=people,dc=org") == 1, "dn valid2"
+    assert ldap.validDn("invalid") == 0, "dn invalid"
+    assert ldap.validDn("ab") == 0, "dn short"
+
+    return 0
+end

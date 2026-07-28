@@ -1,0 +1,42 @@
+import hcl
+
+
+
+func main(...) as int
+    auto conf = "variable \"region\" {\n  type = string\n  default = \"us-east-1\"\n}\n\nresource \"instance\" \"web\" {\n  ami = \"ami-12345\"\n  count = 3\n  enabled = true\n  ratio = 0.75\n}\n"
+
+    // Get string attribute
+    assert hcl.get(conf, "default") == "us-east-1", "get default"
+    assert hcl.get(conf, "ami") == "ami-12345", "get ami"
+
+    // Get int
+    assert hcl.getInt(conf, "count") == 3, "get count"
+
+    // Get bool
+    assert hcl.getBool(conf, "enabled") == true, "get enabled"
+
+    // Get float
+    auto r = hcl.getFloat(conf, "ratio")
+    assert r > 0.74 and r < 0.76, "get ratio"
+
+    // Has
+    assert hcl.has(conf, "ami"), "has ami"
+    assert not hcl.has(conf, "missing"), "not has missing"
+
+    // Count blocks
+    assert hcl.countBlocks(conf, "variable") == 1, "1 variable block"
+    assert hcl.countBlocks(conf, "resource") == 1, "1 resource block"
+
+    // Block labels
+    assert hcl.blockLabel(conf, "variable", 0) == "region", "variable label"
+    assert hcl.blockLabel(conf, "resource", 0) == "instance", "resource label"
+
+    // Validate
+    assert hcl.validate(conf), "valid hcl"
+    assert not hcl.validate("bad { unclosed\n"), "invalid hcl"
+
+    // Count attrs
+    assert hcl.countAttrs(conf) == 6, "6 attrs"
+
+    return 0
+end

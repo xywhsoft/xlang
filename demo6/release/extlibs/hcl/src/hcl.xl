@@ -1,0 +1,47 @@
+extern "xhcl_get" func __hcl_get(string hcl, string key) as string
+extern "xhcl_get_int" func __hcl_geti(string hcl, string key) as int
+extern "xhcl_get_float" func __hcl_getf(string hcl, string key) as float
+extern "xhcl_get_bool" func __hcl_getb(string hcl, string key) as bool
+extern "xhcl_has" func __hcl_has(string hcl, string key) as bool
+extern "xhcl_count_blocks" func __hcl_cblocks(string hcl, string btype) as int
+extern "xhcl_block_label" func __hcl_blabel(string hcl, string btype, int idx) as string
+extern "xhcl_validate" func __hcl_valid(string hcl) as bool
+extern "xhcl_count_attrs" func __hcl_cattrs(string hcl) as int
+
+
+
+export func get(string hcl, string key) as string
+    return __hcl_get(hcl, key)
+end
+
+export func getInt(string hcl, string key) as int
+    return __hcl_geti(hcl, key)
+end
+
+export func getFloat(string hcl, string key) as float
+    return __hcl_getf(hcl, key)
+end
+
+export func getBool(string hcl, string key) as bool
+    return __hcl_getb(hcl, key)
+end
+
+export func has(string hcl, string key) as bool
+    return __hcl_has(hcl, key)
+end
+
+export func countBlocks(string hcl, string btype) as int
+    return __hcl_cblocks(hcl, btype)
+end
+
+export func blockLabel(string hcl, string btype, int idx) as string
+    return __hcl_blabel(hcl, btype, idx)
+end
+
+export func validate(string hcl) as bool
+    return __hcl_valid(hcl)
+end
+
+export func countAttrs(string hcl) as int
+    return __hcl_cattrs(hcl)
+end

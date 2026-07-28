@@ -1,0 +1,35 @@
+import libusb
+
+
+
+func main(...) as int
+    // Device enumeration
+    assert libusb.deviceCount() == 4, "4 devices"
+    assert libusb.getVid(0) == 0x046D, "vid 0"
+    assert libusb.getPid(0) == 0xC52B, "pid 0"
+    assert libusb.getName(0) == "Logitech Unifying Receiver", "name 0"
+    assert libusb.getBus(0) == 1, "bus 0"
+    assert libusb.getAddr(0) == 2, "addr 0"
+
+    // Find device
+    assert libusb.find(0x0781, 0x5567) == 2, "find sandisk"
+    assert libusb.find(0x9999, 0x9999) == -1, "not found"
+
+    // Format ID
+    assert libusb.formatId(0x046D, 0xC52B) == "046d:c52b", "format id"
+
+    // Control request (GET_DESCRIPTOR)
+    auto req = libusb.controlRequest(0x80, 0x06, 0x0100, 0, 18)
+    assert string.len(req) == 16, "ctrl req 8 bytes hex"
+
+    // Class names
+    assert libusb.className(0x03) == "HID", "HID class"
+    assert libusb.className(0x08) == "Mass Storage", "MSC class"
+    assert libusb.className(0x09) == "Hub", "Hub class"
+
+    // Descriptor names
+    assert libusb.descriptorName(1) == "Device", "device desc"
+    assert libusb.descriptorName(2) == "Configuration", "config desc"
+
+    return 0
+end

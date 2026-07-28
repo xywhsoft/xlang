@@ -1,0 +1,12 @@
+import vault
+
+
+
+func main(...) as int
+    println("KV2 read:  ", vault.kv2ReadPath("secret", "myapp/db"))
+    println("KV2 meta:  ", vault.kv2MetadataPath("secret", "myapp/db"))
+    println("Health:    ", vault.healthPath())
+    println("Auth:      ", vault.authMethodName("approle"))
+    println("vault example: PASS")
+    return 0
+end

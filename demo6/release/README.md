@@ -12,6 +12,9 @@
 - `examples`：随 `xl.exe` 分发的范例程序。
 - `extlibs`：随 `xl.exe` 分发的 import/package 扩展库资产。
 - `xl_dll_embed_string.exe`、`xl_dll_null_context.exe`、`xl_dll_threaded_host.exe`：DLL API 验证程序。
+- `xl`：Linux CLI。
+- `libxl.so`：Linux 嵌入式运行库。
+- `libxlc.so`：Linux 编译版嵌入式运行库。
 
 ## 维护规则
 

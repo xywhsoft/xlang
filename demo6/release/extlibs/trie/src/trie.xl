@@ -1,0 +1,73 @@
+extern "xrtGetError" func __trie_error() as string
+
+
+
+class Trie
+    native point handle
+    extern "xtrie_create" create()
+    extern "xtrie_destroy" destroy()
+
+    extern "xtrie_insert" func insertNative(string word)
+    extern "xtrie_contains" func containsNative(string word) as bool
+    extern "xtrie_starts_with" func startsWithNative(string prefix) as bool
+    extern "xtrie_count_prefix" func countPrefixNative(string prefix) as int
+    extern "xtrie_remove" func removeNative(string word) as bool
+    extern "xtrie_clear" func clearNative()
+    extern "xtrie_count" func countNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        return self.countNative()
+    end
+
+    func insert(string word)
+        if self.handle == null then
+            throw RuntimeError "trie: instance is destroyed"
+        end
+        self.insertNative(word)
+    end
+
+    func contains(string word) as bool
+        if self.handle == null then
+            throw RuntimeError "trie: instance is destroyed"
+        end
+        return self.containsNative(word)
+    end
+
+    func startsWith(string prefix) as bool
+        if self.handle == null then
+            throw RuntimeError "trie: instance is destroyed"
+        end
+        return self.startsWithNative(prefix)
+    end
+
+    func countPrefix(string prefix) as int
+        if self.handle == null then
+            throw RuntimeError "trie: instance is destroyed"
+        end
+        return self.countPrefixNative(prefix)
+    end
+
+    func remove(string word) as bool
+        if self.handle == null then
+            throw RuntimeError "trie: instance is destroyed"
+        end
+        return self.removeNative(word)
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "trie: instance is destroyed"
+        end
+        self.clearNative()
+    end
+end
+
+
+
+export func create() as Trie
+    return Trie()
+end

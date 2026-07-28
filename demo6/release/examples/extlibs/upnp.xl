@@ -1,0 +1,15 @@
+import upnp
+
+
+
+func main(...) as int
+    println("SSDP: ", upnp.ssdpAddr(), ":", upnp.ssdpPort())
+    println("Root device: ", upnp.typeRoot())
+    println("IGD: ", upnp.typeIgd())
+
+    auto pkt = upnp.buildMSearch("upnp:rootdevice")
+    println("M-SEARCH packet length: ", string.len(pkt))
+
+    println("upnp example: PASS")
+    return 0
+end

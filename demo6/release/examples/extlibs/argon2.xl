@@ -1,0 +1,16 @@
+import argon2
+
+
+
+func main(...) as int
+    auto salt = argon2.genSalt(42, 16)
+    println("salt: ", salt)
+
+    auto h = argon2.hash("secret123", salt, 1000, 32)
+    println("hash: ", h)
+    println("verify correct: ", argon2.verify("secret123", salt, 1000, 32, h))
+    println("verify wrong: ", argon2.verify("wrong", salt, 1000, 32, h))
+
+    println("argon2 example: PASS")
+    return 0
+end

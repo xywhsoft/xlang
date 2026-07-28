@@ -1,0 +1,35 @@
+import minio
+
+func main(...) as int
+    // S3/MinIO object storage helpers
+
+    // HTTP methods
+    println("GET = " + minio.methodName(0))
+    println("PUT = " + minio.methodName(1))
+
+    // Storage classes
+    println("class 0 = " + minio.storageClass(0))
+    println("class 2 = " + minio.storageClass(2))
+
+    // ACL
+    println("acl 0 = " + minio.aclName(0))
+    println("acl 1 = " + minio.aclName(1))
+
+    // Bucket validation
+    println("valid 'my-bucket' = " + string.format("{}", minio.validBucket("my-bucket")))
+    println("valid 'ab' = " + string.format("{}", minio.validBucket("ab")))
+
+    // Endpoint construction
+    println("endpoint = " + minio.endpoint("s3.amazonaws.com", 0, 1))
+    println("endpoint = " + minio.endpoint("localhost", 9000, 0))
+
+    // Object URL
+    println("url = " + minio.objectUrl("https://s3.example.com", "mybucket", "docs/file.pdf"))
+
+    // Content type detection
+    println("ct json = " + minio.contentType("data.json"))
+    println("ct png = " + minio.contentType("image.png"))
+
+    println("minio example: PASS")
+    return 0
+end

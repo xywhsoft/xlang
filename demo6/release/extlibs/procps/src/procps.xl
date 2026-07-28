@@ -1,0 +1,37 @@
+extern "xprocps_getpid" func __proc_pid() as int
+extern "xprocps_getppid" func __proc_ppid() as int
+extern "xprocps_exists" func __proc_exists(int pid) as bool
+extern "xprocps_name" func __proc_name(int pid) as string
+extern "xprocps_list_pids" func __proc_list() as string
+extern "xprocps_count" func __proc_count() as int
+extern "xprocps_mem_kb" func __proc_mem(int pid) as int
+
+
+
+export func pid() as int
+    return __proc_pid()
+end
+
+export func ppid() as int
+    return __proc_ppid()
+end
+
+export func exists(int pid) as bool
+    return __proc_exists(pid)
+end
+
+export func name(int pid) as string
+    return __proc_name(pid)
+end
+
+export func listPids() as string
+    return __proc_list()
+end
+
+export func count() as int
+    return __proc_count()
+end
+
+export func memKb(int pid) as int
+    return __proc_mem(pid)
+end

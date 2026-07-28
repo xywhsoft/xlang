@@ -1,0 +1,40 @@
+extern "xpulsar_cmd_name" func __cmd_name(int type) as string
+extern "xpulsar_error_name" func __error_name(int code) as string
+extern "xpulsar_sub_type" func __sub_type(int type) as string
+extern "xpulsar_compression" func __compression(int type) as string
+extern "xpulsar_schema_type" func __schema_type(int type) as string
+extern "xpulsar_topic_domain" func __topic_domain(int domain) as string
+extern "xpulsar_topic_tenant" func __topic_tenant(string topic) as string
+extern "xpulsar_topic_namespace" func __topic_namespace(string topic) as string
+
+export func cmdName(int type) as string
+    return __cmd_name(type)
+end
+
+export func errorName(int code) as string
+    return __error_name(code)
+end
+
+export func subType(int type) as string
+    return __sub_type(type)
+end
+
+export func compression(int type) as string
+    return __compression(type)
+end
+
+export func schemaType(int type) as string
+    return __schema_type(type)
+end
+
+export func topicDomain(int domain) as string
+    return __topic_domain(domain)
+end
+
+export func topicTenant(string topic) as string
+    return __topic_tenant(topic)
+end
+
+export func topicNamespace(string topic) as string
+    return __topic_namespace(topic)
+end

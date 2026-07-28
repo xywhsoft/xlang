@@ -1,0 +1,19 @@
+import ftp
+
+func main(...) as int
+    // FTP protocol helpers
+
+    // Reply codes
+    println("220 = " + ftp.replyText(220))
+    println("550 = " + ftp.replyText(550))
+
+    // Commands
+    println("Cmd 7 = " + ftp.cmdName(7))
+    println("Cmd 8 = " + ftp.cmdName(8))
+
+    // PASV parsing
+    println("PASV = " + ftp.parsePasv("227 Entering Passive Mode (10,0,0,1,20,0)"))
+
+    println("ftp example: PASS")
+    return 0
+end

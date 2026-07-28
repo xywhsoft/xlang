@@ -1,0 +1,16 @@
+import fuzzy
+
+
+
+func main(...) as int
+    println("levenshtein(kitten, sitting):", fuzzy.levenshtein("kitten", "sitting"))
+    println("ratio(hello, hallo):", fuzzy.ratio("hello", "hallo"))
+    println("match(fb, foobar):", fuzzy.match("fb", "foobar"))
+    println("isMatch(xyz, foobar):", fuzzy.isMatch("xyz", "foobar"))
+
+    string candidates = "src/main.c\nsrc/utils.c\nlib/parser.c\nlib/lexer.c"
+    println("best(pc, ...):", fuzzy.best("pc", candidates))
+
+    println("fuzzy example: PASS")
+    return 0
+end

@@ -1,0 +1,13 @@
+import ggml
+
+func main(...) as int
+    // GGML tensor library
+
+    println("Type 0 = " + ggml.dtype(0))
+    println("Op 2 = " + ggml.op(2))
+    println("ReLU(5) = " + string.fromFloat(ggml.relu(5.0)))
+    println("Backend 0 = " + ggml.backend(0))
+
+    println("ggml example: PASS")
+    return 0
+end

@@ -1,0 +1,45 @@
+extern "xrtc_candidate_type" func __candidate_type(int type) as string
+extern "xrtc_ice_state" func __ice_state(int state) as string
+extern "xrtc_pc_state" func __pc_state(int state) as string
+extern "xrtc_signaling_state" func __signaling_state(int state) as string
+extern "xrtc_sdp_type" func __sdp_type(int type) as string
+extern "xrtc_payload_name" func __payload_name(int pt) as string
+extern "xrtc_hash_algo" func __hash_algo(int algo) as string
+extern "xrtc_dc_reliability" func __dc_reliability(int mode) as string
+extern "xrtc_bundle_policy" func __bundle_policy(int policy) as string
+
+export func candidateType(int type) as string
+    return __candidate_type(type)
+end
+
+export func iceState(int state) as string
+    return __ice_state(state)
+end
+
+export func pcState(int state) as string
+    return __pc_state(state)
+end
+
+export func signalingState(int state) as string
+    return __signaling_state(state)
+end
+
+export func sdpType(int type) as string
+    return __sdp_type(type)
+end
+
+export func payloadName(int pt) as string
+    return __payload_name(pt)
+end
+
+export func hashAlgo(int algo) as string
+    return __hash_algo(algo)
+end
+
+export func dcReliability(int mode) as string
+    return __dc_reliability(mode)
+end
+
+export func bundlePolicy(int policy) as string
+    return __bundle_policy(policy)
+end

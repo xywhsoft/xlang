@@ -141,7 +141,13 @@ int xlJoinPathBuffer(char* out, size_t outSize, const char* dir, const char* nam
         return 0;
     }
     len = strlen(dir);
-    sep = (len > 0 && (dir[len - 1u] == '\\' || dir[len - 1u] == '/')) ? "" : "\\";
+    sep = (len > 0 && (dir[len - 1u] == '\\' || dir[len - 1u] == '/')) ?
+          "" :
+#ifdef _WIN32
+          "\\";
+#else
+          "/";
+#endif
     written = snprintf(out, outSize, "%s%s%s", dir, sep, name);
     return written > 0 && (size_t)written < outSize;
 }
@@ -248,5 +254,9 @@ char* xlToolchainPathSnapshot(const char* baseDir, const char* path)
 
 char* xlDefaultTempDirSnapshot(const char* baseDir)
 {
+#ifdef _WIN32
     return xlPathSnapshot(baseDir, "build\\tmp");
+#else
+    return xlPathSnapshot(baseDir, "build/tmp");
+#endif
 }

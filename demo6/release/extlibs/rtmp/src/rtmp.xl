@@ -1,0 +1,40 @@
+extern "xrtmp_msg_type" func __msg_type(int type) as string
+extern "xrtmp_csid_name" func __csid_name(int csid) as string
+extern "xrtmp_ucm_event" func __ucm_event(int event) as string
+extern "xrtmp_audio_codec" func __audio_codec(int codec) as string
+extern "xrtmp_video_codec" func __video_codec(int codec) as string
+extern "xrtmp_frame_type" func __frame_type(int type) as string
+extern "xrtmp_command_name" func __command_name(int cmd) as string
+extern "xrtmp_valid_url" func __valid_url(string url) as int
+
+export func msgType(int type) as string
+    return __msg_type(type)
+end
+
+export func csidName(int csid) as string
+    return __csid_name(csid)
+end
+
+export func ucmEvent(int event) as string
+    return __ucm_event(event)
+end
+
+export func audioCodec(int codec) as string
+    return __audio_codec(codec)
+end
+
+export func videoCodec(int codec) as string
+    return __video_codec(codec)
+end
+
+export func frameType(int type) as string
+    return __frame_type(type)
+end
+
+export func commandName(int cmd) as string
+    return __command_name(cmd)
+end
+
+export func validUrl(string url) as int
+    return __valid_url(url)
+end

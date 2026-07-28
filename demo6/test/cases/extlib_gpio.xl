@@ -1,0 +1,45 @@
+import gpio
+
+
+
+func main(...) as int
+    auto g = gpio.init()
+    assert g.valid, "valid"
+
+    // Export pin 17
+    assert g.exportPin(17), "export 17"
+    assert g.isExported(17), "is exported"
+    assert not g.isExported(18), "18 not exported"
+
+    // Set as output
+    assert g.setOutput(17), "set output"
+    assert g.direction(17) == 1, "direction output"
+
+    // Write and read
+    assert g.write(17, 1), "write high"
+    assert g.read(17) == 1, "read high"
+    assert g.write(17, 0), "write low"
+    assert g.read(17) == 0, "read low"
+
+    // Toggle
+    auto v = g.toggle(17)
+    assert v == 1, "toggle to 1"
+    assert g.read(17) == 1, "read after toggle"
+    v = g.toggle(17)
+    assert v == 0, "toggle to 0"
+
+    // Input with pull-up
+    assert g.exportPin(22), "export 22"
+    assert g.setInput(22), "set input"
+    assert g.setPullUp(22), "pull up"
+    assert g.read(22) == 1, "pull-up reads high"
+
+    // Cannot write to input pin
+    assert not g.write(22, 0), "cannot write input"
+
+    // Unexport
+    assert g.unexportPin(17), "unexport 17"
+    assert not g.isExported(17), "17 not exported"
+
+    return 0
+end

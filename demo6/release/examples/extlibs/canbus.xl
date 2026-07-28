@@ -1,0 +1,21 @@
+import canbus
+
+
+
+func main(...) as int
+    // Standard CAN frame
+    auto f = canbus.buildStd(0x200, 8, "0102030405060708")
+    println("CAN std frame: ", f)
+    println("  ID:   ", canbus.getId(f))
+    println("  DLC:  ", canbus.getDlc(f))
+    println("  Data: ", canbus.getData(f))
+
+    // Extended frame
+    auto fe = canbus.buildExt(0x18FF1234, 3, "aabbcc")
+    println("CAN ext frame: ", fe)
+    println("  ID:   ", canbus.getId(fe))
+    println("  Ext:  ", canbus.isExtended(fe))
+
+    println("canbus example: PASS")
+    return 0
+end

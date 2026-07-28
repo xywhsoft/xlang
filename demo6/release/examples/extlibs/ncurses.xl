@@ -1,0 +1,14 @@
+import ncurses
+
+
+
+func main(...) as int
+    ncurses.init(8, 30)
+    ncurses.box(0, 0, 7, 29)
+    ncurses.mvAddStr(1, 2, "Terminal UI Demo")
+    ncurses.hline(2, 1, '-', 28)
+    ncurses.mvAddStr(4, 2, "Hello, ncurses!")
+    println(ncurses.render())
+    println("ncurses example: PASS")
+    return 0
+end

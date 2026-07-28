@@ -1,0 +1,33 @@
+import ggml
+
+func main(...) as int
+    // Data types
+    assert ggml.dtype(0) == "F32", "type f32"
+    assert ggml.dtype(2) == "Q4_0", "type q4_0"
+
+    // Operations
+    assert ggml.op(0) == "ADD", "op add"
+    assert ggml.op(2) == "MATMUL", "op matmul"
+
+    // ReLU
+    float r1 = ggml.relu(5.0)
+    assert r1 > 4.99, "relu pos"
+    float r2 = ggml.relu(-3.0)
+    assert r2 > -0.01, "relu neg min"
+    assert r2 < 0.01, "relu neg max"
+
+    // GELU(0) = 0
+    float g0 = ggml.gelu(0.0)
+    assert g0 > -0.01, "gelu0 min"
+    assert g0 < 0.01, "gelu0 max"
+
+    // Type sizes
+    assert ggml.typeSize(0) == 4, "size f32"
+    assert ggml.typeSize(1) == 2, "size f16"
+
+    // Backends
+    assert ggml.backend(0) == "cpu", "backend cpu"
+    assert ggml.backend(1) == "cuda", "backend cuda"
+
+    return 0
+end

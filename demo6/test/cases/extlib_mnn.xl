@@ -1,0 +1,27 @@
+import mnn
+
+func main(...) as int
+    // Backends
+    assert mnn.backend(0) == "CPU", "backend cpu"
+    assert mnn.backend(1) == "Metal", "backend metal"
+
+    // Precision
+    assert mnn.precision(0) == "Normal", "prec normal"
+    assert mnn.precision(2) == "Low", "prec low"
+
+    // Power
+    assert mnn.power(0) == "Normal", "power normal"
+
+    // Memory
+    assert mnn.memory(0) == "Normal", "mem normal"
+
+    // Forward type
+    assert mnn.forwardType(0) == "AUTO", "fwd auto"
+    assert mnn.forwardType(3) == "OPENCL", "fwd opencl"
+
+    // Conv FLOPs: k=3, cin=64, cout=128, h=56, w=56
+    // = 2*3*3*64*128*56*56 = 462422016
+    assert mnn.convFlops(3, 64, 128, 56, 56) == 462422016, "flops"
+
+    return 0
+end

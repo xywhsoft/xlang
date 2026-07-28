@@ -1,0 +1,39 @@
+import pptx
+
+func main(...) as int
+    // Slide layouts
+    assert pptx.slideLayout(0) == "Title Slide", "layout title"
+    assert pptx.slideLayout(1) == "Title and Content", "layout content"
+    assert pptx.slideLayout(6) == "Blank", "layout blank"
+
+    // Transitions
+    assert pptx.transition(0) == "none", "trans none"
+    assert pptx.transition(1) == "fade", "trans fade"
+    assert pptx.transition(9) == "morph", "trans morph"
+
+    // Animation types
+    assert pptx.animType(0) == "appear", "anim appear"
+    assert pptx.animType(2) == "fly in", "anim fly"
+
+    // Chart types
+    assert pptx.chartType(0) == "column", "chart col"
+    assert pptx.chartType(3) == "pie", "chart pie"
+
+    // Shape types
+    assert pptx.shapeType(0) == "rectangle", "shape rect"
+    assert pptx.shapeType(2) == "ellipse", "shape ellipse"
+
+    // EMU to cm conversion (1cm = 360000 EMU)
+    assert pptx.emuToCm(360000) == 10, "emu 1cm"
+    assert pptx.emuToCm(720000) == 20, "emu 2cm"
+
+    // Color schemes
+    assert pptx.colorScheme(0) == "Office Theme", "scheme office"
+    assert pptx.colorScheme(1) == "Grayscale", "scheme gray"
+
+    // Bullet styles
+    assert pptx.bulletStyle(0) == "none", "bullet none"
+    assert pptx.bulletStyle(1) == "disc", "bullet disc"
+
+    return 0
+end

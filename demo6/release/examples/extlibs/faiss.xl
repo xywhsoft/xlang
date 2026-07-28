@@ -1,0 +1,13 @@
+import faiss
+
+func main(...) as int
+    // FAISS vector similarity search
+
+    println("Index 0 = " + faiss.indexType(0))
+    println("Metric 0 = " + faiss.metric(0))
+    println("L2(1,2 vs 4,6) = " + string.fromFloat(faiss.l2Distance("1,2", "4,6")))
+    println("Cosine(3,4 vs 3,4) = " + string.fromFloat(faiss.cosine("3,4", "3,4")))
+
+    println("faiss example: PASS")
+    return 0
+end

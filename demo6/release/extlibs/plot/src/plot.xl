@@ -1,0 +1,40 @@
+extern "xplot_chart_type" func __chart_type(int id) as string
+extern "xplot_axis_scale" func __axis_scale(int id) as string
+extern "xplot_legend_position" func __legend_position(int id) as string
+extern "xplot_color" func __color(int id) as string
+extern "xplot_line_style" func __line_style(int id) as string
+extern "xplot_marker" func __marker(int id) as string
+extern "xplot_svg_viewbox" func __svg_viewbox(int w, int h) as string
+extern "xplot_output_format" func __output_format(int id) as string
+
+export func chartType(int id) as string
+    return __chart_type(id)
+end
+
+export func axisScale(int id) as string
+    return __axis_scale(id)
+end
+
+export func legendPosition(int id) as string
+    return __legend_position(id)
+end
+
+export func color(int id) as string
+    return __color(id)
+end
+
+export func lineStyle(int id) as string
+    return __line_style(id)
+end
+
+export func marker(int id) as string
+    return __marker(id)
+end
+
+export func svgViewbox(int w, int h) as string
+    return __svg_viewbox(w, h)
+end
+
+export func outputFormat(int id) as string
+    return __output_format(id)
+end

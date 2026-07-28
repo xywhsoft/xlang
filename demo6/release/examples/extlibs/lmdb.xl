@@ -1,0 +1,16 @@
+import lmdb
+
+
+
+func main(...) as int
+    println("Page size:  ", lmdb.pageSize())
+    println("Pages(10K): ", lmdb.pagesNeeded(10000, 4096))
+    auto kv = lmdb.encodeKV("user:1001", "{\"name\":\"Bob\"}")
+    println("Encoded KV: ", kv)
+    println("Key:        ", lmdb.decodeKey(kv))
+    println("Value:      ", lmdb.decodeValue(kv))
+    println("Compare:    ", lmdb.keyCompare("apple", "banana"))
+    println("DB size:    ", lmdb.dbSize(10000, 20, 200))
+    println("lmdb example: PASS")
+    return 0
+end

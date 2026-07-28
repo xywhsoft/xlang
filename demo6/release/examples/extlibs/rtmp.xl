@@ -1,0 +1,19 @@
+import rtmp
+
+func main(...) as int
+    // RTMP protocol helpers
+
+    // Message types
+    println("Msg 8 = " + rtmp.msgType(8))
+    println("Msg 9 = " + rtmp.msgType(9))
+
+    // Codecs
+    println("Audio 10 = " + rtmp.audioCodec(10))
+    println("Video 7 = " + rtmp.videoCodec(7))
+
+    // Commands
+    println("Cmd 0 = " + rtmp.commandName(0))
+
+    println("rtmp example: PASS")
+    return 0
+end

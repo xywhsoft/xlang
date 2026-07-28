@@ -1,0 +1,33 @@
+import daemon
+
+
+
+func main(...) as int
+    auto d = daemon.create("test_service")
+    assert d.valid, "valid"
+    assert d.name == "test_service", "name"
+    assert d.pid > 0, "pid positive"
+    assert d.isRunning, "initially running"
+    assert not d.isDaemonized, "not daemonized yet"
+
+    // Write and read PID file
+    assert d.writePidFile("test_daemon.pid"), "write pidfile"
+    auto readpid = daemon.readPidFile("test_daemon.pid")
+    assert readpid == d.pid, "read pid matches"
+
+    // Check if our own process is alive
+    assert daemon.isAlive(d.pid), "self is alive"
+
+    // Non-existent process
+    assert not daemon.isAlive(999999), "fake pid not alive"
+
+    // Status string
+    auto st = d.status
+    assert string.len(st) > 0, "status non-empty"
+
+    // Stop
+    d.stop()
+    assert not d.isRunning, "stopped"
+
+    return 0
+end

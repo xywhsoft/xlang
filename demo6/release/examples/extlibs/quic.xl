@@ -1,0 +1,21 @@
+import quic
+
+func main(...) as int
+    // QUIC protocol helpers
+
+    // Packet types
+    println("Packet 0 = " + quic.packetType(0))
+    println("Packet 2 = " + quic.packetType(2))
+
+    // Frame types
+    println("Frame 6 = " + quic.frameType(6))
+
+    // Error codes
+    println("Error 3 = " + quic.errorName(3))
+
+    // Stream types
+    println("Stream 0 = " + quic.streamType(0))
+
+    println("quic example: PASS")
+    return 0
+end

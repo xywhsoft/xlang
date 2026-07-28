@@ -1,0 +1,39 @@
+import icu
+
+func main(...) as int
+    // Scripts
+    assert icu.script(0) == "Latin", "script latin"
+    assert icu.script(1) == "Han", "script han"
+    assert icu.script(8) == "Hangul", "script hangul"
+
+    // Break types
+    assert icu.breakType(0) == "character", "break char"
+    assert icu.breakType(1) == "word", "break word"
+
+    // Collation strength
+    assert icu.collationStrength(0) == "primary", "coll primary"
+    assert icu.collationStrength(4) == "identical", "coll identical"
+
+    // Normalization forms
+    assert icu.normalizationForm(0) == "NFC", "norm NFC"
+    assert icu.normalizationForm(2) == "NFKC", "norm NFKC"
+
+    // Date formats
+    assert icu.dateFormat(0) == "full", "date full"
+    assert icu.dateFormat(3) == "short", "date short"
+
+    // Number formats
+    assert icu.numberFormat(0) == "decimal", "num decimal"
+    assert icu.numberFormat(1) == "currency", "num currency"
+
+    // UTF-8 length
+    assert icu.utf8Len(65) == 1, "utf8 ascii"
+    assert icu.utf8Len(0x4E2D) == 3, "utf8 cjk"
+    assert icu.utf8Len(0x1F600) == 4, "utf8 emoji"
+
+    // Locale components
+    assert icu.localeComponent(0) == "language", "locale lang"
+    assert icu.localeComponent(2) == "region", "locale region"
+
+    return 0
+end

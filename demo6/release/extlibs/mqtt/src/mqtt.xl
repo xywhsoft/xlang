@@ -1,0 +1,55 @@
+extern "xmqtt_connect" func __mqtt_connect(string client_id, int keepalive, int clean_session) as string
+extern "xmqtt_publish" func __mqtt_publish(string topic, string payload) as string
+extern "xmqtt_subscribe" func __mqtt_subscribe(int packet_id, string topic) as string
+extern "xmqtt_pingreq" func __mqtt_pingreq() as string
+extern "xmqtt_disconnect" func __mqtt_disconnect() as string
+extern "xmqtt_connack" func __mqtt_connack(int return_code) as string
+extern "xmqtt_packet_type" func __mqtt_packet_type(string pkt_hex) as int
+extern "xmqtt_type_name" func __mqtt_type_name(int ptype) as string
+extern "xmqtt_get_qos" func __mqtt_get_qos(string pkt_hex) as int
+extern "xmqtt_valid_topic" func __mqtt_valid_topic(string topic) as int
+extern "xmqtt_valid_filter" func __mqtt_valid_filter(string filter) as int
+
+export func connect(string client_id, int keepalive, int clean_session) as string
+    return __mqtt_connect(client_id, keepalive, clean_session)
+end
+
+export func publish(string topic, string payload) as string
+    return __mqtt_publish(topic, payload)
+end
+
+export func subscribe(int packet_id, string topic) as string
+    return __mqtt_subscribe(packet_id, topic)
+end
+
+export func pingreq() as string
+    return __mqtt_pingreq()
+end
+
+export func disconnect() as string
+    return __mqtt_disconnect()
+end
+
+export func connack(int return_code) as string
+    return __mqtt_connack(return_code)
+end
+
+export func packetType(string pkt_hex) as int
+    return __mqtt_packet_type(pkt_hex)
+end
+
+export func typeName(int ptype) as string
+    return __mqtt_type_name(ptype)
+end
+
+export func getQos(string pkt_hex) as int
+    return __mqtt_get_qos(pkt_hex)
+end
+
+export func validTopic(string topic) as int
+    return __mqtt_valid_topic(topic)
+end
+
+export func validFilter(string filter) as int
+    return __mqtt_valid_filter(filter)
+end

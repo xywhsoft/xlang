@@ -13,6 +13,12 @@
 #include <unistd.h>
 #endif
 
+#ifdef _WIN32
+#define XLC_SHELL_PATH_SEPARATOR "\\"
+#else
+#define XLC_SHELL_PATH_SEPARATOR "/"
+#endif
+
 static char xlcShellKeptTempDir[512];
 static char xlcShellProjectKind[16];
 
@@ -25,9 +31,11 @@ static void xlcShellPrintHelp(void)
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl ir <file.xl> [--format text|json] [--emit output.xlir]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl cgen <file.xl> [--emit output.c] [--emit-header output.h] [--dump-dir dir]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl abi <file.xl> [--json] [--emit output.abi.txt]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl|file.c|file.xlp> [helper.c ...] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll] [-- <args>...]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o <output.exe|dll>] [-shared] [--res file.json|file.xson] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib dll]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl|file.c|file.xlp> [helper.c ...] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library] [-- <args>...]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o output] [-shared] [--res file.json|file.xson] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library]\n");
+#ifdef _WIN32
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl impdef <file.dll> -o <output.def>\n");
+#endif
 }
 
 static const char* xlcShellFileArg(int argc, char** argv)
@@ -201,7 +209,9 @@ static int xlcShellJoinDirPath(char* out, size_t outSize, const char* dir, const
         return 0;
     }
     len = strlen(dir);
-    sep = (len > 0 && (dir[len - 1u] == '\\' || dir[len - 1u] == '/')) ? "" : "\\";
+    sep = (len > 0 && (dir[len - 1u] == '\\' || dir[len - 1u] == '/')) ?
+          "" :
+          XLC_SHELL_PATH_SEPARATOR;
     written = snprintf(out, outSize, "%s%s%s", dir, sep, name);
     return written > 0 && (size_t)written < outSize;
 }
@@ -260,7 +270,16 @@ static int xlcShellMakeTaggedTempDir(char* out, size_t outSize, const char* tag)
     pid = xlcShellProcessId();
     tick = xlcShellTick();
     for ( i = 0; i < 100; ++i ) {
-        int written = snprintf(out, outSize, "%s\\xl6_%s_%lu_%lu_%d", tmpDir, tag, pid, tick, i);
+        int written = snprintf(
+            out,
+            outSize,
+            "%s%sxl6_%s_%lu_%lu_%d",
+            tmpDir,
+            XLC_SHELL_PATH_SEPARATOR,
+            tag,
+            pid,
+            tick,
+            i);
         if ( written <= 0 || (size_t)written >= outSize ) {
             return 0;
         }
@@ -968,7 +987,14 @@ static int xlcShellJoinPath(char* out, size_t outSize, const char* dir, const ch
     if ( out == NULL || outSize == 0 || dir == NULL || base == NULL || suffix == NULL ) {
         return 0;
     }
-    written = snprintf(out, outSize, "%s\\%s%s", dir, base, suffix);
+    written = snprintf(
+        out,
+        outSize,
+        "%s%s%s%s",
+        dir,
+        XLC_SHELL_PATH_SEPARATOR,
+        base,
+        suffix);
     return written > 0 && (size_t)written < outSize;
 }
 
@@ -1262,8 +1288,9 @@ static int xlcShellDoCheck(XLC_Context* ctx, int argc, char** argv)
     }
     if ( snprintf(outputPath,
                   sizeof(outputPath),
-                  "%s\\xlc_check_%lu_%lu.txt",
+                  "%s%sxlc_check_%lu_%lu.txt",
                   tmpDir,
+                  XLC_SHELL_PATH_SEPARATOR,
                   xlcShellProcessId(),
                   xlcShellTick()) <= 0 ) {
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot create temporary check path\n");
@@ -1509,7 +1536,7 @@ static int xlcShellDoBuild(XLC_Context* ctx, int argc, char** argv)
     output = xlcShellFindValue(argc, argv, "-o", 3);
     if ( output == NULL ) {
         if ( buildShared ) {
-            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "build shared library requires -o <output.dll>\n");
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "build shared library requires -o <output>\n");
             return 0;
         }
         if ( !xlcShellDefaultBuildOutput(defaultOutput, sizeof(defaultOutput), xlcShellFileArg(argc, argv)) ) {
@@ -1551,7 +1578,7 @@ static int xlcShellBuildC(int argc, char** argv)
     output = xlcShellFindValue(argc, argv, "-o", 3);
     if ( output == NULL ) {
         if ( buildShared ) {
-            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "build shared library requires -o <output.dll>\n");
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "build shared library requires -o <output>\n");
             return 1;
         }
         if ( !xlcShellDefaultBuildOutput(defaultOutput, sizeof(defaultOutput), cInputs[0]) ) {

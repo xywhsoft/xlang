@@ -1,0 +1,75 @@
+extern "xgmp_cmp" func __gmp_cmp(string a, string b) as int
+extern "xgmp_digits" func __gmp_digits(string num) as int
+extern "xgmp_is_zero" func __gmp_iszero(string num) as int
+extern "xgmp_is_negative" func __gmp_isneg(string num) as int
+extern "xgmp_abs" func __gmp_abs(string num) as string
+extern "xgmp_to_base" func __gmp_tobase(int value, int base) as string
+extern "xgmp_from_base" func __gmp_frombase(string str, int base) as int
+extern "xgmp_gcd" func __gmp_gcd(int a, int b) as int
+extern "xgmp_lcm" func __gmp_lcm(int a, int b) as int
+extern "xgmp_powm" func __gmp_powm(int base, int exp, int mod) as int
+extern "xgmp_probab_prime" func __gmp_prime(int n, int reps) as int
+extern "xgmp_factorial" func __gmp_fact(int n) as int
+extern "xgmp_binomial" func __gmp_binom(int n, int k) as int
+extern "xgmp_version_major" func __gmp_vmaj() as int
+extern "xgmp_version_minor" func __gmp_vmin() as int
+
+export func compare(string a, string b) as int
+    return __gmp_cmp(a, b)
+end
+
+export func digits(string num) as int
+    return __gmp_digits(num)
+end
+
+export func isZero(string num) as int
+    return __gmp_iszero(num)
+end
+
+export func isNegative(string num) as int
+    return __gmp_isneg(num)
+end
+
+export func abs(string num) as string
+    return __gmp_abs(num)
+end
+
+export func toBase(int value, int base) as string
+    return __gmp_tobase(value, base)
+end
+
+export func fromBase(string str, int base) as int
+    return __gmp_frombase(str, base)
+end
+
+export func gcd(int a, int b) as int
+    return __gmp_gcd(a, b)
+end
+
+export func lcm(int a, int b) as int
+    return __gmp_lcm(a, b)
+end
+
+export func powm(int base, int exp, int mod) as int
+    return __gmp_powm(base, exp, mod)
+end
+
+export func probabPrime(int n, int reps) as int
+    return __gmp_prime(n, reps)
+end
+
+export func factorial(int n) as int
+    return __gmp_fact(n)
+end
+
+export func binomial(int n, int k) as int
+    return __gmp_binom(n, k)
+end
+
+export func versionMajor() as int
+    return __gmp_vmaj()
+end
+
+export func versionMinor() as int
+    return __gmp_vmin()
+end

@@ -1,0 +1,35 @@
+extern "xxlsx_cell_type" func __cell_type(int type) as string
+extern "xxlsx_col_letter" func __col_letter(int col) as string
+extern "xxlsx_col_index" func __col_index(string letter) as int
+extern "xxlsx_cell_ref" func __cell_ref(int col, int row) as string
+extern "xxlsx_num_format" func __num_format(int id) as string
+extern "xxlsx_sheet_state" func __sheet_state(int state) as string
+extern "xxlsx_error_name" func __error_name(int code) as string
+
+export func cellType(int type) as string
+    return __cell_type(type)
+end
+
+export func colLetter(int col) as string
+    return __col_letter(col)
+end
+
+export func colIndex(string letter) as int
+    return __col_index(letter)
+end
+
+export func cellRef(int col, int row) as string
+    return __cell_ref(col, row)
+end
+
+export func numFormat(int id) as string
+    return __num_format(id)
+end
+
+export func sheetState(int state) as string
+    return __sheet_state(state)
+end
+
+export func errorName(int code) as string
+    return __error_name(code)
+end

@@ -1,0 +1,27 @@
+extern "xtotp_generate" func __totp_generate(string secret, int timeStep, int digits) as string
+extern "xtotp_generate_at" func __totp_generate_at(string secret, int timestamp, int timeStep, int digits) as string
+extern "xtotp_hotp" func __totp_hotp(string secret, int counter, int digits) as string
+extern "xtotp_verify" func __totp_verify(string secret, string code, int timeStep, int digits, int window) as bool
+extern "xtotp_verify_at" func __totp_verify_at(string secret, string code, int timestamp, int timeStep, int digits, int window) as bool
+
+
+
+export func generate(string secret, int timeStep = 30, int digits = 6) as string
+    return __totp_generate(secret, timeStep, digits)
+end
+
+export func generateAt(string secret, int timestamp, int timeStep = 30, int digits = 6) as string
+    return __totp_generate_at(secret, timestamp, timeStep, digits)
+end
+
+export func hotp(string secret, int counter, int digits = 6) as string
+    return __totp_hotp(secret, counter, digits)
+end
+
+export func verify(string secret, string code, int timeStep = 30, int digits = 6, int window = 1) as bool
+    return __totp_verify(secret, code, timeStep, digits, window)
+end
+
+export func verifyAt(string secret, string code, int timestamp, int timeStep = 30, int digits = 6, int window = 1) as bool
+    return __totp_verify_at(secret, code, timestamp, timeStep, digits, window)
+end

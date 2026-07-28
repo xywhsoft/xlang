@@ -1,0 +1,21 @@
+import bson
+
+
+
+func main(...) as int
+    // Build {"hello": "world", "count": 42}
+    auto elems = bson.concat(bson.encodeStr("hello", "world"), bson.encodeInt32("count", 42))
+    auto doc = bson.encodeDoc(elems)
+
+    println("BSON doc: ", doc)
+    println("doc len:  ", bson.docLen(doc))
+    println("key@4:    ", bson.elemKey(doc, 4))
+    println("val@4:    ", bson.decodeStr(doc, 4))
+
+    auto off2 = bson.nextElem(doc, 4)
+    println("key@next: ", bson.elemKey(doc, off2))
+    println("val@next: ", bson.decodeInt32(doc, off2))
+
+    println("bson example: PASS")
+    return 0
+end

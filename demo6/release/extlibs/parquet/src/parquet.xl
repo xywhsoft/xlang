@@ -1,0 +1,35 @@
+extern "xparquet_type" func __type(int id) as string
+extern "xparquet_encoding" func __encoding(int id) as string
+extern "xparquet_compression" func __compression(int id) as string
+extern "xparquet_repetition" func __repetition(int id) as string
+extern "xparquet_converted_type" func __converted_type(int id) as string
+extern "xparquet_estimate_size" func __estimate_size(int rows, int cols, int bytes) as int
+extern "xparquet_page_type" func __page_type(int id) as string
+
+export func dataType(int id) as string
+    return __type(id)
+end
+
+export func encoding(int id) as string
+    return __encoding(id)
+end
+
+export func compression(int id) as string
+    return __compression(id)
+end
+
+export func repetition(int id) as string
+    return __repetition(id)
+end
+
+export func convertedType(int id) as string
+    return __converted_type(id)
+end
+
+export func estimateSize(int rows, int cols, int bytes) as int
+    return __estimate_size(rows, cols, bytes)
+end
+
+export func pageType(int id) as string
+    return __page_type(id)
+end

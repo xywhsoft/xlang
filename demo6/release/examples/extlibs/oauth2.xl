@@ -1,0 +1,15 @@
+import oauth2
+
+
+
+func main(...) as int
+    auto url = oauth2.authUrl("https://accounts.google.com/o/oauth2/v2/auth", "client123", "http://localhost/cb", "openid", "state123456")
+    println("Auth URL: ", url)
+
+    auto verifier = oauth2.pkceVerifier(99)
+    println("PKCE verifier: ", verifier)
+    println("PKCE challenge: ", oauth2.pkceChallenge(verifier))
+
+    println("oauth2 example: PASS")
+    return 0
+end

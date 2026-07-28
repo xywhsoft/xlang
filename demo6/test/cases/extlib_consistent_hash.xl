@@ -1,0 +1,54 @@
+import consistent_hash
+
+
+
+func main(...) as int
+    auto ring = consistent_hash.create(100)
+    assert ring.valid, "ring should be valid"
+    assert ring.nodeCount == 0, "initial node count"
+
+    ring.addNode("server-A")
+    ring.addNode("server-B")
+    ring.addNode("server-C")
+    assert ring.nodeCount == 3, "node count after adds"
+    assert ring.vnodeCount == 300, "vnode count = 3 * 100"
+
+    // duplicate add should be no-op
+    ring.addNode("server-A")
+    assert ring.nodeCount == 3, "duplicate add ignored"
+
+    // getNode should return one of the added nodes
+    string n1 = ring.getNode("user:1001")
+    assert n1 != "", "getNode returns non-empty"
+    assert n1 == "server-A" or n1 == "server-B" or n1 == "server-C", "getNode returns valid node"
+
+    // consistency: same key always maps to same node
+    string n2 = ring.getNode("user:1001")
+    assert n1 == n2, "consistent mapping"
+
+    // different keys may map to different nodes (distribution)
+    string nA = ring.getNode("key-alpha")
+    string nB = ring.getNode("key-beta")
+    string nC = ring.getNode("key-gamma")
+    // at least not all same (probabilistic but with 100 replicas virtually certain)
+    assert not (nA == nB and nB == nC), "keys distribute across nodes"
+
+    // remove node: keys previously on removed node get redistributed
+    ring.removeNode("server-B")
+    assert ring.nodeCount == 2, "node count after remove"
+    assert ring.vnodeCount == 200, "vnode count after remove"
+    string n3 = ring.getNode("user:1001")
+    assert n3 == "server-A" or n3 == "server-C", "after remove, maps to remaining"
+
+    // remove non-existent node: no-op
+    ring.removeNode("server-X")
+    assert ring.nodeCount == 2, "remove nonexist no-op"
+
+    // empty ring returns empty string
+    ring.removeNode("server-A")
+    ring.removeNode("server-C")
+    assert ring.nodeCount == 0, "all removed"
+    assert ring.getNode("any") == "", "empty ring returns empty"
+
+    return 0
+end

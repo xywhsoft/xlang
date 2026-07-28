@@ -1,0 +1,30 @@
+import libtorch
+
+func main(...) as int
+    // Dtypes
+    assert libtorch.dtype(0) == "float32", "dtype f32"
+    assert libtorch.dtype(3) == "int64", "dtype i64"
+
+    // Devices
+    assert libtorch.device(0) == "cpu", "device cpu"
+    assert libtorch.device(1) == "cuda", "device cuda"
+
+    // Activations
+    assert libtorch.activation(0) == "ReLU", "act relu"
+    assert libtorch.activation(4) == "GELU", "act gelu"
+
+    // Optimizers
+    assert libtorch.optimizer(0) == "SGD", "opt sgd"
+    assert libtorch.optimizer(1) == "Adam", "opt adam"
+
+    // Numel: "2,3,4" = 24
+    assert libtorch.numel("2,3,4") == 24, "numel 24"
+    assert libtorch.numel("1,3,224,224") == 150528, "numel image"
+
+    // Softmax: exp(0) = 1
+    float s = libtorch.softmax(0.0, 0.0)
+    assert s > 0.99, "softmax min"
+    assert s < 1.01, "softmax max"
+
+    return 0
+end

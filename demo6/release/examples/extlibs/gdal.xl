@@ -1,0 +1,13 @@
+import gdal
+
+func main(...) as int
+    // GDAL geospatial operations
+
+    println("Driver 0 = " + gdal.driver(0))
+    println("Projection 0 = " + gdal.projection(0))
+    println("Geometry 0 = " + gdal.geometryType(0))
+    println("London-Paris = " + string.fromFloat(gdal.haversine(51.5074, -0.1278, 48.8566, 2.3522)) + " m")
+
+    println("gdal example: PASS")
+    return 0
+end

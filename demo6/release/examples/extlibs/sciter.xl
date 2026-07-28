@@ -1,0 +1,12 @@
+import sciter
+
+func main(...) as int
+    // Sciter HTML/CSS GUI
+
+    println("Element 0 = " + sciter.element(0))
+    println("Event 0 = " + sciter.event(0))
+    println("Display 3 = " + sciter.display(3))
+
+    println("sciter example: PASS")
+    return 0
+end

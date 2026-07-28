@@ -1,0 +1,63 @@
+import avro
+
+
+
+func main(...) as int
+    // Type names
+    assert avro.typeName(0) == "null", "type null"
+    assert avro.typeName(3) == "long", "type long"
+    assert avro.typeName(7) == "string", "type string"
+    assert avro.typeName(8) == "record", "type record"
+    assert avro.typeName(99) == "unknown", "type unknown"
+
+    // Logical type names
+    assert avro.logicalName(1) == "date", "logical date"
+    assert avro.logicalName(4) == "timestamp-millis", "logical ts"
+    assert avro.logicalName(7) == "uuid", "logical uuid"
+
+    // Zigzag encoding
+    assert avro.zigzagEncode(0) == 0, "zigzag 0"
+    assert avro.zigzagEncode(-1) == 1, "zigzag -1"
+    assert avro.zigzagEncode(1) == 2, "zigzag 1"
+    assert avro.zigzagEncode(-2) == 3, "zigzag -2"
+    assert avro.zigzagDecode(0) == 0, "unzigzag 0"
+    assert avro.zigzagDecode(1) == -1, "unzigzag 1"
+    assert avro.zigzagDecode(2) == 1, "unzigzag 2"
+    assert avro.zigzagDecode(3) == -2, "unzigzag 3"
+
+    // Encode/decode long roundtrip
+    auto enc1 = avro.encodeLong(0)
+    assert avro.decodeLong(enc1) == 0, "long 0 roundtrip"
+    auto enc2 = avro.encodeLong(1)
+    assert avro.decodeLong(enc2) == 1, "long 1 roundtrip"
+    auto enc3 = avro.encodeLong(-1)
+    assert avro.decodeLong(enc3) == -1, "long -1 roundtrip"
+    auto enc4 = avro.encodeLong(300)
+    assert avro.decodeLong(enc4) == 300, "long 300 roundtrip"
+
+    // Encode/decode string roundtrip
+    auto se = avro.encodeString("hello")
+    auto sd = avro.decodeString(se)
+    assert sd == "hello", "string roundtrip"
+
+    // Magic bytes
+    assert avro.magic() == "4f626a01", "magic"
+
+    // Codec names
+    assert avro.codecName(0) == "null", "codec null"
+    assert avro.codecName(2) == "snappy", "codec snappy"
+    assert avro.codecName(3) == "zstandard", "codec zstd"
+
+    // Sort order
+    assert avro.sortOrder(0) == "ascending", "sort asc"
+    assert avro.sortOrder(1) == "descending", "sort desc"
+
+    // Name validation
+    assert avro.validName("myField") == 1, "valid name"
+    assert avro.validName("_private") == 1, "valid underscore"
+    assert avro.validName("123bad") == 0, "invalid start digit"
+    assert avro.validName("has-dash") == 0, "invalid dash"
+    assert avro.validName("") == 0, "invalid empty"
+
+    return 0
+end

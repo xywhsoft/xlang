@@ -1,0 +1,17 @@
+import ntp
+
+
+
+func main(...) as int
+    auto ts = ntp.now()
+    println("Unix timestamp: ", ts)
+    println("UTC: ", ntp.formatUtc(ts))
+    println("Local: ", ntp.formatLocal(ts))
+    println("TZ offset: ", ntp.tzOffset(), " seconds")
+
+    // NTP epoch conversion
+    println("NTP 3786912000 -> Unix: ", ntp.ntpToUnix(3786912000))
+
+    println("ntp example: PASS")
+    return 0
+end

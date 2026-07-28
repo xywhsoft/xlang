@@ -1,0 +1,60 @@
+extern "xzmq_frame" func __zmq_frame(string body, int more) as string
+extern "xzmq_multipart" func __zmq_multi(string part1, string part2) as string
+extern "xzmq_frame_body" func __zmq_body(string frame_hex) as string
+extern "xzmq_has_more" func __zmq_more(string frame_hex) as int
+extern "xzmq_frame_len" func __zmq_flen(string frame_hex) as int
+extern "xzmq_socket_name" func __zmq_sname(int stype) as string
+extern "xzmq_transport_name" func __zmq_tname(int proto) as string
+extern "xzmq_endpoint" func __zmq_ep(int proto, string addr, int port) as string
+extern "xzmq_valid_pattern" func __zmq_vpat(int pattern) as int
+extern "xzmq_pattern_name" func __zmq_pname(int pattern) as string
+extern "xzmq_zmtp_version" func __zmq_ver() as int
+extern "xzmq_default_port" func __zmq_port() as int
+
+export func frame(string body, int more) as string
+    return __zmq_frame(body, more)
+end
+
+export func multipart(string part1, string part2) as string
+    return __zmq_multi(part1, part2)
+end
+
+export func frameBody(string frame_hex) as string
+    return __zmq_body(frame_hex)
+end
+
+export func hasMore(string frame_hex) as int
+    return __zmq_more(frame_hex)
+end
+
+export func frameLen(string frame_hex) as int
+    return __zmq_flen(frame_hex)
+end
+
+export func socketName(int stype) as string
+    return __zmq_sname(stype)
+end
+
+export func transportName(int proto) as string
+    return __zmq_tname(proto)
+end
+
+export func endpoint(int proto, string addr, int port) as string
+    return __zmq_ep(proto, addr, port)
+end
+
+export func validPattern(int pattern) as int
+    return __zmq_vpat(pattern)
+end
+
+export func patternName(int pattern) as string
+    return __zmq_pname(pattern)
+end
+
+export func zmtpVersion() as int
+    return __zmq_ver()
+end
+
+export func defaultPort() as int
+    return __zmq_port()
+end

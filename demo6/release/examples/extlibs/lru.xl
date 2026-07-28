@@ -1,0 +1,35 @@
+import lru
+
+
+
+func main(...) as int
+    // LRU cache with capacity 3
+    auto cache = lru.create(3)
+    cache.put("user:1", "Alice")
+    cache.put("user:2", "Bob")
+    cache.put("user:3", "Carol")
+
+    println("get user:1 =", cache.get("user:1"))
+    println("get user:2 =", cache.get("user:2"))
+    println("count:", cache.count, " capacity:", cache.capacity)
+
+    // Adding a 4th item evicts the least recently used
+    cache.put("user:4", "Dave")
+    println("after adding user:4, count:", cache.count)
+    println("contains user:3 (evicted):", cache.contains("user:3"))
+
+    println("hits:", cache.hits, " misses:", cache.misses)
+
+    // LFU cache
+    auto lfu = lru.createLFU(2)
+    lfu.put("hot", "data")
+    lfu.put("cold", "data")
+    lfu.get("hot")
+    lfu.get("hot")
+    lfu.put("new", "data")
+    println("LFU keeps hot:", lfu.contains("hot"))
+    println("LFU evicts cold:", lfu.contains("cold"))
+
+    println("lru example: PASS")
+    return 0
+end

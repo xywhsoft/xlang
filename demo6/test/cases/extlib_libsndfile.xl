@@ -1,0 +1,32 @@
+import libsndfile
+
+func main(...) as int
+    // Major formats
+    assert libsndfile.formatMajor(0x010000) == "WAV", "fmt wav"
+    assert libsndfile.formatMajor(0x020000) == "AIFF", "fmt aiff"
+    assert libsndfile.formatMajor(0x150000) == "FLAC", "fmt flac"
+    assert libsndfile.formatMajor(0x180000) == "OGG", "fmt ogg"
+
+    // Subtypes
+    assert libsndfile.formatSubtype(0x0002) == "PCM_16", "sub pcm16"
+    assert libsndfile.formatSubtype(0x0006) == "FLOAT", "sub float"
+    assert libsndfile.formatSubtype(0x00B0) == "VORBIS", "sub vorbis"
+    assert libsndfile.formatSubtype(0x00C0) == "OPUS", "sub opus"
+
+    // Seek modes
+    assert libsndfile.seekMode(0) == "SET", "seek set"
+    assert libsndfile.seekMode(1) == "CUR", "seek cur"
+    assert libsndfile.seekMode(2) == "END", "seek end"
+
+    // Error codes
+    assert libsndfile.errorName(0) == "No error", "err none"
+    assert libsndfile.errorName(1) == "Unrecognised format", "err format"
+
+    // Format from extension
+    assert libsndfile.formatFromExt("wav") == 0x010000, "ext wav"
+    assert libsndfile.formatFromExt("flac") == 0x150000, "ext flac"
+    assert libsndfile.formatFromExt("mp3") == 0x220000, "ext mp3"
+    assert libsndfile.formatFromExt("xyz") == 0, "ext unknown"
+
+    return 0
+end

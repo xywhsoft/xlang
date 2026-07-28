@@ -1,0 +1,50 @@
+import vault
+
+
+
+func main(...) as int
+    // KV v2 paths
+    assert vault.kv2ReadPath("secret", "app/config") == "/v1/secret/data/app/config", "kv2 read"
+    assert vault.kv2WritePath("secret", "app/config") == "/v1/secret/data/app/config", "kv2 write"
+    assert vault.kv2DeletePath("secret", "app/old") == "/v1/secret/data/app/old", "kv2 delete"
+    assert vault.kv2MetadataPath("secret", "app/config") == "/v1/secret/metadata/app/config", "kv2 meta"
+
+    // KV v1 path
+    assert vault.kv1ReadPath("kv", "myapp") == "/v1/kv/myapp", "kv1 read"
+
+    // Write body
+    auto body = vault.kv2WriteBody("{\"username\":\"admin\"}")
+    assert string.contains(body, "\"data\""), "has data wrapper"
+    assert string.contains(body, "admin"), "has value"
+
+    // Token create
+    auto tok = vault.tokenCreateBody("default", 3600)
+    assert string.contains(tok, "default"), "has policy"
+    assert string.contains(tok, "3600s"), "has ttl"
+
+    // AppRole login
+    auto ar = vault.approleLogin("role-123", "secret-456")
+    assert string.contains(ar, "role-123"), "has role_id"
+    assert string.contains(ar, "secret-456"), "has secret_id"
+
+    // Userpass
+    assert vault.userpassLoginPath("alice") == "/v1/auth/userpass/login/alice", "upath"
+    assert string.contains(vault.userpassLoginBody("pass123"), "pass123"), "ubody"
+
+    // Mount validation
+    assert vault.validMount("secret"), "valid mount"
+    assert vault.validMount("my-app/kv"), "valid nested mount"
+    assert not vault.validMount("/leading"), "no leading slash"
+    assert not vault.validMount("trailing/"), "no trailing slash"
+
+    // Auth method names
+    assert vault.authMethodName("token") == "Token", "token auth"
+    assert vault.authMethodName("approle") == "AppRole", "approle auth"
+    assert vault.authMethodName("kubernetes") == "Kubernetes", "k8s auth"
+
+    // System paths
+    assert vault.healthPath() == "/v1/sys/health", "health"
+    assert vault.sealStatusPath() == "/v1/sys/seal-status", "seal"
+
+    return 0
+end

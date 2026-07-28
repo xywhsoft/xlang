@@ -1,0 +1,33 @@
+import kubernetes
+
+func main(...) as int
+    // Resource types
+    assert kubernetes.resourceType(0) == "Pod", "res pod"
+    assert kubernetes.resourceType(1) == "Deployment", "res deploy"
+    assert kubernetes.resourceType(2) == "Service", "res svc"
+
+    // Pod phases
+    assert kubernetes.podPhase(0) == "Pending", "phase pending"
+    assert kubernetes.podPhase(1) == "Running", "phase running"
+
+    // Service types
+    assert kubernetes.serviceType(0) == "ClusterIP", "svc clusterip"
+    assert kubernetes.serviceType(2) == "LoadBalancer", "svc lb"
+
+    // Restart policies
+    assert kubernetes.restartPolicy(0) == "Always", "restart always"
+    assert kubernetes.restartPolicy(2) == "Never", "restart never"
+
+    // API groups
+    assert kubernetes.apiGroup(0) == "core/v1", "api core"
+    assert kubernetes.apiGroup(1) == "apps/v1", "api apps"
+
+    // CPU parsing: "100m" = 100, "2" = 2000
+    assert kubernetes.parseCpuMilli("100m") == 100, "cpu 100m"
+    assert kubernetes.parseCpuMilli("2") == 2000, "cpu 2"
+
+    // Condition types
+    assert kubernetes.conditionType(0) == "Ready", "cond ready"
+
+    return 0
+end

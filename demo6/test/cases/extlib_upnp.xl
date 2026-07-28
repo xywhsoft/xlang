@@ -1,0 +1,27 @@
+import upnp
+
+
+
+func main(...) as int
+    // SSDP constants
+    assert upnp.ssdpAddr() == "239.255.255.250", "ssdp addr"
+    assert upnp.ssdpPort() == 1900, "ssdp port"
+
+    // Device types
+    assert upnp.typeRoot() == "upnp:rootdevice", "root type"
+
+    // Build M-SEARCH
+    auto pkt = upnp.buildMSearch("ssdp:all")
+    assert string.len(pkt) > 0, "msearch non-empty"
+
+    // Parse header from a mock response
+    auto resp = "HTTP/1.1 200 OK\r\nLOCATION: http://192.168.1.1:80/desc.xml\r\nST: upnp:rootdevice\r\nUSN: uuid:1234\r\n\r\n"
+    assert upnp.validResponse(resp), "valid response"
+    assert upnp.getLocation(resp) == "http://192.168.1.1:80/desc.xml", "location"
+    assert upnp.getUsn(resp) == "uuid:1234", "usn"
+
+    // Invalid response
+    assert not upnp.validResponse("garbage"), "invalid response"
+
+    return 0
+end

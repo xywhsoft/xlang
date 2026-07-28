@@ -1,0 +1,22 @@
+import skiplist
+
+
+
+func main(...) as int
+    auto sl = skiplist.create()
+    sl.set("user:1001", "Alice")
+    sl.set("user:1003", "Charlie")
+    sl.set("user:1002", "Bob")
+
+    println("count:", sl.count)
+    println("user:1001 =", sl.get("user:1001"))
+    println("user:1002 =", sl.get("user:1002"))
+    println("contains user:1003:", sl.contains("user:1003"))
+
+    sl.remove("user:1002")
+    println("after remove, count:", sl.count)
+    println("get removed:", sl.get("user:1002", "(none)"))
+
+    println("skiplist example: PASS")
+    return 0
+end

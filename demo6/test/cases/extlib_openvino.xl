@@ -1,0 +1,28 @@
+import openvino
+
+func main(...) as int
+    // Devices
+    assert openvino.device(0) == "CPU", "device cpu"
+    assert openvino.device(2) == "NPU", "device npu"
+
+    // Precision
+    assert openvino.precision(0) == "FP32", "prec fp32"
+    assert openvino.precision(2) == "INT8", "prec int8"
+
+    // Layout
+    assert openvino.layout(0) == "NCHW", "layout nchw"
+    assert openvino.layout(1) == "NHWC", "layout nhwc"
+
+    // Perf mode
+    assert openvino.perfMode(0) == "LATENCY", "perf latency"
+    assert openvino.perfMode(1) == "THROUGHPUT", "perf throughput"
+
+    // Tensor bytes: 1*3*224*224*4 = 602112
+    assert openvino.tensorBytes(1, 3, 224, 224, 4) == 602112, "tensor bytes"
+
+    // Model format
+    assert openvino.modelFormat(0) == "IR", "fmt ir"
+    assert openvino.modelFormat(1) == "ONNX", "fmt onnx"
+
+    return 0
+end

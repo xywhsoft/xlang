@@ -1,0 +1,39 @@
+import rocksdb
+
+func main(...) as int
+    // Compression
+    assert rocksdb.compression(0) == "none", "comp none"
+    assert rocksdb.compression(1) == "snappy", "comp snappy"
+    assert rocksdb.compression(6) == "zstd", "comp zstd"
+
+    // Compaction style
+    assert rocksdb.compactionStyle(0) == "level", "compact level"
+    assert rocksdb.compactionStyle(1) == "universal", "compact univ"
+
+    // Memtable
+    assert rocksdb.memtable(0) == "skip list", "mem skip"
+    assert rocksdb.memtable(1) == "vector", "mem vector"
+
+    // WAL mode
+    assert rocksdb.walMode(0) == "sync", "wal sync"
+    assert rocksdb.walMode(1) == "async", "wal async"
+
+    // Iterator direction
+    assert rocksdb.iteratorDirection(0) == "forward", "iter fwd"
+    assert rocksdb.iteratorDirection(1) == "reverse", "iter rev"
+
+    // Hash slot: deterministic
+    assert rocksdb.hashSlot("hello", 16) >= 0, "hash >= 0"
+    assert rocksdb.hashSlot("hello", 16) < 16, "hash < 16"
+    assert rocksdb.hashSlot("hello", 16) == rocksdb.hashSlot("hello", 16), "hash deterministic"
+
+    // CF options
+    assert rocksdb.cfOption(0) == "write_buffer_size", "opt wbs"
+    assert rocksdb.cfOption(5) == "num_levels", "opt levels"
+
+    // Stats
+    assert rocksdb.statName(0) == "rocksdb.num-keys-read", "stat read"
+    assert rocksdb.statName(7) == "rocksdb.estimate-num-keys", "stat keys"
+
+    return 0
+end

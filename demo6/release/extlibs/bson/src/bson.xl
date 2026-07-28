@@ -1,0 +1,87 @@
+extern "xbson_encode_doc" func __bson_doc(string elems_hex) as string
+extern "xbson_encode_str" func __bson_str(string key, string value) as string
+extern "xbson_encode_int32" func __bson_i32(string key, int value) as string
+extern "xbson_encode_int64" func __bson_i64(string key, int value) as string
+extern "xbson_encode_double" func __bson_dbl(string key, float value) as string
+extern "xbson_encode_bool" func __bson_bool(string key, bool value) as string
+extern "xbson_encode_null" func __bson_null(string key) as string
+extern "xbson_doc_len" func __bson_dlen(string hex) as int
+extern "xbson_elem_type" func __bson_etype(string hex, int offset) as int
+extern "xbson_elem_key" func __bson_ekey(string hex, int offset) as string
+extern "xbson_decode_str" func __bson_dstr(string hex, int offset) as string
+extern "xbson_decode_int32" func __bson_di32(string hex, int offset) as int
+extern "xbson_decode_int64" func __bson_di64(string hex, int offset) as int
+extern "xbson_decode_double" func __bson_ddbl(string hex, int offset) as float
+extern "xbson_decode_bool" func __bson_dbool(string hex, int offset) as bool
+extern "xbson_next_elem" func __bson_next(string hex, int offset) as int
+extern "xbson_concat" func __bson_cat(string a, string b) as string
+
+
+
+export func encodeDoc(string elements_hex) as string
+    return __bson_doc(elements_hex)
+end
+
+export func encodeStr(string key, string value) as string
+    return __bson_str(key, value)
+end
+
+export func encodeInt32(string key, int value) as string
+    return __bson_i32(key, value)
+end
+
+export func encodeInt64(string key, int value) as string
+    return __bson_i64(key, value)
+end
+
+export func encodeDouble(string key, float value) as string
+    return __bson_dbl(key, value)
+end
+
+export func encodeBool(string key, bool value) as string
+    return __bson_bool(key, value)
+end
+
+export func encodeNull(string key) as string
+    return __bson_null(key)
+end
+
+export func docLen(string hex) as int
+    return __bson_dlen(hex)
+end
+
+export func elemType(string hex, int offset) as int
+    return __bson_etype(hex, offset)
+end
+
+export func elemKey(string hex, int offset) as string
+    return __bson_ekey(hex, offset)
+end
+
+export func decodeStr(string hex, int offset) as string
+    return __bson_dstr(hex, offset)
+end
+
+export func decodeInt32(string hex, int offset) as int
+    return __bson_di32(hex, offset)
+end
+
+export func decodeInt64(string hex, int offset) as int
+    return __bson_di64(hex, offset)
+end
+
+export func decodeDouble(string hex, int offset) as float
+    return __bson_ddbl(hex, offset)
+end
+
+export func decodeBool(string hex, int offset) as bool
+    return __bson_dbool(hex, offset)
+end
+
+export func nextElem(string hex, int offset) as int
+    return __bson_next(hex, offset)
+end
+
+export func concat(string a, string b) as string
+    return __bson_cat(a, b)
+end

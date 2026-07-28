@@ -1,0 +1,43 @@
+import dns
+
+func main(...) as int
+    // Record types
+    assert dns.typeName(1) == "A", "type A"
+    assert dns.typeName(5) == "CNAME", "type CNAME"
+    assert dns.typeName(15) == "MX", "type MX"
+    assert dns.typeName(16) == "TXT", "type TXT"
+    assert dns.typeName(28) == "AAAA", "type AAAA"
+    assert dns.typeName(257) == "CAA", "type CAA"
+
+    // Classes
+    assert dns.className(1) == "IN", "class IN"
+    assert dns.className(3) == "CH", "class CH"
+    assert dns.className(255) == "ANY", "class ANY"
+
+    // Response codes
+    assert dns.rcodeName(0) == "NOERROR", "rcode noerror"
+    assert dns.rcodeName(3) == "NXDOMAIN", "rcode nxdomain"
+    assert dns.rcodeName(5) == "REFUSED", "rcode refused"
+
+    // Opcodes
+    assert dns.opcodeName(0) == "QUERY", "opcode query"
+    assert dns.opcodeName(5) == "UPDATE", "opcode update"
+
+    // Domain name encoding
+    assert dns.encodeName("example.com") == "076578616d706c6503636f6d00", "encode example.com"
+    assert dns.encodeName("a.b") == "0161016200", "encode a.b"
+
+    // Domain name validation
+    assert dns.validName("example.com") == 1, "valid example.com"
+    assert dns.validName("sub.domain.org") == 1, "valid sub.domain.org"
+    assert dns.validName("") == 0, "invalid empty"
+    assert dns.validName(".bad") == 0, "invalid leading dot"
+    assert dns.validName("bad..name") == 0, "invalid double dot"
+
+    // IPv4 validation
+    assert dns.isIpv4("192.168.1.1") == 1, "ipv4 valid"
+    assert dns.isIpv4("256.1.1.1") == 0, "ipv4 invalid"
+    assert dns.isIpv4("not.an.ip") == 0, "ipv4 not"
+
+    return 0
+end

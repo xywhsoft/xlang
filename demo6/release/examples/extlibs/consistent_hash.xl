@@ -1,0 +1,25 @@
+import consistent_hash
+
+
+
+func main(...) as int
+    auto ring = consistent_hash.create(150)
+    ring.addNode("node-1")
+    ring.addNode("node-2")
+    ring.addNode("node-3")
+
+    println("nodes:", ring.nodeCount, " vnodes:", ring.vnodeCount)
+    println("user:100 ->", ring.getNode("user:100"))
+    println("user:200 ->", ring.getNode("user:200"))
+    println("user:300 ->", ring.getNode("user:300"))
+    println("order:42  ->", ring.getNode("order:42"))
+
+    // remove a node and see redistribution
+    ring.removeNode("node-2")
+    println("after removing node-2:")
+    println("user:100 ->", ring.getNode("user:100"))
+    println("user:200 ->", ring.getNode("user:200"))
+
+    println("consistent_hash example: PASS")
+    return 0
+end

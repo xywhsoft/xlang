@@ -1,0 +1,70 @@
+extern "xrtGetError" func __shm_error() as string
+
+
+
+class SharedMemory
+    native point handle
+    extern "xshm_create" create(string name, int size)
+    extern "xshm_close" destroy()
+
+    extern "xshm_write" func writeNative(int offset, string data) as int
+    extern "xshm_read" func readNative(int offset, int maxLen) as string
+    extern "xshm_write_int" func writeIntNative(int offset, int value) as bool
+    extern "xshm_read_int" func readIntNative(int offset) as int
+    extern "xshm_size" func sizeNative() as int
+    extern "xshm_name" func nameNative() as string
+    extern "xshm_zero" func zeroNative()
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get size() as int
+        return self.sizeNative()
+    end
+
+    get name() as string
+        return self.nameNative()
+    end
+
+    func writeStr(int offset, string data) as int
+        if self.handle == null then
+            throw RuntimeError "sharedmem: closed"
+        end
+        return self.writeNative(offset, data)
+    end
+
+    func readStr(int offset, int maxLen = 256) as string
+        if self.handle == null then
+            throw RuntimeError "sharedmem: closed"
+        end
+        return self.readNative(offset, maxLen)
+    end
+
+    func writeInt(int offset, int value) as bool
+        if self.handle == null then
+            throw RuntimeError "sharedmem: closed"
+        end
+        return self.writeIntNative(offset, value)
+    end
+
+    func readInt(int offset) as int
+        if self.handle == null then
+            throw RuntimeError "sharedmem: closed"
+        end
+        return self.readIntNative(offset)
+    end
+
+    func zero()
+        if self.handle == null then
+            throw RuntimeError "sharedmem: closed"
+        end
+        self.zeroNative()
+    end
+end
+
+
+
+export func create(string name, int size) as SharedMemory
+    return SharedMemory(name, size)
+end

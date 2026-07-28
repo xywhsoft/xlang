@@ -1,0 +1,13 @@
+import eigen
+
+func main(...) as int
+    // Eigen linear algebra
+
+    println("Type 0 = " + eigen.matrixType(0))
+    println("Decomp 2 = " + eigen.decomposition(2))
+    println("Inv [[2,1],[1,1]] = " + eigen.inverse2x2("2,1,1,1"))
+    println("Mul = " + eigen.multiply2x2("1,2,3,4", "5,6,7,8"))
+
+    println("eigen example: PASS")
+    return 0
+end

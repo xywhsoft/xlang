@@ -1,0 +1,33 @@
+import ffmpeg
+
+func main(...) as int
+    // Codecs
+    assert ffmpeg.codec(0) == "h264", "codec h264"
+    assert ffmpeg.codec(3) == "av1", "codec av1"
+    assert ffmpeg.codec(4) == "aac", "codec aac"
+
+    // Containers
+    assert ffmpeg.container(0) == "mp4", "cont mp4"
+    assert ffmpeg.container(1) == "mkv", "cont mkv"
+
+    // Pixel formats
+    assert ffmpeg.pixelFormat(0) == "yuv420p", "pix yuv420"
+    assert ffmpeg.pixelFormat(3) == "rgb24", "pix rgb24"
+
+    // Filters
+    assert ffmpeg.filter(0) == "scale", "filt scale"
+    assert ffmpeg.filter(8) == "volume", "filt volume"
+
+    // Bitrate: 1MB file, 10 sec => 800 kbps
+    assert ffmpeg.calcBitrate(1000000, 10) == 800, "bitrate"
+
+    // Profiles
+    assert ffmpeg.profile(0, 2) == "high", "h264 high"
+    assert ffmpeg.profile(1, 0) == "main", "h265 main"
+
+    // Color spaces
+    assert ffmpeg.colorSpace(0) == "bt709", "cs bt709"
+    assert ffmpeg.colorSpace(2) == "bt2020", "cs bt2020"
+
+    return 0
+end

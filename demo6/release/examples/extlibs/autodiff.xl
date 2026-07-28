@@ -1,0 +1,13 @@
+import autodiff
+
+func main(...) as int
+    // Automatic differentiation
+
+    println("Op 0 = " + autodiff.op(0))
+    println("SigmoidGrad(0) = " + string.fromFloat(autodiff.sigmoidGrad(0.0)))
+    println("TanhGrad(0) = " + string.fromFloat(autodiff.tanhGrad(0.0)))
+    println("Mode 1 = " + autodiff.mode(1))
+
+    println("autodiff example: PASS")
+    return 0
+end

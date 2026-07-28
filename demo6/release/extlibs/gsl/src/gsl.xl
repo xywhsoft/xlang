@@ -1,0 +1,45 @@
+extern "xgsl_module" func __module(int id) as string
+extern "xgsl_rng_name" func __rng_name(int id) as string
+extern "xgsl_dist_name" func __dist_name(int id) as string
+extern "xgsl_factorial" func __factorial(int n) as float
+extern "xgsl_combination" func __combination(int n, int k) as float
+extern "xgsl_gaussian_pdf" func __gaussian_pdf(float x, float mu, float sigma) as float
+extern "xgsl_mean" func __mean(string data) as float
+extern "xgsl_variance" func __variance(string data) as float
+extern "xgsl_interp_type" func __interp_type(int id) as string
+
+export func module(int id) as string
+    return __module(id)
+end
+
+export func rngName(int id) as string
+    return __rng_name(id)
+end
+
+export func distName(int id) as string
+    return __dist_name(id)
+end
+
+export func factorial(int n) as float
+    return __factorial(n)
+end
+
+export func combination(int n, int k) as float
+    return __combination(n, k)
+end
+
+export func gaussianPdf(float x, float mu, float sigma) as float
+    return __gaussian_pdf(x, mu, sigma)
+end
+
+export func mean(string data) as float
+    return __mean(data)
+end
+
+export func variance(string data) as float
+    return __variance(data)
+end
+
+export func interpType(int id) as string
+    return __interp_type(id)
+end

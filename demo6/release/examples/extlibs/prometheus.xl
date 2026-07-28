@@ -1,0 +1,12 @@
+import prometheus
+
+func main(...) as int
+    // Prometheus metrics
+
+    println("Type 0 = " + prometheus.metricType(0))
+    println("Func 0 = " + prometheus.function(0))
+    println("Metric = " + prometheus.formatMetric("up", "", 1.0))
+
+    println("prometheus example: PASS")
+    return 0
+end

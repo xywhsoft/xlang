@@ -1,0 +1,18 @@
+import sharedmem
+
+
+
+func main(...) as int
+    auto sm = sharedmem.create("xlang_demo_shm", 1024)
+    println("name: ", sm.name)
+    println("size: ", sm.size)
+
+    sm.writeStr(0, "shared memory message")
+    println("read: ", sm.readStr(0, 100))
+
+    sm.writeInt(64, 999)
+    println("int at 64: ", sm.readInt(64))
+
+    println("sharedmem example: PASS")
+    return 0
+end

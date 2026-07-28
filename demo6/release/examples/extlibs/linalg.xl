@@ -1,0 +1,14 @@
+import linalg
+
+
+
+func main(...) as int
+    println("dot2(1,2,3,4):  ", linalg.dot2(1.0, 2.0, 3.0, 4.0))
+    println("mag2(3,4):      ", linalg.mag2(3.0, 4.0))
+    println("det2(1,2,3,4):  ", linalg.det2(1.0, 2.0, 3.0, 4.0))
+    println("dist2(0,0,3,4): ", linalg.dist2(0.0, 0.0, 3.0, 4.0))
+    println("lerp(0,10,0.5): ", linalg.lerp(0.0, 10.0, 0.5))
+    println("deg2rad(90):    ", linalg.deg2rad(90.0))
+    println("linalg example: PASS")
+    return 0
+end

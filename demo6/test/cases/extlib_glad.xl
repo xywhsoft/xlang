@@ -1,0 +1,14 @@
+import glad
+
+func main(...) as int
+    assert glad.glType(0) == "GL_FLOAT", "type float"
+    assert glad.glType(2) == "GL_UNSIGNED_BYTE", "type ubyte"
+    assert glad.primitive(0) == "GL_TRIANGLES", "prim tri"
+    assert glad.primitive(1) == "GL_LINES", "prim lines"
+    assert glad.typeSize(0) == 4, "size float"
+    assert glad.typeSize(4) == 8, "size double"
+    assert glad.version(4, 6) == "OpenGL 4.6", "version"
+    assert glad.validExt("GL_ARB_vertex_array") == 1, "valid ext"
+    assert glad.validExt("bad_ext") == 0, "invalid ext"
+    return 0
+end

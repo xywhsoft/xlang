@@ -1,0 +1,15 @@
+import mqtt
+
+
+
+func main(...) as int
+    println("CONNECT:    ", mqtt.connect("demo-client", 120, 1))
+    println("PUBLISH:    ", mqtt.publish("devices/sensor1", "{\"temp\":22.5}"))
+    println("SUBSCRIBE:  ", mqtt.subscribe(42, "devices/+/status"))
+    println("PINGREQ:    ", mqtt.pingreq())
+    println("DISCONNECT: ", mqtt.disconnect())
+    println("CONNACK:    ", mqtt.connack(0))
+    println("Type(3):    ", mqtt.typeName(3))
+    println("mqtt example: PASS")
+    return 0
+end

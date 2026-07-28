@@ -1,0 +1,59 @@
+import mqtt
+
+
+
+func main(...) as int
+    // CONNECT packet
+    auto conn = mqtt.connect("test-client", 60, 1)
+    assert mqtt.packetType(conn) == 1, "connect type"
+    assert mqtt.typeName(1) == "CONNECT", "connect name"
+
+    // PUBLISH packet
+    auto pub = mqtt.publish("sensor/temp", "25.5")
+    assert mqtt.packetType(pub) == 3, "publish type"
+    assert mqtt.typeName(3) == "PUBLISH", "publish name"
+    assert mqtt.getQos(pub) == 0, "publish qos0"
+
+    // SUBSCRIBE packet
+    auto sub = mqtt.subscribe(1, "sensor/#")
+    assert mqtt.packetType(sub) == 8, "subscribe type"
+    assert mqtt.typeName(8) == "SUBSCRIBE", "subscribe name"
+
+    // PINGREQ
+    auto ping = mqtt.pingreq()
+    assert ping == "c000", "pingreq hex"
+    assert mqtt.packetType(ping) == 12, "ping type"
+    assert mqtt.typeName(12) == "PINGREQ", "ping name"
+
+    // DISCONNECT
+    auto disc = mqtt.disconnect()
+    assert disc == "e000", "disconnect hex"
+    assert mqtt.packetType(disc) == 14, "disc type"
+    assert mqtt.typeName(14) == "DISCONNECT", "disc name"
+
+    // CONNACK
+    auto ack = mqtt.connack(0)
+    assert mqtt.packetType(ack) == 2, "connack type"
+    assert mqtt.typeName(2) == "CONNACK", "connack name"
+
+    // Topic validation
+    assert mqtt.validTopic("home/living/temp") == 1, "valid topic"
+    assert mqtt.validTopic("a") == 1, "single char topic"
+    assert mqtt.validTopic("") == 0, "empty topic invalid"
+    assert mqtt.validTopic("home/#") == 0, "wildcard in topic"
+    assert mqtt.validTopic("home/+/temp") == 0, "plus in topic"
+
+    // Filter validation
+    assert mqtt.validFilter("home/#") == 1, "hash filter"
+    assert mqtt.validFilter("home/+/temp") == 1, "plus filter"
+    assert mqtt.validFilter("#") == 1, "lone hash"
+    assert mqtt.validFilter("") == 0, "empty filter"
+    assert mqtt.validFilter("home/#/x") == 0, "hash not last"
+
+    // Type names
+    assert mqtt.typeName(4) == "PUBACK", "puback"
+    assert mqtt.typeName(9) == "SUBACK", "suback"
+    assert mqtt.typeName(99) == "UNKNOWN", "unknown"
+
+    return 0
+end

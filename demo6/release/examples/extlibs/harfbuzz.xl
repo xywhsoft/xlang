@@ -1,0 +1,11 @@
+import harfbuzz
+
+func main(...) as int
+    println("Direction 0 = " + harfbuzz.direction(0))
+    println("Script 1 = " + harfbuzz.script(1))
+    println("Total advance = " + string.float(harfbuzz.totalAdvance("5,10,15")))
+    println("Feature 2 = " + harfbuzz.feature(2))
+
+    println("harfbuzz example: PASS")
+    return 0
+end

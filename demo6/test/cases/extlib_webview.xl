@@ -1,0 +1,14 @@
+import webview
+
+func main(...) as int
+    assert webview.engine(0) == "WebView2", "engine webview2"
+    assert webview.engine(1) == "WebKit", "engine webkit"
+    assert webview.event(0) == "navigation", "event nav"
+    assert webview.event(1) == "message", "event msg"
+    assert webview.evalScript("alert(1)") == "javascript:alert(1)", "eval"
+    assert webview.navAction(0) == "back", "nav back"
+    assert webview.navAction(2) == "reload", "nav reload"
+    assert webview.validUrl("https://example.com") == 1, "valid https"
+    assert webview.validUrl("ftp://bad") == 0, "invalid ftp"
+    return 0
+end

@@ -1,0 +1,14 @@
+import mysql
+
+
+
+func main(...) as int
+    println("Cmd(0x03):    ", mysql.cmdName(0x03))
+    println("ColType(0xFD):", mysql.colType(0xFD))
+    println("Cap(0x0200):  ", mysql.capName(0x0200))
+    println("Escape:       ", mysql.escape("it's"))
+    println("DSN:          ", mysql.formatDsn("localhost", 3306, "app", "dev"))
+    println("ErrClass:     ", mysql.errorClass(1045))
+    println("mysql example: PASS")
+    return 0
+end

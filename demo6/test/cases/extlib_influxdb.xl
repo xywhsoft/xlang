@@ -1,0 +1,50 @@
+import influxdb
+
+
+
+func main(...) as int
+    // Line protocol with tags
+    auto l1 = influxdb.line("cpu", "host=server01", "usage=0.64", 1609459200000000000)
+    assert string.contains(l1, "cpu,host=server01"), "has measurement and tags"
+    assert string.contains(l1, "usage=0.64"), "has fields"
+
+    // Line without tags
+    auto l2 = influxdb.lineNoTags("mem", "used=1024i", 0)
+    assert l2 == "mem used=1024i", "no tags line"
+
+    // Field formatters
+    assert influxdb.fieldStr("status", "ok") == "status=\"ok\"", "string field"
+    assert influxdb.fieldInt("count", 42) == "count=42i", "int field"
+    assert influxdb.fieldBool("active", 1) == "active=true", "bool true"
+    assert influxdb.fieldBool("active", 0) == "active=false", "bool false"
+
+    // Float field
+    auto ff = influxdb.fieldFloat("temp", 25.5)
+    assert string.contains(ff, "temp="), "float field key"
+
+    // Escape functions
+    assert influxdb.escapeMeasurement("my measurement") == "my\\ measurement", "escape space"
+    assert influxdb.escapeMeasurement("my,measurement") == "my\\,measurement", "escape comma"
+    assert influxdb.escapeTag("key=value") == "key\\=value", "escape equals"
+
+    // Validation
+    assert influxdb.validMeasurement("cpu") == 1, "valid measurement"
+    assert influxdb.validMeasurement("") == 0, "empty measurement invalid"
+    assert influxdb.validTagKey("host") == 1, "valid tag key"
+    assert influxdb.validTagKey("bad key") == 0, "space in tag key"
+    assert influxdb.validTagKey("bad,key") == 0, "comma in tag key"
+
+    // Port and endpoints
+    assert influxdb.httpPort() == 8086, "http port"
+    assert string.contains(influxdb.writeEndpoint("mydb"), "mydb"), "write endpoint has db"
+    assert string.contains(influxdb.queryEndpoint(), "query"), "query endpoint"
+
+    // Precision names
+    assert influxdb.precisionName(0) == "ns", "nanoseconds"
+    assert influxdb.precisionName(1) == "us", "microseconds"
+    assert influxdb.precisionName(2) == "ms", "milliseconds"
+    assert influxdb.precisionName(3) == "s", "seconds"
+    assert influxdb.precisionName(9) == "UNKNOWN", "unknown precision"
+
+    return 0
+end

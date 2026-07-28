@@ -1,0 +1,18 @@
+import libsndfile
+
+func main(...) as int
+    // libsndfile helpers
+
+    // Formats
+    println("0x010000 = " + libsndfile.formatMajor(0x010000))
+    println("0x150000 = " + libsndfile.formatMajor(0x150000))
+
+    // Subtypes
+    println("0x0002 = " + libsndfile.formatSubtype(0x0002))
+
+    // Extension detection
+    println("wav = " + string.format("{}", libsndfile.formatFromExt("wav")))
+
+    println("libsndfile example: PASS")
+    return 0
+end

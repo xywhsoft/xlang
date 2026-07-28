@@ -1,0 +1,20 @@
+import epub
+
+func main(...) as int
+    // EPUB e-book format helpers
+
+    // Version
+    println("EPUB 3 = " + epub.version(3))
+
+    // MIME types
+    println("MIME 0 = " + epub.mimetype(0))
+
+    // Metadata
+    println("Field 0 = " + epub.metadataField(0))
+
+    // ISBN validation
+    println("ISBN 9780306406157 valid = " + string.int(epub.validateIsbn("9780306406157")))
+
+    println("epub example: PASS")
+    return 0
+end

@@ -1,0 +1,16 @@
+import gmp
+
+
+
+func main(...) as int
+    println("Compare:    ", gmp.compare("123456789", "987654321"))
+    println("Digits:     ", gmp.digits("12345678901234567890"))
+    println("255 hex:    ", gmp.toBase(255, 16))
+    println("GCD(48,36): ", gmp.gcd(48, 36))
+    println("LCM(4,6):   ", gmp.lcm(4, 6))
+    println("17 prime:   ", gmp.probabPrime(17, 10))
+    println("10!:        ", gmp.factorial(10))
+    println("C(10,3):    ", gmp.binomial(10, 3))
+    println("gmp example: PASS")
+    return 0
+end

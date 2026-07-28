@@ -1,0 +1,37 @@
+extern "xhtml5_tag_category" func __tag_category(int id) as string
+extern "xhtml5_is_void_element" func __is_void_element(string tag) as int
+extern "xhtml5_entity" func __entity(int id) as string
+extern "xhtml5_input_type" func __input_type(int id) as string
+extern "xhtml5_aria_role" func __aria_role(int id) as string
+extern "xhtml5_escape" func __escape(string src) as int
+extern "xhtml5_get_escaped" func __get_escaped() as string
+extern "xhtml5_doctype" func __doctype() as string
+
+export func tagCategory(int id) as string
+    return __tag_category(id)
+end
+
+export func isVoidElement(string tag) as int
+    return __is_void_element(tag)
+end
+
+export func entity(int id) as string
+    return __entity(id)
+end
+
+export func inputType(int id) as string
+    return __input_type(id)
+end
+
+export func ariaRole(int id) as string
+    return __aria_role(id)
+end
+
+export func escape(string src) as string
+    __escape(src)
+    return __get_escaped()
+end
+
+export func doctype() as string
+    return __doctype()
+end

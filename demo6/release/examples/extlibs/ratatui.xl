@@ -1,0 +1,12 @@
+import ratatui
+
+func main(...) as int
+    println("Widget 2 = " + ratatui.widget(2))
+    println("Style 3 = " + ratatui.style(3))
+    println("Color 6 = " + ratatui.color(6))
+    println("Gauge = " + string.float(ratatui.gaugePct(75.0, 100.0)) + "%")
+    println("Border 2 = " + ratatui.border(2))
+
+    println("ratatui example: PASS")
+    return 0
+end

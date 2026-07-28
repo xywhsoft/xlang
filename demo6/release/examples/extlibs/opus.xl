@@ -1,0 +1,21 @@
+import opus
+
+func main(...) as int
+    // Opus audio codec helpers
+
+    // Application modes
+    println("App 2048 = " + opus.application(2048))
+    println("App 2049 = " + opus.application(2049))
+
+    // Bandwidth
+    println("BW 1105 = " + opus.bandwidth(1105))
+
+    // Frame sizes
+    println("Frame 960 = " + opus.frameSize(960))
+
+    // Channels
+    println("Ch 2 = " + opus.channels(2))
+
+    println("opus example: PASS")
+    return 0
+end

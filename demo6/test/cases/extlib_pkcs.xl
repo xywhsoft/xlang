@@ -1,0 +1,74 @@
+import pkcs
+
+
+
+func main(...) as int
+    // Encode integer
+    auto der1 = pkcs.encodeInt(42)
+    assert pkcs.getTag(der1) == 2, "INTEGER tag"
+    assert pkcs.getLength(der1) == 1, "int 42 length 1"
+    assert pkcs.decodeInt(der1) == 42, "decode 42"
+
+    // Encode zero
+    auto der0 = pkcs.encodeInt(0)
+    assert pkcs.decodeInt(der0) == 0, "decode 0"
+
+    // Encode negative
+    auto dern = pkcs.encodeInt(-128)
+    assert pkcs.decodeInt(dern) == -128, "decode -128"
+
+    // Large integer
+    auto derl = pkcs.encodeInt(300)
+    assert pkcs.decodeInt(derl) == 300, "decode 300"
+    assert pkcs.getLength(derl) == 2, "int 300 length 2"
+
+    // Encode OID (rsaEncryption: 1.2.840.113549.1.1.1)
+    auto oid = pkcs.encodeOid("1.2.840.113549.1.1.1")
+    assert pkcs.getTag(oid) == 6, "OID tag"
+    auto decoded_oid = pkcs.decodeOid(oid)
+    assert decoded_oid == "1.2.840.113549.1.1.1", "OID roundtrip"
+
+    // Simple OID
+    auto oid2 = pkcs.encodeOid("2.5.4.3")
+    assert pkcs.decodeOid(oid2) == "2.5.4.3", "OID 2.5.4.3"
+
+    // NULL
+    auto nul = pkcs.encodeNull()
+    assert pkcs.getTag(nul) == 5, "NULL tag"
+    assert pkcs.getLength(nul) == 0, "NULL length 0"
+
+    // OCTET STRING
+    auto oct = pkcs.encodeOctet("deadbeef")
+    assert pkcs.getTag(oct) == 4, "OCTET tag"
+    assert pkcs.getContent(oct) == "deadbeef", "octet content"
+
+    // SEQUENCE wrapping
+    auto inner = pkcs.concat(der1, oid)
+    auto seq = pkcs.wrapSequence(inner)
+    assert pkcs.getTag(seq) == 48, "SEQUENCE tag"
+    assert pkcs.tagName(seq) == "SEQUENCE", "tag name"
+
+    // Parse sequence children
+    auto content = pkcs.getContent(seq)
+    assert content == inner, "seq content matches"
+
+    // nextOffset
+    auto off = pkcs.nextOffset(seq, 0)
+    assert off == pkcs.derLen(seq), "next offset past end"
+
+    // Tag names
+    assert pkcs.tagName(der1) == "INTEGER", "int tag name"
+    assert pkcs.tagName(oid) == "OID", "oid tag name"
+    assert pkcs.tagName(oct) == "OCTET STRING", "octet tag name"
+
+    // BIT STRING
+    auto bits = pkcs.encodeBitString("aabb")
+    assert pkcs.getTag(bits) == 3, "BIT STRING tag"
+    assert pkcs.getContent(bits) == "00aabb", "bitstring has unused-bits byte"
+
+    // Concat helper
+    auto c = pkcs.concat("0102", "0304")
+    assert c == "01020304", "concat works"
+
+    return 0
+end

@@ -1,0 +1,60 @@
+extern "xcoap_build_header" func __coap_hdr(int msg_type, int code, int msg_id, int token_len) as string
+extern "xcoap_get" func __coap_get(int msg_id, string path) as string
+extern "xcoap_put" func __coap_put(int msg_id, string path, string payload) as string
+extern "xcoap_response" func __coap_resp(int msg_id, int code, string payload) as string
+extern "xcoap_get_type" func __coap_gtype(string pkt_hex) as int
+extern "xcoap_get_code" func __coap_gcode(string pkt_hex) as int
+extern "xcoap_get_msgid" func __coap_gmsgid(string pkt_hex) as int
+extern "xcoap_type_name" func __coap_tname(int t) as string
+extern "xcoap_code_name" func __coap_cname(int code) as string
+extern "xcoap_valid_path" func __coap_vpath(string path) as int
+extern "xcoap_default_port" func __coap_port() as int
+extern "xcoap_dtls_port" func __coap_dtls() as int
+
+export func buildHeader(int msg_type, int code, int msg_id, int token_len) as string
+    return __coap_hdr(msg_type, code, msg_id, token_len)
+end
+
+export func get(int msg_id, string path) as string
+    return __coap_get(msg_id, path)
+end
+
+export func put(int msg_id, string path, string payload) as string
+    return __coap_put(msg_id, path, payload)
+end
+
+export func response(int msg_id, int code, string payload) as string
+    return __coap_resp(msg_id, code, payload)
+end
+
+export func getType(string pkt_hex) as int
+    return __coap_gtype(pkt_hex)
+end
+
+export func getCode(string pkt_hex) as int
+    return __coap_gcode(pkt_hex)
+end
+
+export func getMsgId(string pkt_hex) as int
+    return __coap_gmsgid(pkt_hex)
+end
+
+export func typeName(int t) as string
+    return __coap_tname(t)
+end
+
+export func codeName(int code) as string
+    return __coap_cname(code)
+end
+
+export func validPath(string path) as int
+    return __coap_vpath(path)
+end
+
+export func defaultPort() as int
+    return __coap_port()
+end
+
+export func dtlsPort() as int
+    return __coap_dtls()
+end

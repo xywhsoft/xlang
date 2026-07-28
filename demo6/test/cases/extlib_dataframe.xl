@@ -1,0 +1,35 @@
+import dataframe
+
+func main(...) as int
+    // Aggregations
+    assert dataframe.agg(0) == "count", "agg count"
+    assert dataframe.agg(2) == "mean", "agg mean"
+    assert dataframe.agg(11) == "prod", "agg prod"
+
+    // Join types
+    assert dataframe.joinType(0) == "inner", "join inner"
+    assert dataframe.joinType(3) == "outer", "join outer"
+    assert dataframe.joinType(6) == "anti", "join anti"
+
+    // Sort order
+    assert dataframe.sortOrder(0) == "ascending", "sort asc"
+    assert dataframe.sortOrder(1) == "descending", "sort desc"
+
+    // Fill methods
+    assert dataframe.fillMethod(0) == "ffill", "fill ffill"
+    assert dataframe.fillMethod(2) == "interpolate", "fill interp"
+
+    // Mean: [2,4,6] = 4
+    assert dataframe.mean("2,4,6") == 4.0, "mean"
+
+    // Median: [1,3,5,7] = 4
+    assert dataframe.median("1,3,5,7") == 4.0, "median even"
+    // Median: [1,3,5] = 3
+    assert dataframe.median("1,3,5") == 3.0, "median odd"
+
+    // Window functions
+    assert dataframe.windowFunc(0) == "rolling_mean", "win roll"
+    assert dataframe.windowFunc(3) == "cumsum", "win cumsum"
+
+    return 0
+end

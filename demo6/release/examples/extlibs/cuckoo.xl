@@ -1,0 +1,22 @@
+import cuckoo
+
+
+
+func main(...) as int
+    auto cf = cuckoo.create(10000)
+    println("buckets:", cf.buckets)
+
+    cf.add("session:abc123")
+    cf.add("session:def456")
+    cf.add("session:ghi789")
+
+    println("contains abc123:", cf.contains("session:abc123"))
+    println("contains zzz999:", cf.contains("session:zzz999"))
+
+    cf.remove("session:def456")
+    println("after remove def456:", cf.contains("session:def456"))
+    println("count:", cf.count)
+
+    println("cuckoo example: PASS")
+    return 0
+end

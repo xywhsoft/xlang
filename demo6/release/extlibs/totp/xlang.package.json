@@ -1,0 +1,16 @@
+{
+    "format": "xlang-package-1",
+    "name": "totp",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["totp_native.c"],
+        "xlSources": ["src/totp.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

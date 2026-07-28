@@ -1,0 +1,12 @@
+import icu
+
+func main(...) as int
+    // ICU Unicode internationalization
+
+    println("Script 1 = " + icu.script(1))
+    println("Norm 0 = " + icu.normalizationForm(0))
+    println("UTF8 len U+4E2D = " + string.int(icu.utf8Len(0x4E2D)))
+
+    println("icu example: PASS")
+    return 0
+end

@@ -1,0 +1,12 @@
+import webview
+
+func main(...) as int
+    println("Engine 0 = " + webview.engine(0))
+    println("Event 1 = " + webview.event(1))
+    println("Eval = " + webview.evalScript("console.log('hi')"))
+    println("Nav 2 = " + webview.navAction(2))
+    println("Valid https = " + string.int(webview.validUrl("https://x.io")))
+
+    println("webview example: PASS")
+    return 0
+end

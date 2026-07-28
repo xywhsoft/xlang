@@ -1,0 +1,14 @@
+import postgresql
+
+
+
+func main(...) as int
+    println("ConnParam:   ", postgresql.connParam("host=db.example.com port=5432", "host"))
+    println("MsgType(Z):  ", postgresql.msgType(90))
+    println("TxStatus(I): ", postgresql.txStatus(73))
+    println("Type(23):    ", postgresql.typeName(23))
+    println("Escape:      ", postgresql.escape("it's a test"))
+    println("DSN:         ", postgresql.formatDsn("localhost", 5432, "app", "dev"))
+    println("postgresql example: PASS")
+    return 0
+end

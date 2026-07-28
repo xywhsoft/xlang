@@ -1,0 +1,12 @@
+import s2geometry
+
+func main(...) as int
+    auto cell = s2geometry.fromLatLng(39.9, 116.4, 10)
+    println("cell=", cell)
+    println("level=", s2geometry.level(cell))
+    println("face=", s2geometry.face(cell))
+    println("lat=", s2geometry.toLat(cell))
+    println("lng=", s2geometry.toLng(cell))
+    println("token=", s2geometry.token(cell))
+    return 0
+end

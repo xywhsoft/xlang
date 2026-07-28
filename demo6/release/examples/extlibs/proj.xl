@@ -1,0 +1,15 @@
+import proj
+
+
+
+func main(...) as int
+    println("Mercator X(-0.1278, 51.5074): ", proj.mercatorX(-0.1278, 51.5074))
+    println("Mercator Y(-0.1278, 51.5074): ", proj.mercatorY(-0.1278, 51.5074))
+    println("UTM Zone(-0.1278):            ", proj.utmZone(-0.1278))
+    println("Haversine London-Paris:       ", proj.haversine(-0.1278, 51.5074, 2.3522, 48.8566))
+    println("Bearing London-Paris:         ", proj.bearing(-0.1278, 51.5074, 2.3522, 48.8566))
+    println("CRS 4326:                     ", proj.crsName(4326))
+    println("DMS(51.5074):                 ", proj.toDms(51.5074, 0))
+    println("proj example: PASS")
+    return 0
+end

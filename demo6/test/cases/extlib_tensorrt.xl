@@ -1,0 +1,27 @@
+import tensorrt
+
+func main(...) as int
+    // Precision
+    assert tensorrt.precision(0) == "FP32", "prec fp32"
+    assert tensorrt.precision(2) == "INT8", "prec int8"
+
+    // Layers
+    assert tensorrt.layer(0) == "Convolution", "layer conv"
+    assert tensorrt.layer(7) == "Plugin", "layer plugin"
+
+    // Builder flags
+    assert tensorrt.builderFlag(0) == "FP16", "flag fp16"
+    assert tensorrt.builderFlag(7) == "TF32", "flag tf32"
+
+    // Profile
+    assert tensorrt.profile(0) == "min", "profile min"
+    assert tensorrt.profile(1) == "opt", "profile opt"
+
+    // Workspace: 1GB = 1073741824 bytes = 1024 MB
+    assert tensorrt.workspaceMb(1073741824) == 1024, "workspace"
+
+    // Network flags
+    assert tensorrt.networkFlag(0) == "EXPLICIT_BATCH", "net batch"
+
+    return 0
+end

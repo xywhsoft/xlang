@@ -1,0 +1,14 @@
+import influxdb
+
+
+
+func main(...) as int
+    println("Line:       ", influxdb.line("cpu", "host=web01,region=us", "usage=0.75", 1609459200000000000))
+    println("No tags:    ", influxdb.lineNoTags("mem", "used=2048i", 0))
+    println("Field str:  ", influxdb.fieldStr("status", "healthy"))
+    println("Field int:  ", influxdb.fieldInt("count", 100))
+    println("Field bool: ", influxdb.fieldBool("active", 1))
+    println("Port:       ", influxdb.httpPort())
+    println("influxdb example: PASS")
+    return 0
+end

@@ -1,0 +1,16 @@
+{
+    "format": "xlang-package-1",
+    "name": "json5",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["json5_native.c"],
+        "xlSources": ["src/json5.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

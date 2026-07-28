@@ -1,0 +1,16 @@
+import css
+
+
+
+func main(...) as int
+    auto sheet = "h1 { color: navy; font-size: 24px; } p { line-height: 1.5; }"
+
+    println("h1 color: ", css.get(sheet, "h1", "color"))
+    println("h1 size:  ", css.get(sheet, "h1", "font-size"))
+    println("rules:    ", css.countRules(sheet))
+    println("sel[0]:   ", css.selectorAt(sheet, 0))
+    println("valid:    ", css.validate(sheet))
+
+    println("css example: PASS")
+    return 0
+end

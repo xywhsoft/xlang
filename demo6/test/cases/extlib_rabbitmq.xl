@@ -1,0 +1,47 @@
+import rabbitmq
+
+func main(...) as int
+    // Class names
+    assert rabbitmq.className(10) == "Connection", "class conn"
+    assert rabbitmq.className(50) == "Basic", "class basic"
+    assert rabbitmq.className(40) == "Queue", "class queue"
+
+    // Method names
+    assert rabbitmq.methodName(10, 10) == "Connection.Start", "conn start"
+    assert rabbitmq.methodName(10, 40) == "Connection.Open", "conn open"
+    assert rabbitmq.methodName(50, 40) == "Basic.Publish", "basic publish"
+    assert rabbitmq.methodName(50, 60) == "Basic.Deliver", "basic deliver"
+    assert rabbitmq.methodName(50, 80) == "Basic.Ack", "basic ack"
+    assert rabbitmq.methodName(40, 10) == "Queue.Declare", "queue declare"
+    assert rabbitmq.methodName(30, 10) == "Exchange.Declare", "ex declare"
+
+    // Exchange types
+    assert rabbitmq.exchangeType(0) == "direct", "ex direct"
+    assert rabbitmq.exchangeType(1) == "fanout", "ex fanout"
+    assert rabbitmq.exchangeType(2) == "topic", "ex topic"
+    assert rabbitmq.exchangeType(3) == "headers", "ex headers"
+
+    // Reply codes
+    assert rabbitmq.replyText(404) == "NotFound", "reply 404"
+    assert rabbitmq.replyText(403) == "AccessRefused", "reply 403"
+    assert rabbitmq.replyText(320) == "ConnectionForced", "reply 320"
+
+    // Frame types
+    assert rabbitmq.frameType(1) == "METHOD", "frame method"
+    assert rabbitmq.frameType(2) == "HEADER", "frame header"
+    assert rabbitmq.frameType(3) == "BODY", "frame body"
+    assert rabbitmq.frameType(4) == "HEARTBEAT", "frame hb"
+
+    // Delivery mode
+    assert rabbitmq.deliveryMode(1) == "non-persistent", "dm 1"
+    assert rabbitmq.deliveryMode(2) == "persistent", "dm 2"
+
+    // Topic matching
+    assert rabbitmq.topicMatch("#", "any.key.here") == 1, "topic hash"
+    assert rabbitmq.topicMatch("order.created", "order.created") == 1, "topic exact"
+    assert rabbitmq.topicMatch("order.created", "order.deleted") == 0, "topic nomatch"
+    assert rabbitmq.topicMatch("*", "single") == 1, "topic star"
+    assert rabbitmq.topicMatch("*", "two.words") == 0, "topic star multi"
+
+    return 0
+end

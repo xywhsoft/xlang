@@ -1,0 +1,14 @@
+import mongodb
+
+
+
+func main(...) as int
+    println("Opcode(2013):  ", mongodb.opcode(2013))
+    println("BsonType(0x07):", mongodb.bsonType(0x07))
+    println("URI host:      ", mongodb.uriPart("mongodb://u:p@mongo.local:27017/app", "host"))
+    println("ReadPref(0):   ", mongodb.readPref(0))
+    println("ObjectId:      ", mongodb.objectId(1609459200, 42))
+    println("ValidColl:     ", mongodb.validCollection("users"))
+    println("mongodb example: PASS")
+    return 0
+end

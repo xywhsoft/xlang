@@ -1,0 +1,55 @@
+import snmp
+
+
+
+func main(...) as int
+    // Version names
+    assert snmp.versionName(0) == "v1", "v1"
+    assert snmp.versionName(1) == "v2c", "v2c"
+    assert snmp.versionName(3) == "v3", "v3"
+    assert snmp.versionName(9) == "unknown", "unknown ver"
+
+    // PDU names
+    assert snmp.pduName(0xA0) == "GetRequest", "get"
+    assert snmp.pduName(0xA2) == "Response", "response"
+    assert snmp.pduName(0xA3) == "SetRequest", "set"
+    assert snmp.pduName(0xFF) == "Unknown", "unknown pdu"
+
+    // BER type names
+    assert snmp.berName(0x02) == "INTEGER", "integer"
+    assert snmp.berName(0x06) == "OBJECT_IDENTIFIER", "oid"
+    assert snmp.berName(0x30) == "SEQUENCE", "sequence"
+    assert snmp.berName(0x43) == "TimeTicks", "timeticks"
+
+    // OID encode: 1.3.6.1.2.1 -> 06 05 2b 06 01 02 01
+    auto enc = snmp.oidEncode("1.3.6.1.2.1")
+    assert enc == "06052b06010201", "oid encode"
+
+    // OID decode roundtrip
+    auto dec = snmp.oidDecode("2b06010201")
+    assert dec == "1.3.6.1.2.1", "oid decode"
+
+    // Integer encode: 42 -> 02 01 2a
+    auto ie = snmp.intEncode(42)
+    assert ie == "02012a", "int encode 42"
+
+    // Integer encode: 256 -> 02 02 01 00
+    auto ie2 = snmp.intEncode(256)
+    assert ie2 == "02020100", "int encode 256"
+
+    // Integer decode
+    assert snmp.intDecode("2a") == 42, "int decode 42"
+    assert snmp.intDecode("0100") == 256, "int decode 256"
+
+    // Error names
+    assert snmp.errorName(0) == "noError", "no error"
+    assert snmp.errorName(2) == "noSuchName", "no such name"
+    assert snmp.errorName(17) == "notWritable", "not writable"
+
+    // OID names
+    assert snmp.oidName("1.3.6.1.2.1.1.1") == "sysDescr", "sysDescr"
+    assert snmp.oidName("1.3.6.1.2.1.1.5") == "sysName", "sysName"
+    assert snmp.oidName("9.9.9") == "unknown", "unknown oid"
+
+    return 0
+end

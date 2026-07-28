@@ -1,0 +1,16 @@
+import json5
+
+
+
+func main(...) as int
+    string config = "{ // Database settings\n  host: 'localhost',\n  port: 5432,\n  credentials: { user: 'admin', pass: 'secret', },\n  tags: ['dev', 'test',],\n}"
+
+    println("valid:", json5.valid(config))
+    println("host:", json5.get(config, "host"))
+    println("port:", json5.get(config, "port"))
+    println("user:", json5.get(config, "credentials.user"))
+    println("tags.0:", json5.get(config, "tags.0"))
+
+    println("json5 example: PASS")
+    return 0
+end

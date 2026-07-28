@@ -1,0 +1,13 @@
+import libsvm
+
+func main(...) as int
+    // LIBSVM support vector machine
+
+    println("Type 0 = " + libsvm.svmType(0))
+    println("Kernel 2 = " + libsvm.kernel(2))
+    println("Linear(1,2 . 3,4) = " + string.fromFloat(libsvm.linearKernel("1,2", "3,4")))
+    println("Param 0 = " + libsvm.param(0))
+
+    println("libsvm example: PASS")
+    return 0
+end

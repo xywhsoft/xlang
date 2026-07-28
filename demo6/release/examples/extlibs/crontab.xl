@@ -1,0 +1,18 @@
+import crontab
+
+
+
+func main(...) as int
+    println("valid '* * * * *':", crontab.isValid("* * * * *"))
+    println("valid 'bad':", crontab.isValid("bad"))
+
+    int base = 1700000000
+    println("next '* * * * *' from", base, ":", crontab.next("* * * * *", base))
+    println("next '0 * * * *' from", base, ":", crontab.next("0 * * * *", base))
+    println("next '*/15 * * * *' from", base, ":", crontab.next("*/15 * * * *", base))
+
+    println("describe '*/5 * * * *':", crontab.describe("*/5 * * * *"))
+
+    println("crontab example: PASS")
+    return 0
+end

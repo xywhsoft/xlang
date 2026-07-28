@@ -1,0 +1,12 @@
+import openvino
+
+func main(...) as int
+    // OpenVINO inference engine
+
+    println("Device 0 = " + openvino.device(0))
+    println("Precision 0 = " + openvino.precision(0))
+    println("Layout 0 = " + openvino.layout(0))
+
+    println("openvino example: PASS")
+    return 0
+end

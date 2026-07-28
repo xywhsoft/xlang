@@ -1,0 +1,21 @@
+import rabbitmq
+
+func main(...) as int
+    // RabbitMQ AMQP protocol helpers
+
+    // Class/method names
+    println("Class 10 = " + rabbitmq.className(10))
+    println("Method 50.40 = " + rabbitmq.methodName(50, 40))
+
+    // Exchange types
+    println("Exchange 2 = " + rabbitmq.exchangeType(2))
+
+    // Frame types
+    println("Frame 1 = " + rabbitmq.frameType(1))
+
+    // Topic matching
+    println("match # vs a.b = " + string.format("{}", rabbitmq.topicMatch("#", "a.b")))
+
+    println("rabbitmq example: PASS")
+    return 0
+end

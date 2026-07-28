@@ -1,0 +1,18 @@
+import taglib
+
+func main(...) as int
+    // TagLib audio metadata helpers
+
+    // Frame names
+    println("TIT2 = " + taglib.frameName("TIT2"))
+    println("TPE1 = " + taglib.frameName("TPE1"))
+
+    // Genres
+    println("Genre 17 = " + taglib.genreName(17))
+
+    // Formats
+    println("flac = " + taglib.formatName("flac"))
+
+    println("taglib example: PASS")
+    return 0
+end

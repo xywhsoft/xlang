@@ -12,6 +12,20 @@ on:
   workflow_dispatch:
 
 jobs:
+  linux-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build native Linux release
+        working-directory: demo6
+        run: bash build_linux.sh
+
+      - name: Run Linux compatibility suite
+        working-directory: demo6
+        run: bash test_linux.sh
+
   windows-regression:
     runs-on: windows-latest
     timeout-minutes: 120

@@ -1,0 +1,30 @@
+﻿{
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               },
+    "kind":  "demo6-extlib",
+    "version":  "1.0.0",
+    "format":  "xlang-package-1",
+    "dependencies":  [
+
+                     ],
+    "artifact":  {
+                     "cSources":  [
+                                      "bson_native.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/bson.xl"
+                                   ],
+                     "kind":  "source"
+                 },
+    "name":  "bson",
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "abiVersion":  "1"
+}

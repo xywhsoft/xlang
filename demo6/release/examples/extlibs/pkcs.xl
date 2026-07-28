@@ -1,0 +1,34 @@
+import pkcs
+
+
+
+func main(...) as int
+    // Build a simple AlgorithmIdentifier SEQUENCE: { OID, NULL }
+    auto rsaOid = pkcs.encodeOid("1.2.840.113549.1.1.1")
+    auto nul = pkcs.encodeNull()
+    auto algId = pkcs.wrapSequence(pkcs.concat(rsaOid, nul))
+
+    println("AlgorithmIdentifier DER: ", algId)
+    println("  tag: ", pkcs.tagName(algId))
+    println("  OID: ", pkcs.decodeOid(rsaOid))
+
+    // Encode an integer
+    auto serial = pkcs.encodeInt(12345)
+    println("serial INTEGER: ", serial)
+    println("  value: ", pkcs.decodeInt(serial))
+
+    // OCTET STRING
+    auto data = pkcs.encodeOctet("cafebabe")
+    println("OCTET STRING: ", data)
+    println("  content: ", pkcs.getContent(data))
+
+    // Parse a SEQUENCE
+    auto inner = pkcs.concat(serial, rsaOid)
+    auto seq = pkcs.wrapSequence(inner)
+    println("SEQUENCE: ", seq)
+    println("  total bytes: ", pkcs.derLen(seq))
+    println("  content len: ", pkcs.getLength(seq))
+
+    println("pkcs example: PASS")
+    return 0
+end

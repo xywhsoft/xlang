@@ -1,0 +1,52 @@
+import geos
+
+
+
+func main(...) as int
+    // Unit square polygon: (0,0),(1,0),(1,1),(0,1)
+    auto sq = "0,0;1,0;1,1;0,1"
+
+    // Point in polygon
+    assert geos.pointInPolygon(0.5, 0.5, sq) == 1, "inside"
+    assert geos.pointInPolygon(2.0, 2.0, sq) == 0, "outside"
+
+    // Area of unit square = 1.0
+    auto area = geos.polygonArea(sq)
+    assert area > 0.99 and area < 1.01, "area"
+
+    // Centroid of unit square = (0.5, 0.5)
+    auto cx = geos.centroidX(sq)
+    auto cy = geos.centroidY()
+    assert cx > 0.49 and cx < 0.51, "centroid x"
+    assert cy > 0.49 and cy < 0.51, "centroid y"
+
+    // Perimeter of unit square = 4.0
+    auto perim = geos.perimeter(sq)
+    assert perim > 3.99 and perim < 4.01, "perimeter"
+
+    // Point-segment distance: (0,1) to segment (0,0)-(1,0) = 1.0
+    auto d = geos.pointSegmentDist(0.0, 1.0, 0.0, 0.0, 1.0, 0.0)
+    assert d > 0.99 and d < 1.01, "point-seg dist"
+
+    // Bounding box
+    auto mnx = geos.bboxMinX(sq)
+    auto mny = geos.bboxMinY()
+    auto mxx = geos.bboxMaxX()
+    auto mxy = geos.bboxMaxY()
+    assert mnx > -0.01 and mnx < 0.01, "bbox minx"
+    assert mny > -0.01 and mny < 0.01, "bbox miny"
+    assert mxx > 0.99 and mxx < 1.01, "bbox maxx"
+    assert mxy > 0.99 and mxy < 1.01, "bbox maxy"
+
+    // Segment intersection: (0,0)-(1,1) and (0,1)-(1,0) cross
+    assert geos.segmentsIntersect(0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0) == 1, "intersect"
+    // Parallel segments don't cross
+    assert geos.segmentsIntersect(0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0) == 0, "no intersect"
+
+    // Type names
+    assert geos.typeName(0) == "Point", "type point"
+    assert geos.typeName(2) == "Polygon", "type polygon"
+    assert geos.typeName(99) == "Unknown", "type unknown"
+
+    return 0
+end

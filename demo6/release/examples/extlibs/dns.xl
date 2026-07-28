@@ -1,0 +1,22 @@
+import dns
+
+func main(...) as int
+    // DNS protocol helpers
+
+    // Record types
+    println("Type 1 = " + dns.typeName(1))
+    println("Type 28 = " + dns.typeName(28))
+
+    // Response codes
+    println("Rcode 0 = " + dns.rcodeName(0))
+    println("Rcode 3 = " + dns.rcodeName(3))
+
+    // Domain encoding
+    println("encode example.com = " + dns.encodeName("example.com"))
+
+    // Validation
+    println("valid 'test.org' = " + string.format("{}", dns.validName("test.org")))
+
+    println("dns example: PASS")
+    return 0
+end

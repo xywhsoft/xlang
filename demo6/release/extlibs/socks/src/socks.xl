@@ -1,0 +1,42 @@
+extern "xsocks_version" func __socks_ver() as int
+extern "xsocks_build_greeting" func __socks_greet(int useAuth) as int
+extern "xsocks_build_connect" func __socks_conn(string host, int port) as int
+extern "xsocks_build_auth" func __socks_auth(string user, string pass) as int
+extern "xsocks_parse_greeting" func __socks_pgreet(string hex, int len) as int
+extern "xsocks_parse_reply" func __socks_preply(string hex, int len) as int
+extern "xsocks_reply_str" func __socks_replystr(int code) as string
+extern "xsocks_valid_greeting" func __socks_vgreet(string hex, int len) as bool
+
+
+
+export func version() as int
+    return __socks_ver()
+end
+
+export func buildGreeting(bool useAuth = false) as int
+    return __socks_greet(useAuth ? 1 : 0)
+end
+
+export func buildConnect(string host, int port) as int
+    return __socks_conn(host, port)
+end
+
+export func buildAuth(string user, string pass) as int
+    return __socks_auth(user, pass)
+end
+
+export func parseGreeting(string hexPkt, int len) as int
+    return __socks_pgreet(hexPkt, len)
+end
+
+export func parseReply(string hexPkt, int len) as int
+    return __socks_preply(hexPkt, len)
+end
+
+export func replyString(int code) as string
+    return __socks_replystr(code)
+end
+
+export func validGreeting(string hexPkt, int len) as bool
+    return __socks_vgreet(hexPkt, len)
+end

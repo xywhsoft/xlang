@@ -1,0 +1,70 @@
+extern "xrtGetError" func __hll_error() as string
+
+
+
+class HyperLogLog
+    native point handle
+    extern "xhll_create" create(c_int precision)
+    extern "xhll_destroy" destroy()
+
+    extern "xhll_add" func addNative(string data, c_longlong len)
+    extern "xhll_count" func countNative() as int
+    extern "xhll_clear" func clearNative()
+    extern "xhll_merge" func mergeNative(point other) as bool
+    extern "xhll_precision" func precisionNative() as int
+    extern "xhll_added" func addedNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get precision() as int
+        return self.precisionNative()
+    end
+
+    get added() as int
+        return self.addedNative()
+    end
+
+    func add(string item)
+        if self.handle == null then
+            throw RuntimeError "hyperloglog: instance is destroyed"
+        end
+        self.addNative(item, c_longlong(-1))
+    end
+
+    func count() as int
+        if self.handle == null then
+            throw RuntimeError "hyperloglog: instance is destroyed"
+        end
+        return self.countNative()
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "hyperloglog: instance is destroyed"
+        end
+        self.clearNative()
+    end
+
+    func merge(HyperLogLog other)
+        if self.handle == null then
+            throw RuntimeError "hyperloglog: instance is destroyed"
+        end
+        if other.handle == null then
+            throw ValueError "hyperloglog: cannot merge from destroyed instance"
+        end
+        if not self.mergeNative(other.handle) then
+            throw ValueError __hll_error()
+        end
+    end
+end
+
+
+
+export func create(int precision = 14) as HyperLogLog
+    if precision < 4 or precision > 18 then
+        throw ValueError "hyperloglog: precision must be 4..18"
+    end
+    return HyperLogLog(c_int(precision))
+end

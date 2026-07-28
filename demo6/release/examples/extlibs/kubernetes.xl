@@ -1,0 +1,12 @@
+import kubernetes
+
+func main(...) as int
+    // Kubernetes API helpers
+
+    println("Resource 0 = " + kubernetes.resourceType(0))
+    println("Phase 1 = " + kubernetes.podPhase(1))
+    println("CPU 500m = " + string.int(kubernetes.parseCpuMilli("500m")) + " milli")
+
+    println("kubernetes example: PASS")
+    return 0
+end

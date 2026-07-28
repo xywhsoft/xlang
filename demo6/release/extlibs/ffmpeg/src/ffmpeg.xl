@@ -1,0 +1,35 @@
+extern "xffmpeg_codec" func __codec(int id) as string
+extern "xffmpeg_container" func __container(int id) as string
+extern "xffmpeg_pixel_format" func __pixel_format(int id) as string
+extern "xffmpeg_filter" func __filter(int id) as string
+extern "xffmpeg_calc_bitrate" func __calc_bitrate(int size, int dur) as int
+extern "xffmpeg_profile" func __profile(int codec, int prof) as string
+extern "xffmpeg_color_space" func __color_space(int id) as string
+
+export func codec(int id) as string
+    return __codec(id)
+end
+
+export func container(int id) as string
+    return __container(id)
+end
+
+export func pixelFormat(int id) as string
+    return __pixel_format(id)
+end
+
+export func filter(int id) as string
+    return __filter(id)
+end
+
+export func calcBitrate(int size, int dur) as int
+    return __calc_bitrate(size, dur)
+end
+
+export func profile(int codec, int prof) as string
+    return __profile(codec, prof)
+end
+
+export func colorSpace(int id) as string
+    return __color_space(id)
+end

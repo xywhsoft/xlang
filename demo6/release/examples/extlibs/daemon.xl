@@ -1,0 +1,21 @@
+import daemon
+
+
+
+func main(...) as int
+    auto d = daemon.create("my_service")
+    println("name: ", d.name)
+    println("pid: ", d.pid)
+    println("running: ", d.isRunning)
+    println("daemonized: ", d.isDaemonized)
+    println("status: ", d.status)
+
+    // Check if current process is alive
+    println("alive: ", daemon.isAlive(d.pid))
+
+    d.stop()
+    println("after stop, running: ", d.isRunning)
+
+    println("daemon example: PASS")
+    return 0
+end

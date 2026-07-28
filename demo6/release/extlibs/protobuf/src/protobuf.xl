@@ -1,0 +1,30 @@
+extern "xprotobuf_wire_type" func __wire_type(int id) as string
+extern "xprotobuf_varint_size" func __varint_size(int value) as int
+extern "xprotobuf_tag" func __tag(int field_num, int wire_type) as int
+extern "xprotobuf_field_number" func __field_number(int tag) as int
+extern "xprotobuf_wire_from_tag" func __wire_from_tag(int tag) as int
+extern "xprotobuf_type_name" func __type_name(int id) as string
+
+export func wireType(int id) as string
+    return __wire_type(id)
+end
+
+export func varintSize(int value) as int
+    return __varint_size(value)
+end
+
+export func tag(int field_num, int wire_type) as int
+    return __tag(field_num, wire_type)
+end
+
+export func fieldNumber(int tag) as int
+    return __field_number(tag)
+end
+
+export func wireFromTag(int tag) as int
+    return __wire_from_tag(tag)
+end
+
+export func typeName(int id) as string
+    return __type_name(id)
+end

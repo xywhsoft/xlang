@@ -1,0 +1,12 @@
+import mnn
+
+func main(...) as int
+    // MNN mobile neural network
+
+    println("Backend 0 = " + mnn.backend(0))
+    println("Precision 0 = " + mnn.precision(0))
+    println("Forward 0 = " + mnn.forwardType(0))
+
+    println("mnn example: PASS")
+    return 0
+end

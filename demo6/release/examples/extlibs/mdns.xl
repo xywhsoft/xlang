@@ -1,0 +1,15 @@
+import mdns
+
+
+
+func main(...) as int
+    println("mDNS multicast: ", mdns.multicastAddr(), ":", mdns.port())
+    println("HTTP service: ", mdns.serviceHttp())
+    println("SSH service: ", mdns.serviceSsh())
+    println("valid '_http._tcp.local': ", mdns.validName("_http._tcp.local"))
+    println("valid 'nodots': ", mdns.validName("nodots"))
+    println("query packet size: ", mdns.buildQuery("_http._tcp.local", 12))
+
+    println("mdns example: PASS")
+    return 0
+end

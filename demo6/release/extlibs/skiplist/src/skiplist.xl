@@ -1,0 +1,69 @@
+extern "xrtGetError" func __skiplist_error() as string
+
+
+
+class SkipList
+    native point handle
+    extern "xskiplist_create" create()
+    extern "xskiplist_destroy" destroy()
+
+    extern "xskiplist_set" func setNative(string key, string value)
+    extern "xskiplist_get" func getNative(string key) as string
+    extern "xskiplist_contains" func containsNative(string key) as bool
+    extern "xskiplist_remove" func removeNative(string key) as bool
+    extern "xskiplist_clear" func clearNative()
+    extern "xskiplist_count" func countNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        return self.countNative()
+    end
+
+    func set(string key, string value)
+        if self.handle == null then
+            throw RuntimeError "skiplist: instance is destroyed"
+        end
+        self.setNative(key, value)
+    end
+
+    func get(string key, string default = "") as string
+        if self.handle == null then
+            throw RuntimeError "skiplist: instance is destroyed"
+        end
+        string result = self.getNative(key)
+        if result == "" and not self.containsNative(key) then
+            return default
+        end
+        return result
+    end
+
+    func contains(string key) as bool
+        if self.handle == null then
+            throw RuntimeError "skiplist: instance is destroyed"
+        end
+        return self.containsNative(key)
+    end
+
+    func remove(string key) as bool
+        if self.handle == null then
+            throw RuntimeError "skiplist: instance is destroyed"
+        end
+        return self.removeNative(key)
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "skiplist: instance is destroyed"
+        end
+        self.clearNative()
+    end
+end
+
+
+
+export func create() as SkipList
+    return SkipList()
+end

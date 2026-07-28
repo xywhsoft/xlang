@@ -1,0 +1,13 @@
+import opentelemetry
+
+func main(...) as int
+    // OpenTelemetry distributed tracing
+
+    println("Signal 0 = " + opentelemetry.signalType(0))
+    println("SpanKind 1 = " + opentelemetry.spanKind(1))
+    println("Exporter 0 = " + opentelemetry.exporter(0))
+    println("TraceID = " + opentelemetry.genTraceId(123))
+
+    println("opentelemetry example: PASS")
+    return 0
+end

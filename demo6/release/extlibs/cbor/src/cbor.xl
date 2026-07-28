@@ -1,0 +1,87 @@
+extern "xcbor_encode_int" func __cbor_enc_int(int value) as string
+extern "xcbor_decode_int" func __cbor_dec_int(string hex) as int
+extern "xcbor_encode_str" func __cbor_enc_str(string s) as string
+extern "xcbor_decode_str" func __cbor_dec_str(string hex) as string
+extern "xcbor_encode_bytes" func __cbor_enc_bytes(string data_hex) as string
+extern "xcbor_decode_bytes" func __cbor_dec_bytes(string hex) as string
+extern "xcbor_encode_array_hdr" func __cbor_arr_hdr(int count) as string
+extern "xcbor_encode_map_hdr" func __cbor_map_hdr(int pairs) as string
+extern "xcbor_encode_bool" func __cbor_enc_bool(bool val) as string
+extern "xcbor_decode_bool" func __cbor_dec_bool(string hex) as bool
+extern "xcbor_encode_null" func __cbor_enc_null() as string
+extern "xcbor_encode_float" func __cbor_enc_float(float val) as string
+extern "xcbor_decode_float" func __cbor_dec_float(string hex) as float
+extern "xcbor_get_type" func __cbor_type(string hex) as int
+extern "xcbor_type_name" func __cbor_tname(string hex) as string
+extern "xcbor_item_len" func __cbor_ilen(string hex) as int
+extern "xcbor_concat" func __cbor_cat(string a, string b) as string
+
+
+
+export func encodeInt(int value) as string
+    return __cbor_enc_int(value)
+end
+
+export func decodeInt(string hex) as int
+    return __cbor_dec_int(hex)
+end
+
+export func encodeStr(string s) as string
+    return __cbor_enc_str(s)
+end
+
+export func decodeStr(string hex) as string
+    return __cbor_dec_str(hex)
+end
+
+export func encodeBytes(string data_hex) as string
+    return __cbor_enc_bytes(data_hex)
+end
+
+export func decodeBytes(string hex) as string
+    return __cbor_dec_bytes(hex)
+end
+
+export func arrayHdr(int count) as string
+    return __cbor_arr_hdr(count)
+end
+
+export func mapHdr(int pairs) as string
+    return __cbor_map_hdr(pairs)
+end
+
+export func encodeBool(bool val) as string
+    return __cbor_enc_bool(val)
+end
+
+export func decodeBool(string hex) as bool
+    return __cbor_dec_bool(hex)
+end
+
+export func encodeNull() as string
+    return __cbor_enc_null()
+end
+
+export func encodeFloat(float val) as string
+    return __cbor_enc_float(val)
+end
+
+export func decodeFloat(string hex) as float
+    return __cbor_dec_float(hex)
+end
+
+export func getType(string hex) as int
+    return __cbor_type(hex)
+end
+
+export func typeName(string hex) as string
+    return __cbor_tname(hex)
+end
+
+export func itemLen(string hex) as int
+    return __cbor_ilen(hex)
+end
+
+export func concat(string a, string b) as string
+    return __cbor_cat(a, b)
+end

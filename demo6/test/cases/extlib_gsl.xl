@@ -1,0 +1,40 @@
+import gsl
+
+func main(...) as int
+    // Modules
+    assert gsl.module(0) == "statistics", "mod stats"
+    assert gsl.module(1) == "random number generation", "mod rng"
+    assert gsl.module(10) == "special functions", "mod special"
+
+    // RNG names
+    assert gsl.rngName(0) == "mt19937", "rng mt"
+    assert gsl.rngName(7) == "default", "rng default"
+
+    // Distribution names
+    assert gsl.distName(0) == "gaussian", "dist gauss"
+    assert gsl.distName(3) == "poisson", "dist poisson"
+
+    // Factorial: 5! = 120
+    assert gsl.factorial(5) == 120.0, "fact 5"
+    assert gsl.factorial(0) == 1.0, "fact 0"
+
+    // Combination: C(10,3) = 120
+    assert gsl.combination(10, 3) == 120.0, "comb 10,3"
+    assert gsl.combination(5, 2) == 10.0, "comb 5,2"
+
+    // Gaussian PDF at mean: 1/(sigma*sqrt(2*pi)) ~ 0.3989
+    assert gsl.gaussianPdf(0.0, 0.0, 1.0) > 0.39, "pdf low"
+    assert gsl.gaussianPdf(0.0, 0.0, 1.0) < 0.40, "pdf high"
+
+    // Mean of [2,4,6] = 4
+    assert gsl.mean("2,4,6") == 4.0, "mean"
+
+    // Variance of [2,4,6] = ((4+0+4)/2) = 4.0
+    assert gsl.variance("2,4,6") == 4.0, "variance"
+
+    // Interpolation types
+    assert gsl.interpType(0) == "linear", "interp linear"
+    assert gsl.interpType(2) == "cubic spline", "interp cubic"
+
+    return 0
+end

@@ -1,0 +1,40 @@
+import skiplist
+
+
+
+func main(...) as int
+    auto sl = skiplist.create()
+    assert sl.valid, "skiplist should be valid"
+    assert sl.count == 0, "skiplist initial count"
+
+    sl.set("banana", "yellow")
+    sl.set("apple", "red")
+    sl.set("cherry", "dark red")
+    assert sl.count == 3, "skiplist count after sets"
+    assert sl.get("apple") == "red", "skiplist get apple"
+    assert sl.get("banana") == "yellow", "skiplist get banana"
+    assert sl.get("cherry") == "dark red", "skiplist get cherry"
+    assert sl.get("missing") == "", "skiplist get missing default"
+    assert sl.get("missing", "N/A") == "N/A", "skiplist get missing custom default"
+
+    sl.set("apple", "green")
+    assert sl.get("apple") == "green", "skiplist update value"
+    assert sl.count == 3, "skiplist count unchanged after update"
+
+    assert sl.contains("banana"), "skiplist contains banana"
+    assert not sl.contains("durian"), "skiplist not contains durian"
+
+    bool removed = sl.remove("banana")
+    assert removed, "skiplist remove returns true"
+    assert sl.count == 2, "skiplist count after remove"
+    assert not sl.contains("banana"), "skiplist removed banana"
+
+    removed = sl.remove("nonexistent")
+    assert not removed, "skiplist remove nonexistent"
+    assert sl.count == 2, "skiplist count unchanged"
+
+    sl.clear()
+    assert sl.count == 0, "skiplist count after clear"
+    assert not sl.contains("apple"), "skiplist cleared"
+    return 0
+end

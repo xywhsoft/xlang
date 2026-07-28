@@ -1,0 +1,27 @@
+extern "xargon2_hash" func __a2_hash(string password, string salt, int iterations, int hashLen) as string
+extern "xargon2_verify" func __a2_verify(string password, string salt, int iterations, int hashLen, string expected) as bool
+extern "xargon2_gen_salt" func __a2_salt(int seed, int len) as string
+extern "xargon2_recommended_iterations" func __a2_iters() as int
+extern "xargon2_recommended_hashlen" func __a2_hlen() as int
+
+
+
+export func hash(string password, string salt, int iterations = 10000, int hashLen = 32) as string
+    return __a2_hash(password, salt, iterations, hashLen)
+end
+
+export func verify(string password, string salt, int iterations, int hashLen, string expected) as bool
+    return __a2_verify(password, salt, iterations, hashLen, expected)
+end
+
+export func genSalt(int seed, int len = 16) as string
+    return __a2_salt(seed, len)
+end
+
+export func recommendedIterations() as int
+    return __a2_iters()
+end
+
+export func recommendedHashLen() as int
+    return __a2_hlen()
+end

@@ -1,0 +1,35 @@
+extern "xtf_resource_type" func __resource_type(int id) as string
+extern "xtf_state_action" func __state_action(int id) as string
+extern "xtf_backend" func __backend(int id) as string
+extern "xtf_lock_info" func __lock_info(int id) as string
+extern "xtf_validate_address" func __validate_address(string addr) as int
+extern "xtf_state_version" func __state_version(int serial) as string
+extern "xtf_provider" func __provider(int id) as string
+
+export func resourceType(int id) as string
+    return __resource_type(id)
+end
+
+export func stateAction(int id) as string
+    return __state_action(id)
+end
+
+export func backend(int id) as string
+    return __backend(id)
+end
+
+export func lockInfo(int id) as string
+    return __lock_info(id)
+end
+
+export func validateAddress(string addr) as int
+    return __validate_address(addr)
+end
+
+export func stateVersion(int serial) as string
+    return __state_version(serial)
+end
+
+export func provider(int id) as string
+    return __provider(id)
+end

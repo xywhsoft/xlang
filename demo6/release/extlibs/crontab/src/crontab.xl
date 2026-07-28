@@ -1,0 +1,22 @@
+extern "xcron_matches" func __cron_matches(string expr, int timestamp) as bool
+extern "xcron_next" func __cron_next(string expr, int fromTimestamp) as int
+extern "xcron_describe" func __cron_describe(string expr) as string
+extern "xcron_is_valid" func __cron_is_valid(string expr) as bool
+
+
+
+export func matches(string expr, int timestamp) as bool
+    return __cron_matches(expr, timestamp)
+end
+
+export func next(string expr, int fromTimestamp) as int
+    return __cron_next(expr, fromTimestamp)
+end
+
+export func describe(string expr) as string
+    return __cron_describe(expr)
+end
+
+export func isValid(string expr) as bool
+    return __cron_is_valid(expr)
+end

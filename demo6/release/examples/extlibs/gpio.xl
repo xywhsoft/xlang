@@ -1,0 +1,31 @@
+import gpio
+
+
+
+func main(...) as int
+    auto g = gpio.init()
+
+    // LED blink simulation on pin 17
+    g.exportPin(17)
+    g.setOutput(17)
+
+    println("LED on pin 17:")
+    int i = 0
+    while i < 4
+        g.toggle(17)
+        println("  state: ", g.read(17))
+        i = i + 1
+    end
+
+    // Button on pin 22 with pull-up
+    g.exportPin(22)
+    g.setInput(22)
+    g.setPullUp(22)
+    println("Button pin 22 (pull-up): ", g.read(22))
+
+    g.unexportPin(17)
+    g.unexportPin(22)
+
+    println("gpio example: PASS")
+    return 0
+end

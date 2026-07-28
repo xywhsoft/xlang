@@ -1,0 +1,12 @@
+extern "xpinyin_convert" func __pinyin_convert(string text) as string
+extern "xpinyin_initials" func __pinyin_initials(string text) as string
+
+
+
+export func convert(string text) as string
+    return __pinyin_convert(text)
+end
+
+export func initials(string text) as string
+    return __pinyin_initials(text)
+end

@@ -1,0 +1,68 @@
+extern "xrtGetError" func __serial_error() as string
+
+
+
+class Serial
+    native point handle
+    extern "xserial_open" create(string port, int baudrate, int databits, int stopbits, int parity)
+    extern "xserial_close" destroy()
+
+    extern "xserial_is_open" func isOpenNative() as bool
+    extern "xserial_write" func writeNative(string data, int len) as int
+    extern "xserial_read" func readNative(int maxLen) as string
+    extern "xserial_available" func availableNative() as int
+    extern "xserial_flush" func flushNative()
+    extern "xserial_get_baudrate" func baudrateNative() as int
+    extern "xserial_get_port" func portNative() as string
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get isOpen() as bool
+        return self.isOpenNative()
+    end
+
+    get baudrate() as int
+        return self.baudrateNative()
+    end
+
+    get port() as string
+        return self.portNative()
+    end
+
+    get available() as int
+        return self.availableNative()
+    end
+
+    func write(string data) as int
+        if self.handle == null then
+            throw RuntimeError "serial: port is closed"
+        end
+        return self.writeNative(data, string.len(data))
+    end
+
+    func read(int maxLen = 1024) as string
+        if self.handle == null then
+            throw RuntimeError "serial: port is closed"
+        end
+        return self.readNative(maxLen)
+    end
+
+    func flush()
+        if self.handle == null then
+            throw RuntimeError "serial: port is closed"
+        end
+        self.flushNative()
+    end
+end
+
+
+
+export func open(string port, int baudrate = 9600) as Serial
+    return Serial(port, baudrate, 8, 1, 0)
+end
+
+export func openLoopback(int baudrate = 9600) as Serial
+    return Serial("LOOPBACK", baudrate, 8, 1, 0)
+end

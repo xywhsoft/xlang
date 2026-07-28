@@ -1,0 +1,27 @@
+import watch
+
+
+
+func main(...) as int
+    auto w = watch.create()
+
+    // Watch a file
+    auto idx = w.add("release\\extlibs\\watch\\src\\watch.xl")
+    println("watching index: ", idx)
+    println("path: ", w.path(idx))
+    println("active watches: ", w.count)
+
+    // Poll for changes
+    auto evt = w.poll()
+    if evt == "" then
+        println("no changes detected")
+    else
+        println("event: ", evt)
+    end
+
+    // Check file existence
+    println("exists: ", watch.exists("release\\extlibs\\watch\\src\\watch.xl"))
+
+    println("watch example: PASS")
+    return 0
+end

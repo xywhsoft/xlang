@@ -1,0 +1,14 @@
+import procps
+
+
+
+func main(...) as int
+    println("PID: ", procps.pid())
+    println("PPID: ", procps.ppid())
+    println("Name: ", procps.name(procps.pid()))
+    println("Process count: ", procps.count())
+    println("Self exists: ", procps.exists(procps.pid()))
+
+    println("procps example: PASS")
+    return 0
+end

@@ -1,0 +1,13 @@
+import nanomsg
+
+
+
+func main(...) as int
+    println("Message:   ", nanomsg.message(0x0030, "request data"))
+    println("Proto:     ", nanomsg.protoName(0x0030))
+    println("Body:      ", nanomsg.getBody(nanomsg.message(0x0020, "pub data")))
+    println("Transport: ", nanomsg.transportName(2))
+    println("Address:   ", nanomsg.address(2, "localhost", 5555))
+    println("nanomsg example: PASS")
+    return 0
+end

@@ -1,0 +1,13 @@
+import neo4j
+
+
+
+func main(...) as int
+    println("Msg(0x10):    ", neo4j.msgName(0x10))
+    println("Type(0):      ", neo4j.typeName(0))
+    println("Escape:       ", neo4j.escape("it's"))
+    println("URI host:     ", neo4j.uriPart("bolt://neo4j:p@db.local:7687", "host"))
+    println("TxState(1):   ", neo4j.txState(1))
+    println("neo4j example: PASS")
+    return 0
+end

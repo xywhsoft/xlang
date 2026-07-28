@@ -1,0 +1,36 @@
+import lightgbm
+
+func main(...) as int
+    // Objectives
+    assert lightgbm.objective(0) == "regression", "obj reg"
+    assert lightgbm.objective(1) == "binary", "obj binary"
+
+    // Boosting types
+    assert lightgbm.boosting(0) == "gbdt", "boost gbdt"
+    assert lightgbm.boosting(3) == "goss", "boost goss"
+
+    // Metrics
+    assert lightgbm.metric(0) == "l1", "metric l1"
+    assert lightgbm.metric(3) == "auc", "metric auc"
+
+    // Params
+    assert lightgbm.param(0) == "num_leaves", "param leaves"
+    assert lightgbm.param(2) == "learning_rate", "param lr"
+
+    // Split gain: gl=2, hl=1, gr=3, hr=1, lambda=0
+    // gain = 0.5*(4/1 + 9/1 - 25/2) = 0.5*(4+9-12.5) = 0.25
+    float g = lightgbm.splitGain(2.0, 1.0, 3.0, 1.0, 0.0)
+    assert g > 0.24, "gain min"
+    assert g < 0.26, "gain max"
+
+    // Leaf weight: grad=2, hess=4, lambda=0 -> -2/4 = -0.5
+    float w = lightgbm.leafWeight(2.0, 4.0, 0.0)
+    assert w > -0.51, "weight min"
+    assert w < -0.49, "weight max"
+
+    // Device
+    assert lightgbm.device(0) == "cpu", "device cpu"
+    assert lightgbm.device(1) == "gpu", "device gpu"
+
+    return 0
+end

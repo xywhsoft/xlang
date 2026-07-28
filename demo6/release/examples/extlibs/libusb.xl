@@ -1,0 +1,14 @@
+import libusb
+
+
+
+func main(...) as int
+    println("USB devices: ", libusb.deviceCount())
+    auto i = 0
+    while i < libusb.deviceCount()
+        println("  ", libusb.formatId(libusb.getVid(i), libusb.getPid(i)), " ", libusb.getName(i))
+        i = i + 1
+    end
+    println("libusb example: PASS")
+    return 0
+end

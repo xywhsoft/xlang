@@ -1,0 +1,54 @@
+extern "xrtGetError" func __tabulate_error() as string
+
+
+
+class Table
+    native point handle
+    extern "xtab_create" create()
+    extern "xtab_destroy" destroy()
+
+    extern "xtab_set_headers" func setHeadersNative(string csv)
+    extern "xtab_add_row" func addRowNative(string csv)
+    extern "xtab_render" func renderNative() as string
+    extern "xtab_row_count" func rowCountNative() as int
+    extern "xtab_col_count" func colCountNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get rowCount() as int
+        return self.rowCountNative()
+    end
+
+    get colCount() as int
+        return self.colCountNative()
+    end
+
+    func setHeaders(string csv)
+        if self.handle == null then
+            throw RuntimeError "tabulate: instance is destroyed"
+        end
+        self.setHeadersNative(csv)
+    end
+
+    func addRow(string csv)
+        if self.handle == null then
+            throw RuntimeError "tabulate: instance is destroyed"
+        end
+        self.addRowNative(csv)
+    end
+
+    func render() as string
+        if self.handle == null then
+            throw RuntimeError "tabulate: instance is destroyed"
+        end
+        return self.renderNative()
+    end
+end
+
+
+
+export func create() as Table
+    return Table()
+end

@@ -1,0 +1,14 @@
+import pcap
+
+
+
+func main(...) as int
+    println("LinkType(1):     ", pcap.linktypeName(1))
+    println("Ethertype(2048): ", pcap.ethertypeName(2048))
+    println("Proto(6):        ", pcap.protoName(6))
+    println("Port(443):       ", pcap.portName(443))
+    println("Flags(0x12):     ", pcap.tcpFlagsStr(18))
+    println("IP str:          ", pcap.ipStr(0xC0A80101))
+    println("pcap example: PASS")
+    return 0
+end

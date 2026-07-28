@@ -1,0 +1,22 @@
+import ncnn
+
+func main(...) as int
+    // Layers
+    assert ncnn.layer(0) == "Convolution", "layer conv"
+    assert ncnn.layer(2) == "ReLU", "layer relu"
+
+    // Vulkan device
+    assert ncnn.vulkanDevice(0) == "default", "vk default"
+
+    // Conv output: w=224, k=3, p=1, s=1 -> (224-3+2)/1+1 = 224
+    assert ncnn.convOutput(224, 3, 1, 1) == 224, "conv out"
+
+    // Pool output: w=224, k=2, s=2 -> (224-2)/2+1 = 112
+    assert ncnn.poolOutput(224, 2, 2) == 112, "pool out"
+
+    // Params
+    assert ncnn.param(0) == "num_output", "param num_output"
+    assert ncnn.param(1) == "kernel_w", "param kernel"
+
+    return 0
+end

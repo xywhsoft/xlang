@@ -1,0 +1,33 @@
+extern "xrtGetError" func __ntp_error() as string
+extern "xntp_local_time" func __ntp_now() as int
+extern "xntp_format" func __ntp_fmt(int ts) as string
+extern "xntp_format_local" func __ntp_fmt_local(int ts) as string
+extern "xntp_query" func __ntp_query(string server) as int
+extern "xntp_tz_offset" func __ntp_tz() as int
+extern "xntp_to_unix" func __ntp_to_unix(int ntpSec) as int
+
+
+
+export func now() as int
+    return __ntp_now()
+end
+
+export func formatUtc(int unixTs) as string
+    return __ntp_fmt(unixTs)
+end
+
+export func formatLocal(int unixTs) as string
+    return __ntp_fmt_local(unixTs)
+end
+
+export func query(string server = "pool.ntp.org") as int
+    return __ntp_query(server)
+end
+
+export func tzOffset() as int
+    return __ntp_tz()
+end
+
+export func ntpToUnix(int ntpSec) as int
+    return __ntp_to_unix(ntpSec)
+end

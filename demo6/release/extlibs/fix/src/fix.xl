@@ -1,0 +1,35 @@
+extern "xfix_msg_type" func __msg_type(int id) as string
+extern "xfix_side" func __side(int id) as string
+extern "xfix_ord_type" func __ord_type(int id) as string
+extern "xfix_ord_status" func __ord_status(int id) as string
+extern "xfix_time_in_force" func __time_in_force(int id) as string
+extern "xfix_tag_name" func __tag_name(int tag) as string
+extern "xfix_checksum" func __checksum(string msg) as string
+
+export func msgType(int id) as string
+    return __msg_type(id)
+end
+
+export func side(int id) as string
+    return __side(id)
+end
+
+export func ordType(int id) as string
+    return __ord_type(id)
+end
+
+export func ordStatus(int id) as string
+    return __ord_status(id)
+end
+
+export func timeInForce(int id) as string
+    return __time_in_force(id)
+end
+
+export func tagName(int tag) as string
+    return __tag_name(tag)
+end
+
+export func checksum(string msg) as string
+    return __checksum(msg)
+end

@@ -1,0 +1,33 @@
+import pdf
+
+func main(...) as int
+    // Page sizes
+    assert pdf.pageSize(0) == "A4 (595x842)", "page a4"
+    assert pdf.pageSize(1) == "Letter (612x792)", "page letter"
+
+    // Fonts
+    assert pdf.font(0) == "Helvetica", "font helv"
+    assert pdf.font(3) == "Times-Roman", "font times"
+    assert pdf.font(6) == "Courier", "font courier"
+
+    // Line cap/join
+    assert pdf.lineCap(0) == "butt", "cap butt"
+    assert pdf.lineJoin(0) == "miter", "join miter"
+
+    // Text align
+    assert pdf.textAlign(0) == "left", "align left"
+    assert pdf.textAlign(3) == "justify", "align justify"
+
+    // Color space
+    assert pdf.colorSpace(0) == "DeviceRGB", "cs rgb"
+    assert pdf.colorSpace(1) == "DeviceCMYK", "cs cmyk"
+
+    // Compression
+    assert pdf.compression(0) == "none", "comp none"
+    assert pdf.compression(1) == "flate", "comp flate"
+
+    // pt to mm: 72pt = 25.4mm => x100 = 2540
+    assert pdf.ptToMmX100(72) == 2540, "pt to mm"
+
+    return 0
+end

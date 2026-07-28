@@ -1,0 +1,15 @@
+import socks
+
+
+
+func main(...) as int
+    println("SOCKS version: ", socks.version())
+    println("Greeting (no auth) size: ", socks.buildGreeting(false))
+    println("Connect to 93.184.216.34:80 size: ", socks.buildConnect("93.184.216.34", 80))
+    println("Connect to example.com:443 size: ", socks.buildConnect("example.com", 443))
+    println("Reply 0: ", socks.replyString(0))
+    println("Reply 4: ", socks.replyString(4))
+
+    println("socks example: PASS")
+    return 0
+end

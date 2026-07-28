@@ -1,0 +1,52 @@
+extern "xupnp_ssdp_addr" func __upnp_addr() as string
+extern "xupnp_ssdp_port" func __upnp_port() as int
+extern "xupnp_build_msearch" func __upnp_msearch(string target) as string
+extern "xupnp_build_notify" func __upnp_notify(string usn, string location, string nt) as string
+extern "xupnp_parse_header" func __upnp_hdr(string resp, string header) as string
+extern "xupnp_type_root" func __upnp_root() as string
+extern "xupnp_type_igd" func __upnp_igd() as string
+extern "xupnp_valid_response" func __upnp_valid(string resp) as bool
+extern "xupnp_get_location" func __upnp_loc(string resp) as string
+extern "xupnp_get_usn" func __upnp_usn(string resp) as string
+
+
+
+export func ssdpAddr() as string
+    return __upnp_addr()
+end
+
+export func ssdpPort() as int
+    return __upnp_port()
+end
+
+export func buildMSearch(string target = "ssdp:all") as string
+    return __upnp_msearch(target)
+end
+
+export func buildNotify(string usn, string location, string nt) as string
+    return __upnp_notify(usn, location, nt)
+end
+
+export func parseHeader(string response, string header) as string
+    return __upnp_hdr(response, header)
+end
+
+export func typeRoot() as string
+    return __upnp_root()
+end
+
+export func typeIgd() as string
+    return __upnp_igd()
+end
+
+export func validResponse(string response) as bool
+    return __upnp_valid(response)
+end
+
+export func getLocation(string response) as string
+    return __upnp_loc(response)
+end
+
+export func getUsn(string response) as string
+    return __upnp_usn(response)
+end

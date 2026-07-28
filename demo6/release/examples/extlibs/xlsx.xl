@@ -1,0 +1,19 @@
+import xlsx
+
+func main(...) as int
+    // XLSX spreadsheet helpers
+
+    // Column letters
+    println("Col 0 = " + xlsx.colLetter(0))
+    println("Col 26 = " + xlsx.colLetter(26))
+
+    // Cell reference
+    println("Cell(0,0) = " + xlsx.cellRef(0, 0))
+    println("Cell(2,5) = " + xlsx.cellRef(2, 5))
+
+    // Number formats
+    println("Fmt 14 = " + xlsx.numFormat(14))
+
+    println("xlsx example: PASS")
+    return 0
+end

@@ -1,0 +1,14 @@
+import zeromq
+
+
+
+func main(...) as int
+    println("Frame:     ", zeromq.frame("hello world", 0))
+    println("Body:      ", zeromq.frameBody(zeromq.frame("test msg", 0)))
+    println("Multipart: ", zeromq.multipart("topic", "payload"))
+    println("Socket(3): ", zeromq.socketName(3))
+    println("Pattern(1):", zeromq.patternName(1))
+    println("Endpoint:  ", zeromq.endpoint(0, "localhost", 5555))
+    println("zeromq example: PASS")
+    return 0
+end

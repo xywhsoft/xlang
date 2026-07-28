@@ -1,0 +1,35 @@
+extern "xepub_version" func __version(int id) as string
+extern "xepub_mimetype" func __mimetype(int id) as string
+extern "xepub_spine_prop" func __spine_prop(int id) as string
+extern "xepub_nav_type" func __nav_type(int id) as string
+extern "xepub_metadata_field" func __metadata_field(int id) as string
+extern "xepub_validate_isbn" func __validate_isbn(string isbn) as int
+extern "xepub_encryption" func __encryption(int id) as string
+
+export func version(int id) as string
+    return __version(id)
+end
+
+export func mimetype(int id) as string
+    return __mimetype(id)
+end
+
+export func spineProp(int id) as string
+    return __spine_prop(id)
+end
+
+export func navType(int id) as string
+    return __nav_type(id)
+end
+
+export func metadataField(int id) as string
+    return __metadata_field(id)
+end
+
+export func validateIsbn(string isbn) as int
+    return __validate_isbn(isbn)
+end
+
+export func encryption(int id) as string
+    return __encryption(id)
+end

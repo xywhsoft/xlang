@@ -1,0 +1,41 @@
+import opus
+
+func main(...) as int
+    // Application modes
+    assert opus.application(2048) == "VOIP", "app voip"
+    assert opus.application(2049) == "AUDIO", "app audio"
+    assert opus.application(2051) == "LOWDELAY", "app lowdelay"
+
+    // Bandwidth
+    assert opus.bandwidth(1101) == "NARROWBAND (4kHz)", "bw narrow"
+    assert opus.bandwidth(1105) == "FULLBAND (20kHz)", "bw full"
+
+    // Signal type
+    assert opus.signal(-1000) == "AUTO", "sig auto"
+    assert opus.signal(3001) == "VOICE", "sig voice"
+    assert opus.signal(3002) == "MUSIC", "sig music"
+
+    // Frame sizes
+    assert opus.frameSize(480) == "10ms", "frame 10ms"
+    assert opus.frameSize(960) == "20ms", "frame 20ms"
+    assert opus.frameSize(2880) == "60ms", "frame 60ms"
+
+    // Sample rates
+    assert opus.sampleRate(8000) == "8kHz (narrowband)", "rate 8k"
+    assert opus.sampleRate(48000) == "48kHz (fullband)", "rate 48k"
+
+    // Channels
+    assert opus.channels(1) == "Mono", "ch mono"
+    assert opus.channels(2) == "Stereo", "ch stereo"
+
+    // Recommended bitrate
+    assert opus.recommendedBitrate(2048, 1) == 24000, "bitrate voip mono"
+    assert opus.recommendedBitrate(2049, 2) == 128000, "bitrate audio stereo"
+
+    // Error codes
+    assert opus.errorName(0) == "OK", "err ok"
+    assert opus.errorName(-1) == "BAD_ARG", "err badarg"
+    assert opus.errorName(-4) == "INVALID_PACKET", "err packet"
+
+    return 0
+end

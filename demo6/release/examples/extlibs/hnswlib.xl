@@ -1,0 +1,12 @@
+import hnswlib
+
+func main(...) as int
+    // HNSW approximate nearest neighbor
+
+    println("Space 0 = " + hnswlib.space(0))
+    println("OptimalM(384) = " + string.fromInt(hnswlib.optimalM(384)))
+    println("Param 0 = " + hnswlib.param(0))
+
+    println("hnswlib example: PASS")
+    return 0
+end

@@ -1,0 +1,45 @@
+extern "xminio_method_name" func __method_name(int method) as string
+extern "xminio_storage_class" func __storage_class(int cls) as string
+extern "xminio_acl_name" func __acl_name(int acl) as string
+extern "xminio_valid_bucket" func __valid_bucket(string name) as int
+extern "xminio_valid_key" func __valid_key(string key) as int
+extern "xminio_endpoint" func __endpoint(string host, int port, int tls) as string
+extern "xminio_object_url" func __object_url(string endpoint, string bucket, string key) as string
+extern "xminio_status_name" func __status_name(int code) as string
+extern "xminio_content_type" func __content_type(string filename) as string
+
+export func methodName(int method) as string
+    return __method_name(method)
+end
+
+export func storageClass(int cls) as string
+    return __storage_class(cls)
+end
+
+export func aclName(int acl) as string
+    return __acl_name(acl)
+end
+
+export func validBucket(string name) as int
+    return __valid_bucket(name)
+end
+
+export func validKey(string key) as int
+    return __valid_key(key)
+end
+
+export func endpoint(string host, int port, int tls) as string
+    return __endpoint(host, port, tls)
+end
+
+export func objectUrl(string endpoint, string bucket, string key) as string
+    return __object_url(endpoint, bucket, key)
+end
+
+export func statusName(int code) as string
+    return __status_name(code)
+end
+
+export func contentType(string filename) as string
+    return __content_type(filename)
+end

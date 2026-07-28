@@ -1,0 +1,13 @@
+import tokenizers
+
+func main(...) as int
+    // HuggingFace tokenizers
+
+    println("Model 0 = " + tokenizers.model(0))
+    println("Normalizer 0 = " + tokenizers.normalizer(0))
+    println("Tokens = " + string.fromInt(tokenizers.countTokens("hello world")))
+    println("Special 0 = " + tokenizers.specialToken(0))
+
+    println("tokenizers example: PASS")
+    return 0
+end

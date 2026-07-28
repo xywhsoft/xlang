@@ -1,0 +1,16 @@
+import diff
+
+
+
+func main(...) as int
+    string old = "func main()\n    println(hello)\n    return 0\nend"
+    string new = "func main(...) as int\n    println(hello world)\n    return 0\nend"
+
+    println("=== Diff ===")
+    println(diff.lines(old, new))
+    println("=== Stats (adds,dels,same) ===")
+    println(diff.stats(old, new))
+
+    println("diff example: PASS")
+    return 0
+end

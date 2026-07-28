@@ -1,0 +1,35 @@
+extern "xrdkit_element" func __element(int id) as string
+extern "xrdkit_atomic_mass" func __atomic_mass(int num) as int
+extern "xrdkit_bond_type" func __bond_type(int id) as string
+extern "xrdkit_fingerprint" func __fingerprint(int id) as string
+extern "xrdkit_descriptor" func __descriptor(int id) as string
+extern "xrdkit_validate_smiles" func __validate_smiles(string smiles) as int
+extern "xrdkit_count_atoms" func __count_atoms(string smiles) as int
+
+export func element(int id) as string
+    return __element(id)
+end
+
+export func atomicMass(int num) as int
+    return __atomic_mass(num)
+end
+
+export func bondType(int id) as string
+    return __bond_type(id)
+end
+
+export func fingerprint(int id) as string
+    return __fingerprint(id)
+end
+
+export func descriptor(int id) as string
+    return __descriptor(id)
+end
+
+export func validateSmiles(string smiles) as int
+    return __validate_smiles(smiles)
+end
+
+export func countAtoms(string smiles) as int
+    return __count_atoms(smiles)
+end

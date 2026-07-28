@@ -1,0 +1,13 @@
+import ratatui
+
+func main(...) as int
+    assert ratatui.widget(0) == "Block", "widget block"
+    assert ratatui.widget(3) == "Table", "widget table"
+    assert ratatui.style(1) == "Bold", "style bold"
+    assert ratatui.color(1) == "Red", "color red"
+    assert ratatui.color(4) == "Blue", "color blue"
+    assert ratatui.gaugePct(50.0, 100.0) == 50.0, "gauge 50"
+    assert ratatui.gaugePct(150.0, 100.0) == 100.0, "gauge cap"
+    assert ratatui.border(1) == "Rounded", "border rounded"
+    return 0
+end

@@ -1,0 +1,25 @@
+import kafka
+
+func main(...) as int
+    // Kafka protocol helpers
+
+    // API names
+    println("API 0 = " + kafka.apiName(0))
+    println("API 1 = " + kafka.apiName(1))
+
+    // Error codes
+    println("Error 0 = " + kafka.errorName(0))
+    println("Error 7 = " + kafka.errorName(7))
+
+    // Compression
+    println("Codec 3 = " + kafka.compression(3))
+
+    // Acks
+    println("Acks -1 = " + kafka.acksDesc(-1))
+
+    // Group state
+    println("Group 1 = " + kafka.groupState(1))
+
+    println("kafka example: PASS")
+    return 0
+end

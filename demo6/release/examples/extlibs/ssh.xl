@@ -1,0 +1,20 @@
+import ssh
+
+func main(...) as int
+    // SSH protocol helpers
+
+    // Message types
+    println("Msg 20 = " + ssh.msgType(20))
+    println("Msg 90 = " + ssh.msgType(90))
+
+    // Algorithms
+    println("KEX 5 = " + ssh.kexName(5))
+    println("Cipher 5 = " + ssh.cipherName(5))
+    println("HostKey 3 = " + ssh.hostkeyName(3))
+
+    // Auth methods
+    println("Auth 2 = " + ssh.authMethod(2))
+
+    println("ssh example: PASS")
+    return 0
+end

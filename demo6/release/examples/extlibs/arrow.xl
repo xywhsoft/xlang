@@ -1,0 +1,12 @@
+import arrow
+
+func main(...) as int
+    // Apache Arrow columnar format
+
+    println("Type 5 = " + arrow.dataType(5))
+    println("Compute 4 = " + arrow.computeFunc(4))
+    println("Aligned 100 = " + string.int(arrow.alignedSize(100)))
+
+    println("arrow example: PASS")
+    return 0
+end

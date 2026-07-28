@@ -1,0 +1,25 @@
+import trie
+
+
+
+func main(...) as int
+    auto t = trie.create()
+    t.insert("hello")
+    t.insert("help")
+    t.insert("hero")
+    t.insert("world")
+
+    println("count:", t.count)
+    println("contains hello:", t.contains("hello"))
+    println("contains hel:", t.contains("hel"))
+    println("startsWith hel:", t.startsWith("hel"))
+    println("countPrefix he:", t.countPrefix("he"))
+    println("countPrefix wor:", t.countPrefix("wor"))
+
+    t.remove("help")
+    println("after remove help, count:", t.count)
+    println("contains help:", t.contains("help"))
+
+    println("trie example: PASS")
+    return 0
+end

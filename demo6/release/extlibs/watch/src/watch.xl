@@ -1,0 +1,60 @@
+extern "xrtGetError" func __watch_error() as string
+
+
+
+class Watcher
+    native point handle
+    extern "xwatch_create" create()
+    extern "xwatch_destroy" destroy()
+
+    extern "xwatch_add" func addNative(string path) as int
+    extern "xwatch_remove" func removeNative(int idx) as bool
+    extern "xwatch_poll" func pollNative() as string
+    extern "xwatch_count" func countNative() as int
+    extern "xwatch_path" func pathNative(int idx) as string
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        return self.countNative()
+    end
+
+    func add(string path) as int
+        if self.handle == null then
+            throw RuntimeError "watch: instance is destroyed"
+        end
+        return self.addNative(path)
+    end
+
+    func remove(int idx) as bool
+        if self.handle == null then
+            throw RuntimeError "watch: instance is destroyed"
+        end
+        return self.removeNative(idx)
+    end
+
+    func poll() as string
+        if self.handle == null then
+            throw RuntimeError "watch: instance is destroyed"
+        end
+        return self.pollNative()
+    end
+
+    func path(int idx) as string
+        return self.pathNative(idx)
+    end
+end
+
+extern "xwatch_exists" func __watch_exists(string path) as bool
+
+
+
+export func create() as Watcher
+    return Watcher()
+end
+
+export func exists(string path) as bool
+    return __watch_exists(path)
+end

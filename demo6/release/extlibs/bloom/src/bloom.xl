@@ -1,0 +1,131 @@
+extern "xrtGetError" func __bloom_error() as string
+
+
+
+class BloomFilter
+    native point handle
+    extern "xbloom_create" create(c_longlong capacity, c_double fp_rate)
+    extern "xbloom_destroy" destroy()
+
+    extern "xbloom_add" func addNative(string data, c_longlong len)
+    extern "xbloom_contains" func containsNative(string data, c_longlong len) as bool
+    extern "xbloom_clear" func clearNative()
+    extern "xbloom_count" func countNative() as int
+    extern "xbloom_bits" func bitsNative() as int
+    extern "xbloom_hashes" func hashesNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        return self.countNative()
+    end
+
+    get bits() as int
+        return self.bitsNative()
+    end
+
+    get hashes() as int
+        return self.hashesNative()
+    end
+
+    func add(string item)
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        self.addNative(item, c_longlong(-1))
+    end
+
+    func contains(string item) as bool
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        return self.containsNative(item, c_longlong(-1))
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "bloom: filter is destroyed"
+        end
+        self.clearNative()
+    end
+end
+
+
+
+class CountingBloomFilter
+    native point handle
+    extern "xcounting_bloom_create" create(c_longlong capacity, c_double fp_rate)
+    extern "xcounting_bloom_destroy" destroy()
+
+    extern "xcounting_bloom_add" func addNative(string data, c_longlong len)
+    extern "xcounting_bloom_contains" func containsNative(string data, c_longlong len) as bool
+    extern "xcounting_bloom_remove" func removeNative(string data, c_longlong len)
+    extern "xcounting_bloom_clear" func clearNative()
+    extern "xcounting_bloom_count" func countNative() as int
+    extern "xcounting_bloom_slots" func slotsNative() as int
+    extern "xcounting_bloom_hashes" func hashesNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        return self.countNative()
+    end
+
+    get slots() as int
+        return self.slotsNative()
+    end
+
+    get hashes() as int
+        return self.hashesNative()
+    end
+
+    func add(string item)
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        self.addNative(item, c_longlong(-1))
+    end
+
+    func contains(string item) as bool
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        return self.containsNative(item, c_longlong(-1))
+    end
+
+    func remove(string item)
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        self.removeNative(item, c_longlong(-1))
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "counting bloom: filter is destroyed"
+        end
+        self.clearNative()
+    end
+end
+
+
+
+export func create(int capacity, float fpRate = 0.01) as BloomFilter
+    if capacity <= 0 then
+        throw ValueError "bloom: capacity must be positive"
+    end
+    return BloomFilter(c_longlong(capacity), c_double(fpRate))
+end
+
+
+
+export func createCounting(int capacity, float fpRate = 0.01) as CountingBloomFilter
+    if capacity <= 0 then
+        throw ValueError "counting bloom: capacity must be positive"
+    end
+    return CountingBloomFilter(c_longlong(capacity), c_double(fpRate))
+end

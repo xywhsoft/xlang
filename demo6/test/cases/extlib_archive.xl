@@ -1,0 +1,58 @@
+import archive
+
+
+
+func main(...) as int
+    // Format names
+    assert archive.formatName(0) == "tar", "fmt tar"
+    assert archive.formatName(1) == "zip", "fmt zip"
+    assert archive.formatName(4) == "gz", "fmt gz"
+    assert archive.formatName(7) == "zstd", "fmt zstd"
+    assert archive.formatName(99) == "unknown", "fmt unknown"
+
+    // Format detection from magic bytes
+    assert archive.detect("1f8b08000000") == 4, "detect gzip"
+    assert archive.detect("504b03041400") == 1, "detect zip"
+    assert archive.detect("377abcaf271c") == 2, "detect 7z"
+    assert archive.detect("526172211a07") == 3, "detect rar"
+    assert archive.detect("425a68393141") == 5, "detect bz2"
+    assert archive.detect("fd377a585a00") == 6, "detect xz"
+    assert archive.detect("28b52ffd0000") == 7, "detect zstd"
+    assert archive.detect("0000") == -1, "detect unknown"
+
+    // tar type flags
+    assert archive.tarType(48) == "regular", "tar regular"
+    assert archive.tarType(53) == "directory", "tar directory"
+    assert archive.tarType(50) == "symlink", "tar symlink"
+
+    // tar octal size parse: "0000000144" = 100 decimal
+    assert archive.tarParseSize("0000000144") == 100, "tar size"
+    assert archive.tarParseSize("0000000000") == 0, "tar size 0"
+    assert archive.tarParseSize("0000000100") == 64, "tar size 64"
+
+    // ZIP method names
+    assert archive.zipMethod(0) == "stored", "zip stored"
+    assert archive.zipMethod(8) == "deflated", "zip deflated"
+    assert archive.zipMethod(14) == "lzma", "zip lzma"
+    assert archive.zipMethod(93) == "zstd", "zip zstd"
+
+    // ZIP version names
+    assert archive.zipVersion(20) == "2.0", "zip ver 2.0"
+    assert archive.zipVersion(45) == "4.5", "zip ver 4.5"
+    assert archive.zipVersion(63) == "6.3", "zip ver 6.3"
+
+    // ZIP local file header parse
+    // sig=504b0304 ver=1400 flags=0000 method=0800 time=0000 date=0000 crc=00000000 comp=64000000 uncomp=c8000000 fname=0800 extra=0000
+    auto zhdr = "504b0304140000000800000000000000000064000000c800000008000000"
+    auto method = archive.zipLocalHeader(zhdr)
+    assert method == 8, "zip header method"
+    assert archive.zipCompSize() == 100, "zip comp size"
+    assert archive.zipUncompSize() == 200, "zip uncomp size"
+    assert archive.zipFnameLen() == 8, "zip fname len"
+
+    // Compression ratio
+    auto r = archive.ratio(50, 200)
+    assert r > 74.9 and r < 75.1, "ratio 75%"
+
+    return 0
+end

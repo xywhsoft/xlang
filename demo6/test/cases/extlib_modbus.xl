@@ -1,0 +1,47 @@
+import modbus
+
+
+
+func main(...) as int
+    // CRC16
+    auto crc = modbus.crc16("0103")
+    assert string.len(crc) == 4, "crc is 4 hex chars"
+
+    // Build RTU frame
+    auto frame = modbus.buildRtu(1, 3, "0000000a")
+    assert modbus.rtuAddr(frame) == 1, "addr is 1"
+    assert modbus.rtuFunc(frame) == 3, "func is 3"
+    assert modbus.rtuPayload(frame) == "0000000a", "payload"
+    assert modbus.verifyCrc(frame), "crc valid"
+
+    // Tampered frame fails CRC
+    auto bad = "01030000000affff"
+    assert not modbus.verifyCrc(bad), "bad crc"
+
+    // Read Coils request
+    auto rc = modbus.readCoilsReq(1, 0, 10)
+    assert modbus.rtuFunc(rc) == 1, "FC01"
+    assert modbus.verifyCrc(rc), "rc crc"
+
+    // Read Holding Registers
+    auto rh = modbus.readHoldingReq(2, 100, 5)
+    assert modbus.rtuAddr(rh) == 2, "slave 2"
+    assert modbus.rtuFunc(rh) == 3, "FC03"
+    assert modbus.verifyCrc(rh), "rh crc"
+
+    // Write Single Register
+    auto wr = modbus.writeRegisterReq(1, 10, 256)
+    assert modbus.rtuFunc(wr) == 6, "FC06"
+    assert modbus.verifyCrc(wr), "wr crc"
+
+    // TCP frame
+    auto tcp = modbus.buildTcp(1, 1, 3, "0000000a")
+    assert string.len(tcp) > 0, "tcp frame"
+
+    // Function names
+    assert modbus.funcName(1) == "Read Coils", "FC1 name"
+    assert modbus.funcName(3) == "Read Holding Registers", "FC3 name"
+    assert modbus.funcName(6) == "Write Single Register", "FC6 name"
+
+    return 0
+end

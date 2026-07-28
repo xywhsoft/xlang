@@ -1,0 +1,21 @@
+extern "xchardet_detect_name" func __chardet_name(string data) as string
+extern "xchardet_detect_conf" func __chardet_conf(string data) as int
+
+
+
+export func detect(string data) as string
+    return __chardet_name(data)
+end
+
+export func confidence(string data) as int
+    return __chardet_conf(data)
+end
+
+export func isUtf8(string data) as bool
+    auto enc = __chardet_name(data)
+    return enc == "UTF-8" or enc == "UTF-8-BOM"
+end
+
+export func isAscii(string data) as bool
+    return __chardet_name(data) == "ASCII"
+end

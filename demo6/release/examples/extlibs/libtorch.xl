@@ -1,0 +1,13 @@
+import libtorch
+
+func main(...) as int
+    // LibTorch PyTorch C++
+
+    println("Dtype 0 = " + libtorch.dtype(0))
+    println("Device 0 = " + libtorch.device(0))
+    println("Activation 0 = " + libtorch.activation(0))
+    println("Numel(2,3,4) = " + string.fromInt(libtorch.numel("2,3,4")))
+
+    println("libtorch example: PASS")
+    return 0
+end

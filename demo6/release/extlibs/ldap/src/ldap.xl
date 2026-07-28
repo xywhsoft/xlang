@@ -1,0 +1,35 @@
+extern "xldap_result_name" func __result_name(int code) as string
+extern "xldap_operation_name" func __operation_name(int op) as string
+extern "xldap_scope_name" func __scope_name(int scope) as string
+extern "xldap_deref_name" func __deref_name(int deref) as string
+extern "xldap_modify_op" func __modify_op(int op) as string
+extern "xldap_attr_desc" func __attr_desc(string attr) as string
+extern "xldap_valid_dn" func __valid_dn(string dn) as int
+
+export func resultName(int code) as string
+    return __result_name(code)
+end
+
+export func operationName(int op) as string
+    return __operation_name(op)
+end
+
+export func scopeName(int scope) as string
+    return __scope_name(scope)
+end
+
+export func derefName(int deref) as string
+    return __deref_name(deref)
+end
+
+export func modifyOp(int op) as string
+    return __modify_op(op)
+end
+
+export func attrDesc(string attr) as string
+    return __attr_desc(attr)
+end
+
+export func validDn(string dn) as int
+    return __valid_dn(dn)
+end

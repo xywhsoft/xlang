@@ -1,0 +1,13 @@
+import imgui
+
+func main(...) as int
+    assert imgui.widget(0) == "Button", "widget button"
+    assert imgui.widget(3) == "InputText", "widget input"
+    assert imgui.layout(0) == "SameLine", "layout same"
+    assert imgui.layout(2) == "Separator", "layout sep"
+    assert imgui.rectArea(0.0, 0.0, 10.0, 5.0) == 50.0, "area"
+    assert imgui.styleVar(2) == "FrameRounding", "style"
+    assert imgui.clamp(15.0, 0.0, 10.0) == 10.0, "clamp hi"
+    assert imgui.clamp(-3.0, 0.0, 10.0) == 0.0, "clamp lo"
+    return 0
+end

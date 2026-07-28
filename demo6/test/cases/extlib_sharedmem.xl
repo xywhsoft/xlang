@@ -1,0 +1,32 @@
+import sharedmem
+
+
+
+func main(...) as int
+    auto sm = sharedmem.create("xlang_test_shm", 4096)
+    assert sm.valid, "valid"
+    assert sm.size == 4096, "size"
+    assert sm.name == "xlang_test_shm", "name"
+
+    // Write and read string
+    auto n = sm.writeStr(0, "Hello SharedMem")
+    assert n == 15, "wrote 15 bytes"
+    auto s = sm.readStr(0, 100)
+    assert s == "Hello SharedMem", "read back: " + s
+
+    // Write and read int
+    assert sm.writeInt(100, 123456789), "write int"
+    assert sm.readInt(100) == 123456789, "read int"
+
+    // Write int at another offset
+    assert sm.writeInt(200, -42), "write negative"
+    assert sm.readInt(200) == -42, "read negative"
+
+    // Zero clears everything
+    sm.zero()
+    assert sm.readInt(100) == 0, "zeroed int"
+    auto empty = sm.readStr(0, 10)
+    assert string.len(empty) == 0, "zeroed string"
+
+    return 0
+end

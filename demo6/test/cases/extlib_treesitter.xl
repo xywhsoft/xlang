@@ -1,0 +1,35 @@
+import treesitter
+
+func main(...) as int
+    // Languages
+    assert treesitter.language(0) == "c", "lang c"
+    assert treesitter.language(2) == "python", "lang python"
+    assert treesitter.language(5) == "rust", "lang rust"
+
+    // Node types
+    assert treesitter.nodeType(0) == "source_file", "node source"
+    assert treesitter.nodeType(1) == "function_definition", "node func"
+    assert treesitter.nodeType(8) == "error", "node error"
+
+    // Edit types
+    assert treesitter.editType(0) == "insert", "edit insert"
+    assert treesitter.editType(1) == "delete", "edit delete"
+
+    // Query captures
+    assert treesitter.queryCapture(0) == "@function", "cap func"
+    assert treesitter.queryCapture(6) == "@keyword", "cap keyword"
+
+    // Max depth: "((()))" = 3
+    assert treesitter.maxDepth("((()))") == 3, "depth 3"
+    assert treesitter.maxDepth("()") == 1, "depth 1"
+    assert treesitter.maxDepth("abc") == 0, "depth 0"
+    assert treesitter.maxDepth("{[()]}") == 3, "depth mixed"
+
+    // Input encoding
+    assert treesitter.inputEncoding(0) == "UTF-8", "enc utf8"
+
+    // Log types
+    assert treesitter.logType(0) == "parse", "log parse"
+
+    return 0
+end

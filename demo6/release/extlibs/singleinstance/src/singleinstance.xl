@@ -1,0 +1,17 @@
+extern "xsi_acquire" func __si_acquire(string name) as bool
+extern "xsi_release" func __si_release()
+extern "xsi_is_acquired" func __si_is_acquired() as bool
+
+
+
+export func acquire(string name) as bool
+    return __si_acquire(name)
+end
+
+export func release()
+    __si_release()
+end
+
+export func isAcquired() as bool
+    return __si_is_acquired()
+end

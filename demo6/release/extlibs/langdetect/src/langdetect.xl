@@ -1,0 +1,23 @@
+extern "xlangdetect_detect" func __langdetect(string text) as string
+
+
+
+export func detect(string text) as string
+    return __langdetect(text)
+end
+
+export func isChinese(string text) as bool
+    return __langdetect(text) == "chinese"
+end
+
+export func isEnglish(string text) as bool
+    return __langdetect(text) == "english"
+end
+
+export func isJapanese(string text) as bool
+    return __langdetect(text) == "japanese"
+end
+
+export func isKorean(string text) as bool
+    return __langdetect(text) == "korean"
+end

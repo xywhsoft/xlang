@@ -1,0 +1,47 @@
+import clickhouse
+
+func main(...) as int
+    // Client packets
+    assert clickhouse.clientPacket(0) == "Hello", "client hello"
+    assert clickhouse.clientPacket(1) == "Query", "client query"
+    assert clickhouse.clientPacket(4) == "Ping", "client ping"
+
+    // Server packets
+    assert clickhouse.serverPacket(0) == "Hello", "server hello"
+    assert clickhouse.serverPacket(1) == "Data", "server data"
+    assert clickhouse.serverPacket(2) == "Exception", "server exception"
+    assert clickhouse.serverPacket(5) == "EndOfStream", "server eos"
+
+    // Type names
+    assert clickhouse.typeName(0) == "UInt8", "type uint8"
+    assert clickhouse.typeName(7) == "Int64", "type int64"
+    assert clickhouse.typeName(10) == "String", "type string"
+    assert clickhouse.typeName(14) == "UUID", "type uuid"
+
+    // Compression
+    assert clickhouse.compression(0) == "None", "comp none"
+    assert clickhouse.compression(1) == "LZ4", "comp lz4"
+    assert clickhouse.compression(2) == "ZSTD", "comp zstd"
+
+    // Varint encode/decode
+    assert clickhouse.encodeVarint(0) == "00", "varint 0"
+    assert clickhouse.encodeVarint(127) == "7f", "varint 127"
+    assert clickhouse.encodeVarint(128) == "8001", "varint 128"
+    assert clickhouse.encodeVarint(300) == "ac02", "varint 300"
+    assert clickhouse.decodeVarint("00") == 0, "decode 0"
+    assert clickhouse.decodeVarint("7f") == 127, "decode 127"
+    assert clickhouse.decodeVarint("8001") == 128, "decode 128"
+    assert clickhouse.decodeVarint("ac02") == 300, "decode 300"
+
+    // Settings
+    assert clickhouse.settingDefault("max_block_size") == "65536", "setting block"
+    assert clickhouse.settingDefault("connect_timeout") == "10", "setting timeout"
+    assert clickhouse.settingDefault("unknown") == "", "setting unknown"
+
+    // Engine names
+    assert clickhouse.engineName(0) == "MergeTree", "engine merge"
+    assert clickhouse.engineName(10) == "Memory", "engine memory"
+    assert clickhouse.engineName(13) == "Distributed", "engine dist"
+
+    return 0
+end

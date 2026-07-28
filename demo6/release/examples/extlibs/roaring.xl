@@ -1,0 +1,23 @@
+import roaring
+
+
+
+func main(...) as int
+    auto rb = roaring.create()
+    rb.add(10)
+    rb.add(20)
+    rb.add(30)
+    rb.add(1000000)
+
+    println("count:", rb.count)
+    println("contains 20:", rb.contains(20))
+    println("contains 25:", rb.contains(25))
+    println("min:", rb.min)
+    println("max:", rb.max)
+
+    rb.remove(20)
+    println("after remove 20, count:", rb.count)
+
+    println("roaring example: PASS")
+    return 0
+end

@@ -1,0 +1,24 @@
+import msgpack
+
+
+
+func main(...) as int
+    // Encode various types
+    println("int 42:    ", msgpack.encodeInt(42))
+    println("int -10:   ", msgpack.encodeInt(-10))
+    println("str hello: ", msgpack.encodeStr("hello"))
+    println("bool true: ", msgpack.encodeBool(true))
+    println("nil:       ", msgpack.encodeNil())
+    println("float 1.5: ", msgpack.encodeFloat(1.5))
+
+    // Build [1, "two", true]
+    auto arr = msgpack.concat(msgpack.arrayHdr(3), msgpack.concat(msgpack.encodeInt(1), msgpack.concat(msgpack.encodeStr("two"), msgpack.encodeBool(true))))
+    println("array:     ", arr)
+
+    // Decode
+    println("decode 999: ", msgpack.decodeInt(msgpack.encodeInt(999)))
+    println("decode str: ", msgpack.decodeStr(msgpack.encodeStr("world")))
+
+    println("msgpack example: PASS")
+    return 0
+end

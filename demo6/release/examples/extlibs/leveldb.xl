@@ -1,0 +1,15 @@
+import leveldb
+
+
+
+func main(...) as int
+    auto ikey = leveldb.internalKey("user:1001", 42, 1)
+    println("Internal key: ", ikey)
+    println("User key:     ", leveldb.userKey(ikey))
+    println("Sequence:     ", leveldb.sequence(ikey))
+    println("Type:         ", leveldb.typeName(leveldb.keyType(ikey)))
+    println("SST size:     ", leveldb.sstSize(100000, 16, 64))
+    println("Block size:   ", leveldb.blockSize())
+    println("leveldb example: PASS")
+    return 0
+end

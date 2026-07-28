@@ -1,0 +1,68 @@
+import lru
+
+
+
+func main(...) as int
+    // --- LRU mode ---
+    auto cache = lru.create(3)
+    assert cache.valid, "lru should be valid"
+    assert cache.count == 0, "lru initial count"
+    assert cache.capacity == 3, "lru capacity"
+
+    cache.put("a", "1")
+    cache.put("b", "2")
+    cache.put("c", "3")
+    assert cache.count == 3, "lru count after puts"
+    assert cache.get("a") == "1", "lru get a"
+    assert cache.get("b") == "2", "lru get b"
+    assert cache.get("c") == "3", "lru get c"
+    assert cache.get("missing") == "", "lru get missing default"
+    assert cache.get("missing", "N/A") == "N/A", "lru get missing custom"
+
+    // update existing key
+    cache.put("b", "22")
+    assert cache.get("b") == "22", "lru update value"
+    assert cache.count == 3, "lru count unchanged after update"
+
+    // contains / remove
+    assert cache.contains("a"), "lru contains a"
+    assert not cache.contains("z"), "lru not contains z"
+    bool removed = cache.remove("a")
+    assert removed, "lru remove returns true"
+    assert cache.count == 2, "lru count after remove"
+    assert not cache.contains("a"), "lru removed a"
+    removed = cache.remove("nonexist")
+    assert not removed, "lru remove nonexist"
+
+    // eviction: capacity=3, currently has b,c (2 items). Add d,e -> evicts
+    cache.put("d", "4")
+    cache.put("e", "5")
+    assert cache.count == 3, "lru count capped at capacity"
+
+    // hits / misses
+    assert cache.hits > 0, "lru has hits"
+    assert cache.misses > 0, "lru has misses"
+
+    // clear
+    cache.clear()
+    assert cache.count == 0, "lru count after clear"
+    assert not cache.contains("b"), "lru cleared"
+
+    // --- LFU mode ---
+    auto lfu = lru.createLFU(2)
+    assert lfu.valid, "lfu should be valid"
+    lfu.put("x", "10")
+    lfu.put("y", "20")
+    // access x multiple times to increase frequency
+    lfu.get("x")
+    lfu.get("x")
+    lfu.get("y")
+    // adding z should evict y (lower freq than x)
+    lfu.put("z", "30")
+    assert lfu.count == 2, "lfu count capped"
+    assert lfu.contains("x"), "lfu keeps high-freq x"
+    assert lfu.contains("z"), "lfu keeps new z"
+    assert not lfu.contains("y"), "lfu evicts low-freq y"
+
+    return 0
+end

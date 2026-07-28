@@ -1,0 +1,61 @@
+import ta_lib
+
+
+
+func main(...) as int
+    // SMA of 1,2,3,4,5 period 3 = (3+4+5)/3 = 4.0
+    auto s = ta_lib.sma("1,2,3,4,5", 3)
+    assert s > 3.99 and s < 4.01, "sma"
+
+    // EMA converges toward recent values
+    auto e = ta_lib.ema("1,2,3,4,5", 3)
+    assert e > 3.0 and e < 5.0, "ema range"
+
+    // RSI of steadily increasing prices should be high
+    auto rsi = ta_lib.rsi("10,11,12,13,14,15,16,17,18,19,20", 5)
+    assert rsi > 90, "rsi uptrend"
+
+    // RSI of steadily decreasing prices should be low
+    auto rsi2 = ta_lib.rsi("20,19,18,17,16,15,14,13,12,11,10", 5)
+    assert rsi2 < 10, "rsi downtrend"
+
+    // MACD returns values
+    auto m = ta_lib.macd("1,2,3,4,5,6,7,8,9,10", 3, 5, 3)
+    auto ms = ta_lib.macdSignal()
+    auto mh = ta_lib.macdHist()
+    assert mh > -0.01 and mh < 2.0, "macd hist range"
+
+    // Bollinger bands: constant data -> zero width
+    auto bm = ta_lib.bollinger("5,5,5,5,5", 5, 2.0)
+    auto bu = ta_lib.bollingerUpper()
+    auto bl = ta_lib.bollingerLower()
+    assert bm > 4.99 and bm < 5.01, "bollinger mid"
+    assert bu > 4.99 and bu < 5.01, "bollinger upper const"
+    assert bl > 4.99 and bl < 5.01, "bollinger lower const"
+
+    // Stddev of constant = 0
+    auto sd = ta_lib.stddev("5,5,5,5,5", 5)
+    assert sd > -0.01 and sd < 0.01, "stddev const"
+
+    // Stddev of 1,2,3,4,5 period 5
+    auto sd2 = ta_lib.stddev("1,2,3,4,5", 5)
+    assert sd2 > 1.4 and sd2 < 1.5, "stddev"
+
+    // Highest/Lowest
+    auto hi = ta_lib.highest("3,1,4,1,5,9,2,6", 4)
+    assert hi > 8.99 and hi < 9.01, "highest"
+    auto lo = ta_lib.lowest("3,1,4,1,5,9,2,6", 4)
+    assert lo > 1.99 and lo < 2.01, "lowest"
+
+    // ROC: (last - prev) / prev * 100
+    auto roc = ta_lib.roc("100,110,120,130", 1)
+    assert roc > 8.0 and roc < 9.0, "roc"
+
+    // Indicator names
+    assert ta_lib.name(0) == "SMA", "name sma"
+    assert ta_lib.name(2) == "RSI", "name rsi"
+    assert ta_lib.name(3) == "MACD", "name macd"
+    assert ta_lib.name(99) == "UNKNOWN", "name unknown"
+
+    return 0
+end

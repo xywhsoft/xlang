@@ -1,0 +1,35 @@
+extern "xtreesitter_language" func __language(int id) as string
+extern "xtreesitter_node_type" func __node_type(int id) as string
+extern "xtreesitter_edit_type" func __edit_type(int id) as string
+extern "xtreesitter_query_capture" func __query_capture(int id) as string
+extern "xtreesitter_max_depth" func __max_depth(string expr) as int
+extern "xtreesitter_input_encoding" func __input_encoding(int id) as string
+extern "xtreesitter_log_type" func __log_type(int id) as string
+
+export func language(int id) as string
+    return __language(id)
+end
+
+export func nodeType(int id) as string
+    return __node_type(id)
+end
+
+export func editType(int id) as string
+    return __edit_type(id)
+end
+
+export func queryCapture(int id) as string
+    return __query_capture(id)
+end
+
+export func maxDepth(string expr) as int
+    return __max_depth(expr)
+end
+
+export func inputEncoding(int id) as string
+    return __input_encoding(id)
+end
+
+export func logType(int id) as string
+    return __log_type(id)
+end

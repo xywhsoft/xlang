@@ -1,0 +1,40 @@
+extern "xkafka_api_name" func __api_name(int api_key) as string
+extern "xkafka_error_name" func __error_name(int code) as string
+extern "xkafka_compression" func __compression(int codec) as string
+extern "xkafka_magic_info" func __magic_info(int magic) as string
+extern "xkafka_isolation" func __isolation(int level) as string
+extern "xkafka_acks_desc" func __acks_desc(int acks) as string
+extern "xkafka_group_state" func __group_state(int state) as string
+extern "xkafka_txn_state" func __txn_state(int state) as string
+
+export func apiName(int api_key) as string
+    return __api_name(api_key)
+end
+
+export func errorName(int code) as string
+    return __error_name(code)
+end
+
+export func compression(int codec) as string
+    return __compression(codec)
+end
+
+export func magicInfo(int magic) as string
+    return __magic_info(magic)
+end
+
+export func isolation(int level) as string
+    return __isolation(level)
+end
+
+export func acksDesc(int acks) as string
+    return __acks_desc(acks)
+end
+
+export func groupState(int state) as string
+    return __group_state(state)
+end
+
+export func txnState(int state) as string
+    return __txn_state(state)
+end

@@ -1,0 +1,23 @@
+import dotenv
+
+
+
+func main(...) as int
+    // Load .env file
+    int n = dotenv.load("test/data/dotenv_test.env")
+    println("loaded", n, "variables")
+
+    println("DB_HOST:", dotenv.get("DB_HOST"))
+    println("DB_PORT:", dotenv.get("DB_PORT"))
+    println("DB_NAME:", dotenv.get("DB_NAME"))
+    println("API_KEY:", dotenv.get("API_KEY"))
+    println("MISSING:", dotenv.get("MISSING", "default_val"))
+
+    // Programmatic set
+    dotenv.set("APP_ENV", "production")
+    println("APP_ENV:", dotenv.get("APP_ENV"))
+    println("total vars:", dotenv.count())
+
+    println("dotenv example: PASS")
+    return 0
+end

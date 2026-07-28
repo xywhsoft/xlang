@@ -1,0 +1,13 @@
+import ceres
+
+func main(...) as int
+    // Ceres nonlinear least squares
+
+    println("Solver 0 = " + ceres.solverType(0))
+    println("Loss 1 = " + ceres.lossFunction(1))
+    println("sqrt(9) = " + string.float(ceres.sqrtNewton(9.0)))
+    println("Fit (0,0)(1,2)(2,4) = " + ceres.linearFit("0,0,1,2,2,4"))
+
+    println("ceres example: PASS")
+    return 0
+end

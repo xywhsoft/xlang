@@ -1,0 +1,31 @@
+import mdns
+
+
+
+func main(...) as int
+    // Multicast address and port
+    assert mdns.multicastAddr() == "224.0.0.251", "multicast addr"
+    assert mdns.port() == 5353, "port"
+
+    // Service types
+    assert mdns.serviceHttp() == "_http._tcp.local", "http service"
+    assert mdns.serviceSsh() == "_ssh._tcp.local", "ssh service"
+
+    // Name validation
+    assert mdns.validName("_http._tcp.local"), "valid name"
+    assert mdns.validName("myservice.local"), "valid simple"
+    assert not mdns.validName("nodots"), "invalid no dots"
+    assert not mdns.validName(""), "invalid empty"
+
+    // Record types
+    assert mdns.typeA() == 1, "type A"
+    assert mdns.typePtr() == 12, "type PTR"
+    assert mdns.typeSrv() == 33, "type SRV"
+    assert mdns.typeTxt() == 16, "type TXT"
+
+    // Build query returns packet size > 0
+    auto sz = mdns.buildQuery("_http._tcp.local", 12)
+    assert sz > 12, "query packet size"
+
+    return 0
+end

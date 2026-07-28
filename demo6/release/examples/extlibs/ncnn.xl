@@ -1,0 +1,12 @@
+import ncnn
+
+func main(...) as int
+    // NCNN mobile inference
+
+    println("Layer 0 = " + ncnn.layer(0))
+    println("ConvOut(224,3,1,1) = " + string.fromInt(ncnn.convOutput(224, 3, 1, 1)))
+    println("PoolOut(224,2,2) = " + string.fromInt(ncnn.poolOutput(224, 2, 2)))
+
+    println("ncnn example: PASS")
+    return 0
+end

@@ -1,0 +1,52 @@
+import mongodb
+
+
+
+func main(...) as int
+    // Opcode names
+    assert mongodb.opcode(2004) == "OP_QUERY", "op query"
+    assert mongodb.opcode(2013) == "OP_MSG", "op msg"
+    assert mongodb.opcode(2002) == "OP_INSERT", "op insert"
+    assert mongodb.opcode(9999) == "UNKNOWN", "op unknown"
+
+    // BSON type names
+    assert mongodb.bsonType(0x01) == "double", "bson double"
+    assert mongodb.bsonType(0x02) == "string", "bson string"
+    assert mongodb.bsonType(0x07) == "objectId", "bson oid"
+    assert mongodb.bsonType(0x10) == "int32", "bson int32"
+    assert mongodb.bsonType(0x12) == "int64", "bson int64"
+
+    // URI parsing
+    assert mongodb.uriPart("mongodb://admin:secret@db.example.com:27017/mydb", "user") == "admin", "uri user"
+    assert mongodb.uriPart("mongodb://admin:secret@db.example.com:27017/mydb", "password") == "secret", "uri pass"
+    assert mongodb.uriPart("mongodb://admin:secret@db.example.com:27017/mydb", "host") == "db.example.com", "uri host"
+    assert mongodb.uriPart("mongodb://admin:secret@db.example.com:27017/mydb", "port") == "27017", "uri port"
+    assert mongodb.uriPart("mongodb://admin:secret@db.example.com:27017/mydb", "db") == "mydb", "uri db"
+
+    // Write concern
+    assert mongodb.wName(0) == "unacknowledged", "w 0"
+    assert mongodb.wName(1) == "acknowledged", "w 1"
+
+    // Read preference
+    assert mongodb.readPref(0) == "primary", "rp primary"
+    assert mongodb.readPref(2) == "secondary", "rp secondary"
+    assert mongodb.readPref(4) == "nearest", "rp nearest"
+
+    // ObjectId generation (deterministic)
+    auto oid = mongodb.objectId(1609459200, 1)
+    assert string.len(oid) == 24, "oid len"
+
+    // Collection name validation
+    assert mongodb.validCollection("users") == 1, "coll valid"
+    assert mongodb.validCollection("my.collection") == 1, "coll dot"
+    assert mongodb.validCollection("") == 0, "coll empty"
+    assert mongodb.validCollection("system.users") == 0, "coll system"
+    assert mongodb.validCollection("a..b") == 0, "coll double dot"
+    assert mongodb.validCollection("has$dollar") == 0, "coll dollar"
+
+    // Cursor flags
+    assert mongodb.cursorFlag(0x02) == "tailable", "flag tailable"
+    assert mongodb.cursorFlag(0x20) == "awaitData", "flag await"
+
+    return 0
+end

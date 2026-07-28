@@ -1,0 +1,95 @@
+extern "xfftw_next_pow2" func __fft_np2(int n) as int
+extern "xfftw_is_pow2" func __fft_ip2(int n) as int
+extern "xfftw_freq_resolution" func __fft_fres(float sample_rate, int fft_size) as float
+extern "xfftw_freq_to_bin" func __fft_f2b(float freq, float sample_rate, int fft_size) as int
+extern "xfftw_bin_to_freq" func __fft_b2f(int bin, float sample_rate, int fft_size) as float
+extern "xfftw_magnitude" func __fft_mag(float real, float imag) as float
+extern "xfftw_phase" func __fft_phase(float real, float imag) as float
+extern "xfftw_power" func __fft_pow(float real, float imag) as float
+extern "xfftw_to_db" func __fft_db(float magnitude) as float
+extern "xfftw_window_name" func __fft_wname(int wtype) as string
+extern "xfftw_hann" func __fft_hann(int n, int N) as float
+extern "xfftw_hamming" func __fft_hamm(int n, int N) as float
+extern "xfftw_flag_estimate" func __fft_fest() as int
+extern "xfftw_flag_measure" func __fft_fmeas() as int
+extern "xfftw_flag_patient" func __fft_fpat() as int
+extern "xfftw_flag_exhaustive" func __fft_fexh() as int
+extern "xfftw_forward" func __fft_fwd() as int
+extern "xfftw_backward" func __fft_bwd() as int
+extern "xfftw_complexity" func __fft_cplx(int n) as int
+
+export func nextPow2(int n) as int
+    return __fft_np2(n)
+end
+
+export func isPow2(int n) as int
+    return __fft_ip2(n)
+end
+
+export func freqResolution(float sample_rate, int fft_size) as float
+    return __fft_fres(sample_rate, fft_size)
+end
+
+export func freqToBin(float freq, float sample_rate, int fft_size) as int
+    return __fft_f2b(freq, sample_rate, fft_size)
+end
+
+export func binToFreq(int bin, float sample_rate, int fft_size) as float
+    return __fft_b2f(bin, sample_rate, fft_size)
+end
+
+export func magnitude(float real, float imag) as float
+    return __fft_mag(real, imag)
+end
+
+export func phase(float real, float imag) as float
+    return __fft_phase(real, imag)
+end
+
+export func power(float real, float imag) as float
+    return __fft_pow(real, imag)
+end
+
+export func toDb(float magnitude) as float
+    return __fft_db(magnitude)
+end
+
+export func windowName(int wtype) as string
+    return __fft_wname(wtype)
+end
+
+export func hann(int n, int N) as float
+    return __fft_hann(n, N)
+end
+
+export func hamming(int n, int N) as float
+    return __fft_hamm(n, N)
+end
+
+export func flagEstimate() as int
+    return __fft_fest()
+end
+
+export func flagMeasure() as int
+    return __fft_fmeas()
+end
+
+export func flagPatient() as int
+    return __fft_fpat()
+end
+
+export func flagExhaustive() as int
+    return __fft_fexh()
+end
+
+export func forward() as int
+    return __fft_fwd()
+end
+
+export func backward() as int
+    return __fft_bwd()
+end
+
+export func complexity(int n) as int
+    return __fft_cplx(n)
+end

@@ -1,0 +1,12 @@
+import vectordb
+
+func main(...) as int
+    // Vector database
+
+    println("Engine 0 = " + vectordb.engine(0))
+    println("Index 2 = " + vectordb.indexType(2))
+    println("Metric 0 = " + vectordb.metric(0))
+
+    println("vectordb example: PASS")
+    return 0
+end

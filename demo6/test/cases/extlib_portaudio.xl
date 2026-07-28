@@ -1,0 +1,36 @@
+import portaudio
+
+func main(...) as int
+    // Host APIs
+    assert portaudio.hostApi(1) == "DirectSound", "api ds"
+    assert portaudio.hostApi(3) == "ASIO", "api asio"
+    assert portaudio.hostApi(5) == "CoreAudio", "api core"
+    assert portaudio.hostApi(8) == "ALSA", "api alsa"
+    assert portaudio.hostApi(13) == "WASAPI", "api wasapi"
+
+    // Sample formats
+    assert portaudio.sampleFormat(1) == "Float32", "fmt float32"
+    assert portaudio.sampleFormat(8) == "Int16", "fmt int16"
+    assert portaudio.sampleFormat(4) == "Int24", "fmt int24"
+
+    // Stream flags
+    assert portaudio.streamFlag(0) == "No flags", "flag none"
+    assert portaudio.streamFlag(1) == "Clip off", "flag clip"
+
+    // Error codes
+    assert portaudio.errorName(0) == "No error", "err none"
+    assert portaudio.errorName(-9998) == "Invalid channel count", "err channel"
+    assert portaudio.errorName(-9987) == "Device unavailable", "err device"
+
+    // Valid rates
+    assert portaudio.validRate(44100) == 1, "rate 44100"
+    assert portaudio.validRate(48000) == 1, "rate 48000"
+    assert portaudio.validRate(12345) == 0, "rate invalid"
+
+    // Bytes per sample
+    assert portaudio.bytesPerSample(1) == 4, "bps float32"
+    assert portaudio.bytesPerSample(8) == 2, "bps int16"
+    assert portaudio.bytesPerSample(16) == 1, "bps int8"
+
+    return 0
+end

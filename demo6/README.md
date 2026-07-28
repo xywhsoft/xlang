@@ -15,6 +15,7 @@
 - `release/include/README.md`：对外 C API 头文件说明。
 - `lib/README.md`：随 demo6 使用的 XRT 单头文件和 package fixture 库说明。
 - `release/README.md`：构建产物目录说明。
+- `docs/Linux兼容性设计.md`：Linux x86_64 构建、内嵌资源与验收口径。
 
 ## 常用命令
 
@@ -27,6 +28,14 @@ test.bat
 test_all.bat
 build_dll.bat
 test_dll.bat
+```
+
+Linux / WSL2：
+
+```bash
+cd /mnt/d/GIT/x-lang/demo6
+bash build.sh
+bash test_linux.sh
 ```
 
 轻量发布候选守门：

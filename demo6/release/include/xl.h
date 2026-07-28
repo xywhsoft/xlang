@@ -13,6 +13,8 @@ extern "C" {
 # else
 #  define XL_API __declspec(dllimport)
 # endif
+#elif defined(__GNUC__) || defined(__clang__)
+# define XL_API __attribute__((visibility("default")))
 #else
 # define XL_API
 #endif

@@ -1,0 +1,37 @@
+import plot
+
+func main(...) as int
+    // Chart types
+    assert plot.chartType(0) == "line", "chart line"
+    assert plot.chartType(1) == "bar", "chart bar"
+    assert plot.chartType(4) == "pie", "chart pie"
+
+    // Axis scales
+    assert plot.axisScale(0) == "linear", "scale linear"
+    assert plot.axisScale(1) == "log", "scale log"
+
+    // Legend positions
+    assert plot.legendPosition(0) == "top", "legend top"
+    assert plot.legendPosition(4) == "none", "legend none"
+
+    // Colors (matplotlib default palette)
+    assert plot.color(0) == "#1f77b4", "color 0"
+    assert plot.color(3) == "#d62728", "color 3"
+
+    // Line styles
+    assert plot.lineStyle(0) == "solid", "line solid"
+    assert plot.lineStyle(1) == "dashed", "line dashed"
+
+    // Markers
+    assert plot.marker(0) == "circle", "marker circle"
+    assert plot.marker(6) == "none", "marker none"
+
+    // SVG viewBox
+    assert plot.svgViewbox(800, 600) == "0 0 800 600", "viewbox"
+
+    // Output formats
+    assert plot.outputFormat(0) == "svg", "fmt svg"
+    assert plot.outputFormat(1) == "png", "fmt png"
+
+    return 0
+end

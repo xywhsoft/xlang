@@ -1,0 +1,16 @@
+import passkey
+
+
+
+func main(...) as int
+    println("Fmt(packed):   ", passkey.fmtName("packed"))
+    println("Algo(-7):      ", passkey.coseAlgo(-7))
+    println("Kty(2):        ", passkey.coseKty(2))
+    println("Curve(1):      ", passkey.coseCurve(1))
+    println("Transport(3):  ", passkey.transportName(3))
+    println("RpId valid:    ", passkey.validRpId("example.com"))
+    println("Challenge:     ", passkey.genChallenge(42, 16))
+    println("Flags(0x45):   ", passkey.flagsStr(0x45))
+    println("passkey example: PASS")
+    return 0
+end

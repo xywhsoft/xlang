@@ -1,0 +1,37 @@
+import css
+
+
+
+func main(...) as int
+    auto sheet = "body { color: red; margin: 0; } .title { font-size: 16px; }"
+
+    // Get property value
+    assert css.get(sheet, "body", "color") == "red", "body color"
+    assert css.get(sheet, "body", "margin") == "0", "body margin"
+    assert css.get(sheet, ".title", "font-size") == "16px", "title font-size"
+
+    // Missing property
+    assert css.get(sheet, "body", "padding") == "", "missing prop"
+
+    // Count rules
+    assert css.countRules(sheet) == 2, "2 rules"
+
+    // Count properties
+    assert css.countProps(sheet, "body") == 2, "body 2 props"
+    assert css.countProps(sheet, ".title") == 1, "title 1 prop"
+
+    // Selector at index
+    assert css.selectorAt(sheet, 0) == "body", "sel 0"
+    assert css.selectorAt(sheet, 1) == ".title", "sel 1"
+
+    // Validate
+    assert css.validate(sheet), "valid css"
+    assert not css.validate("body { color: red; "), "invalid css"
+
+    // Strip comments
+    auto with_comment = "/* hello */ body { color: blue; }"
+    auto stripped = css.stripComments(with_comment)
+    assert css.get(stripped, "body", "color") == "blue", "stripped works"
+
+    return 0
+end

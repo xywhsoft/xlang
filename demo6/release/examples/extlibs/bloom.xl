@@ -1,0 +1,28 @@
+import bloom
+
+
+
+func main(...) as int
+    auto f = bloom.create(10000, 0.001)
+    println("bits:", f.bits, "hashes:", f.hashes)
+
+    f.add("user:1001")
+    f.add("user:1002")
+    f.add("user:1003")
+
+    println("contains user:1001 =", f.contains("user:1001"))
+    println("contains user:9999 =", f.contains("user:9999"))
+    println("count:", f.count)
+
+    auto cf = bloom.createCounting(5000)
+    cf.add("session:abc")
+    cf.add("session:def")
+    println("cf contains session:abc =", cf.contains("session:abc"))
+
+    cf.remove("session:abc")
+    println("after remove, contains session:abc =", cf.contains("session:abc"))
+    println("cf count:", cf.count)
+
+    println("bloom example: PASS")
+    return 0
+end

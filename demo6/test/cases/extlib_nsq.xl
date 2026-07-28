@@ -1,0 +1,46 @@
+import nsq
+
+func main(...) as int
+    // Command names
+    assert nsq.cmdName(0) == "IDENTIFY", "cmd identify"
+    assert nsq.cmdName(2) == "PUB", "cmd pub"
+    assert nsq.cmdName(5) == "RDY", "cmd rdy"
+    assert nsq.cmdName(6) == "FIN", "cmd fin"
+    assert nsq.cmdName(7) == "REQ", "cmd req"
+
+    // Frame types
+    assert nsq.frameType(0) == "RESPONSE", "frame response"
+    assert nsq.frameType(1) == "ERROR", "frame error"
+    assert nsq.frameType(2) == "MESSAGE", "frame message"
+
+    // Error names
+    assert nsq.errorName(0) == "E_INVALID", "err invalid"
+    assert nsq.errorName(1) == "E_BAD_TOPIC", "err topic"
+    assert nsq.errorName(11) == "E_AUTH_FAILED", "err auth"
+
+    // Topic validation
+    assert nsq.validTopic("my-topic") == 1, "topic valid"
+    assert nsq.validTopic("orders.2024") == 1, "topic dots"
+    assert nsq.validTopic("a#ephemeral") == 1, "topic ephemeral"
+    assert nsq.validTopic("") == 0, "topic empty"
+    assert nsq.validTopic("bad topic!") == 0, "topic invalid"
+
+    // Channel validation
+    assert nsq.validChannel("my-channel") == 1, "channel valid"
+    assert nsq.validChannel("bad channel") == 0, "channel invalid"
+
+    // Message ID validation
+    assert nsq.validMsgId("0123456789abcdef") == 1, "msgid valid"
+    assert nsq.validMsgId("short") == 0, "msgid short"
+    assert nsq.validMsgId("0123456789abcdeg") == 0, "msgid bad char"
+
+    // Magic
+    assert nsq.magic() == "  V2", "magic"
+
+    // Feature support
+    assert nsq.featureSupported("client_id") == 1, "feat client_id"
+    assert nsq.featureSupported("tls_v1") == 1, "feat tls"
+    assert nsq.featureSupported("unknown_feat") == 0, "feat unknown"
+
+    return 0
+end

@@ -1,0 +1,38 @@
+import ftp
+
+func main(...) as int
+    // Reply categories
+    assert ftp.replyCategory(150) == "Positive Preliminary", "cat 1xx"
+    assert ftp.replyCategory(200) == "Positive Completion", "cat 2xx"
+    assert ftp.replyCategory(331) == "Positive Intermediate", "cat 3xx"
+    assert ftp.replyCategory(421) == "Transient Negative", "cat 4xx"
+    assert ftp.replyCategory(550) == "Permanent Negative", "cat 5xx"
+
+    // Reply texts
+    assert ftp.replyText(220) == "Service ready for new user", "reply 220"
+    assert ftp.replyText(230) == "User logged in", "reply 230"
+    assert ftp.replyText(530) == "Not logged in", "reply 530"
+    assert ftp.replyText(550) == "Requested action not taken (file unavailable)", "reply 550"
+
+    // Command names
+    assert ftp.cmdName(0) == "USER", "cmd user"
+    assert ftp.cmdName(7) == "RETR", "cmd retr"
+    assert ftp.cmdName(8) == "STOR", "cmd stor"
+    assert ftp.cmdName(16) == "PASV", "cmd pasv"
+    assert ftp.cmdName(20) == "QUIT", "cmd quit"
+
+    // Transfer types
+    assert ftp.transferType(0) == "ASCII", "type ascii"
+    assert ftp.transferType(1) == "Binary (Image)", "type binary"
+
+    // PASV parsing
+    auto addr = ftp.parsePasv("227 Entering Passive Mode (192,168,1,100,4,1)")
+    assert addr == "192.168.1.100:1025", "pasv parse"
+
+    // Is positive
+    assert ftp.isPositive(200) == 1, "positive 200"
+    assert ftp.isPositive(331) == 1, "positive 331"
+    assert ftp.isPositive(550) == 0, "negative 550"
+
+    return 0
+end

@@ -1,0 +1,15 @@
+import tdengine
+
+
+
+func main(...) as int
+    println("CREATE DB:   ", tdengine.createDb("power", 0))
+    println("CREATE STB:  ", tdengine.createStable("meters", "ts TIMESTAMP, current FLOAT", "location BINARY(64)"))
+    println("CREATE TBL:  ", tdengine.createTable("d1001", "meters", "'SF'"))
+    println("INSERT:      ", tdengine.insert("d1001", 1609459200000, "10.3"))
+    println("SELECT:      ", tdengine.select("*", "meters", ""))
+    println("INTERVAL:    ", tdengine.interval("meters", "AVG", "current", 60000))
+    println("Port:        ", tdengine.port())
+    println("tdengine example: PASS")
+    return 0
+end

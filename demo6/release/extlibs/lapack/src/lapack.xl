@@ -1,0 +1,35 @@
+extern "xlapack_routine_category" func __routine_category(int id) as string
+extern "xlapack_routine_name" func __routine_name(int id) as string
+extern "xlapack_info_code" func __info_code(int code) as string
+extern "xlapack_solve2x2" func __solve2x2(string mat, string rhs) as string
+extern "xlapack_det2x2" func __det2x2(string mat) as float
+extern "xlapack_trace" func __trace(string mat, int n) as float
+extern "xlapack_norm_type" func __norm_type(int id) as string
+
+export func routineCategory(int id) as string
+    return __routine_category(id)
+end
+
+export func routineName(int id) as string
+    return __routine_name(id)
+end
+
+export func infoCode(int code) as string
+    return __info_code(code)
+end
+
+export func solve2x2(string mat, string rhs) as string
+    return __solve2x2(mat, rhs)
+end
+
+export func det2x2(string mat) as float
+    return __det2x2(mat)
+end
+
+export func trace(string mat, int n) as float
+    return __trace(mat, n)
+end
+
+export func normType(int id) as string
+    return __norm_type(id)
+end

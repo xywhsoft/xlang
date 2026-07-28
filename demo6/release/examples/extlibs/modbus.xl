@@ -1,0 +1,23 @@
+import modbus
+
+
+
+func main(...) as int
+    // Build a Read Holding Registers request
+    auto req = modbus.readHoldingReq(1, 0, 10)
+    println("FC03 request: ", req)
+    println("  addr: ", modbus.rtuAddr(req))
+    println("  func: ", modbus.funcName(modbus.rtuFunc(req)))
+    println("  crc ok: ", modbus.verifyCrc(req))
+
+    // Write register
+    auto wr = modbus.writeRegisterReq(1, 100, 1234)
+    println("FC06 request: ", wr)
+
+    // TCP frame
+    auto tcp = modbus.buildTcp(1, 1, 3, "00640001")
+    println("TCP frame: ", tcp)
+
+    println("modbus example: PASS")
+    return 0
+end

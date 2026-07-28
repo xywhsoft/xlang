@@ -1,0 +1,25 @@
+extern "xclip_model" func __model(int id) as string
+extern "xclip_cosine_similarity" func __cosine_similarity(string a, string b) as float
+extern "xclip_preprocess" func __preprocess(int id) as string
+extern "xclip_embed_dim" func __embed_dim(int model_id) as int
+extern "xclip_tokenizer" func __tokenizer(int id) as string
+
+export func model(int id) as string
+    return __model(id)
+end
+
+export func cosineSimilarity(string a, string b) as float
+    return __cosine_similarity(a, b)
+end
+
+export func preprocess(int id) as string
+    return __preprocess(id)
+end
+
+export func embedDim(int model_id) as int
+    return __embed_dim(model_id)
+end
+
+export func tokenizer(int id) as string
+    return __tokenizer(id)
+end

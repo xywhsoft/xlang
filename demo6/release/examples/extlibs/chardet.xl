@@ -1,0 +1,17 @@
+import chardet
+
+
+
+func main(...) as int
+    auto ascii_text = "Hello, World!"
+    println("detect('", ascii_text, "') = ", chardet.detect(ascii_text))
+    println("  confidence: ", chardet.confidence(ascii_text))
+
+    auto utf8_text = "\xe4\xbd\xa0\xe5\xa5\xbd\xe4\xb8\x96\xe7\x95\x8c"
+    println("detect(UTF-8 bytes) = ", chardet.detect(utf8_text))
+    println("  confidence: ", chardet.confidence(utf8_text))
+    println("  isUtf8: ", chardet.isUtf8(utf8_text))
+
+    println("chardet example: PASS")
+    return 0
+end

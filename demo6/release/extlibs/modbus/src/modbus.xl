@@ -1,0 +1,57 @@
+extern "xmodbus_crc16" func __mb_crc(string data_hex) as string
+extern "xmodbus_build_rtu" func __mb_rtu(int addr, int fcode, string payload) as string
+extern "xmodbus_build_tcp" func __mb_tcp(int tid, int unit, int fcode, string payload) as string
+extern "xmodbus_rtu_addr" func __mb_raddr(string frame) as int
+extern "xmodbus_rtu_func" func __mb_rfunc(string frame) as int
+extern "xmodbus_rtu_payload" func __mb_rpay(string frame) as string
+extern "xmodbus_verify_crc" func __mb_vcrc(string frame) as bool
+extern "xmodbus_read_coils_req" func __mb_rc(int slave, int start, int count) as string
+extern "xmodbus_read_holding_req" func __mb_rh(int slave, int start, int count) as string
+extern "xmodbus_write_register_req" func __mb_wr(int slave, int reg, int value) as string
+extern "xmodbus_func_name" func __mb_fname(int code) as string
+
+
+
+export func crc16(string data_hex) as string
+    return __mb_crc(data_hex)
+end
+
+export func buildRtu(int addr, int fcode, string payload_hex) as string
+    return __mb_rtu(addr, fcode, payload_hex)
+end
+
+export func buildTcp(int trans_id, int unit_id, int fcode, string payload_hex) as string
+    return __mb_tcp(trans_id, unit_id, fcode, payload_hex)
+end
+
+export func rtuAddr(string frame) as int
+    return __mb_raddr(frame)
+end
+
+export func rtuFunc(string frame) as int
+    return __mb_rfunc(frame)
+end
+
+export func rtuPayload(string frame) as string
+    return __mb_rpay(frame)
+end
+
+export func verifyCrc(string frame) as bool
+    return __mb_vcrc(frame)
+end
+
+export func readCoilsReq(int slave, int start, int count) as string
+    return __mb_rc(slave, start, count)
+end
+
+export func readHoldingReq(int slave, int start, int count) as string
+    return __mb_rh(slave, start, count)
+end
+
+export func writeRegisterReq(int slave, int reg, int value) as string
+    return __mb_wr(slave, reg, value)
+end
+
+export func funcName(int code) as string
+    return __mb_fname(code)
+end

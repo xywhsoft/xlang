@@ -1,0 +1,12 @@
+import pdfium
+
+func main(...) as int
+    // PDFium rendering helpers
+
+    println("Object 6 = " + pdfium.objectType(6))
+    println("Page obj 0 = " + pdfium.pageObject(0))
+    println("144 DPI scale = " + string.int(pdfium.dpiScaleX1000(144)) + " (x1000)")
+
+    println("pdfium example: PASS")
+    return 0
+end

@@ -1,0 +1,33 @@
+import jieba
+
+func main(...) as int
+    // Modes
+    assert jieba.mode(0) == "accurate", "mode accurate"
+    assert jieba.mode(2) == "search engine", "mode search"
+
+    // POS tags
+    assert jieba.posTag(0) == "n (noun)", "pos noun"
+    assert jieba.posTag(1) == "v (verb)", "pos verb"
+    assert jieba.posTag(10) == "nr (person name)", "pos nr"
+
+    // Dict types
+    assert jieba.dictType(0) == "main dictionary", "dict main"
+    assert jieba.dictType(2) == "HMM model", "dict hmm"
+
+    // Word frequency (deterministic hash)
+    assert jieba.wordFreq("hello") > 0, "freq > 0"
+    assert jieba.wordFreq("hello") == jieba.wordFreq("hello"), "freq deterministic"
+
+    // Tokenizers
+    assert jieba.tokenizer(0) == "jieba", "tok jieba"
+    assert jieba.tokenizer(4) == "hanlp", "tok hanlp"
+
+    // Encodings
+    assert jieba.encoding(0) == "UTF-8", "enc utf8"
+    assert jieba.encoding(1) == "GBK", "enc gbk"
+
+    // Char count: "hello" = 5 ASCII chars
+    assert jieba.charCount("hello") == 5, "count ascii"
+
+    return 0
+end

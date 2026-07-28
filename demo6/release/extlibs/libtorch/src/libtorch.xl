@@ -1,0 +1,30 @@
+extern "xtorch_dtype" func __dtype(int id) as string
+extern "xtorch_device" func __device(int id) as string
+extern "xtorch_activation" func __activation(int id) as string
+extern "xtorch_optimizer" func __optimizer(int id) as string
+extern "xtorch_numel" func __numel(string shape) as int
+extern "xtorch_softmax" func __softmax(float x, float max_val) as float
+
+export func dtype(int id) as string
+    return __dtype(id)
+end
+
+export func device(int id) as string
+    return __device(id)
+end
+
+export func activation(int id) as string
+    return __activation(id)
+end
+
+export func optimizer(int id) as string
+    return __optimizer(id)
+end
+
+export func numel(string shape) as int
+    return __numel(shape)
+end
+
+export func softmax(float x, float max_val) as float
+    return __softmax(x, max_val)
+end

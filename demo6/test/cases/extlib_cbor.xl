@@ -1,0 +1,66 @@
+import cbor
+
+
+
+func main(...) as int
+    // Integer encoding
+    auto c1 = cbor.encodeInt(42)
+    assert cbor.decodeInt(c1) == 42, "int 42"
+    assert cbor.getType(c1) == 0, "uint type"
+    assert cbor.typeName(c1) == "uint", "uint name"
+
+    // Negative integer
+    auto c2 = cbor.encodeInt(-100)
+    assert cbor.decodeInt(c2) == -100, "int -100"
+    assert cbor.getType(c2) == 1, "nint type"
+
+    // Zero
+    auto c0 = cbor.encodeInt(0)
+    assert cbor.decodeInt(c0) == 0, "int 0"
+
+    // Large int
+    auto cl = cbor.encodeInt(1000000)
+    assert cbor.decodeInt(cl) == 1000000, "int 1M"
+
+    // String
+    auto cs = cbor.encodeStr("hello")
+    assert cbor.decodeStr(cs) == "hello", "string hello"
+    assert cbor.getType(cs) == 3, "text type"
+    assert cbor.typeName(cs) == "text", "text name"
+
+    // Byte string
+    auto cb = cbor.encodeBytes("deadbeef")
+    assert cbor.decodeBytes(cb) == "deadbeef", "bytes roundtrip"
+    assert cbor.getType(cb) == 2, "bytes type"
+
+    // Boolean
+    auto ct = cbor.encodeBool(true)
+    assert cbor.decodeBool(ct) == true, "bool true"
+    assert cbor.typeName(ct) == "bool", "bool name"
+    auto cf = cbor.encodeBool(false)
+    assert cbor.decodeBool(cf) == false, "bool false"
+
+    // Null
+    auto cn = cbor.encodeNull()
+    assert cbor.typeName(cn) == "null", "null name"
+
+    // Float
+    auto cfl = cbor.encodeFloat(3.14)
+    auto decoded_f = cbor.decodeFloat(cfl)
+    assert decoded_f > 3.13 and decoded_f < 3.15, "float 3.14"
+    assert cbor.typeName(cfl) == "float", "float name"
+
+    // Array header
+    auto ah = cbor.arrayHdr(3)
+    assert cbor.getType(ah) == 4, "array type"
+
+    // Map header
+    auto mh = cbor.mapHdr(2)
+    assert cbor.getType(mh) == 5, "map type"
+
+    // Concat
+    auto arr = cbor.concat(ah, cbor.concat(c1, cbor.concat(cs, ct)))
+    assert string.len(arr) > 0, "concat works"
+
+    return 0
+end

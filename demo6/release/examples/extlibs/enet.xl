@@ -1,0 +1,15 @@
+import enet
+
+
+
+func main(...) as int
+    println("Connect:    ", enet.connect(2, 0))
+    println("Ping:       ", enet.ping())
+    println("Disconnect: ", enet.disconnect(0))
+    println("SendRel:    ", enet.sendReliable(0, "game state"))
+    println("Cmd(6):     ", enet.commandName(6))
+    println("Event(3):   ", enet.eventName(3))
+    println("Port:       ", enet.defaultPort())
+    println("enet example: PASS")
+    return 0
+end

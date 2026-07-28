@@ -1,0 +1,18 @@
+import portaudio
+
+func main(...) as int
+    // PortAudio helpers
+
+    // Host APIs
+    println("API 13 = " + portaudio.hostApi(13))
+    println("API 8 = " + portaudio.hostApi(8))
+
+    // Sample formats
+    println("Fmt 1 = " + portaudio.sampleFormat(1))
+
+    // Valid rates
+    println("44100 valid = " + string.format("{}", portaudio.validRate(44100)))
+
+    println("portaudio example: PASS")
+    return 0
+end

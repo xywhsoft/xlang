@@ -1,0 +1,22 @@
+extern "xjwt_encode" func __jwt_encode(string payload_json, string secret) as string
+extern "xjwt_decode" func __jwt_decode(string token) as string
+extern "xjwt_verify" func __jwt_verify(string token, string secret) as bool
+extern "xjwt_header" func __jwt_header(string token) as string
+
+
+
+export func encode(string payload_json, string secret) as string
+    return __jwt_encode(payload_json, secret)
+end
+
+export func decode(string token) as string
+    return __jwt_decode(token)
+end
+
+export func verify(string token, string secret) as bool
+    return __jwt_verify(token, secret)
+end
+
+export func header(string token) as string
+    return __jwt_header(token)
+end

@@ -1,0 +1,18 @@
+import webrtc
+
+func main(...) as int
+    // WebRTC protocol helpers
+
+    // ICE states
+    println("ICE 2 = " + webrtc.iceState(2))
+    println("PC 2 = " + webrtc.pcState(2))
+
+    // SDP types
+    println("SDP 0 = " + webrtc.sdpType(0))
+
+    // Payload types
+    println("PT 0 = " + webrtc.payloadName(0))
+
+    println("webrtc example: PASS")
+    return 0
+end

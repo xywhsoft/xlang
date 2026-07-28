@@ -1,0 +1,32 @@
+import eigen
+
+func main(...) as int
+    // Matrix types
+    assert eigen.matrixType(0) == "MatrixXd", "type MatrixXd"
+    assert eigen.matrixType(3) == "VectorXd", "type VectorXd"
+    assert eigen.matrixType(9) == "Quaterniond", "type Quat"
+
+    // Decompositions
+    assert eigen.decomposition(0) == "LU", "decomp LU"
+    assert eigen.decomposition(2) == "SVD", "decomp SVD"
+    assert eigen.decomposition(3) == "Cholesky", "decomp Chol"
+
+    // Storage order
+    assert eigen.storageOrder(0) == "col-major", "col major"
+    assert eigen.storageOrder(1) == "row-major", "row major"
+
+    // Inverse 2x2: [[2,1],[1,1]] inv = [[1,-1],[-1,2]]
+    assert eigen.inverse2x2("2,1,1,1") == "1,-1,-1,2", "inv2x2"
+
+    // Multiply 2x2: [[1,2],[3,4]] * [[5,6],[7,8]] = [[19,22],[43,50]]
+    assert eigen.multiply2x2("1,2,3,4", "5,6,7,8") == "19,22,43,50", "mul2x2"
+
+    // Transpose 2x2: [[1,2],[3,4]] => [[1,3],[2,4]]
+    assert eigen.transpose2x2("1,2,3,4") == "1,3,2,4", "trans2x2"
+
+    // Solver types
+    assert eigen.solverType(0) == "direct", "solver direct"
+    assert eigen.solverType(1) == "iterative", "solver iter"
+
+    return 0
+end

@@ -1,0 +1,49 @@
+import bson
+
+
+
+func main(...) as int
+    // Build a document: {"name": "Alice", "age": 30, "active": true}
+    auto elems = bson.concat(bson.encodeStr("name", "Alice"), bson.concat(bson.encodeInt32("age", 30), bson.encodeBool("active", true)))
+    auto doc = bson.encodeDoc(elems)
+
+    // Document length
+    assert bson.docLen(doc) > 0, "doc has length"
+
+    // First element at offset 4 (after int32 length)
+    assert bson.elemType(doc, 4) == 2, "first elem is string type"
+    assert bson.elemKey(doc, 4) == "name", "first key is name"
+    assert bson.decodeStr(doc, 4) == "Alice", "first value is Alice"
+
+    // Navigate to second element
+    auto off2 = bson.nextElem(doc, 4)
+    assert off2 > 4, "second elem offset"
+    assert bson.elemType(doc, off2) == 16, "second elem is int32"
+    assert bson.elemKey(doc, off2) == "age", "second key is age"
+    assert bson.decodeInt32(doc, off2) == 30, "age is 30"
+
+    // Third element
+    auto off3 = bson.nextElem(doc, off2)
+    assert bson.elemType(doc, off3) == 8, "third elem is bool"
+    assert bson.elemKey(doc, off3) == "active", "third key"
+    assert bson.decodeBool(doc, off3) == true, "active is true"
+
+    // No more elements
+    assert bson.nextElem(doc, off3) == -1, "no more elems"
+
+    // Int64
+    auto doc2 = bson.encodeDoc(bson.encodeInt64("big", 9876543210))
+    assert bson.decodeInt64(doc2, 4) == 9876543210, "int64 roundtrip"
+
+    // Double
+    auto doc3 = bson.encodeDoc(bson.encodeDouble("pi", 3.14159))
+    auto dv = bson.decodeDouble(doc3, 4)
+    assert dv > 3.14 and dv < 3.15, "double roundtrip"
+
+    // Null element
+    auto doc4 = bson.encodeDoc(bson.encodeNull("nothing"))
+    assert bson.elemType(doc4, 4) == 10, "null type"
+    assert bson.elemKey(doc4, 4) == "nothing", "null key"
+
+    return 0
+end

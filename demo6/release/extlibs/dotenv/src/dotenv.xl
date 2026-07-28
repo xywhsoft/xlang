@@ -1,0 +1,36 @@
+extern "xdotenv_load" func __dotenv_load(string path) as int
+extern "xdotenv_get" func __dotenv_get(string key) as string
+extern "xdotenv_set" func __dotenv_set(string key, string value)
+extern "xdotenv_count" func __dotenv_count() as int
+extern "xdotenv_clear" func __dotenv_clear()
+extern "xdotenv_has" func __dotenv_has(string key) as bool
+
+
+
+export func load(string path) as int
+    return __dotenv_load(path)
+end
+
+export func get(string key, string default = "") as string
+    string v = __dotenv_get(key)
+    if v == "" and not __dotenv_has(key) then
+        return default
+    end
+    return v
+end
+
+export func set(string key, string value)
+    __dotenv_set(key, value)
+end
+
+export func has(string key) as bool
+    return __dotenv_has(key)
+end
+
+export func count() as int
+    return __dotenv_count()
+end
+
+export func clear()
+    __dotenv_clear()
+end

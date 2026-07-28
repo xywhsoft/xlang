@@ -1,0 +1,45 @@
+extern "xblas_level" func __level(int id) as string
+extern "xblas_operation" func __operation(int id) as string
+extern "xblas_uplo" func __uplo(int id) as string
+extern "xblas_diag" func __diag(int id) as string
+extern "xblas_side" func __side(int id) as string
+extern "xblas_dot" func __dot(string a, string b) as float
+extern "xblas_nrm2" func __nrm2(string vec) as float
+extern "xblas_axpy" func __axpy(float alpha, string x, string y) as string
+extern "xblas_routine_name" func __routine_name(int id) as string
+
+export func level(int id) as string
+    return __level(id)
+end
+
+export func operation(int id) as string
+    return __operation(id)
+end
+
+export func uplo(int id) as string
+    return __uplo(id)
+end
+
+export func diag(int id) as string
+    return __diag(id)
+end
+
+export func side(int id) as string
+    return __side(id)
+end
+
+export func dot(string a, string b) as float
+    return __dot(a, b)
+end
+
+export func nrm2(string vec) as float
+    return __nrm2(vec)
+end
+
+export func axpy(float alpha, string x, string y) as string
+    return __axpy(alpha, x, y)
+end
+
+export func routineName(int id) as string
+    return __routine_name(id)
+end

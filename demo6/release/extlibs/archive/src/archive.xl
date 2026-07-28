@@ -1,0 +1,60 @@
+extern "xarch_format_name" func __format_name(int fmt) as string
+extern "xarch_detect" func __detect(string magic_hex) as int
+extern "xarch_tar_type" func __tar_type(int flag) as string
+extern "xarch_tar_parse_size" func __tar_parse_size(string octal_str) as int
+extern "xarch_tar_checksum" func __tar_checksum(string header_hex) as int
+extern "xarch_zip_method" func __zip_method(int method) as string
+extern "xarch_zip_version" func __zip_version(int ver) as string
+extern "xarch_zip_local_header" func __zip_local_header(string hex) as int
+extern "xarch_zip_comp_size" func __zip_comp_size() as int
+extern "xarch_zip_uncomp_size" func __zip_uncomp_size() as int
+extern "xarch_zip_fname_len" func __zip_fname_len() as int
+extern "xarch_ratio" func __ratio(int compressed, int uncompressed) as float
+
+export func formatName(int fmt) as string
+    return __format_name(fmt)
+end
+
+export func detect(string magic_hex) as int
+    return __detect(magic_hex)
+end
+
+export func tarType(int flag) as string
+    return __tar_type(flag)
+end
+
+export func tarParseSize(string octal_str) as int
+    return __tar_parse_size(octal_str)
+end
+
+export func tarChecksum(string header_hex) as int
+    return __tar_checksum(header_hex)
+end
+
+export func zipMethod(int method) as string
+    return __zip_method(method)
+end
+
+export func zipVersion(int ver) as string
+    return __zip_version(ver)
+end
+
+export func zipLocalHeader(string hex) as int
+    return __zip_local_header(hex)
+end
+
+export func zipCompSize() as int
+    return __zip_comp_size()
+end
+
+export func zipUncompSize() as int
+    return __zip_uncomp_size()
+end
+
+export func zipFnameLen() as int
+    return __zip_fname_len()
+end
+
+export func ratio(int compressed, int uncompressed) as float
+    return __ratio(compressed, uncompressed)
+end

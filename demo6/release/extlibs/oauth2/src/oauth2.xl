@@ -1,0 +1,42 @@
+extern "xoauth2_auth_url" func __oa_url(string base, string cid, string redir, string scope, string state) as string
+extern "xoauth2_token_body" func __oa_token(string code, string cid, string secret, string redir) as string
+extern "xoauth2_refresh_body" func __oa_refresh(string token, string cid, string secret) as string
+extern "xoauth2_client_creds_body" func __oa_ccreds(string cid, string secret, string scope) as string
+extern "xoauth2_pkce_verifier" func __oa_verifier(int seed) as string
+extern "xoauth2_pkce_challenge" func __oa_challenge(string verifier) as string
+extern "xoauth2_valid_state" func __oa_vstate(string state) as bool
+extern "xoauth2_grant_name" func __oa_gname(string grant) as string
+
+
+
+export func authUrl(string base_url, string client_id, string redirect_uri, string scope, string state) as string
+    return __oa_url(base_url, client_id, redirect_uri, scope, state)
+end
+
+export func tokenBody(string code, string client_id, string client_secret, string redirect_uri) as string
+    return __oa_token(code, client_id, client_secret, redirect_uri)
+end
+
+export func refreshBody(string refresh_token, string client_id, string client_secret) as string
+    return __oa_refresh(refresh_token, client_id, client_secret)
+end
+
+export func clientCredsBody(string client_id, string client_secret, string scope) as string
+    return __oa_ccreds(client_id, client_secret, scope)
+end
+
+export func pkceVerifier(int seed) as string
+    return __oa_verifier(seed)
+end
+
+export func pkceChallenge(string verifier) as string
+    return __oa_challenge(verifier)
+end
+
+export func validState(string state) as bool
+    return __oa_vstate(state)
+end
+
+export func grantName(string grant_type) as string
+    return __oa_gname(grant_type)
+end

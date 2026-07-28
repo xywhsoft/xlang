@@ -1,0 +1,14 @@
+import coap
+
+
+
+func main(...) as int
+    println("GET:      ", coap.get(0x0001, "/sensors/temp"))
+    println("PUT:      ", coap.put(0x0002, "/devices/led", "on"))
+    println("Response: ", coap.response(0x0001, 0x45, "22.5C"))
+    println("Type(0):  ", coap.typeName(0))
+    println("Code(1):  ", coap.codeName(1))
+    println("Port:     ", coap.defaultPort())
+    println("coap example: PASS")
+    return 0
+end

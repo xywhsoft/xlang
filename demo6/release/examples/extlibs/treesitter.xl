@@ -1,0 +1,12 @@
+import treesitter
+
+func main(...) as int
+    // Tree-sitter incremental parsing
+
+    println("Language 2 = " + treesitter.language(2))
+    println("Node 1 = " + treesitter.nodeType(1))
+    println("Depth '((()))' = " + string.int(treesitter.maxDepth("((()))")))
+
+    println("treesitter example: PASS")
+    return 0
+end

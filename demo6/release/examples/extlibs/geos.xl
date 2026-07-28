@@ -1,0 +1,16 @@
+import geos
+
+
+
+func main(...) as int
+    auto sq = "0,0;4,0;4,3;0,3"
+    println("Area:          ", geos.polygonArea(sq))
+    println("Perimeter:     ", geos.perimeter(sq))
+    println("Centroid X:    ", geos.centroidX(sq))
+    println("Centroid Y:    ", geos.centroidY())
+    println("Inside(2,1):   ", geos.pointInPolygon(2.0, 1.0, sq))
+    println("Inside(5,5):   ", geos.pointInPolygon(5.0, 5.0, sq))
+    println("Type(2):       ", geos.typeName(2))
+    println("geos example: PASS")
+    return 0
+end

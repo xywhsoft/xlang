@@ -1,0 +1,51 @@
+import nanomsg
+
+
+
+func main(...) as int
+    // Message build and parse
+    auto msg = nanomsg.message(0x0030, "hello")
+    assert nanomsg.getProto(msg) == 0x0030, "msg proto"
+    assert nanomsg.getBody(msg) == "hello", "msg body"
+
+    // Header
+    auto hdr = nanomsg.header(0x0020, 0)
+    assert nanomsg.getProto(hdr) == 0x0020, "hdr proto"
+
+    // Protocol names
+    assert nanomsg.protoName(0x0010) == "PAIR", "PAIR"
+    assert nanomsg.protoName(0x0020) == "PUB", "PUB"
+    assert nanomsg.protoName(0x0021) == "SUB", "SUB"
+    assert nanomsg.protoName(0x0030) == "REQ", "REQ"
+    assert nanomsg.protoName(0x0031) == "REP", "REP"
+    assert nanomsg.protoName(0x0050) == "PUSH", "PUSH"
+    assert nanomsg.protoName(0x0051) == "PULL", "PULL"
+    assert nanomsg.protoName(0x0060) == "SURVEYOR", "SURVEYOR"
+    assert nanomsg.protoName(0x0061) == "RESPONDENT", "RESPONDENT"
+    assert nanomsg.protoName(0x0070) == "BUS", "BUS"
+    assert nanomsg.protoName(0xFFFF) == "UNKNOWN", "unknown proto"
+
+    // Transport names
+    assert nanomsg.transportName(0) == "inproc", "inproc"
+    assert nanomsg.transportName(1) == "ipc", "ipc"
+    assert nanomsg.transportName(2) == "tcp", "tcp"
+    assert nanomsg.transportName(3) == "ws", "ws"
+    assert nanomsg.transportName(9) == "UNKNOWN", "unknown transport"
+
+    // Address
+    assert nanomsg.address(2, "127.0.0.1", 5555) == "tcp://127.0.0.1:5555", "tcp addr"
+    assert nanomsg.address(3, "localhost", 8080) == "ws://localhost:8080", "ws addr"
+    assert nanomsg.address(0, "test", 0) == "inproc://test", "inproc addr"
+    assert nanomsg.address(1, "/tmp/nn.sock", 0) == "ipc:///tmp/nn.sock", "ipc addr"
+
+    // Validation
+    assert nanomsg.validProto(0x0030) == 1, "valid REQ"
+    assert nanomsg.validProto(0x0070) == 1, "valid BUS"
+    assert nanomsg.validProto(0x0099) == 0, "invalid proto"
+
+    // Version and port
+    assert nanomsg.version() == 1, "version"
+    assert nanomsg.defaultPort() == 5555, "default port"
+
+    return 0
+end

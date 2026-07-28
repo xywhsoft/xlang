@@ -1,0 +1,21 @@
+import singleinstance
+
+
+
+func main(...) as int
+    if not singleinstance.acquire("my_app") then
+        println("Another instance is already running!")
+        return 1
+    end
+
+    println("Acquired single instance lock")
+    println("isAcquired:", singleinstance.isAcquired())
+
+    // ... do work ...
+
+    singleinstance.release()
+    println("Released lock")
+
+    println("singleinstance example: PASS")
+    return 0
+end

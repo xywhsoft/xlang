@@ -1,0 +1,15 @@
+import fftw
+
+
+
+func main(...) as int
+    println("NextPow2(1000): ", fftw.nextPow2(1000))
+    println("FreqRes(44.1K): ", fftw.freqResolution(44100.0, 1024))
+    println("Bin(1kHz):      ", fftw.freqToBin(1000.0, 44100.0, 1024))
+    println("Magnitude(3,4): ", fftw.magnitude(3.0, 4.0))
+    println("Window(1):      ", fftw.windowName(1))
+    println("Hann(4,8):      ", fftw.hann(4, 8))
+    println("Complexity(1K): ", fftw.complexity(1024))
+    println("fftw example: PASS")
+    return 0
+end

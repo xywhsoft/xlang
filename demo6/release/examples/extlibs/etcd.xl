@@ -1,0 +1,14 @@
+import etcd
+
+
+
+func main(...) as int
+    println("Method(1):    ", etcd.methodName(1))
+    println("SortOrder(1): ", etcd.sortOrder(1))
+    println("Event(0):     ", etcd.eventType(0))
+    println("EncodeKey:    ", etcd.encodeKey("/app/key"))
+    println("Endpoint:     ", etcd.endpoint("localhost", 2379, 0))
+    println("Alarm(1):     ", etcd.alarmName(1))
+    println("etcd example: PASS")
+    return 0
+end

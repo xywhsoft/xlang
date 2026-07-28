@@ -1,0 +1,36 @@
+import sox
+
+func main(...) as int
+    // Effect names
+    assert sox.effectName(0) == "allpass", "fx allpass"
+    assert sox.effectName(15) == "echo", "fx echo"
+    assert sox.effectName(21) == "gain", "fx gain"
+    assert sox.effectName(35) == "reverb", "fx reverb"
+    assert sox.effectName(44) == "trim", "fx trim"
+    assert sox.effectName(47) == "vol", "fx vol"
+
+    // Encodings
+    assert sox.encoding(0) == "UNSIGNED", "enc unsigned"
+    assert sox.encoding(1) == "SIGNED", "enc signed"
+    assert sox.encoding(2) == "FLOAT", "enc float"
+    assert sox.encoding(9) == "FLAC", "enc flac"
+
+    // Format handlers
+    assert sox.formatHandler(0) == "wav", "fmt wav"
+    assert sox.formatHandler(2) == "flac", "fmt flac"
+    assert sox.formatHandler(4) == "mp3", "fmt mp3"
+
+    // Channel names
+    assert sox.channelName(0) == "Left", "ch left"
+    assert sox.channelName(1) == "Right", "ch right"
+    assert sox.channelName(2) == "Center", "ch center"
+    assert sox.channelName(3) == "LFE", "ch lfe"
+
+    // dB validation
+    assert sox.validDb(0) == 1, "db 0"
+    assert sox.validDb(100) == 1, "db 10"
+    assert sox.validDb(-100) == 1, "db -10"
+    assert sox.validDb(2000) == 0, "db too high"
+
+    return 0
+end

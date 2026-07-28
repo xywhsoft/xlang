@@ -1,0 +1,12 @@
+import embeddings
+
+func main(...) as int
+    // Text embeddings
+
+    println("Model 0 = " + embeddings.model(0))
+    println("Dim 0 = " + string.fromInt(embeddings.dim(0)))
+    println("Normalize(3,4) = " + embeddings.normalize("3,4"))
+
+    println("embeddings example: PASS")
+    return 0
+end

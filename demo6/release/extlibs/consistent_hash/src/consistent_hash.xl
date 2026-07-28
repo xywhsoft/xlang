@@ -1,0 +1,54 @@
+extern "xrtGetError" func __consistent_hash_error() as string
+
+
+
+class ConsistentHash
+    native point handle
+    extern "xchash_create" create(int replicas)
+    extern "xchash_destroy" destroy()
+
+    extern "xchash_add_node" func addNodeNative(string node)
+    extern "xchash_remove_node" func removeNodeNative(string node)
+    extern "xchash_get_node" func getNodeNative(string key) as string
+    extern "xchash_node_count" func nodeCountNative() as int
+    extern "xchash_vnode_count" func vnodeCountNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get nodeCount() as int
+        return self.nodeCountNative()
+    end
+
+    get vnodeCount() as int
+        return self.vnodeCountNative()
+    end
+
+    func addNode(string node)
+        if self.handle == null then
+            throw RuntimeError "consistent_hash: instance is destroyed"
+        end
+        self.addNodeNative(node)
+    end
+
+    func removeNode(string node)
+        if self.handle == null then
+            throw RuntimeError "consistent_hash: instance is destroyed"
+        end
+        self.removeNodeNative(node)
+    end
+
+    func getNode(string key) as string
+        if self.handle == null then
+            throw RuntimeError "consistent_hash: instance is destroyed"
+        end
+        return self.getNodeNative(key)
+    end
+end
+
+
+
+export func create(int replicas = 150) as ConsistentHash
+    return ConsistentHash(replicas)
+end

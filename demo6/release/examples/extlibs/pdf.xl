@@ -1,0 +1,12 @@
+import pdf
+
+func main(...) as int
+    // PDF generation helpers
+
+    println("Page 0 = " + pdf.pageSize(0))
+    println("Font 0 = " + pdf.font(0))
+    println("72pt = " + string.int(pdf.ptToMmX100(72)) + " (x100 mm)")
+
+    println("pdf example: PASS")
+    return 0
+end

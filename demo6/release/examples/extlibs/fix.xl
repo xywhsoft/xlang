@@ -1,0 +1,13 @@
+import fix
+
+func main(...) as int
+    // FIX financial protocol
+
+    println("MsgType 3 = " + fix.msgType(3))
+    println("Side 0 = " + fix.side(0))
+    println("OrdType 1 = " + fix.ordType(1))
+    println("Tag 35 = " + fix.tagName(35))
+
+    println("fix example: PASS")
+    return 0
+end

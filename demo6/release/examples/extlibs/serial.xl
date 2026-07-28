@@ -1,0 +1,20 @@
+import serial
+
+
+
+func main(...) as int
+    // Open loopback port for demonstration
+    auto sp = serial.openLoopback(9600)
+    println("port: ", sp.port)
+    println("baudrate: ", sp.baudrate)
+    println("open: ", sp.isOpen)
+
+    sp.write("AT+OK\r\n")
+    println("wrote command, available: ", sp.available)
+
+    auto resp = sp.read(1024)
+    println("read back: ", resp)
+
+    println("serial example: PASS")
+    return 0
+end

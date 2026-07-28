@@ -1,0 +1,21 @@
+import nsq
+
+func main(...) as int
+    // NSQ messaging protocol helpers
+
+    // Commands
+    println("Cmd 2 = " + nsq.cmdName(2))
+    println("Cmd 6 = " + nsq.cmdName(6))
+
+    // Frame types
+    println("Frame 2 = " + nsq.frameType(2))
+
+    // Topic validation
+    println("valid 'orders' = " + string.format("{}", nsq.validTopic("orders")))
+
+    // Magic
+    println("Magic = '" + nsq.magic() + "'")
+
+    println("nsq example: PASS")
+    return 0
+end

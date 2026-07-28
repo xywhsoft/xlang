@@ -1,0 +1,40 @@
+extern "xxgb_objective" func __objective(int id) as string
+extern "xxgb_booster" func __booster(int id) as string
+extern "xxgb_tree_method" func __tree_method(int id) as string
+extern "xxgb_importance_type" func __importance_type(int id) as string
+extern "xxgb_sigmoid" func __sigmoid(float x) as float
+extern "xxgb_predict_binary" func __predict_binary(float raw) as float
+extern "xxgb_logloss" func __logloss(float y_true, float y_pred) as float
+extern "xxgb_param" func __param(int id) as string
+
+export func objective(int id) as string
+    return __objective(id)
+end
+
+export func booster(int id) as string
+    return __booster(id)
+end
+
+export func treeMethod(int id) as string
+    return __tree_method(id)
+end
+
+export func importanceType(int id) as string
+    return __importance_type(id)
+end
+
+export func sigmoid(float x) as float
+    return __sigmoid(x)
+end
+
+export func predictBinary(float raw) as float
+    return __predict_binary(raw)
+end
+
+export func logloss(float y_true, float y_pred) as float
+    return __logloss(y_true, y_pred)
+end
+
+export func param(int id) as string
+    return __param(id)
+end

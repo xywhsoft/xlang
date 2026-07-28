@@ -1,0 +1,30 @@
+extern "xsd_model" func __model(int id) as string
+extern "xsd_sampler" func __sampler(int id) as string
+extern "xsd_scheduler" func __scheduler(int id) as string
+extern "xsd_total_steps" func __total_steps(int n_steps, int batch) as int
+extern "xsd_output_format" func __output_format(int id) as string
+extern "xsd_resolution" func __resolution(int id) as int
+
+export func model(int id) as string
+    return __model(id)
+end
+
+export func sampler(int id) as string
+    return __sampler(id)
+end
+
+export func scheduler(int id) as string
+    return __scheduler(id)
+end
+
+export func totalSteps(int n_steps, int batch) as int
+    return __total_steps(n_steps, batch)
+end
+
+export func outputFormat(int id) as string
+    return __output_format(id)
+end
+
+export func resolution(int id) as int
+    return __resolution(id)
+end

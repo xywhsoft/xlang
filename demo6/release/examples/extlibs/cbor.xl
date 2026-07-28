@@ -1,0 +1,28 @@
+import cbor
+
+
+
+func main(...) as int
+    // Encode various CBOR items
+    println("int 42:     ", cbor.encodeInt(42))
+    println("int -1:     ", cbor.encodeInt(-1))
+    println("str hello:  ", cbor.encodeStr("hello"))
+    println("bool true:  ", cbor.encodeBool(true))
+    println("null:       ", cbor.encodeNull())
+    println("float 2.5:  ", cbor.encodeFloat(2.5))
+
+    // Build array [1, "two", true]
+    auto arr = cbor.concat(cbor.arrayHdr(3), cbor.concat(cbor.encodeInt(1), cbor.concat(cbor.encodeStr("two"), cbor.encodeBool(true))))
+    println("array:      ", arr)
+
+    // Build map {"a": 1}
+    auto m = cbor.concat(cbor.mapHdr(1), cbor.concat(cbor.encodeStr("a"), cbor.encodeInt(1)))
+    println("map:        ", m)
+
+    // Decode
+    println("decode int: ", cbor.decodeInt(cbor.encodeInt(999)))
+    println("decode str: ", cbor.decodeStr(cbor.encodeStr("world")))
+
+    println("cbor example: PASS")
+    return 0
+end

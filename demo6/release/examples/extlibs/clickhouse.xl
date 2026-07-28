@@ -1,0 +1,24 @@
+import clickhouse
+
+func main(...) as int
+    // ClickHouse protocol helpers
+
+    // Packet types
+    println("Client Query = " + clickhouse.clientPacket(1))
+    println("Server Data = " + clickhouse.serverPacket(1))
+
+    // Column types
+    println("Type 7 = " + clickhouse.typeName(7))
+    println("Type 10 = " + clickhouse.typeName(10))
+
+    // Varint encoding
+    println("varint(300) = " + clickhouse.encodeVarint(300))
+    println("decode(ac02) = " + string.format("{}", clickhouse.decodeVarint("ac02")))
+
+    // Engine names
+    println("Engine 0 = " + clickhouse.engineName(0))
+    println("Engine 13 = " + clickhouse.engineName(13))
+
+    println("clickhouse example: PASS")
+    return 0
+end

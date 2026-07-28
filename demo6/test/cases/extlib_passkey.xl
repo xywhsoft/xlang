@@ -1,0 +1,62 @@
+import passkey
+
+
+
+func main(...) as int
+    // Attestation format names
+    assert passkey.fmtName("none") == "None", "fmt none"
+    assert passkey.fmtName("packed") == "Packed", "fmt packed"
+    assert passkey.fmtName("fido-u2f") == "FIDO U2F", "fmt u2f"
+    assert passkey.fmtName("xyz") == "Unknown", "fmt unknown"
+
+    // COSE algorithm names
+    assert passkey.coseAlgo(-7) == "ES256", "algo es256"
+    assert passkey.coseAlgo(-257) == "RS256", "algo rs256"
+    assert passkey.coseAlgo(-8) == "EdDSA", "algo eddsa"
+    assert passkey.coseAlgo(99) == "Unknown", "algo unknown"
+
+    // COSE key type
+    assert passkey.coseKty(2) == "EC2", "kty ec2"
+    assert passkey.coseKty(3) == "RSA", "kty rsa"
+    assert passkey.coseKty(1) == "OKP", "kty okp"
+
+    // COSE curve
+    assert passkey.coseCurve(1) == "P-256", "curve p256"
+    assert passkey.coseCurve(6) == "Ed25519", "curve ed25519"
+
+    // Transport names
+    assert passkey.transportName(0) == "usb", "transport usb"
+    assert passkey.transportName(3) == "internal", "transport internal"
+    assert passkey.transportName(4) == "hybrid", "transport hybrid"
+
+    // UV/RK/Attestation names
+    assert passkey.uvName(2) == "required", "uv required"
+    assert passkey.rkName(0) == "discouraged", "rk discouraged"
+    assert passkey.attestationName(2) == "direct", "att direct"
+
+    // Challenge generation (deterministic)
+    auto ch1 = passkey.genChallenge(42, 16)
+    auto ch2 = passkey.genChallenge(42, 16)
+    assert ch1 == ch2, "challenge deterministic"
+    assert string.len(ch1) == 32, "challenge len"
+
+    // RP ID validation
+    assert passkey.validRpId("example.com") == 1, "rpid valid"
+    assert passkey.validRpId("localhost") == 1, "rpid localhost"
+    assert passkey.validRpId("nodot") == 0, "rpid no dot"
+    assert passkey.validRpId(".bad.com") == 0, "rpid leading dot"
+    assert passkey.validRpId("bad space.com") == 0, "rpid space"
+
+    // Origin matching
+    assert passkey.originMatches("https://example.com", "example.com") == 1, "origin exact"
+    assert passkey.originMatches("https://sub.example.com", "example.com") == 1, "origin subdomain"
+    assert passkey.originMatches("https://evil.com", "example.com") == 0, "origin mismatch"
+    assert passkey.originMatches("ftp://example.com", "example.com") == 0, "origin bad scheme"
+
+    // Flags string
+    assert passkey.flagsStr(0x01) == "U", "flags UP"
+    assert passkey.flagsStr(0x05) == "UV", "flags UP+UV"
+    assert passkey.flagsStr(0x45) == "UVA", "flags UP+UV+AT"
+
+    return 0
+end

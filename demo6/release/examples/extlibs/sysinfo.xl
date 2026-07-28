@@ -1,0 +1,19 @@
+import sysinfo
+
+
+
+func main(...) as int
+    println("OS: ", sysinfo.osName(), " ", sysinfo.osVersion())
+    println("Arch: ", sysinfo.arch())
+    println("Hostname: ", sysinfo.hostname())
+    println("CPU: ", sysinfo.cpuName())
+    println("Cores: ", sysinfo.cpuCount())
+    println("Memory total: ", sysinfo.memTotal() / 1048576, " MB")
+    println("Memory available: ", sysinfo.memAvailable() / 1048576, " MB")
+    println("Memory usage: ", sysinfo.memUsagePct(), "%")
+    println("Page size: ", sysinfo.pageSize())
+    println("Uptime: ", sysinfo.uptime(), " seconds")
+
+    println("sysinfo example: PASS")
+    return 0
+end

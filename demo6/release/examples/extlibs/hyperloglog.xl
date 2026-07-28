@@ -1,0 +1,26 @@
+import hyperloglog
+
+
+
+func main(...) as int
+    auto hll = hyperloglog.create(14)
+    println("precision:", hll.precision)
+
+    int i = 0
+    while i < 10000
+        hll.add("visitor:" + int.format(i % 8000))
+        i = i + 1
+    end
+
+    println("added:", hll.added)
+    println("estimated unique:", hll.count())
+
+    auto daily = hyperloglog.create(12)
+    daily.add("page:/home")
+    daily.add("page:/about")
+    daily.add("page:/home")
+    println("daily unique pages:", daily.count())
+
+    println("hyperloglog example: PASS")
+    return 0
+end

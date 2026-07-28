@@ -1,0 +1,20 @@
+import aho_corasick
+
+
+
+func main(...) as int
+    auto ac = aho_corasick.create()
+    ac.addPattern("he")
+    ac.addPattern("she")
+    ac.addPattern("his")
+    ac.addPattern("hers")
+    ac.build()
+
+    println("patterns:", ac.patternCount)
+    println("search 'ushers':", ac.search("ushers"))
+    println("search 'ahishers':", ac.search("ahishers"))
+    println("search 'xyz':", ac.search("xyz"))
+
+    println("aho_corasick example: PASS")
+    return 0
+end

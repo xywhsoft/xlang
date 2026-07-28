@@ -1,0 +1,12 @@
+extern "xdiff_lines" func __diff_lines(string oldText, string newText) as string
+extern "xdiff_stats" func __diff_stats(string oldText, string newText) as string
+
+
+
+export func lines(string oldText, string newText) as string
+    return __diff_lines(oldText, newText)
+end
+
+export func stats(string oldText, string newText) as string
+    return __diff_stats(oldText, newText)
+end

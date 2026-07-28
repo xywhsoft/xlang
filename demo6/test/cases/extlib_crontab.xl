@@ -1,0 +1,39 @@
+import crontab
+
+
+
+func main(...) as int
+    // validity
+    assert crontab.isValid("* * * * *"), "every minute valid"
+    assert crontab.isValid("0 12 * * 1-5"), "weekday noon valid"
+    assert crontab.isValid("*/5 * * * *"), "every 5 min valid"
+    assert not crontab.isValid("invalid"), "invalid expr"
+    assert not crontab.isValid("* *"), "too few fields"
+
+    // next: "* * * * *" should return next minute (from + 60)
+    int now = 1700000000
+    int next1 = crontab.next("* * * * *", now)
+    assert next1 > now, "next > now"
+    assert next1 == now - (now % 60) + 60, "next minute boundary"
+
+    // next: "0 * * * *" should return next hour boundary
+    int next_hour = crontab.next("0 * * * *", now)
+    assert next_hour > now, "next hour > now"
+    assert next_hour % 3600 == 0, "next hour on boundary"
+
+    // matches: the timestamp returned by next should match
+    assert crontab.matches("* * * * *", next1), "next1 matches every-minute"
+    assert crontab.matches("0 * * * *", next_hour), "next_hour matches hourly"
+
+    // "*/15 * * * *" every 15 minutes
+    int next15 = crontab.next("*/15 * * * *", now)
+    assert next15 > now, "next15 > now"
+    assert crontab.matches("*/15 * * * *", next15), "next15 matches"
+
+    // describe
+    string desc = crontab.describe("* * * * *")
+    assert desc != "", "describe non-empty"
+    assert desc != "invalid", "describe not invalid"
+
+    return 0
+end

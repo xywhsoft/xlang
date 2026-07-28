@@ -1,0 +1,21 @@
+import html5
+
+func main(...) as int
+    // HTML5 parser helpers
+
+    // Doctype
+    println("Doctype = " + html5.doctype())
+
+    // Void elements
+    println("br is void = " + string.int(html5.isVoidElement("br")))
+    println("div is void = " + string.int(html5.isVoidElement("div")))
+
+    // Escaping
+    println("Escaped = " + html5.escape("<script>alert('xss')</script>"))
+
+    // ARIA
+    println("Role 1 = " + html5.ariaRole(1))
+
+    println("html5 example: PASS")
+    return 0
+end

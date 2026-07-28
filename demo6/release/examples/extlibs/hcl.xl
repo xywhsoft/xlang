@@ -1,0 +1,17 @@
+import hcl
+
+
+
+func main(...) as int
+    auto conf = "variable \"name\" {\n  default = \"myapp\"\n}\n\nresource \"server\" \"main\" {\n  port = 8080\n  tls = true\n}\n"
+
+    println("name:   ", hcl.get(conf, "default"))
+    println("port:   ", hcl.getInt(conf, "port"))
+    println("tls:    ", hcl.getBool(conf, "tls"))
+    println("blocks: ", hcl.countBlocks(conf, "resource"))
+    println("label:  ", hcl.blockLabel(conf, "resource", 0))
+    println("valid:  ", hcl.validate(conf))
+
+    println("hcl example: PASS")
+    return 0
+end

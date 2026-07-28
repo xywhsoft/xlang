@@ -1,0 +1,12 @@
+import git
+
+func main(...) as int
+    // Git repository operations
+
+    println("Object 0 = " + git.objectType(0))
+    println("Merge 1 = " + git.mergeStrategy(1))
+    println("Hash 'hello' = " + git.hashObject("hello"))
+
+    println("git example: PASS")
+    return 0
+end

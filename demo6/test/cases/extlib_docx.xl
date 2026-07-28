@@ -1,0 +1,42 @@
+import docx
+
+func main(...) as int
+    // Alignment
+    assert docx.alignment(0) == "left", "align left"
+    assert docx.alignment(1) == "center", "align center"
+    assert docx.alignment(2) == "right", "align right"
+    assert docx.alignment(3) == "both", "align justify"
+
+    // Heading styles
+    assert docx.headingStyle(0) == "Normal", "style normal"
+    assert docx.headingStyle(1) == "Heading 1", "style h1"
+    assert docx.headingStyle(2) == "Heading 2", "style h2"
+
+    // Font names
+    assert docx.fontName(0) == "Calibri", "font calibri"
+    assert docx.fontName(1) == "Times New Roman", "font times"
+    assert docx.fontName(2) == "Arial", "font arial"
+
+    // Page sizes
+    assert docx.pageSize(0) == "Letter (8.5x11)", "page letter"
+    assert docx.pageSize(2) == "A4 (210x297mm)", "page a4"
+
+    // Section breaks
+    assert docx.sectionBreak(0) == "next page", "break next"
+    assert docx.sectionBreak(1) == "continuous", "break cont"
+
+    // Line spacing
+    assert docx.lineSpacing(0) == "auto", "spacing auto"
+    assert docx.lineSpacing(1) == "exact", "spacing exact"
+
+    // Tab alignment
+    assert docx.tabAlign(0) == "left", "tab left"
+    assert docx.tabAlign(3) == "decimal", "tab decimal"
+
+    // Border styles
+    assert docx.borderStyle(0) == "none", "border none"
+    assert docx.borderStyle(1) == "single", "border single"
+    assert docx.borderStyle(2) == "double", "border double"
+
+    return 0
+end

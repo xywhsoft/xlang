@@ -1,0 +1,26 @@
+import geohash
+
+
+
+func main(...) as int
+    // Encode coordinates (Beijing)
+    string h = geohash.encode(39.9042, 116.4074, 7)
+    println("Beijing geohash:", h)
+    println("precision:", geohash.precision(h))
+
+    // Decode back
+    println("lat:", geohash.decodeLat(h))
+    println("lon:", geohash.decodeLon(h))
+
+    // Bounding box
+    println("bbox:", geohash.bbox(h))
+
+    // Neighbors
+    println("north:", geohash.north(h))
+    println("south:", geohash.south(h))
+    println("east:", geohash.east(h))
+    println("west:", geohash.west(h))
+
+    println("geohash example: PASS")
+    return 0
+end

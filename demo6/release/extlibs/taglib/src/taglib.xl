@@ -1,0 +1,20 @@
+extern "xtag_frame_name" func __frame_name(string id) as string
+extern "xtag_genre_name" func __genre_name(int id) as string
+extern "xtag_format_name" func __format_name(string ext) as string
+extern "xtag_valid_isrc" func __valid_isrc(string isrc) as int
+
+export func frameName(string id) as string
+    return __frame_name(id)
+end
+
+export func genreName(int id) as string
+    return __genre_name(id)
+end
+
+export func formatName(string ext) as string
+    return __format_name(ext)
+end
+
+export func validIsrc(string isrc) as int
+    return __valid_isrc(isrc)
+end

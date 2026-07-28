@@ -1,0 +1,37 @@
+extern "xs2_from_latlng" func __s2_from(c_double lat, c_double lng, c_int level) as int
+extern "xs2_level" func __s2_level(int id) as int
+extern "xs2_to_lat" func __s2_lat(int id) as float
+extern "xs2_to_lng" func __s2_lng(int id) as float
+extern "xs2_parent" func __s2_parent(int id) as int
+extern "xs2_token" func __s2_token(int id) as string
+extern "xs2_face" func __s2_face(int id) as int
+
+
+
+export func fromLatLng(float lat, float lng, int level = 15) as int
+    return __s2_from(c_double(lat), c_double(lng), c_int(level))
+end
+
+export func level(int cellId) as int
+    return __s2_level(cellId)
+end
+
+export func toLat(int cellId) as float
+    return __s2_lat(cellId)
+end
+
+export func toLng(int cellId) as float
+    return __s2_lng(cellId)
+end
+
+export func parent(int cellId) as int
+    return __s2_parent(cellId)
+end
+
+export func token(int cellId) as string
+    return __s2_token(cellId)
+end
+
+export func face(int cellId) as int
+    return __s2_face(cellId)
+end

@@ -1,0 +1,125 @@
+extern "xlin_dot2" func __dot2(float ax, float ay, float bx, float by) as float
+extern "xlin_dot3" func __dot3(float ax, float ay, float az, float bx, float by, float bz) as float
+extern "xlin_mag2" func __mag2(float x, float y) as float
+extern "xlin_mag3" func __mag3(float x, float y, float z) as float
+extern "xlin_norm2_x" func __norm2_x(float x, float y) as float
+extern "xlin_norm2_y" func __norm2_y() as float
+extern "xlin_cross_x" func __cross_x(float ax, float ay, float az, float bx, float by, float bz) as float
+extern "xlin_cross_y" func __cross_y() as float
+extern "xlin_cross_z" func __cross_z() as float
+extern "xlin_det2" func __det2(float a, float b, float c, float d) as float
+extern "xlin_inv2_a" func __inv2_a(float a, float b, float c, float d) as float
+extern "xlin_inv2_b" func __inv2_b() as float
+extern "xlin_inv2_c" func __inv2_c() as float
+extern "xlin_inv2_d" func __inv2_d() as float
+extern "xlin_mul2_a" func __mul2_a(float a1, float b1, float c1, float d1, float a2, float b2, float c2, float d2) as float
+extern "xlin_mul2_b" func __mul2_b() as float
+extern "xlin_mul2_c" func __mul2_c() as float
+extern "xlin_mul2_d" func __mul2_d() as float
+extern "xlin_angle2" func __angle2(float ax, float ay, float bx, float by) as float
+extern "xlin_dist2" func __dist2(float x1, float y1, float x2, float y2) as float
+extern "xlin_dist3" func __dist3(float x1, float y1, float z1, float x2, float y2, float z2) as float
+extern "xlin_lerp" func __lerp(float a, float b, float t) as float
+extern "xlin_clamp" func __clamp(float val, float min_val, float max_val) as float
+extern "xlin_deg2rad" func __deg2rad(float deg) as float
+extern "xlin_rad2deg" func __rad2deg(float rad) as float
+
+export func dot2(float ax, float ay, float bx, float by) as float
+    return __dot2(ax, ay, bx, by)
+end
+
+export func dot3(float ax, float ay, float az, float bx, float by, float bz) as float
+    return __dot3(ax, ay, az, bx, by, bz)
+end
+
+export func mag2(float x, float y) as float
+    return __mag2(x, y)
+end
+
+export func mag3(float x, float y, float z) as float
+    return __mag3(x, y, z)
+end
+
+export func norm2x(float x, float y) as float
+    return __norm2_x(x, y)
+end
+
+export func norm2y() as float
+    return __norm2_y()
+end
+
+export func crossX(float ax, float ay, float az, float bx, float by, float bz) as float
+    return __cross_x(ax, ay, az, bx, by, bz)
+end
+
+export func crossY() as float
+    return __cross_y()
+end
+
+export func crossZ() as float
+    return __cross_z()
+end
+
+export func det2(float a, float b, float c, float d) as float
+    return __det2(a, b, c, d)
+end
+
+export func inv2a(float a, float b, float c, float d) as float
+    return __inv2_a(a, b, c, d)
+end
+
+export func inv2b() as float
+    return __inv2_b()
+end
+
+export func inv2c() as float
+    return __inv2_c()
+end
+
+export func inv2d() as float
+    return __inv2_d()
+end
+
+export func mul2a(float a1, float b1, float c1, float d1, float a2, float b2, float c2, float d2) as float
+    return __mul2_a(a1, b1, c1, d1, a2, b2, c2, d2)
+end
+
+export func mul2b() as float
+    return __mul2_b()
+end
+
+export func mul2c() as float
+    return __mul2_c()
+end
+
+export func mul2d() as float
+    return __mul2_d()
+end
+
+export func angle2(float ax, float ay, float bx, float by) as float
+    return __angle2(ax, ay, bx, by)
+end
+
+export func dist2(float x1, float y1, float x2, float y2) as float
+    return __dist2(x1, y1, x2, y2)
+end
+
+export func dist3(float x1, float y1, float z1, float x2, float y2, float z2) as float
+    return __dist3(x1, y1, z1, x2, y2, z2)
+end
+
+export func lerp(float a, float b, float t) as float
+    return __lerp(a, b, t)
+end
+
+export func clamp(float val, float min_val, float max_val) as float
+    return __clamp(val, min_val, max_val)
+end
+
+export func deg2rad(float deg) as float
+    return __deg2rad(deg)
+end
+
+export func rad2deg(float rad) as float
+    return __rad2deg(rad)
+end

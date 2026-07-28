@@ -1,0 +1,46 @@
+import nats
+
+func main(...) as int
+    // Protocol operations
+    assert nats.opName(0) == "INFO", "op info"
+    assert nats.opName(2) == "PUB", "op pub"
+    assert nats.opName(4) == "SUB", "op sub"
+    assert nats.opName(6) == "MSG", "op msg"
+    assert nats.opName(8) == "PING", "op ping"
+    assert nats.opName(9) == "PONG", "op pong"
+
+    // Error names
+    assert nats.errorName(2) == "Authorization Violation", "err auth"
+    assert nats.errorName(10) == "Slow Consumer", "err slow"
+    assert nats.errorName(12) == "Invalid Subject", "err subject"
+
+    // Subject matching
+    assert nats.subjectMatch("foo.bar", "foo.bar") == 1, "exact match"
+    assert nats.subjectMatch("foo.*", "foo.bar") == 1, "star match"
+    assert nats.subjectMatch("foo.>", "foo.bar.baz") == 1, "gt match"
+    assert nats.subjectMatch("foo.bar", "foo.baz") == 0, "no match"
+    assert nats.subjectMatch("*.bar", "foo.bar") == 1, "star prefix"
+
+    // JetStream storage
+    assert nats.storageType(0) == "file", "storage file"
+    assert nats.storageType(1) == "memory", "storage mem"
+
+    // Ack policy
+    assert nats.ackPolicy(0) == "none", "ack none"
+    assert nats.ackPolicy(2) == "explicit", "ack explicit"
+
+    // Deliver policy
+    assert nats.deliverPolicy(0) == "all", "deliver all"
+    assert nats.deliverPolicy(2) == "new", "deliver new"
+
+    // Replay policy
+    assert nats.replayPolicy(0) == "instant", "replay instant"
+    assert nats.replayPolicy(1) == "original", "replay original"
+
+    // URL validation
+    assert nats.validUrl("nats://localhost:4222") == 1, "url nats"
+    assert nats.validUrl("tls://secure:4222") == 1, "url tls"
+    assert nats.validUrl("http://bad") == 0, "url bad"
+
+    return 0
+end

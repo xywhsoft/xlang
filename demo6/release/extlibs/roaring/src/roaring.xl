@@ -1,0 +1,67 @@
+extern "xrtGetError" func __roaring_error() as string
+
+
+
+class RoaringBitmap
+    native point handle
+    extern "xroaring_create" create()
+    extern "xroaring_destroy" destroy()
+
+    extern "xroaring_add" func addNative(int value)
+    extern "xroaring_remove" func removeNative(int value)
+    extern "xroaring_contains" func containsNative(int value) as bool
+    extern "xroaring_count" func countNative() as int
+    extern "xroaring_clear" func clearNative()
+    extern "xroaring_min" func minNative() as int
+    extern "xroaring_max" func maxNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        return self.countNative()
+    end
+
+    get min() as int
+        return self.minNative()
+    end
+
+    get max() as int
+        return self.maxNative()
+    end
+
+    func add(int value)
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
+        self.addNative(value)
+    end
+
+    func remove(int value)
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
+        self.removeNative(value)
+    end
+
+    func contains(int value) as bool
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
+        return self.containsNative(value)
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
+        self.clearNative()
+    end
+end
+
+
+
+export func create() as RoaringBitmap
+    return RoaringBitmap()
+end

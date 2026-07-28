@@ -1,0 +1,54 @@
+extern "xrtGetError" func __aho_corasick_error() as string
+
+
+
+class AhoCorasick
+    native point handle
+    extern "xac_create" create()
+    extern "xac_destroy" destroy()
+
+    extern "xac_add_pattern" func addPatternNative(string pattern)
+    extern "xac_build" func buildNative()
+    extern "xac_search" func searchNative(string text) as string
+    extern "xac_pattern_count" func patternCountNative() as int
+    extern "xac_is_built" func isBuiltNative() as bool
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get patternCount() as int
+        return self.patternCountNative()
+    end
+
+    get built() as bool
+        return self.isBuiltNative()
+    end
+
+    func addPattern(string pattern)
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: instance is destroyed"
+        end
+        self.addPatternNative(pattern)
+    end
+
+    func build()
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: instance is destroyed"
+        end
+        self.buildNative()
+    end
+
+    func search(string text) as string
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: instance is destroyed"
+        end
+        return self.searchNative(text)
+    end
+end
+
+
+
+export func create() as AhoCorasick
+    return AhoCorasick()
+end

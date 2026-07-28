@@ -1,0 +1,16 @@
+{
+    "format": "xlang-package-1",
+    "name": "aho_corasick",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["aho_corasick_native.c"],
+        "xlSources": ["src/aho_corasick.xl"]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

@@ -1,0 +1,45 @@
+import rtmp
+
+func main(...) as int
+    // Message types
+    assert rtmp.msgType(1) == "Set Chunk Size", "msg chunk"
+    assert rtmp.msgType(8) == "Audio Message", "msg audio"
+    assert rtmp.msgType(9) == "Video Message", "msg video"
+    assert rtmp.msgType(20) == "AMF0 Command Message", "msg amf0"
+
+    // CSID names
+    assert rtmp.csidName(2) == "Protocol Control", "csid proto"
+    assert rtmp.csidName(3) == "Command (invoke)", "csid cmd"
+    assert rtmp.csidName(4) == "Audio", "csid audio"
+
+    // UCM events
+    assert rtmp.ucmEvent(0) == "Stream Begin", "ucm begin"
+    assert rtmp.ucmEvent(6) == "Ping Request", "ucm ping"
+    assert rtmp.ucmEvent(7) == "Ping Response", "ucm pong"
+
+    // Audio codecs
+    assert rtmp.audioCodec(2) == "MP3", "audio mp3"
+    assert rtmp.audioCodec(10) == "AAC", "audio aac"
+    assert rtmp.audioCodec(7) == "G.711 A-law", "audio alaw"
+
+    // Video codecs
+    assert rtmp.videoCodec(7) == "AVC (H.264)", "video h264"
+    assert rtmp.videoCodec(12) == "HEVC (H.265)", "video h265"
+    assert rtmp.videoCodec(13) == "AV1", "video av1"
+
+    // Frame types
+    assert rtmp.frameType(1) == "Keyframe", "frame key"
+    assert rtmp.frameType(2) == "Inter frame", "frame inter"
+
+    // Commands
+    assert rtmp.commandName(0) == "connect", "cmd connect"
+    assert rtmp.commandName(2) == "play", "cmd play"
+    assert rtmp.commandName(3) == "publish", "cmd publish"
+
+    // URL validation
+    assert rtmp.validUrl("rtmp://live.example.com/app") == 1, "url rtmp"
+    assert rtmp.validUrl("rtmps://secure.example.com/app") == 1, "url rtmps"
+    assert rtmp.validUrl("http://bad.com") == 0, "url bad"
+
+    return 0
+end

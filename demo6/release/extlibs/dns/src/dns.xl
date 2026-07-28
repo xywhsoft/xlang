@@ -1,0 +1,35 @@
+extern "xdns_type_name" func __type_name(int type) as string
+extern "xdns_class_name" func __class_name(int cls) as string
+extern "xdns_rcode_name" func __rcode_name(int rcode) as string
+extern "xdns_opcode_name" func __opcode_name(int opcode) as string
+extern "xdns_encode_name" func __encode_name(string domain) as string
+extern "xdns_valid_name" func __valid_name(string name) as int
+extern "xdns_is_ipv4" func __is_ipv4(string addr) as int
+
+export func typeName(int type) as string
+    return __type_name(type)
+end
+
+export func className(int cls) as string
+    return __class_name(cls)
+end
+
+export func rcodeName(int rcode) as string
+    return __rcode_name(rcode)
+end
+
+export func opcodeName(int opcode) as string
+    return __opcode_name(opcode)
+end
+
+export func encodeName(string domain) as string
+    return __encode_name(domain)
+end
+
+export func validName(string name) as int
+    return __valid_name(name)
+end
+
+export func isIpv4(string addr) as int
+    return __is_ipv4(addr)
+end

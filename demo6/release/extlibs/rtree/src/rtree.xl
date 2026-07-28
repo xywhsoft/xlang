@@ -1,0 +1,65 @@
+extern "xrtGetError" func __rtree_error() as string
+
+
+
+class RTree
+    native point handle
+    extern "xrtree_create" create()
+    extern "xrtree_destroy" destroy()
+
+    extern "xrtree_insert" func insertNative(int id, c_double minx, c_double miny, c_double maxx, c_double maxy)
+    extern "xrtree_search" func searchNative(c_double minx, c_double miny, c_double maxx, c_double maxy) as string
+    extern "xrtree_search_count" func searchCountNative(c_double minx, c_double miny, c_double maxx, c_double maxy) as int
+    extern "xrtree_remove" func removeNative(int id) as bool
+    extern "xrtree_count" func countNative() as int
+    extern "xrtree_clear" func clearNative()
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        return self.countNative()
+    end
+
+    func insert(int id, float minx, float miny, float maxx, float maxy)
+        if self.handle == null then
+            throw RuntimeError "rtree: instance is destroyed"
+        end
+        self.insertNative(id, c_double(minx), c_double(miny), c_double(maxx), c_double(maxy))
+    end
+
+    func search(float minx, float miny, float maxx, float maxy) as string
+        if self.handle == null then
+            throw RuntimeError "rtree: instance is destroyed"
+        end
+        return self.searchNative(c_double(minx), c_double(miny), c_double(maxx), c_double(maxy))
+    end
+
+    func searchCount(float minx, float miny, float maxx, float maxy) as int
+        if self.handle == null then
+            throw RuntimeError "rtree: instance is destroyed"
+        end
+        return self.searchCountNative(c_double(minx), c_double(miny), c_double(maxx), c_double(maxy))
+    end
+
+    func remove(int id) as bool
+        if self.handle == null then
+            throw RuntimeError "rtree: instance is destroyed"
+        end
+        return self.removeNative(id)
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "rtree: instance is destroyed"
+        end
+        self.clearNative()
+    end
+end
+
+
+
+export func create() as RTree
+    return RTree()
+end

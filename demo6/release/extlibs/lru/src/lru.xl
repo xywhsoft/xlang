@@ -1,0 +1,88 @@
+extern "xrtGetError" func __lru_error() as string
+
+
+
+class LruCache
+    native point handle
+    extern "xlru_create" create(int capacity, int mode)
+    extern "xlru_destroy" destroy()
+
+    extern "xlru_put" func putNative(string key, string value)
+    extern "xlru_get" func getNative(string key) as string
+    extern "xlru_contains" func containsNative(string key) as bool
+    extern "xlru_remove" func removeNative(string key) as bool
+    extern "xlru_clear" func clearNative()
+    extern "xlru_count" func countNative() as int
+    extern "xlru_capacity" func capacityNative() as int
+    extern "xlru_hits" func hitsNative() as int
+    extern "xlru_misses" func missesNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get count() as int
+        return self.countNative()
+    end
+
+    get capacity() as int
+        return self.capacityNative()
+    end
+
+    get hits() as int
+        return self.hitsNative()
+    end
+
+    get misses() as int
+        return self.missesNative()
+    end
+
+    func put(string key, string value)
+        if self.handle == null then
+            throw RuntimeError "lru: instance is destroyed"
+        end
+        self.putNative(key, value)
+    end
+
+    func get(string key, string default = "") as string
+        if self.handle == null then
+            throw RuntimeError "lru: instance is destroyed"
+        end
+        string result = self.getNative(key)
+        if result == "" and not self.containsNative(key) then
+            return default
+        end
+        return result
+    end
+
+    func contains(string key) as bool
+        if self.handle == null then
+            throw RuntimeError "lru: instance is destroyed"
+        end
+        return self.containsNative(key)
+    end
+
+    func remove(string key) as bool
+        if self.handle == null then
+            throw RuntimeError "lru: instance is destroyed"
+        end
+        return self.removeNative(key)
+    end
+
+    func clear()
+        if self.handle == null then
+            throw RuntimeError "lru: instance is destroyed"
+        end
+        self.clearNative()
+    end
+end
+
+
+
+export func create(int capacity) as LruCache
+    return LruCache(capacity, 0)
+end
+
+export func createLFU(int capacity) as LruCache
+    return LruCache(capacity, 1)
+end

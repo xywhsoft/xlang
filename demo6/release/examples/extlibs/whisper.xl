@@ -1,0 +1,13 @@
+import whisper
+
+func main(...) as int
+    // Whisper speech recognition
+
+    println("Model 0 = " + whisper.model(0))
+    println("Language 0 = " + whisper.language(0))
+    println("Task 0 = " + whisper.task(0))
+    println("Timestamp = " + whisper.timestamp(3661500))
+
+    println("whisper example: PASS")
+    return 0
+end

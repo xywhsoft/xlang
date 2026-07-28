@@ -1,0 +1,58 @@
+import pcap
+
+
+
+func main(...) as int
+    // Magic type detection
+    assert pcap.magicType(0xa1b2c3d4) == 1, "magic us big"
+    assert pcap.magicType(0xd4c3b2a1) == 2, "magic us little"
+    assert pcap.magicType(0xa1b23c4d) == 3, "magic ns big"
+    assert pcap.magicType(12345) == 0, "magic unknown"
+
+    // Link type names
+    assert pcap.linktypeName(1) == "ETHERNET", "linktype eth"
+    assert pcap.linktypeName(101) == "RAW_IP", "linktype raw"
+    assert pcap.linktypeName(999) == "UNKNOWN", "linktype unknown"
+
+    // Ethernet frame: dst=ff:ff:ff:ff:ff:ff src=00:11:22:33:44:55 type=0x0800
+    auto frame = "ffffffffffff0011223344550800"
+    auto etype = pcap.ethType(frame)
+    assert etype == 2048, "ethertype 0x0800"
+    assert pcap.ethertypeName(etype) == "IPv4", "ethertype name"
+
+    // MAC address
+    auto shi = pcap.ethSrcHi()
+    auto slo = pcap.ethSrcLo()
+    auto mac = pcap.macStr(shi, slo)
+    assert mac == "00:11:22:33:44:55", "src mac"
+
+    // IPv4 header: ver=4 ihl=5 ttl=64 proto=6(TCP) src=192.168.1.1 dst=10.0.0.1
+    auto iphex = "4500003c1c4640004006b1e6c0a801010a000001"
+    auto proto = pcap.ipv4Proto(iphex)
+    assert proto == 6, "ip proto tcp"
+    assert pcap.protoName(proto) == "TCP", "proto name"
+    assert pcap.ipTtl() == 64, "ip ttl"
+    assert pcap.ipLen() == 60, "ip len"
+    auto src_str = pcap.ipStr(pcap.ipSrc())
+    assert src_str == "192.168.1.1", "ip src"
+    auto dst_str = pcap.ipStr(pcap.ipDst())
+    assert dst_str == "10.0.0.1", "ip dst"
+
+    // TCP header: src=12345 dst=80 seq=100 ack=0 flags=SYN(0x02)
+    auto tcphex = "303900500000006400000000500220000000000000"
+    auto dport = pcap.tcpDstPort(tcphex)
+    assert dport == 80, "tcp dst port"
+    assert pcap.tcpSrcPort() == 12345, "tcp src port"
+    assert pcap.tcpSeq() == 100, "tcp seq"
+    assert pcap.tcpFlags() == 2, "tcp flags SYN"
+    assert pcap.tcpFlagsStr(2) == "S", "flags str SYN"
+    assert pcap.tcpFlagsStr(18) == "SA", "flags str SYN-ACK"
+
+    // Port names
+    assert pcap.portName(80) == "HTTP", "port 80"
+    assert pcap.portName(443) == "HTTPS", "port 443"
+    assert pcap.portName(22) == "SSH", "port 22"
+    assert pcap.portName(9999) == "UNKNOWN", "port unknown"
+
+    return 0
+end

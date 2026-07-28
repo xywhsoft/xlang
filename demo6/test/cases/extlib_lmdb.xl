@@ -1,0 +1,55 @@
+import lmdb
+
+
+
+func main(...) as int
+    // Page size
+    assert lmdb.pageSize() == 4096, "page size"
+
+    // Pages needed
+    assert lmdb.pagesNeeded(4096, 4096) == 1, "1 page"
+    assert lmdb.pagesNeeded(4097, 4096) == 2, "2 pages"
+    assert lmdb.pagesNeeded(100, 4096) == 1, "small data"
+    assert lmdb.pagesNeeded(0, 4096) == 0, "zero data"
+
+    // Encode/decode KV
+    auto kv = lmdb.encodeKV("user:1", "alice")
+    assert lmdb.decodeKey(kv) == "user:1", "decode key"
+    assert lmdb.decodeValue(kv) == "alice", "decode value"
+
+    auto kv2 = lmdb.encodeKV("k", "v")
+    assert lmdb.decodeKey(kv2) == "k", "short key"
+    assert lmdb.decodeValue(kv2) == "v", "short value"
+
+    // Key compare
+    assert lmdb.keyCompare("abc", "abc") == 0, "equal keys"
+    assert lmdb.keyCompare("abc", "abd") < 0, "less than"
+    assert lmdb.keyCompare("abd", "abc") > 0, "greater than"
+    assert lmdb.keyCompare("a", "aa") < 0, "prefix less"
+
+    // Key validation
+    assert lmdb.validKey("valid_key") == 1, "valid key"
+    assert lmdb.validKey("a") == 1, "single char key"
+    assert lmdb.validKey("") == 0, "empty key invalid"
+
+    // DB size estimate
+    auto size = lmdb.dbSize(1000, 10, 100)
+    assert size > 0, "positive size"
+    assert size % 4096 == 0, "page aligned"
+
+    // Flags
+    assert lmdb.flagRdonly() == 0x20000, "rdonly flag"
+    assert lmdb.flagNosync() == 0x10000, "nosync flag"
+    assert lmdb.flagNometasync() == 0x40000, "nometasync flag"
+
+    // Env flags
+    assert lmdb.envFixedmap() == 0x01, "fixedmap"
+    assert lmdb.envNosubdir() == 0x4000, "nosubdir"
+    assert lmdb.envReadonly() == 0x20000, "env readonly"
+
+    // Limits
+    assert lmdb.maxKeySize() == 511, "max key size"
+    assert lmdb.maxDbsDefault() == 128, "max dbs"
+
+    return 0
+end

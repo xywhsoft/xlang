@@ -1,0 +1,19 @@
+import yaml
+
+
+
+func main(...) as int
+    auto doc = "server: localhost\nport: 8080\ndebug: true\n"
+
+    println("server: ", yaml.get(doc, "server"))
+    println("port:   ", yaml.getInt(doc, "port"))
+    println("debug:  ", yaml.getBool(doc, "debug"))
+    println("keys:   ", yaml.countKeys(doc))
+    println("valid:  ", yaml.validate(doc))
+
+    // Emit
+    print(yaml.emitPair("env", "production"))
+
+    println("yaml example: PASS")
+    return 0
+end

@@ -1,0 +1,34 @@
+import fuzzy
+
+
+
+func main(...) as int
+    // Levenshtein distance
+    assert fuzzy.levenshtein("kitten", "sitting") == 3, "kitten->sitting = 3"
+    assert fuzzy.levenshtein("", "abc") == 3, "empty to abc"
+    assert fuzzy.levenshtein("abc", "abc") == 0, "same string"
+    assert fuzzy.levenshtein("abc", "") == 3, "abc to empty"
+
+    // Fuzzy subsequence match
+    assert fuzzy.isMatch("fb", "foobar"), "fb matches foobar"
+    assert fuzzy.isMatch("fbr", "foobar"), "fbr matches foobar"
+    assert not fuzzy.isMatch("fx", "foobar"), "fx not in foobar"
+    assert fuzzy.match("foo", "foobar") > 0, "foo score positive"
+    assert fuzzy.match("xyz", "foobar") == -1, "xyz no match"
+
+    // Case insensitive
+    assert fuzzy.isMatch("FOO", "foobar"), "case insensitive"
+
+    // Ratio
+    assert fuzzy.ratio("hello", "hello") == 100, "identical = 100"
+    assert fuzzy.ratio("hello", "helo") > 70, "similar > 70"
+    assert fuzzy.ratio("abc", "xyz") < 50, "different < 50"
+
+    // Best match from candidates
+    string candidates = "foobar\nfoobaz\nfizzbuzz\nhello"
+    string best = fuzzy.best("fb", candidates)
+    assert best != "", "best returns something"
+    assert best == "foobar" or best == "fizzbuzz", "best is a valid match"
+
+    return 0
+end

@@ -1,0 +1,12 @@
+extern "xjson5_valid" func __json5_valid(string text) as bool
+extern "xjson5_get" func __json5_get(string text, string path) as string
+
+
+
+export func valid(string text) as bool
+    return __json5_valid(text)
+end
+
+export func get(string text, string path) as string
+    return __json5_get(text, path)
+end

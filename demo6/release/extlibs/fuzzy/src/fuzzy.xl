@@ -1,0 +1,26 @@
+extern "xfuzzy_levenshtein" func __fuzzy_levenshtein(string a, string b) as int
+extern "xfuzzy_match" func __fuzzy_match(string pattern, string text) as int
+extern "xfuzzy_ratio" func __fuzzy_ratio(string a, string b) as int
+extern "xfuzzy_best" func __fuzzy_best(string pattern, string candidates) as string
+
+
+
+export func levenshtein(string a, string b) as int
+    return __fuzzy_levenshtein(a, b)
+end
+
+export func match(string pattern, string text) as int
+    return __fuzzy_match(pattern, text)
+end
+
+export func isMatch(string pattern, string text) as bool
+    return __fuzzy_match(pattern, text) >= 0
+end
+
+export func ratio(string a, string b) as int
+    return __fuzzy_ratio(a, b)
+end
+
+export func best(string pattern, string candidates) as string
+    return __fuzzy_best(pattern, candidates)
+end

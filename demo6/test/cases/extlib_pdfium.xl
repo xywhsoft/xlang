@@ -1,0 +1,34 @@
+import pdfium
+
+func main(...) as int
+    // Object types
+    assert pdfium.objectType(2) == "number", "obj number"
+    assert pdfium.objectType(6) == "dictionary", "obj dict"
+    assert pdfium.objectType(7) == "stream", "obj stream"
+
+    // Page objects
+    assert pdfium.pageObject(0) == "text", "page text"
+    assert pdfium.pageObject(2) == "image", "page image"
+
+    // Annotations
+    assert pdfium.annotation(1) == "link", "annot link"
+    assert pdfium.annotation(6) == "highlight", "annot highlight"
+
+    // Form fields
+    assert pdfium.formField(2) == "checkbox", "field checkbox"
+    assert pdfium.formField(6) == "textfield", "field text"
+
+    // Render flags
+    assert pdfium.renderFlag(0) == "annotation", "flag annot"
+    assert pdfium.renderFlag(5) == "grayscale", "flag gray"
+
+    // DPI scale: 144 dpi => 144/72 = 2.0 => x1000 = 2000
+    assert pdfium.dpiScaleX1000(144) == 2000, "dpi 144"
+    assert pdfium.dpiScaleX1000(72) == 1000, "dpi 72"
+
+    // Error codes
+    assert pdfium.errorCode(0) == "success", "err ok"
+    assert pdfium.errorCode(4) == "password error", "err pass"
+
+    return 0
+end

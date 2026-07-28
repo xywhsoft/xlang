@@ -1,0 +1,82 @@
+extern "xpkcs_get_tag" func __pkcs_tag(string der_hex) as int
+extern "xpkcs_get_length" func __pkcs_len(string der_hex) as int
+extern "xpkcs_get_content" func __pkcs_content(string der_hex) as string
+extern "xpkcs_encode_int" func __pkcs_enc_int(int value) as string
+extern "xpkcs_decode_int" func __pkcs_dec_int(string der_hex) as int
+extern "xpkcs_encode_oid" func __pkcs_enc_oid(string dotted) as string
+extern "xpkcs_decode_oid" func __pkcs_dec_oid(string der_hex) as string
+extern "xpkcs_wrap_sequence" func __pkcs_seq(string content_hex) as string
+extern "xpkcs_wrap_set" func __pkcs_set(string content_hex) as string
+extern "xpkcs_encode_octet" func __pkcs_oct(string data_hex) as string
+extern "xpkcs_encode_null" func __pkcs_null() as string
+extern "xpkcs_encode_bitstring" func __pkcs_bits(string data_hex) as string
+extern "xpkcs_concat" func __pkcs_cat(string a, string b) as string
+extern "xpkcs_der_len" func __pkcs_dlen(string der_hex) as int
+extern "xpkcs_next_offset" func __pkcs_next(string der_hex, int offset) as int
+extern "xpkcs_tag_name" func __pkcs_tname(string der_hex) as string
+
+
+
+export func getTag(string der_hex) as int
+    return __pkcs_tag(der_hex)
+end
+
+export func getLength(string der_hex) as int
+    return __pkcs_len(der_hex)
+end
+
+export func getContent(string der_hex) as string
+    return __pkcs_content(der_hex)
+end
+
+export func encodeInt(int value) as string
+    return __pkcs_enc_int(value)
+end
+
+export func decodeInt(string der_hex) as int
+    return __pkcs_dec_int(der_hex)
+end
+
+export func encodeOid(string dotted) as string
+    return __pkcs_enc_oid(dotted)
+end
+
+export func decodeOid(string der_hex) as string
+    return __pkcs_dec_oid(der_hex)
+end
+
+export func wrapSequence(string content_hex) as string
+    return __pkcs_seq(content_hex)
+end
+
+export func wrapSet(string content_hex) as string
+    return __pkcs_set(content_hex)
+end
+
+export func encodeOctet(string data_hex) as string
+    return __pkcs_oct(data_hex)
+end
+
+export func encodeNull() as string
+    return __pkcs_null()
+end
+
+export func encodeBitString(string data_hex) as string
+    return __pkcs_bits(data_hex)
+end
+
+export func concat(string a, string b) as string
+    return __pkcs_cat(a, b)
+end
+
+export func derLen(string der_hex) as int
+    return __pkcs_dlen(der_hex)
+end
+
+export func nextOffset(string der_hex, int offset) as int
+    return __pkcs_next(der_hex, offset)
+end
+
+export func tagName(string der_hex) as string
+    return __pkcs_tname(der_hex)
+end

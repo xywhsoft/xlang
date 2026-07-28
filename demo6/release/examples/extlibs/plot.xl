@@ -1,0 +1,12 @@
+import plot
+
+func main(...) as int
+    // Plot 2D charting
+
+    println("Chart 0 = " + plot.chartType(0))
+    println("Color 0 = " + plot.color(0))
+    println("ViewBox = " + plot.svgViewbox(1024, 768))
+
+    println("plot example: PASS")
+    return 0
+end

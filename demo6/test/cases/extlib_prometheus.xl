@@ -1,0 +1,34 @@
+import prometheus
+
+func main(...) as int
+    // Metric types
+    assert prometheus.metricType(0) == "counter", "type counter"
+    assert prometheus.metricType(1) == "gauge", "type gauge"
+    assert prometheus.metricType(2) == "histogram", "type histogram"
+
+    // Aggregations
+    assert prometheus.aggregation(0) == "sum", "agg sum"
+    assert prometheus.aggregation(1) == "avg", "agg avg"
+
+    // Functions
+    assert prometheus.function(0) == "rate", "func rate"
+    assert prometheus.function(7) == "histogram_quantile", "func hq"
+
+    // Labels
+    assert prometheus.label(0) == "job", "label job"
+    assert prometheus.label(3) == "le", "label le"
+
+    // Format metric
+    assert prometheus.formatMetric("http_requests", "method=\"GET\"", 42.0) == "http_requests{method=\"GET\"} 42", "format"
+    assert prometheus.formatMetric("up", "", 1.0) == "up 1", "format no label"
+
+    // Alert states
+    assert prometheus.alertState(0) == "inactive", "alert inactive"
+    assert prometheus.alertState(2) == "firing", "alert firing"
+
+    // Storage
+    assert prometheus.storage(0) == "local", "storage local"
+    assert prometheus.storage(3) == "thanos", "storage thanos"
+
+    return 0
+end

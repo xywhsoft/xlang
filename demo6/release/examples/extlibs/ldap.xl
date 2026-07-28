@@ -1,0 +1,22 @@
+import ldap
+
+func main(...) as int
+    // LDAP protocol helpers
+
+    // Result codes
+    println("Result 0 = " + ldap.resultName(0))
+    println("Result 49 = " + ldap.resultName(49))
+
+    // Operations
+    println("Op 3 = " + ldap.operationName(3))
+
+    // Attributes
+    println("cn = " + ldap.attrDesc("cn"))
+    println("mail = " + ldap.attrDesc("mail"))
+
+    // DN validation
+    println("valid DN = " + string.format("{}", ldap.validDn("cn=admin,dc=example,dc=com")))
+
+    println("ldap example: PASS")
+    return 0
+end

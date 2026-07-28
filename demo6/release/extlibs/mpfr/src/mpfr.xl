@@ -1,0 +1,100 @@
+extern "xmpfr_rnd_name" func __mpfr_rnd(int mode) as string
+extern "xmpfr_default_prec" func __mpfr_dprec() as int
+extern "xmpfr_prec_for_digits" func __mpfr_p4d(int digits) as int
+extern "xmpfr_digits_for_prec" func __mpfr_d4p(int prec) as int
+extern "xmpfr_is_nan" func __mpfr_isnan(float val) as int
+extern "xmpfr_is_inf" func __mpfr_isinf(float val) as int
+extern "xmpfr_is_zero" func __mpfr_iszero(float val) as int
+extern "xmpfr_sign" func __mpfr_sign(float val) as int
+extern "xmpfr_cmp" func __mpfr_cmp(float a, float b, float tol) as int
+extern "xmpfr_format" func __mpfr_fmt(float val, int precision) as string
+extern "xmpfr_scientific" func __mpfr_sci(float val, int precision) as string
+extern "xmpfr_const_pi" func __mpfr_pi() as float
+extern "xmpfr_const_e" func __mpfr_e() as float
+extern "xmpfr_const_log2" func __mpfr_log2() as float
+extern "xmpfr_const_sqrt2" func __mpfr_sqrt2() as float
+extern "xmpfr_epsilon" func __mpfr_eps() as float
+extern "xmpfr_min_normal" func __mpfr_min() as float
+extern "xmpfr_max_value" func __mpfr_max() as float
+extern "xmpfr_version_major" func __mpfr_vmaj() as int
+extern "xmpfr_version_minor" func __mpfr_vmin() as int
+
+export func rndName(int mode) as string
+    return __mpfr_rnd(mode)
+end
+
+export func defaultPrec() as int
+    return __mpfr_dprec()
+end
+
+export func precForDigits(int digits) as int
+    return __mpfr_p4d(digits)
+end
+
+export func digitsForPrec(int prec) as int
+    return __mpfr_d4p(prec)
+end
+
+export func isNan(float val) as int
+    return __mpfr_isnan(val)
+end
+
+export func isInf(float val) as int
+    return __mpfr_isinf(val)
+end
+
+export func isZero(float val) as int
+    return __mpfr_iszero(val)
+end
+
+export func sign(float val) as int
+    return __mpfr_sign(val)
+end
+
+export func compare(float a, float b, float tol) as int
+    return __mpfr_cmp(a, b, tol)
+end
+
+export func format(float val, int precision) as string
+    return __mpfr_fmt(val, precision)
+end
+
+export func scientific(float val, int precision) as string
+    return __mpfr_sci(val, precision)
+end
+
+export func constPi() as float
+    return __mpfr_pi()
+end
+
+export func constE() as float
+    return __mpfr_e()
+end
+
+export func constLog2() as float
+    return __mpfr_log2()
+end
+
+export func constSqrt2() as float
+    return __mpfr_sqrt2()
+end
+
+export func epsilon() as float
+    return __mpfr_eps()
+end
+
+export func minNormal() as float
+    return __mpfr_min()
+end
+
+export func maxValue() as float
+    return __mpfr_max()
+end
+
+export func versionMajor() as int
+    return __mpfr_vmaj()
+end
+
+export func versionMinor() as int
+    return __mpfr_vmin()
+end

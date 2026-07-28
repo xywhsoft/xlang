@@ -1,0 +1,20 @@
+import pptx
+
+func main(...) as int
+    // PPTX presentation helpers
+
+    // Slide layouts
+    println("Layout 0 = " + pptx.slideLayout(0))
+
+    // Transitions
+    println("Transition 9 = " + pptx.transition(9))
+
+    // Charts
+    println("Chart 3 = " + pptx.chartType(3))
+
+    // EMU conversion
+    println("360000 EMU = " + string.int(pptx.emuToCm(360000)) + " mm")
+
+    println("pptx example: PASS")
+    return 0
+end
