@@ -13,7 +13,7 @@ func main(...) as int
     println("Chart 3 = " + pptx.chartType(3))
 
     // EMU conversion
-    println("360000 EMU = " + string.int(pptx.emuToCm(360000)) + " mm")
+    println("360000 EMU = " + string(pptx.emuToCm(360000)) + " mm")
 
     println("pptx example: PASS")
     return 0

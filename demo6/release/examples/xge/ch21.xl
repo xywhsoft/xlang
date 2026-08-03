@@ -1,0 +1,52 @@
+// ch21 — 点与线段
+import xge
+
+func draw_scene()
+    float cx = 400.0
+    float cy = 350.0
+    float r = 130.0
+
+    // 一排渐变大小的点
+    int i = 0
+    while i < 20
+        float x = 100.0 + float(i) * 30.0
+        float size = 2.0 + float(i) * 0.5
+        xge.xgeShapePoint(c_float(x), c_float(120), c_float(size), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
+        i = i + 1
+    end
+
+    // 坐标轴
+    xge.xgeShapeLine(c_float(400), c_float(180), c_float(400), c_float(550), c_float(1.0), xge.XGE_COLOR_RGBA(c_uint(109), c_uint(179), c_uint(242), c_uint(150)))
+    xge.xgeShapeLine(c_float(100), c_float(350), c_float(700), c_float(350), c_float(1.0), xge.XGE_COLOR_RGBA(c_uint(109), c_uint(179), c_uint(242), c_uint(150)))
+
+    // 星形连线
+    i = 0
+    while i < 5
+        float a0 = float(i) * 4.0 * math.pi / 5.0 - math.pi / 2.0
+        float a1 = float(i + 1) * 4.0 * math.pi / 5.0 - math.pi / 2.0
+        xge.xgeShapeLine(
+            c_float(cx + r * math.cos(a0)), c_float(cy + r * math.sin(a0)),
+            c_float(cx + r * math.cos(a1)), c_float(cy + r * math.sin(a1)),
+            c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
+        i = i + 1
+    end
+
+    // 对角线
+    xge.xgeShapeLine(c_float(100), c_float(100), c_float(700), c_float(500), c_float(3.0), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(107), c_uint(94), c_uint(100)))
+end
+
+func on_frame()
+    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    draw_scene()
+    xge.xgeTutorialEndFrame()
+end
+
+func main(...) as int
+    c_int ret = xge.xgeTutorialInit(840, 640, "ch21")
+    if ret != c_int(0) then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.xgeTutorialRun(on_frame)
+    return 0
+end

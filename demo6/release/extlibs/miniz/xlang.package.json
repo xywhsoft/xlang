@@ -1,12 +1,13 @@
 {
     "format":  "xlang-package-1",
     "name":  "miniz",
-    "version":  "0.1.0",
+    "version":  "1.0.0",
     "abiVersion":  "1",
     "kind":  "demo6-extlib",
     "artifact":  {
                      "kind":  "source",
                      "cSources":  [
+                                      "xrt_miniz.c",
                                       "miniz_native.c",
                                       "third_party/miniz.c",
                                       "third_party/miniz_tdef.c",

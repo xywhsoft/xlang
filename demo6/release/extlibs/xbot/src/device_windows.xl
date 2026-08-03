@@ -1,0 +1,558 @@
+// xbot/device_windows.xl - Windows 桌面/窗口设备
+// 对应 xbot.py L3450-4289：基于 op 扩展的 OP 设备实现
+// DesktopDevice（全屏桌面）和 WindowDevice（绑定窗口）
+
+import op
+
+// ─── OP 设备中间层 ───
+class OpDevice
+    op.Op op_handle
+    string name
+    bool closed
+
+    create(string dev_name)
+        self.name = dev_name
+        self.op_handle = op.create()
+        self.closed = false
+    end
+
+    func close()
+        if self.closed then
+            return
+        end
+        self.op_handle.unbind()
+        self.closed = true
+    end
+end
+// ─── Windows 桌面设备 ───
+export class DesktopDevice extends AutomationDevice
+    OpDevice op_dev
+    int screen_w
+    int screen_h
+    string monitor
+    int offset_left
+    int offset_top
+
+    create(string monitor_id)
+        base("desktop:" + monitor_id)
+        self.monitor = monitor_id
+        self.offset_left = 0
+        self.offset_top = 0
+        self.op_dev = OpDevice("desktop:" + monitor_id)
+        // 获取屏幕尺寸
+        self.UpdateSize()
+        // 绑定桌面
+        int desktop_hwnd = op.findWindow("Progman", "")
+        self.op_dev.op_handle.bindWindow(desktop_hwnd, "normal", "normal", "normal", 0)
+    end
+
+    // ─── 设备接口实现 ───
+
+    override func UpdateSize() as Size
+        if self.monitor == "virtual" then
+            // 虚拟桌面：使用 GetSystemMetrics
+            string size_str = op.getScreenSize()
+            int x_pos = string.indexOf(size_str, "x")
+            if x_pos > 0 then
+                self.screen_w = int(string.mid(size_str, 0, x_pos))
+                self.screen_h = int(string.mid(size_str, x_pos + 1, string.len(size_str) - x_pos - 1))
+            else
+                self.screen_w = 1920
+                self.screen_h = 1080
+            end
+        else
+            string size_str = op.getScreenSize()
+            int x_pos = string.indexOf(size_str, "x")
+            if x_pos > 0 then
+                self.screen_w = int(string.mid(size_str, 0, x_pos))
+                self.screen_h = int(string.mid(size_str, x_pos + 1, string.len(size_str) - x_pos - 1))
+            else
+                self.screen_w = 1920
+                self.screen_h = 1080
+            end
+        end
+        self.size = Size(self.screen_w, self.screen_h)
+        return self.size as Size
+    end
+
+    override func Snapshot(string save_path) as string
+        string output = save_path
+        if output == "" then
+            output = _xbot_temp_file("xbot_capture_", ".bmp")
+        end
+        int ret = self.op_dev.op_handle.capture(0, 0, self.screen_w, self.screen_h, output)
+        if ret != 1 then
+            throw RuntimeError "OP Capture 失败"
+        end
+        return output
+    end
+
+    override func Close() as OpResult
+        self.op_dev.close()
+        return _result_ok("desktop device released")
+    end
+
+    override func _ClickPixels(int x, int y, int times, float interval)
+        int i = 0
+        while i < times
+            self.op_dev.op_handle.moveTo(x, y)
+            self.op_dev.op_handle.leftClick()
+            if i + 1 < times and interval > 0.0 then
+                time.sleep(int(interval * 1000))
+            end
+            i += 1
+        end
+    end
+    override func _SwipePixels(int x1, int y1, int x2, int y2, float duration)
+        int ms = int(duration * 1000)
+        if ms < 1 then ms = 1 end
+        self.op_dev.op_handle.dragTo(x1, y1, x2, y2)
+    end
+
+    override func _Key(string key)
+        string key_name = _windows_key_name(key)
+        self.op_dev.op_handle.keyCombo(key_name)
+    end
+
+    override func _Text(string text, bool enter)
+        // 使用剪贴板粘贴方式输入 Unicode 文本
+        op.setClipboard(text)
+        self.op_dev.op_handle.keyCombo("ctrl+v")
+        if enter then
+            self.op_dev.op_handle.keyCombo("enter")
+        end
+    end
+    // ─── 扩展操作 ───
+
+    func Move(var value, float y_val) as OpResult
+        TargetPoint pt = self.ResolvePoint(value, y_val, ANCHOR_CENTER)
+        self.op_dev.op_handle.moveTo(pt.x, pt.y)
+        return _result_ok("move " + string(pt.x) + "," + string(pt.y))
+    end
+
+    func RightClick(var value, float y_val) as OpResult
+        TargetPoint pt = self.ResolvePoint(value, y_val, ANCHOR_CENTER)
+        self.op_dev.op_handle.moveTo(pt.x, pt.y)
+        self.op_dev.op_handle.rightClick()
+        return _result_ok("right click " + string(pt.x) + "," + string(pt.y))
+    end
+
+    func MiddleClick(var value, float y_val) as OpResult
+        TargetPoint pt = self.ResolvePoint(value, y_val, ANCHOR_CENTER)
+        self.op_dev.op_handle.moveTo(pt.x, pt.y)
+        self.op_dev.op_handle.middleClick()
+        return _result_ok("middle click " + string(pt.x) + "," + string(pt.y))
+    end
+
+    func MouseDown(string button) as OpResult
+        if button == "left" then
+            self.op_dev.op_handle.leftDown()
+        elseif button == "right" then
+            self.op_dev.op_handle.rightDown()
+        end
+        return _result_ok("mouse down " + button)
+    end
+
+    func MouseUp(string button) as OpResult
+        if button == "left" then
+            self.op_dev.op_handle.leftUp()
+        elseif button == "right" then
+            self.op_dev.op_handle.rightUp()
+        end
+        return _result_ok("mouse up " + button)
+    end
+
+    func LongPress(var value, float y_val, float duration) as OpResult
+        TargetPoint pt = self.ResolvePoint(value, y_val, ANCHOR_CENTER)
+        self.op_dev.op_handle.moveTo(pt.x, pt.y)
+        self.op_dev.op_handle.leftDown()
+        time.sleep(int(duration * 1000))
+        self.op_dev.op_handle.leftUp()
+        return _result_ok("long press " + string(pt.x) + "," + string(pt.y))
+    end
+
+    func Drag(var start, var end_pt, float duration) as OpResult
+        return base.Swipe(start, end_pt, duration)
+    end
+
+    func Scroll(int amount, var value, float y_val) as OpResult
+        if value != null then
+            self.Move(value, y_val)
+        end
+        int i = 0
+        if amount > 0 then
+            while i < amount
+                self.op_dev.op_handle.wheelUp()
+                i += 1
+            end
+        else
+            while i < -amount
+                self.op_dev.op_handle.wheelDown()
+                i += 1
+            end
+        end
+        return _result_ok("scroll " + string(amount))
+    end
+
+    func Hotkey(array<string> keys) as OpResult
+        if keys.length == 0 then
+            return _result_fail("Hotkey 至少需要一个按键")
+        end
+        // 组合键：用 + 连接
+        Buffer buf = Buffer()
+        int i = 0
+        while i < keys.length
+            if i > 0 then buf.append("+") end
+            buf.append(_windows_key_name(keys[i]))
+            i += 1
+        end
+        self.op_dev.op_handle.keyCombo(buf.text())
+        return _result_ok("hotkey " + buf.text())
+    end
+
+    func KeyDown(string key) as OpResult
+        // OP 的 keyDown 需要 vk code，此处简化为 keyCombo
+        return _result_ok("key down " + key)
+    end
+
+    func KeyUp(string key) as OpResult
+        return _result_ok("key up " + key)
+    end
+
+    func Paste(string text, bool enter) as OpResult
+        op.setClipboard(text)
+        self.op_dev.op_handle.keyCombo("ctrl+v")
+        if enter then
+            self.op_dev.op_handle.keyCombo("enter")
+        end
+        return _result_ok("paste length=" + string(string.len(text)))
+    end
+
+    // 多点连续拖拽
+    func TracePath(array<var> points, float duration) as OpResult
+        if points.length < 2 then
+            return _result_fail("TracePath 至少需要两个坐标点")
+        end
+        // 构建路径字符串 "x1,y1|x2,y2|..."
+        Buffer buf = Buffer()
+        int i = 0
+        while i < points.length
+            TargetPoint pt = self.ResolvePoint(points[i], 0, ANCHOR_CENTER)
+            if i > 0 then buf.append("|") end
+            buf.append(string(pt.x + self.offset_left) + "," + string(pt.y + self.offset_top))
+            i += 1
+        end
+        int ms = int(duration * 1000)
+        if ms < 1 then ms = 1 end
+        self.op_dev.op_handle.dragPath(buf.text(), ms)
+        return _result_ok("trace path points=" + string(points.length))
+    end
+
+    // 逐键 ASCII 输入
+    func Input(string text, float interval) as OpResult
+        int i = 0
+        int len = string.len(text)
+        while i < len
+            string ch = string.mid(text, i, 1)
+            if ch == " " then
+                self.op_dev.op_handle.keyCombo("space")
+            else
+                self.op_dev.op_handle.keyCombo(ch)
+            end
+            if interval > 0.0 and i + 1 < len then
+                time.sleep(int(interval * 1000))
+            end
+            i += 1
+        end
+        return _result_ok("input ascii length=" + string(len))
+    end
+
+end
+// ─── Windows 窗口设备 ───
+export class WindowDevice extends AutomationDevice
+    OpDevice op_dev
+    int hwnd
+    int win_w
+    int win_h
+    string bind_display
+
+    create(int window_hwnd, string title)
+        base("window:" + title)
+        self.hwnd = window_hwnd
+        self.op_dev = OpDevice("window:" + title)
+        // 绑定窗口：优先 WGC，失败回退 GDI 和 normal
+        self.bind_display = self._BindWithFallback(window_hwnd)
+        // 获取窗口尺寸
+        string frame = self.op_dev.op_handle.getFrameInfo()
+        int x_pos = string.indexOf(frame, "x")
+        if x_pos > 0 then
+            self.win_w = int(string.mid(frame, 0, x_pos))
+            self.win_h = int(string.mid(frame, x_pos + 1, string.len(frame) - x_pos - 1))
+        else
+            self.win_w = 1920
+            self.win_h = 1080
+        end
+        self.size = Size(self.win_w, self.win_h)
+    end
+
+    // WGC/GDI/normal 自动回退绑定
+    func _BindWithFallback(int window_hwnd) as string
+        // 尝试 wgc
+        int ret = self.op_dev.op_handle.bindWindow(window_hwnd, "normal.wgc", "windows", "windows", 0)
+        if ret == 1 then
+            return "normal.wgc"
+        end
+        // 回退 gdi2
+        ret = self.op_dev.op_handle.bindWindow(window_hwnd, "gdi2", "windows", "windows", 0)
+        if ret == 1 then
+            return "gdi2"
+        end
+        // 最终回退 normal
+        ret = self.op_dev.op_handle.bindWindow(window_hwnd, "normal", "normal", "normal", 0)
+        if ret != 1 then
+            throw RuntimeError "OP BindWindow 失败: hwnd=" + string(window_hwnd)
+        end
+        return "normal"
+    end
+
+    override func UpdateSize() as Size
+        string frame = self.op_dev.op_handle.getFrameInfo()
+        int x_pos = string.indexOf(frame, "x")
+        if x_pos > 0 then
+            self.win_w = int(string.mid(frame, 0, x_pos))
+            self.win_h = int(string.mid(frame, x_pos + 1, string.len(frame) - x_pos - 1))
+        end
+        self.size = Size(self.win_w, self.win_h)
+        return self.size as Size
+    end
+
+    override func Snapshot(string save_path) as string
+        string output = save_path
+        if output == "" then
+            output = _xbot_temp_file("xbot_capture_", ".bmp")
+        end
+        int ret = self.op_dev.op_handle.capture(0, 0, self.win_w, self.win_h, output)
+        if ret != 1 then
+            throw RuntimeError "OP Capture 失败"
+        end
+        return output
+    end
+
+    override func Close() as OpResult
+        self.op_dev.close()
+        return _result_ok("window device released")
+    end
+
+    override func _ClickPixels(int x, int y, int times, float interval)
+        int i = 0
+        while i < times
+            self.op_dev.op_handle.moveTo(x, y)
+            self.op_dev.op_handle.leftClick()
+            if i + 1 < times and interval > 0.0 then
+                time.sleep(int(interval * 1000))
+            end
+            i += 1
+        end
+    end
+    override func _SwipePixels(int x1, int y1, int x2, int y2, float duration)
+        self.op_dev.op_handle.dragTo(x1, y1, x2, y2)
+    end
+
+    override func _Key(string key)
+        self.op_dev.op_handle.keyCombo(_windows_key_name(key))
+    end
+
+    override func _Text(string text, bool enter)
+        op.setClipboard(text)
+        self.op_dev.op_handle.keyCombo("ctrl+v")
+        if enter then
+            self.op_dev.op_handle.keyCombo("enter")
+        end
+    end
+end
+// ─── 工厂函数 ───
+
+// 创建桌面设备
+export func UseDesktop(string monitor) as DesktopDevice
+    return DesktopDevice(monitor)
+end
+
+// 创建桌面设备（newsession 不替换默认设备）
+export func UseDesktopEx(string monitor, bool newsession) as DesktopDevice
+    DesktopDevice dev = DesktopDevice(monitor)
+    if newsession == false then
+        _replace_default_device(dev)
+    end
+    return dev
+end
+
+// 通过窗口标题模糊查找并绑定
+export func UseWindow(string title, string class_name, string process) as WindowDevice
+    int hwnd = _find_window_fuzzy(title, class_name, process)
+    if hwnd == 0 then
+        throw RuntimeError "未找到窗口: title=" + title + " class=" + class_name + " process=" + process
+    end
+    return WindowDevice(hwnd, title)
+end
+
+// 通过 hwnd 直接绑定窗口
+export func UseWindowByHwnd(int hwnd, bool newsession) as WindowDevice
+    if hwnd == 0 then
+        throw RuntimeError "hwnd 不能为 0"
+    end
+    WindowDevice dev = WindowDevice(hwnd, string(hwnd))
+    if newsession == false then
+        _replace_default_device(dev)
+    end
+    return dev
+end
+
+// 模糊查找窗口（返回首个句柄）
+export func FindWindowFuzzy(string title, string class_name, string process) as int
+    return _find_window_fuzzy(title, class_name, process)
+end
+
+// 模糊查找全部窗口（返回句柄列表）
+export func ListWindowFuzzy(string title, string class_name, string process) as array<int>
+    return _list_window_fuzzy(title, class_name, process)
+end
+
+// 枚举显示器
+export func ListDisplays() as array<DisplayInfo>
+    return _enum_displays()
+end
+
+// ─── 内部辅助 ───
+
+// 显示器信息
+export class DisplayInfo
+    int index
+    bool primary
+    int left
+    int top
+    int width
+    int height
+
+    create(int idx, bool is_primary, int l, int t, int w, int h)
+        self.index = idx
+        self.primary = is_primary
+        self.left = l
+        self.top = t
+        self.width = w
+        self.height = h
+    end
+end
+// 按键名映射
+func _windows_key_name(string key) as string
+    string upper = string.upper(key)
+    if upper == "BACK" then
+        return "back"
+    elseif upper == "DEL" or upper == "BACKSPACE" then
+        return "back"
+    elseif upper == "DELETE" then
+        return "delete"
+    elseif upper == "ENTER" or upper == "RETURN" then
+        return "enter"
+    elseif upper == "HOME" then
+        return "home"
+    elseif upper == "END" then
+        return "end"
+    elseif upper == "TAB" then
+        return "tab"
+    elseif upper == "SPACE" then
+        return "space"
+    elseif upper == "CTRL" or upper == "CONTROL" then
+        return "ctrl"
+    elseif upper == "ALT" then
+        return "alt"
+    elseif upper == "SHIFT" then
+        return "shift"
+    elseif upper == "WIN" then
+        return "win"
+    elseif upper == "UP" then
+        return "up"
+    elseif upper == "DOWN" then
+        return "down"
+    elseif upper == "LEFT" then
+        return "left"
+    elseif upper == "RIGHT" then
+        return "right"
+    elseif upper == "PAGEUP" then
+        return "pgup"
+    elseif upper == "PAGEDOWN" then
+        return "pgdn"
+    end
+    return string.lower(key)
+end
+
+// 模糊查找窗口（使用 op 扩展）
+func _find_window_fuzzy(string title, string class_name, string process) as int
+    array<int> handles = _list_window_fuzzy(title, class_name, process)
+    if handles.length > 0 then
+        return handles[0]
+    end
+    return 0
+end
+
+// 模糊查找全部窗口
+func _list_window_fuzzy(string title, string class_name, string process) as array<int>
+    array<int> result = []
+    int filter = 8 | 16  // 可见顶层窗口
+    if title != "" then
+        filter = filter | 1
+    end
+    if class_name != "" then
+        filter = filter | 2
+    end
+    string raw = ""
+    if process != "" then
+        raw = op.enumWindowByProcess(process, title, class_name, filter)
+    else
+        raw = op.enumWindow(0, title, class_name, filter)
+    end
+    if raw == "" then
+        // 回退到 findWindow
+        int hwnd = op.findWindow(class_name, title)
+        if hwnd > 0 then
+            result.push(hwnd)
+        end
+        return result
+    end
+    // 解析逗号分隔的句柄列表
+    int pos = 0
+    int len = string.len(raw)
+    while pos < len
+        int comma = _xbot_index_of_from(raw, ",", pos)
+        string token = ""
+        if comma < 0 then
+            token = string.mid(raw, pos, len - pos)
+            pos = len
+        else
+            token = string.mid(raw, pos, comma - pos)
+            pos = comma + 1
+        end
+        token = string.trim(token)
+        if token != "" then
+            int h = int(token)
+            if h > 0 then
+                result.push(h)
+            end
+        end
+    end
+    return result
+end
+
+// 枚举显示器（简化实现：使用 op 获取主屏信息）
+func _enum_displays() as array<DisplayInfo>
+    array<DisplayInfo> displays = []
+    string size_str = op.getScreenSize()
+    int w = 1920
+    int h = 1080
+    int x_pos = string.indexOf(size_str, "x")
+    if x_pos > 0 then
+        w = int(string.mid(size_str, 0, x_pos))
+        h = int(string.mid(size_str, x_pos + 1, string.len(size_str) - x_pos - 1))
+    end
+    displays.push(DisplayInfo(1, true, 0, 0, w, h))
+    return displays
+end

@@ -96,7 +96,7 @@ func main(...) as int
         matchedLines = matchedLines + 1
 
         // 时间戳: regex.match 返回 RegexMatch, .text 是整段匹配
-        RegexMatch ts = tsRegex.match(line)
+        RegexMatch ts = tsRegex.find(line)
         if ts.ok then
             string t = string(ts.text)
             if firstTime == "" then
@@ -108,7 +108,7 @@ func main(...) as int
         // 日志级别: regex 交替组, .text 取整段匹配
         string level = "OTHER"
         int levelEnd = -1
-        RegexMatch lm = lvlRegex.match(line)
+        RegexMatch lm = lvlRegex.find(line)
         if lm.ok then
             level = string(lm.text)
             levelEnd = lm.end

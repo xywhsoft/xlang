@@ -1,0 +1,29 @@
+// 类型化复合赋值、var 返回值、空值赋值和 kwargs 的临时值应互不影响。
+int probe = 0
+
+func nextProbe() as var
+    probe += 1
+    return 3
+end
+
+auto values = [10, 20, 30]
+auto sparse = [0: 11, 2: 22]
+auto table = {"count": 6}
+
+values[1] += 2
+sparse[2] *= 2
+table["count"] -= 1
+values[1] += nextProbe()
+sparse[2] *= nextProbe()
+
+auto maybe = [null]
+maybe[0] ?= 9
+
+func options(string path, ***) as int
+    return int(arg["retry"]) + int(arg["mode"])
+end
+
+int result = (
+    int(values[1]) + int(sparse[2]) + int(table["count"]) +
+    int(maybe[0]) + options("demo.txt", retry = 3, mode = 4)
+)

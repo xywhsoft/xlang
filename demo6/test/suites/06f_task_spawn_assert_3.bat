@@ -354,12 +354,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"= xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(__xl6_call_arg_" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"= xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(__xl6_call_arg_" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"spawnStringTypedRace = xrtCopyStr(__xl6_global_init_" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"spawnStringTypedRace = __xl6_global_init_" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.race managed result assignment.
     exit /b 1
@@ -514,7 +514,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first string task.race payload.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnStringRace = xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(__xl6_call_arg_" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedNullFirstSpawnStringRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(__xl6_call_arg_" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first string task.race await over task.spawn futures.
     exit /b 1

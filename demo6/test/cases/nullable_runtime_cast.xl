@@ -1,0 +1,55 @@
+class CastBase
+    int baseValue = 10
+end
+
+class CastChild extends CastBase
+    int childValue = 20
+end
+
+func main(...) as int
+    var boxedInt = 12
+    int? number = boxedInt as int?
+    assert(number != null)
+    int numberValue = number ?? 0
+    assert(numberValue == 12)
+
+    var boxedText = "not an int"
+    int? noNumber = boxedText as int?
+    assert(noNumber == null)
+
+    string? text = boxedText as string?
+    string textValue = text ?? ""
+    assert(textValue == "not an int")
+    assert((text ?? "") == "not an int")
+
+    string? noText = boxedInt as string?
+    assert(noText == null)
+
+    int? lifted = 7 as int?
+    int liftedValue = lifted ?? 0
+    assert(liftedValue == 7)
+
+    int? directNumber = 21
+    int directValue = directNumber as int
+    assert(directValue == 21)
+
+    string? directText = "nullable text"
+    string unwrappedText = directText as string
+    assert(unwrappedText == "nullable text")
+
+    int? missingNumber = null
+    bool nullCastCaught = false
+    try
+        int ignored = missingNumber as int
+    catch TypeError e
+        assert(e.kind == "TypeError")
+        nullCastCaught = true
+    end
+    assert(nullCastCaught)
+
+    CastChild child = CastChild()
+    var boxedChild = child
+    CastBase? base = boxedChild as CastBase?
+    assert(base != null)
+    return 0
+end

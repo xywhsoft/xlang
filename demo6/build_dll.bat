@@ -121,6 +121,7 @@ echo Building DEMO6 xl.dll runtime...
     src\diag\xl6_diag.c ^
     src\ast\xl6_ast.c ^
     src\ir\xl6_hir.c ^
+    src\ir\xl6_hir_type.c ^
     src\cgen\xl6_cgen_entry.c ^
     src\cgen\xl6_cgen_lifecycle.c ^
     src\cgen\xl6_cgen_runtime.c ^
@@ -182,6 +183,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\ast\xl6_ast.c ^
     src\ast\xl6_ast_dump.c ^
     src\ir\xl6_hir.c ^
+    src\ir\xl6_hir_type.c ^
     src\cgen\xl6_cgen_entry.c ^
     src\cgen\xl6_cgen_lifecycle.c ^
     src\cgen\xl6_cgen_runtime.c ^

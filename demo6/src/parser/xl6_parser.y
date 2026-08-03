@@ -8,6 +8,7 @@
 %type import_name_part { XL6_Token }
 %type member_name_tok { XL6_Token }
 %type import_name { XL6_AstNode* }
+%type import_target { XL6_AstNode* }
 %type doc_block { XL6_Token }
 %type class_member_mods { unsigned int }
 %type class_member_modifier { unsigned int }
@@ -117,33 +118,83 @@ static XL6_AstNode* xl6PImportNameFromToken(const XL6_Token* token)
     return xl6AstNew(XL6_AST_NAME, token);
 }
 
-static XL6_AstNode* xl6PImportNameAppend(XL6_ParseContext* ctx, XL6_AstNode* node, const XL6_Token* token)
+static XL6_AstNode* xl6PDottedNameAppendRange(
+    XL6_ParseContext* ctx,
+    XL6_AstNode* node,
+    const char* suffix,
+    size_t suffixLen,
+    const XL6_Token* token)
 {
     char* text;
     size_t leftLen;
-    size_t rightLen;
 
-    if ( node == NULL || token == NULL || token->text == NULL ) {
-        xl6PDiag(ctx, token, "invalid dotted import name");
+    if ( node == NULL || suffix == NULL ) {
+        xl6PDiag(ctx, token, "invalid dotted name");
         return node;
     }
     leftLen = node->text != NULL ? strlen(node->text) : 0;
-    rightLen = token->len;
-    text = (char*)xrtMalloc(leftLen + rightLen + 2);
+    text = (char*)xrtMalloc(leftLen + suffixLen + 2);
     if ( text == NULL ) {
-        xl6PDiag(ctx, token, "out of memory while parsing dotted import name");
+        xl6PDiag(ctx, token, "out of memory while parsing dotted name");
         return node;
     }
     if ( leftLen > 0 ) {
         memcpy(text, node->text, leftLen);
     }
     text[leftLen] = '.';
-    if ( rightLen > 0 ) {
-        memcpy(text + leftLen + 1, token->text, rightLen);
+    if ( suffixLen > 0 ) {
+        memcpy(text + leftLen + 1, suffix, suffixLen);
     }
-    text[leftLen + 1 + rightLen] = '\0';
+    text[leftLen + 1 + suffixLen] = '\0';
     xrtFree(node->text);
     node->text = text;
+    return node;
+}
+
+static XL6_AstNode* xl6PDottedNameAppend(XL6_ParseContext* ctx, XL6_AstNode* node, const XL6_Token* token)
+{
+    return xl6PDottedNameAppendRange(
+        ctx,
+        node,
+        token != NULL ? token->text : NULL,
+        token != NULL ? token->len : 0,
+        token);
+}
+
+static XL6_AstNode* xl6PQualifiedType(
+    XL6_ParseContext* ctx,
+    const XL6_Token* first,
+    XL6_AstNode* rest)
+{
+    XL6_AstNode* node = xl6AstNew(XL6_AST_TYPE, first);
+
+    if ( rest != NULL && rest->text != NULL ) {
+        node = xl6PDottedNameAppendRange(ctx, node, rest->text, strlen(rest->text), first);
+    }
+    xl6AstFree(rest);
+    return node;
+}
+
+static XL6_AstNode* xl6PNullableType(
+    XL6_ParseContext* ctx,
+    XL6_AstNode* inner,
+    const XL6_Token* token)
+{
+    XL6_AstNode* node;
+    XL6_AstNode* args;
+
+    node = xl6AstNewText(XL6_AST_TYPE, "nullable", 8, token);
+    args = xl6PList();
+    if ( node == NULL || args == NULL ) {
+        xl6AstFree(node);
+        xl6AstFree(args);
+        xl6AstFree(inner);
+        xl6PDiag(ctx, token, "out of memory while parsing nullable type");
+        return NULL;
+    }
+    node->flags |= XL6_AST_FLAG_INTERNAL_NULLABLE;
+    xl6AstAddChild(args, inner);
+    xl6AstAddChild(node, args);
     return node;
 }
 
@@ -663,9 +714,9 @@ static XL6_AstNode* xl6PWithFlags(XL6_AstNode* node, unsigned int flags)
  * 这些词只在对应语法位置承担关键字含义；在普通标识符位置回退为 IDENT。
  * 这是上下文关键字机制，不是旧语法兼容路径。
  */
-%fallback IDENT KW_PUBLIC KW_PRIVATE KW_PROTECTED KW_STATIC KW_OVERRIDE KW_FINAL KW_VIRTUAL KW_NATIVE KW_GET KW_LET.
+%fallback IDENT KW_FROM KW_PUBLIC KW_PRIVATE KW_PROTECTED KW_STATIC KW_OVERRIDE KW_FINAL KW_VIRTUAL KW_NATIVE KW_GET KW_LET KW_PROTOCOL.
 %right FAT_ARROW.
-%right QUESTION.
+%right QUESTION TYPE_QUESTION.
 %left NULL_COALESCE.
 %left KW_OR.
 %left KW_AND.
@@ -702,6 +753,7 @@ item(A) ::= doc_block(D) item_base(B). { A = xl6PWithDoc(B, &D); }
 item_base(A) ::= func_decl(B). { A = B; }
 item_base(A) ::= import_decl(B). { A = B; }
 item_base(A) ::= extern_func_decl(B). { A = B; }
+item_base(A) ::= export_extern_func_decl(B). { A = B; }
 item_base(A) ::= export_func_decl(B). { A = B; }
 item_base(A) ::= extern_var_decl(B). { A = B; }
 item_base(A) ::= export_extern_var_decl(B). { A = B; }
@@ -709,8 +761,16 @@ item_base(A) ::= export_var_decl(B). { A = B; }
 item_base(A) ::= export_const_decl(B). { A = B; }
 item_base(A) ::= type_alias_decl(B). { A = B; }
 item_base(A) ::= extern_type_alias_decl(B). { A = B; }
+item_base(A) ::= export_type_alias_decl(B). { A = B; }
+item_base(A) ::= export_extern_type_alias_decl(B). { A = B; }
 item_base(A) ::= class_decl(B). { A = B; }
+item_base(A) ::= export_class_decl(B). { A = B; }
+item_base(A) ::= protocol_decl(B). { A = B; }
+item_base(A) ::= export_protocol_decl(B). { A = B; }
+item_base(A) ::= enum_decl(B). { A = B; }
+item_base(A) ::= export_enum_decl(B). { A = B; }
 item_base(A) ::= union_decl(B). { A = B; }
+item_base(A) ::= export_union_decl(B). { A = B; }
 item_base(A) ::= stmt(B). { A = B; }
 item(A) ::= TOK_ERROR(E). {
     xl6PDiag(ctx, &E, "当前语法位置不支持该 token");
@@ -738,17 +798,63 @@ import_name(A) ::= import_name_part(N). {
     A = xl6PImportNameFromToken(&N);
 }
 import_name(A) ::= import_name(P) DOT import_name_part(N). {
-    A = xl6PImportNameAppend(ctx, P, &N);
+    A = xl6PDottedNameAppend(ctx, P, &N);
 }
 
-import_decl(A) ::= KW_IMPORT(I) STRING(S) need_sep. {
-    A = xl6AstNew(XL6_AST_IMPORT, &S);
-    (void)I;
+import_target(A) ::= STRING(S). {
+    A = xl6AstNew(XL6_AST_NAME, &S);
 }
-import_decl(A) ::= KW_IMPORT(I) import_name(N) need_sep. {
-    A = xl6AstNewText(XL6_AST_IMPORT, N != NULL && N->text != NULL ? N->text : "", N != NULL && N->text != NULL ? strlen(N->text) : 0, &I);
-    xl6AstFree(N);
-    (void)I;
+import_target(A) ::= import_name(N). {
+    A = N;
+}
+
+import_alias_opt(A) ::= . {
+    A = xl6PList();
+}
+import_alias_opt(A) ::= KW_AS name_tok(N). {
+    A = xl6AstNew(XL6_AST_NAME, &N);
+}
+
+import_select_item(A) ::= name_tok(N). {
+    A = xl6AstNew(XL6_AST_NAME, &N);
+}
+import_select_item(A) ::= name_tok(N) KW_AS name_tok(R). {
+    A = xl6AstNew(XL6_AST_NAME, &N);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &R));
+}
+
+import_select_list(A) ::= import_select_item(I). {
+    A = xl6PList();
+    xl6AstAddChild(A, I);
+}
+import_select_list(A) ::= import_select_list(L) COMMA import_select_item(I). {
+    A = L;
+    xl6AstAddChild(A, I);
+}
+
+import_decl(A) ::= KW_IMPORT(I) import_target(T) import_alias_opt(R) need_sep. {
+    A = xl6AstNewText(
+        XL6_AST_IMPORT,
+        T != NULL && T->text != NULL ? T->text : "",
+        T != NULL && T->text != NULL ? strlen(T->text) : 0,
+        &I);
+    if ( R != NULL && R->kind == XL6_AST_NAME ) {
+        xl6AstAddChild(A, R);
+    } else {
+        xl6AstFree(R);
+    }
+    xl6AstFree(T);
+}
+import_decl(A) ::= KW_FROM(F) import_target(T) KW_IMPORT import_select_list(L) need_sep. {
+    A = xl6AstNewText(
+        XL6_AST_IMPORT,
+        T != NULL && T->text != NULL ? T->text : "",
+        T != NULL && T->text != NULL ? strlen(T->text) : 0,
+        &F);
+    A->flags |= XL6_AST_FLAG_IMPORT_SELECTIVE;
+    xl6AstMoveChildren(A, L);
+    xl6AstFree(L);
+    xl6AstFree(T);
 }
 
 opt_seps ::= .
@@ -799,6 +905,11 @@ extern_func_decl(A) ::= KW_EXTERN(E) STRING(S) KW_FUNC name_tok(F) name_params(P
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &F));
     xl6AstAddChild(A, P);
     xl6AstAddChild(A, R);
+    (void)E;
+}
+
+export_extern_func_decl(A) ::= KW_EXPORT(E) extern_func_decl(F). {
+    A = xl6PWithFlags(F, XL6_AST_FLAG_PUBLIC);
     (void)E;
 }
 
@@ -882,6 +993,16 @@ extern_type_alias_decl(A) ::= KW_EXTERN(E) name_tok(K) name_tok(N) ASSIGN type_e
     (void)E;
 }
 
+export_type_alias_decl(A) ::= KW_EXPORT(E) type_alias_decl(T). {
+    A = xl6PWithFlags(T, XL6_AST_FLAG_PUBLIC);
+    (void)E;
+}
+
+export_extern_type_alias_decl(A) ::= KW_EXPORT(E) extern_type_alias_decl(T). {
+    A = xl6PWithFlags(T, XL6_AST_FLAG_PUBLIC);
+    (void)E;
+}
+
 class_decl(A) ::= KW_CLASS(C) name_tok(N) generic_params_opt(G) class_extends(E) need_sep class_body(B) KW_END. {
     A = xl6AstNew(XL6_AST_CLASS, &N);
     xl6AstAddChild(A, E);
@@ -890,11 +1011,140 @@ class_decl(A) ::= KW_CLASS(C) name_tok(N) generic_params_opt(G) class_extends(E)
     (void)C;
 }
 
+export_class_decl(A) ::= KW_EXPORT(E) class_decl(C). {
+    A = xl6PWithFlags(C, XL6_AST_FLAG_PUBLIC);
+    (void)E;
+}
+
+protocol_decl(A) ::= KW_PROTOCOL(P) name_tok(N) generic_params_opt(G) need_sep protocol_body(B) KW_END. {
+    A = xl6AstNew(XL6_AST_PROTOCOL, &N);
+    xl6AstAddChild(A, B);
+    xl6AstAddChild(A, G);
+    (void)P;
+}
+
+export_protocol_decl(A) ::= KW_EXPORT(E) protocol_decl(P). {
+    A = xl6PWithFlags(P, XL6_AST_FLAG_PUBLIC);
+    (void)E;
+}
+
+enum_decl(A) ::= KW_ENUM(E) name_tok(N) generic_params_opt(G) KW_AS type_expr(T) need_sep numeric_enum_body(B) KW_END. {
+    A = xl6AstNew(XL6_AST_ENUM, &N);
+    A->flags |= XL6_AST_FLAG_NUMERIC_ENUM;
+    xl6AstAddChild(A, T);
+    xl6AstAddChild(A, B);
+    xl6AstAddChild(A, G);
+    (void)E;
+}
+enum_decl(A) ::= KW_ENUM(E) name_tok(N) generic_params_opt(G) need_sep tagged_enum_body(B) KW_END. {
+    A = xl6AstNew(XL6_AST_ENUM, &N);
+    xl6AstAddChild(A, xl6PList());
+    xl6AstAddChild(A, B);
+    xl6AstAddChild(A, G);
+    (void)E;
+}
+
+export_enum_decl(A) ::= KW_EXPORT(E) enum_decl(N). {
+    A = xl6PWithFlags(N, XL6_AST_FLAG_PUBLIC);
+    (void)E;
+}
+
+numeric_enum_body(A) ::= . {
+    A = xl6PList();
+}
+numeric_enum_body(A) ::= numeric_enum_body(B) SEP. {
+    A = B;
+}
+numeric_enum_body(A) ::= numeric_enum_body(B) numeric_enum_variant(V). {
+    A = B;
+    xl6AstAddChild(A, V);
+}
+
+numeric_enum_variant(A) ::= name_tok(N) need_sep. {
+    A = xl6AstNew(XL6_AST_ENUM_VARIANT, &N);
+}
+numeric_enum_variant(A) ::= name_tok(N) ASSIGN expr(V) need_sep. {
+    A = xl6AstNew(XL6_AST_ENUM_VARIANT, &N);
+    xl6AstAddChild(A, V);
+}
+
+tagged_enum_body(A) ::= . {
+    A = xl6PList();
+}
+tagged_enum_body(A) ::= tagged_enum_body(B) SEP. {
+    A = B;
+}
+tagged_enum_body(A) ::= tagged_enum_body(B) tagged_enum_variant(V). {
+    A = B;
+    xl6AstAddChild(A, V);
+}
+
+tagged_enum_variant(A) ::= name_tok(N) need_sep. {
+    A = xl6AstNew(XL6_AST_ENUM_VARIANT, &N);
+    xl6AstAddChild(A, xl6PList());
+}
+tagged_enum_variant(A) ::= name_tok(N) name_params(P) need_sep. {
+    A = xl6AstNew(XL6_AST_ENUM_VARIANT, &N);
+    xl6AstAddChild(A, P);
+}
+
+protocol_body(A) ::= . {
+    A = xl6PList();
+}
+protocol_body(A) ::= protocol_body(B) SEP. {
+    A = B;
+}
+protocol_body(A) ::= protocol_body(B) protocol_member(M). {
+    A = B;
+    xl6AstAddChild(A, M);
+}
+
+protocol_member(A) ::= KW_FUNC(F) name_tok(N) generic_params_opt(G) name_params(P) return_sig(R) need_sep. {
+    A = xl6AstNew(XL6_AST_FUNC, &F);
+    A->flags |= XL6_AST_FLAG_PROTOCOL_REQUIREMENT;
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, R);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_BLOCK, NULL));
+    xl6AstAddChild(A, G);
+}
+protocol_member(A) ::= KW_ASYNC(AW) KW_FUNC name_tok(N) generic_params_opt(G) name_params(P) return_sig(R) need_sep. {
+    A = xl6AstNew(XL6_AST_ASYNC_FUNC, &AW);
+    A->flags |= XL6_AST_FLAG_PROTOCOL_REQUIREMENT | XL6_AST_FLAG_ASYNC;
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, R);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_BLOCK, NULL));
+    xl6AstAddChild(A, G);
+}
+protocol_member(A) ::= KW_GET(G) member_name_tok(N) name_params(P) return_sig(R) need_sep. {
+    A = xl6AstNew(XL6_AST_GET, &G);
+    A->flags |= XL6_AST_FLAG_PROTOCOL_REQUIREMENT;
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, R);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_BLOCK, NULL));
+}
+protocol_member(A) ::= KW_LET(L) member_name_tok(N) name_params(P) need_sep. {
+    A = xl6AstNew(XL6_AST_LET, &L);
+    A->flags |= XL6_AST_FLAG_PROTOCOL_REQUIREMENT;
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_RETURN_TYPES, NULL));
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_BLOCK, NULL));
+}
+
 class_extends(A) ::= . {
     A = xl6PList();
 }
 class_extends(A) ::= KW_EXTENDS name_tok(N). {
     A = xl6AstNew(XL6_AST_NAME, &N);
+}
+class_extends(A) ::= KW_EXTENDS name_tok(P) DOT import_name(N). {
+    A = xl6PQualifiedType(ctx, &P, N);
+    if ( A != NULL ) {
+        A->kind = XL6_AST_NAME;
+    }
 }
 
 class_body(A) ::= . {
@@ -1094,6 +1344,12 @@ union_decl(A) ::= KW_UNION(U) name_tok(N) need_sep union_body(B) KW_END. {
     (void)U;
 }
 
+export_union_decl(A) ::= KW_EXPORT(E) union_decl(U). {
+    A = xl6PWithFlags(U, XL6_AST_FLAG_PUBLIC);
+    if ( A != NULL && A->text == NULL ) {
+        xl6PDiag(ctx, &E, "export union requires a name");
+    }
+}
 union_body(A) ::= . {
     A = xl6PList();
 }
@@ -1151,7 +1407,15 @@ generic_constraint_list(A) ::= type_ref(T). {
     A = xl6PList();
     xl6AstAddChild(A, T);
 }
+generic_constraint_list(A) ::= qualified_type_ref(T). {
+    A = xl6PList();
+    xl6AstAddChild(A, T);
+}
 generic_constraint_list(A) ::= generic_constraint_list(B) KW_AND type_ref(T). {
+    A = B;
+    xl6AstAddChild(A, T);
+}
+generic_constraint_list(A) ::= generic_constraint_list(B) KW_AND qualified_type_ref(T). {
     A = B;
     xl6AstAddChild(A, T);
 }
@@ -1169,7 +1433,17 @@ param_list(A) ::= param_list(B) COMMA param(C). {
 }
 
 type_expr(A) ::= type_ref(T). { A = T; }
+type_expr(A) ::= type_ref(T) TYPE_QUESTION(Q). {
+    A = xl6PNullableType(ctx, T, &Q);
+}
 type_expr(A) ::= function_type_ref(T). { A = T; }
+/*
+ * func(int) as int? 中的 ? 属于返回类型。
+ * 可空函数值必须写成 (func(int) as int)?，让后缀明确作用于完整签名。
+ */
+type_expr(A) ::= LPAREN function_type_ref(T) TYPE_RPAREN TYPE_QUESTION(Q). {
+    A = xl6PNullableType(ctx, T, &Q);
+}
 type_expr(A) ::= KW_ASYNC type_ref(T). {
     T->flags |= XL6_AST_FLAG_ASYNC;
     A = T;
@@ -1195,6 +1469,38 @@ param(A) ::= param_mode(M) param_type_ref(T) name_tok(N) ASSIGN expr(E). {
     xl6AstAddChild(A, T);
     xl6AstAddChild(A, E);
 }
+param(A) ::= param_mode(M) qualified_type_ref(T) name_tok(N). {
+    A = xl6AstNew(XL6_AST_PARAM, &N);
+    A->flags |= M;
+    T->flags |= M;
+    xl6AstAddChild(A, T);
+}
+param(A) ::= param_mode(M) qualified_type_ref(T) TYPE_QUESTION(Q) name_tok(N). {
+    A = xl6AstNew(XL6_AST_PARAM, &N);
+    A->flags |= M;
+    T = xl6PNullableType(ctx, T, &Q);
+    if ( T != NULL ) {
+        T->flags |= M;
+    }
+    xl6AstAddChild(A, T);
+}
+param(A) ::= param_mode(M) qualified_type_ref(T) name_tok(N) ASSIGN expr(E). {
+    A = xl6AstNew(XL6_AST_PARAM, &N);
+    A->flags |= M;
+    T->flags |= M;
+    xl6AstAddChild(A, T);
+    xl6AstAddChild(A, E);
+}
+param(A) ::= param_mode(M) qualified_type_ref(T) TYPE_QUESTION(Q) name_tok(N) ASSIGN expr(E). {
+    A = xl6AstNew(XL6_AST_PARAM, &N);
+    A->flags |= M;
+    T = xl6PNullableType(ctx, T, &Q);
+    if ( T != NULL ) {
+        T->flags |= M;
+    }
+    xl6AstAddChild(A, T);
+    xl6AstAddChild(A, E);
+}
 param(A) ::= KW_C_VARARG(T). {
     A = xl6AstNewText(XL6_AST_PARAM, "arg", 3, &T);
     xl6AstAddChild(A, xl6AstNewText(XL6_AST_TYPE, "c_vararg", 8, &T));
@@ -1215,6 +1521,14 @@ return_sig(A) ::= KW_AS return_value_type_ref(T). {
     A = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
     xl6AstAddChild(A, T);
 }
+return_sig(A) ::= KW_AS qualified_type_ref(T). {
+    A = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
+    xl6AstAddChild(A, T);
+}
+return_sig(A) ::= KW_AS qualified_type_ref(T) TYPE_QUESTION(Q). {
+    A = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
+    xl6AstAddChild(A, xl6PNullableType(ctx, T, &Q));
+}
 return_sig(A) ::= KW_AS LPAREN type_list(L) RPAREN. {
     A = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
     xl6AstMoveChildren(A, L);
@@ -1225,12 +1539,31 @@ type_list(A) ::= type_expr(T). {
     A = xl6PList();
     xl6AstAddChild(A, T);
 }
+type_list(A) ::= qualified_type_ref(T). {
+    A = xl6PList();
+    xl6AstAddChild(A, T);
+}
+type_list(A) ::= qualified_type_ref(T) TYPE_QUESTION(Q). {
+    A = xl6PList();
+    xl6AstAddChild(A, xl6PNullableType(ctx, T, &Q));
+}
 type_list(A) ::= type_list(B) COMMA type_expr(T). {
     A = B;
     xl6AstAddChild(A, T);
 }
+type_list(A) ::= type_list(B) COMMA qualified_type_ref(T). {
+    A = B;
+    xl6AstAddChild(A, T);
+}
+type_list(A) ::= type_list(B) COMMA qualified_type_ref(T) TYPE_QUESTION(Q). {
+    A = B;
+    xl6AstAddChild(A, xl6PNullableType(ctx, T, &Q));
+}
 
 type_ref(A) ::= name_tok(N). [KW_THEN] {
+    A = xl6AstNew(XL6_AST_TYPE, &N);
+}
+type_ref(A) ::= QUALIFIED_TYPE(N). [KW_THEN] {
     A = xl6AstNew(XL6_AST_TYPE, &N);
 }
 type_ref(A) ::= KW_VAR(N). {
@@ -1247,6 +1580,23 @@ type_ref(A) ::= name_tok(N) LT type_list(L) GT. {
 }
 type_ref(A) ::= name_tok(N) TYPE_LT type_list(L) GT. {
     A = xl6AstNewGenericType(&N, L);
+}
+type_ref(A) ::= QUALIFIED_TYPE(N) LT type_list(L) GT. {
+    A = xl6AstNewGenericType(&N, L);
+}
+type_ref(A) ::= QUALIFIED_TYPE(N) TYPE_LT type_list(L) GT. {
+    A = xl6AstNewGenericType(&N, L);
+}
+qualified_type_ref(A) ::= name_tok(P) DOT import_name(N). [KW_THEN] {
+    A = xl6PQualifiedType(ctx, &P, N);
+}
+qualified_type_ref(A) ::= name_tok(P) DOT import_name(N) LT type_list(L) GT. {
+    A = xl6PQualifiedType(ctx, &P, N);
+    xl6AstAddChild(A, L);
+}
+qualified_type_ref(A) ::= name_tok(P) DOT import_name(N) TYPE_LT type_list(L) GT. {
+    A = xl6PQualifiedType(ctx, &P, N);
+    xl6AstAddChild(A, L);
 }
 
 return_value_type_ref(A) ::= type_expr(T). { A = T; }
@@ -1271,6 +1621,17 @@ func_type_params(A) ::= func_type_params(B) COMMA func_type_param(T). {
 
 func_type_param(A) ::= param_mode(M) type_expr(T). {
     T->flags |= M;
+    A = T;
+}
+func_type_param(A) ::= param_mode(M) qualified_type_ref(T). {
+    T->flags |= M;
+    A = T;
+}
+func_type_param(A) ::= param_mode(M) qualified_type_ref(T) TYPE_QUESTION(Q). {
+    T = xl6PNullableType(ctx, T, &Q);
+    if ( T != NULL ) {
+        T->flags |= M;
+    }
     A = T;
 }
 func_type_param(A) ::= ELLIPSIS(T). {
@@ -1333,6 +1694,7 @@ compound_stmt(A) ::= if_stmt(B). { A = B; }
 compound_stmt(A) ::= while_stmt(B). { A = B; }
 compound_stmt(A) ::= do_while_stmt(B). { A = B; }
 compound_stmt(A) ::= for_stmt(B). { A = B; }
+compound_stmt(A) ::= match_stmt(B). { A = B; }
 compound_stmt(A) ::= try_stmt(B). { A = B; }
 
 var_type_ref(A) ::= type_expr(T). { A = T; }
@@ -1531,6 +1893,80 @@ for_targets(A) ::= name_tok(K) COMMA name_tok(V). {
     xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &V));
 }
 
+match_stmt(A) ::= STMT_MATCH(M) expr(E) need_sep match_stmt_cases(C) KW_END. {
+    A = xl6AstNew(XL6_AST_MATCH, &M);
+    xl6AstAddChild(A, E);
+    xl6AstAddChild(A, C);
+}
+
+match_stmt_cases(A) ::= match_stmt_case(C). {
+    A = xl6PList();
+    xl6AstAddChild(A, C);
+}
+match_stmt_cases(A) ::= match_stmt_cases(L) match_stmt_case(C). {
+    A = L;
+    xl6AstAddChild(A, C);
+}
+
+match_stmt_case(A) ::= KW_CASE(C) match_pattern(P) need_sep block(B). {
+    A = xl6AstNew(XL6_AST_MATCH_CASE, &C);
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, B);
+}
+match_stmt_case(A) ::= KW_ELSE(E) need_sep block(B). {
+    A = xl6AstNew(XL6_AST_MATCH_CASE, &E);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_PATTERN_ELSE, &E));
+    xl6AstAddChild(A, B);
+}
+
+match_pattern(A) ::= name_tok(N). {
+    A = xl6AstNew(XL6_AST_PATTERN_VARIANT, &N);
+}
+match_pattern(A) ::= name_tok(N) LPAREN match_bindings_opt(B) RPAREN. {
+    A = xl6AstNew(XL6_AST_PATTERN_VARIANT, &N);
+    xl6AstMoveChildren(A, B);
+    xl6AstFree(B);
+}
+match_pattern(A) ::= INT(N). {
+    A = xl6AstNew(XL6_AST_PATTERN_LITERAL, &N);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_INT, &N));
+}
+match_pattern(A) ::= FLOAT(N). {
+    A = xl6AstNew(XL6_AST_PATTERN_LITERAL, &N);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_FLOAT, &N));
+}
+match_pattern(A) ::= STRING(N). {
+    A = xl6AstNew(XL6_AST_PATTERN_LITERAL, &N);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_STRING, &N));
+}
+match_pattern(A) ::= KW_TRUE(N). {
+    A = xl6AstNew(XL6_AST_PATTERN_LITERAL, &N);
+    xl6AstAddChild(A, xl6AstNewText(XL6_AST_BOOL, "true", 4, &N));
+}
+match_pattern(A) ::= KW_FALSE(N). {
+    A = xl6AstNew(XL6_AST_PATTERN_LITERAL, &N);
+    xl6AstAddChild(A, xl6AstNewText(XL6_AST_BOOL, "false", 5, &N));
+}
+match_pattern(A) ::= KW_NULL(N). {
+    A = xl6AstNew(XL6_AST_PATTERN_LITERAL, &N);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NULL, &N));
+}
+
+match_bindings_opt(A) ::= . {
+    A = xl6PList();
+}
+match_bindings_opt(A) ::= match_bindings(B). {
+    A = B;
+}
+match_bindings(A) ::= name_tok(N). {
+    A = xl6PList();
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+}
+match_bindings(A) ::= match_bindings(B) COMMA name_tok(N). {
+    A = B;
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_NAME, &N));
+}
+
 try_stmt(A) ::= KW_TRY(T) need_sep block(B) catch_opt(C) finally_opt(F) KW_END. {
     if ( C == NULL && F == NULL ) {
         xl6PDiag(ctx, &T, "try 必须包含 catch 或 finally");
@@ -1695,6 +2131,7 @@ atom(A) ::= TIME(N). { A = xl6AstNew(XL6_AST_TIME, &N); }
 atom(A) ::= KW_TRUE(N). { A = xl6AstNewText(XL6_AST_BOOL, "true", 4, &N); }
 atom(A) ::= KW_FALSE(N). { A = xl6AstNewText(XL6_AST_BOOL, "false", 5, &N); }
 atom(A) ::= KW_NULL(N). { A = xl6AstNew(XL6_AST_NULL, &N); }
+atom(A) ::= match_expr(B). { A = B; }
 atom(A) ::= anon_func(B). { A = B; }
 atom(A) ::= LPAREN expr(E) RPAREN. { A = E; }
 atom(A) ::= bracket_literal(B). { A = B; }
@@ -1716,6 +2153,33 @@ atom(A) ::= name_tok(T) LT type_list(L) GT brace_literal(B). {
 }
 atom(A) ::= name_tok(T) TYPE_LT type_list(L) GT brace_literal(B). {
     A = xl6PTypedLiteralWithType(&T, xl6AstNewGenericType(&T, L), B);
+}
+
+match_expr(A) ::= KW_MATCH(M) expr(E) need_sep match_expr_cases(C) KW_END. {
+    A = xl6AstNew(XL6_AST_MATCH, &M);
+    A->flags |= XL6_AST_FLAG_MATCH_EXPR;
+    xl6AstAddChild(A, E);
+    xl6AstAddChild(A, C);
+}
+
+match_expr_cases(A) ::= match_expr_case(C). {
+    A = xl6PList();
+    xl6AstAddChild(A, C);
+}
+match_expr_cases(A) ::= match_expr_cases(L) match_expr_case(C). {
+    A = L;
+    xl6AstAddChild(A, C);
+}
+
+match_expr_case(A) ::= KW_CASE(C) match_pattern(P) KW_THEN expr(E) need_sep. {
+    A = xl6AstNew(XL6_AST_MATCH_CASE, &C);
+    xl6AstAddChild(A, P);
+    xl6AstAddChild(A, E);
+}
+match_expr_case(A) ::= KW_ELSE(E) KW_THEN expr(V) need_sep. {
+    A = xl6AstNew(XL6_AST_MATCH_CASE, &E);
+    xl6AstAddChild(A, xl6AstNew(XL6_AST_PATTERN_ELSE, &E));
+    xl6AstAddChild(A, V);
 }
 
 anon_func(A) ::= KW_FUNC(F) name_params(P) return_sig(R) need_sep block(B) KW_END. {

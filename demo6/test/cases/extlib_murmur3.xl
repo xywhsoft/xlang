@@ -1,0 +1,123 @@
+import murmur3
+
+
+
+func main(...) as int
+    // 32 位一次性哈希：Buffer 与 string 重载一致。
+    Buffer data = Buffer()
+    data.append("test")
+    int h32 = murmur3.hash32(data)
+    if murmur3.hash32("test") != h32 then
+        return 1
+    end
+
+    // 32 位 hex 输出 = 8 字符。
+    string hex32 = murmur3.hash32Hex(data)
+    if string.len(hex32) != 8 then
+        return 2
+    end
+
+    // 128 位 hex 输出 = 32 字符。
+    string hex128 = murmur3.hash128Hex(data)
+    if string.len(hex128) != 32 then
+        return 3
+    end
+    if murmur3.hash128Hex("test") != hex128 then
+        return 4
+    end
+
+    // 不同 seed 产生不同结果。
+    if murmur3.hash32(data, 42) == h32 then
+        return 5
+    end
+
+    // 流式哈希器（128 位）：分段 update 与一次性一致。
+    auto hasher = murmur3.hasher()
+    hasher.update("te")
+    hasher.update("st")
+    if hasher.digestHex() != hex128 then
+        return 6
+    end
+    if hasher.inputBytes != 4 then
+        return 7
+    end
+
+    // reset 复位。
+    hasher.reset()
+    hasher.update("test")
+    if hasher.digestHex() != hex128 then
+        return 8
+    end
+
+    // clone 独立副本。
+    auto h1 = murmur3.hasher()
+    h1.update("te")
+    auto h2 = h1.clone()
+    h1.update("st")
+    h2.update("xx")
+    if h1.digestHex() != hex128 then
+        return 9
+    end
+    if h2.digestHex() == hex128 then
+        return 10
+    end
+
+    // 带 seed 的流式哈希器。
+    auto seeded = murmur3.hasher(42)
+    seeded.update("test")
+    string seededHex = seeded.digestHex()
+    if seededHex == hex128 then
+        return 11
+    end
+
+    // 文件哈希。
+    string path = "tmp/extlib_murmur3_test.bin"
+    file.writeBytes(path, data)
+    if murmur3.hashFile128Hex(path) != hex128 then
+        return 12
+    end
+    // hashFile32 与一次性 hash32 一致（真 x86_32 算法）。
+    if murmur3.hashFile32(path) != h32 then
+        return 15
+    end
+    file.delete(path)
+
+    // 不存在的文件抛出 FileError。
+    bool missing = false
+    try
+        murmur3.hashFile128Hex("tmp/extlib_murmur3_missing.bin")
+    catch FileError e
+        missing = true
+    end
+    if not missing then
+        return 13
+    end
+
+    // 非法限额抛出 ValueError。
+    bool badLimit = false
+    try
+        murmur3.hasher(0, 0)
+    catch ValueError e
+        badLimit = true
+    end
+    if not badLimit then
+        return 14
+    end
+
+    // digestBytes 返回 Buffer 长度正确。
+    Buffer raw128 = murmur3.hash128Bytes(data)
+    if raw128.len() != 16 then
+        return 16
+    end
+    Buffer raw32 = murmur3.hash32Bytes(data)
+    if raw32.len() != 4 then
+        return 17
+    end
+    auto hb = murmur3.hasher()
+    hb.update("test")
+    if hb.digestBytes().len() != 16 then
+        return 18
+    end
+
+    return 0
+end

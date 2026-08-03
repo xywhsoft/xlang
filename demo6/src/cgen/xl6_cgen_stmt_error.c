@@ -283,6 +283,13 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    xl6_error_set_active(error);\n", out);
     xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static void* xl6_nullable_require_pointer(void* value, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( value == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_raise(\"TypeError\", \"cannot cast null nullable value to a non-null type\", file, line, column);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return value;\n", out);
+    xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("static const char* xl6_error_text_copy(const char* text)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    size_t len = text != 0 ? strlen(text) : 0;\n", out);
@@ -473,9 +480,19 @@ static void xl6CgenThrowStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* kindNode;
     const XL6_AstNode* expr;
+    XL6_CgenTryTarget* target;
     XL6_CgenTaskSpawnArgTempScope taskScope;
     int hasTaskScope;
 
+    target = xl6CgenCurrentTryTarget(ctx);
+    if ( !xl6CgenValidateExitPlan(
+            ctx,
+            node,
+            XL6_SEM_EXIT_THROW,
+            target != NULL ? target->region : xl6CgenCurrentCallableRegion(ctx)
+        ) ) {
+        return;
+    }
     kindNode = node != NULL && node->childCount == 2 ? node->children[0] : NULL;
     expr = node != NULL && node->childCount > 0 ? node->children[node->childCount == 2 ? 1 : 0] : NULL;
     hasTaskScope = expr != NULL && xl6CgenTaskSpawnArgTempScopeBegin(ctx, expr, &taskScope);
@@ -577,7 +594,13 @@ static void xl6CgenPendingReturnType(XL6_CgenContext* ctx)
             xl6CgenFunctionReturnStructName(ctx, ctx->currentReturnParams, ctx->currentReturns);
         }
     } else {
-        xl6OutputPuts(xl6CgenTypeName(ctx, ctx->currentReturnType), ctx->out);
+        if ( ctx->currentReturnFunc != NULL ) {
+            xl6OutputPuts(xl6CgenFuncSingleReturnCType(ctx, ctx->currentReturnFunc), ctx->out);
+        } else if ( xl6CgenIsTypedContainerType(ctx, ctx->currentReturnType) ) {
+            xl6OutputPuts(xl6CgenTypedContainerCType(ctx, ctx->currentReturnType), ctx->out);
+        } else {
+            xl6OutputPuts(xl6CgenTypeName(ctx, ctx->currentReturnType), ctx->out);
+        }
     }
 }
 
@@ -734,10 +757,18 @@ static void xl6CgenEmitPendingFinallyReturnDispatch(
             xl6CgenEmitCleanupsSince(ctx, 0);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "return __xl6_pending_return_%d;\n", target->id);
-        } else if ( xl6CgenIsStringTypeNode(ctx, ctx->currentReturnType) ) {
+        } else if ( xl6CgenIsOwnedStringTypeNode(ctx, ctx->currentReturnType) ) {
             xl6CgenEmitCleanupsSince(ctx, 0);
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "return xrtTempStringTake((char*)__xl6_pending_return_%d, 0u);\n", target->id);
+            if ( xl6CgenIsNullableStringTypeNode(ctx, ctx->currentReturnType) ) {
+                xl6OutputPrintf(
+                    ctx->out,
+                    "return __xl6_pending_return_%d != 0 ? xrtTempStringTake((char*)__xl6_pending_return_%d, 0u) : 0;\n",
+                    target->id,
+                    target->id);
+            } else {
+                xl6OutputPrintf(ctx->out, "return xrtTempStringTake((char*)__xl6_pending_return_%d, 0u);\n", target->id);
+            }
         } else {
             xl6CgenEmitCleanupsSince(ctx, 0);
             xl6CgenIndent(ctx);
@@ -813,6 +844,7 @@ static void xl6CgenTryStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     int hasFinallyTarget;
     XL6_CgenFinallyTarget finallyTarget;
     size_t tryCleanupMark;
+    size_t tryVarMark;
 
     tryBlock = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
     catchList = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
@@ -831,14 +863,22 @@ static void xl6CgenTryStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
     ctx->indent += 1;
 
     tryCleanupMark = ctx->cleanupCount;
+    tryVarMark = ctx->varCount;
     hasFinallyTarget = 0;
     memset(&finallyTarget, 0, sizeof(finallyTarget));
     if ( hasFinally ) {
         xl6CgenDeclarePendingFinallyControl(ctx, id);
         hasFinallyTarget = xl6CgenPushFinallyTarget(ctx, tryCleanupMark, id);
     }
-    xl6CgenPushTryTarget(ctx, tryCleanupMark, id, hasCatch ? 0 : 1);
+    xl6CgenPushTryTarget(
+        ctx,
+        tryCleanupMark,
+        xl6CgenHirRegion(ctx, node),
+        id,
+        hasCatch ? 0 : 1
+    );
     xl6CgenBlock(ctx, tryBlock);
+    xl6CgenFreeVarsSince(ctx, tryVarMark);
     xl6CgenPopTryTarget(ctx);
     xl6CgenEmitGotoIfError(ctx, hasCatch ? catchLabel : finallyLabel);
     xl6CgenIndent(ctx);
@@ -897,7 +937,13 @@ static void xl6CgenTryStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
             prevCatchErrorName = ctx->currentCatchErrorName;
             ctx->currentCatchErrorName = catchCName;
             if ( hasFinally ) {
-                xl6CgenPushTryTarget(ctx, catchCleanupMark, id, 1);
+                xl6CgenPushTryTarget(
+                    ctx,
+                    catchCleanupMark,
+                    xl6CgenHirRegion(ctx, node),
+                    id,
+                    1
+                );
             }
             xl6CgenBlock(ctx, catchBlock);
             if ( hasFinally ) {

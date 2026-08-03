@@ -1,0 +1,7 @@
+int value = 7
+match value
+else
+    println("fallback")
+case 7
+    println("unreachable")
+end

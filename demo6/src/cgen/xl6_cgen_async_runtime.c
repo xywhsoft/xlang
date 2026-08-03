@@ -19,6 +19,15 @@ static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn, int hasSp
     xl6OutputPuts("    xrtFree(pValue);\n", out);
     xl6OutputPuts("}\n", out);
 
+    xl6OutputPuts("static void xl6_async_free_weak_value(void* pValue)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xrt_value_weak* value = (xrt_value_weak*)pValue;\n", out);
+    xl6OutputPuts("    if ( value != 0 ) {\n", out);
+    xl6OutputPuts("        xvoWeakUnit(value);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    xrtFree(pValue);\n", out);
+    xl6OutputPuts("}\n", out);
+
     xl6OutputPuts("#ifdef XL6_FUNCTION_TYPEDEF\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeFunction(void);\n", out);
     xl6OutputPuts("bool xrtTypedArrayAppendValue(xtarray pArray, xvalue pVal);\n", out);

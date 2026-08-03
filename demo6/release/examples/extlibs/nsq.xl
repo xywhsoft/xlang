@@ -11,7 +11,7 @@ func main(...) as int
     println("Frame 2 = " + nsq.frameType(2))
 
     // Topic validation
-    println("valid 'orders' = " + string.format("{}", nsq.validTopic("orders")))
+    println("valid 'orders' = " + string(nsq.validTopic("orders")))
 
     // Magic
     println("Magic = '" + nsq.magic() + "'")

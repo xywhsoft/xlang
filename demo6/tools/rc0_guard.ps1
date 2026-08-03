@@ -51,6 +51,29 @@ function Invoke-CheckScript {
     Invoke-Cmd "powershell.exe" @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tools\$Name")
 }
 
+function Resolve-GitCommand {
+    $command = Get-Command "git" -ErrorAction SilentlyContinue
+    if ( $null -ne $command ) {
+        return $command.Source
+    }
+
+    $candidates = @()
+    if ( $env:ProgramFiles ) {
+        $candidates += (Join-Path $env:ProgramFiles "Git\cmd\git.exe")
+        $candidates += (Join-Path $env:ProgramFiles "Git\bin\git.exe")
+    }
+    if ( ${env:ProgramFiles(x86)} ) {
+        $candidates += (Join-Path ${env:ProgramFiles(x86)} "Git\cmd\git.exe")
+        $candidates += (Join-Path ${env:ProgramFiles(x86)} "Git\bin\git.exe")
+    }
+    foreach ( $candidate in $candidates ) {
+        if ( Test-Path -LiteralPath $candidate -PathType Leaf ) {
+            return $candidate
+        }
+    }
+    throw "Git is required for diff whitespace validation but git.exe was not found"
+}
+
 function Get-CheckedSourceFiles {
     param([string[]]$Roots)
 
@@ -309,6 +332,7 @@ Invoke-GuardStep "static wiring guards" {
         "check_batch_wiring.ps1",
         "check_cli_temp_cleanup.ps1",
         "check_source_wiring.ps1",
+        "check_typed_hir_contract.ps1",
         "check_source_encoding.ps1",
         "check_frontend_fuzz.ps1",
         "check_toolchain_paths.ps1",
@@ -321,6 +345,7 @@ Invoke-GuardStep "static wiring guards" {
         "check_package_fixtures.ps1",
         "check_release_extlibs.ps1",
         "check_format_extlibs.ps1",
+        "check_generated_c_warnings.ps1",
         "check_package_xrt_symbols.ps1",
         "check_stdlib_coverage.ps1",
         "check_stdlib_test_wiring.ps1",
@@ -398,8 +423,9 @@ if ( ! $SkipFullTests ) {
 }
 
 Invoke-GuardStep "diff whitespace" {
+    $git = Resolve-GitCommand
     Set-Location (Split-Path -Parent $Root)
-    & git diff --check -- .gitignore demo6
+    & $git diff --check -- .gitignore demo6
     if ( $LASTEXITCODE -ne 0 ) {
         throw "git diff --check failed"
     }

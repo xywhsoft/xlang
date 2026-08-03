@@ -5,7 +5,7 @@ func main(...) as int
 
     println("Compression 1 = " + rocksdb.compression(1))
     println("Compaction 0 = " + rocksdb.compactionStyle(0))
-    println("Hash 'hello' slot 16 = " + string.int(rocksdb.hashSlot("hello", 16)))
+    println("Hash 'hello' slot 16 = " + string(rocksdb.hashSlot("hello", 16)))
 
     println("rocksdb example: PASS")
     return 0

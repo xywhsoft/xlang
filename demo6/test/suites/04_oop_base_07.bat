@@ -140,12 +140,12 @@ if errorlevel 1 (
     echo export_vars.c missing export var read inside wrapper target.
     exit /b 1
 )
-findstr /C:"extern int64_t xl6_counter;" build\test\export_vars.h >nul
+findstr /C:"extern XL6_C_API int64_t xl6_counter;" build\test\export_vars.h >nul
 if errorlevel 1 (
     echo export_vars.h missing export var declaration.
     exit /b 1
 )
-findstr /C:"extern const int64_t xl6_version;" build\test\export_vars.h >nul
+findstr /C:"extern XL6_C_API const int64_t xl6_version;" build\test\export_vars.h >nul
 if errorlevel 1 (
     echo export_vars.h missing export const declaration.
     exit /b 1
@@ -255,7 +255,7 @@ if not errorlevel 1 (
     echo sem_safe_member_unknown.xl should fail.
     exit /b 1
 )
-findstr /C:"safe member key receiver must be var or dynamic dict" build\test\sem_safe_member_unknown.err.txt >nul
+findstr /C:"safe member was not found on receiver type" build\test\sem_safe_member_unknown.err.txt >nul
 if errorlevel 1 (
     echo sem_safe_member_unknown.xl missing expected diagnostic.
     exit /b 1
@@ -275,7 +275,7 @@ if not errorlevel 1 (
     echo sem_safe_member_non_container.xl should fail.
     exit /b 1
 )
-findstr /C:"safe member length receiver must be a container" build\test\sem_safe_member_non_container.err.txt >nul
+findstr /C:"safe member length receiver must be a nullable string or container" build\test\sem_safe_member_non_container.err.txt >nul
 if errorlevel 1 (
     echo sem_safe_member_non_container.xl missing expected diagnostic.
     exit /b 1

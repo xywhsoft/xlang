@@ -75,6 +75,15 @@ expect(inventory.items.length, 4)
 expect(inventory.items[0], 1)
 expect(inventory.items[3], 4)
 
+// 连续跨越 XRT 线程缓存阈值，验证 getter 返回值被显式接管后会撤销临时登记。
+for i in range(0, 64)
+    Score scoreView = board.score
+    expect(scoreView.value, 16)
+
+    array<int> itemView = inventory.items
+    expect(itemView.length, 4)
+end
+
 Label label = Label()
 label.text += "B"
 if label.text != "AB" then

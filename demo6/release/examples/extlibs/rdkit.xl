@@ -4,9 +4,9 @@ func main(...) as int
     // RDKit cheminformatics
 
     println("Element 6 = " + rdkit.element(6))
-    println("Mass C = " + string.fromInt(rdkit.atomicMass(6)))
+    println("Mass C = " + string(rdkit.atomicMass(6)))
     println("Bond 0 = " + rdkit.bondType(0))
-    println("Valid CCO = " + string.fromInt(rdkit.validateSmiles("CCO")))
+    println("Valid CCO = " + string(rdkit.validateSmiles("CCO")))
 
     println("rdkit example: PASS")
     return 0

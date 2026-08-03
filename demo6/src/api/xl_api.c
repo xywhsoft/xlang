@@ -9,6 +9,7 @@
 #include "src/backend/xl6_toolchain.h"
 #include "src/cgen/xl6_cgen.h"
 #include "src/common/xl6_common.h"
+#include "src/common/xl6_console.h"
 #include "src/compile/xl6_compile_unit.h"
 #include "src/compile/xl6_xrt_trim.h"
 #include "src/diag/xl6_diag.h"
@@ -1195,6 +1196,9 @@ static TCCState* xlCreateTccState(XL_Context* ctx, int outputType)
         return NULL;
     }
     xl__tcc.tcc_set_error_func(s, ctx, xlTccError);
+    if ( outputType == TCC_OUTPUT_DLL ) {
+        xl__tcc.tcc_define_symbol(s, "XL6_BUILD_SHARED", "1");
+    }
     if ( xl__tcc.tcc_set_output_type(s, outputType) != 0 ) {
         xlSetError(ctx, "cannot set TCC output type");
         xl__tcc.tcc_delete(s);
@@ -1248,7 +1252,13 @@ static int xlCgenToMemoryEx(XL_Context* ctx, XL6_CompileUnit* unit, char** outTe
         xlSetError(ctx, "cannot create cgen memory output");
         return 0;
     }
-    ok = xl6CgenEmitCEx(&out, unit->parse.root, &unit->parse.diags, options);
+    ok = xl6CgenEmitCEx(
+        &out,
+        unit->parse.root,
+        &unit->hir,
+        &unit->parse.diags,
+        options
+    );
     if ( ok && !xl6OutputHasFailed(&out) ) {
         *outText = xl6OutputTakeMemoryText(&out, NULL);
     }
@@ -1933,6 +1943,7 @@ static int xlAddEmbeddedXlangRuntimeSources(
         "src/parser/xl6_parser.c",
         "src/parser/xl6_parser_api.c",
         "src/ir/xl6_hir.c",
+        "src/ir/xl6_hir_type.c",
         "src/package/xl6_package.c",
         "src/stdlib/xl6_stdlib.c",
         "src/stdlib/xl6_stdlib_data.c",
@@ -2035,7 +2046,15 @@ static int xlRunMainInState(XL_Context* ctx, TCCState* state, int argc, char** a
         xlSetError(ctx, missingError != NULL ? missingError : "entry main not found");
         return 0;
     }
+
+    /*
+     * TCC 编译和重定位必须串行，但用户 C 入口不能持有全局 API 锁。
+     * 上层执行租约会保证 ctx 在重新加锁前始终有效，并允许用户代码
+     * 回调 xl.dll、并发请求销毁上下文或运行另一段脚本。
+     */
+    xlApiUnlock();
     rc = entry(argc > 0 ? argc : 0, argv);
+    xlApiLock();
     ctx->lastExitCode = rc;
     (void)returnPrefix;
     return 1;
@@ -2337,6 +2356,8 @@ static int xlAstIsTopLevelRuntimeStmt(const XL6_AstNode* node)
     case XL6_AST_EXTERN_TYPE_ALIAS:
     case XL6_AST_UNION:
     case XL6_AST_CLASS:
+    case XL6_AST_PROTOCOL:
+    case XL6_AST_ENUM:
         return 0;
     default:
         return 1;
@@ -2446,7 +2467,9 @@ static int xlRuntimeRefTotal(void)
 static int xlRuntimeAcquireManualUnlocked(void)
 {
     if ( xlRuntimeRefTotal() == 0 ) {
+        xl6ConsoleSessionBegin();
         if ( xrtInit() == NULL ) {
+            xl6ConsoleSessionEnd();
             return 0;
         }
     }
@@ -2462,13 +2485,16 @@ static void xlRuntimeReleaseManualUnlocked(void)
     xl__runtimeManualCount -= 1;
     if ( xlRuntimeRefTotal() == 0 ) {
         xrtUnit();
+        xl6ConsoleSessionEnd();
     }
 }
 
 static int xlRuntimeAcquireContextUnlocked(void)
 {
     if ( xlRuntimeRefTotal() == 0 ) {
+        xl6ConsoleSessionBegin();
         if ( xrtInit() == NULL ) {
+            xl6ConsoleSessionEnd();
             return 0;
         }
     }
@@ -2484,6 +2510,7 @@ static void xlRuntimeReleaseContextUnlocked(void)
     xl__runtimeContextCount -= 1;
     if ( xlRuntimeRefTotal() == 0 ) {
         xrtUnit();
+        xl6ConsoleSessionEnd();
     }
 }
 
@@ -2535,10 +2562,13 @@ static void xlDestroyModuleUnlocked(XL_Module* module)
 {
     XL_ScriptVoidProc errorUnit;
     XL_ScriptVoidProc moduleUnit;
+    int ownsRuntimeRef;
 
     if ( module == NULL ) {
         return;
     }
+    ownsRuntimeRef = module->ownsRuntimeRef;
+    module->ownsRuntimeRef = 0;
     if ( module->state != NULL ) {
         if ( module->activated ) {
             module->activated = 0;
@@ -2555,11 +2585,11 @@ static void xlDestroyModuleUnlocked(XL_Module* module)
         module->state = NULL;
     }
     xlModuleLoadedLibrariesFree(module);
-    if ( module->ownsRuntimeRef ) {
-        module->ownsRuntimeRef = 0;
+    /* 最后一个运行时引用会关闭 XRT 内存池，模块外壳必须在此之前释放。 */
+    xrtFree(module);
+    if ( ownsRuntimeRef ) {
         xlRuntimeReleaseManualUnlocked();
     }
-    xrtFree(module);
 }
 
 static int xlModuleBeginCallUnlocked(XL_Module* module)
@@ -2914,7 +2944,13 @@ static int xlEmitUnitCToFileEx(XL_Context* ctx, XL6_CompileUnit* unit, const cha
         xlSetError2(ctx, "cannot open C output", outputPath);
         return 0;
     }
-    ok = xl6CgenEmitCEx(&out, unit->parse.root, &unit->parse.diags, options);
+    ok = xl6CgenEmitCEx(
+        &out,
+        unit->parse.root,
+        &unit->hir,
+        &unit->parse.diags,
+        options
+    );
     if ( xl6OutputHasFailed(&out) ) {
         xlSetError2(ctx, "cannot write C output", xl6OutputError(&out));
         ok = 0;
@@ -3128,6 +3164,10 @@ static int xlContextBeginCallUnlocked(XL_Context* ctx)
     if ( ctx == NULL || ctx->destroyRequested ) {
         return 0;
     }
+    if ( xrtThreadAttachCurrent() == NULL ) {
+        xlSetError(ctx, "cannot attach current thread to XRT runtime");
+        return 0;
+    }
     ctx->activeCalls += 1;
     return 1;
 }
@@ -3138,6 +3178,7 @@ static void xlContextEndCallUnlocked(XL_Context* ctx)
         return;
     }
     ctx->activeCalls -= 1;
+    xrtThreadDetachCurrent();
     if ( ctx->activeCalls == 0 && ctx->destroyRequested ) {
         xlDestroyContextUnlocked(ctx);
     }
@@ -3630,8 +3671,13 @@ int xlRunCSourceString(XL_Context* ctx, const char* source, int argc, char** arg
         return 0;
     }
     xlApiLock();
+    if ( !xlContextBeginCallUnlocked(ctx) ) {
+        xlApiUnlock();
+        return 0;
+    }
     xlClearLastErrorUnlocked(ctx);
     if ( !xlEnterWorkDir(ctx, &cwd) ) {
+        xlContextEndCallUnlocked(ctx);
         xlApiUnlock();
         return 0;
     }
@@ -3639,6 +3685,7 @@ int xlRunCSourceString(XL_Context* ctx, const char* source, int argc, char** arg
     ok = module != NULL && xlRunCModuleMainUnlocked(ctx, module, argc, argv);
     xlDestroyModuleUnlocked(module);
     xlLeaveWorkDir(&cwd);
+    xlContextEndCallUnlocked(ctx);
     xlApiUnlock();
     return ok;
 }
@@ -3653,8 +3700,13 @@ int xlRunCSourceFile(XL_Context* ctx, const char* path, int argc, char** argv)
         return 0;
     }
     xlApiLock();
+    if ( !xlContextBeginCallUnlocked(ctx) ) {
+        xlApiUnlock();
+        return 0;
+    }
     xlClearLastErrorUnlocked(ctx);
     if ( !xlEnterWorkDir(ctx, &cwd) ) {
+        xlContextEndCallUnlocked(ctx);
         xlApiUnlock();
         return 0;
     }
@@ -3662,6 +3714,7 @@ int xlRunCSourceFile(XL_Context* ctx, const char* path, int argc, char** argv)
     ok = module != NULL && xlRunCModuleMainUnlocked(ctx, module, argc, argv);
     xlDestroyModuleUnlocked(module);
     xlLeaveWorkDir(&cwd);
+    xlContextEndCallUnlocked(ctx);
     xlApiUnlock();
     return ok;
 }
@@ -3676,8 +3729,13 @@ XL_API int xlRunCSourceFiles(XL_Context* ctx, const char** paths, int pathCount,
         return 0;
     }
     xlApiLock();
+    if ( !xlContextBeginCallUnlocked(ctx) ) {
+        xlApiUnlock();
+        return 0;
+    }
     xlClearLastErrorUnlocked(ctx);
     if ( !xlEnterWorkDir(ctx, &cwd) ) {
+        xlContextEndCallUnlocked(ctx);
         xlApiUnlock();
         return 0;
     }
@@ -3685,6 +3743,7 @@ XL_API int xlRunCSourceFiles(XL_Context* ctx, const char** paths, int pathCount,
     ok = module != NULL && xlRunCModuleMainUnlocked(ctx, module, argc, argv);
     xlDestroyModuleUnlocked(module);
     xlLeaveWorkDir(&cwd);
+    xlContextEndCallUnlocked(ctx);
     xlApiUnlock();
     return ok;
 }

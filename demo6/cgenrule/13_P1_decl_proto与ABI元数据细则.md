@@ -1,4 +1,4 @@
-﻿# P1 decl_proto 与 ABI 元数据细则
+# P1 decl_proto 与 ABI 元数据细则
 
 本文细化函数原型、extern/export C ABI、record/handle box runtime、函数签名 ID、多返回值结构、运行时 type desc 和 `type(expr)` 的生成规则。主要覆盖 `xl6_cgen_decl_proto.c`、`xl6_cgen_abi.c`、`xl6_cgen_symbol.c`、`xl6_cgen_module.c` 中与 ABI 元数据直接相关的路径。
 
@@ -68,7 +68,7 @@
 | --- | --- |
 | xlang 写法 | `func(int, string) (bool)` |
 | 生成规则描述 | 函数签名 ID 使用 FNV-1a 风格哈希，从 `func(` 开始，依次写入参数类型、`) as (`、返回类型、`)`。类型会先做泛型替换和 alias 解析，确保同一语义类型得到稳定签名。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:1`、`xl6_cgen_abi.c:80`、`xl6_cgen_abi.c:115`、`xl6_cgen_abi.c:168` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:1`、`xl6_cgen_abi_signature.c:80`、`xl6_cgen_abi_signature.c:115`、`xl6_cgen_abi_signature.c:168` |
 | 对应生成的 C 代码 | `0x0123456789ABCDEFULL` |
 | 中间形态伪代码 | `hash("func(" + params + ") as (" + returns + ")")` |
 | 实现同等功能手写的 C 代码 | 手写 C 可用枚举或手写常量；xlang 自动按签名生成。 |
@@ -80,7 +80,7 @@
 | --- | --- |
 | xlang 写法 | 可选参数 wrapper 或部分参数适配 |
 | 生成规则描述 | 前缀签名 ID 只 hash 前 `paramCount` 个参数，并可选择是否把 vararg 参数纳入签名。该规则用于可选参数 adapter、xcall wrapper 等需要“较短调用签名”的场景。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:135`、`xl6_cgen_abi.c:181`、`xl6_cgen_callable_wrappers.c:565` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:135`、`xl6_cgen_abi_signature.c:181`、`xl6_cgen_callable_wrappers.c:565` |
 | 对应生成的 C 代码 | `XL6_Function_Return_<prefixSignature>` |
 | 中间形态伪代码 | `hash(func(param[0:n], maybeVararg) as returns)` |
 | 实现同等功能手写的 C 代码 | 手写 C 通常需要为每个可选参数数量写一个 adapter 类型。 |
@@ -92,7 +92,7 @@
 | --- | --- |
 | xlang 写法 | `func pair() (int, string)` |
 | 生成规则描述 | 返回值超过一个时生成 `XL6_Function_Return_<signature>` 结构体，每个返回值字段按顺序命名为 `value0/value1/...`。结构体声明带 include guard，避免同一签名在多处重复声明。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:194`、`xl6_cgen_abi.c:209`、`xl6_cgen_abi.c:235` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:194`、`xl6_cgen_abi_signature.c:209`、`xl6_cgen_abi_signature.c:235` |
 | 对应生成的 C 代码 | `typedef struct XL6_Function_Return_ABCD { long long value0; char* value1; } XL6_Function_Return_ABCD;` |
 | 中间形态伪代码 | `returns(T0,T1,...) -> struct { T0 value0; T1 value1; ... }` |
 | 实现同等功能手写的 C 代码 | 手写 C 通常为每个多返回函数定义一个结果结构体。 |
@@ -116,7 +116,7 @@
 | --- | --- |
 | xlang 写法 | function value、xcall、var func 调用相关 wrapper |
 | 生成规则描述 | 需要运行时签名检查或 xcall 调用时，生成静态 `xrt_func_sig` 对象，包含签名 ID、名称、名称长度、参数数量、返回数量等字段。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:251`、`xl6_cgen_abi.c:261`、`xl6_cgen_callable_wrappers.c:177`、`xl6_cgen_callable_wrappers.c:486` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:251`、`xl6_cgen_abi_signature.c:261`、`xl6_cgen_callable_wrappers.c:177`、`xl6_cgen_callable_wrappers.c:486` |
 | 对应生成的 C 代码 | `static const xrt_func_sig __xl6_sig = { 0x..., "foo", 3u, 2u, 0, 1u, 0, 0u };` |
 | 中间形态伪代码 | `sig = {id, name, paramCount, returnCount}` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要人工维护签名元数据结构。 |
@@ -128,7 +128,7 @@
 | --- | --- |
 | xlang 写法 | `type(a)` / `int` 作为 type 字面量 |
 | 生成规则描述 | 普通类型 ID 使用 `type:` 前缀和类型节点 hash。class/native-backed class 节点会转成普通类型节点后 hash；func 类型直接使用函数签名 ID，使 `func(...) (...)` 的 type id 与 callable 签名保持一致。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:14`、`xl6_cgen_abi.c:283`、`xl6_cgen_abi.c:309`、`xl6_cgen_abi.c:314` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:14`、`xl6_cgen_abi_signature.c:283`、`xl6_cgen_abi_signature.c:309`、`xl6_cgen_abi_signature.c:314` |
 | 对应生成的 C 代码 | `0x0123456789ABCDEFULL` |
 | 中间形态伪代码 | `typeId(typeNode) = hash("type:" + canonicalTypeText)` |
 | 实现同等功能手写的 C 代码 | 可手写枚举值，但需要人工保证跨模块稳定。 |
@@ -140,7 +140,7 @@
 | --- | --- |
 | xlang 写法 | `array<int>` / `dict<string>` / `Box::<int>` |
 | 生成规则描述 | type desc 中的源码类型名通过 `xl6CgenTypeText` 生成。它会先替换泛型和解析 alias，再输出 `name<arg0,arg1>` 形式。该文本用于 type desc 的可读名称和调试/文档信息。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:47`、`xl6_cgen_abi.c:451` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:47`、`xl6_cgen_abi_signature.c:451` |
 | 对应生成的 C 代码 | `"array<int>"` / `"dict<string>"` |
 | 中间形态伪代码 | `typeText(T<Args...>) -> "T<Args...>"` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要为每个类型写字符串常量。 |
@@ -152,7 +152,7 @@
 | --- | --- |
 | xlang 写法 | `array<int>` / `list<string>` / `set<int>` / `dict<string>` |
 | 生成规则描述 | 运行时容器 type desc 的 kind 只区分 array/list/set/dict，其他类型在该路径下返回 invalid。该 kind 写入 `xrt_type_desc`，供 xvalue 容器和泛型容器元数据使用。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:328`、`xl6_cgen_abi.c:470` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:328`、`xl6_cgen_abi_signature.c:470` |
 | 对应生成的 C 代码 | `XL6_XRT_TYPE_KIND_ARRAY` |
 | 中间形态伪代码 | `kind(array)=ARRAY; kind(list)=LIST; kind(set)=SET; kind(dict)=DICT` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要维护类型枚举映射。 |
@@ -164,7 +164,7 @@
 | --- | --- |
 | xlang 写法 | 类型进入 xvalue、typed container、runtime metadata |
 | 生成规则描述 | 生成某个类型的 `xrt_type_desc*` 引用时，基础类型映射到 XRT 内置 `xrtType*()`；runtime 容器类型引用生成的 runtime type desc；class/union/native-backed class 引用各自生成的 type desc 函数；未知类型输出 `0`。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:365`、`xl6_cgen_args.c:261`、`xl6_cgen_value_object.c:59`、`xl6_cgen_value_index.c:389` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:365`、`xl6_cgen_args_value.c:261`、`xl6_cgen_value_object.c:59`、`xl6_cgen_value_index.c:389` |
 | 对应生成的 C 代码 | `xrtTypeInt()` / `xl6_type_desc_XL_Class_Person()` / `xl6_runtime_type_desc_ABCD()` |
 | 中间形态伪代码 | `typeDescRef(type) -> builtin/ref/generated/0` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要知道每种类型的元数据入口函数。 |
@@ -176,7 +176,7 @@
 | --- | --- |
 | xlang 写法 | `array<Box::<int>>` |
 | 生成规则描述 | 运行时容器 type desc 生成前，会递归输出其类型参数所依赖的 class/union/native-backed class type desc 原型。容器嵌套时继续递归，确保后续静态初始化代码能引用依赖函数。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:414`、`xl6_cgen_abi.c:427`、`xl6_cgen_abi.c:443` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:414`、`xl6_cgen_abi_signature.c:427`、`xl6_cgen_abi_signature.c:443` |
 | 对应生成的 C 代码 | `static const xrt_type_desc* xl6_type_desc_XL_Class_Box__int(void);` |
 | 中间形态伪代码 | `emit dependency prototypes for generic args before container desc` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要把被引用的 type desc 函数原型放在前面。 |
@@ -188,7 +188,7 @@
 | --- | --- |
 | xlang 写法 | `array<int>` 作为运行时可见类型 |
 | 生成规则描述 | 每个需要运行时描述的容器类型生成一个静态函数，返回静态 `xrt_type_desc`。若有泛型参数，函数内有静态 `args[]` 和 `xrt_generic_type`，第一次调用时填充参数 type desc。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:451`、`xl6_cgen_abi.c:460`、`xl6_cgen_abi.c:483` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:451`、`xl6_cgen_abi_signature.c:460`、`xl6_cgen_abi_signature.c:483` |
 | 对应生成的 C 代码 | `static const xrt_type_desc* xl6_runtime_type_desc_ABCD(void) { static const xrt_type_desc desc = {...}; return &desc; }` |
 | 中间形态伪代码 | `runtimeTypeDesc(T<Args>) -> static desc + lazy args init` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要定义静态 desc 和泛型参数数组。 |
@@ -200,7 +200,7 @@
 | --- | --- |
 | xlang 写法 | 任意触发 runtime type desc 的代码 |
 | 生成规则描述 | 批量输出分三段：先输出依赖 type desc 原型，再输出当前 runtime type desc 原型，最后输出函数体。模块生成中该批量输出位于 xvalue runtime 之后、class/native-backed class/union 声明之前。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:498`、`xl6_cgen_module.c:94`、`xl6_cgen_module.c:98` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:498`、`xl6_cgen_module.c:94`、`xl6_cgen_module.c:98` |
 | 对应生成的 C 代码 | `dependency prototypes; runtime prototypes; runtime desc bodies;` |
 | 中间形态伪代码 | `emitDeps(); emitProtos(); emitBodies();` |
 | 实现同等功能手写的 C 代码 | 手写 C 也必须保证被引用 type desc 的声明在使用前。 |
@@ -212,7 +212,7 @@
 | --- | --- |
 | xlang 写法 | `type(123)` / `type("abc")` / `type(obj)` |
 | 生成规则描述 | `type(expr)` 被普通 call 分派拦截。若表达式类型不是动态 `var`，编译期推断类型并直接输出对应 type id 常量。容器基础类型在 type value 场景会折叠为基础容器类型，避免把 `array<int>` 当作独立 type 字面量。若无法克隆/推断表达式类型，兜底诊断为 `cannot infer type for type(expr)`。 |
-| 生成器文件名和行号 | `xl6_cgen_expr.c:257`、`xl6_cgen_abi.c:525`、`xl6_cgen_abi.c:548`、`xl6_cgen_abi.c:555` |
+| 生成器文件名和行号 | `xl6_cgen_expr.c:257`、`xl6_cgen_abi_signature.c:525`、`xl6_cgen_abi_signature.c:548`、`xl6_cgen_abi_signature.c:555` |
 | 对应生成的 C 代码 | `0x0123456789ABCDEFULL` |
 | 中间形态伪代码 | `type(expr) -> compileTimeTypeId(infer(expr))` |
 | 实现同等功能手写的 C 代码 | 手写 C 通常用枚举或常量表达式。 |
@@ -224,7 +224,7 @@
 | --- | --- |
 | xlang 写法 | `var v = 1` / `type(v)` |
 | 生成规则描述 | 如果 `type(expr)` 的表达式类型是 `var`，生成运行时调用 `xl6_xrt_type_value_id`。表达式如果是借用 xvalue，则传 `false` 避免释放；否则传 `true` 表示 helper 接管临时值释放。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:548`、`xl6_cgen_abi.c:562` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:548`、`xl6_cgen_abi_signature.c:562` |
 | 对应生成的 C 代码 | `xl6_xrt_type_value_id(v, false)` / `xl6_xrt_type_value_id(expr, true)` |
 | 中间形态伪代码 | `if expr is var: runtimeTypeId(expr, ownsTemp)` |
 | 实现同等功能手写的 C 代码 | C 中需要查看 xvalue 的运行时 type desc 或 tag。 |
@@ -296,7 +296,7 @@
 | --- | --- |
 | xlang 写法 | class 默认值、class 装箱默认对象 |
 | 生成规则描述 | class record runtime 会生成默认值函数，先 `{0}`，再调用 class 字段默认初始化逻辑，最后返回 value。这样 boxed/default class 值与普通声明初始化保持一致。 |
-| 生成器文件名和行号 | `xl6_cgen_decl_proto.c:446`、`xl6_cgen_decl_class.c:426` |
+| 生成器文件名和行号 | `xl6_cgen_decl_proto.c:446`、`xl6_cgen_decl_class_layout.c:426` |
 | 对应生成的 C 代码 | `static XL_Class_Config xl6_default_XL_Class_Config(void) { XL_Class_Config value = {0}; value.port = 8080; return value; }` |
 | 中间形态伪代码 | `defaultClass() -> zero + field defaults` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要维护一个 init-default 函数。 |

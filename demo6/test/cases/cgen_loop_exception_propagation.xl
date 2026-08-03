@@ -20,9 +20,36 @@ func loopThrow() as int
     return state
 end
 
+func whileThrow() as int
+    int state = 0
+
+    try
+        while state < 3
+            string marker = "managed"
+            array<int> values = array[1, 2, 3]
+            state += 1
+            if state == 2 and marker == "managed" and values[0] == 1 then
+                throw "while boom"
+            end
+        end
+        state = 2000
+    catch e
+        if e.message == "while boom" then
+            state += 20
+        end
+    finally
+        state += 200
+    end
+
+    return state
+end
+
 func main(...) as int
     if loopThrow() != 112 then
         return 1
+    end
+    if whileThrow() != 222 then
+        return 2
     end
     return 0
 end

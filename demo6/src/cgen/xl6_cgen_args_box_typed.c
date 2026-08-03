@@ -54,3 +54,90 @@ static int xl6CgenTypedContainerXValueFromExpr(XL6_CgenContext* ctx, const XL6_A
     xl6AstFree(rawTypeNode);
     return 1;
 }
+
+/*
+    JSON/XSON 需要遍历容器内容，不能接收仅保留对象身份的 typed-container handle。
+    普通 var 实参仍走上面的引用装箱，避免无条件复制容器。
+*/
+static int xl6CgenTypedContainerMaterializedXValueFromExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* expr
+)
+{
+    XL6_AstNode* rawTypeNode;
+    const XL6_AstNode* typeNode;
+    const XL6_AstNode* concreteType;
+    const XL6_AstNode* itemType;
+    const char* typeName;
+    int usesStorage;
+    int returnCall;
+
+    usesStorage = xl6CgenExprUsesTypedContainerStorage(ctx, expr);
+    returnCall = !usesStorage && xl6CgenExprIsTypedContainerReturnCall(ctx, expr);
+    if ( !usesStorage && !returnCall ) {
+        return 0;
+    }
+
+    rawTypeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
+    typeNode = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, rawTypeNode));
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    itemType = xl6CgenTypedContainerItemType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+
+    if ( typeName == NULL || itemType == NULL ) {
+        xl6CgenError(ctx, expr, "typed container materialization requires a concrete item type");
+        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6AstFree(rawTypeNode);
+        return 1;
+    }
+    if ( returnCall ) {
+        xl6CgenError(ctx, expr, "typed container return materialization requires statement-level lowering");
+        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6AstFree(rawTypeNode);
+        return 1;
+    }
+    if ( !xl6CTextEquals(typeName, "array") &&
+         !xl6CTextEquals(typeName, "list") &&
+         !xl6CTextEquals(typeName, "set") &&
+         !xl6CTextEquals(typeName, "dict") ) {
+        xl6CgenError(ctx, expr, "typed container materialization requires array/list/set/dict");
+        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6AstFree(rawTypeNode);
+        return 1;
+    }
+
+    xl6CgenTypedContainerExprToXValueExpr(ctx, typeNode, expr);
+    xl6AstFree(rawTypeNode);
+    return 1;
+}
+
+static int xl6CgenPersistenceValueArgNeedsMaterialization(
+    const XL6_AstNode* func,
+    const XL6_AstNode* param
+)
+{
+    const char* name;
+    const char* format;
+
+    if ( func == NULL || param == NULL || !xl6CTextEquals(param->text, "value") ) {
+        return 0;
+    }
+    name = xl6CgenCallableName(func);
+    format = NULL;
+    return xl6CgenPersistenceStringifyName(name, &format) ||
+           xl6CgenPersistenceWriteName(name, &format);
+}
+
+static void xl6CgenKnownFixedParamArgExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* func,
+    const XL6_AstNode* param,
+    const XL6_AstNode* expr
+)
+{
+    if ( xl6CgenPersistenceValueArgNeedsMaterialization(func, param) &&
+         xl6CgenTypedContainerMaterializedXValueFromExpr(ctx, expr) ) {
+        return;
+    }
+    xl6CgenFixedParamArgExpr(ctx, param, expr);
+}

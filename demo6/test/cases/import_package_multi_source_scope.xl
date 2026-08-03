@@ -1,0 +1,12 @@
+import multi_source_scope
+
+func main(...) as int
+    multi_source_scope.PublicBox box = multi_source_scope.PublicBox(-40)
+    if box.value != 40 then
+        return 1
+    end
+    if multi_source_scope.answer(-42) != 42 then
+        return 2
+    end
+    return 0
+end

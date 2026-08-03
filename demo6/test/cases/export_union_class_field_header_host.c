@@ -2,9 +2,19 @@
 
 int main(void)
 {
-    XL_Union_Payload payload = xl6_payload_make(42);
-    if ( payload.integer != 42 ) {
+    XL_InitOptions options = xlInitOptions(0, 0);
+    XL_Union_Payload payload;
+    int result;
+
+    if ( !xlInit(&options) ) {
         return 1;
     }
-    return xl6_payload_read(payload) == 42 ? 0 : 2;
+    payload = xl6_payload_make(42);
+    if ( payload.integer != 42 ) {
+        xlUnit();
+        return 2;
+    }
+    result = xl6_payload_read(payload) == 42 ? 0 : 3;
+    xlUnit();
+    return result;
 }

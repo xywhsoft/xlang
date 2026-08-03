@@ -5,7 +5,7 @@ func main(...) as int
 
     println("Model 0 = " + stablediffusion.model(0))
     println("Sampler 0 = " + stablediffusion.sampler(0))
-    println("Resolution 2 = " + string.fromInt(stablediffusion.resolution(2)))
+    println("Resolution 2 = " + string(stablediffusion.resolution(2)))
 
     println("stablediffusion example: PASS")
     return 0

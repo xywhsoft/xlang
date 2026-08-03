@@ -1,0 +1,5 @@
+import xge_shape_ex
+
+func main(...) as int
+    return 0
+end

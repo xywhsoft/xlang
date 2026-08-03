@@ -1,0 +1,60 @@
+class PersistItem
+    derive value
+    derive json
+    derive xson
+
+    int id = 0
+    string name = ""
+end
+
+array<int> numbers = [1, 2, 3]
+list<string> names = list[0: "alpha", 1: "beta"]
+set<int> unique = set{1, 2, 3}
+dict<int> scores = dict{"alice": 10, "bob": 20}
+
+assert json.stringify(numbers) == "[1,2,3]", "json materializes typed array"
+assert json.stringify(names) == "[\"alpha\",\"beta\"]", "json materializes typed list"
+
+var uniqueJson = json.parse(json.stringify(unique))
+assert uniqueJson.length == 3, "json materializes every typed set item"
+assert 1 in uniqueJson and 2 in uniqueJson and 3 in uniqueJson, "json preserves typed set values"
+
+var scoresJson = json.parse(json.stringify(scores))
+assert scoresJson.length == 2, "json materializes every typed dict item"
+assert scoresJson["alice"] == 10 and scoresJson["bob"] == 20, "json preserves typed dict values"
+
+assert json.stringify(xson.parse(xson.stringify(numbers))) == "[1,2,3]", "xson materializes typed array"
+assert json.stringify(xson.parse(xson.stringify(names))) == "[\"alpha\",\"beta\"]", "xson materializes typed list"
+
+var uniqueXson = xson.parse(xson.stringify(unique))
+assert uniqueXson.length == 3, "xson materializes every typed set item"
+assert 1 in uniqueXson and 2 in uniqueXson and 3 in uniqueXson, "xson preserves typed set values"
+
+var scoresXson = xson.parse(xson.stringify(scores))
+assert scoresXson.length == 2, "xson materializes every typed dict item"
+assert scoresXson["alice"] == 10 and scoresXson["bob"] == 20, "xson preserves typed dict values"
+
+PersistItem first = PersistItem()
+first.id = 1
+first.name = "first"
+
+PersistItem second = PersistItem()
+second.id = 2
+second.name = "second"
+
+array<PersistItem> items = [first, second]
+string itemsJson = "[{\"id\":1,\"name\":\"first\"},{\"id\":2,\"name\":\"second\"}]"
+
+assert json.stringify(items) == itemsJson, "json materializes typed class array"
+assert json.stringify(xson.parse(xson.stringify(items))) == itemsJson, "xson materializes typed class array"
+
+assert numbers.length == 3
+assert numbers[2] == 3
+assert names.length == 2
+assert names[1] == "beta"
+assert unique.contains(2)
+assert scores["bob"] == 20
+assert items.length == 2
+assert items[1].name == "second"
+
+println("hir_persistence_typed_container_matrix ok")

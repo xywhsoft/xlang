@@ -41,7 +41,7 @@ if errorlevel 1 (
     echo cgen_async.c should pass completed async class future cancel as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelBox = xl6_xrt_move_to_shared(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(boxFuture" build\test\cgen_async.assert.c >nul
+findstr /C:"postCancelBox = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(boxFuture" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c should retain the completed async class handle after cancel.
     exit /b 1
@@ -71,7 +71,7 @@ if errorlevel 1 (
     echo cgen_async.c should pass completed async var future cancel as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelVar = xl6_xrt_move_to_shared(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(varFuture" build\test\cgen_async.assert.c >nul
+findstr /C:"postCancelVar = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(varFuture" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c should keep completed async var future awaitable after cancel.
     exit /b 1
@@ -106,7 +106,7 @@ if errorlevel 1 (
     echo cgen_async.c missing null string future await path.
     exit /b 1
 )
-findstr /C:"missingAwaitItemsValue = xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(missingAwaitItems" build\test\cgen_async.assert.c >nul
+findstr /C:"missingAwaitItemsValue = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(missingAwaitItems" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing null typed array future await path.
     exit /b 1
@@ -146,7 +146,7 @@ if errorlevel 1 (
     echo cgen_async.c missing null var future await fixture.
     exit /b 1
 )
-findstr /C:"missingAwaitVarValue = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(missingAwaitVar" build\test\cgen_async.assert.c >nul
+findstr /C:"missingAwaitVarValue = xl6_future_await_xvalue_copy(missingAwaitVar" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing null var future await path.
     exit /b 1
@@ -176,7 +176,7 @@ if errorlevel 1 (
     echo cgen_async.c missing null class future await fixture.
     exit /b 1
 )
-findstr /C:"missingAwaitBoxValue = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(missingAwaitBox" build\test\cgen_async.assert.c >nul
+findstr /C:"missingAwaitBoxValue = xl6_future_await_xvalue_copy(missingAwaitBox" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing null class-handle future await path.
     exit /b 1
@@ -191,7 +191,7 @@ if errorlevel 1 (
     echo cgen_async.c missing null typed list future await fixture.
     exit /b 1
 )
-findstr /C:"missingAwaitListValue = xrtTypedListRetain((*(xtlist*)xl6_future_await_value(missingAwaitList" build\test\cgen_async.assert.c >nul
+findstr /C:"missingAwaitListValue = xl6_xrt_typed_list_copy_mode(xrtTypeInt(), (*(xtlist*)xl6_future_await_value(missingAwaitList" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing null typed list future await path.
     exit /b 1
@@ -206,7 +206,7 @@ if errorlevel 1 (
     echo cgen_async.c missing null typed set future await fixture.
     exit /b 1
 )
-findstr /C:"missingAwaitSetValue = xrtTypedSetRetain((*(xtset*)xl6_future_await_value(missingAwaitSet" build\test\cgen_async.assert.c >nul
+findstr /C:"missingAwaitSetValue = xl6_xrt_typed_set_copy_mode(xrtTypeInt(), (*(xtset*)xl6_future_await_value(missingAwaitSet" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing null typed set future await path.
     exit /b 1
@@ -221,7 +221,7 @@ if errorlevel 1 (
     echo cgen_async.c missing null typed dict future await fixture.
     exit /b 1
 )
-findstr /C:"missingAwaitDictValue = xrtTypedDictRetain((*(xtdict*)xl6_future_await_value(missingAwaitDict" build\test\cgen_async.assert.c >nul
+findstr /C:"missingAwaitDictValue = xl6_xrt_typed_dict_copy_mode(xrtTypeInt(), (*(xtdict*)xl6_future_await_value(missingAwaitDict" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing null typed dict future await path.
     exit /b 1

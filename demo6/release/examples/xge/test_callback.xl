@@ -1,0 +1,11 @@
+// test_callback.xl - 测试函数回调传递
+import xge
+
+func on_frame()
+    xge.xgeTutorialEndFrame()
+end
+
+func main(...) as int
+    xge.xgeTutorialRun(on_frame)
+    return 0
+end

@@ -1,0 +1,17 @@
+protocol NumberSink
+    func put(int32 value) as int
+    func put(int64 value) as int
+end
+
+class Sink
+    func put(int32 value) as int
+        return 32
+    end
+
+    func put(int64 value) as int
+        return 64
+    end
+end
+
+NumberSink sink = Sink()
+int result = sink.put(1)

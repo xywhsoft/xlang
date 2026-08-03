@@ -1045,9 +1045,10 @@ func parseTar(array<int> data) as array<TarEntry>
             // two consecutive zero blocks = end of archive; we stop at first.
             break
         end
-        entries.push(e as TarEntry)
+        TarEntry entry = e as TarEntry
+        entries.push(entry)
         // advance past the 512-byte header and the file payload (padded to 512)
-        int payload = e.size
+        int payload = entry.size
         int blocks = payload / 512
         if payload % 512 != 0 then
             blocks = blocks + 1
@@ -1057,10 +1058,8 @@ func parseTar(array<int> data) as array<TarEntry>
     return entries
 end
 
-// Read the file payload for a TarEntry into e.data.
-// Read one TAR entry's payload bytes. Returns the data array (callers assign
-// to e.data); xlang value-copies class parameters, so we cannot mutate `e`
-// inside this function and have it visible to the caller.
+// Read one TAR entry's payload bytes. The caller decides whether to keep the
+// returned payload in the entry object.
 func readTarEntry(array<int> data, TarEntry e) as array<int>
     array<int> outputValue = array[]
     int n = e.size
@@ -1748,8 +1747,9 @@ func cmdVerifyTar(array<int> data) as int
         if e == null then
             break
         end
+        TarEntry entry = e as TarEntry
         bool chkOk = tarCheckChecksum(data, off)
-        string label = e.name
+        string label = entry.name
         if string.len(label) == 0 then
             label = "<unnamed@"
             label = label + string(off) + ">"
@@ -1760,13 +1760,13 @@ func cmdVerifyTar(array<int> data) as int
             failCount = failCount + 1
         else
             try
-                array<int> edata = readTarEntry(data, e as TarEntry)
-                e.data = edata
-                int crc = crc32(e.data)
-                string sha = sha256Bytes(e.data)
+                array<int> edata = readTarEntry(data, entry)
+                entry.data = edata
+                int crc = crc32(entry.data)
+                string sha = sha256Bytes(entry.data)
                 okCount = okCount + 1
-                if e.size > 0 then
-                    println("  [ok  ] " + label + "  crc=" + hexDword(crc) + "  size=" + string(e.size) + "  sha=" + string.left(sha, 12) + "...")
+                if entry.size > 0 then
+                    println("  [ok  ] " + label + "  crc=" + hexDword(crc) + "  size=" + string(entry.size) + "  sha=" + string.left(sha, 12) + "...")
                 else
                     println("  [ok  ] " + label + "  (empty)")
                 end
@@ -1775,7 +1775,7 @@ func cmdVerifyTar(array<int> data) as int
                 println("  [err ] " + label + ": " + err.message)
             end
         end
-        int payload = e.size
+        int payload = entry.size
         int blocks = payload / 512
         if payload % 512 != 0 then
             blocks = blocks + 1

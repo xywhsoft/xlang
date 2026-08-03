@@ -6,5 +6,5 @@ class RefNullTarget
     end
 end
 
-RefNullTarget target = null
+RefNullTarget? target = null
 println(target.read())

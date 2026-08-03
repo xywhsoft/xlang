@@ -46,6 +46,9 @@ static void xl6AstDumpFlagsText(XL6_Output* out, unsigned int flags)
     if ( flags & XL6_AST_FLAG_EXTERN ) {
         xl6OutputPuts("extern ", out);
     }
+    if ( flags & XL6_AST_FLAG_IMPORT_SELECTIVE ) {
+        xl6OutputPuts("import-selective ", out);
+    }
     xl6OutputPutc(']', out);
 }
 

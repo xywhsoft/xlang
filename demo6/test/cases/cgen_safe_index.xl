@@ -9,9 +9,9 @@ var dynamicValues = values
 var dynamicTable = table
 int declaredFallback = int(missing?[0] ?? 9)
 
-expect(int(values?[1]), 20)
-expect(int(sparse?[2]), 22)
-expect(int(table?["count"]), 6)
+expect(int(values?[1] ?? 0), 20)
+expect(int(sparse?[2] ?? 0), 22)
+expect(int(table?["count"] ?? 0), 6)
 expect(int(dynamicValues?[1]), 20)
 expect(int(dynamicTable?["count"]), 6)
 expect(int(missing?[0] ?? 9), 9)

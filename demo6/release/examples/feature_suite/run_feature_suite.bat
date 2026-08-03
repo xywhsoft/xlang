@@ -15,6 +15,20 @@ for %%f in (release\examples\feature_suite\*.xl) do (
 )
 
 echo Running executable examples...
+if not exist build\test\feature_suite mkdir build\test\feature_suite
+release\xl.exe cgen release\examples\feature_suite\06_function_values_closures.xl --emit build\test\feature_suite\06_function_values_closures.c
+if errorlevel 1 exit /b 1
+findstr /C:"static long long xl6_xrt_value_to_i64_release(xvalue value)" build\test\feature_suite\06_function_values_closures.c >nul
+if errorlevel 1 (
+    echo Function-value needs closure omitted the xvalue conversion helper.
+    exit /b 1
+)
+findstr /C:"xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);" build\test\feature_suite\06_function_values_closures.c >nul
+if errorlevel 1 (
+    echo Function-value conversion helper does not release managed temporaries safely.
+    exit /b 1
+)
+
 for %%f in (
     00_language_basics.xl
     01_expressions_control_flow.xl

@@ -1,0 +1,67 @@
+protocol Named
+    func name() as string
+end
+
+class Person
+    string stored = ""
+
+    create(string value)
+        self.stored = value
+    end
+
+    func name() as string
+        return self.stored
+    end
+end
+
+func main(...) as int
+    Named first = Person("first")
+    Named second = Person("second")
+
+    array<Named> values = array[first, second]
+    list<Named> sparse = list[2: first, 7: second]
+    set<Named> unique = set{first, second}
+    dict<Named> table = dict{"first": first, "second": second}
+
+    assert values[0].name() == "first"
+    assert values[1].name() == "second"
+    assert sparse[2].name() == "first"
+    assert sparse[7].name() == "second"
+    assert unique.contains(first)
+    assert unique.contains(second)
+    assert table["first"].name() == "first"
+    assert table["second"].name() == "second"
+
+    int arrayCount = 0
+    for value in values
+        assert value.name() != ""
+        arrayCount += 1
+    end
+    assert arrayCount == 2
+
+    int listCount = 0
+    for index, value in sparse
+        assert index == 2 or index == 7
+        assert value.name() != ""
+        listCount += 1
+    end
+    assert listCount == 2
+
+    int setCount = 0
+    for value in unique
+        assert value.name() != ""
+        setCount += 1
+    end
+    assert setCount == 2
+
+    int dictCount = 0
+    for key, value in table
+        assert key == "first" or key == "second"
+        assert value.name() == key
+        dictCount += 1
+    end
+    assert dictCount == 2
+
+    println("protocol container matrix ok")
+    return 0
+end

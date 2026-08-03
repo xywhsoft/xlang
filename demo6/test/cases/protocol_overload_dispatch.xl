@@ -1,0 +1,22 @@
+protocol Calculator
+    func add(int left, int right) as int
+    func add(string left, string right) as string
+end
+
+class BasicCalculator
+    func add(int left, int right) as int
+        return left + right
+    end
+
+    func add(string left, string right) as string
+        return left + right
+    end
+end
+
+func main(...) as int
+    Calculator calculator = BasicCalculator()
+    assert calculator.add(20, 22) == 42
+    assert calculator.add("x", "lang") == "xlang"
+    println("protocol overload dispatch ok")
+    return 0
+end

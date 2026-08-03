@@ -1,0 +1,86 @@
+// 用户协议只描述能力，class 不需要显式声明 implements。
+protocol Describable
+    func describe() as string
+end
+
+class Document
+    string title = ""
+
+    create(string title)
+        self.title = title
+    end
+
+    func describe() as string
+        return f"document:{self.title}"
+    end
+end
+
+// 带数据的 enum 使用静态 tag + union payload 布局。
+enum FetchResult<T>
+    pending
+    ready(T value)
+    failed(int code, string message)
+end
+
+enum Priority as uint8
+    low = 1
+    normal
+    high = 10
+end
+
+func expiredObserver() as weak<Document>
+    Document local = Document("temporary")
+    weak<Document> observer = local
+    return observer
+end
+
+func formatResult(FetchResult<int> result) as string
+    return match result
+    case pending then "pending"
+    case ready(value) then f"ready:{value}"
+    case failed(code, message) then f"failed:{code}:{message}"
+    end
+end
+
+func main(...) as int
+    Document document = Document("xlang")
+
+    // class 可以按结构化协议转换并动态派发。
+    Describable describable = document
+    assert describable.describe() == "document:xlang"
+
+    // T? 明确表示可空；?.、?? 和非空分支窄化可以组合使用。
+    Document? optional = document
+    string? title = optional?.title
+    assert (title ?? "untitled") == "xlang"
+    if optional != null
+        assert optional.describe() == "document:xlang"
+    end
+
+    // weak<T> 不延长对象生命周期，lock() 返回 T?。
+    weak<Document> observer = document
+    assert observer.lock() != null
+    weak<Document> expired = expiredObserver()
+    assert expired.lock() == null
+
+    FetchResult<int> result = FetchResult::<int>.ready(42)
+    assert formatResult(result) == "ready:42"
+
+    // 穷尽 match 的每条路径都赋值后，变量才可读取。
+    int resultCode
+    match result
+    case pending
+        resultCode = 0
+    case ready(value)
+        resultCode = value
+    case failed(code, message)
+        resultCode = 0 - code
+    end
+    assert resultCode == 42
+
+    Priority priority = Priority.high
+    assert int(priority) == 10
+
+    println("modern type semantics ok")
+    return 0
+end

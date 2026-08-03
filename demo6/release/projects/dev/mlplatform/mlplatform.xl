@@ -1894,7 +1894,7 @@ class Dense extends Layer
     Tensor b = Tensor(1)
     Tensor gradW = Tensor(1, 1)
     Tensor gradB = Tensor(1)
-    Tensor cachedX = Tensor(1)
+    Tensor? cachedX = null
     bool useBias = true
     string initType = "he"
 
@@ -1995,14 +1995,15 @@ class Dense extends Layer
     end
 
     override func backward(Tensor gradOutput) as Tensor
-        Tensor x2d = self.cachedX
+        Tensor cachedX = self.cachedX as Tensor
+        Tensor x2d = cachedX
         bool was1d = false
-        if self.cachedX.ndim == 1 then
+        if cachedX.ndim == 1 then
             was1d = true
             array<int> shp = array[]
             shp.append(1)
-            shp.append(self.cachedX.shape[0])
-            x2d = reshape(self.cachedX, shp)
+            shp.append(cachedX.shape[0])
+            x2d = reshape(cachedX, shp)
         end
         Tensor g2d = gradOutput
         if gradOutput.ndim == 1 then
@@ -2086,7 +2087,7 @@ end
 class ReLU extends Layer
     derive value
 
-    Tensor cachedMask
+    Tensor? cachedMask = null
 
     create()
         self.name = "ReLU"
@@ -2111,10 +2112,11 @@ class ReLU extends Layer
     end
 
     override func backward(Tensor gradOutput) as Tensor
+        Tensor cachedMask = self.cachedMask as Tensor
         Tensor r = Tensor(gradOutput.shape)
         int i = 0
         while i < gradOutput.numel
-            r.data[i] = gradOutput.data[i] * self.cachedMask.data[i]
+            r.data[i] = gradOutput.data[i] * cachedMask.data[i]
             i += 1
         end
         return r
@@ -2373,7 +2375,7 @@ class Dropout extends Layer
     derive value
 
     float rate = 0.5
-    Tensor cachedMask
+    Tensor? cachedMask = null
 
     create()
         self.name = "Dropout"
@@ -2421,10 +2423,11 @@ class Dropout extends Layer
         if self.cachedMask == null then
             return gradOutput
         end
+        Tensor cachedMask = self.cachedMask as Tensor
         Tensor r = Tensor(gradOutput.shape)
         int i = 0
         while i < gradOutput.numel
-            r.data[i] = gradOutput.data[i] * self.cachedMask.data[i]
+            r.data[i] = gradOutput.data[i] * cachedMask.data[i]
             i += 1
         end
         return r
@@ -2447,10 +2450,8 @@ class BatchNorm extends Layer
     Tensor gradBeta
     Tensor runningMean
     Tensor runningVar
-    Tensor cachedXHat
-    Tensor cachedMean
-    Tensor cachedVar
-    Tensor cachedX
+    Tensor? cachedXHat = null
+    Tensor? cachedVar = null
 
     create()
         self.name = "BatchNorm"
@@ -2497,7 +2498,6 @@ class BatchNorm extends Layer
     end
 
     override func forward(Tensor x) as Tensor
-        self.cachedX = x
         int batch = x.shape[0]
         int nf = self.numFeatures
         Tensor mean = Tensor(nf)
@@ -2548,7 +2548,6 @@ class BatchNorm extends Layer
             i2 += 1
         end
         self.cachedXHat = xhat
-        self.cachedMean = mean
         self.cachedVar = variance
         if self.training then
             int kk = 0
@@ -2562,6 +2561,8 @@ class BatchNorm extends Layer
     end
 
     override func backward(Tensor gradOutput) as Tensor
+        Tensor cachedXHat = self.cachedXHat as Tensor
+        Tensor cachedVar = self.cachedVar as Tensor
         int batch = gradOutput.shape[0]
         int nf = self.numFeatures
         Tensor newGradGamma = Tensor(nf)
@@ -2572,7 +2573,7 @@ class BatchNorm extends Layer
             float sb = 0.0
             int i = 0
             while i < batch
-                sg = sg + gradOutput.data[i * nf + j] * self.cachedXHat.data[i * nf + j]
+                sg = sg + gradOutput.data[i * nf + j] * cachedXHat.data[i * nf + j]
                 sb = sb + gradOutput.data[i * nf + j]
                 i += 1
             end
@@ -2590,7 +2591,7 @@ class BatchNorm extends Layer
         float invBatch = 1.0 / float(batch)
         int jj = 0
         while jj < nf
-            float stdInv = 1.0 / math.sqrt(self.cachedVar.data[jj] + self.eps)
+            float stdInv = 1.0 / math.sqrt(cachedVar.data[jj] + self.eps)
             float g = self.gamma.data[jj]
             float sumDxhat = 0.0
             float sumDxhatXhat = 0.0
@@ -2598,13 +2599,13 @@ class BatchNorm extends Layer
             while i < batch
                 float dxhat = gradOutput.data[i * nf + jj] * g
                 sumDxhat = sumDxhat + dxhat
-                sumDxhatXhat = sumDxhatXhat + dxhat * self.cachedXHat.data[i * nf + jj]
+                sumDxhatXhat = sumDxhatXhat + dxhat * cachedXHat.data[i * nf + jj]
                 i += 1
             end
             int i2 = 0
             while i2 < batch
                 float dxhat = gradOutput.data[i2 * nf + jj] * g
-                gradInput.data[i2 * nf + jj] = stdInv * invBatch * (float(batch) * dxhat - sumDxhat - self.cachedXHat.data[i2 * nf + jj] * sumDxhatXhat)
+                gradInput.data[i2 * nf + jj] = stdInv * invBatch * (float(batch) * dxhat - sumDxhat - cachedXHat.data[i2 * nf + jj] * sumDxhatXhat)
                 i2 += 1
             end
             jj += 1
@@ -2638,9 +2639,7 @@ class BatchNorm extends Layer
             j += 1
         end
         self.cachedXHat = null
-        self.cachedMean = null
         self.cachedVar = null
-        self.cachedX = null
     end
 end
 
@@ -2660,8 +2659,8 @@ class Conv2D extends Layer
     Tensor b
     Tensor gradW
     Tensor gradB
-    Tensor cachedX
-    Tensor cachedCol
+    Tensor? cachedX = null
+    Tensor? cachedCol = null
     int cachedOutH = 0
     int cachedOutW = 0
 
@@ -2824,7 +2823,8 @@ class Conv2D extends Layer
     end
 
     override func backward(Tensor gradOutput) as Tensor
-        Tensor x = self.cachedX
+        Tensor x = self.cachedX as Tensor
+        Tensor cachedCol = self.cachedCol as Tensor
         int batch = x.shape[0]
         int inCh = x.shape[1]
         int H = x.shape[2]
@@ -2864,7 +2864,7 @@ class Conv2D extends Layer
             end
             i += 1
         end
-        Tensor colT = transpose2d(self.cachedCol)
+        Tensor colT = transpose2d(cachedCol)
         Tensor gradWReshape = matmul(colT, g2d)
         int idx = 0
         int oc = 0
@@ -3238,7 +3238,7 @@ class Embedding extends Layer
     int embedDim = 0
     Tensor W
     Tensor gradW
-    Tensor cachedIdx
+    Tensor? cachedIdx = null
 
     create()
         self.name = "Embedding"
@@ -3280,10 +3280,11 @@ class Embedding extends Layer
     end
 
     override func backward(Tensor gradOutput) as Tensor
-        int n = self.cachedIdx.shape[0]
+        Tensor cachedIdx = self.cachedIdx as Tensor
+        int n = cachedIdx.shape[0]
         int i = 0
         while i < n
-            int idx = int(self.cachedIdx.data[i])
+            int idx = int(cachedIdx.data[i])
             if idx < 0 then
                 idx = 0
             end
@@ -5538,8 +5539,6 @@ func main(...) as int
 
     return 0
 end
-
-
 
 
 

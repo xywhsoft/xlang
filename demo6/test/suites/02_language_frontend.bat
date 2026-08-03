@@ -4,6 +4,9 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: language frontend and type semantics...
 
+release\xl.exe run test\cases\contextual_protocol_member.xl
+if errorlevel 1 exit /b 1
+
 release\xl.exe lex release\examples\literals.xl > build\test\literals.tokens.txt
 if errorlevel 1 exit /b 1
 
@@ -213,6 +216,36 @@ if errorlevel 1 (
 if errorlevel 1 exit /b 1
 build\test\cgen_unicode_identifiers.exe
 if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\cgen_console_utf8.xl --emit build\test\cgen_console_utf8.c
+if errorlevel 1 exit /b 1
+findstr /C:"#define XL_RUNTIME_NEED_LIFECYCLE 1" build\test\cgen_console_utf8.c >nul
+if errorlevel 1 (
+    echo cgen_console_utf8.c missing lifecycle runtime dependency.
+    exit /b 1
+)
+findstr /C:"xl6_runtime_console_begin" release\include\xl_runtime.h >nul
+if errorlevel 1 (
+    echo xl_runtime.h missing console lifecycle.
+    exit /b 1
+)
+release\xl.exe run test\cases\cgen_console_utf8.xl > build\test\cgen_console_utf8_run.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$utf8 = New-Object System.Text.UTF8Encoding($false, $true); $text = $utf8.GetString([IO.File]::ReadAllBytes('build\test\cgen_console_utf8_run.out.txt')).TrimEnd([char]13, [char]10); $expected=([char]0x4E2D)+([char]0x6587)+([char]0x63A7)+([char]0x5236)+([char]0x53F0)+' UTF-8'; if ($text -cne $expected) { Write-Host ('unexpected UTF-8 run output: ' + $text); exit 1 }"
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_console_utf8.xl -o build\test\cgen_console_utf8.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_console_utf8.exe > build\test\cgen_console_utf8_build.out.txt
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$utf8 = New-Object System.Text.UTF8Encoding($false, $true); $text = $utf8.GetString([IO.File]::ReadAllBytes('build\test\cgen_console_utf8_build.out.txt')).TrimEnd([char]13, [char]10); $expected=([char]0x4E2D)+([char]0x6587)+([char]0x63A7)+([char]0x5236)+([char]0x53F0)+' UTF-8'; if ($text -cne $expected) { Write-Host ('unexpected UTF-8 executable output: ' + $text); exit 1 }"
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\cgen_console_utf8_host.c src\common\xl6_console.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_console_utf8_host.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_console_utf8_host.exe
+if errorlevel 1 (
+    echo cgen_console_utf8_host.exe failed.
+    exit /b 1
+)
 
 release\xl.exe check test\cases\cgen_long_identifiers.xl
 if errorlevel 1 exit /b 1
@@ -511,7 +544,7 @@ if not errorlevel 1 (
     echo sem_generic_constraint_unsatisfied.xl should fail.
     exit /b 1
 )
-findstr /C:"generic type argument does not satisfy constraint" build\test\sem_generic_constraint_unsatisfied.err.txt >nul
+findstr /C:"does not satisfy constraint comparable" build\test\sem_generic_constraint_unsatisfied.err.txt >nul
 if errorlevel 1 (
     echo sem_generic_constraint_unsatisfied.err.txt missing generic constraint diagnostic.
     exit /b 1
@@ -534,11 +567,24 @@ release\xl.exe check release\examples\generic_constraints.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\generic_constraints.xl
 if errorlevel 1 exit /b 1
+release\xl.exe check test\cases\generic_managed_ownership.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\generic_managed_ownership.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\generic_managed_ownership.xl --emit build\test\generic_managed_ownership.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl_gen_pass______class__handle_of_Token(xl6_xrt_retain(source))" build\test\generic_managed_ownership.c >nul
+if errorlevel 1 (
+    echo generic_managed_ownership.c missing managed generic argument retain.
+    exit /b 1
+)
 release\xl.exe run release\examples\generic_class_iter.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\runtime_type.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\runtime_var_bool_type.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\runtime_var_type_storage_matrix.xl
 if errorlevel 1 exit /b 1
 
 release\xl.exe check release\examples\native_counter.xl
@@ -1007,6 +1053,33 @@ if errorlevel 1 (
     exit /b 1
 )
 
+"%XL6_TCC%" -std=c11 -Wall -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o build\test\hir_type_pool.exe ^
+    test\cases\hir_type_pool.c ^
+    src\ast\xl6_ast.c ^
+    src\type\xl6_type_model.c ^
+    src\ir\xl6_hir_type.c ^
+    %XL6_XRT_OBJ% ^
+    %XL6_TCC_LIBTCC1% ^
+    -lWs2_32 -lIPHLPAPI -lShell32
+if errorlevel 1 exit /b 1
+build\test\hir_type_pool.exe
+if errorlevel 1 exit /b 1
+
+"%XL6_TCC%" -std=c11 -Wall -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% -o build\test\hir_module.exe ^
+    test\cases\hir_module.c ^
+    src\ast\xl6_ast.c ^
+    src\type\xl6_type_model.c ^
+    src\ir\xl6_hir_type.c ^
+    src\ir\xl6_hir.c ^
+    src\diag\xl6_diag.c ^
+    src\common\xl6_output.c ^
+    src\common\xl6_console.c ^
+    %XL6_XRT_OBJ% ^
+    %XL6_TCC_LIBTCC1% ^
+    -lWs2_32 -lIPHLPAPI -lShell32
+if errorlevel 1 exit /b 1
+build\test\hir_module.exe
+if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: language frontend and type semantics
 exit /b 0

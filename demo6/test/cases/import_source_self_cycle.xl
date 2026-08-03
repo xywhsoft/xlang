@@ -1,0 +1,5 @@
+import import_source_self_cycle
+
+func main(...) as int
+    return 0
+end

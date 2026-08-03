@@ -1,12 +1,21 @@
 {
     "format": "xlang-package-1",
     "name": "argon2",
-    "version": "1.0.0",
+    "version": "2.0.0",
+    "description": "Argon2 password hashing (RFC 9106): Argon2d/Argon2i/Argon2id with PHC string encoding",
+    "category": "security",
     "abiVersion": "1",
     "kind": "demo6-extlib",
     "artifact": {
         "kind": "source",
-        "cSources": ["argon2_native.c"],
+        "cSources": [
+            "argon2_native.c",
+            "vendor/argon2.c",
+            "vendor/core.c",
+            "vendor/encoding.c",
+            "vendor/ref.c",
+            "vendor/blake2/blake2b.c"
+        ],
         "xlSources": ["src/argon2.xl"]
     },
     "links": [],

@@ -1,0 +1,17 @@
+// 模块初始化阶段的动态索引写入必须精确接管右值一次。
+var dynValues = [10, 20]
+var dynSparse = [0: 11]
+var dynIndex = 1
+var dynTable = {"count": 6}
+var dynKey = "count"
+
+dynValues[0] = 42
+dynValues[dynIndex] = 77
+dynSparse[2] = 33
+dynTable[dynKey] = 8
+dynTable["count"] = 9
+
+int result = (
+    int(dynValues[0]) + int(dynValues[1]) +
+    int(dynSparse[2]) + int(dynTable[dynKey])
+)

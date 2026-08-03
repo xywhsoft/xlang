@@ -1,0 +1,82 @@
+import snappy
+
+
+
+func main(...) as int
+    // ─── 1. 一次性压缩 / 解压（Buffer 二进制安全）───
+    Buffer source = Buffer()
+    source.append("xlang snappy ")
+    source.appendByte(0)
+    source.appendByte(255)
+
+    Buffer packed = snappy.compress(source)
+    Buffer plain = snappy.decompress(packed)
+    assert plain == source, "snappy Buffer round trip failed"
+    println("一次性: ", source.len(), " 字节 -> ", packed.len(), " 字节")
+
+    // 直接压缩字符串（内部自动转 Buffer）。
+    Buffer textPacked = snappy.compress("hello snappy")
+    assert snappy.decompressText(textPacked) == "hello snappy"
+    println("引擎版本: ", snappy.version())
+
+    // ─── 2. 增量流式压缩：update -> drain -> finish ───
+    // drain() 随时取走已产出的压缩字节，适合边喂数据边落盘/发送。
+    auto encoder = snappy.compressor()
+    Buffer streamPacked = Buffer()
+    encoder.update("hello ")
+    streamPacked.append(encoder.drain())
+    encoder.update("stream")
+    streamPacked.append(encoder.drain())
+    encoder.finish()                 // 封存流（写入成员结束标记）
+    streamPacked.append(encoder.drain())
+    println("流式压缩: 喂入 ", encoder.inputBytes, " 字节, 产出 ",
+        encoder.outputBytes, " 字节")
+
+    // ─── 3. 增量流式解压 + 进度回显 + 多成员统计 ───
+    auto decoder = snappy.decompressor()
+    Buffer restored = Buffer()
+    decoder.update(streamPacked)
+    restored.append(decoder.drain()) // 取走已解压数据
+    println("解压进度: 已喂入 ", decoder.inputBytes, " / 已产出 ",
+        decoder.outputBytes, " 字节, 完成=", decoder.finished)
+    decoder.finish()                 // 校验流完整性
+    restored.append(decoder.drain())
+    assert restored.text() == "hello stream", "snappy incremental round trip failed"
+    println("成员数: ", decoder.members) // 1；>1 表示串联多成员流
+
+    // ─── 4. 高冗余数据压缩率展示（snappy 擅长重复模式）───
+    Buffer redundant = Buffer()
+    int i = 0
+    while i < 256
+        redundant.append("snappy-snappy-")
+        i = i + 1
+    end
+    Buffer redPacked = snappy.compress(redundant)
+    assert snappy.decompress(redPacked) == redundant
+    println("高冗余: ", redundant.len(), " 字节 -> ", redPacked.len(), " 字节")
+
+    // ─── 5. 损坏数据必然抛出 CompressionError（块体安全校验生效）───
+    bool rejected = false
+    int mid = streamPacked.len() / 2
+    streamPacked[mid] = streamPacked[mid] ^ 255
+    try
+        snappy.decompress(streamPacked)
+    catch CompressionError e
+        rejected = true
+    end
+    assert rejected, "corrupt snappy must raise CompressionError"
+    println("损坏检出: OK")
+
+    // ─── 6. 文件便捷接口（XRT reader/writer，临时文件+原子重命名）───
+    dir.createAll("tmp")
+    file.writeBytes("tmp/snappy_example_source.bin", source)
+    snappy.compressFile("tmp/snappy_example_source.bin", "tmp/snappy_example.sz")
+    snappy.decompressFile("tmp/snappy_example.sz", "tmp/snappy_example_plain.bin")
+    assert file.readBytes("tmp/snappy_example_plain.bin") == source
+    file.delete("tmp/snappy_example_source.bin")
+    file.delete("tmp/snappy_example.sz")
+    file.delete("tmp/snappy_example_plain.bin")
+
+    println("snappy example: PASS")
+    return 0
+end

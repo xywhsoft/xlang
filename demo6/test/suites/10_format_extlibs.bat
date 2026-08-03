@@ -5,6 +5,10 @@ if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: bundled format extension libraries...
 
 if not exist tmp mkdir tmp
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_tests.ps1
+if errorlevel 1 exit /b 1
+
 where python >nul 2>nul
 if errorlevel 1 (
     echo Python 3 is required for the format interoperability tests.

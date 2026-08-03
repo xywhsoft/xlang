@@ -1,0 +1,28 @@
+class DynamicArguments
+    func add(int left, int right = 2) as int
+        return left + right
+    end
+
+    func count(int base, ...) as int
+        return base + arg.length
+    end
+
+    func options(string path, ***) as int
+        return string.len(path) + arg.length
+    end
+end
+
+var dynamicArguments = DynamicArguments()
+
+func main(...) as int
+    var defaultResult = dynamicArguments.add(3)
+    var namedResult = dynamicArguments.add(right = 4, left = 3)
+    var varargResult = dynamicArguments.count(10, 1, 2, 3)
+    var kwargsResult = dynamicArguments.options("x", mode = "fast", retry = 2)
+    assert int(defaultResult) == 5
+    assert int(namedResult) == 7
+    assert int(varargResult) == 13
+    assert int(kwargsResult) == 3
+    println("dynamic method arguments ok")
+    return 0
+end

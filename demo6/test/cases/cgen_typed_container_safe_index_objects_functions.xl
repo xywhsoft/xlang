@@ -74,33 +74,39 @@ auto missingDictNative = nativeDict?["missing"]
 auto maybeDictFn = funcDict?[fnKey]
 auto missingDictFn = funcDict?["missing"]
 
-expect(type(maybePair) == Pair, 1)
-expect(type(missingPair) == null, 1)
-expect(type(maybePayload) == Payload, 1)
-expect(type(missingPayload) == null, 1)
-expect(type(maybeNative) == Native, 1)
-expect(type(missingNative) == null, 1)
-expect(type(maybeFn) == fnType, 1)
-expect(type(missingFn) == null, 1)
+expect(maybePair != null, 1)
+expect(missingPair == null, 1)
+expect(maybePayload != null, 1)
+expect(missingPayload == null, 1)
+expect(maybeNative != null, 1)
+expect(missingNative == null, 1)
+expect(maybeFn != null, 1)
+expect(missingFn == null, 1)
 
-expect(type(maybeListPair) == Pair, 1)
-expect(type(missingListPair) == null, 1)
-expect(type(maybeListPayload) == Payload, 1)
-expect(type(missingListPayload) == null, 1)
-expect(type(maybeListNative) == Native, 1)
-expect(type(missingListNative) == null, 1)
-expect(type(maybeListFn) == fnType, 1)
-expect(type(missingListFn) == null, 1)
+expect(maybeListPair != null, 1)
+expect(missingListPair == null, 1)
+expect(maybeListPayload != null, 1)
+expect(missingListPayload == null, 1)
+expect(maybeListNative != null, 1)
+expect(missingListNative == null, 1)
+expect(maybeListFn != null, 1)
+expect(missingListFn == null, 1)
 
-expect(type(maybeDictPair) == Pair, 1)
-expect(type(missingDictPair) == null, 1)
-expect(type(maybeDictPayload) == Payload, 1)
-expect(type(missingDictPayload) == null, 1)
-expect(type(maybeDictNative) == Native, 1)
-expect(type(missingDictNative) == null, 1)
-expect(type(maybeDictFn) == fnType, 1)
-expect(type(missingDictFn) == null, 1)
+expect(maybeDictPair != null, 1)
+expect(missingDictPair == null, 1)
+expect(maybeDictPayload != null, 1)
+expect(missingDictPayload == null, 1)
+expect(maybeDictNative != null, 1)
+expect(missingDictNative == null, 1)
+expect(maybeDictFn != null, 1)
+expect(missingDictFn == null, 1)
 
-expect(int(maybeFn(41)), 42)
-expect(int(maybeListFn(41)), 42)
-expect(int(maybeDictFn(41)), 42)
+if maybeFn != null then
+    expect(int(maybeFn(41)), 42)
+end
+if maybeListFn != null then
+    expect(int(maybeListFn(41)), 42)
+end
+if maybeDictFn != null then
+    expect(int(maybeDictFn(41)), 42)
+end

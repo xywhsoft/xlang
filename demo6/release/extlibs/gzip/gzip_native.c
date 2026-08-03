@@ -88,6 +88,12 @@ XGZIP_EXPORT void* xgzip_compress(const void* pData, size_t iSize, int iLevel,
 	return pOutput;
 }
 
+XGZIP_EXPORT void* xgzip_compress_str(const char* sText, size_t iSize, int iLevel,
+	uint32 iMTime, uint64 iMaxInput, uint64 iMaxOutput)
+{
+	return xgzip_compress((const void*)sText, iSize, iLevel, iMTime, iMaxInput, iMaxOutput);
+}
+
 XGZIP_EXPORT void* xgzip_decompress(const void* pData, size_t iSize,
 	uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio)
 {
@@ -152,6 +158,11 @@ XGZIP_EXPORT bool xgzip_compressor_update(void* pHandle, const void* pData, size
 		return FALSE;
 	}
 	return TRUE;
+}
+
+XGZIP_EXPORT bool xgzip_compressor_update_str(void* pHandle, const char* sText, size_t iSize)
+{
+	return xgzip_compressor_update(pHandle, (const void*)sText, iSize);
 }
 
 XGZIP_EXPORT void* xgzip_compressor_finish(void* pHandle)

@@ -609,7 +609,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn empty array vararg argv bridge.
     exit /b 1
 )
-findstr /C:"variadicDefaultJob = xl6_fnvalue_xl_fn_totalDefault_arity0_vararg_make();" build\test\cgen_task_spawn.assert.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[Text.Encoding]::UTF8); if($text -notmatch 'variadicDefaultJob\s*=\s*xl6_fnvalue_xl_fn_totalDefault_sig[0-9A-F]+_arity0_vararg_make\(\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing zero-fixed variadic optional adapter task.spawn case.
     exit /b 1
@@ -674,7 +674,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing completed zero-fixed variadic task.spawn cancel guard.
     exit /b 1
 )
-findstr /C:"slowVariadicJob = xl6_fnvalue_xl_fn_slowSumVariadic_make();" build\test\cgen_task_spawn.assert.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[Text.Encoding]::UTF8); if($text -notmatch 'slowVariadicJob\s*=\s*xl6_fnvalue_xl_fn_slowSumVariadic_sig[0-9A-F]+_make\(\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing pending variadic task.spawn function value.
     exit /b 1
@@ -704,7 +704,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep pending variadic task.spawn canceled after worker completes.
     exit /b 1
 )
-findstr /C:"slowVariadicDefaultJob = xl6_fnvalue_xl_fn_slowTotalDefault_arity0_vararg_make();" build\test\cgen_task_spawn.assert.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[Text.Encoding]::UTF8); if($text -notmatch 'slowVariadicDefaultJob\s*=\s*xl6_fnvalue_xl_fn_slowTotalDefault_sig[0-9A-F]+_arity0_vararg_make\(\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing pending zero-fixed variadic task.spawn adapter.
     exit /b 1

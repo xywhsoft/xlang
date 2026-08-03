@@ -25,7 +25,7 @@ int dynamicNested = int(dynamicTable.nested.count)
 
 var missing = null
 var dynamicValues = values
-int safeValue = int(values?[1])
+int safeValue = int(values?[1] ?? 0)
 int safeLength = int(dynamicValues?.length)
 int fallback = int(missing?[0] ?? 9)
 

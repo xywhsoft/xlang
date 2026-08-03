@@ -1,0 +1,3 @@
+enum Chain<T>
+    next(Chain<T> value)
+end

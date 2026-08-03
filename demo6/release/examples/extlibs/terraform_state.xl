@@ -6,7 +6,7 @@ func main(...) as int
     println("Resource 0 = " + terraform_state.resourceType(0))
     println("Action 0 = " + terraform_state.stateAction(0))
     println("Backend 1 = " + terraform_state.backend(1))
-    println("Valid = " + string.fromInt(terraform_state.validateAddress("aws_instance.web")))
+    println("Valid = " + string(terraform_state.validateAddress("aws_instance.web")))
 
     println("terraform_state example: PASS")
     return 0

@@ -1,0 +1,320 @@
+// sha3 — SHA-3 (Keccak) 哈希 + SHAKE XOF，Buffer/string/文件/流式。
+extern "xrtGetError" func __sha3_error() as string
+extern "xsha3_version" func __sha3_version() as string
+extern "xsha3_hash_hex" func __sha3_hash_hex(point data, c_size size, c_int bits) as string
+extern "xsha3_hash_str_hex" func __sha3_hash_str(string data, c_size size, c_int bits) as string
+extern "xsha3_hash_bytes" func __sha3_hash_bytes(point data, c_size size, c_int bits) as point
+extern "xsha3_hash_str_bytes" func __sha3_hash_str_bytes(string data, c_size size, c_int bits) as point
+extern "xshake_hash_hex" func __shake_hash_hex(point data, c_size size, c_int strength, c_size outLen) as string
+extern "xshake_hash_str_hex" func __shake_hash_str(string data, c_size size, c_int strength, c_size outLen) as string
+extern "xsha3_file_hex" func __sha3_file_hex(string path, c_ulonglong maxInput, c_int bits) as string
+
+
+
+// 返回内嵌 SHA-3 引擎的版本号。
+export func version() as string
+    return __sha3_version()
+end
+
+func __sha3_check_limit(int value, string name)
+    if value <= 0 then
+        throw ValueError name + " must be greater than zero"
+    end
+end
+
+
+
+
+
+// ═══════════════ SHA3 一次性哈希 ═══════════════
+
+// SHA3-256 哈希（默认，返回 64 字符十六进制字符串）。
+export func hash256Hex(Buffer data) as string
+    string result = __sha3_hash_hex(data.data(), c_size(data.len()), c_int(256))
+    if result == "" then
+        throw ValueError __sha3_error()
+    end
+    return result
+end
+
+export func hash256Hex(string text) as string
+    string result = __sha3_hash_str(text, c_size(string.len(text)), c_int(256))
+    if result == "" then
+        throw ValueError __sha3_error()
+    end
+    return result
+end
+
+// SHA3-256 哈希（返回 32 字节原始摘要 Buffer）。
+export func hash256Bytes(Buffer data) as Buffer
+    point result = __sha3_hash_bytes(data.data(), c_size(data.len()), c_int(256))
+    if result == null then
+        throw ValueError __sha3_error()
+    end
+    return Buffer(result)
+end
+
+export func hash256Bytes(string text) as Buffer
+    point result = __sha3_hash_str_bytes(text, c_size(string.len(text)), c_int(256))
+    if result == null then
+        throw ValueError __sha3_error()
+    end
+    return Buffer(result)
+end
+
+// SHA3 可选位宽（224/256/384/512）。
+export func hashHex(Buffer data, int bits = 256) as string
+    string result = __sha3_hash_hex(data.data(), c_size(data.len()), c_int(bits))
+    if result == "" then
+        throw ValueError __sha3_error()
+    end
+    return result
+end
+
+export func hashHex(string text, int bits = 256) as string
+    string result = __sha3_hash_str(text, c_size(string.len(text)), c_int(bits))
+    if result == "" then
+        throw ValueError __sha3_error()
+    end
+    return result
+end
+
+// SHA3 可选位宽（返回原始字节 Buffer）。
+export func hashBytes(Buffer data, int bits = 256) as Buffer
+    point result = __sha3_hash_bytes(data.data(), c_size(data.len()), c_int(bits))
+    if result == null then
+        throw ValueError __sha3_error()
+    end
+    return Buffer(result)
+end
+
+export func hashBytes(string text, int bits = 256) as Buffer
+    point result = __sha3_hash_str_bytes(text, c_size(string.len(text)), c_int(bits))
+    if result == null then
+        throw ValueError __sha3_error()
+    end
+    return Buffer(result)
+end
+
+
+
+// ═══════════════ SHAKE XOF ═══════════════
+
+// SHAKE128 变长输出。
+export func shake128Hex(Buffer data, int outLen = 32) as string
+    string result = __shake_hash_hex(data.data(), c_size(data.len()), c_int(128), c_size(outLen))
+    if result == "" then
+        throw ValueError __sha3_error()
+    end
+    return result
+end
+
+export func shake128Hex(string text, int outLen = 32) as string
+    string result = __shake_hash_str(text, c_size(string.len(text)), c_int(128), c_size(outLen))
+    if result == "" then
+        throw ValueError __sha3_error()
+    end
+    return result
+end
+
+// SHAKE256 变长输出。
+export func shake256Hex(Buffer data, int outLen = 32) as string
+    string result = __shake_hash_hex(data.data(), c_size(data.len()), c_int(256), c_size(outLen))
+    if result == "" then
+        throw ValueError __sha3_error()
+    end
+    return result
+end
+
+export func shake256Hex(string text, int outLen = 32) as string
+    string result = __shake_hash_str(text, c_size(string.len(text)), c_int(256), c_size(outLen))
+    if result == "" then
+        throw ValueError __sha3_error()
+    end
+    return result
+end
+
+
+
+// ═══════════════ 文件哈希 ═══════════════
+
+export func hashFileHex(string path, int bits = 256, int maxInput = 268435456) as string
+    __sha3_check_limit(maxInput, "maxInput")
+    string result = __sha3_file_hex(path, c_ulonglong(maxInput), c_int(bits))
+    if result == "" then
+        throw FileError __sha3_error()
+    end
+    return result
+end
+
+
+
+// ═══════════════ SHA3 流式哈希器 ═══════════════
+
+export class Sha3Hasher
+    native point handle
+    extern "xsha3_hasher_create" create(c_int bits, c_ulonglong maxInput)
+    extern "xsha3_hasher_adopt" create(point handle)
+    extern "xsha3_hasher_destroy" destroy()
+    extern "xsha3_hasher_update" func updateNative(point data, c_size size) as bool
+    extern "xsha3_hasher_update_str" func updateStrNative(string data, c_size size) as bool
+    extern "xsha3_hasher_digest_hex" func digestHexNative(c_size outLen) as string
+    extern "xsha3_hasher_digest_bytes" func digestBytesNative(c_size outLen) as point
+    extern "xsha3_hasher_reset" func resetNative() as bool
+    extern "xsha3_hasher_input_bytes" func inputBytesNative() as int
+    extern "xsha3_hasher_out_bytes" func outBytesNative() as int
+    extern "xsha3_hasher_clone" func cloneNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get inputBytes() as int
+        return self.inputBytesNative()
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw ValueError __sha3_error()
+        end
+    end
+
+    func update(string text)
+        if not self.updateStrNative(text, c_size(string.len(text))) then
+            throw ValueError __sha3_error()
+        end
+    end
+
+    // outLen=0 表示使用该 SHA3 变体的自然输出长度。
+    func digestHex(int outLen = 0) as string
+        c_size sz = c_size(outLen)
+        if outLen == 0 then
+            sz = c_size(self.outBytesNative())
+        end
+        string result = self.digestHexNative(sz)
+        if result == "" then
+            throw ValueError __sha3_error()
+        end
+        return result
+    end
+
+    // 读取当前摘要（原始 Buffer，不终结状态）。outLen=0 表示自然输出长度。
+    func digestBytes(int outLen = 0) as Buffer
+        c_size sz = c_size(outLen)
+        if outLen == 0 then
+            sz = c_size(self.outBytesNative())
+        end
+        point result = self.digestBytesNative(sz)
+        if result == null then
+            throw ValueError __sha3_error()
+        end
+        return Buffer(result)
+    end
+
+    func reset() as bool
+        if not self.resetNative() then
+            throw ValueError __sha3_error()
+        end
+        return true
+    end
+
+    func clone() as Sha3Hasher
+        point hp = self.cloneNative()
+        if hp == null then
+            throw ValueError __sha3_error()
+        end
+        return Sha3Hasher(hp)
+    end
+end
+
+
+
+// ═══════════════ SHAKE 流式哈希器 ═══════════════
+
+export class ShakeHasher
+    native point handle
+    extern "xsha3_shake_hasher_create" create(c_int strength, c_ulonglong maxInput)
+    extern "xsha3_hasher_adopt" create(point handle)
+    extern "xsha3_hasher_destroy" destroy()
+    extern "xsha3_hasher_update" func updateNative(point data, c_size size) as bool
+    extern "xsha3_hasher_update_str" func updateStrNative(string data, c_size size) as bool
+    extern "xsha3_hasher_digest_hex" func digestHexNative(c_size outLen) as string
+    extern "xsha3_hasher_digest_bytes" func digestBytesNative(c_size outLen) as point
+    extern "xsha3_hasher_reset" func resetNative() as bool
+    extern "xsha3_hasher_input_bytes" func inputBytesNative() as int
+    extern "xsha3_hasher_clone" func cloneNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get inputBytes() as int
+        return self.inputBytesNative()
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw ValueError __sha3_error()
+        end
+    end
+
+    func update(string text)
+        if not self.updateStrNative(text, c_size(string.len(text))) then
+            throw ValueError __sha3_error()
+        end
+    end
+
+    func digestHex(int outLen = 32) as string
+        string result = self.digestHexNative(c_size(outLen))
+        if result == "" then
+            throw ValueError __sha3_error()
+        end
+        return result
+    end
+
+    // 读取当前 SHAKE 摘要（原始 Buffer，不终结状态）。
+    func digestBytes(int outLen = 32) as Buffer
+        point result = self.digestBytesNative(c_size(outLen))
+        if result == null then
+            throw ValueError __sha3_error()
+        end
+        return Buffer(result)
+    end
+
+    func reset() as bool
+        if not self.resetNative() then
+            throw ValueError __sha3_error()
+        end
+        return true
+    end
+
+    func clone() as ShakeHasher
+        point hp = self.cloneNative()
+        if hp == null then
+            throw ValueError __sha3_error()
+        end
+        return ShakeHasher(hp)
+    end
+end
+
+
+
+// ═══════════════ 工厂函数 ═══════════════
+
+export func sha3Hasher(int bits = 256, int maxInput = 268435456) as Sha3Hasher
+    __sha3_check_limit(maxInput, "maxInput")
+    Sha3Hasher result = Sha3Hasher(c_int(bits), c_ulonglong(maxInput))
+    if not result.valid then
+        throw ValueError __sha3_error()
+    end
+    return result
+end
+
+export func shakeHasher(int strength = 128, int maxInput = 268435456) as ShakeHasher
+    __sha3_check_limit(maxInput, "maxInput")
+    ShakeHasher result = ShakeHasher(c_int(strength), c_ulonglong(maxInput))
+    if not result.valid then
+        throw ValueError __sha3_error()
+    end
+    return result
+end

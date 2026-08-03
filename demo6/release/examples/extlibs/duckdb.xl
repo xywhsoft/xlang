@@ -6,7 +6,7 @@ func main(...) as int
     println("Type 3 = " + duckdb.dataType(3))
     println("Agg 2 = " + duckdb.aggregateFunc(2))
     println("Format 1 = " + duckdb.storageFormat(1))
-    println("Cost 1000x5 join = " + string.int(duckdb.estimateCost(1000, 5, 1)))
+    println("Cost 1000x5 join = " + string(duckdb.estimateCost(1000, 5, 1)))
 
     println("duckdb example: PASS")
     return 0

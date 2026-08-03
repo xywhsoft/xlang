@@ -26,6 +26,13 @@ static void xbz2_options(xrtbz2options* pOptions, int iLevel, bool bSmallMemory,
 	if ( iMaxRatio != 0u ) { pOptions->tLimits.iMaxCompressionRatio = iMaxRatio; }
 }
 
+static void xbz2_options_wf(xrtbz2options* pOptions, int iLevel, int iWorkFactor,
+	uint64 iMaxInput, uint64 iMaxOutput)
+{
+	xbz2_options(pOptions, iLevel, FALSE, iMaxInput, iMaxOutput, 0u);
+	if ( iWorkFactor != 0 ) { pOptions->iWorkFactor = iWorkFactor; }
+}
+
 static bool xbz2_transform_file(str sSource, str sDestination, bool bCompress,
 	bool bOverwrite, const xrtbz2options* pOptions)
 {
@@ -86,6 +93,12 @@ XBZ2_EXPORT void* xbz2_compress(const void* pData, size_t iSize, int iLevel,
 	return pOutput;
 }
 
+XBZ2_EXPORT void* xbz2_compress_str(const char* sText, size_t iSize, int iLevel,
+	uint64 iMaxInput, uint64 iMaxOutput)
+{
+	return xbz2_compress((const void*)sText, iSize, iLevel, iMaxInput, iMaxOutput);
+}
+
 XBZ2_EXPORT void* xbz2_decompress(const void* pData, size_t iSize, bool bSmallMemory,
 	uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio)
 {
@@ -122,12 +135,13 @@ XBZ2_EXPORT bool xbz2_decompress_file(str sSource, str sDestination,
 
 
 
-XBZ2_EXPORT void* xbz2_compressor_create(int iLevel, uint64 iMaxInput, uint64 iMaxOutput)
+XBZ2_EXPORT void* xbz2_compressor_create(int iLevel, int iWorkFactor,
+	uint64 iMaxInput, uint64 iMaxOutput)
 {
 	xrtbz2options tOptions;
 	xrtbz2compressor* pCompressor;
 	xrtClearError();
-	xbz2_options(&tOptions, iLevel, FALSE, iMaxInput, iMaxOutput, 0u);
+	xbz2_options_wf(&tOptions, iLevel, iWorkFactor, iMaxInput, iMaxOutput);
 	pCompressor = xrtBz2CompressorCreate(&tOptions);
 	if ( pCompressor == NULL || xrtBz2CompressorError(pCompressor)->iCode != XRT_BZ2_OK ) {
 		xbz2_publish_error(xrtBz2CompressorError(pCompressor));
@@ -152,14 +166,40 @@ XBZ2_EXPORT bool xbz2_compressor_update(void* pHandle, const void* pData, size_t
 	return TRUE;
 }
 
-XBZ2_EXPORT void* xbz2_compressor_finish(void* pHandle)
+XBZ2_EXPORT bool xbz2_compressor_update_str(void* pHandle, const char* sText, size_t iSize)
+{
+	return xbz2_compressor_update(pHandle, (const void*)sText, iSize);
+}
+
+XBZ2_EXPORT bool xbz2_compressor_finish(void* pHandle)
 {
 	xrtbz2compressor* pCompressor = (xrtbz2compressor*)pHandle;
 	if ( !xrtBz2CompressorFinish(pCompressor) ) {
 		xbz2_publish_error(xrtBz2CompressorError(pCompressor));
+		return FALSE;
+	}
+	return TRUE;
+}
+
+XBZ2_EXPORT void* xbz2_compressor_drain(void* pHandle)
+{
+	xrtbz2compressor* pCompressor = (xrtbz2compressor*)pHandle;
+	xbuffer pOutput = xrtBz2CompressorDrainBuffer(pCompressor);
+	if ( pOutput == NULL ) {
+		xbz2_publish_error(xrtBz2CompressorError(pCompressor));
 		return NULL;
 	}
-	return xrtBz2CompressorTakeBuffer(pCompressor);
+	return pOutput;
+}
+
+XBZ2_EXPORT uint64 xbz2_compressor_input_bytes(void* pHandle)
+{
+	return xrtBz2CompressorInputBytes((const xrtbz2compressor*)pHandle);
+}
+
+XBZ2_EXPORT uint64 xbz2_compressor_output_bytes(void* pHandle)
+{
+	return xrtBz2CompressorOutputBytes((const xrtbz2compressor*)pHandle);
 }
 
 
@@ -195,12 +235,43 @@ XBZ2_EXPORT bool xbz2_decompressor_update(void* pHandle, const void* pData, size
 	return TRUE;
 }
 
-XBZ2_EXPORT void* xbz2_decompressor_finish(void* pHandle)
+XBZ2_EXPORT bool xbz2_decompressor_finish(void* pHandle)
 {
 	xrtbz2decompressor* pDecompressor = (xrtbz2decompressor*)pHandle;
 	if ( !xrtBz2DecompressorFinish(pDecompressor) ) {
 		xbz2_publish_error(xrtBz2DecompressorError(pDecompressor));
+		return FALSE;
+	}
+	return TRUE;
+}
+
+XBZ2_EXPORT void* xbz2_decompressor_drain(void* pHandle)
+{
+	xrtbz2decompressor* pDecompressor = (xrtbz2decompressor*)pHandle;
+	xbuffer pOutput = xrtBz2DecompressorDrainBuffer(pDecompressor);
+	if ( pOutput == NULL ) {
+		xbz2_publish_error(xrtBz2DecompressorError(pDecompressor));
 		return NULL;
 	}
-	return xrtBz2DecompressorTakeBuffer(pDecompressor);
+	return pOutput;
+}
+
+XBZ2_EXPORT uint64 xbz2_decompressor_input_bytes(void* pHandle)
+{
+	return xrtBz2DecompressorInputBytes((const xrtbz2decompressor*)pHandle);
+}
+
+XBZ2_EXPORT uint64 xbz2_decompressor_output_bytes(void* pHandle)
+{
+	return xrtBz2DecompressorOutputBytes((const xrtbz2decompressor*)pHandle);
+}
+
+XBZ2_EXPORT bool xbz2_decompressor_finished(void* pHandle)
+{
+	return xrtBz2DecompressorFinished((const xrtbz2decompressor*)pHandle);
+}
+
+XBZ2_EXPORT uint64 xbz2_decompressor_members(void* pHandle)
+{
+	return xrtBz2DecompressorMembers((const xrtbz2decompressor*)pHandle);
 }

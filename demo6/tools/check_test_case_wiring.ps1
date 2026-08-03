@@ -16,7 +16,8 @@ $minCasePrefixes = 28
 $wiringFiles = @(
     "test.bat",
     "test_tutorial.bat",
-    "release\examples\feature_suite\run_feature_suite.bat"
+    "release\examples\feature_suite\run_feature_suite.bat",
+    "tools\run_extlib_tests.ps1"
 )
 
 $failures = New-Object System.Collections.Generic.List[string]
@@ -83,7 +84,7 @@ function Expand-BatchCaseMatrices($text)
     $expanded = New-Object System.Collections.Generic.List[string]
     $matches = [regex]::Matches(
         $text,
-        '(?is)for\s+%%(?<var>[A-Za-z])\s+in\s*\((?<items>.*?)\)\s+do\s*\((?<body>.*?)\)')
+        '(?ims)^\s*for\s+%%(?<var>[A-Za-z])\s+in\s*\(\s*\r?\n(?<items>.*?)^\s*\)\s+do\s*\(\s*\r?\n(?<body>.*?)^\s*\)')
 
     foreach ( $match in $matches ) {
         $varName = $match.Groups['var'].Value
@@ -95,6 +96,26 @@ function Expand-BatchCaseMatrices($text)
         }
         foreach ( $itemMatch in [regex]::Matches($match.Groups['items'].Value, '(?m)^\s*([A-Za-z0-9_.-]+)\s*$') ) {
             $expanded.Add("test/cases/$($itemMatch.Groups[1].Value).xl") | Out-Null
+        }
+    }
+    return @($expanded)
+}
+
+function Expand-CaseGlobs($text, $cases, $rootPath)
+{
+    $expanded = New-Object System.Collections.Generic.List[string]
+    $patterns = [regex]::Matches(
+        $text,
+        'test[\\/]+cases[\\/]+([^"''\s>]*[*?][^"''\s>]*\.xl)')
+
+    foreach ( $patternMatch in $patterns ) {
+        $pattern = Normalize-PathText $patternMatch.Groups[1].Value
+        foreach ( $case in $cases ) {
+            $relative = Normalize-PathText ($case.FullName.Substring($rootPath.Length + 1))
+            $caseRelative = $relative.Substring("test/cases/".Length)
+            if ( $caseRelative -like $pattern ) {
+                $expanded.Add($relative) | Out-Null
+            }
         }
     }
     return @($expanded)
@@ -156,6 +177,7 @@ $rootPath = (Resolve-Path -LiteralPath $Root).Path
 $cases = @(Get-ChildItem -LiteralPath $caseDir -Filter "*.xl" -File -Recurse | Sort-Object FullName)
 $casePrefixes = New-Object System.Collections.Generic.HashSet[string]
 $wiringText += "`n" + [string]::Join("`n", @(Expand-BatchCaseMatrices $wiringText))
+$wiringText += "`n" + [string]::Join("`n", @(Expand-CaseGlobs $wiringText $cases $rootPath))
 $wiringText += "`n" + [string]::Join("`n", @(Get-ImportedCaseReferences $cases $caseDir))
 
 foreach ( $case in $cases ) {

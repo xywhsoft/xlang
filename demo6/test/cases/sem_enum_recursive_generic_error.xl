@@ -1,0 +1,3 @@
+enum Box<T>
+    nested(Box<array<T>> value)
+end

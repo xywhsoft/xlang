@@ -2,9 +2,9 @@ import flatbuffers
 
 func main(...) as int
     println("Type 11 = " + flatbuffers.type(11))
-    println("Size of double = " + string.int(flatbuffers.typeSize(10)))
-    println("Align(7,8) = " + string.int(flatbuffers.align(7, 8)))
-    println("VTable offset 3 = " + string.int(flatbuffers.vtableOffset(3)))
+    println("Size of double = " + string(flatbuffers.typeSize(10)))
+    println("Align(7,8) = " + string(flatbuffers.align(7, 8)))
+    println("VTable offset 3 = " + string(flatbuffers.vtableOffset(3)))
     println("State 0 = " + flatbuffers.builderState(0))
 
     println("flatbuffers example: PASS")

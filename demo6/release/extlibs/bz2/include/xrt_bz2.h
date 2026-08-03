@@ -49,6 +49,9 @@ XXAPI bool xrtBz2CompressorUpdate(xrtbz2compressor* pCompressor, const void* pDa
 XXAPI bool xrtBz2CompressorFinish(xrtbz2compressor* pCompressor);
 XXAPI bool xrtBz2CompressorDrain(xrtbz2compressor* pCompressor, xwriter pWriter);
 XXAPI xbuffer xrtBz2CompressorTakeBuffer(xrtbz2compressor* pCompressor);
+XXAPI xbuffer xrtBz2CompressorDrainBuffer(xrtbz2compressor* pCompressor);
+XXAPI uint64 xrtBz2CompressorInputBytes(const xrtbz2compressor* pCompressor);
+XXAPI uint64 xrtBz2CompressorOutputBytes(const xrtbz2compressor* pCompressor);
 XXAPI const xrtbz2error* xrtBz2CompressorError(const xrtbz2compressor* pCompressor);
 XXAPI void xrtBz2CompressorDestroy(xrtbz2compressor* pCompressor);
 
@@ -57,6 +60,11 @@ XXAPI bool xrtBz2DecompressorUpdate(xrtbz2decompressor* pDecompressor, const voi
 XXAPI bool xrtBz2DecompressorFinish(xrtbz2decompressor* pDecompressor);
 XXAPI bool xrtBz2DecompressorDrain(xrtbz2decompressor* pDecompressor, xwriter pWriter);
 XXAPI xbuffer xrtBz2DecompressorTakeBuffer(xrtbz2decompressor* pDecompressor);
+XXAPI xbuffer xrtBz2DecompressorDrainBuffer(xrtbz2decompressor* pDecompressor);
+XXAPI uint64 xrtBz2DecompressorInputBytes(const xrtbz2decompressor* pDecompressor);
+XXAPI uint64 xrtBz2DecompressorOutputBytes(const xrtbz2decompressor* pDecompressor);
+XXAPI bool xrtBz2DecompressorFinished(const xrtbz2decompressor* pDecompressor);
+XXAPI uint64 xrtBz2DecompressorMembers(const xrtbz2decompressor* pDecompressor);
 XXAPI const xrtbz2error* xrtBz2DecompressorError(const xrtbz2decompressor* pDecompressor);
 XXAPI void xrtBz2DecompressorDestroy(xrtbz2decompressor* pDecompressor);
 

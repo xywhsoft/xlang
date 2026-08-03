@@ -1,0 +1,18 @@
+class TypedContainerOwner
+    array<int> values = [1, 2, 3]
+end
+
+func makeValues() as array<int>
+    return [4, 5, 6]
+end
+
+TypedContainerOwner owner = TypedContainerOwner()
+array<int> fieldCopy = owner.values
+assert(fieldCopy.length == 3)
+assert(fieldCopy[1] == 2)
+
+array<int> assigned = []
+assigned = makeValues()
+assert(assigned.length == 3)
+assert(assigned[2] == 6)
+println("typed container storage copy ok")

@@ -1,9 +1,20 @@
-int xl6CgenEmitC(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags)
+int xl6CgenEmitC(
+    XL6_Output* out,
+    XL6_AstNode* root,
+    const XL6_HirModule* hir,
+    XL6_DiagList* diags
+)
 {
-    return xl6CgenEmitCEx(out, root, diags, NULL);
+    return xl6CgenEmitCEx(out, root, hir, diags, NULL);
 }
 
-int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, const XL6_CgenOptions* options)
+int xl6CgenEmitCEx(
+    XL6_Output* out,
+    XL6_AstNode* root,
+    const XL6_HirModule* hir,
+    XL6_DiagList* diags,
+    const XL6_CgenOptions* options
+)
 {
     XL6_CgenContext ctx;
     size_t i;
@@ -54,13 +65,23 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     int needsObjectClass;
     const XL6_AstNode* mainFunc;
 
-    if ( out == NULL || root == NULL ) {
+    if ( out == NULL || root == NULL || hir == NULL || !hir->ready ||
+         hir->sourceRoot != root ) {
+        if ( diags != NULL ) {
+            xl6DiagAdd(
+                diags,
+                root != NULL ? root->line : 0,
+                root != NULL ? root->column : 0,
+                "代码生成要求与当前 AST 对应的已完成 typed HIR"
+            );
+        }
         return 0;
     }
 
     memset(&ctx, 0, sizeof(ctx));
     ctx.out = out;
     ctx.root = root;
+    ctx.hir = hir;
     ctx.diags = diags;
     ctx.ok = 1;
     if ( options != NULL ) {
@@ -75,17 +96,28 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     xl6CgenCollectAnonFuncs(&ctx, root);
     xl6CgenCollectGenericInstancesToFixedPoint(&ctx);
     xl6CgenDiscoverGenericClassInstancesToFixedPoint(&ctx);
+    xl6CgenCollectGenericProtocolInstances(&ctx, root);
+    xl6CgenCollectNullableTypes(&ctx);
     xl6CgenCollectRuntimeTypeDescs(&ctx, root);
     xl6CgenFreeVarsSince(&ctx, 0);
     mainFunc = xl6CgenFindMainEntry(root);
     needsObjectClass = xl6CgenNodeNeedsBuiltinObjectClass(root);
     hasTopLevel = xl6CgenHasTopLevelRuntimeStmt(root);
     hasModuleGlobals = xl6CgenHasModuleGlobalDecl(root);
-    hasEntryRuntime = hasTopLevel || hasModuleGlobals;
+    /*
+        protocol witness 具有模块级注册/注销生命周期。
+        即使源文件只有 main，也必须经过统一模块入口，不能绕过元数据初始化。
+    */
+    hasEntryRuntime = hasTopLevel || hasModuleGlobals ||
+                      xl6CgenHasUserProtocols(&ctx);
     hasStringRuntime = xl6CgenProgramNeedsStringRuntime(&ctx, root);
     hasTypeConvertRuntime = xl6CgenProgramNeedsTypeConvertRuntime(&ctx, root);
     hasFunctionRuntime = xl6CgenNodeNeedsFunctionRuntime(root);
     hasFunctionVarRuntime = xl6CgenProgramNeedsFunctionVarRuntime(&ctx, root);
+    /* bare function name passed as call argument needs function-var runtime */
+    if ( !hasFunctionVarRuntime && xl6CgenProgramHasBareFuncCallArg(&ctx, root) ) {
+        hasFunctionVarRuntime = 1;
+    }
     hasClassHandleRuntime = xl6CgenNodeNeedsClassHandleRuntime(root);
     hasXValueRuntime = xl6CgenNodeNeedsXValueRuntime(root) || hasFunctionVarRuntime ||
                        ctx.runtimeTypeDescCount > 0 || hasClassHandleRuntime;
@@ -197,6 +229,14 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         hasFunctionVarRuntime = 1;
         hasXValueRuntime = 1;
     }
+    /*
+        动态函数调用通过 xvalue 返回结果，再转换为静态返回类型。
+        必须在所有复合 needs 展开后收闭包，不能依赖运行时头中的重复 helper。
+    */
+    if ( hasFunctionVarRuntime ) {
+        hasTypeConvertRuntime = 1;
+        hasErrorRuntime = 1;
+    }
     ctx.needsXValueRuntime = hasXValueRuntime;
     ctx.needsFunctionVarRuntime = hasFunctionVarRuntime;
     ctx.needsErrorRuntime = hasErrorRuntime;
@@ -208,6 +248,21 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     xl6OutputPuts("#include <stdlib.h>\n", out);
     xl6OutputPuts("#include <stddef.h>\n", out);
     xl6OutputPuts("#include <string.h>\n\n", out);
+    xl6OutputPuts("#ifndef XL6_C_API\n", out);
+    xl6OutputPuts("#if defined(_WIN32) || defined(_WIN64)\n", out);
+    xl6OutputPuts("#if defined(XL6_BUILD_SHARED)\n", out);
+    xl6OutputPuts("#define XL6_C_API __declspec(dllexport)\n", out);
+    xl6OutputPuts("#elif defined(XL6_USE_SHARED)\n", out);
+    xl6OutputPuts("#define XL6_C_API __declspec(dllimport)\n", out);
+    xl6OutputPuts("#else\n", out);
+    xl6OutputPuts("#define XL6_C_API\n", out);
+    xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("#elif defined(__GNUC__) && defined(XL6_BUILD_SHARED)\n", out);
+    xl6OutputPuts("#define XL6_C_API __attribute__((visibility(\"default\")))\n", out);
+    xl6OutputPuts("#else\n", out);
+    xl6OutputPuts("#define XL6_C_API\n", out);
+    xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("#endif\n\n", out);
     if ( ctx.debugMode ) {
         xl6OutputPuts("#include <stdio.h>\n\n", out);
     }
@@ -264,6 +319,12 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     if ( hasFileRuntime ) {
         xl6CgenEmitFileRuntime(out);
     }
+    /*
+        复合运行时类型描述可能引用 protocol TypeDesc。
+        原型必须先于 descriptor 定义，而不是等到 class 声明阶段。
+    */
+    xl6CgenUserProtocolTypeProtos(&ctx);
+    xl6CgenEmitNullableTypeDescProtos(&ctx);
     if ( hasXValueRuntime ) {
         xl6CgenEmitRuntimeTypeDescs(&ctx);
     }
@@ -355,12 +416,15 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         xl6CgenEmitRangeContainsHelper(out);
     }
     xl6CgenClassForwardDecls(&ctx, root);
+    xl6CgenEnumDecls(&ctx);
 
     for ( i = 0; i < root->childCount; ++i ) {
         if ( root->children[i]->kind == XL6_AST_UNION ) {
             xl6CgenUnionDecls(&ctx, root->children[i]);
         }
     }
+    xl6CgenEmitNullableTypeDecls(&ctx, hasAsyncRuntime);
+    xl6CgenEmitNullableTypeDescs(&ctx);
     xl6CgenRegisterModuleGlobalTypes(&ctx, root);
     xl6CgenEmitModuleGlobalForwardDecls(&ctx, root);
     /* 泛型 class helper 可能读取模块常量，必须晚于模块值前置声明。 */
@@ -488,6 +552,7 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     }
     xl6CgenGenericClassMethodProtos(&ctx);
     xl6CgenClassProtocolWrapperProtos(&ctx);
+    xl6CgenUserProtocolProtos(&ctx);
     xl6CgenEmitModuleGlobalDecls(&ctx, root);
     if ( root->childCount > 0 ) {
         xl6OutputPutc('\n', out);
@@ -508,11 +573,13 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
         if ( root->children[i]->kind == XL6_AST_CLASS &&
              (!xl6CgenIsBuiltinObjectClass(root->children[i]) || needsObjectClass) ) {
             xl6CgenClassMethods(&ctx, root->children[i]);
+            xl6CgenEmitDynamicMethodDefinitions(&ctx, root->children[i]);
         }
     }
 
     xl6CgenGenericClassMethods(&ctx);
     xl6CgenClassProtocolWrappers(&ctx);
+    xl6CgenUserProtocolDefinitions(&ctx);
 
     for ( i = 0; i < root->childCount; ++i ) {
         if ( root->children[i]->kind == XL6_AST_FUNC &&
@@ -574,10 +641,15 @@ int xl6CgenEmitCEx(XL6_Output* out, XL6_AstNode* root, XL6_DiagList* diags, cons
     xl6CgenFreeFinallyTargets(&ctx);
     xl6CgenFreeGenericInstances(&ctx);
     xl6CgenFreeGenericClassInstances(&ctx);
+    xl6CgenFreeGenericProtocolInstances(&ctx);
+    xl6CgenFreeGenericEnumInstances(&ctx);
+    xl6CgenFreeNullableTypes(&ctx);
     xl6CgenFreeRuntimeTypeDescs(&ctx);
     xl6CgenFreeAnonFuncs(&ctx);
     xl6CgenFreeOwnedTypeNodes(&ctx);
+    xl6CgenFreeTextBlocks(&ctx);
     xl6CgenTypeCacheFree(&ctx);
     xl6CgenFreeRootTypeIndex(&ctx);
+    xrtFree(ctx.coalesceSlots);
     return hasTopLevel;
 }

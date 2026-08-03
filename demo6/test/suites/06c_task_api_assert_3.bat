@@ -209,7 +209,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing repeated failed task.all future fixture.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(repeatedFailedAll" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_future_await_value(repeatedFailedAll" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing repeated await for failed task.all future.
     exit /b 1
@@ -219,7 +219,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should pass failed task.all future cancel as borrowed.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(repeatedFailedAll" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_future_await_value(repeatedFailedAll" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep failed task.all future awaitable after cancel.
     exit /b 1
@@ -339,12 +339,12 @@ if errorlevel 1 (
     echo cgen_task_api.c missing task.race typed string array argument retain.
     exit /b 1
 )
-findstr /C:"= xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(__xl6_call_arg_" build\test\cgen_task_api.assert.c >nul
+findstr /C:"= xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(__xl6_call_arg_" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.race typed string array await path.
     exit /b 1
 )
-findstr /C:"typedStringRace = xrtCopyStr(__xl6_global_init_" build\test\cgen_task_api.assert.c >nul
+findstr /C:"typedStringRace = __xl6_global_init_" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.race typed string managed result assignment.
     exit /b 1
@@ -529,7 +529,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should pass task.all failed temporary as owned and slow source as borrowed.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(allFailureGroup" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_future_await_value(allFailureGroup" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all fast-failure group await.
     exit /b 1
@@ -544,7 +544,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array task.all fast-failure slow-source fixture.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(typedAllFailureGroup" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_future_await_value(typedAllFailureGroup" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array task.all fast-failure group await.
     exit /b 1
@@ -694,7 +694,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should pass failed class race temporary as owned and loser as borrowed.
     exit /b 1
 )
-findstr /C:"taskBoxRaceFailureLoserValueB = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(taskBoxRaceFailureSlowLoser" build\test\cgen_task_api.assert.c >nul
+findstr /C:"taskBoxRaceFailureLoserValueB = xl6_future_await_xvalue_copy(taskBoxRaceFailureSlowLoser" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing failed class race loser repeated await.
     exit /b 1
@@ -739,7 +739,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing repeated failed class task.all future.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(repeatedFailedTaskBoxAll" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_future_await_value(repeatedFailedTaskBoxAll" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing repeated await for failed class task.all future.
     exit /b 1
@@ -749,7 +749,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should pass failed class task.all cancel as borrowed.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(repeatedFailedTaskBoxAll" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_future_await_value(repeatedFailedTaskBoxAll" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep failed class task.all awaitable after cancel.
     exit /b 1
@@ -759,7 +759,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing repeated failed class task.race future.
     exit /b 1
 )
-findstr /C:"secondFailedTaskBoxRace = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(repeatedFailedTaskBoxRace" build\test\cgen_task_api.assert.c >nul
+findstr /C:"secondFailedTaskBoxRace = xl6_future_await_xvalue_copy(repeatedFailedTaskBoxRace" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing repeated await for failed class task.race future.
     exit /b 1
@@ -769,7 +769,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing failed typed-array class task.race future.
     exit /b 1
 )
-findstr /C:"failedTypedTaskBoxRace = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(failedTypedTaskBoxRaceFuture" build\test\cgen_task_api.assert.c >nul
+findstr /C:"failedTypedTaskBoxRace = xl6_future_await_xvalue_copy(failedTypedTaskBoxRaceFuture" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing failed typed-array class task.race await.
     exit /b 1
@@ -779,7 +779,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing repeated failed function task.all future.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(repeatedFailedTaskFuncAll" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_future_await_value(repeatedFailedTaskFuncAll" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing repeated await for failed function task.all future.
     exit /b 1
@@ -834,7 +834,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing failed string task.all named future fixture.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(repeatedFailedStringAll" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_future_await_value(repeatedFailedStringAll" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing failed string task.all first await copy.
     exit /b 1

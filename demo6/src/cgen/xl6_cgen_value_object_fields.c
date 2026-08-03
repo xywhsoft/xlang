@@ -150,11 +150,8 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
     XL6_AstNode* ownedReceiverType;
 
     receiver = member->childCount > 0 ? member->children[0] : NULL;
-    if ( receiver == NULL || (receiver->kind != XL6_AST_NAME &&
-                              receiver->kind != XL6_AST_MEMBER &&
-                              receiver->kind != XL6_AST_INDEX &&
-                              receiver->kind != XL6_AST_CALL) ) {
-        xl6CgenError(ctx, member, "class field receiver must be name, member, index or call");
+    if ( receiver == NULL ) {
+        xl6CgenError(ctx, member, "class field receiver is missing");
         xl6OutputPuts("0", ctx->out);
         return;
     }
@@ -176,7 +173,7 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
     }
 
     ownedReceiverType = NULL;
-    if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX || receiver->kind == XL6_AST_CALL ) {
+    if ( receiver->kind != XL6_AST_NAME ) {
         const XL6_AstNode* refTarget;
         ownedReceiverType = receiver->kind == XL6_AST_MEMBER
             ? xl6CgenCloneMemberFieldTypeForInference(ctx, receiver)
@@ -246,4 +243,118 @@ static void xl6CgenClassFieldAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
         xl6CgenError(ctx, member, "class field not found");
     }
     xl6AstFree(ownedReceiverType);
+}
+
+static void xl6CgenSafeClassFieldValue(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* receiverType,
+    const XL6_AstNode* classNode,
+    const char* fieldName,
+    const char* receiverName,
+    const XL6_AstNode* at)
+{
+    xl6OutputPrintf(
+        ctx->out,
+        "(*((%s*)xl6_class_data(%s, \"\", %d, %d)))",
+        xl6CgenTypeName(ctx, receiverType),
+        receiverName,
+        at != NULL ? at->line : 0,
+        at != NULL ? at->column : 0);
+    if ( !xl6CgenEmitClassFieldSuffix(ctx, classNode, fieldName) ) {
+        xl6CgenError(ctx, at, "safe class field was not found");
+    }
+}
+
+/*
+ * 静态 class 安全字段访问保留字段的真实类型，只在结果上提升为 T?。
+ * 接收者保存在语句局部槽中，保证构造调用和其他有副作用表达式只执行一次。
+ */
+static int xl6CgenSafeClassFieldAccess(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* member)
+{
+    const XL6_AstNode* receiver;
+    const XL6_AstNode* effectiveReceiverType;
+    const XL6_AstNode* classType;
+    const XL6_AstNode* field;
+    XL6_AstNode* receiverType;
+    XL6_AstNode* fieldType;
+    XL6_AstNode* resultType;
+    XL6_AstNode* classNode;
+    XL6_CgenCoalesceSlot* slot;
+    char slotName[64];
+    char resultCType[64];
+
+    if ( ctx == NULL || member == NULL ||
+         member->kind != XL6_AST_SAFE_MEMBER ||
+         member->text == NULL ||
+         member->childCount == 0 ) {
+        return 0;
+    }
+
+    receiver = member->children[0];
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    effectiveReceiverType = xl6CgenIsNullableType(receiverType)
+        ? xl6CgenNullableInnerType(receiverType)
+        : receiverType;
+    classType = xl6CgenClassHandleTargetType(ctx, effectiveReceiverType);
+    classNode = classType != NULL ? xl6CgenFindClass(ctx, classType->text) : NULL;
+    field = classNode != NULL
+        ? xl6CgenFindClassFieldNode(ctx, classNode, member->text)
+        : NULL;
+    if ( classNode == NULL || field == NULL || field->childCount == 0 ) {
+        xl6AstFree(receiverType);
+        return 0;
+    }
+
+    fieldType = xl6CgenCloneMemberFieldTypeForInference(ctx, member);
+    resultType = xl6CgenCloneExprTypeForInference(ctx, member);
+    slot = xl6CgenFindCoalesceSlot(ctx, member);
+    if ( fieldType == NULL || resultType == NULL || slot == NULL ) {
+        xl6CgenError(ctx, member, "safe class field lowering plan is incomplete");
+        xl6OutputPuts("0", ctx->out);
+        xl6AstFree(fieldType);
+        xl6AstFree(resultType);
+        xl6AstFree(receiverType);
+        return 1;
+    }
+
+    xl6CgenCoalesceSlotName(slotName, sizeof(slotName), slot);
+    xl6OutputPrintf(ctx->out, "((%s = ", slotName);
+    xl6CgenExpr(ctx, receiver);
+    xl6OutputPrintf(ctx->out, "), !xvoIsNull(%s) ? ", slotName);
+    if ( xl6CgenNullableUsesTaggedValue(resultType) &&
+         !xl6CgenIsNullableType(fieldType) ) {
+        xl6CgenNullableCTypeName(resultCType, sizeof(resultCType), resultType);
+        xl6OutputPrintf(ctx->out, "(%s){ true, ", resultCType);
+        xl6CgenSafeClassFieldValue(
+            ctx,
+            classType,
+            classNode,
+            member->text,
+            slotName,
+            member);
+        xl6OutputPuts(" }", ctx->out);
+    } else {
+        xl6CgenSafeClassFieldValue(
+            ctx,
+            classType,
+            classNode,
+            member->text,
+            slotName,
+            member);
+    }
+    xl6OutputPuts(" : ", ctx->out);
+    if ( xl6CgenNullableUsesTaggedValue(resultType) ) {
+        xl6CgenNullableCTypeName(resultCType, sizeof(resultCType), resultType);
+        xl6OutputPrintf(ctx->out, "(%s){0}", resultCType);
+    } else {
+        xl6OutputPuts("0", ctx->out);
+    }
+    xl6OutputPutc(')', ctx->out);
+
+    xl6AstFree(fieldType);
+    xl6AstFree(resultType);
+    xl6AstFree(receiverType);
+    return 1;
 }

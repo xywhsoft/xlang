@@ -4,9 +4,7 @@
  */
 #include <stdlib.h>
 #include <string.h>
-
-extern void xrtSetError(const char *msg);
-
+extern void xrtSetError(const void *msg, int bFree);
 static char sl_buf[4096];
 
 #define SL_MAX_LEVEL 32
@@ -51,9 +49,9 @@ static int sl_random_level(XSkipList *sl) {
 
 void *xskiplist_create(void) {
     XSkipList *sl = (XSkipList *)calloc(1, sizeof(XSkipList));
-    if (!sl) { xrtSetError("skiplist: out of memory"); return NULL; }
+    if (!sl) { xrtSetError("skiplist: out of memory", 0); return NULL; }
     sl->header = sl_new_node(SL_MAX_LEVEL, NULL, NULL);
-    if (!sl->header) { free(sl); xrtSetError("skiplist: out of memory"); return NULL; }
+    if (!sl->header) { free(sl); xrtSetError("skiplist: out of memory", 0); return NULL; }
     sl->level = 1;
     sl->count = 0;
     sl->rng = 12345678901234567ULL;
@@ -98,7 +96,7 @@ void xskiplist_set(void *ptr, const char *key, const char *value) {
 
     {
         SLNode *node = sl_new_node(lvl, key, value ? value : "");
-        if (!node) { xrtSetError("skiplist: out of memory"); return; }
+        if (!node) { xrtSetError("skiplist: out of memory", 0); return; }
         for (i = 0; i < lvl; i++) {
             node->forward[i] = update[i]->forward[i];
             update[i]->forward[i] = node;

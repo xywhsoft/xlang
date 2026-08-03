@@ -1,0 +1,32 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "murmur3",
+    "version":  "1.0.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "third_party/MurmurHash3.c",
+                                      "xrt_murmur3.c",
+                                      "murmur3_native.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/murmur3.xl"
+                                   ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

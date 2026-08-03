@@ -1,0 +1,32 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "xxhash",
+    "version":  "1.0.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "xrt_xxhash.c",
+                                      "xxhash_native.c",
+                                      "third_party/xxhash.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/xxhash.xl"
+                                   ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

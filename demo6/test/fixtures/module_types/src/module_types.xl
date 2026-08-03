@@ -1,0 +1,67 @@
+export typedef Count = int
+export extern type NativeCount = c_int
+export extern "abs" func nativeAbs(c_int value) as c_int
+
+export int mutableValue = 40
+export const int fixedValue = 2
+
+export union NumberData
+    int integer
+    float64 number
+end
+
+export protocol Summable
+    func sum() as int
+end
+
+export enum Status as uint8
+    ready = 1
+    busy
+end
+
+export enum Outcome<T>
+    ok(T value)
+    error(string message)
+end
+
+export class Point
+    int x
+    int y
+
+    create(int x = 0, int y = 0)
+        self.x = x
+        self.y = y
+    end
+
+    func sum() as int
+        return self.x + self.y
+    end
+end
+
+export class Box<T>
+    T value
+
+    create(T value)
+        self.value = value
+    end
+
+    func get() as T
+        return self.value
+    end
+end
+
+class Hidden
+    int value = 42
+end
+
+export func makePoint(int x, int y) as Point
+    return Point(x, y)
+end
+
+export func exportedValue() as int
+    return 42
+end
+
+export func makeOutcome(int value) as Outcome<int>
+    return Outcome::<int>.ok(value)
+end

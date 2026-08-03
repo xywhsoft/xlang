@@ -8,9 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-
-extern void xrtSetError(const char *msg);
-
+extern void xrtSetError(const void *msg, int bFree);
 /* ------------------------------------------------------------------ */
 /* Hashing                                                             */
 /* ------------------------------------------------------------------ */
@@ -65,13 +63,13 @@ void *xhll_create(int precision) {
 
     hll = (XHll *)calloc(1, sizeof(XHll));
     if (!hll) {
-        xrtSetError("hyperloglog: out of memory");
+        xrtSetError("hyperloglog: out of memory", 0);
         return NULL;
     }
     hll->registers = (unsigned char *)calloc(m, 1);
     if (!hll->registers) {
         free(hll);
-        xrtSetError("hyperloglog: out of memory for registers");
+        xrtSetError("hyperloglog: out of memory for registers", 0);
         return NULL;
     }
     hll->precision = (unsigned int)precision;
@@ -161,7 +159,7 @@ int xhll_merge(void *dst_ptr, void *src_ptr) {
 
     if (!dst || !src) return 0;
     if (dst->precision != src->precision) {
-        xrtSetError("hyperloglog: cannot merge HLLs with different precision");
+        xrtSetError("hyperloglog: cannot merge HLLs with different precision", 0);
         return 0;
     }
 

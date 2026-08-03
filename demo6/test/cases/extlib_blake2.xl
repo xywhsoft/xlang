@@ -1,0 +1,138 @@
+import blake2
+
+
+
+func main(...) as int
+    // BLAKE2b 一次性哈希：Buffer 与 string 重载一致。
+    Buffer data = Buffer()
+    data.append("abc")
+    string b2b = blake2.blake2bHashHex(data)
+    if blake2.blake2bHashHex("abc") != b2b then
+        return 1
+    end
+    // BLAKE2b 默认 64 字节 = 128 hex 字符。
+    if string.len(b2b) != 128 then
+        return 2
+    end
+
+    // BLAKE2s 一次性哈希：默认 32 字节 = 64 hex 字符。
+    string b2s = blake2.blake2sHashHex(data)
+    if string.len(b2s) != 64 then
+        return 3
+    end
+    if blake2.blake2sHashHex("abc") != b2s then
+        return 4
+    end
+
+    // 可变输出长度：32 字节 BLAKE2b = 64 hex 字符。
+    string short = blake2.blake2bHashHex(data, 32)
+    if string.len(short) != 64 then
+        return 5
+    end
+
+    // Keyed hash 改变结果。
+    Buffer key = Buffer()
+    key.append("secret-key-12345")
+    string keyed = blake2.blake2bKeyedHex(data, key)
+    if keyed == b2b then
+        return 6
+    end
+    if string.len(keyed) != 128 then
+        return 7
+    end
+
+    // 流式哈希器：分段 update 与一次性结果一致。
+    auto hasher = blake2.blake2bHasher()
+    hasher.update("ab")
+    hasher.update("c")
+    if hasher.digestHex() != b2b then
+        return 8
+    end
+    if hasher.inputBytes != 3 then
+        return 9
+    end
+
+    // reset 复位后重新计算。
+    hasher.reset()
+    hasher.update("abc")
+    if hasher.digestHex() != b2b then
+        return 10
+    end
+
+    // clone 独立副本：修改克隆不影响原始。
+    auto h1 = blake2.blake2bHasher()
+    h1.update("ab")
+    auto h2 = h1.clone()
+    h1.update("c")
+    h2.update("x")
+    if h1.digestHex() != b2b then
+        return 11
+    end
+    if h2.digestHex() == b2b then
+        return 12
+    end
+
+    // BLAKE2s 流式哈希器。
+    auto shasher = blake2.blake2sHasher()
+    shasher.update("abc")
+    if shasher.digestHex() != b2s then
+        return 13
+    end
+
+    // Keyed 流式哈希器。
+    auto khasher = blake2.blake2bKeyedHasher(key)
+    khasher.update("abc")
+    if khasher.digestHex() != keyed then
+        return 14
+    end
+
+    // 文件哈希与 Buffer 哈希一致。
+    string path = "tmp/extlib_blake2_test.bin"
+    file.writeBytes(path, data)
+    if blake2.blake2bFileHex(path) != b2b then
+        return 15
+    end
+    if blake2.blake2sFileHex(path) != b2s then
+        return 16
+    end
+    file.delete(path)
+
+    // 不存在的文件抛出 FileError。
+    bool missing = false
+    try
+        blake2.blake2bFileHex("tmp/extlib_blake2_missing.bin")
+    catch FileError e
+        missing = true
+    end
+    if not missing then
+        return 17
+    end
+
+    // 非法限额抛出 ValueError。
+    bool badLimit = false
+    try
+        blake2.blake2bHasher(64, 0)
+    catch ValueError e
+        badLimit = true
+    end
+    if not badLimit then
+        return 18
+    end
+
+    // digestBytes / hashBytes 返回 Buffer 长度正确。
+    Buffer rawB = blake2.blake2bHashBytes(data)
+    if rawB.len() != 64 then
+        return 19
+    end
+    Buffer rawS = blake2.blake2sHashBytes(data)
+    if rawS.len() != 32 then
+        return 20
+    end
+    auto hb = blake2.blake2bHasher()
+    hb.update("abc")
+    if hb.digestBytes().len() != 64 then
+        return 21
+    end
+
+    return 0
+end

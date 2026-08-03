@@ -16,8 +16,8 @@ func main(...) as int
     println("acl 1 = " + minio.aclName(1))
 
     // Bucket validation
-    println("valid 'my-bucket' = " + string.format("{}", minio.validBucket("my-bucket")))
-    println("valid 'ab' = " + string.format("{}", minio.validBucket("ab")))
+    println("valid 'my-bucket' = " + string(minio.validBucket("my-bucket")))
+    println("valid 'ab' = " + string(minio.validBucket("ab")))
 
     // Endpoint construction
     println("endpoint = " + minio.endpoint("s3.amazonaws.com", 0, 1))

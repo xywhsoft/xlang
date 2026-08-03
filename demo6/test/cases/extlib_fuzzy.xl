@@ -13,8 +13,8 @@ func main(...) as int
     assert fuzzy.isMatch("fb", "foobar"), "fb matches foobar"
     assert fuzzy.isMatch("fbr", "foobar"), "fbr matches foobar"
     assert not fuzzy.isMatch("fx", "foobar"), "fx not in foobar"
-    assert fuzzy.match("foo", "foobar") > 0, "foo score positive"
-    assert fuzzy.match("xyz", "foobar") == -1, "xyz no match"
+    assert fuzzy.score("foo", "foobar") > 0, "foo score positive"
+    assert fuzzy.score("xyz", "foobar") == -1, "xyz no match"
 
     // Case insensitive
     assert fuzzy.isMatch("FOO", "foobar"), "case insensitive"

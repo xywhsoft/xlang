@@ -1360,12 +1360,12 @@ export func auth(Client client, string username, string password) as bool
 	return response_ok(command3(client, "AUTH", username, password))
 end
 
-export func hello(Client client, int protocol) as string
-	return command2(client, "HELLO", string.format(protocol, ""))
+export func hello(Client client, int protocolVersion) as string
+	return command2(client, "HELLO", string.format(protocolVersion, ""))
 end
 
-export func hello_auth(Client client, int protocol, string username, string password) as string
-	return command5(client, "HELLO", string.format(protocol, ""), "AUTH", username, password)
+export func hello_auth(Client client, int protocolVersion, string username, string password) as string
+	return command5(client, "HELLO", string.format(protocolVersion, ""), "AUTH", username, password)
 end
 
 func xredis_select(Client client, int db) as bool

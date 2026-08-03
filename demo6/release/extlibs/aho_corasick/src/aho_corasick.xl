@@ -1,15 +1,57 @@
 extern "xrtGetError" func __aho_corasick_error() as string
+extern "xac_scan_begin" func __ac_scan_begin(point automaton, string text) as point
+extern "xac_replace" func __ac_replace_native(point automaton, string text, string repl) as string
+extern "xac_mask" func __ac_mask_native(point automaton, string text, string ch) as string
+extern "xac_highlight" func __ac_highlight_native(point automaton, string text, string openTag, string closeTag) as string
 
-
-
-class AhoCorasick
+// ─── Internal result set handle ───
+class ResultHandle
     native point handle
-    extern "xac_create" create()
+    extern "xac_result_destroy" destroy()
+    extern "xac_result_count" func countNative() as int
+    extern "xac_result_pattern" func patternNative(int index) as string
+    extern "xac_result_start" func startNative(int index) as int
+    extern "xac_result_end" func endNative(int index) as int
+end
+
+// ─── Internal streaming scan handle ───
+class ScanHandle
+    native point handle
+    extern "xac_scan_end" destroy()
+    extern "xac_scan_next" func nextNative() as int
+    extern "xac_scan_start" func startNative() as int
+    extern "xac_scan_end_pos" func endNative() as int
+    extern "xac_scan_pattern" func patternNative() as string
+end
+
+// ─── Single match result ───
+export class Match
+    string pattern
+    int start
+    int endPos
+
+    create(string pattern, int start, int endPos)
+        self.pattern = pattern
+        self.start = start
+        self.endPos = endPos
+    end
+
+    get length() as int
+        return self.endPos - self.start
+    end
+end
+
+// ─── Multi-pattern matching automaton ───
+export class Automaton
+    native point handle
+    extern "xac_create" create(c_int ignore_case)
     extern "xac_destroy" destroy()
 
     extern "xac_add_pattern" func addPatternNative(string pattern)
     extern "xac_build" func buildNative()
-    extern "xac_search" func searchNative(string text) as string
+    extern "xac_search" func searchNative(string text) as point
+    extern "xac_contains" func containsNative(string text) as bool
+    extern "xac_count" func countNative(string text) as int
     extern "xac_pattern_count" func patternCountNative() as int
     extern "xac_is_built" func isBuiltNative() as bool
 
@@ -27,28 +69,184 @@ class AhoCorasick
 
     func addPattern(string pattern)
         if self.handle == null then
-            throw RuntimeError "aho_corasick: instance is destroyed"
+            throw RuntimeError "aho_corasick: automaton is destroyed"
+        end
+        if self.isBuiltNative() then
+            throw RuntimeError "aho_corasick: cannot add patterns after build"
         end
         self.addPatternNative(pattern)
     end
 
+    func addPatterns(array<string> patterns)
+        int i = 0
+        while i < patterns.length
+            self.addPattern(patterns[i])
+            i += 1
+        end
+    end
+
     func build()
         if self.handle == null then
-            throw RuntimeError "aho_corasick: instance is destroyed"
+            throw RuntimeError "aho_corasick: automaton is destroyed"
         end
         self.buildNative()
     end
 
-    func search(string text) as string
+    func search(string text) as array<Match>
         if self.handle == null then
-            throw RuntimeError "aho_corasick: instance is destroyed"
+            throw RuntimeError "aho_corasick: automaton is destroyed"
         end
-        return self.searchNative(text)
+        point rp = self.searchNative(text)
+        if rp == null then
+            throw RuntimeError __aho_corasick_error()
+        end
+        ResultHandle rh = ResultHandle()
+        rh.handle = rp
+        int n = rh.countNative()
+        array<Match> results = []
+        int i = 0
+        while i < n
+            results.push(Match(rh.patternNative(i), rh.startNative(i), rh.endNative(i)))
+            i += 1
+        end
+        return results
+    end
+
+    func searchFirst(string text) as Match?
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: automaton is destroyed"
+        end
+        point rp = self.searchNative(text)
+        if rp == null then
+            throw RuntimeError __aho_corasick_error()
+        end
+        ResultHandle rh = ResultHandle()
+        rh.handle = rp
+        if rh.countNative() == 0 then
+            return null
+        end
+        return Match(rh.patternNative(0), rh.startNative(0), rh.endNative(0))
+    end
+
+    func contains(string text) as bool
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: automaton is destroyed"
+        end
+        return self.containsNative(text)
+    end
+
+    func count(string text) as int
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: automaton is destroyed"
+        end
+        return self.countNative(text)
+    end
+
+    func replace(string text, string repl) as string
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: automaton is destroyed"
+        end
+        return __ac_replace_native(self.handle, text, repl)
+    end
+
+    func replaceWith(string text, func(Match) as string fn) as string
+        array<Match> matches = self.search(text)
+        if matches.length == 0 then
+            return text
+        end
+        return __ac_replace_callback(text, matches, fn)
+    end
+
+    func mask(string text, string ch) as string
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: automaton is destroyed"
+        end
+        return __ac_mask_native(self.handle, text, ch)
+    end
+
+    func highlight(string text, string openTag, string closeTag) as string
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: automaton is destroyed"
+        end
+        return __ac_highlight_native(self.handle, text, openTag, closeTag)
+    end
+
+    // ─── Streaming scan: no array allocation, early-stop ───
+    // Returns true if scan completed, false if stopped by callback.
+    func scan(string text, func(Match) as bool fn) as bool
+        if self.handle == null then
+            throw RuntimeError "aho_corasick: automaton is destroyed"
+        end
+        point sp = __ac_scan_begin(self.handle, text)
+        if sp == null then
+            throw RuntimeError __aho_corasick_error()
+        end
+        ScanHandle sh = ScanHandle()
+        sh.handle = sp
+        while sh.nextNative() != 0
+            Match m = Match(sh.patternNative(), sh.startNative(), sh.endNative())
+            if not fn(m) then
+                return false
+            end
+        end
+        return true
     end
 end
 
+// ─── Internal: replace with callback (xlang-side, callback cannot go to C) ───
+func __ac_replace_callback(string text, array<Match> matches, func(Match) as string fn) as string
+    // sort by start
+    int n = matches.length
+    int i = 1
+    while i < n
+        Match key = matches[i]
+        int j = i - 1
+        while j >= 0 and matches[j].start > key.start
+            matches[j + 1] = matches[j]
+            j -= 1
+        end
+        matches[j + 1] = key
+        i += 1
+    end
 
+    Buffer buf = Buffer()
+    int pos = 0
+    i = 0
+    while i < n
+        int s = matches[i].start
+        int e = matches[i].endPos
+        if s < pos then
+            // skip overlapping match
+            i += 1
+        else
+            if s > pos then
+                buf.append(string.mid(text, pos, s - pos))
+            end
+            buf.append(fn(matches[i]))
+            pos = e
+            i += 1
+        end
+    end
+    if pos < string.len(text) then
+        buf.append(string.mid(text, pos, string.len(text) - pos))
+    end
+    return buf.text()
+end
 
-export func create() as AhoCorasick
-    return AhoCorasick()
+// ─── Factory functions ───
+export func create(var patterns = [], bool ignoreCase = false) as Automaton
+    int ic = 0
+    if ignoreCase then
+        ic = 1
+    end
+    Automaton ac = Automaton(c_int(ic))
+    int i = 0
+    while i < patterns.length
+        ac.addPattern(string(patterns[i]))
+        i += 1
+    end
+    if patterns.length > 0 then
+        ac.build()
+    end
+    return ac
 end

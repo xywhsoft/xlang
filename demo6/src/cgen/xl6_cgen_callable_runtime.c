@@ -242,7 +242,7 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out, int emitArgvBorrow)
     xl6OutputPuts("    xrt_callable* callable = xvoGetCallable(value);\n", out);
     xl6OutputPuts("    XL6_Function fn = xl6_function_from_callable(callable);\n", out);
     xl6OutputPuts("    if ( value != 0 ) {\n", out);
-    xl6OutputPuts("        xvoUnref(value);\n", out);
+    xl6OutputPuts("        xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return fn;\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -250,7 +250,7 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out, int emitArgvBorrow)
     xl6OutputPuts("static void xl6_xvalue_drop(xvalue value)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( value != 0 ) {\n", out);
-    xl6OutputPuts("        xvoUnref(value);\n", out);
+    xl6OutputPuts("        xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("}\n\n", out);
 
@@ -258,7 +258,7 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out, int emitArgvBorrow)
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    long long result = value != 0 ? xvoGetInt(value) : 0;\n", out);
     xl6OutputPuts("    if ( value != 0 ) {\n", out);
-    xl6OutputPuts("        xvoUnref(value);\n", out);
+    xl6OutputPuts("        xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -267,7 +267,7 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out, int emitArgvBorrow)
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    double result = value != 0 ? xvoGetFloat(value) : 0.0;\n", out);
     xl6OutputPuts("    if ( value != 0 ) {\n", out);
-    xl6OutputPuts("        xvoUnref(value);\n", out);
+    xl6OutputPuts("        xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -276,7 +276,7 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out, int emitArgvBorrow)
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    int result = value != 0 && xvoGetBool(value) ? 1 : 0;\n", out);
     xl6OutputPuts("    if ( value != 0 ) {\n", out);
-    xl6OutputPuts("        xvoUnref(value);\n", out);
+    xl6OutputPuts("        xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -285,7 +285,7 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out, int emitArgvBorrow)
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    long long result = value != 0 ? xvoGetTime(value) : 0;\n", out);
     xl6OutputPuts("    if ( value != 0 ) {\n", out);
-    xl6OutputPuts("        xvoUnref(value);\n", out);
+    xl6OutputPuts("        xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -294,7 +294,7 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out, int emitArgvBorrow)
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    void* result = value != 0 ? xvoGetPoint(value) : 0;\n", out);
     xl6OutputPuts("    if ( value != 0 ) {\n", out);
-    xl6OutputPuts("        xvoUnref(value);\n", out);
+    xl6OutputPuts("        xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -311,13 +311,13 @@ static void xl6CgenEmitFunctionVarRuntime(XL6_Output* out, int emitArgvBorrow)
     xl6OutputPuts("    copy = (char*)xrtMalloc(len + 1u);\n", out);
     xl6OutputPuts("    if ( copy == 0 ) {\n", out);
     xl6OutputPuts("        if ( value != 0 ) {\n", out);
-    xl6OutputPuts("            xvoUnref(value);\n", out);
+    xl6OutputPuts("            xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("        xl6_function_fatal(2);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    memcpy(copy, text, len + 1u);\n", out);
     xl6OutputPuts("    if ( value != 0 ) {\n", out);
-    xl6OutputPuts("        xvoUnref(value);\n", out);
+    xl6OutputPuts("        xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return copy;\n", out);
     xl6OutputPuts("}\n\n", out);

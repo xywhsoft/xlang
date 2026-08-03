@@ -8,13 +8,14 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
+# Enforce the compiler project's strict CRT policy here.
+# Native extlibs use their dependencies' C APIs and have package-local tests.
 $scanRoots = @(
-    "src",
-    "release\include",
-    "release\examples",
-    "test\cases",
-    "test\fixtures",
-    "release\extlibs"
+    "src"
+    "release\include"
+    "release\examples"
+    "test\cases"
+    "test\fixtures"
 )
 $minSafetyCFiles = 260
 $minSafetySpecFiles = 2
@@ -69,6 +70,8 @@ $driverCrtTimePattern = '\btime\s*\('
 $commandExecPattern = '\b(system|popen|_popen|WinExec|ShellExecute[A-Za-z]*|CreateProcess[A-Za-z]*)\s*\('
 $processControlPattern = '\b(exit|abort|assert)\s*\('
 $manualCrtPrototypePattern = '(?m)^\s*(void|int|char\s*\*)\s+(exit|malloc|free|printf|fprintf)\s*\('
+$mutableFunctionStaticArrayPattern = '(?m)^[ \t]+static\s+(?!const\b)[^;\r\n=]+\[[^\]\r\n]+\]\s*(?:=|;)'
+$removedCgenInferencePattern = '\bxl6CgenInferExprType\b'
 $rootFullPath = (Resolve-Path -LiteralPath $Root).Path
 
 function Add-Failure($message)
@@ -196,11 +199,8 @@ $files = @(
         }
 
         Get-ChildItem -LiteralPath $dir -Recurse -File | Where-Object {
-            $relative = $_.FullName.Substring($rootFullPath.Length + 1).Replace("\", "/")
             ($_.Extension -eq ".c" -or $_.Extension -eq ".h") -and
-            ($generatedFiles -notcontains $_.Name) -and
-            ($relative -notmatch '^release/extlibs/_[^/]+/') -and
-            ($relative -notmatch '^release/extlibs/[^/]+/third_party/')
+            ($generatedFiles -notcontains $_.Name)
         }
     }
 ) | Sort-Object FullName
@@ -260,6 +260,19 @@ foreach ( $file in $files ) {
         $processMatches = @($codeOnly | Select-String -Pattern $processControlPattern -AllMatches)
         foreach ( $match in $processMatches ) {
             Add-Failure "direct process control or assert in compiler source: ${relative}:$($match.LineNumber):$(Get-LineText $rawText $match.LineNumber)"
+        }
+
+        if ( $relative.StartsWith("src/cgen/") ) {
+            $mutableStaticMatches = @($rawText | Select-String -Pattern $mutableFunctionStaticArrayPattern -AllMatches)
+            foreach ( $match in $mutableStaticMatches ) {
+                Add-Failure "mutable function-static array in cgen source: ${relative}:$($match.LineNumber):$(Get-LineText $rawText $match.LineNumber)"
+            }
+
+            # typed HIR 已经是代码生成阶段唯一的表达式类型来源，禁止恢复旧的 C 字符串推断旁路。
+            $removedInferenceMatches = @($codeOnly | Select-String -Pattern $removedCgenInferencePattern -AllMatches)
+            foreach ( $match in $removedInferenceMatches ) {
+                Add-Failure "removed C-string type inference reintroduced in cgen source: ${relative}:$($match.LineNumber):$(Get-LineText $rawText $match.LineNumber)"
+            }
         }
     }
 

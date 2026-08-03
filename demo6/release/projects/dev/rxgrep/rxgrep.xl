@@ -9,16 +9,16 @@
 //
 // 重点验证:
 //   - regex.compile(pattern, flags) 编译一次, 复用 Regex 对象
-//   - Regex.match(line) 和 Regex.match(line, charPos) 的对象化调用
+//   - Regex.find(line) 和 Regex.find(line, charPos) 的对象化调用
 //   - RegexMatch 的 .ok / .start / .end / .byteStart / .byteEnd / .text
 //   - flags: regex.ignoreCase / multiline / dotAll / ungreedy
-//   - 同一行内迭代找全部匹配 (用 compiled.match(line, charPos) 推进 .end)
+//   - 同一行内迭代找全部匹配 (用 compiled.find(line, charPos) 推进 .end)
 //
 // 实现要点:
 //   - Regex / RegexMatch 是受管理的 native-backed class，可作为参数和返回值复用。
-//   - 收集每行匹配用 while + re.match(line, charPos); 空匹配 (start==end) 跳过并推进一位,
+//   - 收集每行匹配用 while + re.find(line, charPos); 空匹配 (start==end) 跳过并推进一位,
 //     否则会死循环.
-//   - re.match 的 startPos 形参是字符偏移, 故全程用 mm.end 推进.
+//   - re.find 的 startPos 形参是字符偏移, 故全程用 mm.end 推进.
 //   - -i 传 regex.ignoreCase。
 //   - 读文件包 try/catch, 失败给出错误信息.
 
@@ -28,26 +28,26 @@ func nextNonEmptyMatch(Regex re, string line, int charPos) as RegexMatch
     int lineLen = string.len(line)
     int pos = charPos
     while pos <= lineLen
-        RegexMatch match = re.match(line, pos)
-        if not match.ok or match.start != match.end then
-            return match
+        RegexMatch found = re.find(line, pos)
+        if not found.ok or found.start != found.end then
+            return found
         end
-        if match.end >= lineLen then
-            return match
+        if found.end >= lineLen then
+            return found
         end
-        pos = match.end + 1
+        pos = found.end + 1
     end
-    return re.match(line, lineLen + 1)
+    return re.find(line, lineLen + 1)
 end
 
 func countLineMatches(Regex re, string line) as int
     int count = 0
     int charPos = 0
     while charPos <= string.len(line)
-        RegexMatch match = nextNonEmptyMatch(re, line, charPos)
-        if not match.ok or match.start == match.end then break end
+        RegexMatch found = nextNonEmptyMatch(re, line, charPos)
+        if not found.ok or found.start == found.end then break end
         count += 1
-        charPos = match.end
+        charPos = found.end
     end
     return count
 end

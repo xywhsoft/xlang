@@ -1,20 +1,265 @@
-import aho_corasick
+// ═══════════════════════════════════════════════════════════════════
+// aho_corasick 扩展库完整教学范例
+//
+// 本范例逐步展示 Aho-Corasick 多模式匹配库的全部 API。
+// 从最基础的创建和搜索开始，逐步深入到流式扫描、替换、
+// 高亮等高级用法。每一节都可独立运行理解。
+//
+// 核心概念：
+//   Aho-Corasick 算法可以在一段文本中同时搜索多个关键词，
+//   只需一次扫描即可找出所有模式的出现位置。
+//   典型场景：敏感词过滤、日志规则匹配、关键词高亮、入侵检测。
+// ═══════════════════════════════════════════════════════════════════
 
-
+import aho_corasick as acmod
+from aho_corasick import Match, Automaton
 
 func main(...) as int
-    auto ac = aho_corasick.create()
-    ac.addPattern("he")
-    ac.addPattern("she")
-    ac.addPattern("his")
-    ac.addPattern("hers")
-    ac.build()
 
-    println("patterns:", ac.patternCount)
-    println("search 'ushers':", ac.search("ushers"))
-    println("search 'ahishers':", ac.search("ahishers"))
-    println("search 'xyz':", ac.search("xyz"))
+    // ─────────────────────────────────────────────────────────────
+    // 第 1 节：创建自动机
+    //
+    // create() 接受模式数组，自动完成 build()。
+    // 这是最常用的创建方式。
+    // ─────────────────────────────────────────────────────────────
+    println("=== 1. 创建自动机 ===")
 
-    println("aho_corasick example: PASS")
+    Automaton ac = acmod.create(["he", "she", "his", "hers"])
+
+    // 属性：检查自动机状态
+    println("有效: ", ac.valid)          // true（handle 非空）
+    println("已构建: ", ac.built)        // true（create 带 patterns 时自动 build）
+    println("模式数: ", ac.patternCount) // 4
+
+    // ─────────────────────────────────────────────────────────────
+    // 第 2 节：search — 结构化搜索
+    //
+    // 返回 array<Match>，每个 Match 包含：
+    //   .pattern  命中的模式文本
+    //   .start    起始字节偏移（含）
+    //   .endPos   结束字节偏移（不含）
+    //   .length   匹配长度（= endPos - start）
+    // ─────────────────────────────────────────────────────────────
+    println("\n=== 2. search 结构化搜索 ===")
+
+    array<Match> results = ac.search("ushers")
+    println("匹配数: ", results.length)  // 3
+
+    for m in results
+        println("  ", m.pattern, " @ [", m.start, ", ", m.endPos, ") len=", m.length)
+    end
+    // 输出：
+    //   she @ [1, 4) len=3
+    //   he  @ [2, 4) len=2
+    //   hers @ [2, 6) len=4
+
+    // 无匹配时返回空数组
+    array<Match> empty = ac.search("xyz")
+    println("无匹配: ", empty.length)    // 0
+
+    // ─────────────────────────────────────────────────────────────
+    // 第 3 节：searchFirst — 只取第一个匹配
+    //
+    // 当你只关心"有没有"或"第一个在哪"时，比 search 更轻量。
+    // 无匹配时返回 null。
+    // ─────────────────────────────────────────────────────────────
+    println("\n=== 3. searchFirst ===")
+
+    Match? first = ac.searchFirst("ushers")
+    if first != null then
+        println("首个匹配: ", first.pattern, " @", first.start)
+    end
+
+    Match? none = ac.searchFirst("xyz")
+    println("无匹配返回 null: ", none == null)  // true
+
+    // ─────────────────────────────────────────────────────────────
+    // 第 4 节：contains / count — 零分配快速判定
+    //
+    // contains: 命中第一个即返回 true，不扫描全文（最快）
+    // count:    统计总命中数，不分配结果数组
+    // 适合只需要"有没有"或"多少个"的场景。
+    // ─────────────────────────────────────────────────────────────
+    println("\n=== 4. contains / count ===")
+
+    println("包含: ", ac.contains("ushers"))   // true
+    println("不含: ", ac.contains("xyz"))      // false
+    println("计数: ", ac.count("ushers"))      // 3
+    println("零:   ", ac.count("abc"))         // 0
+
+    // ─────────────────────────────────────────────────────────────
+    // 第 5 节：replace — 固定文本替换
+    //
+    // 将所有匹配区间（重叠部分自动合并）替换为指定文本。
+    // C 层实现：预计算输出长度 + 单次内存分配，O(n) 性能。
+    // ─────────────────────────────────────────────────────────────
+    println("\n=== 5. replace 固定替换 ===")
+
+    // "ushers" 中 she[1,4) + he[2,4) + hers[2,6) 合并为 [1,6)
+    string r1 = ac.replace("ushers", "*")
+    println("替换: ", r1)  // "u*"
+
+    // 多个不重叠区间各自替换
+    string r2 = ac.replace("he said she hers", "[x]")
+    println("多区间: ", r2)  // "[x] said [x]"
+
+    // ─────────────────────────────────────────────────────────────
+    // 第 6 节：mask — 逐字符遮盖
+    //
+    // 与 replace 不同：mask 对合并区间的每个字符都替换为指定字符。
+    // 适合敏感词遮盖（保持原文长度感知）。
+    // ─────────────────────────────────────────────────────────────
+    println("\n=== 6. mask 遮盖 ===")
+
+    string masked = ac.mask("ushers", "#")
+    println("遮盖: ", masked)  // "u#####"（5 个字符被遮盖）
+
+    // ─────────────────────────────────────────────────────────────
+    // 第 7 节：highlight — 标签包裹
+    //
+    // 将合并后的匹配区间用 open/close 标签包裹。
+    // 典型用途：搜索结果高亮、富文本标注。
+    // ─────────────────────────────────────────────────────────────
+    println("\n=== 7. highlight 高亮 ===")
+
+    string html = ac.highlight("ushers", "<b>", "</b>")
+    println("HTML: ", html)  // "u<b>shers</b>"
+
+    // ─────────────────────────────────────────────────────────────
+    // 第 8 节：replaceWith — 回调替换
+    //
+    // 每个非重叠匹配调用回调函数，由返回值决定替换内容。
+    // 回调接收 Match 对象，可以访问 pattern/start/endPos。
+    // 内部使用标准库 Buffer（xbuffer）拼接，O(n) 性能。
+    // ─────────────────────────────────────────────────────────────
+    println("\n=== 8. replaceWith 回调替换 ===")
+
+    string annotated = ac.replaceWith("ushers", func(Match m) as string
+        return "[" + m.pattern + "]"
+    end)
+    println("标注: ", annotated)  // "u[she]rs"（首个非重叠匹配 she）
+
+    // 实用场景：将 URL 协议加链接
+    Automaton proto = acmod.create(["http", "https", "ftp"])
+    string linked = proto.replaceWith("use http or ftp", func(Match m) as string
+        return "<a href='" + m.pattern + "://'>" + m.pattern + "</a>"
+    end)
+    println("链接: ", linked)
+
+    // ─────────────────────────────────────────────────────────────
+    // 第 9 节：scan — 流式扫描（零数组分配 + 可中断）
+    //
+    // 与 search 的区别：
+    //   search → 构建完整 array<Match>，适合需要全部结果
+    //   scan   → 逐个产出 Match，回调返回 false 立即停止
+    //
+    // 返回值：true = 扫描完成，false = 被回调中断
+    // 性能：不分配结果数组，命中即回调，早停则不消费剩余文本
+    // ─────────────────────────────────────────────────────────────
+    println("\n=== 9. scan 流式扫描 ===")
+
+    // 9a. 完整扫描（等价于 search 但不构建数组）
+    array<int> hitCount = [0]
+    bool completed = ac.scan("ushers", func(Match m) as bool
+        hitCount[0] += 1
+        return true  // 继续
+    end)
+    println("完成: ", completed, " 命中: ", hitCount[0])  // true, 3
+
+    // 9b. 早停：找到第一个就停
+    array<string> found = [""]
+    bool stopped = ac.scan("ushers", func(Match m) as bool
+        found[0] = m.pattern
+        return false  // 停止！
+    end)
+    println("中断: ", not stopped, " 找到: ", found[0])  // true, "she"
+
+    // 9c. 条件停止：只找特定模式
+    Automaton levels = acmod.create(["info", "warn", "error", "fatal"])
+    string logText = "info: start\nwarn: slow\nerror: fail\nfatal: crash"
+    levels.scan(logText, func(Match m) as bool
+        if m.pattern == "fatal" then
+            println("  严重错误位于偏移 ", m.start)
+            return false
+        end
+        return true
+    end)
+
+    // ─────────────────────────────────────────────────────────────
+    // 第 10 节：ignoreCase — 大小写忽略
+    //
+    // 创建时传入 ignoreCase = true，匹配时不区分大小写。
+    // 敏感词过滤的刚需（用户会用 BAD/Bad/bAd 等变体绕过）。
+    // ─────────────────────────────────────────────────────────────
+    println("\n=== 10. ignoreCase 大小写忽略 ===")
+
+    Automaton ci = acmod.create(["Hello", "World"], ignoreCase = true)
+    println("小写: ", ci.contains("hello world"))  // true
+    println("大写: ", ci.contains("HELLO WORLD"))  // true
+    println("混合: ", ci.contains("hElLo WoRlD"))  // true
+    println("计数: ", ci.count("Hello hello HELLO"))  // 3
+
+    // ─────────────────────────────────────────────────────────────
+    // 第 11 节：手动构建工作流
+    //
+    // 当模式来源是文件/网络/逐条输入时，使用手动流程：
+    //   create() → addPattern/addPatterns → build()
+    // 注意：build() 之后不能再 addPattern（会抛异常）。
+    // ─────────────────────────────────────────────────────────────
+    println("\n=== 11. 手动构建 ===")
+
+    Automaton manual = acmod.create()  // 空自动机
+    println("初始 built: ", manual.built)      // false
+
+    manual.addPattern("alpha")
+    manual.addPattern("beta")
+    manual.addPatterns(["gamma", "delta"])    // 批量添加
+    println("模式数: ", manual.patternCount)   // 4
+
+    manual.build()
+    println("构建后: ", manual.built)          // true
+    println("搜索: ", manual.count("alphabetagammadelta"))  // 4
+
+    // 错误处理：build 后不能再添加
+    bool caught = false
+    try
+        manual.addPattern("oops")
+    catch RuntimeError e
+        caught = true
+        println("正确拒绝: ", e.message)
+    end
+    println("异常捕获: ", caught)  // true
+
+    // ─────────────────────────────────────────────────────────────
+    // 第 12 节：综合实战 — 敏感词过滤管线
+    //
+    // 组合使用多个 API 完成一个完整的业务逻辑。
+    // ─────────────────────────────────────────────────────────────
+    println("\n=== 12. 综合实战：敏感词过滤 ===")
+
+    // 模拟敏感词库（实际可从文件加载）
+    array<string> wordlist = ["赌博", "色情", "毒品", "枪支"]
+    Automaton filter = acmod.create(wordlist, ignoreCase = true)
+
+    string comment = "这个网站涉及赌博和色情内容"
+
+    // 第一步：快速判定是否需要处理
+    if filter.contains(comment)
+        // 第二步：统计命中数（用于风控评分）
+        int hits = filter.count(comment)
+        println("命中数: ", hits)
+
+        // 第三步：替换为审核文本
+        string safe = filter.replace(comment, "[已过滤]")
+        println("过滤后: ", safe)
+
+        // 第四步：生成审核日志（记录具体命中）
+        filter.scan(comment, func(Match m) as bool
+            println("  命中: '", m.pattern, "' @", m.start)
+            return true
+        end)
+    end
+
+    println("\naho_corasick 教学范例: 全部完成")
     return 0
 end

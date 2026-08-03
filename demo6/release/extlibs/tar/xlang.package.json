@@ -19,7 +19,11 @@
     },
     "links": [],
     "loadlibs": [],
-    "dependencies": [],
+    "dependencies": [
+        { "name": "gzip", "version": "1.0.0", "abiVersion": "1" },
+        { "name": "bz2", "version": "1.0.0", "abiVersion": "1" },
+        { "name": "lzma", "version": "1.0.0", "abiVersion": "1" }
+    ],
     "native": {
         "singleton": false,
         "loadName": "",

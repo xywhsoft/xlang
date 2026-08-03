@@ -3,8 +3,8 @@ import imgui
 func main(...) as int
     println("Widget 0 = " + imgui.widget(0))
     println("Layout 1 = " + imgui.layout(1))
-    println("Area = " + string.float(imgui.rectArea(0.0, 0.0, 8.0, 4.0)))
-    println("Clamp = " + string.float(imgui.clamp(5.0, 0.0, 1.0)))
+    println("Area = " + string(imgui.rectArea(0.0, 0.0, 8.0, 4.0)))
+    println("Clamp = " + string(imgui.clamp(5.0, 0.0, 1.0)))
 
     println("imgui example: PASS")
     return 0

@@ -5,6 +5,7 @@
 ## 使用方式
 
 - `xlang.package.json` 描述包名、版本、ABI 版本、`xlSources`、`cSources`、links/loadlibs、dependencies 和 native 元数据。
+- 大型框架包可用 `coverage.mode = "suite"` 和 `coverage.tests` 声明包内测试；这些测试会统一完成导入与语义检查。
 - `xlSources` 中的 `.xl` 文件是 import 的声明/实现来源；C 函数仍需要在 xlang 中显式 `extern` 声明。
 - 包内 `.c`、`.h`、`.xl`、`bin`、`third_party` 等文件是扩展库自身实现或运行所需资产。
 
@@ -15,48 +16,216 @@
 - `_expat`：XML 系列扩展库使用的私有 Expat 源码包。
 - `_libzip`：`zip` 使用的私有 libzip 源码包。
 - `_tomlc17`：`toml` 使用的私有 tomlc17 源码包。
+- `_xge_native`：内部实现包。
 - `_zlib`：`gzip` 与 `zip` 共用的私有 zlib 源码包。
+- `acme`：发布扩展库。
+- `aho_corasick`：发布扩展库。
+- `argon2`：发布扩展库。
+- `blake2`：发布扩展库。
+- `blake3`：发布扩展库。
+- `bloom`：发布扩展库。
+- `brotli`：Brotli 一次性、增量与流式压缩扩展库。
+- `bson`：发布扩展库。
 - `bz2`：bzip2 一次性、增量与流式压缩扩展库。
+- `canbus`：发布扩展库。
+- `cbor`：发布扩展库。
+- `ceres`：发布扩展库。
+- `chardet`：发布扩展库。
+- `clickhouse`：发布扩展库。
+- `clip`：发布扩展库。
 - `clipboard`：剪贴板扩展库。
+- `coap`：发布扩展库。
 - `com`：Windows COM 扩展库。
+- `consistent_hash`：发布扩展库。
 - `crc32`：CRC32 扩展库。
+- `crontab`：发布扩展库。
+- `css`：发布扩展库。
 - `csv`：流式 CSV 读写扩展库。
+- `cuckoo`：发布扩展库。
+- `daemon`：发布扩展库。
+- `dataframe`：发布扩展库。
+- `diff`：发布扩展库。
 - `dinov3`：DINOv3 扩展库。
+- `dns`：发布扩展库。
+- `docker`：发布扩展库。
+- `docx`：发布扩展库。
+- `dotenv`：发布扩展库。
+- `duckdb`：发布扩展库。
+- `eigen`：发布扩展库。
+- `embeddings`：发布扩展库。
+- `enet`：发布扩展库。
+- `epub`：发布扩展库。
+- `etcd`：发布扩展库。
+- `faiss`：发布扩展库。
+- `ffmpeg`：发布扩展库。
+- `fftw`：发布扩展库。
+- `fix`：发布扩展库。
+- `flatbuffers`：发布扩展库。
+- `freetype`：发布扩展库。
+- `ftp`：发布扩展库。
+- `fuzzy`：发布扩展库。
+- `gdal`：发布扩展库。
+- `geohash`：发布扩展库。
+- `geos`：发布扩展库。
+- `ggml`：发布扩展库。
+- `git`：发布扩展库。
+- `glad`：发布扩展库。
+- `gmp`：发布扩展库。
+- `gpio`：发布扩展库。
+- `grpc`：发布扩展库。
+- `gsl`：发布扩展库。
 - `gzip`：标准 gzip 一次性、增量与流式压缩扩展库。
+- `harfbuzz`：发布扩展库。
+- `hcl`：发布扩展库。
+- `hnswlib`：发布扩展库。
+- `html5`：发布扩展库。
+- `hyperloglog`：发布扩展库。
+- `icu`：发布扩展库。
 - `imagehash`：图像哈希扩展库。
+- `imgui`：发布扩展库。
+- `influxdb`：发布扩展库。
 - `ini`：保留顺序和注释的 INI 配置扩展库。
+- `jieba`：发布扩展库。
+- `json5`：发布扩展库。
+- `jwt`：发布扩展库。
+- `kafka`：发布扩展库。
+- `kubernetes`：发布扩展库。
+- `langdetect`：发布扩展库。
+- `lapack`：发布扩展库。
+- `ldap`：发布扩展库。
+- `leveldb`：发布扩展库。
+- `libsndfile`：发布扩展库。
+- `libsvm`：发布扩展库。
+- `libtorch`：发布扩展库。
+- `libusb`：发布扩展库。
+- `lightgbm`：发布扩展库。
+- `linalg`：发布扩展库。
+- `llama`：发布扩展库。
+- `lmdb`：发布扩展库。
+- `lru`：发布扩展库。
 - `lz4`：LZ4 压缩扩展库。
 - `lzma`：LZMA 压缩扩展库。
-- `mail.imap`：IMAP 邮件扩展库。
-- `mail.mime`：MIME 邮件扩展库。
-- `mail.pop3`：POP3 邮件扩展库。
-- `mail.smtp`：SMTP 邮件扩展库。
-- `md4c`：Markdown/HTML 扩展库。
-- `md5`：MD5 扩展库。
+- `mail.imap`：发布扩展库。
+- `mail.mime`：发布扩展库。
+- `mail.pop3`：发布扩展库。
+- `mail.smtp`：发布扩展库。
+- `md4c`：发布扩展库。
+- `md5`：发布扩展库。
+- `mdns`：发布扩展库。
+- `minio`：发布扩展库。
 - `miniz`：miniz 压缩扩展库。
+- `mnn`：发布扩展库。
+- `modbus`：发布扩展库。
+- `mongodb`：发布扩展库。
+- `mpfr`：发布扩展库。
+- `mqtt`：发布扩展库。
+- `msgpack`：发布扩展库。
+- `murmur3`：发布扩展库。
+- `mysql`：发布扩展库。
+- `nanomsg`：发布扩展库。
+- `nats`：发布扩展库。
+- `ncnn`：发布扩展库。
+- `ncurses`：发布扩展库。
+- `neo4j`：发布扩展库。
 - `netrc`：machine/default/macdef 凭据文件扩展库。
+- `nlopt`：发布扩展库。
+- `nsq`：发布扩展库。
+- `ntp`：发布扩展库。
+- `oauth2`：发布扩展库。
 - `onnxruntime`：ONNX Runtime 扩展库。
-- `opencv`：OpenCV 扩展库。
+- `op`：发布扩展库。
+- `opencv`：发布扩展库。
+- `opentelemetry`：发布扩展库。
+- `openvino`：发布扩展库。
+- `opus`：发布扩展库。
+- `parquet`：发布扩展库。
+- `passkey`：发布扩展库。
+- `pcap`：发布扩展库。
+- `pdf`：发布扩展库。
+- `pdfium`：发布扩展库。
+- `pinyin`：发布扩展库。
+- `pkcs`：发布扩展库。
 - `pkg.math`：数学扩展库。
 - `plist`：XML 与 binary plist 扩展库。
-- `rapidocr`：RapidOCR 扩展库。
-- `redis`：Redis 协议扩展库。
-- `sqlite`：SQLite 扩展库。
-- `stb_image`：stb_image 图片读取扩展库。
-- `stb_image_resize2`：stb_image_resize2 图片缩放扩展库。
-- `stb_image_write`：stb_image_write 图片写入扩展库。
+- `plot`：发布扩展库。
+- `portaudio`：发布扩展库。
+- `postgresql`：发布扩展库。
+- `pptx`：发布扩展库。
+- `procps`：发布扩展库。
+- `progress`：发布扩展库。
+- `proj`：发布扩展库。
+- `prometheus`：发布扩展库。
+- `protobuf`：发布扩展库。
+- `pulsar`：发布扩展库。
+- `quic`：发布扩展库。
+- `rabbitmq`：发布扩展库。
+- `rapidocr`：发布扩展库。
+- `ratatui`：发布扩展库。
+- `rdkit`：发布扩展库。
+- `redis`：发布扩展库。
+- `roaring`：发布扩展库。
+- `rocksdb`：发布扩展库。
+- `rtmp`：发布扩展库。
+- `rtree`：发布扩展库。
+- `s2geometry`：发布扩展库。
+- `sciter`：发布扩展库。
+- `sentencepiece`：发布扩展库。
+- `serial`：发布扩展库。
+- `sha3`：发布扩展库。
+- `sharedmem`：发布扩展库。
+- `singleinstance`：发布扩展库。
+- `siphash`：发布扩展库。
+- `skiplist`：发布扩展库。
+- `snappy`：发布扩展库。
+- `snmp`：发布扩展库。
+- `socks`：发布扩展库。
+- `sox`：发布扩展库。
+- `sqlite`：发布扩展库。
+- `ssh`：发布扩展库。
+- `stablediffusion`：发布扩展库。
+- `stb_image`：发布扩展库。
+- `stb_image_resize2`：发布扩展库。
+- `stb_image_write`：发布扩展库。
 - `stb_truetype`：stb_truetype 字体扩展库。
+- `sysinfo`：发布扩展库。
+- `ta_lib`：发布扩展库。
+- `tabulate`：发布扩展库。
+- `taglib`：发布扩展库。
 - `tar`：ustar、PAX 与 GNU TAR 归档扩展库。
+- `tdengine`：发布扩展库。
+- `tensorrt`：发布扩展库。
+- `terraform_state`：发布扩展库。
+- `tokenizers`：发布扩展库。
 - `toml`：TOML 解析、编码与文件读写扩展库。
-- `ui.auto`：UI 自动化扩展库。
-- `uia`：Windows UI Automation 扩展库。
-- `volc.core`：火山引擎核心工具扩展库。
-- `volc.phone`：火山引擎电话服务扩展库。
-- `volc.sts`：火山引擎 STS 扩展库。
+- `totp`：发布扩展库。
+- `treesitter`：发布扩展库。
+- `trie`：发布扩展库。
+- `ui.auto`：发布扩展库。
+- `uia`：发布扩展库。
+- `unqlite`：发布扩展库。
+- `upnp`：发布扩展库。
+- `vault`：发布扩展库。
+- `vectordb`：发布扩展库。
+- `volc.core`：发布扩展库。
+- `volc.phone`：发布扩展库。
+- `volc.sts`：发布扩展库。
+- `watch`：发布扩展库。
+- `webrtc`：发布扩展库。
+- `webview`：发布扩展库。
+- `whisper`：发布扩展库。
+- `xbot`：发布扩展库。
 - `xfeat`：XFeat 扩展库。
+- `xgboost`：发布扩展库。
+- `xge`：发布扩展库。
+- `xge_shape_ex`：发布扩展库。
+- `xlsx`：发布扩展库。
 - `xml.dom`：完整 XML 文档对象模型扩展库。
 - `xml.etree`：轻量 XML ElementTree 扩展库。
 - `xml.sax`：流式 XML SAX 事件扩展库。
+- `xui`：发布扩展库。
+- `xxhash`：xxHash 极速哈希扩展库。
+- `yaml`：发布扩展库。
+- `zeromq`：发布扩展库。
 - `zip`：基于 libzip 的 ZIP/ZIP64 归档扩展库。
 - `zstd`：Zstandard 压缩扩展库。
 <!-- package-index:end -->

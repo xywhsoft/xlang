@@ -100,7 +100,9 @@ static bool __xrtCsvFinishField(xrtcsvreader* pReader)
 			"CSV field count exceeds the configured limit");
 		return FALSE;
 	}
-	if ( !xrtIsUTF8((str)pReader->Field->Buffer, pReader->Field->Length) ) {
+	/* xrtIsUTF8 的长度 0 表示 NUL 结尾输入；空字段无需调用该接口。 */
+	if ( pReader->Field->Length != 0u &&
+		!xrtIsUTF8((str)pReader->Field->Buffer, pReader->Field->Length) ) {
 		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_FORMAT,
 			"CSV field is not valid UTF-8");
 		return FALSE;

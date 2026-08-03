@@ -1,0 +1,36 @@
+{
+    "format": "xlang-package-1",
+    "name": "xui",
+    "version": "2.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "artifact": {
+        "kind": "source",
+        "cSources": [],
+        "xlSources": [
+            "src/xui_core.xl",
+            "src/xui_widget.xl",
+            "src/xui_controls.xl",
+            "src/xui_containers.xl",
+            "src/xui_data.xl",
+            "src/xui_overlay.xl",
+            "src/xui_picker.xl",
+            "src/xui_advanced.xl",
+            "src/xui_style.xl",
+            "src/xui_surface.xl",
+            "src/xui_input.xl",
+            "src/xui_icon.xl",
+            "src/xui_i18n.xl"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [
+        { "name": "_xge_native", "version": "2.0.0", "abiVersion": "1" }
+    ],
+    "coverage": {
+        "mode": "suite",
+        "tests": ["test/import.xl"]
+    },
+    "native": { "singleton": false, "loadName": "", "version": "" }
+}

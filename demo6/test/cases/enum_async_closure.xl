@@ -1,0 +1,60 @@
+enum AsyncResult<T>
+    ok(T value)
+    error(string message)
+end
+
+async func fetchValue(int value) as AsyncResult<int>
+    time.sleep(1)
+    return AsyncResult::<int>.ok(value)
+end
+
+async func echo(AsyncResult<string> value) as AsyncResult<string>
+    time.sleep(1)
+    return value
+end
+
+func read(AsyncResult<string> value) as string
+    return match value
+    case ok(text) then text
+    case error(message) then message
+    end
+end
+
+func makeReader(AsyncResult<string> value) as func() as string
+    return func() as string
+        return match value
+        case ok(text) then text
+        case error(message) then message
+        end
+    end
+end
+
+async func exercise() as int
+    future<AsyncResult<int>> pending = fetchValue(42)
+    AsyncResult<int> result = await pending
+    int value = match result
+    case ok(number) then number
+    case error(message) then -1
+    end
+    assert value == 42
+
+    future<AsyncResult<string>> textPending = echo(AsyncResult::<string>.ok("future"))
+    AsyncResult<string> first = await textPending
+    AsyncResult<string> second = await textPending
+    assert read(first) == "future"
+    assert read(second) == "future"
+
+    AsyncResult<string> direct = await echo(AsyncResult::<string>.error("direct"))
+    assert read(direct) == "direct"
+
+    AsyncResult<string> captured = AsyncResult::<string>.ok("captured")
+    func() as string reader = makeReader(captured)
+    captured = AsyncResult::<string>.error("changed")
+    assert reader() == "captured"
+
+    println("enum async closure ok")
+    return 0
+end
+
+future<int> exerciseResult = exercise()
+assert await exerciseResult == 0

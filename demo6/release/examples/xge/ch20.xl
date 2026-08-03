@@ -1,0 +1,48 @@
+// ch20 — 场景栈管理：栈式场景切换示意
+import xge
+
+func draw_scene()
+    // 场景栈可视化（从底到顶）
+    // 底层：游戏场景
+    xge.xgeShapeRectFill(c_float(150), c_float(380), c_float(500), c_float(120), xge.XGE_COLOR_RGBA(c_uint(42), c_uint(74), c_uint(63), c_uint(255)))
+    xge.xgeShapeRectStroke(c_float(150), c_float(380), c_float(500), c_float(120), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(150)))
+    // 游戏场景内容
+    xge.xgeShapeCircleFill(c_float(250), c_float(440), c_float(15), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(200)))
+    xge.xgeShapeCircleFill(c_float(400), c_float(430), c_float(20), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(200)))
+
+    // 中层：暂停菜单（半透明覆盖）
+    xge.xgeShapeRectFill(c_float(150), c_float(240), c_float(500), c_float(120), xge.XGE_COLOR_RGBA(c_uint(20), c_uint(25), c_uint(35), c_uint(230)))
+    xge.xgeShapeRectStroke(c_float(150), c_float(240), c_float(500), c_float(120), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(150)))
+    // 暂停菜单按钮
+    xge.xgeShapeRectFill(c_float(300), c_float(270), c_float(200), c_float(30), xge.XGE_COLOR_RGBA(c_uint(50), c_uint(65), c_uint(80), c_uint(255)))
+    xge.xgeShapeRectFill(c_float(300), c_float(310), c_float(200), c_float(30), xge.XGE_COLOR_RGBA(c_uint(50), c_uint(65), c_uint(80), c_uint(255)))
+
+    // 顶层标注
+    xge.xgeShapeRectFill(c_float(150), c_float(100), c_float(500), c_float(120), xge.XGE_COLOR_RGBA(c_uint(30), c_uint(20), c_uint(40), c_uint(200)))
+    xge.xgeShapeRectStroke(c_float(150), c_float(100), c_float(500), c_float(120), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(107), c_uint(94), c_uint(150)))
+    // 设置面板内容
+    xge.xgeShapeRectFill(c_float(200), c_float(120), c_float(400), c_float(20), xge.XGE_COLOR_RGBA(c_uint(60), c_uint(50), c_uint(70), c_uint(255)))
+    xge.xgeShapeRectFill(c_float(200), c_float(155), c_float(400), c_float(20), xge.XGE_COLOR_RGBA(c_uint(60), c_uint(50), c_uint(70), c_uint(255)))
+    xge.xgeShapeRectFill(c_float(200), c_float(190), c_float(400), c_float(20), xge.XGE_COLOR_RGBA(c_uint(60), c_uint(50), c_uint(70), c_uint(255)))
+
+    // 栈方向箭头
+    xge.xgeShapeLine(c_float(700), c_float(500), c_float(700), c_float(100), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(200), c_uint(210), c_uint(220), c_uint(150)))
+    xge.xgeShapeLine(c_float(700), c_float(100), c_float(692), c_float(115), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(200), c_uint(210), c_uint(220), c_uint(150)))
+    xge.xgeShapeLine(c_float(700), c_float(100), c_float(708), c_float(115), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(200), c_uint(210), c_uint(220), c_uint(150)))
+end
+
+func on_frame()
+    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    draw_scene()
+    xge.xgeTutorialEndFrame()
+end
+
+func main(...) as int
+    c_int ret = xge.xgeTutorialInit(840, 640, "ch20")
+    if ret != c_int(0) then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.xgeTutorialRun(on_frame)
+    return 0
+end

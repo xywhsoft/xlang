@@ -5,7 +5,7 @@ func main(...) as int
 
     println("Objective 0 = " + xgboost.objective(0))
     println("Booster 0 = " + xgboost.booster(0))
-    println("Sigmoid(0) = " + string.fromFloat(xgboost.sigmoid(0.0)))
+    println("Sigmoid(0) = " + string(xgboost.sigmoid(0.0)))
     println("Param 0 = " + xgboost.param(0))
 
     println("xgboost example: PASS")

@@ -214,7 +214,7 @@ expect(string.contains(topDirsJson, "value.txt"), 0)
 array globTxt = dir.glob(dirPath, "*.txt", true)
 expect(globTxt.length, 1)
 expect(string.contains(json.stringify(globTxt), "value.txt"), 1)
-array matchedTxt = dir.match(dirPath, "*.txt", true)
+array matchedTxt = dir.matchEntries(dirPath, "*.txt", true)
 expect(matchedTxt.length, 1)
 var matchedEntry = matchedTxt[0]
 expectStr(string(matchedEntry["name"]), "value.txt")

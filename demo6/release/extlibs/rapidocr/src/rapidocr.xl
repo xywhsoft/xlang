@@ -326,7 +326,7 @@ func rapidocr_max_rec_target_width_6(Image crop0, Image crop1, Image crop2, Imag
 	return target_rec_w
 end
 
-class RapidOCROutput
+export class RapidOCROutput
     point handle
     string json_text
     string text_value
@@ -641,7 +641,7 @@ func rapidocr_run_xlang_pipeline(string img_path, bool use_det, bool use_cls, bo
 	return RapidOCROutput(assembled, "", boxes, txts, scores, cls, "[]", 0.0, img_path, text_score)
 end
 
-class RapidOCREngine
+export class RapidOCREngine
     point handle
     string config_path
     string det_model_path

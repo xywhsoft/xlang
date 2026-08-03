@@ -3,11 +3,12 @@
 
 int main(void)
 {
+    XL_InitOptions options = xlInitOptions(0, 0);
     xvalue box;
     XL_Class_Box* data;
     int result = 0;
 
-    if ( xrtInit() == NULL ) {
+    if ( !xlInit(&options) ) {
         return 1;
     }
     box = xl6_box_make(42);
@@ -18,6 +19,6 @@ int main(void)
         result = 3;
     }
     xvoUnref(box);
-    xrtUnit();
+    xlUnit();
     return result;
 }

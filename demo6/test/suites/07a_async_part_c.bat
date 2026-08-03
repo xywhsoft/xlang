@@ -448,7 +448,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing return-before-yield async generator symbol.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_xl_fn_returnBeforeYieldStream[\s\S]*?\{\s*XL6_Generator\* __xl6_gen = \(XL6_Generator\*\)__xl6_arg;[\s\S]*?xrtTempScopeEnd\(&__xl6_temp_scope_\d+\);\s*return;[\s\S]*?xl_fn_addAsync\(0LL, 60LL\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_xl_fn_returnBeforeYieldStream[\s\S]*?\{\s*XL6_Generator\* __xl6_gen = \(XL6_Generator\*\)__xl6_arg;[\s\S]*?xl6_temp_scope_end\(&__xl6_temp_scope_\d+\);\s*return;[\s\S]*?xl_fn_addAsync\(0LL, 60LL\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing return-before-yield async generator worker lowering.
     exit /b 1

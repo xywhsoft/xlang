@@ -206,20 +206,20 @@ func splitAll(string s, string sep) as var
     int seplen = string.len(sep)
     int n = string.len(s)
     while i < n
-        bool match = true
+        bool matched = true
         int j = 0
         while j < seplen
             if i + j >= n then
-                match = false
+                matched = false
                 break
             end
             if string.byteAt(s, i + j) != string.byteAt(sep, j) then
-                match = false
+                matched = false
                 break
             end
             j += 1
         end
-        if match and seplen > 0 then
+        if matched and seplen > 0 then
             arr.append(cur)
             cur = ""
             i += seplen

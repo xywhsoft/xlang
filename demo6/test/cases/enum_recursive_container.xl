@@ -1,0 +1,18 @@
+enum Tree
+    leaf(int value)
+    branch(array<Tree> children)
+end
+
+func main(...) as int
+    array<Tree> children = [
+        Tree.leaf(1),
+        Tree.leaf(2)
+    ]
+    Tree tree = Tree.branch(children)
+    int count = match tree
+    case leaf(value) then value
+    case branch(items) then items.length
+    end
+    println(count)
+    return count == 2 ? 0 : 1
+end

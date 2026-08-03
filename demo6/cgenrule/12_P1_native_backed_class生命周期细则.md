@@ -1,4 +1,4 @@
-﻿# P1 class/native-backed class 生命周期细则
+# P1 class/native-backed class 生命周期细则
 
 本文细化 `class`、`native-backed class` 的声明布局、构造、默认初始化、成员访问、方法调用、继承路径、析构和 cleanup 生成规则。主要覆盖 `xl6_cgen_decl_class.c`、`xl6_cgen_decl_methods.c`、`xl6_cgen_decl_proto.c`、`xl6_cgen_stmt_decl.c`、`xl6_cgen_value_object.c`、`xl6_cgen_resolve_call.c`。
 
@@ -8,7 +8,7 @@
 | --- | --- |
 | xlang 写法 | `class Dog extends Animal` / `int age` / `string name` |
 | 生成规则描述 | 非泛型 class 被生成为一个 C `typedef struct`。父类通过第一个字段 `base` 内嵌到子类结构体中，随后按声明顺序输出当前 class 的字段。class 声明会先递归输出父类和字段类型依赖。泛型 class 定义本身不会在该规则下直接输出。 |
-| 生成器文件名和行号 | `xl6_cgen_decl_class.c:319`、`xl6_cgen_decl_class.c:343`、`xl6_cgen_decl_class.c:362` |
+| 生成器文件名和行号 | `xl6_cgen_decl_class_layout.c:319`、`xl6_cgen_decl_class_layout.c:343`、`xl6_cgen_decl_class_layout.c:362` |
 | 对应生成的 C 代码 | `typedef struct XL_Class_Dog { XL_Class_Animal base; long long age; char* name; } XL_Class_Dog;` |
 | 中间形态伪代码 | `ClassDecl(name, base, fields) -> struct { baseStruct base; fields... }` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要显式声明父结构体字段，并保证字段顺序、类型依赖和原型声明顺序一致。 |
@@ -20,7 +20,7 @@
 | --- | --- |
 | xlang 写法 | `class Box<T>` / `T value`，使用 `Box::<int>` |
 | 生成规则描述 | 泛型 class 只有在出现具体类型实例时才生成 C struct。生成前设置 `currentGenericParams/currentGenericArgs`，把字段里的泛型参数替换为具体类型；同一个具体实例只生成一次。 |
-| 生成器文件名和行号 | `xl6_cgen_decl_class.c:1`、`xl6_cgen_decl_class.c:94`、`xl6_cgen_decl_class.c:129` |
+| 生成器文件名和行号 | `xl6_cgen_decl_class_layout.c:1`、`xl6_cgen_decl_class_layout.c:94`、`xl6_cgen_decl_class_layout.c:129` |
 | 对应生成的 C 代码 | `typedef struct XL_Class_Box__int { long long value; } XL_Class_Box__int;` |
 | 中间形态伪代码 | `Box<T> + [int] -> Box<int> concrete struct` |
 | 实现同等功能手写的 C 代码 | 手写 C 通常需要为每个实例写一个独立 struct，例如 `Box_int`、`Box_string`。 |
@@ -32,7 +32,7 @@
 | --- | --- |
 | xlang 写法 | `class Counter` / `func add(int n) int` |
 | 生成规则描述 | class 方法被生成为普通 C 函数，首参固定为 `XL_Class_Name* self`，后续参数按 xlang 参数列表输出。多返回值方法当前不允许进入 class C 原型，会明确诊断为 `class method C prototype does not support multiple return values`；可变参数方法也被拒绝。 |
-| 生成器文件名和行号 | `xl6_cgen_decl_proto.c:215`、`xl6_cgen_decl_proto.c:239`、`xl6_cgen_decl_proto.c:248`、`xl6_cgen_decl_class.c:409` |
+| 生成器文件名和行号 | `xl6_cgen_decl_proto.c:215`、`xl6_cgen_decl_proto.c:239`、`xl6_cgen_decl_proto.c:248`、`xl6_cgen_decl_class_layout.c:409` |
 | 对应生成的 C 代码 | `long long xl_class_Counter__add(XL_Class_Counter* self, long long n);` |
 | 中间形态伪代码 | `method(self: Counter*, params...) -> returnType` |
 | 实现同等功能手写的 C 代码 | `long long Counter_add(Counter* self, long long n);` |
@@ -44,7 +44,7 @@
 | --- | --- |
 | xlang 写法 | `create(int n)` / `destroy()` |
 | 生成规则描述 | `create` 和 `destroy` 都生成 `void` 返回值。`create` 使用可重载的 callable 符号，`destroy` 使用固定成员符号。若没有用户声明 `destroy`，但 class 字段或父类需要销毁，会额外生成自动 `destroy` 原型。 |
-| 生成器文件名和行号 | `xl6_cgen_decl_proto.c:263`、`xl6_cgen_decl_proto.c:279`、`xl6_cgen_decl_class.c:413`、`xl6_cgen_decl_class.c:420` |
+| 生成器文件名和行号 | `xl6_cgen_decl_proto.c:263`、`xl6_cgen_decl_proto.c:279`、`xl6_cgen_decl_class_layout.c:413`、`xl6_cgen_decl_class_layout.c:420` |
 | 对应生成的 C 代码 | `void xl_class_Counter__create(XL_Class_Counter* self, long long n);` / `void xl_class_Counter__destroy(XL_Class_Counter* self);` |
 | 中间形态伪代码 | `special create/destroy -> void C func(self, params...)` |
 | 实现同等功能手写的 C 代码 | C 中通常写 `Counter_init(&obj, n)` 和 `Counter_deinit(&obj)`。 |
@@ -56,7 +56,7 @@
 | --- | --- |
 | xlang 写法 | `class Box<T>` / `func get() T` / `create(T value)` |
 | 生成规则描述 | 泛型 class 的方法原型按具体实例生成。符号名包含 class 名和所有类型实参；重载时再追加参数类型后缀。`self` 参数类型是具体实例 struct 指针。当前 C 原型路径只允许 0 或 1 个返回值，多返回会明确诊断为 `generic class method C prototype does not support multiple return values`。 |
-| 生成器文件名和行号 | `xl6_cgen_decl_class.c:148`、`xl6_cgen_decl_class.c:183`、`xl6_cgen_decl_class.c:207`、`xl6_cgen_decl_class.c:221`、`xl6_cgen_decl_class.c:239`、`xl6_cgen_decl_class.c:261` |
+| 生成器文件名和行号 | `xl6_cgen_decl_class_layout.c:148`、`xl6_cgen_decl_class_layout.c:183`、`xl6_cgen_decl_class_layout.c:207`、`xl6_cgen_decl_class_layout.c:221`、`xl6_cgen_decl_class_layout.c:239`、`xl6_cgen_decl_class_layout.c:261` |
 | 对应生成的 C 代码 | `long long xl_class_Box__int__get(XL_Class_Box__int* self);` |
 | 中间形态伪代码 | `Box<T>.get for Box<int> -> Box_int_get(Box_int* self)` |
 | 实现同等功能手写的 C 代码 | 每个泛型实例手写一组函数，例如 `Box_int_get`、`Box_string_get`。 |
@@ -128,7 +128,7 @@
 | --- | --- |
 | xlang 写法 | `class Config` / `int port = 8080` / `File f = File(path)` |
 | 生成规则描述 | class 变量声明后，会按父类到子类、字段声明顺序输出字段默认初始化。普通字段生成赋值；native-backed class 字段如果初始化表达式是同类型构造，则写入 `.handle` 而不是整体赋值；如果 native-backed class 字段初始化使用了其他 native-backed class 的构造表达式，则明确诊断为 `native-backed class field initializer constructor type does not match field type`。 |
-| 生成器文件名和行号 | `xl6_cgen_decl_class.c:426`、`xl6_cgen_decl_class.c:456`、`xl6_cgen_decl_class.c:467`、`xl6_cgen_decl_class.c:475` |
+| 生成器文件名和行号 | `xl6_cgen_decl_class_layout.c:426`、`xl6_cgen_decl_class_layout.c:456`、`xl6_cgen_decl_class_layout.c:467`、`xl6_cgen_decl_class_layout.c:475` |
 | 对应生成的 C 代码 | `c.port = 8080; c.f.handle = file_open(path);` |
 | 中间形态伪代码 | `initBaseFields(var.base); for field in fields: var.field = initExpr` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要在对象声明后逐字段赋默认值，并特别处理句柄字段。 |
@@ -284,7 +284,7 @@
 | --- | --- |
 | xlang 写法 | `class File ... native point handle ... end` |
 | 生成规则描述 | native-backed class 被生成为只包含 `void* handle` 的轻量结构体，用于把 C 黑盒资源映射成 xlang 的类式对象。native-backed class 不展开 C struct 内部布局。 |
-| 生成器文件名和行号 | `xl6_cgen_decl_class.c:612`、`xl6_cgen_decl_class.c:618` |
+| 生成器文件名和行号 | `xl6_cgen_decl_class_layout.c:612`、`xl6_cgen_decl_class_layout.c:618` |
 | 对应生成的 C 代码 | `typedef struct XL_Class_File { void* handle; } XL_Class_File;` |
 | 中间形态伪代码 | `native-backed class Name -> struct { void* handle }` |
 | 实现同等功能手写的 C 代码 | `typedef struct FileRef { void* handle; } FileRef;` |
@@ -296,7 +296,7 @@
 | --- | --- |
 | xlang 写法 | `extern create(...) = c_create` / `extern destroy = c_destroy` / `extern func read(int n) string = c_read` |
 | 生成规则描述 | native-backed class 的 extern 成员直接声明对应 C 函数原型。`create` 返回 `void*` 且不带 self；`destroy` 固定为 `long long func(void* self)`；普通 extern 方法首参固定 `void* self`，返回值最多一个。参数使用 C ABI 类型名，`...`/`***` 打包参数不能直接进入 C ABI 原型，会明确诊断为 `native-backed class extern parameter must have a non-vararg C ABI type`；多返回会明确诊断为 `native-backed class extern method cannot return multiple values`。 |
-| 生成器文件名和行号 | `xl6_cgen_decl_class.c:489`、`xl6_cgen_decl_class.c:507`、`xl6_cgen_decl_class.c:522`、`xl6_cgen_decl_class.c:551`、`xl6_cgen_decl_class.c:632` |
+| 生成器文件名和行号 | `xl6_cgen_decl_class_layout.c:489`、`xl6_cgen_decl_class_layout.c:507`、`xl6_cgen_decl_class_layout.c:522`、`xl6_cgen_decl_class_layout.c:551`、`xl6_cgen_decl_class_layout.c:632` |
 | 对应生成的 C 代码 | `void* file_open(char* path);` / `long long file_close(void* self);` / `long long file_read(void* self, long long n);` |
 | 中间形态伪代码 | `native-backed class extern method -> C ABI prototype(handle, params...)` |
 | 实现同等功能手写的 C 代码 | 手写 C 就是声明原始库函数原型。 |
@@ -308,7 +308,7 @@
 | --- | --- |
 | xlang 写法 | `class File` with `native point handle` / `func read(int n) string ... end` |
 | 生成规则描述 | native-backed class 内部用 xlang 实现的 helper 方法生成 `xl_class_Name__method` 符号，首参是 `XL_Class_Name* self`，而不是原始 `void* handle`。方法体内部可通过 `self.handle` 调用 extern 方法。当前 helper C 原型只允许 0 或 1 个返回值，多返回会明确诊断为 `native-backed class helper method cannot return multiple values`。 |
-| 生成器文件名和行号 | `xl6_cgen_decl_class.c:565`、`xl6_cgen_decl_class.c:590`、`xl6_cgen_decl_class.c:597`、`xl6_cgen_decl_methods.c:467` |
+| 生成器文件名和行号 | `xl6_cgen_decl_class_layout.c:565`、`xl6_cgen_decl_class_layout.c:590`、`xl6_cgen_decl_class_layout.c:597`、`xl6_cgen_decl_methods.c:467` |
 | 对应生成的 C 代码 | `char* xl_class_File__read(XL_Class_File* self, long long n);` |
 | 中间形态伪代码 | `native-backed helper(self: Class*, params...) -> body` |
 | 实现同等功能手写的 C 代码 | `char* File_read_helper(FileRef* self, long long n) { ... }` |

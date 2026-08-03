@@ -1,0 +1,37 @@
+class FlowBase
+    int value = 0
+
+    create(int initial)
+        self.value = initial
+    end
+end
+
+class FlowChild extends FlowBase
+    create(int initial)
+        base(initial)
+    end
+end
+
+func readInt(var value) as int
+    if value is int then
+        int narrowed = value
+        return narrowed
+    end
+    return -1
+end
+
+func readChild(var value) as int
+    if value is FlowChild then
+        FlowChild narrowed = value
+        return narrowed.value
+    end
+    return -1
+end
+
+func main(...) as int
+    if readInt(41) != 41 then return 1 end
+    if readInt("no") != -1 then return 2 end
+    if readChild(FlowChild(42)) != 42 then return 3 end
+    if readChild("no") != -1 then return 4 end
+    return 0
+end

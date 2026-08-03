@@ -295,7 +295,7 @@ func find_in_root(Element root, Locator loc) as Element
 	if loc.process_id > 0 then
 		return find_by_process_id(root, loc)
 	end
-	point emptyHandle
+	point emptyHandle = null
 	return uia.element(emptyHandle)
 end
 

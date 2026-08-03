@@ -15,11 +15,11 @@ void xl6CgenHeaderLifecycleDecls(XL6_Output* out)
     xl6OutputPuts("    void* reserved;\n", out);
     xl6OutputPuts("} XL_InitOptions;\n", out);
     xl6OutputPuts("#endif\n\n", out);
-    xl6OutputPuts("XL_InitOptions xlInitOptions(int argc, char** argv);\n", out);
-    xl6OutputPuts("int xlInit(const XL_InitOptions* options);\n", out);
-    xl6OutputPuts("void xlUnit(void);\n", out);
-    xl6OutputPuts("void xlDllAttach(void* module);\n", out);
-    xl6OutputPuts("void xlDllDetach(int processTerminating);\n\n", out);
+    xl6OutputPuts("XL6_C_API XL_InitOptions xlInitOptions(int argc, char** argv);\n", out);
+    xl6OutputPuts("XL6_C_API int xlInit(const XL_InitOptions* options);\n", out);
+    xl6OutputPuts("XL6_C_API void xlUnit(void);\n", out);
+    xl6OutputPuts("XL6_C_API void xlDllAttach(void* module);\n", out);
+    xl6OutputPuts("XL6_C_API void xlDllDetach(int processTerminating);\n\n", out);
 }
 
 void xl6CgenEmitLifecycleRuntime(XL6_Output* out)
@@ -49,7 +49,7 @@ void xl6CgenEmitLifecycleRuntime(XL6_Output* out)
     xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("#endif\n\n", out);
     xl6OutputPuts("static int xl__runtime_init_count = 0;\n\n", out);
-    xl6OutputPuts("XL_InitOptions xlInitOptions(int argc, char** argv)\n", out);
+    xl6OutputPuts("XL6_C_API XL_InitOptions xlInitOptions(int argc, char** argv)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL_InitOptions options;\n", out);
     xl6OutputPuts("    options.size = (unsigned int)sizeof(options);\n", out);
@@ -59,7 +59,7 @@ void xl6CgenEmitLifecycleRuntime(XL6_Output* out)
     xl6OutputPuts("    options.reserved = 0;\n", out);
     xl6OutputPuts("    return options;\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("int xlInit(const XL_InitOptions* options)\n", out);
+    xl6OutputPuts("XL6_C_API int xlInit(const XL_InitOptions* options)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( options != 0 ) {\n", out);
     xl6OutputPuts("        if ( options->size < (unsigned int)sizeof(XL_InitOptions) ) {\n", out);
@@ -79,7 +79,7 @@ void xl6CgenEmitLifecycleRuntime(XL6_Output* out)
     xl6OutputPuts("    xl__runtime_init_count += 1;\n", out);
     xl6OutputPuts("    return 1;\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("void xlUnit(void)\n", out);
+    xl6OutputPuts("XL6_C_API void xlUnit(void)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( xl__runtime_init_count <= 0 ) {\n", out);
     xl6OutputPuts("        return;\n", out);
@@ -91,11 +91,11 @@ void xl6CgenEmitLifecycleRuntime(XL6_Output* out)
     xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("void xlDllAttach(void* module)\n", out);
+    xl6OutputPuts("XL6_C_API void xlDllAttach(void* module)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    (void)module;\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("void xlDllDetach(int processTerminating)\n", out);
+    xl6OutputPuts("XL6_C_API void xlDllDetach(int processTerminating)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    (void)processTerminating;\n", out);
     xl6OutputPuts("}\n\n", out);

@@ -148,17 +148,17 @@ func cmdSearch(string scriptPath, string query)
     int n = items.length
     while i < n
         Contact c = items[i]
-        bool match = false
+        bool matched = false
         if string.contains(c.name, query) then
-            match = true
+            matched = true
         end
         if string.contains(c.phone, query) then
-            match = true
+            matched = true
         end
         if string.contains(c.email, query) then
-            match = true
+            matched = true
         end
-        if match then
+        if matched then
             println("[" + string(c.id) + "] " + c.name + " | " + c.phone + " | " + c.email)
             hits += 1
         end

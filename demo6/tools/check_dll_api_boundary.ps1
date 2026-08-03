@@ -10,10 +10,21 @@ if ( $Root -eq "" ) {
 
 $headerPath = Join-Path $Root "release\include\xl.h"
 $xlcHeaderPath = Join-Path $Root "release\include\xlc.h"
+$runtimeHeaderPath = Join-Path $Root "release\include\xl_runtime.h"
 $apiPath = Join-Path $Root "src\api\xl_api.c"
+$apiSymbolsPath = Join-Path $Root "src\api\xl_api_symbols.c"
+$cgenRuntimePath = Join-Path $Root "src\cgen\xl6_cgen_runtime.c"
+$cgenModulePath = Join-Path $Root "src\cgen\xl6_cgen_module.c"
+$cgenCallableRuntimePath = Join-Path $Root "src\cgen\xl6_cgen_callable_runtime.c"
+$cgenXValueRuntimePath = Join-Path $Root "src\cgen\xl6_cgen_xvalue_runtime.c"
+$cgenRuntimeTypePath = Join-Path $Root "src\cgen\xl6_cgen_runtime_type.c"
+$cgenIndexOpsPath = Join-Path $Root "src\cgen\xl6_cgen_xvalue_runtime_index_ops.c"
 $docName = "DLL" + ([char]0x5D4C) + ([char]0x5165) + ([char]0x5F0F) + ([char]0x8FD0) + ([char]0x884C) + ([char]0x5E93) + ([char]0x8BBE) + ([char]0x8BA1) + ".md"
 $docPath = Join-Path (Join-Path $Root "docs") $docName
 $buildDllPath = Join-Path $Root "build_dll.bat"
+$buildXrtPath = Join-Path $Root "tools\build_xrt_obj.bat"
+$xrtImplPath = Join-Path $Root "tools\xrt_single_header_impl.c"
+$vendoredXrtPath = Join-Path $Root "lib\xrt\xrt.h"
 $runtimeManifestPath = Join-Path $Root "tools\tcc_vfs_manifest_win64_runtime.txt"
 $compilerManifestPath = Join-Path $Root "tools\tcc_vfs_manifest_win64_xlc.txt"
 $minPublicApis = 61
@@ -212,7 +223,26 @@ function Remove-CCommentsAndStrings($text)
     return $builder.ToString()
 }
 
-foreach ( $path in @($headerPath, $xlcHeaderPath, $apiPath, $docPath, $buildDllPath, $runtimeManifestPath, $compilerManifestPath) ) {
+foreach ( $path in @(
+    $headerPath,
+    $xlcHeaderPath,
+    $runtimeHeaderPath,
+    $apiPath,
+    $apiSymbolsPath,
+    $cgenRuntimePath,
+    $cgenModulePath,
+    $cgenCallableRuntimePath,
+    $cgenXValueRuntimePath,
+    $cgenRuntimeTypePath,
+    $cgenIndexOpsPath,
+    $docPath,
+    $buildDllPath,
+    $buildXrtPath,
+    $xrtImplPath,
+    $vendoredXrtPath,
+    $runtimeManifestPath,
+    $compilerManifestPath
+) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         Add-Failure "required DLL API file missing: $path"
     }
@@ -221,16 +251,83 @@ foreach ( $path in @($headerPath, $xlcHeaderPath, $apiPath, $docPath, $buildDllP
 if ( $failures.Count -eq 0 ) {
     $header = Read-Utf8Text $headerPath
     $xlcHeader = Read-Utf8Text $xlcHeaderPath
+    $runtimeHeader = Read-Utf8Text $runtimeHeaderPath
     $publicHeaders = $header + "`n" + $xlcHeader
     $api = Read-Utf8Text $apiPath
+    $apiSymbols = Read-Utf8Text $apiSymbolsPath
+    $cgenRuntime = Read-Utf8Text $cgenRuntimePath
+    $cgenModule = Read-Utf8Text $cgenModulePath
+    $cgenCallableRuntime = Read-Utf8Text $cgenCallableRuntimePath
+    $cgenXValueRuntime = Read-Utf8Text $cgenXValueRuntimePath
+    $cgenRuntimeType = Read-Utf8Text $cgenRuntimeTypePath
+    $cgenIndexOps = Read-Utf8Text $cgenIndexOpsPath
     $doc = Read-Utf8Text $docPath
     $buildDll = Read-Utf8Text $buildDllPath
+    $buildXrt = Read-Utf8Text $buildXrtPath
+    $xrtImpl = Read-Utf8Text $xrtImplPath
     $runtimeManifest = Read-Utf8Text $runtimeManifestPath
     $compilerManifest = Read-Utf8Text $compilerManifestPath
     $runtimeManifestEntries = Get-ManifestEntries $runtimeManifest "runtime"
     $compilerManifestEntries = Get-ManifestEntries $compilerManifest "compiler"
     $xlRuntimeBuildBlock = Get-BuildBlock $buildDll "Building DEMO6 xl.dll runtime"
     $xlcBuildBlock = Get-BuildBlock $buildDll "Building DEMO6 xlc.dll compiler runtime"
+
+    # Generated code uses the compact runtime header, while in-memory execution
+    # resolves the same APIs through host symbol injection. Keep both in sync.
+    if ( $runtimeHeader -notmatch '(?m)^\s*const\s+xrt_type_desc\s*\*\s*xrtTypeValue\s*\(\s*void\s*\)\s*;' ) {
+        Add-Failure "release/include/xl_runtime.h must declare xrtTypeValue(void)"
+    }
+    if ( $apiSymbols -notmatch 'XL_ADD_XRT_SYMBOL\s*\(\s*s\s*,\s*xrtTypeValue\s*\)\s*;' ) {
+        Add-Failure "runtime TCC symbol injection must register xrtTypeValue"
+    }
+    if ( $runtimeHeader -notmatch '(?m)^\s*xvalue\s+xvoGetHandleOwner\s*\(\s*const\s+ptr\s*\*\s*\w+\s*\)\s*;' ) {
+        Add-Failure "release/include/xl_runtime.h must declare xvoGetHandleOwner"
+    }
+    if ( $apiSymbols -notmatch 'XL_ADD_XRT_SYMBOL\s*\(\s*s\s*,\s*xvoGetHandleOwner\s*\)\s*;' ) {
+        Add-Failure "runtime TCC symbol injection must register xvoGetHandleOwner"
+    }
+    foreach ( $compilerOwnedHelper in @(
+        "XL6_XRT_VALUE_STRING_HELPERS",
+        "XL6_XRT_VALUE_RELEASE_CONVERT_HELPERS"
+    ) ) {
+        if ( $runtimeHeader -match ('(?m)^\s*#define\s+' + [regex]::Escape($compilerOwnedHelper) + '\b') ) {
+            Add-Failure "release/include/xl_runtime.h must not define compiler-owned helper block $compilerOwnedHelper"
+        }
+    }
+    if ( $cgenRuntime -notmatch 'static inline void xl6_temp_managed_release' ) {
+        Add-Failure "generated runtime must provide the single temporary managed release entry"
+    }
+    foreach ( $consumer in @(
+        [pscustomobject]@{ Name = "callable runtime"; Text = $cgenCallableRuntime },
+        [pscustomobject]@{ Name = "xvalue runtime"; Text = $cgenXValueRuntime },
+        [pscustomobject]@{ Name = "runtime type"; Text = $cgenRuntimeType },
+        [pscustomobject]@{ Name = "xvalue index ops"; Text = $cgenIndexOps }
+    ) ) {
+        if ( $consumer.Text -notmatch 'xl6_temp_managed_release' ) {
+            Add-Failure "$($consumer.Name) must consume temporary xvalue ownership through xl6_temp_managed_release"
+        }
+    }
+    if ( $cgenRuntimeType -match 'if \(release && value != 0\) \{ xvoUnref\(value\); \}' ) {
+        Add-Failure "runtime type release path must disown temporary xvalue before xvoUnref"
+    }
+    if ( $cgenModule -notmatch '(?s)if \( hasFunctionVarRuntime \) \{\s*hasTypeConvertRuntime = 1;\s*hasErrorRuntime = 1;\s*\}' ) {
+        Add-Failure "function-var runtime needs closure must include type-convert runtime"
+    }
+    foreach ( $enumApi in @(
+        "xrtEnumInfo",
+        "xrtEnumVariantAt",
+        "xrtEnumFindVariant",
+        "xrtEnumFindValue",
+        "xrtEnumFieldAt",
+        "xrtEnumFindField"
+    ) ) {
+        if ( $runtimeHeader -notmatch ('(?m)^\s*[^;]*\b' + $enumApi + '\s*\([^;]*\)\s*;') ) {
+            Add-Failure "release/include/xl_runtime.h must declare $enumApi"
+        }
+        if ( $apiSymbols -notmatch ('XL_ADD_XRT_SYMBOL\s*\(\s*s\s*,\s*' + $enumApi + '\s*\)\s*;') ) {
+            Add-Failure "runtime TCC symbol injection must register $enumApi"
+        }
+    }
     $headerMatches = New-Object System.Collections.Generic.List[object]
     $headerApis = New-Object System.Collections.Generic.HashSet[string]
     $apiDefinitions = New-Object System.Collections.Generic.HashSet[string]
@@ -440,6 +537,27 @@ if ( $failures.Count -eq 0 ) {
 
     if ( $buildDll -notmatch 'src\\api\\xl_api[.]c' ) {
         Add-Failure "build_dll.bat does not compile src\\api\\xl_api.c"
+    }
+    if ( $buildDll -notmatch 'call\s+tools\\build_xrt_obj[.]bat' ) {
+        Add-Failure "build_dll.bat must build XRT through tools\\build_xrt_obj.bat"
+    }
+    if ( $buildXrt -notmatch 'tools\\xrt_single_header_impl[.]c' ) {
+        Add-Failure "tools\\build_xrt_obj.bat must compile tools\\xrt_single_header_impl.c"
+    }
+    if ( $xrtImpl -notmatch '#include\s+"lib/xrt/xrt[.]h"' ) {
+        Add-Failure "tools\\xrt_single_header_impl.c must include the vendored lib/xrt/xrt.h snapshot"
+    }
+
+    # Release builds must not follow an external, potentially unstable XRT tree.
+    $externalXrtPatterns = @(
+        '(?i)D:\\GIT\\xrt',
+        '(?i)%XRT_(ROOT|PATH|DIR)%',
+        '(?i)\.\.\\xrt\\'
+    )
+    foreach ( $pattern in $externalXrtPatterns ) {
+        if ( $buildDll -match $pattern -or $buildXrt -match $pattern -or $xrtImpl -match $pattern ) {
+            Add-Failure "DEMO6 build scripts must not read an external XRT source tree: $pattern"
+        }
     }
     if ( $buildDll -notmatch 'tcc_vfs_manifest_win64_runtime[.]txt' -or
          $buildDll -notmatch 'tcc_vfs_manifest_win64_xlc[.]txt' ) {

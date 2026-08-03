@@ -13,7 +13,7 @@ func main(...) as int
 
     // Varint encoding
     println("varint(300) = " + clickhouse.encodeVarint(300))
-    println("decode(ac02) = " + string.format("{}", clickhouse.decodeVarint("ac02")))
+    println("decode(ac02) = " + string(clickhouse.decodeVarint("ac02")))
 
     // Engine names
     println("Engine 0 = " + clickhouse.engineName(0))

@@ -120,6 +120,13 @@ rc0_guard.bat -SkipFullTests
 - CLI 临时目录名使用 `xrtNow()` 和 `xrtRandomBytes()`，不能重新使用 CRT `time()`。
 - CLI 调用外部工具和生成 loadlib import def 已迁移到 `xrtExecCapture` 的 `XPROC_TARGET_EXEC` 参数数组路径，并通过 `xl6Console*` 回写 stdout/stderr；`xl run` 已迁移到 TCC 内存运行，不得重新通过临时 exe、`system`、shell 字符串或平台私有命令执行 API 绕过该路径。
 
+控制台 UTF-8 口径：
+
+- Windows 的真实控制台句柄由 `xl6Console*` 和 XRT `xvoPrint` 将 UTF-8 转为 UTF-16 后通过 `WriteConsoleW` 输出；管道、文件和 IDE 捕获句柄保持原始 UTF-8 字节。
+- xlang 运行会话不修改进程共享的输出代码页。真实控制台统一走 `WriteConsoleW`，重定向句柄统一写 UTF-8；`xl6ConsoleSessionBegin` / `xl6ConsoleSessionEnd` 只保留稳定的 CLI/DLL 生命周期边界，不承担代码页切换。
+- 禁止在子进程运行时调用 `SetConsoleCP` 修改输入代码页。Windows 控制台状态由父子进程共享，这会干扰父 `cmd.exe` 继续读取批处理；交互输入应使用 `ReadConsoleW` 并在进程内转换为 UTF-8。
+- Linux、macOS 和其他 POSIX 平台直接向 stdout/stderr 写 UTF-8 字节，不调用 `setlocale(LC_ALL, ...)` 修改进程全局 locale；终端显示能力由宿主 locale 和字体决定，重定向内容始终是 UTF-8。
+
 当前禁止的 CRT 使用：
 
 - 编译器内部文件读取与写入不得新增 `fopen`、`fread`、`fwrite`、`fclose` 文件路径逻辑。

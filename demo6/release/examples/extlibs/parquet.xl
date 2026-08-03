@@ -6,7 +6,7 @@ func main(...) as int
     println("Type 2 = " + parquet.dataType(2))
     println("Encoding 7 = " + parquet.encoding(7))
     println("Compression 6 = " + parquet.compression(6))
-    println("Size 1000x10x8 = " + string.int(parquet.estimateSize(1000, 10, 8)))
+    println("Size 1000x10x8 = " + string(parquet.estimateSize(1000, 10, 8)))
 
     println("parquet example: PASS")
     return 0

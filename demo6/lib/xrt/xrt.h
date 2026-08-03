@@ -1,7 +1,7 @@
 /*
 
     XRT Single Header File
-    Generated: 2026-07-28 02:25:51
+    Generated: 2026-08-02 02:43:55
 
     MIT License
 
@@ -610,10 +610,12 @@
 	#ifndef null
 		#define null 0
 	#endif
-	#ifdef BUILD_DLL
-		#define XXAPI	__declspec(dllexport)
-	#else
-		#define XXAPI
+	#ifndef XXAPI
+		#ifdef BUILD_DLL
+			#define XXAPI	__declspec(dllexport)
+		#else
+			#define XXAPI
+		#endif
 	#endif
 	/* ------------------------------------ 全局数据 ------------------------------------ */
 	// PCG 随机数状态结构
@@ -681,6 +683,7 @@
 	#define XRT_MEMGLOBAL_SPAN_MAX_BLOCKS	128u
 	#define XRT_MEMBLOCK_FLAG_POOLED		0x0001u
 	#define XRT_MEMBLOCK_FLAG_BACKING		0x0002u
+	#define XRT_MEMBLOCK_FLAG_FREE			0x0004u
 	typedef struct xrtMemBlockHeader {
 		uint32 iMagic;
 		uint16 iClassIndex;
@@ -971,6 +974,11 @@
 		bool bApproxStrCase;      // 通配符模式大小写开关(TRUE=忽略)
 		xrtMemGlobalPool MemGlobal;
 		xrtMemTelemetryState MemTelemetry;
+		/*
+			进程级协议见证表。
+			XRT 只保存通用类型与函数入口，不依赖任何上层语言语法。
+		*/
+		ptr ProtocolRegistry;
 		#ifdef XRT_MEM_DEBUG
 			xrtMemDebugState MemDebug;
 		#endif
@@ -1556,6 +1564,10 @@
 	#define XRT_MASK_BOM			0xBFFFFFFF		// mask BOM
 	// utf-8 转 utf-16（ 需使用 xrtFree 释放 ）
 	XXAPI u16str xrtUTF8to16(u8str sText, size_t iSize, size_t* iRetSize);
+	#define XRT_CONSOLE_STDOUT 1
+	#define XRT_CONSOLE_STDERR 2
+	// 向控制台写入 UTF-8 文本；Windows 真控制台自动转换为 UTF-16，重定向保持原始字节。
+	XXAPI bool xrtConsoleWrite(int iStream, const void* pText, size_t iSize);
 	// utf-8 转 utf-32（ 需使用 xrtFree 释放 ）
 	XXAPI u32str xrtUTF8to32(u8str sText, size_t iSize, size_t* iRetSize);
 	// utf-16 转 utf-8（ 需使用 xrtFree 释放 ）
@@ -2442,6 +2454,24 @@
 	XXAPI uint64 xrtThreadGetCurrentId();
 	// 让出当前线程的时间片
 	XXAPI void xrtThreadYield();
+	/*
+	 * 进程内一次性初始化。
+	 * State 由 XRT 管理，调用方只能使用 XRT_ONCE_INIT 做静态初始化。
+	 */
+	#ifndef XRT_ONCE_TYPEDEF
+	#define XRT_ONCE_TYPEDEF
+		typedef struct xrt_once_struct {
+			volatile uint32 State;
+		} xrt_once;
+		typedef void (*xrtonceproc)(ptr pContext);
+	#endif
+	#define XRT_ONCE_INIT { 0u }
+	XXAPI void xrtOnceRun(xrt_once* pOnce, xrtonceproc pProc, ptr pContext);
+	/*
+	 * 用于递归元数据图的一次性初始化。
+	 * 同一线程回到当前正在初始化的节点时立即返回，其他线程仍等待初始化完成。
+	 */
+	XXAPI void xrtOnceRunGraph(xrt_once* pOnce, xrtonceproc pProc, ptr pContext);
 	/* ---------- 互斥体 ---------- */
 	// 创建互斥体
 	XXAPI xmutex xrtMutexCreate();
@@ -3111,6 +3141,10 @@
 	XXAPI void xrtHKDFExpand_SHA384(uint8 *pOKM, size_t iOKMLen, const uint8 *pPRK, size_t iPRKLen, const uint8 *pInfo, size_t iInfoLen);
 	// 加密安全随机数 (Windows: RtlGenRandom, Linux: /dev/urandom)
 	XXAPI void xrtRandomBytes(uint8 *pBuf, size_t iLen);
+	// 填充加密安全随机字节；系统随机源不可用时返回 false，不降级到伪随机数
+	XXAPI bool xrtSecureRandom(void *pData, size_t iSize);
+	// 使用不会被编译器优化掉的写入清除敏感内存
+	XXAPI void xrtSecureZero(void *pData, size_t iSize);
 	/* ------------------------------------ Network / TLS 共享状态定义 ------------------------------------ */
 	/*
 		依赖项：
@@ -7757,11 +7791,21 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	typedef struct xrt_method_table xrt_method_table;
 	typedef struct xrt_func_param xrt_func_param;
 	typedef struct xrt_func_sig xrt_func_sig;
+	typedef struct xrtenumfield xrtenumfield;
+	typedef struct xrtenumvariant xrtenumvariant;
+	typedef struct xrtenum xrtenum;
+	typedef struct xrtprotocolrequirement xrtprotocolrequirement;
+	typedef struct xrtprotocolentry xrtprotocolentry;
+	typedef struct xrtprotocol xrtprotocol;
+	typedef struct xrtprotocolwitness xrtprotocolwitness;
+	typedef struct xrtprotocolregistry xrtprotocolregistry;
 	typedef struct xrt_call_frame xrt_call_frame;
 	typedef struct xrt_call_result xrt_call_result;
 	typedef struct xrt_callable xrt_callable;
 	typedef struct xrt_record_value xrt_record_value;
 	typedef struct xrt_handle_value xrt_handle_value;
+	typedef struct xrt_value_weak_control xrt_value_weak_control;
+	typedef struct xrt_value_weak xrt_value_weak;
 	typedef struct xset_struct xset_struct;
 	typedef xset_struct* xset;
 	typedef struct xrt_typed_array_struct xrt_typed_array_struct;
@@ -7798,6 +7842,9 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	#define XRT_TYPE_KIND_TYPE			15u
 	#define XRT_TYPE_KIND_FUTURE		16u
 	#define XRT_TYPE_KIND_CLASS		17u
+	#define XRT_TYPE_KIND_PROTOCOL		18u
+	#define XRT_TYPE_KIND_ENUM			19u
+	#define XRT_TYPE_KIND_NULLABLE		20u
 	#define XRT_NATIVE_ABI_XCALL		0u
 	#define XRT_NATIVE_ABI_CDECL		1u
 	#define XRT_NATIVE_ABI_STDCALL		2u
@@ -7809,9 +7856,13 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	#define XRT_HANDLE_FLAG_OWNED		0x00000001u
 	#define XRT_HANDLE_FLAG_BORROWED		0x00000002u
 	#define XRT_HANDLE_FLAG_NULLABLE		0x00000004u
+	#define XRT_HANDLE_FLAG_WEAKABLE		0x00000008u
 	#define XRT_TYPE_CONVERT_EXACT		0x00000001u
 	#define XRT_TYPE_CONVERT_SAFE_WIDEN	0x00000002u
 	#define XRT_TYPE_CONVERT_EXPLICIT	0x00000004u
+	#define XRT_ENUM_FLAG_NUMERIC		0x00000001u
+	#define XRT_ENUM_FLAG_TAGGED		0x00000002u
+	#define XRT_ENUM_VARIANT_HAS_PAYLOAD	0x00000001u
 	#ifndef XL6_XRT_CALL_TYPEDEF
 	struct xrt_type_ops {
 		void (*init)(ptr pObj);
@@ -7820,7 +7871,7 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 		void (*drop)(ptr pObj);
 		int (*compare)(const ptr pA, const ptr pB);
 		uint64 (*hash)(const ptr pObj);
-		str (*to_string)(const ptr pObj, uint32* pSize);
+	str (*to_string)(const void* pObj, uint32* pSize);
 		xvalue (*box)(const ptr pObj, const xrt_type_desc* pType);
 		bool (*unbox)(xvalue pVal, ptr pOut, const xrt_type_desc* pType);
 		void (*clone)(ptr pDst, const ptr pSrc);
@@ -7844,6 +7895,31 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 		const xrt_type_desc* const* Args;
 	};
 	#endif
+	/*
+		Enum 元数据只描述运行时布局，不规定任何语言的声明语法。
+		数值 enum 的 Value 保存底层整数位模式；tagged enum 使用 Value 作为 tag。
+	*/
+	struct xrtenumfield {
+		const char* Name;
+		uint32 NameSize;
+		const xrt_type_desc* Type;
+		size_t Offset;
+	};
+	struct xrtenumvariant {
+		const char* Name;
+		uint32 NameSize;
+		uint64 Value;
+		uint32 FieldCount;
+		const xrtenumfield* Fields;
+		uint32 Flags;
+	};
+	struct xrtenum {
+		const xrt_type_desc* Type;
+		const xrt_type_desc* BackingType;
+		uint32 VariantCount;
+		const xrtenumvariant* Variants;
+		uint32 Flags;
+	};
 	struct xrt_method_desc {
 		const char* Name;
 		uint32 NameSize;
@@ -7875,6 +7951,32 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 		uint32 Flags;
 	};
 	#endif
+	/*
+		Protocol 描述只依赖 XRT 的类型与函数签名。
+		声明方持有描述对象，注册表只借用，不绑定任何语言语法。
+	*/
+	struct xrtprotocolrequirement {
+		const char* Name;
+		uint32 NameSize;
+		const xrt_func_sig* Signature;
+	};
+	struct xrtprotocol {
+		const xrt_type_desc* Type;
+		uint32 RequirementCount;
+		const xrtprotocolrequirement* Requirements;
+	};
+	struct xrtprotocolentry {
+		const char* Name;
+		uint32 NameSize;
+		const xrt_func_sig* Signature;
+		ptr Entry;
+	};
+	struct xrtprotocolwitness {
+		const xrtprotocol* Protocol;
+		const xrt_type_desc* ConcreteType;
+		uint32 EntryCount;
+		const xrtprotocolentry* Entries;
+	};
 	#ifndef XL6_XRT_CALL_TYPEDEF
 	struct xrt_call_frame {
 		xvalue Self;
@@ -7900,17 +8002,25 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 		ptr Env;
 		void (*DropEnv)(ptr pEnv);
 	};
+	struct xrt_value_weak {
+		xrt_value_weak_control* Control;
+	};
 	struct xrt_record_value {
 		const xrt_type_desc* Type;
 		xvalue Owner;
 		uint32 Flags;
 		uint32 Size;
+		volatile long WeakInitLock;
+		xrt_value_weak_control* WeakControl;
 		uint8 Data[1];
 	};
 	struct xrt_handle_value {
 		const xrt_type_desc* Type;
+		xvalue Owner;
 		ptr Handle;
 		uint32 Flags;
+		volatile long WeakInitLock;
+		xrt_value_weak_control* WeakControl;
 	};
 	struct xrt_typed_array_struct {
 		volatile long RefCount;
@@ -8018,14 +8128,26 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI const xrt_type_desc* xrtTypeGenericArg(const xrt_type_desc* pType, uint32 iIndex);
 	XXAPI const xrt_method_table* xrtTypeMethods(const xrt_type_desc* pType);
 	XXAPI const xrt_method_desc* xrtTypeFindMethod(const xrt_type_desc* pType, const char* sName, uint32 iNameSize);
-	XXAPI str xrtTypeToStringValue(const xrt_type_desc* pType, const ptr pObj, uint32* pSize);
+	XXAPI str xrtTypeToStringValue(const xrt_type_desc* pType, const void* pObj, uint32* pSize);
 	XXAPI bool xrtTypeCanWiden(const xrt_type_desc* pSrcType, const xrt_type_desc* pDstType);
 	XXAPI bool xrtTypeCanConvert(const xrt_type_desc* pSrcType, const xrt_type_desc* pDstType, uint32 iFlags);
 	XXAPI bool xrtTypeConvertValue(const xrt_type_desc* pDstType, ptr pDst, const xrt_type_desc* pSrcType, const ptr pSrc, uint32 iFlags);
 	XXAPI bool xrtValueConvertTo(xvalue pVal, const xrt_type_desc* pDstType, ptr pDst, uint32 iFlags);
+	XXAPI bool xrtTypeInitValue(const xrt_type_desc* pType, ptr pObj);
+	XXAPI bool xrtTypeCopyValue(const xrt_type_desc* pType, ptr pDst, const ptr pSrc);
+	XXAPI bool xrtTypeMoveValue(const xrt_type_desc* pType, ptr pDst, ptr pSrc);
+	XXAPI bool xrtTypeCloneValue(const xrt_type_desc* pType, ptr pDst, const ptr pSrc);
+	XXAPI int xrtTypeCompareValue(const xrt_type_desc* pType, const ptr pA, const ptr pB);
+	XXAPI uint64 xrtTypeHashValue(const xrt_type_desc* pType, const ptr pObj);
 	XXAPI xvalue xrtTypeBoxValue(const xrt_type_desc* pType, const ptr pObj);
 	XXAPI bool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, ptr pOut);
 	XXAPI void xrtTypeDropValue(const xrt_type_desc* pType, ptr pObj);
+	XXAPI const xrtenum* xrtEnumInfo(const xrt_type_desc* pType);
+	XXAPI const xrtenumvariant* xrtEnumVariantAt(const xrtenum* pEnum, uint32 iIndex);
+	XXAPI const xrtenumvariant* xrtEnumFindVariant(const xrtenum* pEnum, const char* sName, uint32 iNameSize);
+	XXAPI const xrtenumvariant* xrtEnumFindValue(const xrtenum* pEnum, uint64 iValue);
+	XXAPI const xrtenumfield* xrtEnumFieldAt(const xrtenumvariant* pVariant, uint32 iIndex);
+	XXAPI const xrtenumfield* xrtEnumFindField(const xrtenumvariant* pVariant, const char* sName, uint32 iNameSize);
 	XXAPI uint64 xrtFuncSigTypeId(const xrt_func_sig* pSig);
 	XXAPI void xrtCallResultInit(xrt_call_result* pResult);
 	XXAPI void xrtCallResultUnit(xrt_call_result* pResult);
@@ -8036,6 +8158,37 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI void xrtCallableAddRef(xrt_callable* pCallable);
 	XXAPI void xrtCallableUnref(xrt_callable* pCallable);
 	XXAPI bool xrtCallableInvoke(xrt_callable* pCallable, xrt_call_frame* pFrame, xrt_call_result* pResult);
+	/* ------------------------------------ Protocol Witness ------------------------------------ */
+	XXAPI bool xrtProtocolWitnessValidate(const xrtprotocolwitness* pWitness);
+	XXAPI const xrtprotocolentry* xrtProtocolWitnessFind(
+		const xrtprotocolwitness* pWitness,
+		const char* sName,
+		uint32 iNameSize,
+		uint64 iSignatureId
+	);
+	XXAPI xrtprotocolregistry* xrtProtocolRegistryCreate();
+	XXAPI void xrtProtocolRegistryDestroy(xrtprotocolregistry* pRegistry);
+	XXAPI xrtprotocolregistry* xrtProtocolDefaultRegistry();
+	XXAPI bool xrtProtocolRegistryAdd(
+		xrtprotocolregistry* pRegistry,
+		const xrtprotocolwitness* pWitness
+	);
+	XXAPI bool xrtProtocolRegistryRemove(
+		xrtprotocolregistry* pRegistry,
+		const xrtprotocolwitness* pWitness
+	);
+	XXAPI const xrtprotocolwitness* xrtProtocolRegistryFind(
+		xrtprotocolregistry* pRegistry,
+		uint32 iProtocolTypeId,
+		uint32 iConcreteTypeId
+	);
+	XXAPI uint32 xrtProtocolRegistryCount(xrtprotocolregistry* pRegistry);
+	XXAPI bool xrtProtocolRegister(const xrtprotocolwitness* pWitness);
+	XXAPI bool xrtProtocolUnregister(const xrtprotocolwitness* pWitness);
+	XXAPI const xrtprotocolwitness* xrtProtocolLookup(
+		uint32 iProtocolTypeId,
+		uint32 iConcreteTypeId
+	);
 	/* ------------------------------------ Typed Container 函数库 ------------------------------------ */
 	/*
 		说明：
@@ -8402,6 +8555,26 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI bool xvoIsShared(xvalue pVal);
 	// 减少值的引用计数
 	XXAPI void xvoUnref(xvalue pVal);
+	// 初始化空弱引用
+	XXAPI void xvoWeakInit(xrt_value_weak* pWeak);
+	// 从可弱引用对象创建弱引用值；失败返回空弱引用
+	XXAPI xrt_value_weak xvoWeakCreate(xvalue pVal);
+	// 将弱引用指向可弱引用的 class/native handle；传入 NULL 表示清空
+	XXAPI bool xvoWeakSet(xrt_value_weak* pWeak, xvalue pVal);
+	// 复制弱引用
+	XXAPI bool xvoWeakCopy(xrt_value_weak* pDst, const xrt_value_weak* pSrc);
+	// 克隆弱引用并按值返回，便于函数参数和返回值传递；结果需要 xvoWeakUnit
+	XXAPI xrt_value_weak xvoWeakClone(const xrt_value_weak* pSrc);
+	// 移动弱引用
+	XXAPI void xvoWeakMove(xrt_value_weak* pDst, xrt_value_weak* pSrc);
+	// 释放弱引用
+	XXAPI void xvoWeakUnit(xrt_value_weak* pWeak);
+	// 判断目标是否已经释放
+	XXAPI bool xvoWeakExpired(const xrt_value_weak* pWeak);
+	// 尝试取得一个强引用；失败返回 NULL，成功结果需要 xvoUnref
+	XXAPI xvalue xvoWeakLock(const xrt_value_weak* pWeak);
+	// 按值尝试取得强引用，便于表达式和 FFI 调用；结果需要 xvoUnref
+	XXAPI xvalue xvoWeakLockValue(xrt_value_weak Weak);
 	// 内联增加值的引用计数
 	static inline void xvoAddRef_Inline(xvalue pVal)
 	{
@@ -8555,6 +8728,8 @@ XXAPI str xrtNetDgramPacketText(const xnetdgrampkt* pPacket);
 	XXAPI ptr xvoGetHandleData(xvalue pVal);
 	// 获取 typed handle 的可写句柄槽；裸 custom 或其他类型返回 NULL
 	XXAPI ptr* xvoGetHandleSlot(xvalue pVal);
+	// 根据 typed handle 的稳定句柄槽获取非持有的 xvalue 外壳
+	XXAPI xvalue xvoGetHandleOwner(const ptr* pSlot);
 	// Array 读数据
 	XXAPI xvalue xvoArrayGetValue(xvalue pArr, uint32 index);
 	#define xvoArrayGetBool(pArr, index)														xvoGetBool(xvoArrayGetValue(pArr, index))
@@ -10244,10 +10419,18 @@ static inline ptr __xrtMemGlobalUserFromHeader(xrtMemBlockHeader* pHeader)
 	}
 	return (ptr)((char*)pHeader + __xrtMemGlobalHeaderSize());
 }
+// 内部函数：生成与块地址绑定的头部校验值
+static inline uint32 __xrtMemGlobalHeaderCookie(const xrtMemBlockHeader* pHeader)
+{
+	uintptr_t iAddress = (uintptr_t)pHeader;
+	return XRT_MEMBLOCK_MAGIC ^ (uint32)iAddress ^ (uint32)(iAddress >> 32) ^ 0xA5C39E71u;
+}
 // 内部函数：判断全局内存头部是否有效
 static inline bool __xrtMemGlobalHeaderValid(const xrtMemBlockHeader* pHeader)
 {
-	return pHeader != NULL && pHeader->iMagic == XRT_MEMBLOCK_MAGIC;
+	return pHeader != NULL &&
+		pHeader->iMagic == XRT_MEMBLOCK_MAGIC &&
+		pHeader->iReserved == __xrtMemGlobalHeaderCookie(pHeader);
 }
 // 内部函数：写入内存全局头部
 static inline void __xrtMemGlobalWriteHeader(xrtMemBlockHeader* pHeader, uint32 iClassIndex, uint16 iFlags, uint32 iRequestSize)
@@ -10256,7 +10439,7 @@ static inline void __xrtMemGlobalWriteHeader(xrtMemBlockHeader* pHeader, uint32 
 	pHeader->iClassIndex = (uint16)iClassIndex;
 	pHeader->iFlags = iFlags;
 	pHeader->iRequestSize = iRequestSize;
-	pHeader->iReserved = 0;
+	pHeader->iReserved = __xrtMemGlobalHeaderCookie(pHeader);
 	#ifdef XRT_MEM_DEBUG
 		pHeader->sAllocFile = NULL;
 		pHeader->iAllocLine = 0;
@@ -11793,7 +11976,11 @@ static inline void __xrtMemGlobalFreeRelease(ptr pMem)
 	// 获取块头部并验证有效性
 	pHeader = __xrtMemGlobalHeaderFromUser(pMem);
 	if ( !__xrtMemGlobalHeaderValid(pHeader) ) {
-		__xrtMemGlobalProcFree()(pMem);
+		xrtSetError("invalid free detected.", FALSE);
+		return;
+	}
+	if ( pHeader->iFlags & XRT_MEMBLOCK_FLAG_FREE ) {
+		xrtSetError("double free detected.", FALSE);
 		return;
 	}
 	
@@ -11806,6 +11993,7 @@ static inline void __xrtMemGlobalFreeRelease(ptr pMem)
 			__xrtMemDebugClearFile(&pHeader->sAllocFile);
 			__xrtMemDebugClearFile(&pHeader->sFreeFile);
 		#endif
+		pHeader->iFlags |= XRT_MEMBLOCK_FLAG_FREE;
 		
 		if ( pCache && iClass < pCache->iClassCount ) {
 			// 线程缓存已满时先归还一半到中央链表
@@ -11868,12 +12056,9 @@ static inline void __xrtMemGlobalFreeSite(ptr pMem, const char* sFile, uint32 iL
 		#ifdef XRT_MEM_DEBUG
 			// 调试模式下记录无效释放事件
 			__xrtMemDebugRecordSimpleEvent(XRT_MEMDEBUG_EVENT_INVALID_FREE, pMem, 0, XRT_MEMDEBUG_ALLOCATOR_GLOBAL, sFile, iLine);
-			xrtSetError("invalid free detected.", FALSE);
-			return;
-		#else
-			__xrtMemGlobalProcFree()(pMem);
-			return;
 		#endif
+		xrtSetError("invalid free detected.", FALSE);
+		return;
 	}
 	
 	#ifdef XRT_MEM_DEBUG
@@ -11972,8 +12157,12 @@ static inline ptr __xrtMemGlobalReallocSite(ptr pMem, size_t iSize, const char* 
 			xrtSetError("memory belongs to an explicit pool allocator.", FALSE);
 			return NULL;
 		}
-		// 非本分配器管理的内存，直接调用系统 realloc
-		return __xrtMemGlobalProcRealloc()(pMem, iSize);
+		xrtSetError("invalid realloc detected.", FALSE);
+		return NULL;
+	}
+	if ( pHeader->iFlags & XRT_MEMBLOCK_FLAG_FREE ) {
+		xrtSetError("realloc on freed memory detected.", FALSE);
+		return NULL;
 	}
 	
 	#ifdef XRT_MEM_DEBUG
@@ -24210,6 +24399,66 @@ XXAPI void xrtThreadYield()
 	#else
 		sched_yield();
 	#endif
+}
+// 在进程内只执行一次初始化过程
+XXAPI void xrtOnceRun(xrt_once* pOnce, xrtonceproc pProc, ptr pContext)
+{
+	uint32 iState;
+	if ( pOnce == NULL || pProc == NULL ) {
+		return;
+	}
+	iState = __xrtAtomicLoadU32(&pOnce->State);
+	if ( iState == 2u ) {
+		return;
+	}
+	if ( __xrtAtomicCompareExchangeU32(&pOnce->State, 1u, 0u) == 0u ) {
+		pProc(pContext);
+		__xrtAtomicStoreU32(&pOnce->State, 2u);
+		return;
+	}
+	while ( __xrtAtomicLoadU32(&pOnce->State) != 2u ) {
+		xrtThreadYield();
+	}
+}
+/*
+ * 递归元数据图初始化栈。
+ * 普通 xrtOnceRun 保持严格阻塞语义；只有显式调用 Graph 版本才允许同线程回边。
+ */
+typedef struct __xrt_once_graph_frame_struct {
+	xrt_once* Once;
+	struct __xrt_once_graph_frame_struct* Previous;
+} __xrt_once_graph_frame;
+static XRT_TLS_STORAGE __xrt_once_graph_frame* __xrtOnceGraphTop = NULL;
+// 在递归元数据图中只执行一次初始化过程
+XXAPI void xrtOnceRunGraph(xrt_once* pOnce, xrtonceproc pProc, ptr pContext)
+{
+	__xrt_once_graph_frame* pFrame;
+	__xrt_once_graph_frame tFrame;
+	uint32 iState;
+	if ( pOnce == NULL || pProc == NULL ) {
+		return;
+	}
+	iState = __xrtAtomicLoadU32(&pOnce->State);
+	if ( iState == 2u ) {
+		return;
+	}
+	for ( pFrame = __xrtOnceGraphTop; pFrame != NULL; pFrame = pFrame->Previous ) {
+		if ( pFrame->Once == pOnce ) {
+			return;
+		}
+	}
+	if ( __xrtAtomicCompareExchangeU32(&pOnce->State, 1u, 0u) == 0u ) {
+		tFrame.Once = pOnce;
+		tFrame.Previous = __xrtOnceGraphTop;
+		__xrtOnceGraphTop = &tFrame;
+		pProc(pContext);
+		__xrtOnceGraphTop = tFrame.Previous;
+		__xrtAtomicStoreU32(&pOnce->State, 2u);
+		return;
+	}
+	while ( __xrtAtomicLoadU32(&pOnce->State) != 2u ) {
+		xrtThreadYield();
+	}
 }
 /* ================================ 互斥体 ================================ */
 // 创建互斥体
@@ -48646,6 +48895,74 @@ XXAPI bool xrtAES256GCMDecrypt(uint8 *pOut, const uint8 *pKey, const uint8 *pNon
 	return (iDiff == 0);
 }
 /* ============================== 安全随机数 ============================== */
+XXAPI void xrtSecureZero(void *pData, size_t iSize)
+{
+	volatile uint8 *p = (volatile uint8*)pData;
+	if ( p == NULL ) {
+		return;
+	}
+	while ( iSize-- > 0 ) {
+		*p++ = 0;
+	}
+}
+XXAPI bool xrtSecureRandom(void *pData, size_t iSize)
+{
+	uint8 *pOut = (uint8*)pData;
+	size_t iRemaining = iSize;
+	if ( iSize == 0 ) {
+		return true;
+	}
+	if ( pOut == NULL ) {
+		return false;
+	}
+	#if defined(_WIN32) || defined(_WIN64)
+	{
+		typedef BOOLEAN (WINAPI *RtlGenRandom_t)(PVOID, ULONG);
+		HMODULE hLib = LoadLibraryA("advapi32.dll");
+		RtlGenRandom_t procRtlGenRandom = NULL;
+		if ( hLib != NULL ) {
+			FARPROC pProc = GetProcAddress(hLib, "SystemFunction036");
+			memcpy(&procRtlGenRandom, &pProc, sizeof(procRtlGenRandom));
+		}
+		while ( procRtlGenRandom != NULL && iRemaining > 0 ) {
+			ULONG iChunk = iRemaining > (size_t)0xFFFFFFFFUL
+				? (ULONG)0xFFFFFFFFUL
+				: (ULONG)iRemaining;
+			if ( !procRtlGenRandom(pOut, iChunk) ) {
+				break;
+			}
+			pOut += iChunk;
+			iRemaining -= iChunk;
+		}
+		if ( hLib != NULL ) {
+			FreeLibrary(hLib);
+		}
+		if ( iRemaining == 0 ) {
+			return true;
+		}
+	}
+	#else
+	{
+		FILE *pFile = fopen("/dev/urandom", "rb");
+		size_t iRead = 0;
+		if ( pFile != NULL ) {
+			while ( iRead < iSize ) {
+				size_t iPart = fread(pOut + iRead, 1, iSize - iRead, pFile);
+				if ( iPart == 0 ) {
+					break;
+				}
+				iRead += iPart;
+			}
+			fclose(pFile);
+		}
+		if ( iRead == iSize ) {
+			return true;
+		}
+	}
+	#endif
+	xrtSecureZero(pData, iSize);
+	return false;
+}
 XXAPI void xrtRandomBytes(uint8 *pBuf, size_t iLen)
 {
 	#if defined(_WIN32) || defined(_WIN64)
@@ -67232,8 +67549,19 @@ static bool __xnetPromiseCompleteResult(xpromise* pPromise, const xfuture_result
 	uint32 iFlags;
 	void (*pfnFreeValue)(ptr pValue);
 	void (*pfnFreeError)(ptr pError);
-	if ( !pPromise ) { return false; }
+	if ( !pPromise ) {
+		if ( pResult ) {
+			__xnetFutureFreeValue(pResult->pValue, pResult->iFlags, pResult->pfnFreeValue);
+			__xnetFutureFreeResultError((const char*)pResult->sError, pResult->iFlags, pResult->pfnFreeError);
+		}
+		return false;
+	}
 	if ( __xnetSyncAtomicCompareExchange(&pPromise->bCompleted, 1, 0) != 0 ) {
+		/* Promise 已经完成时仍消费调用方移交的 owned 结果，避免迟到任务泄漏。 */
+		if ( pResult ) {
+			__xnetFutureFreeValue(pResult->pValue, pResult->iFlags, pResult->pfnFreeValue);
+			__xnetFutureFreeResultError((const char*)pResult->sError, pResult->iFlags, pResult->pfnFreeError);
+		}
 		return false;
 	}
 	iStatus = pResult ? pResult->iStatus : XRT_NET_OK;
@@ -110020,6 +110348,70 @@ XXAPI bool xrtSetEquals(xset pLeft, xset pRight)
 #undef XRT_SET_SLOT_USED
 #undef XRT_SET_SLOT_DELETED
 #undef XRT_SET_MIN_CAPACITY
+
+// 向标准输出或标准错误写入 UTF-8 文本，不修改共享控制台代码页。
+XXAPI bool xrtConsoleWrite(int iStream, const void* pText, size_t iSize)
+{
+	const char* pCursor;
+	size_t iRemain;
+	if ( pText == NULL ) { return TRUE; }
+	pCursor = (const char*)pText;
+	if ( iSize == 0 ) { iSize = strlen(pCursor); }
+	if ( iSize == 0 ) { return TRUE; }
+	iRemain = iSize;
+	#if defined(_WIN32) || defined(_WIN64)
+		{
+			DWORD iHandleId = iStream == XRT_CONSOLE_STDERR ? STD_ERROR_HANDLE : STD_OUTPUT_HANDLE;
+			HANDLE hOutput = GetStdHandle(iHandleId);
+			DWORD iMode = 0;
+			if ( hOutput == NULL || hOutput == INVALID_HANDLE_VALUE ) { return FALSE; }
+			if ( GetConsoleMode(hOutput, &iMode) ) {
+				size_t iWideSize = 0;
+				u16str sWide = xrtUTF8to16((u8str)pCursor, iRemain, &iWideSize);
+				if ( sWide == NULL ) { return FALSE; }
+				{
+					size_t iWidePos = 0;
+					while ( iWidePos < iWideSize ) {
+						DWORD iChunk = (iWideSize - iWidePos) > 0x7fffffffu
+							? 0x7fffffffu
+							: (DWORD)(iWideSize - iWidePos);
+						DWORD iWritten = 0;
+						if ( !WriteConsoleW(hOutput, sWide + iWidePos, iChunk, &iWritten, NULL) ||
+							 iWritten == 0 ) {
+							xrtFree(sWide);
+							return FALSE;
+						}
+						iWidePos += (size_t)iWritten;
+					}
+				}
+				xrtFree(sWide);
+				return TRUE;
+			}
+			while ( iRemain > 0 ) {
+				DWORD iChunk = iRemain > 0x7fffffffu ? 0x7fffffffu : (DWORD)iRemain;
+				DWORD iWritten = 0;
+				if ( !WriteFile(hOutput, pCursor, iChunk, &iWritten, NULL) || iWritten == 0 ) {
+					return FALSE;
+				}
+				pCursor += iWritten;
+				iRemain -= (size_t)iWritten;
+			}
+		}
+	#else
+		{
+			int iFd = iStream == XRT_CONSOLE_STDERR ? STDERR_FILENO : STDOUT_FILENO;
+			while ( iRemain > 0 ) {
+				ssize_t iWritten = write(iFd, pCursor, iRemain);
+				if ( iWritten < 0 && errno == EINTR ) { continue; }
+				if ( iWritten <= 0 ) { return FALSE; }
+				pCursor += (size_t)iWritten;
+				iRemain -= (size_t)iWritten;
+			}
+		}
+	#endif
+	return TRUE;
+}
+
 #ifndef XRT_NO_VALUE
 
 // ========================================
@@ -112346,6 +112738,130 @@ typedef struct {
 	xarray Order;
 } xvo_container_extra;
 typedef xvo_container_extra xvo_table_extra;
+/* ---------- class/native handle 弱引用控制 ---------- */
+struct xrt_value_weak_control {
+	volatile long RefCount;
+	xmutex Lock;
+	xvalue Owner;
+};
+static void __xvoWeakControlAddRef(xrt_value_weak_control* pControl)
+{
+	if ( pControl != NULL ) {
+		__xrtAtomicAddFetch32(&pControl->RefCount, 1);
+	}
+}
+static void __xvoWeakControlRelease(xrt_value_weak_control* pControl)
+{
+	if ( pControl != NULL && __xrtAtomicAddFetch32(&pControl->RefCount, -1) == 0 ) {
+		xrtMutexDestroy(pControl->Lock);
+		xrtFree(pControl);
+	}
+}
+static xrt_value_weak_control* __xvoWeakControlCreate(xvalue pOwner)
+{
+	xrt_value_weak_control* pControl = xrtMalloc(sizeof(xrt_value_weak_control));
+	if ( pControl == NULL ) {
+		return NULL;
+	}
+	pControl->Lock = xrtMutexCreate();
+	if ( pControl->Lock == NULL ) {
+		xrtFree(pControl);
+		return NULL;
+	}
+	pControl->RefCount = 1;
+	pControl->Owner = pOwner;
+	return pControl;
+}
+static bool __xvoWeakControlSlot(
+	xvalue pVal,
+	xrt_value_weak_control*** pppControl,
+	volatile long** ppInitLock
+)
+{
+	if ( pVal == NULL || pppControl == NULL || ppInitLock == NULL || !xvoIsShared_Inline(pVal) ) {
+		return FALSE;
+	}
+	if ( pVal->Type == XVO_DT_CLASS && pVal->vTypeDesc != NULL &&
+		 pVal->vTypeDesc->Kind == XRT_TYPE_KIND_CLASS ) {
+		xrt_record_value* pRecord = (xrt_record_value*)pVal->vStruct;
+		if ( pRecord == NULL ) {
+			return FALSE;
+		}
+		*pppControl = &pRecord->WeakControl;
+		*ppInitLock = &pRecord->WeakInitLock;
+		return TRUE;
+	}
+	if ( pVal->Type == XVO_DT_CUSTOM && pVal->vTypeDesc != NULL ) {
+		xrt_handle_value* pHandle = (xrt_handle_value*)pVal->vCustom;
+		if ( pHandle == NULL ||
+			 (pHandle->Flags & (XRT_HANDLE_FLAG_OWNED | XRT_HANDLE_FLAG_WEAKABLE)) !=
+			 (XRT_HANDLE_FLAG_OWNED | XRT_HANDLE_FLAG_WEAKABLE) ||
+			 pHandle->Type == NULL || pHandle->Type->Ops == NULL ||
+			 pHandle->Type->Ops->drop == NULL ) {
+			return FALSE;
+		}
+		*pppControl = &pHandle->WeakControl;
+		*ppInitLock = &pHandle->WeakInitLock;
+		return TRUE;
+	}
+	return FALSE;
+}
+static xrt_value_weak_control* __xvoWeakControlGet(xvalue pVal)
+{
+	xrt_value_weak_control** ppControl;
+	xrt_value_weak_control* pControl;
+	volatile long* pInitLock;
+	if ( !__xvoWeakControlSlot(pVal, &ppControl, &pInitLock) ) {
+		return NULL;
+	}
+	__xrtOwnerSpinLock(pInitLock);
+	pControl = *ppControl;
+	if ( pControl == NULL ) {
+		pControl = __xvoWeakControlCreate(pVal);
+		if ( pControl != NULL ) {
+			*ppControl = pControl;
+		}
+	}
+	__xrtOwnerSpinUnlock(pInitLock);
+	return pControl;
+}
+static void __xvoWeakControlExpire(xrt_value_weak_control* pControl)
+{
+	if ( pControl == NULL ) {
+		return;
+	}
+	xrtMutexLock(pControl->Lock);
+	pControl->Owner = NULL;
+	xrtMutexUnlock(pControl->Lock);
+	__xvoWeakControlRelease(pControl);
+}
+static bool __xvoTryAddRefShared(xvalue pVal)
+{
+	uint32 iOldHeader;
+	uint32 iNewHeader;
+	uint32 iRefCount;
+	if ( pVal == NULL || !xvoIsShared_Inline(pVal) ) {
+		return FALSE;
+	}
+	while ( TRUE ) {
+		iOldHeader = pVal->Header;
+		if ( iOldHeader & XVO_HEADER_STATIC_MASK ) {
+			return TRUE;
+		}
+		iRefCount = (iOldHeader & XVO_HEADER_REFCOUNT_MASK) >> XVO_HEADER_REFCOUNT_SHIFT;
+		if ( iRefCount == 0 ) {
+			return FALSE;
+		}
+		if ( iRefCount >= XVO_HEADER_REFCOUNT_MAX ) {
+			iNewHeader = iOldHeader | XVO_HEADER_STATIC_MASK;
+		} else {
+			iNewHeader = iOldHeader + XVO_HEADER_REFCOUNT_ONE;
+		}
+		if ( __xvoAtomicCompareExchange32(&pVal->Header, iNewHeader, iOldHeader) == iOldHeader ) {
+			return TRUE;
+		}
+	}
+}
 static bool __xvoIsContainerValue(xvalue pVal)
 {
 	return pVal != NULL &&
@@ -112567,6 +113083,8 @@ static void __xvoDestroyRecordValue(xvalue pVal)
 	}
 	pRecord = (xrt_record_value*)pVal->vStruct;
 	if ( pRecord ) {
+		__xvoWeakControlExpire(pRecord->WeakControl);
+		pRecord->WeakControl = NULL;
 		if ( pRecord->Type && pRecord->Type->Ops && pRecord->Type->Ops->drop ) {
 			pRecord->Type->Ops->drop(pRecord->Data);
 		}
@@ -112582,6 +113100,8 @@ static void __xvoDestroyHandleValue(xvalue pVal)
 	}
 	pHandle = (xrt_handle_value*)pVal->vCustom;
 	if ( pHandle ) {
+		__xvoWeakControlExpire(pHandle->WeakControl);
+		pHandle->WeakControl = NULL;
 		if ( (pHandle->Flags & XRT_HANDLE_FLAG_OWNED) && pHandle->Type && pHandle->Type->Ops && pHandle->Type->Ops->drop ) {
 			pHandle->Type->Ops->drop(&pHandle->Handle);
 		}
@@ -112697,6 +113217,125 @@ XXAPI void xvoUnref(xvalue pVal)
 			__xvoDestroyValue(pVal);
 		}
 	}
+}
+// 初始化空弱引用
+XXAPI void xvoWeakInit(xrt_value_weak* pWeak)
+{
+	if ( pWeak != NULL ) {
+		pWeak->Control = NULL;
+	}
+}
+// 从对象创建弱引用值
+XXAPI xrt_value_weak xvoWeakCreate(xvalue pVal)
+{
+	xrt_value_weak Weak;
+	xvoWeakInit(&Weak);
+	xvoWeakSet(&Weak, pVal);
+	return Weak;
+}
+// 将弱引用指向新的对象
+XXAPI bool xvoWeakSet(xrt_value_weak* pWeak, xvalue pVal)
+{
+	xrt_value_weak_control* pControl = NULL;
+	xrt_value_weak_control* pOldControl;
+	if ( pWeak == NULL ) {
+		return FALSE;
+	}
+	if ( pVal != NULL ) {
+		pControl = __xvoWeakControlGet(pVal);
+		if ( pControl == NULL ) {
+			return FALSE;
+		}
+		__xvoWeakControlAddRef(pControl);
+	}
+	pOldControl = pWeak->Control;
+	pWeak->Control = pControl;
+	__xvoWeakControlRelease(pOldControl);
+	return TRUE;
+}
+// 复制弱引用
+XXAPI bool xvoWeakCopy(xrt_value_weak* pDst, const xrt_value_weak* pSrc)
+{
+	xrt_value_weak_control* pControl;
+	xrt_value_weak_control* pOldControl;
+	if ( pDst == NULL || pSrc == NULL ) {
+		return FALSE;
+	}
+	pControl = pSrc->Control;
+	__xvoWeakControlAddRef(pControl);
+	pOldControl = pDst->Control;
+	pDst->Control = pControl;
+	__xvoWeakControlRelease(pOldControl);
+	return TRUE;
+}
+// 克隆弱引用并按值返回
+XXAPI xrt_value_weak xvoWeakClone(const xrt_value_weak* pSrc)
+{
+	xrt_value_weak Weak;
+	xvoWeakInit(&Weak);
+	if ( pSrc != NULL ) {
+		xvoWeakCopy(&Weak, pSrc);
+	}
+	return Weak;
+}
+// 移动弱引用
+XXAPI void xvoWeakMove(xrt_value_weak* pDst, xrt_value_weak* pSrc)
+{
+	xrt_value_weak_control* pOldControl;
+	if ( pDst == NULL || pSrc == NULL || pDst == pSrc ) {
+		return;
+	}
+	pOldControl = pDst->Control;
+	pDst->Control = pSrc->Control;
+	pSrc->Control = NULL;
+	__xvoWeakControlRelease(pOldControl);
+}
+// 释放弱引用
+XXAPI void xvoWeakUnit(xrt_value_weak* pWeak)
+{
+	xrt_value_weak_control* pControl;
+	if ( pWeak == NULL ) {
+		return;
+	}
+	pControl = pWeak->Control;
+	pWeak->Control = NULL;
+	__xvoWeakControlRelease(pControl);
+}
+// 判断弱引用目标是否已经释放
+XXAPI bool xvoWeakExpired(const xrt_value_weak* pWeak)
+{
+	xrt_value_weak_control* pControl;
+	bool bExpired;
+	if ( pWeak == NULL || pWeak->Control == NULL ) {
+		return TRUE;
+	}
+	pControl = pWeak->Control;
+	xrtMutexLock(pControl->Lock);
+	bExpired = pControl->Owner == NULL;
+	xrtMutexUnlock(pControl->Lock);
+	return bExpired;
+}
+// 尝试把弱引用提升为强引用
+XXAPI xvalue xvoWeakLock(const xrt_value_weak* pWeak)
+{
+	xrt_value_weak_control* pControl;
+	xvalue pOwner;
+	if ( pWeak == NULL || pWeak->Control == NULL ) {
+		return NULL;
+	}
+	pControl = pWeak->Control;
+	xrtMutexLock(pControl->Lock);
+	pOwner = pControl->Owner;
+	if ( !__xvoTryAddRefShared(pOwner) ) {
+		pOwner = NULL;
+	}
+	xrtMutexUnlock(pControl->Lock);
+	return pOwner;
+}
+// 按值尝试把弱引用提升为强引用
+XXAPI xvalue xvoWeakLockValue(xrt_value_weak Weak)
+{
+	return xvoWeakLock(&Weak);
 }
 // 创建值
 XXAPI xvalue xvoCreateNull()
@@ -113041,6 +113680,8 @@ static xvalue __xvoCreateRecord(const xrt_type_desc* pType, ptr pData, bool bMov
 	pRecord->Owner = pVal;
 	pRecord->Flags = 0;
 	pRecord->Size = (uint32)pType->Size;
+	pRecord->WeakInitLock = 0;
+	pRecord->WeakControl = NULL;
 	if ( pData ) {
 		if ( bClone && pType->Ops && pType->Ops->clone ) {
 			pType->Ops->clone(pRecord->Data, pData);
@@ -113117,8 +113758,11 @@ XXAPI xvalue xvoCreateHandle(const xrt_type_desc* pType, ptr pHandle, uint32 iFl
 		return NULL;
 	}
 	pHandleValue->Type = pType;
+	pHandleValue->Owner = NULL;
 	pHandleValue->Handle = pHandle;
 	pHandleValue->Flags = iFlags;
+	pHandleValue->WeakInitLock = 0;
+	pHandleValue->WeakControl = NULL;
 	pVal = __xvoAllocValue();
 	if ( pVal == NULL ) {
 		xrtFree(pHandleValue);
@@ -113128,6 +113772,16 @@ XXAPI xvalue xvoCreateHandle(const xrt_type_desc* pType, ptr pHandle, uint32 iFl
 	pVal->Size = sizeof(ptr);
 	pVal->vCustom = pHandleValue;
 	pVal->vTypeDesc = pType;
+	pHandleValue->Owner = pVal;
+	if ( (iFlags & XRT_HANDLE_FLAG_WEAKABLE) != 0 ) {
+		if ( (iFlags & XRT_HANDLE_FLAG_OWNED) == 0 ||
+			 pType->Ops == NULL || pType->Ops->drop == NULL ) {
+			xrtFree(pHandleValue);
+			__xvoFreeValue(pVal);
+			return NULL;
+		}
+		xvoSetShared_Inline(pVal);
+	}
 	return pVal;
 }
 // 读取值
@@ -113477,6 +114131,16 @@ XXAPI ptr* xvoGetHandleSlot(xvalue pVal)
 	}
 	pHandle = (xrt_handle_value*)pVal->vCustom;
 	return &pHandle->Handle;
+}
+// 根据 typed handle 的稳定句柄槽获取非持有的 xvalue 外壳
+XXAPI xvalue xvoGetHandleOwner(const ptr* pSlot)
+{
+	xrt_handle_value* pHandle;
+	if ( pSlot == NULL ) {
+		return NULL;
+	}
+	pHandle = (xrt_handle_value*)((uint8*)pSlot - offsetof(xrt_handle_value, Handle));
+	return &pHandle->Handle == pSlot ? pHandle->Owner : NULL;
 }
 // Array 读数据
 XXAPI xvalue xvoArrayGetValue(xvalue pArr, uint32 index)
@@ -115053,6 +115717,15 @@ static bool __xvoCanBindTypeDesc(xvalue pVal, const xrt_type_desc* pType)
 		return FALSE;
 	}
 	switch ( pVal->Type ) {
+		case XVO_DT_INT: {
+			const xrtenum* pEnum = pType->Kind == XRT_TYPE_KIND_ENUM ?
+				xrtEnumInfo(pType) :
+				NULL;
+			return pEnum != NULL &&
+				(pEnum->Flags & XRT_ENUM_FLAG_NUMERIC) != 0 &&
+				pEnum->BackingType != NULL &&
+				pEnum->BackingType->Kind == XRT_TYPE_KIND_INT;
+		}
 		case XVO_DT_ARRAY:
 			return pType->Kind == XRT_TYPE_KIND_ARRAY;
 		case XVO_DT_LIST:
@@ -115063,7 +115736,8 @@ static bool __xvoCanBindTypeDesc(xvalue pVal, const xrt_type_desc* pType)
 			return pType->Kind == XRT_TYPE_KIND_DICT;
 		case XVO_DT_CLASS:
 			return pType->Kind == XRT_TYPE_KIND_RECORD
-				|| pType->Kind == XRT_TYPE_KIND_CLASS;
+				|| pType->Kind == XRT_TYPE_KIND_CLASS
+				|| pType->Kind == XRT_TYPE_KIND_ENUM;
 		case XVO_DT_CUSTOM:
 			return pType->Kind == XRT_TYPE_KIND_HANDLE
 				|| pType->Kind == XRT_TYPE_KIND_FUTURE
@@ -115092,7 +115766,7 @@ XXAPI const xrt_type_desc* xvoTypeDesc(xvalue pVal)
 	if ( pVal == NULL ) {
 		return xrtTypeNull();
 	}
-	if ( pVal->Type == XVO_DT_ARRAY || pVal->Type == XVO_DT_LIST || pVal->Type == XVO_DT_COLL || pVal->Type == XVO_DT_TABLE || pVal->Type == XVO_DT_CLASS || pVal->Type == XVO_DT_CUSTOM ) {
+	{
 		const xrt_type_desc* pType = __xvoValueTypeDesc(pVal);
 		if ( (pType != NULL) && __xvoCanBindTypeDesc(pVal, pType) ) {
 			return pType;
@@ -115553,34 +116227,8 @@ XXAPI xvalue xvoCreateTableArgs(uint32 iCount, ...)
 }
 static void __xvoPrintWrite(str sText, size_t iSize)
 {
-	const char* pText;
-	size_t iRemain;
 	if ( sText == NULL ) { return; }
-	if ( iSize == 0 ) { iSize = strlen(__xrt_cstr(sText)); }
-	if ( iSize == 0 ) { return; }
-	pText = __xrt_cstr(sText);
-	iRemain = iSize;
-	#if defined(_WIN32) || defined(_WIN64)
-		{
-			HANDLE hOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-			if ( hOutput == NULL || hOutput == INVALID_HANDLE_VALUE ) { return; }
-			while ( iRemain > 0 ) {
-				DWORD iChunk = iRemain > 0x7fffffffu ? 0x7fffffffu : (DWORD)iRemain;
-				DWORD iWritten = 0;
-				if ( !WriteFile(hOutput, pText, iChunk, &iWritten, NULL) || iWritten == 0 ) { break; }
-				pText += iWritten;
-				iRemain -= (size_t)iWritten;
-			}
-		}
-	#else
-		while ( iRemain > 0 ) {
-			ssize_t iWritten = write(STDOUT_FILENO, pText, iRemain);
-			if ( iWritten < 0 && errno == EINTR ) { continue; }
-			if ( iWritten <= 0 ) { break; }
-			pText += (size_t)iWritten;
-			iRemain -= (size_t)iWritten;
-		}
-	#endif
+	(void)xrtConsoleWrite(XRT_CONSOLE_STDOUT, __xrt_cstr(sText), iSize);
 }
 static void __xvoPrintOne(xvalue pVal)
 {
@@ -116491,12 +117139,12 @@ static str __xrtTypeCopyStringResult(str sText, uint32 iSize, uint32* pSize)
 	}
 	return sRet;
 }
-static str __xrtTypeToStringBool(const ptr pObj, uint32* pSize)
+static str __xrtTypeToStringBool(const void* pObj, uint32* pSize)
 {
 	bool v = pObj ? *(const bool*)pObj : FALSE;
 	return __xrtTypeCopyStringResult((str)(v ? "true" : "false"), 0, pSize);
 }
-static str __xrtTypeToStringInt64(const ptr pObj, uint32* pSize)
+static str __xrtTypeToStringInt64(const void* pObj, uint32* pSize)
 {
 	char sBuffer[64];
 	int iSize = xrtI64ToStr(pObj ? *(const int64*)pObj : 0, sBuffer);
@@ -116508,7 +117156,7 @@ static str __xrtTypeToStringInt64(const ptr pObj, uint32* pSize)
 	}
 	return __xrtTypeCopyStringResult((str)sBuffer, (uint32)iSize, pSize);
 }
-static str __xrtTypeToStringUInt32(const ptr pObj, uint32* pSize)
+static str __xrtTypeToStringUInt32(const void* pObj, uint32* pSize)
 {
 	int64 v = pObj ? (int64)*(const uint32*)pObj : 0;
 	char sBuffer[64];
@@ -116521,7 +117169,7 @@ static str __xrtTypeToStringUInt32(const ptr pObj, uint32* pSize)
 	}
 	return __xrtTypeCopyStringResult((str)sBuffer, (uint32)iSize, pSize);
 }
-static str __xrtTypeToStringFloat64(const ptr pObj, uint32* pSize)
+static str __xrtTypeToStringFloat64(const void* pObj, uint32* pSize)
 {
 	char sBuffer[128];
 	int iSize = xrtNumToStr(pObj ? *(const double*)pObj : 0.0, sBuffer);
@@ -116624,7 +117272,7 @@ static bool __xrtTypeUnboxFloat64(xvalue pVal, ptr pOut, const xrt_type_desc* pT
 		ctype v = pObj ? *(const ctype*)pObj : (ctype)0; \
 		return xrtHash64(&v, sizeof(v)); \
 	} \
-	static str __xrtTypeToString##tag(const ptr pObj, uint32* pSize) \
+static str __xrtTypeToString##tag(const void* pObj, uint32* pSize) \
 	{ \
 		char sBuffer[64]; \
 		int iSize = xrtI64ToStr((int64)(pObj ? *(const ctype*)pObj : (ctype)0), sBuffer); \
@@ -116661,7 +117309,7 @@ static bool __xrtTypeUnboxFloat64(xvalue pVal, ptr pOut, const xrt_type_desc* pT
 		ctype v = pObj ? *(const ctype*)pObj : (ctype)0; \
 		return xrtHash64(&v, sizeof(v)); \
 	} \
-	static str __xrtTypeToString##tag(const ptr pObj, uint32* pSize) \
+static str __xrtTypeToString##tag(const void* pObj, uint32* pSize) \
 	{ \
 		char sBuffer[64]; \
 		int iSize = xrtU64ToStr((uint64)(pObj ? *(const ctype*)pObj : (ctype)0), sBuffer); \
@@ -116703,7 +117351,7 @@ static uint64 __xrtTypeHashFloat32(const ptr pObj)
 	float v = pObj ? *(const float*)pObj : 0.0f;
 	return xrtHash64(&v, sizeof(v));
 }
-static str __xrtTypeToStringFloat32(const ptr pObj, uint32* pSize)
+static str __xrtTypeToStringFloat32(const void* pObj, uint32* pSize)
 {
 	char sBuffer[128];
 	int iSize = xrtNumToStr((double)(pObj ? *(const float*)pObj : 0.0f), sBuffer);
@@ -116740,7 +117388,7 @@ static uint64 __xrtTypeHashBool32(const ptr pObj)
 {
 	return pObj && *(const int32*)pObj ? 0x9E3779B97F4A7C15ULL : 0xCBF29CE484222325ULL;
 }
-static str __xrtTypeToStringBool32(const ptr pObj, uint32* pSize)
+static str __xrtTypeToStringBool32(const void* pObj, uint32* pSize)
 {
 	return __xrtTypeCopyStringResult((str)(pObj && *(const int32*)pObj ? "true" : "false"), 0u, pSize);
 }
@@ -116827,7 +117475,7 @@ static xvalue __xrtTypeBoxString(const ptr pObj, const xrt_type_desc* pType)
 	s = (pObj != NULL) ? *(const char* const*)pObj : NULL;
 	return xvoCreateText((ptr)s, 0, FALSE);
 }
-static str __xrtTypeToStringString(const ptr pObj, uint32* pSize)
+static str __xrtTypeToStringString(const void* pObj, uint32* pSize)
 {
 	str sText = xCore.sNull;
 	if ( pObj != NULL && *(str const*)pObj != NULL ) {
@@ -116874,7 +117522,7 @@ static bool __xrtTypeUnboxTime(xvalue pVal, ptr pOut, const xrt_type_desc* pType
 	*(xtime*)pOut = xvoGetTime(pVal);
 	return TRUE;
 }
-static str __xrtTypeToStringTime(const ptr pObj, uint32* pSize)
+static str __xrtTypeToStringTime(const void* pObj, uint32* pSize)
 {
 	str sRet = xrtTimeToStr(pObj ? *(const xtime*)pObj : 0, XRT_TIME_FORMAT_DATETIME);
 	if ( pSize != NULL ) {
@@ -116896,7 +117544,7 @@ static bool __xrtTypeUnboxPtr(xvalue pVal, ptr pOut, const xrt_type_desc* pType)
 	*(ptr*)pOut = xvoGetPoint(pVal);
 	return TRUE;
 }
-static str __xrtTypeToStringPtr(const ptr pObj, uint32* pSize)
+static str __xrtTypeToStringPtr(const void* pObj, uint32* pSize)
 {
 	ptr v = pObj ? *(const ptr*)pObj : NULL;
 	str sRet = xrtFormat("[point:%p]", v);
@@ -116946,7 +117594,7 @@ static uint64 __xrtTypeHashFunction(const ptr pObj)
 	xrt_callable* pCallable = (pObj != NULL) ? *(xrt_callable* const*)pObj : NULL;
 	return xrtHash64(&pCallable, sizeof(pCallable));
 }
-static str __xrtTypeToStringFunction(const ptr pObj, uint32* pSize)
+static str __xrtTypeToStringFunction(const void* pObj, uint32* pSize)
 {
 	xrt_callable* pCallable = (pObj != NULL) ? *(xrt_callable* const*)pObj : NULL;
 	str sRet = xrtFormat("[function:%p]", (ptr)pCallable);
@@ -117022,7 +117670,7 @@ static uint64 __xrtTypeHashFuture(const ptr pObj)
 	xfuture* pFuture = (pObj != NULL) ? *(xfuture* const*)pObj : NULL;
 	return xrtHash64(&pFuture, sizeof(pFuture));
 }
-static str __xrtTypeToStringFuture(const ptr pObj, uint32* pSize)
+static str __xrtTypeToStringFuture(const void* pObj, uint32* pSize)
 {
 	xfuture* pFuture = (pObj != NULL) ? *(xfuture* const*)pObj : NULL;
 	str sRet = xrtFormat("[future:%p]", (ptr)pFuture);
@@ -117502,7 +118150,7 @@ XXAPI const char* xrtTypeName(const xrt_type_desc* pType)
 	return pType->Name;
 }
 // 按类型描述把一个 C 对象转换成字符串；返回值遵循 XRT 字符串分配约定
-XXAPI str xrtTypeToStringValue(const xrt_type_desc* pType, const ptr pObj, uint32* pSize)
+XXAPI str xrtTypeToStringValue(const xrt_type_desc* pType, const void* pObj, uint32* pSize)
 {
 	if ( pSize != NULL ) {
 		*pSize = 0;
@@ -117542,24 +118190,30 @@ XXAPI const xrt_method_table* xrtTypeMethods(const xrt_type_desc* pType)
 }
 XXAPI const xrt_method_desc* xrtTypeFindMethod(const xrt_type_desc* pType, const char* sName, uint32 iNameSize)
 {
-	const xrt_method_table* pTable;
-	uint32 i;
+	uint32 iDepth = 0;
 	if ( pType == NULL || sName == NULL ) {
 		return NULL;
 	}
 	if ( iNameSize == 0 ) {
 		iNameSize = (uint32)strlen(sName);
 	}
-	pTable = xrtTypeMethods(pType);
-	if ( pTable == NULL || pTable->Methods == NULL ) {
-		return NULL;
-	}
-	for ( i = 0; i < pTable->Count; ++i ) {
-		const xrt_method_desc* pMethod = &pTable->Methods[i];
-		if ( pMethod->Name != NULL && pMethod->NameSize == iNameSize &&
-		     memcmp(pMethod->Name, sName, iNameSize) == 0 ) {
-			return pMethod;
+	/*
+		派生类型的方法优先。类型描述来自 C 扩展时也可能损坏，
+		因此限制继承链深度，避免循环 BaseType 让调用方永久阻塞。
+	*/
+	while ( pType != NULL && iDepth++ < 256 ) {
+		const xrt_method_table* pTable = xrtTypeMethods(pType);
+		uint32 i;
+		if ( pTable != NULL && pTable->Methods != NULL ) {
+			for ( i = 0; i < pTable->Count; ++i ) {
+				const xrt_method_desc* pMethod = &pTable->Methods[i];
+				if ( pMethod->Name != NULL && pMethod->NameSize == iNameSize &&
+				     memcmp(pMethod->Name, sName, iNameSize) == 0 ) {
+					return pMethod;
+				}
+			}
 		}
+		pType = pType->BaseType;
 	}
 	return NULL;
 }
@@ -117845,6 +118499,94 @@ XXAPI bool xrtValueConvertTo(xvalue pVal, const xrt_type_desc* pDstType, ptr pDs
 		return FALSE;
 	}
 }
+// ------------------------------------
+// TypeDesc 值操作
+// ------------------------------------
+XXAPI bool xrtTypeInitValue(const xrt_type_desc* pType, ptr pObj)
+{
+	if ( pType == NULL || pObj == NULL ) {
+		return FALSE;
+	}
+	if ( pType->Ops != NULL && pType->Ops->init != NULL ) {
+		pType->Ops->init(pObj);
+	} else if ( pType->Size > 0 ) {
+		memset(pObj, 0, pType->Size);
+	}
+	return TRUE;
+}
+XXAPI bool xrtTypeCopyValue(const xrt_type_desc* pType, ptr pDst, const ptr pSrc)
+{
+	if ( pType == NULL || pDst == NULL || pSrc == NULL ) {
+		return FALSE;
+	}
+	if ( pDst == pSrc ) {
+		return TRUE;
+	}
+	if ( pType->Ops != NULL && pType->Ops->copy != NULL ) {
+		pType->Ops->copy(pDst, pSrc);
+	} else if ( pType->Size > 0 ) {
+		memcpy(pDst, pSrc, pType->Size);
+	}
+	return TRUE;
+}
+XXAPI bool xrtTypeMoveValue(const xrt_type_desc* pType, ptr pDst, ptr pSrc)
+{
+	if ( pType == NULL || pDst == NULL || pSrc == NULL ) {
+		return FALSE;
+	}
+	if ( pDst == pSrc ) {
+		return TRUE;
+	}
+	if ( pType->Ops != NULL && pType->Ops->move != NULL ) {
+		pType->Ops->move(pDst, pSrc);
+	} else if ( pType->Size > 0 ) {
+		memcpy(pDst, pSrc, pType->Size);
+		memset(pSrc, 0, pType->Size);
+	}
+	return TRUE;
+}
+XXAPI bool xrtTypeCloneValue(const xrt_type_desc* pType, ptr pDst, const ptr pSrc)
+{
+	if ( pType == NULL || pDst == NULL || pSrc == NULL ) {
+		return FALSE;
+	}
+	if ( pDst == pSrc ) {
+		return TRUE;
+	}
+	if ( pType->Ops != NULL && pType->Ops->clone != NULL ) {
+		pType->Ops->clone(pDst, pSrc);
+		return TRUE;
+	}
+	return xrtTypeCopyValue(pType, pDst, pSrc);
+}
+XXAPI int xrtTypeCompareValue(const xrt_type_desc* pType, const ptr pA, const ptr pB)
+{
+	int iResult;
+	if ( pA == pB ) {
+		return 0;
+	}
+	if ( pA == NULL || pB == NULL ) {
+		return pA == NULL ? -1 : 1;
+	}
+	if ( pType == NULL ) {
+		return pA < pB ? -1 : 1;
+	}
+	if ( pType->Ops != NULL && pType->Ops->compare != NULL ) {
+		return pType->Ops->compare(pA, pB);
+	}
+	iResult = pType->Size > 0 ? memcmp(pA, pB, pType->Size) : 0;
+	return iResult < 0 ? -1 : (iResult > 0 ? 1 : 0);
+}
+XXAPI uint64 xrtTypeHashValue(const xrt_type_desc* pType, const ptr pObj)
+{
+	if ( pType == NULL || pObj == NULL ) {
+		return 0;
+	}
+	if ( pType->Ops != NULL && pType->Ops->hash != NULL ) {
+		return pType->Ops->hash(pObj);
+	}
+	return pType->Size > 0 ? xrtHash64(pObj, pType->Size) : 0;
+}
 XXAPI xvalue xrtTypeBoxValue(const xrt_type_desc* pType, const ptr pObj)
 {
 	if ( pType == NULL || pType->Ops == NULL || pType->Ops->box == NULL ) {
@@ -117865,6 +118607,116 @@ XXAPI void xrtTypeDropValue(const xrt_type_desc* pType, ptr pObj)
 		return;
 	}
 	pType->Ops->drop(pObj);
+}
+// ------------------------------------ Enum 元数据 ------------------------------------
+static bool __xrtEnumNameEqual(
+	const char* sLeft,
+	uint32 iLeftSize,
+	const char* sRight,
+	uint32 iRightSize
+)
+{
+	return iLeftSize == iRightSize &&
+		(iLeftSize == 0 || (
+			sLeft != NULL &&
+			sRight != NULL &&
+			memcmp(sLeft, sRight, iLeftSize) == 0
+		));
+}
+XXAPI const xrtenum* xrtEnumInfo(const xrt_type_desc* pType)
+{
+	const xrtenum* pEnum;
+	if ( pType == NULL || pType->Kind != XRT_TYPE_KIND_ENUM || pType->Extra == NULL ) {
+		return NULL;
+	}
+	pEnum = (const xrtenum*)pType->Extra;
+	return pEnum->Type == pType ? pEnum : NULL;
+}
+XXAPI const xrtenumvariant* xrtEnumVariantAt(const xrtenum* pEnum, uint32 iIndex)
+{
+	if ( pEnum == NULL || iIndex >= pEnum->VariantCount || pEnum->Variants == NULL ) {
+		return NULL;
+	}
+	return &pEnum->Variants[iIndex];
+}
+XXAPI const xrtenumvariant* xrtEnumFindVariant(
+	const xrtenum* pEnum,
+	const char* sName,
+	uint32 iNameSize
+)
+{
+	uint32 i;
+	if ( pEnum == NULL || sName == NULL || pEnum->Variants == NULL ) {
+		return NULL;
+	}
+	if ( iNameSize == 0 ) {
+		iNameSize = (uint32)strlen(sName);
+	}
+	for ( i = 0; i < pEnum->VariantCount; i++ ) {
+		const xrtenumvariant* pVariant = &pEnum->Variants[i];
+		if ( __xrtEnumNameEqual(
+				pVariant->Name,
+				pVariant->NameSize,
+				sName,
+				iNameSize
+			) ) {
+			return pVariant;
+		}
+	}
+	return NULL;
+}
+XXAPI const xrtenumvariant* xrtEnumFindValue(const xrtenum* pEnum, uint64 iValue)
+{
+	uint32 i;
+	if ( pEnum == NULL || pEnum->Variants == NULL ) {
+		return NULL;
+	}
+	for ( i = 0; i < pEnum->VariantCount; i++ ) {
+		if ( pEnum->Variants[i].Value == iValue ) {
+			return &pEnum->Variants[i];
+		}
+	}
+	return NULL;
+}
+XXAPI const xrtenumfield* xrtEnumFieldAt(
+	const xrtenumvariant* pVariant,
+	uint32 iIndex
+)
+{
+	if (
+		pVariant == NULL ||
+		iIndex >= pVariant->FieldCount ||
+		pVariant->Fields == NULL
+	) {
+		return NULL;
+	}
+	return &pVariant->Fields[iIndex];
+}
+XXAPI const xrtenumfield* xrtEnumFindField(
+	const xrtenumvariant* pVariant,
+	const char* sName,
+	uint32 iNameSize
+)
+{
+	uint32 i;
+	if ( pVariant == NULL || sName == NULL || pVariant->Fields == NULL ) {
+		return NULL;
+	}
+	if ( iNameSize == 0 ) {
+		iNameSize = (uint32)strlen(sName);
+	}
+	for ( i = 0; i < pVariant->FieldCount; i++ ) {
+		const xrtenumfield* pField = &pVariant->Fields[i];
+		if ( __xrtEnumNameEqual(
+				pField->Name,
+				pField->NameSize,
+				sName,
+				iNameSize
+			) ) {
+			return pField;
+		}
+	}
+	return NULL;
 }
 // 按运行时类型描述在 C 对象和 xvalue 之间转换。
 XXAPI uint64 xrtFuncSigTypeId(const xrt_func_sig* pSig)
@@ -118011,6 +118863,268 @@ XXAPI bool xrtCallableInvoke(xrt_callable* pCallable, xrt_call_frame* pFrame, xr
 		tFrame.Env = pCallable->Env;
 	}
 	return pCallable->XCallEntry(&tFrame, pResult);
+}
+// ------------------------------------ Protocol Witness ------------------------------------
+struct xrtprotocolregistry {
+	xmutex Lock;
+	uint32 Count;
+	uint32 Capacity;
+	const xrtprotocolwitness** Witnesses;
+};
+static bool __xrtProtocolNameEqual(
+	const char* sLeft,
+	uint32 iLeftSize,
+	const char* sRight,
+	uint32 iRightSize
+)
+{
+	return iLeftSize == iRightSize &&
+		(iLeftSize == 0 || (
+			sLeft != NULL &&
+			sRight != NULL &&
+			memcmp(sLeft, sRight, iLeftSize) == 0
+		));
+}
+static bool __xrtProtocolRequirementValid(const xrtprotocolrequirement* pRequirement)
+{
+	return pRequirement != NULL &&
+		pRequirement->Name != NULL &&
+		pRequirement->NameSize != 0 &&
+		pRequirement->Signature != NULL;
+}
+XXAPI const xrtprotocolentry* xrtProtocolWitnessFind(
+	const xrtprotocolwitness* pWitness,
+	const char* sName,
+	uint32 iNameSize,
+	uint64 iSignatureId
+)
+{
+	uint32 i;
+	if (
+		pWitness == NULL ||
+		sName == NULL ||
+		iNameSize == 0 ||
+		(pWitness->EntryCount != 0 && pWitness->Entries == NULL)
+	) {
+		return NULL;
+	}
+	for ( i = 0; i < pWitness->EntryCount; i++ ) {
+		const xrtprotocolentry* pEntry = &pWitness->Entries[i];
+		if (
+			__xrtProtocolNameEqual(
+				pEntry->Name,
+				pEntry->NameSize,
+				sName,
+				iNameSize
+			) &&
+			(iSignatureId == 0 ||
+			 xrtFuncSigTypeId(pEntry->Signature) == iSignatureId)
+		) {
+			return pEntry;
+		}
+	}
+	return NULL;
+}
+XXAPI bool xrtProtocolWitnessValidate(const xrtprotocolwitness* pWitness)
+{
+	const xrtprotocol* pProtocol;
+	uint32 i;
+	uint32 j;
+	if (
+		pWitness == NULL ||
+		pWitness->Protocol == NULL ||
+		pWitness->ConcreteType == NULL ||
+		(pWitness->EntryCount != 0 && pWitness->Entries == NULL)
+	) {
+		xrtSetError("invalid protocol witness.", FALSE);
+		return FALSE;
+	}
+	pProtocol = pWitness->Protocol;
+	if (
+		pProtocol->Type == NULL ||
+		(pProtocol->RequirementCount != 0 && pProtocol->Requirements == NULL) ||
+		pWitness->EntryCount != pProtocol->RequirementCount
+	) {
+		xrtSetError("protocol witness requirement count mismatch.", FALSE);
+		return FALSE;
+	}
+	for ( i = 0; i < pProtocol->RequirementCount; i++ ) {
+		const xrtprotocolrequirement* pRequirement = &pProtocol->Requirements[i];
+		uint32 iMatches = 0;
+		if ( !__xrtProtocolRequirementValid(pRequirement) ) {
+			xrtSetError("invalid protocol requirement.", FALSE);
+			return FALSE;
+		}
+		for ( j = 0; j < pWitness->EntryCount; j++ ) {
+			const xrtprotocolentry* pEntry = &pWitness->Entries[j];
+			if (
+				__xrtProtocolNameEqual(
+					pEntry->Name,
+					pEntry->NameSize,
+					pRequirement->Name,
+					pRequirement->NameSize
+				) &&
+				xrtFuncSigTypeId(pEntry->Signature) ==
+					xrtFuncSigTypeId(pRequirement->Signature)
+			) {
+				if ( pEntry->Entry == NULL ) {
+					xrtSetError("protocol witness entry has no implementation.", FALSE);
+					return FALSE;
+				}
+				iMatches++;
+			}
+		}
+		if ( iMatches != 1 ) {
+			xrtSetError("protocol witness must implement every requirement exactly once.", FALSE);
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+XXAPI xrtprotocolregistry* xrtProtocolRegistryCreate()
+{
+	xrtprotocolregistry* pRegistry;
+	pRegistry = (xrtprotocolregistry*)xrtCalloc(1, sizeof(xrtprotocolregistry));
+	if ( pRegistry == NULL ) {
+		return NULL;
+	}
+	pRegistry->Lock = xrtMutexCreate();
+	if ( pRegistry->Lock == NULL ) {
+		xrtFree(pRegistry);
+		return NULL;
+	}
+	return pRegistry;
+}
+XXAPI void xrtProtocolRegistryDestroy(xrtprotocolregistry* pRegistry)
+{
+	if ( pRegistry == NULL ) {
+		return;
+	}
+	xrtMutexDestroy(pRegistry->Lock);
+	xrtFree(pRegistry->Witnesses);
+	xrtFree(pRegistry);
+}
+XXAPI xrtprotocolregistry* xrtProtocolDefaultRegistry()
+{
+	return (xrtprotocolregistry*)xCore.ProtocolRegistry;
+}
+XXAPI bool xrtProtocolRegistryAdd(
+	xrtprotocolregistry* pRegistry,
+	const xrtprotocolwitness* pWitness
+)
+{
+	const xrtprotocolwitness** pNewWitnesses;
+	uint32 i;
+	uint32 iCapacity;
+	if ( pRegistry == NULL || !xrtProtocolWitnessValidate(pWitness) ) {
+		return FALSE;
+	}
+	xrtMutexLock(pRegistry->Lock);
+	for ( i = 0; i < pRegistry->Count; i++ ) {
+		const xrtprotocolwitness* pCurrent = pRegistry->Witnesses[i];
+		if (
+			xrtTypeSame(pCurrent->Protocol->Type, pWitness->Protocol->Type) &&
+			xrtTypeSame(pCurrent->ConcreteType, pWitness->ConcreteType)
+		) {
+			xrtMutexUnlock(pRegistry->Lock);
+			xrtSetError("protocol witness is already registered.", FALSE);
+			return FALSE;
+		}
+	}
+	if ( pRegistry->Count == pRegistry->Capacity ) {
+		iCapacity = pRegistry->Capacity == 0 ? 8 : pRegistry->Capacity * 2;
+		pNewWitnesses = (const xrtprotocolwitness**)xrtRealloc(
+			pRegistry->Witnesses,
+			sizeof(xrtprotocolwitness*) * iCapacity
+		);
+		if ( pNewWitnesses == NULL ) {
+			xrtMutexUnlock(pRegistry->Lock);
+			return FALSE;
+		}
+		pRegistry->Witnesses = pNewWitnesses;
+		pRegistry->Capacity = iCapacity;
+	}
+	pRegistry->Witnesses[pRegistry->Count++] = pWitness;
+	xrtMutexUnlock(pRegistry->Lock);
+	return TRUE;
+}
+XXAPI bool xrtProtocolRegistryRemove(
+	xrtprotocolregistry* pRegistry,
+	const xrtprotocolwitness* pWitness
+)
+{
+	uint32 i;
+	if ( pRegistry == NULL || pWitness == NULL ) {
+		return FALSE;
+	}
+	xrtMutexLock(pRegistry->Lock);
+	for ( i = 0; i < pRegistry->Count; i++ ) {
+		if ( pRegistry->Witnesses[i] == pWitness ) {
+			pRegistry->Count--;
+			if ( i != pRegistry->Count ) {
+				pRegistry->Witnesses[i] = pRegistry->Witnesses[pRegistry->Count];
+			}
+			xrtMutexUnlock(pRegistry->Lock);
+			return TRUE;
+		}
+	}
+	xrtMutexUnlock(pRegistry->Lock);
+	return FALSE;
+}
+XXAPI const xrtprotocolwitness* xrtProtocolRegistryFind(
+	xrtprotocolregistry* pRegistry,
+	uint32 iProtocolTypeId,
+	uint32 iConcreteTypeId
+)
+{
+	const xrtprotocolwitness* pResult = NULL;
+	uint32 i;
+	if ( pRegistry == NULL || iProtocolTypeId == 0 || iConcreteTypeId == 0 ) {
+		return NULL;
+	}
+	xrtMutexLock(pRegistry->Lock);
+	for ( i = 0; i < pRegistry->Count; i++ ) {
+		const xrtprotocolwitness* pWitness = pRegistry->Witnesses[i];
+		if (
+			pWitness->Protocol->Type->TypeId == iProtocolTypeId &&
+			pWitness->ConcreteType->TypeId == iConcreteTypeId
+		) {
+			pResult = pWitness;
+			break;
+		}
+	}
+	xrtMutexUnlock(pRegistry->Lock);
+	return pResult;
+}
+XXAPI uint32 xrtProtocolRegistryCount(xrtprotocolregistry* pRegistry)
+{
+	uint32 iCount;
+	if ( pRegistry == NULL ) {
+		return 0;
+	}
+	xrtMutexLock(pRegistry->Lock);
+	iCount = pRegistry->Count;
+	xrtMutexUnlock(pRegistry->Lock);
+	return iCount;
+}
+XXAPI bool xrtProtocolRegister(const xrtprotocolwitness* pWitness)
+{
+	return xrtProtocolRegistryAdd(xrtProtocolDefaultRegistry(), pWitness);
+}
+XXAPI bool xrtProtocolUnregister(const xrtprotocolwitness* pWitness)
+{
+	return xrtProtocolRegistryRemove(xrtProtocolDefaultRegistry(), pWitness);
+}
+XXAPI const xrtprotocolwitness* xrtProtocolLookup(
+	uint32 iProtocolTypeId,
+	uint32 iConcreteTypeId
+)
+{
+	return xrtProtocolRegistryFind(
+		xrtProtocolDefaultRegistry(),
+		iProtocolTypeId,
+		iConcreteTypeId
+	);
 }
 #undef XRT_TYPE_NAME_LEN
 #endif
@@ -121226,6 +122340,7 @@ XXAPI xvalue xrtParseJSON_File(str sFile)
 // 将 xte Value 序列化为字符串
 void xvo_private_Stringify_Table(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey);
 void xvo_private_Stringify_List(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey);
+void xvo_private_Stringify_Set(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey);
 void xvo_private_Stringify_Value(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey);
 // 序列化数组为 JSON 字符串
 void xvo_private_Stringify_Array(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey)
@@ -121233,26 +122348,7 @@ void xvo_private_Stringify_Array(json_sax_print_hd handle, xvalue varVal, json_s
 	xrtJsonPrintArray(handle, sKey, JSON_SAX_START);
 	for ( uint32 i = 0; i < varVal->vArray->Count; i++ ) {
 		xvalue objItem = xvoArrayGetValue(varVal, i);
-		if ( objItem->Type == XVO_DT_NULL ) {
-			xrtJsonPrintNull(handle, NULL);
-		} else if ( objItem->Type == XVO_DT_BOOL ) {
-			xrtJsonPrintBool(handle, NULL, objItem->vInt);
-		} else if ( objItem->Type == XVO_DT_INT ) {
-			xrtJsonPrintInt64(handle, NULL, objItem->vInt);
-		} else if ( objItem->Type == XVO_DT_FLOAT ) {
-			xrtJsonPrintDouble(handle, NULL, objItem->vFloat);
-		} else if ( objItem->Type == XVO_DT_TEXT ) {
-			json_string_t jstr = {0};
-			jstr.str = __xrt_str(objItem->vText);
-			xrtJsonUpdateStringInfo(&jstr);
-			xrtJsonPrintString(handle, NULL, &jstr);
-		} else if ( objItem->Type == XVO_DT_ARRAY ) {
-			xvo_private_Stringify_Array(handle, objItem, NULL);
-		} else if ( objItem->Type == XVO_DT_LIST ) {
-			xvo_private_Stringify_List(handle, objItem, NULL);
-		} else if ( objItem->Type == XVO_DT_TABLE ) {
-			xvo_private_Stringify_Table(handle, objItem, NULL);
-		}
+		xvo_private_Stringify_Value(handle, objItem, NULL);
 	}
 	xrtJsonPrintArray(handle, NULL, JSON_SAX_FINISH);
 }
@@ -121263,26 +122359,7 @@ int xvo_private_Stringify_Table_Proc(Dict_Key* pKey, xvalue* ppVal, json_sax_pri
 	json_string_t jkey = {0};
 	jkey.str = pKey->Key;
 	jkey.info.len = pKey->KeyLen;
-	if ( objItem->Type == XVO_DT_NULL ) {
-		xrtJsonPrintNull(handle, &jkey);
-	} else if ( objItem->Type == XVO_DT_BOOL ) {
-		xrtJsonPrintBool(handle, &jkey, objItem->vInt);
-	} else if ( objItem->Type == XVO_DT_INT ) {
-		xrtJsonPrintInt64(handle, &jkey, objItem->vInt);
-	} else if ( objItem->Type == XVO_DT_FLOAT ) {
-		xrtJsonPrintDouble(handle, &jkey, objItem->vFloat);
-	} else if ( objItem->Type == XVO_DT_TEXT ) {
-		json_string_t jstr = {0};
-		jstr.str = __xrt_str(objItem->vText);
-		xrtJsonUpdateStringInfo(&jstr);
-		xrtJsonPrintString(handle, &jkey, &jstr);
-	} else if ( objItem->Type == XVO_DT_ARRAY ) {
-		xvo_private_Stringify_Array(handle, objItem, &jkey);
-	} else if ( objItem->Type == XVO_DT_LIST ) {
-		xvo_private_Stringify_List(handle, objItem, &jkey);
-	} else if ( objItem->Type == XVO_DT_TABLE ) {
-		xvo_private_Stringify_Table(handle, objItem, &jkey);
-	}
+	xvo_private_Stringify_Value(handle, objItem, &jkey);
 	return FALSE;
 }
 // 序列化字典为 JSON 字符串
@@ -121313,6 +122390,8 @@ void xvo_private_Stringify_Value(json_sax_print_hd handle, xvalue varVal, json_s
 		xvo_private_Stringify_Array(handle, varVal, sKey);
 	} else if ( varVal->Type == XVO_DT_LIST ) {
 		xvo_private_Stringify_List(handle, varVal, sKey);
+	} else if ( varVal->Type == XVO_DT_COLL ) {
+		xvo_private_Stringify_Set(handle, varVal, sKey);
 	} else if ( varVal->Type == XVO_DT_TABLE ) {
 		xvo_private_Stringify_Table(handle, varVal, sKey);
 	} else {
@@ -121330,6 +122409,29 @@ void xvo_private_Stringify_List(json_sax_print_hd handle, xvalue varVal, json_st
 	xrtJsonPrintArray(handle, sKey, JSON_SAX_START);
 	if ( varVal != NULL && varVal->vList != NULL ) {
 		xrtListWalk(varVal->vList, (ptr)xvo_private_Stringify_List_Proc, (void*)handle);
+	}
+	xrtJsonPrintArray(handle, NULL, JSON_SAX_FINISH);
+}
+// 旧集合使用 AVL 节点保存 xvalue，新集合使用 xrtSet 槽位保存 xvalue。
+static bool xvo_private_Stringify_Set_Proc(Coll_Key* pKey, json_sax_print_hd handle)
+{
+	xvo_private_Stringify_Value(handle, pKey != NULL ? pKey->Value : NULL, NULL);
+	return FALSE;
+}
+static bool xvo_private_Stringify_SetValue_Proc(const ptr pItem, ptr pArg)
+{
+	xvalue* ppVal = (xvalue*)pItem;
+	xvo_private_Stringify_Value((json_sax_print_hd)pArg, ppVal != NULL ? *ppVal : NULL, NULL);
+	return FALSE;
+}
+// JSON 没有集合字面量；集合稳定映射为数组，元素顺序不属于序列化契约。
+void xvo_private_Stringify_Set(json_sax_print_hd handle, xvalue varVal, json_string_t* sKey)
+{
+	xrtJsonPrintArray(handle, sKey, JSON_SAX_START);
+	if ( __xvoIsSetValue(varVal) ) {
+		xrtSetWalk(varVal->vSet, xvo_private_Stringify_SetValue_Proc, (ptr)handle);
+	} else if ( varVal != NULL && varVal->vColl != NULL ) {
+		xrtAVLTreeWalk(varVal->vColl, (ptr)xvo_private_Stringify_Set_Proc, (void*)handle);
 	}
 	xrtJsonPrintArray(handle, NULL, JSON_SAX_FINISH);
 }
@@ -121361,6 +122463,8 @@ XXAPI str xrtStringifyJSON(xvalue varVal, int bFormat, size_t* pRetSize)
 		xvo_private_Stringify_Array(handle, varVal, NULL);
 	} else if ( varVal->Type == XVO_DT_LIST ) {
 		xvo_private_Stringify_List(handle, varVal, NULL);
+	} else if ( varVal->Type == XVO_DT_COLL ) {
+		xvo_private_Stringify_Set(handle, varVal, NULL);
 	} else if ( varVal->Type == XVO_DT_TABLE ) {
 		xvo_private_Stringify_Table(handle, varVal, NULL);
 	}
@@ -128594,14 +129698,17 @@ static void __xrtRuntimeFinalizeLocked()
 	xCore.AppFile = xCore.sNull;
 	xrtFree(xCore.AppPath);
 	xCore.AppPath = xCore.sNull;
+	#ifndef XRT_NO_VALUE
+		xrtProtocolRegistryDestroy((xrtprotocolregistry*)xCore.ProtocolRegistry);
+	#endif
+	xCore.ProtocolRegistry = NULL;
 	#ifdef XRT_MEM_DEBUG
 		xrtMemDebugDumpText("xrt_mem_report_auto.txt");
 		xrtMemDebugDumpJson("xrt_mem_report_auto.json");
+		__xrtMemDebugResetState(&xCore.MemDebug);
 	#endif
 	__xrtMemGlobalUnitPlan(&xCore.MemGlobal);
-	#ifdef XRT_MEM_DEBUG
-		__xrtMemDebugResetState(&xCore.MemDebug);
-	#else
+	#ifndef XRT_MEM_DEBUG
 		__xrtMemDebugResetState(NULL);
 	#endif
 	xCore.bInit = FALSE;
@@ -129330,6 +130437,11 @@ XXAPI xrtGlobalData* xrtInit()
 		__xrtResetMemTelemetryState(&xCore.MemTelemetry);
 		#ifdef XRT_MEM_DEBUG
 			__xrtMemDebugResetState(&xCore.MemDebug);
+		#endif
+		#ifndef XRT_NO_VALUE
+			xCore.ProtocolRegistry = xrtProtocolRegistryCreate();
+		#else
+			xCore.ProtocolRegistry = NULL;
 		#endif
 		// 初始化高精度时钟频率单位
 		#if defined(_WIN32) || defined(_WIN64)

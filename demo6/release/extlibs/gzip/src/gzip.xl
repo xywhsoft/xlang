@@ -3,6 +3,8 @@
 extern "xrtGetError" func __gzip_error() as string
 extern "xgzip_compress" func __gzip_compress(point data, c_size size, c_int level,
     c_uint mtime, c_ulonglong maxInput, c_ulonglong maxOutput) as point
+extern "xgzip_compress_str" func __gzip_compress_str(string data, c_size size, c_int level,
+    c_uint mtime, c_ulonglong maxInput, c_ulonglong maxOutput) as point
 extern "xgzip_decompress" func __gzip_decompress(point data, c_size size,
     c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
 extern "xgzip_compress_file" func __gzip_compress_file(string source, string destination,
@@ -45,9 +47,18 @@ end
 
 export func compress(string text, int level = -1, int mtime = 0,
     int maxInput = 268435456, int maxOutput = 536870912) as Buffer
-    Buffer data = Buffer()
-    data.append(text)
-    return compress(data, level, mtime, maxInput, maxOutput)
+    __gzip_check_level(level)
+    __gzip_check_limit(maxInput, "maxInput")
+    __gzip_check_limit(maxOutput, "maxOutput")
+    if mtime < 0 then
+        throw ValueError "gzip mtime must not be negative"
+    end
+    point result = __gzip_compress_str(text, c_size(string.len(text)), c_int(level),
+        c_uint(mtime), c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if result == null then
+        throw CompressionError __gzip_error()
+    end
+    return Buffer(result)
 end
 
 export func decompress(Buffer data, int maxInput = 268435456,
@@ -102,6 +113,7 @@ class GzipCompressor
         c_ulonglong maxInput, c_ulonglong maxOutput)
     extern "xgzip_compressor_destroy" destroy()
     extern "xgzip_compressor_update" func updateNative(point data, c_size size) as bool
+    extern "xgzip_compressor_update_str" func updateStrNative(string data, c_size size) as bool
     extern "xgzip_compressor_finish" func finishNative() as point
 
     get valid() as bool
@@ -115,9 +127,9 @@ class GzipCompressor
     end
 
     func update(string text)
-        Buffer data = Buffer()
-        data.append(text)
-        self.update(data)
+        if not self.updateStrNative(text, c_size(string.len(text))) then
+            throw CompressionError __gzip_error()
+        end
     end
 
     func finish() as Buffer

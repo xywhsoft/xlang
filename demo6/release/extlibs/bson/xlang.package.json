@@ -1,30 +1,21 @@
 ﻿{
-    "native":  {
-                   "singleton":  false,
-                   "loadName":  "",
-                   "version":  ""
-               },
-    "kind":  "demo6-extlib",
-    "version":  "1.0.0",
-    "format":  "xlang-package-1",
-    "dependencies":  [
-
-                     ],
-    "artifact":  {
-                     "cSources":  [
-                                      "bson_native.c"
-                                  ],
-                     "xlSources":  [
-                                       "src/bson.xl"
-                                   ],
-                     "kind":  "source"
-                 },
-    "name":  "bson",
-    "links":  [
-
-              ],
-    "loadlibs":  [
-
-                 ],
-    "abiVersion":  "1"
+    "format": "xlang-package-1",
+    "name": "bson",
+    "version": "3.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-extlib",
+    "description": "BSON (Binary JSON) codec with native var integration",
+    "artifact": {
+        "kind": "source",
+        "cSources": [
+            "bson_native.c"
+        ],
+        "xlSources": [
+            "src/bson.xl"
+        ]
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false, "loadName": "", "version": "" }
 }

@@ -1,0 +1,13 @@
+func makeForCapture() as func() as int
+    func() as int selected = func() as int => -1
+    for item in array[42]
+        selected = func() as int
+            return item
+        end
+    end
+    return selected
+end
+
+func() as int forCapture = makeForCapture()
+assert forCapture() == 42, "closure owns captured iterator value"
+println("hir_closure_for_capture ok")

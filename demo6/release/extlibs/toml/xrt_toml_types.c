@@ -12,7 +12,7 @@ static uint64 __xrtTomlDateTimeHash(const ptr pValue)
 	return xrtHash64(pValue, sizeof(xrttomldatetime));
 }
 
-static str __xrtTomlDateTimeTypeToString(const ptr pValue, uint32* pSize)
+static str __xrtTomlDateTimeTypeToString(const void* pValue, uint32* pSize)
 {
 	str sText = xrtTomlDateTimeToString((const xrttomldatetime*)pValue);
 	if ( pSize != NULL ) { *pSize = sText != NULL ? (uint32)strlen((const char*)sText) : 0u; }

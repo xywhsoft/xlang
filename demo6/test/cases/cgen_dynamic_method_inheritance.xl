@@ -1,0 +1,29 @@
+class DynamicBase
+    virtual func value() as int
+        return 1
+    end
+
+    func pick(int value) as int
+        return value + 10
+    end
+end
+
+class DynamicChild extends DynamicBase
+    override func value() as int
+        return 2
+    end
+
+    func pick(string value) as int
+        return string.len(value)
+    end
+end
+
+var dynamicChild = DynamicChild()
+
+func main(...) as int
+    assert int(dynamicChild.value()) == 2
+    assert int(dynamicChild.pick(5)) == 15
+    assert int(dynamicChild.pick("child")) == 5
+    println("dynamic method inheritance ok")
+    return 0
+end

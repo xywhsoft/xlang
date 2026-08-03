@@ -50,6 +50,10 @@ static size_t xl6FuzzSeed(char* out, size_t capacity, XL6_FuzzRandom* random)
         "try\n    throw \"boom\"\ncatch message\n    print(message)\nfinally\n    assert true\nend\n",
         "func pair<T>(T value) as (bool, T)\n    return true, value\nend\n",
         "for item in [1, 2, 3]\n    print(item)\nend\n",
+        "protocol Named\n    func name() as string\nend\nclass User\n    func name() as string\n        return \"x\"\n    end\nend\n",
+        "enum Status as uint8\n    ready = 1\n    failed\nend\n",
+        "enum Result<T>\n    none\n    some(T value)\nend\nfunc read(Result<int> value) as int\n    return match value\n    case none then 0\n    case some(item) then item\n    end\nend\n",
+        "class Node\n    int value = 0\nend\nNode? maybe = null\nweak<Node> observer = null\nint value = maybe?.value ?? 0\n",
         "#doc\ndesc:\n    parser fuzz seed\n#end\nfunc probe()\nend\n"
     };
     const char* seed;

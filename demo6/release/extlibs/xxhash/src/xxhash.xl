@@ -1,0 +1,161 @@
+// xxhash 的输入统一使用 Buffer，避免二进制数据经过字符串转换。
+extern "xrtGetError" func __xxhash_error() as string
+extern "xxxhash_version" func __xxhash_version() as string
+extern "xxxhash_hash64" func __xxhash_hash64(point data, c_size size, c_ulonglong seed) as int
+extern "xxxhash_hash64_hex" func __xxhash_hash64_hex(point data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash32" func __xxhash_hash32(point data, c_size size, c_uint seed) as int
+extern "xxxhash_hash32_hex" func __xxhash_hash32_hex(point data, c_size size, c_uint seed) as string
+extern "xxxhash_hash64_str" func __xxhash_hash64_str(string data, c_size size, c_ulonglong seed) as int
+extern "xxxhash_hash64_str_hex" func __xxhash_hash64_str_hex(string data, c_size size, c_ulonglong seed) as string
+extern "xxxhash_hash32_str_hex" func __xxhash_hash32_str_hex(string data, c_size size, c_uint seed) as string
+extern "xxxhash_file64" func __xxhash_file64(string path, c_ulonglong seed, c_ulonglong maxInput) as int
+extern "xxxhash_file64_hex" func __xxhash_file64_hex(string path, c_ulonglong seed, c_ulonglong maxInput) as string
+
+
+
+// 默认种子常量（xxHash 调优维度：改变种子会得到不同的哈希分布）。
+export const int XXHASH_DEFAULT_SEED = 0
+
+
+
+// 返回内嵌 xxHash 引擎的版本号（例如 "0.8.2"）。
+export func version() as string
+    return __xxhash_version()
+end
+
+func __xxhash_check_limit(int value, string name)
+    if value <= 0 then
+        throw ValueError name + " must be greater than zero"
+    end
+end
+
+
+
+// 一次性 64 位哈希（返回整数值）。
+export func hash64(Buffer data, int seed = XXHASH_DEFAULT_SEED) as int
+    return __xxhash_hash64(data.data(), c_size(data.len()), c_ulonglong(seed))
+end
+
+export func hash64(string text, int seed = XXHASH_DEFAULT_SEED) as int
+    return __xxhash_hash64_str(text, c_size(string.len(text)), c_ulonglong(seed))
+end
+
+// 一次性 64 位哈希（返回 16 位十六进制小写字符串）。
+export func hash64Hex(Buffer data, int seed = XXHASH_DEFAULT_SEED) as string
+    return __xxhash_hash64_hex(data.data(), c_size(data.len()), c_ulonglong(seed))
+end
+
+export func hash64Hex(string text, int seed = XXHASH_DEFAULT_SEED) as string
+    string result = __xxhash_hash64_str_hex(text, c_size(string.len(text)), c_ulonglong(seed))
+    if result == "" then
+        throw ValueError __xxhash_error()
+    end
+    return result
+end
+
+// 一次性 32 位哈希（返回整数值）。
+export func hash32(Buffer data, int seed = XXHASH_DEFAULT_SEED) as int
+    return __xxhash_hash32(data.data(), c_size(data.len()), c_uint(seed))
+end
+
+// 一次性 32 位哈希（返回 8 位十六进制小写字符串）。
+export func hash32Hex(Buffer data, int seed = XXHASH_DEFAULT_SEED) as string
+    return __xxhash_hash32_hex(data.data(), c_size(data.len()), c_uint(seed))
+end
+
+export func hash32Hex(string text, int seed = XXHASH_DEFAULT_SEED) as string
+    string result = __xxhash_hash32_str_hex(text, c_size(string.len(text)), c_uint(seed))
+    if result == "" then
+        throw ValueError __xxhash_error()
+    end
+    return result
+end
+
+
+
+// 文件 64 位哈希（XRT reader 分块读取，受 maxInput 限制）。
+export func hashFile64(string path, int seed = XXHASH_DEFAULT_SEED,
+    int maxInput = 268435456) as int
+    __xxhash_check_limit(maxInput, "maxInput")
+    int result = __xxhash_file64(path, c_ulonglong(seed), c_ulonglong(maxInput))
+    if __xxhash_error() != "" then
+        throw FileError __xxhash_error()
+    end
+    return result
+end
+
+export func hashFile64Hex(string path, int seed = XXHASH_DEFAULT_SEED,
+    int maxInput = 268435456) as string
+    __xxhash_check_limit(maxInput, "maxInput")
+    string result = __xxhash_file64_hex(path, c_ulonglong(seed), c_ulonglong(maxInput))
+    if result == "" then
+        throw FileError __xxhash_error()
+    end
+    return result
+end
+
+
+
+// 增量流式哈希器：update() 喂入数据，digest()/digestHex() 读取当前哈希值，
+// reset() 复位重新计算。配合 inputBytes 可自行驱动进度回显。
+export class Xxhash64Hasher
+    native point handle
+    extern "xxxhash_hasher_create" create(c_ulonglong seed, c_ulonglong maxInput)
+    extern "xxxhash_hasher_destroy" destroy()
+    extern "xxxhash_hasher_update" func updateNative(point data, c_size size) as bool
+    extern "xxxhash_hasher_update_str" func updateStrNative(string data, c_size size) as bool
+    extern "xxxhash_hasher_digest" func digestNative() as int
+    extern "xxxhash_hasher_digest_hex" func digestHexNative() as string
+    extern "xxxhash_hasher_reset" func resetNative() as bool
+    extern "xxxhash_hasher_input_bytes" func inputBytesNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    // 已喂入的字节数（进度回显用）。
+    get inputBytes() as int
+        return self.inputBytesNative()
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw FileError __xxhash_error()
+        end
+    end
+
+    func update(string text)
+        if not self.updateStrNative(text, c_size(string.len(text))) then
+            throw FileError __xxhash_error()
+        end
+    end
+
+    // 读取当前累计输入的 64 位哈希值（可多次调用，不改变状态）。
+    func digest() as int
+        return self.digestNative()
+    end
+
+    // 读取当前累计输入的 64 位哈希值（16 位十六进制小写字符串）。
+    func digestHex() as string
+        return self.digestHexNative()
+    end
+
+    // 复位哈希器（清空累计输入，保留原种子）。
+    func reset() as bool
+        if not self.resetNative() then
+            throw FileError __xxhash_error()
+        end
+        return true
+    end
+end
+
+
+
+export func hasher(int seed = XXHASH_DEFAULT_SEED, int maxInput = 268435456) as Xxhash64Hasher
+    __xxhash_check_limit(maxInput, "maxInput")
+    Xxhash64Hasher result = Xxhash64Hasher(c_ulonglong(seed), c_ulonglong(maxInput))
+    if not result.valid then
+        throw FileError __xxhash_error()
+    end
+    return result
+end

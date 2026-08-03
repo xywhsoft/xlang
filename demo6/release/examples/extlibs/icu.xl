@@ -5,7 +5,7 @@ func main(...) as int
 
     println("Script 1 = " + icu.script(1))
     println("Norm 0 = " + icu.normalizationForm(0))
-    println("UTF8 len U+4E2D = " + string.int(icu.utf8Len(0x4E2D)))
+    println("UTF8 len U+4E2D = " + string(icu.utf8Len(0x4E2D)))
 
     println("icu example: PASS")
     return 0

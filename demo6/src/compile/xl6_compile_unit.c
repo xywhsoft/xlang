@@ -52,6 +52,7 @@ void xl6CompileUnitInit(XL6_CompileUnit* unit)
     memset(unit, 0, sizeof(*unit));
     xl6ParseResultInit(&unit->parse);
     xl6ImportDepsInit(&unit->importDeps);
+    xl6HirModuleInit(&unit->hir);
 }
 
 void xl6CompileUnitFree(XL6_CompileUnit* unit)
@@ -61,6 +62,7 @@ void xl6CompileUnitFree(XL6_CompileUnit* unit)
     }
     xl6ParseResultFree(&unit->parse);
     xl6ImportDepsFree(&unit->importDeps);
+    xl6HirModuleFree(&unit->hir);
     memset(unit, 0, sizeof(*unit));
 }
 
@@ -87,12 +89,13 @@ int xl6CompileUnitLoadFile(XL6_CompileUnit* unit, const char* path, int runSem)
     }
     if ( ok && runSem ) {
         unit->phase = "sem";
-        ok = xl6SemCheckModule(unit->parse.root, &unit->parse.diags);
+        ok = xl6SemCheckModule(unit->parse.root, &unit->parse.diags, unit->moduleName);
         unit->semChecked = 1;
     }
     if ( ok && runSem ) {
         unit->phase = "hir";
-        ok = xl6HirFinalizeModule(unit->parse.root, &unit->parse.diags, &unit->hirStats);
+        ok = xl6HirBuildModule(&unit->hir, unit->parse.root, &unit->parse.diags);
+        unit->hirStats = unit->hir.stats;
         unit->hirReady = ok;
     }
     unit->success = ok && unit->parse.diags.count == 0;
@@ -127,12 +130,13 @@ int xl6CompileUnitLoadSource(XL6_CompileUnit* unit, const char* source, const ch
     }
     if ( ok && runSem ) {
         unit->phase = "sem";
-        ok = xl6SemCheckModule(unit->parse.root, &unit->parse.diags);
+        ok = xl6SemCheckModule(unit->parse.root, &unit->parse.diags, unit->moduleName);
         unit->semChecked = 1;
     }
     if ( ok && runSem ) {
         unit->phase = "hir";
-        ok = xl6HirFinalizeModule(unit->parse.root, &unit->parse.diags, &unit->hirStats);
+        ok = xl6HirBuildModule(&unit->hir, unit->parse.root, &unit->parse.diags);
+        unit->hirStats = unit->hir.stats;
         unit->hirReady = ok;
     }
     unit->success = ok && unit->parse.diags.count == 0;

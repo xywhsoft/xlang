@@ -1,0 +1,29 @@
+protocol Named
+    func name() as string
+end
+
+class Person
+    string value = ""
+
+    create(string value)
+        self.value = value
+    end
+
+    func name() as string
+        return self.value
+    end
+end
+
+func readName(Named value) as string
+    return value.name()
+end
+
+func main(...) as int
+    Person person = Person("xlang")
+    Named named = person
+    string actual = readName(named)
+    println(actual)
+    assert actual == "xlang"
+    println("protocol dynamic dispatch ok")
+    return 0
+end

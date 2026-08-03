@@ -1,0 +1,5 @@
+bool value = true
+auto result = match value
+case true then 1
+case false then "false"
+end

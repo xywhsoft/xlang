@@ -4,9 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
-extern void xrtSetError(const char *msg);
-
+extern void xrtSetError(const void *msg, int bFree);
 static char tab_buf[16384];
 
 #define TAB_MAX_COLS 32
@@ -24,7 +22,7 @@ typedef struct {
 
 void *xtab_create(void) {
     XTab *t = (XTab *)calloc(1, sizeof(XTab));
-    if (!t) { xrtSetError("tabulate: out of memory"); return NULL; }
+    if (!t) { xrtSetError("tabulate: out of memory", 0); return NULL; }
     return t;
 }
 

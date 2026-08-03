@@ -265,7 +265,7 @@ class Graph
     end
 
     func hasNode(string n) as bool
-        return self.adj.contains(n)
+        return self.adj.contains(n) as bool
     end
 
     func nodeCount() as int
@@ -445,7 +445,7 @@ class Graph
 
         float dstX = 0.0
         float dstY = 0.0
-        bool hasCoords = self.coords.contains(dst)
+        bool hasCoords = self.coords.contains(dst) as bool
         if hasCoords then
             var dc = self.coords[dst]
             dstX = float(dc[0])
@@ -766,7 +766,7 @@ func loadGraphJSON(string text) as Graph
 
     Graph g = Graph(directed)
 
-    bool structured = raw.contains("edges")
+    bool structured = raw.contains("edges") as bool
 
     if structured then
         var edgesField = raw["edges"]

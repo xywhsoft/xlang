@@ -1923,11 +1923,12 @@ func execContinue(DebugSession sess) as string
         if e.etype == "point" then
             var bp = bpmCheckHit(sess.bpm, sess.targetFile, e.line, e.fn, e.locals)
             if not (bp is null) then
+                Breakpoint hit = bp as Breakpoint
                 // 临时断点命中后删除
-                if bp.temporary then
-                    bpmRemove(sess.bpm, bp.id)
+                if hit.temporary then
+                    bpmRemove(sess.bpm, hit.id)
                 end
-                msg = "breakpoint " + string(bp.id) + " at " + sess.targetFile + ":" + string(e.line)
+                msg = "breakpoint " + string(hit.id) + " at " + sess.targetFile + ":" + string(e.line)
                 sess.callStack = rebuildCallStack(sess, sess.eventIdx)
                 return msg
             end

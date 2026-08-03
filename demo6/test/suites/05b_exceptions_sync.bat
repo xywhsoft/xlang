@@ -342,11 +342,8 @@ if not errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_extern_bad_type.xl >nul 2> build\test\sem_extern_bad_type.err.txt
-if not errorlevel 1 (
-    echo sem_extern_bad_type.xl should fail.
-    exit /b 1
-)
+release\xl.exe check test\cases\sem_extern_typed_container.xl
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_extern_multi_return.xl >nul 2> build\test\sem_extern_multi_return.err.txt
 if not errorlevel 1 (
@@ -647,6 +644,13 @@ if errorlevel 1 exit /b 1
 
 build\test\cgen_loop_exception_propagation.exe
 if errorlevel 1 exit /b 1
+for /L %%I in (1,1,3) do (
+    build\test\cgen_loop_exception_propagation.exe
+    if errorlevel 1 (
+        echo cgen_loop_exception_propagation.exe repeat run %%I failed.
+        exit /b 1
+    )
+)
 
 release\xl.exe cgen test\cases\cgen_loop_exception_propagation.xl --emit build\test\cgen_loop_exception_propagation.c
 if errorlevel 1 exit /b 1

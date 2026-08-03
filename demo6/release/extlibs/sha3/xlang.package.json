@@ -1,0 +1,32 @@
+{
+    "format":  "xlang-package-1",
+    "name":  "sha3",
+    "version":  "1.0.0",
+    "abiVersion":  "1",
+    "kind":  "demo6-extlib",
+    "artifact":  {
+                     "kind":  "source",
+                     "cSources":  [
+                                      "third_party/sha3.c",
+                                      "xrt_sha3.c",
+                                      "sha3_native.c"
+                                  ],
+                     "xlSources":  [
+                                       "src/sha3.xl"
+                                   ]
+                 },
+    "links":  [
+
+              ],
+    "loadlibs":  [
+
+                 ],
+    "dependencies":  [
+
+                     ],
+    "native":  {
+                   "singleton":  false,
+                   "loadName":  "",
+                   "version":  ""
+               }
+}

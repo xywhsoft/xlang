@@ -196,3 +196,65 @@ static void xl6CgenAddGenericClassInstance(XL6_CgenContext* ctx, const XL6_AstNo
     ctx->genericClassInstances[ctx->genericClassInstanceCount].typeNode = canonicalType;
     ctx->genericClassInstanceCount += 1;
 }
+
+static int xl6CgenHasGenericEnumInstance(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* enumNode,
+    const XL6_AstNode* typeNode)
+{
+    size_t i;
+
+    if ( ctx == NULL || enumNode == NULL || typeNode == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < ctx->genericEnumInstanceCount; ++i ) {
+        if ( ctx->genericEnumInstances[i].enumNode == enumNode &&
+             xl6CgenTypeNodeEqual(
+                 ctx->genericEnumInstances[i].typeNode,
+                 typeNode) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void xl6CgenAddGenericEnumInstance(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* enumNode,
+    const XL6_AstNode* typeNode)
+{
+    XL6_CgenGenericEnumInstance* resized;
+    XL6_AstNode* canonicalType;
+    size_t capacity;
+
+    if ( ctx == NULL || enumNode == NULL || typeNode == NULL ) {
+        return;
+    }
+    canonicalType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
+    if ( canonicalType == NULL ) {
+        xl6CgenError(ctx, enumNode, "泛型 enum 实例类型规范化失败");
+        return;
+    }
+    if ( xl6CgenHasGenericEnumInstance(ctx, enumNode, canonicalType) ) {
+        xl6AstFree(canonicalType);
+        return;
+    }
+    if ( ctx->genericEnumInstanceCount == ctx->genericEnumInstanceCapacity ) {
+        capacity = ctx->genericEnumInstanceCapacity == 0 ?
+            8 :
+            ctx->genericEnumInstanceCapacity * 2;
+        resized = (XL6_CgenGenericEnumInstance*)xrtRealloc(
+            ctx->genericEnumInstances,
+            capacity * sizeof(XL6_CgenGenericEnumInstance));
+        if ( resized == NULL ) {
+            xl6AstFree(canonicalType);
+            xl6CgenError(ctx, enumNode, "泛型 enum 实例表内存不足");
+            return;
+        }
+        ctx->genericEnumInstances = resized;
+        ctx->genericEnumInstanceCapacity = capacity;
+    }
+    ctx->genericEnumInstances[ctx->genericEnumInstanceCount].enumNode = enumNode;
+    ctx->genericEnumInstances[ctx->genericEnumInstanceCount].typeNode = canonicalType;
+    ctx->genericEnumInstanceCount += 1;
+}

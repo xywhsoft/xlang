@@ -1,36 +1,70 @@
 #include "src/sem/xl6_type_registry.h"
 
+#include <stdio.h>
+
 typedef struct XL6_BuiltinTypeSeed {
     const char* name;
+    const char* abiName;
     int allowGeneric;
     int genericArity;
 } XL6_BuiltinTypeSeed;
 
 static const XL6_BuiltinTypeSeed g_xl6BuiltinTypeSeeds[] = {
-    {"null", 0, 0},
-    {"bool", 0, 0},
-    {"int", 0, 0}, {"int8", 0, 0}, {"uint8", 0, 0},
-    {"int16", 0, 0}, {"uint16", 0, 0}, {"int32", 0, 0}, {"uint32", 0, 0},
-    {"int64", 0, 0}, {"uint64", 0, 0},
-    {"float", 0, 0}, {"float32", 0, 0}, {"float64", 0, 0},
-    {"c_char", 0, 0}, {"c_schar", 0, 0}, {"c_uchar", 0, 0},
-    {"c_short", 0, 0}, {"c_ushort", 0, 0}, {"c_int", 0, 0}, {"c_uint", 0, 0},
-    {"c_long", 0, 0}, {"c_ulong", 0, 0}, {"c_longlong", 0, 0}, {"c_ulonglong", 0, 0},
-    {"c_size", 0, 0}, {"c_ssize", 0, 0}, {"c_ptrdiff", 0, 0},
-    {"c_intptr", 0, 0}, {"c_uintptr", 0, 0}, {"c_bool", 0, 0},
-    {"c_float", 0, 0}, {"c_double", 0, 0}, {"c_wchar", 0, 0}, {"c_vararg", 0, 0},
-    {"string", 0, 0}, {"time", 0, 0}, {"point", 1, 1}, {"error", 0, 0},
-    {"function", 0, 0}, {"var", 0, 0}, {"type", 0, 0},
-    {"array", 1, 1}, {"list", 1, 1}, {"set", 1, 1}, {"dict", 1, 1},
-    {"future", 1, 1}, {"task", 1, 1}, {"channel", 1, 1}, {"generator", 1, 1},
-    {"Stack", 1, 1}, {"AvlTree", 1, 2},
-    {"SpscQueue", 1, 1}, {"MpscQueue", 1, 1}, {"MpmcQueue", 1, 1}, {"WaitQueue", 1, 1},
-    {"thread", 0, 0}, {"mutex", 0, 0}, {"cond", 0, 0}, {"rwlock", 0, 0}, {"sem", 0, 0}
+    {"null", "xrt.null", 0, 0},
+    {"bool", "xrt.bool", 0, 0},
+    {"int", "xrt.int64", 0, 0}, {"int8", "xrt.int8", 0, 0},
+    {"uint8", "xrt.uint8", 0, 0}, {"int16", "xrt.int16", 0, 0},
+    {"uint16", "xrt.uint16", 0, 0}, {"int32", "xrt.int32", 0, 0},
+    {"uint32", "xrt.uint32", 0, 0}, {"int64", "xrt.int64", 0, 0},
+    {"uint64", "xrt.uint64", 0, 0},
+    {"float", "xrt.float64", 0, 0}, {"float32", "xrt.float32", 0, 0},
+    {"float64", "xrt.float64", 0, 0},
+    {"c_char", NULL, 0, 0}, {"c_schar", NULL, 0, 0},
+    {"c_uchar", NULL, 0, 0}, {"c_short", NULL, 0, 0},
+    {"c_ushort", NULL, 0, 0}, {"c_int", NULL, 0, 0},
+    {"c_uint", NULL, 0, 0}, {"c_long", NULL, 0, 0},
+    {"c_ulong", NULL, 0, 0}, {"c_longlong", NULL, 0, 0},
+    {"c_ulonglong", NULL, 0, 0}, {"c_size", NULL, 0, 0},
+    {"c_ssize", NULL, 0, 0}, {"c_ptrdiff", NULL, 0, 0},
+    {"c_intptr", NULL, 0, 0}, {"c_uintptr", NULL, 0, 0},
+    {"c_bool", NULL, 0, 0}, {"c_float", NULL, 0, 0},
+    {"c_double", NULL, 0, 0}, {"c_wchar", NULL, 0, 0},
+    {"c_vararg", NULL, 0, 0},
+    {"string", "xrt.string", 0, 0}, {"time", "xrt.time", 0, 0},
+    {"point", "xrt.pointer", 1, 1}, {"error", NULL, 0, 0},
+    {"function", NULL, 0, 0}, {"var", NULL, 0, 0},
+    {"type", "xrt.type", 0, 0},
+    {"array", NULL, 1, 1}, {"list", NULL, 1, 1},
+    {"set", NULL, 1, 1}, {"dict", NULL, 1, 1},
+    {"future", NULL, 1, 1}, {"task", NULL, 1, 1},
+    {"channel", NULL, 1, 1}, {"generator", NULL, 1, 1},
+    {"weak", "xrt.value_weak", 1, 1},
+    {"Stack", NULL, 1, 1}, {"AvlTree", NULL, 1, 2},
+    {"SpscQueue", NULL, 1, 1}, {"MpscQueue", NULL, 1, 1},
+    {"MpmcQueue", NULL, 1, 1}, {"WaitQueue", NULL, 1, 1},
+    {"thread", NULL, 0, 0}, {"mutex", NULL, 0, 0},
+    {"cond", NULL, 0, 0}, {"rwlock", NULL, 0, 0},
+    {"sem", NULL, 0, 0}
 };
+
+int xl6TypeRegistryIsBuiltinName(const char* name)
+{
+    size_t i;
+
+    if ( name == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < XL6_ARRAY_COUNT(g_xl6BuiltinTypeSeeds); ++i ) {
+        if ( strcmp(g_xl6BuiltinTypeSeeds[i].name, name) == 0 ) {
+            return 1;
+        }
+    }
+    return 0;
+}
 
 static unsigned long long xl6TypeRegistryHash(const char* name)
 {
-    unsigned long long hash = 1469598103934665603ULL;
+    unsigned long long hash = 14695981039346656037ULL;
 
     while ( name != NULL && *name != '\0' ) {
         hash ^= (unsigned char)*name++;
@@ -73,6 +107,7 @@ void xl6TypeRegistryInit(XL6_TypeRegistry* registry)
 {
     if ( registry != NULL ) {
         memset(registry, 0, sizeof(*registry));
+        registry->nextId = 1;
     }
 }
 
@@ -85,6 +120,7 @@ void xl6TypeRegistryFree(XL6_TypeRegistry* registry)
     }
     for ( i = 0; i < registry->count; ++i ) {
         xrtFree(registry->items[i].name);
+        xrtFree(registry->items[i].abiName);
     }
     xrtFree(registry->items);
     xrtFree(registry->slots);
@@ -114,13 +150,53 @@ const XL6_TypeInfo* xl6TypeRegistryFind(const XL6_TypeRegistry* registry, const 
     return NULL;
 }
 
-int xl6TypeRegistryAdd(XL6_TypeRegistry* registry, const char* name, XL6_TypeKind kind, int allowGeneric, int genericArity, XL6_AstNode* decl)
+const XL6_TypeInfo* xl6TypeRegistryFindId(
+    const XL6_TypeRegistry* registry,
+    XL6_TypeId id
+)
+{
+    size_t i;
+
+    if ( registry == NULL || id == XL6_TYPE_ID_INVALID ) {
+        return NULL;
+    }
+    for ( i = 0; i < registry->count; ++i ) {
+        if ( registry->items[i].id == id ) {
+            return &registry->items[i];
+        }
+    }
+    return NULL;
+}
+
+XL6_TypeId xl6TypeRegistryReserveId(XL6_TypeRegistry* registry)
+{
+    XL6_TypeId id;
+
+    if ( registry == NULL || registry->nextId == XL6_TYPE_ID_INVALID ) {
+        return XL6_TYPE_ID_INVALID;
+    }
+    id = registry->nextId;
+    registry->nextId += 1;
+    return id;
+}
+
+int xl6TypeRegistryAdd(
+    XL6_TypeRegistry* registry,
+    const char* name,
+    const char* abiName,
+    XL6_TypeKind kind,
+    int allowGeneric,
+    int genericArity,
+    XL6_AstNode* decl
+)
 {
     XL6_TypeInfo* newItems;
     XL6_TypeInfo* item;
     size_t newCapacity;
 
-    if ( registry == NULL || name == NULL ) {
+    if ( registry == NULL || name == NULL || name[0] == '\0' ||
+         abiName == NULL || abiName[0] == '\0' ||
+         registry->nextId == XL6_TYPE_ID_INVALID ) {
         return 0;
     }
     if ( xl6TypeRegistryFind(registry, name) != NULL ) {
@@ -142,14 +218,26 @@ int xl6TypeRegistryAdd(XL6_TypeRegistry* registry, const char* name, XL6_TypeKin
 
     item = &registry->items[registry->count];
     memset(item, 0, sizeof(*item));
-    item->name = xrtCopyStr((char*)name, strlen(name));
+    item->name = (char*)xrtCopyStr((str)name, strlen(name));
     if ( item->name == NULL ) {
         return 0;
     }
+    item->abiName = (char*)xrtCopyStr((str)abiName, strlen(abiName));
+    if ( item->abiName == NULL ) {
+        xrtFree(item->name);
+        memset(item, 0, sizeof(*item));
+        return 0;
+    }
+    item->id = xl6TypeRegistryReserveId(registry);
+    item->abiId = xl6TypeAbiIdText(abiName);
     item->kind = kind;
     item->allowGeneric = allowGeneric;
     item->genericArity = genericArity;
     item->decl = decl;
+    if ( decl != NULL ) {
+        decl->semanticTypeId = item->id;
+        decl->semanticTypeAbiId = item->abiId;
+    }
     registry->count += 1;
     {
         size_t slot = (size_t)(xl6TypeRegistryHash(item->name) & (registry->slotCapacity - 1));
@@ -167,7 +255,22 @@ int xl6TypeRegistryAddBuiltins(XL6_TypeRegistry* registry)
 
     for ( i = 0; i < XL6_ARRAY_COUNT(g_xl6BuiltinTypeSeeds); ++i ) {
         const XL6_BuiltinTypeSeed* seed = &g_xl6BuiltinTypeSeeds[i];
-        if ( !xl6TypeRegistryAdd(registry, seed->name, XL6_TYPE_BUILTIN, seed->allowGeneric, seed->genericArity, NULL) ) {
+        char abiName[160];
+        const char* resolvedAbiName = seed->abiName;
+
+        if ( resolvedAbiName == NULL ) {
+            snprintf(abiName, sizeof(abiName), "xlang.%s", seed->name);
+            resolvedAbiName = abiName;
+        }
+        if ( !xl6TypeRegistryAdd(
+            registry,
+            seed->name,
+            resolvedAbiName,
+            XL6_TYPE_BUILTIN,
+            seed->allowGeneric,
+            seed->genericArity,
+            NULL
+        ) ) {
             return 0;
         }
     }

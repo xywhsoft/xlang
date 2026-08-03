@@ -1,0 +1,733 @@
+// xbot/device_android.xl - Android ADB 设备
+// 对应 xbot.py L4289-5138：AndroidAdbDevice 纯 ADB 实现
+// 截图、输入、手势、APK 安装均通过 ADB 子进程完成
+
+// ─── ADB 常量 ───
+const string ADB_KEYBOARD_PACKAGE = "com.android.adbkeyboard"
+const string ADB_KEYBOARD_IME = "com.android.adbkeyboard/.AdbIME"
+const string ADB_KEYBOARD_ACTION_B64 = "ADB_INPUT_B64"
+const int ADB_DEFAULT_TIMEOUT = 30000
+
+// ─── 原生 C 层声明 ───
+extern "xxbot_adb_run" func xxbot_adb_run(string adb_path, string serial, string args, int timeout_ms) as string
+extern "xxbot_adb_run_binary" func xxbot_adb_run_binary(string adb_path, string serial, string args, string save_path, int timeout_ms) as int
+
+// ─── Android ADB 设备 ───
+export class AndroidAdbDevice extends AutomationDevice
+    string serial
+    string adb_path
+    bool keyboard_ready
+    bool closed
+    bool disconnect_on_close
+
+    create(string serial_str, string adb, bool connect, int boot_timeout)
+        base("adb:" + serial_str)
+        self.serial = string.trim(serial_str)
+        self.adb_path = adb
+        self.keyboard_ready = false
+        self.closed = false
+        self.disconnect_on_close = connect and string.indexOf(self.serial, ":") >= 0
+
+        if self.serial == "" then
+            throw RuntimeError "ADB serial 不能为空"
+        end
+
+        // TCP 连接
+        if connect and string.indexOf(self.serial, ":") >= 0 then
+            string output = self._RunServer("connect " + self.serial, 15000)
+            string lower = string.lower(output)
+            if string.indexOf(lower, "failed") >= 0 or string.indexOf(lower, "unable") >= 0 then
+                throw RuntimeError "ADB 连接失败: " + output
+            end
+        end
+        // 检查设备状态
+        string state = string.trim(string.lower(self._Run("get-state", 15000)))
+        if state != "device" then
+            throw RuntimeError "ADB 设备未就绪，状态为: " + state
+        end
+
+        // 等待 Android 启动完成
+        self._WaitForAndroidBoot(boot_timeout, 3000)
+
+        // 获取屏幕尺寸
+        self.UpdateSize()
+
+        // 配置 ADBKeyboard
+        OpResult kb_result = self.SetupAdbKeyboard()
+        if kb_result.success == false then
+            throw RuntimeError "ADBKeyboard 初始化失败: " + kb_result.error
+        end
+    end
+    // ─── 设备接口实现 ───
+
+    override func UpdateSize() as Size
+        string output = self.Shell("wm size", 15000)
+        // 解析 "Physical size: 1080x1920" 或 "Override size: 1080x2340"
+        int x_pos = string.indexOf(output, "x")
+        if x_pos < 0 then
+            throw RuntimeError "无法解析 Android 分辨率: " + output
+        end
+        // 向前找数字起始
+        int start = x_pos - 1
+        while start > 0
+            string ch = string.mid(output, start - 1, 1)
+            if ch >= "0" and ch <= "9" then
+                start -= 1
+            else
+                break
+            end
+        end
+        // 向后找数字结束
+        int end_pos = x_pos + 1
+        while end_pos < string.len(output)
+            string ch = string.mid(output, end_pos, 1)
+            if ch >= "0" and ch <= "9" then
+                end_pos += 1
+            else
+                break
+            end
+        end
+        int w = int(string.mid(output, start, x_pos - start))
+        int h = int(string.mid(output, x_pos + 1, end_pos - x_pos - 1))
+        self.size = Size(w, h)
+        return self.size as Size
+    end
+
+    override func Snapshot(string save_path) as string
+        string output = save_path
+        if output == "" then
+            output = _xbot_temp_file("xbot_adb_", ".png")
+        end
+        dir.createAll(path.dir(output))
+        int bytes = xxbot_adb_run_binary(self.adb_path, self.serial, "exec-out screencap -p", output, 30000)
+        if bytes <= 0 then
+            throw RuntimeError "ADB screencap 返回空数据"
+        end
+        return output
+    end
+
+    override func Close() as OpResult
+        if self.closed then
+            return _result_ok("device already released: " + self.name)
+        end
+        self.closed = true
+        if self.disconnect_on_close == false then
+            return _result_ok("device released without disconnect: " + self.name)
+        end
+        string output = self._RunServer("disconnect " + self.serial, 15000)
+        return _result_ok("ADB disconnected: " + self.serial)
+    end
+
+    override func _ClickPixels(int x, int y, int times, float interval)
+        int i = 0
+        while i < times
+            self.Shell("input tap " + string(x) + " " + string(y), 15000)
+            if i + 1 < times and interval > 0.0 then
+                time.sleep(int(interval * 1000))
+            end
+            i += 1
+        end
+    end
+    override func _SwipePixels(int x1, int y1, int x2, int y2, float duration)
+        int ms = int(duration * 1000)
+        if ms < 1 then ms = 1 end
+        self.Shell("input swipe " + string(x1) + " " + string(y1) + " " + string(x2) + " " + string(y2) + " " + string(ms), 15000)
+    end
+
+    override func _Key(string key)
+        int code = _android_key_code(key)
+        self.Shell("input keyevent " + string(code), 15000)
+    end
+
+    override func _Text(string text, bool enter)
+        // 确保 ADBKeyboard 可用
+        OpResult kb = self.SetupAdbKeyboard()
+        if kb.success == false then
+            throw RuntimeError "ADBKeyboard 初始化失败: " + kb.error
+        end
+        // Base64 编码后通过广播输入
+        string encoded = _base64_encode_text(text)
+        string output = self.Shell("am broadcast -a " + ADB_KEYBOARD_ACTION_B64 + " --es msg " + encoded, 15000)
+        string lower = string.lower(output)
+        if string.indexOf(lower, "error") >= 0 or string.indexOf(lower, "exception") >= 0 then
+            throw RuntimeError "ADBKeyboard 输入失败: " + output
+        end
+        if enter then
+            self._Key("ENTER")
+        end
+    end
+    // ─── Shell 命令 ───
+
+    func Shell(string command, int timeout_ms) as string
+        return self._Run("shell " + command, timeout_ms)
+    end
+
+    func Input(string text, float interval) as OpResult
+        // 纯 ASCII 输入
+        string encoded = string.replace(text, " ", "%s")
+        // 分块发送（每块 200 字符）
+        int total = string.len(encoded)
+        int offset = 0
+        int parts = 0
+        while offset < total
+            int chunk_len = 200
+            if offset + chunk_len > total then
+                chunk_len = total - offset
+            end
+            string chunk = string.mid(encoded, offset, chunk_len)
+            self.Shell("input text '" + chunk + "'", 15000)
+            parts += 1
+            offset += 200
+            if offset < total and interval > 0.0 then
+                time.sleep(int(interval * 1000))
+            end
+        end
+        return _result_ok("input ascii length=" + string(string.len(text)))
+    end
+
+    // ─── 长按 ───
+
+    func LongPress(var value, float y_val, float duration) as OpResult
+        TargetPoint pt = self.ResolvePoint(value, y_val, ANCHOR_CENTER)
+        int ms = int(duration * 1000)
+        if ms < 300 then ms = 300 end
+        self.Shell("input swipe " + string(pt.x) + " " + string(pt.y) + " " + string(pt.x) + " " + string(pt.y) + " " + string(ms), 15000)
+        return _result_ok("long press " + string(pt.x) + "," + string(pt.y))
+    end
+
+    func Drag(var start, var end_pt, float duration) as OpResult
+        return base.Swipe(start, end_pt, duration)
+    end
+
+    // ─── 方向滑动 ───
+
+    func _DirectionalSwipe(var center, float distance, string direction, float duration) as OpResult
+        TargetPoint pt = self.ResolvePoint(center, 0, ANCHOR_CENTER)
+        Size s = self.EnsureSize()
+        bool horizontal = (direction == "left" or direction == "right")
+        int delta = 0
+        if horizontal then
+            delta = _resolve_component(distance, s.width)
+        else
+            delta = _resolve_component(distance, s.height)
+        end
+        int half = delta / 2
+        if half < 1 then half = 1 end
+        if half < 0 then half = -half end
+
+        int sx = pt.x
+        int sy = pt.y
+        int ex = pt.x
+        int ey = pt.y
+
+        if direction == "up" then
+            sy = pt.y + half
+            ey = pt.y - half
+            if sy >= s.height then sy = s.height - 1 end
+            if ey < 0 then ey = 0 end
+        elseif direction == "down" then
+            sy = pt.y - half
+            ey = pt.y + half
+            if sy < 0 then sy = 0 end
+            if ey >= s.height then ey = s.height - 1 end
+        elseif direction == "left" then
+            sx = pt.x + half
+            ex = pt.x - half
+            if sx >= s.width then sx = s.width - 1 end
+            if ex < 0 then ex = 0 end
+        elseif direction == "right" then
+            sx = pt.x - half
+            ex = pt.x + half
+            if sx < 0 then sx = 0 end
+            if ex >= s.width then ex = s.width - 1 end
+        else
+            return _result_fail("未知滑动方向: " + direction)
+        end
+
+        self._SwipePixels(sx, sy, ex, ey, duration)
+        return _result_ok("swipe " + direction + " " + string(sx) + "," + string(sy) + "->" + string(ex) + "," + string(ey))
+    end
+
+    func SwipeUp(var center, float distance, float duration) as OpResult
+        return self._DirectionalSwipe(center, distance, "up", duration)
+    end
+
+    func SwipeDown(var center, float distance, float duration) as OpResult
+        return self._DirectionalSwipe(center, distance, "down", duration)
+    end
+
+    func SwipeLeft(var center, float distance, float duration) as OpResult
+        return self._DirectionalSwipe(center, distance, "left", duration)
+    end
+
+    func SwipeRight(var center, float distance, float duration) as OpResult
+        return self._DirectionalSwipe(center, distance, "right", duration)
+    end
+
+    // ─── 便捷按键 ───
+
+    func Back() as OpResult
+        return base.Key("BACK")
+    end
+
+    func Home() as OpResult
+        return base.Key("HOME")
+    end
+
+    func Recent() as OpResult
+        return base.Key("APP_SWITCH")
+    end
+
+    func Enter() as OpResult
+        return base.Key("ENTER")
+    end
+
+    func Delete() as OpResult
+        return base.Key("DELETE")
+    end
+
+    func Wake() as OpResult
+        return base.Key("WAKEUP")
+    end
+
+    func Power() as OpResult
+        return base.Key("POWER")
+    end
+
+    // ─── 应用管理 ───
+
+    func StartApp(string package, string activity) as OpResult
+        string pkg = _validate_package_name(package)
+        string cmd = ""
+        if activity != "" then
+            string component = pkg + "/" + activity
+            cmd = "am start -W -n " + component
+        else
+            cmd = "monkey -p " + pkg + " -c android.intent.category.LAUNCHER 1"
+        end
+        string output = self.Shell(cmd, 30000)
+        string lower = string.lower(output)
+        if string.indexOf(lower, "error") >= 0 or string.indexOf(lower, "exception") >= 0 or string.indexOf(lower, "not found") >= 0 then
+            return _result_fail("启动应用失败: " + output)
+        end
+        return _result_ok("started " + pkg)
+    end
+
+    func StopApp(string package) as OpResult
+        string pkg = _validate_package_name(package)
+        self.Shell("am force-stop " + pkg, 15000)
+        return _result_ok("stopped " + pkg)
+    end
+
+    func ClearAppData(string package) as OpResult
+        string pkg = _validate_package_name(package)
+        string output = self.Shell("pm clear " + pkg, 15000)
+        if string.indexOf(string.lower(output), "success") < 0 then
+            return _result_fail("清除数据失败: " + output)
+        end
+        return _result_ok("cleared " + pkg)
+    end
+
+    func InstallApk(string apk_path, bool replace) as OpResult
+        string args = "install"
+        if replace then
+            args = args + " -r"
+        end
+        args = args + " " + apk_path
+        string output = self._Run(args, 120000)
+        if string.indexOf(string.lower(output), "failure") >= 0 then
+            return _result_fail("APK 安装失败: " + output)
+        end
+        return _result_ok("installed " + apk_path)
+    end
+
+    func Uninstall(string package, bool keep_data) as OpResult
+        string pkg = _validate_package_name(package)
+        string args = "uninstall"
+        if keep_data then
+            args = args + " -k"
+        end
+        args = args + " " + pkg
+        string output = self._Run(args, 120000)
+        if string.indexOf(string.lower(output), "failure") >= 0 then
+            return _result_fail("卸载失败: " + output)
+        end
+        return _result_ok("uninstalled " + pkg)
+    end
+
+    func Push(string local_path, string remote_path) as OpResult
+        string output = self._Run("push " + local_path + " " + remote_path, 120000)
+        return _result_ok("push completed")
+    end
+
+    func Pull(string remote_path, string local_path) as OpResult
+        dir.createAll(path.dir(local_path))
+        string output = self._Run("pull " + remote_path + " " + local_path, 120000)
+        return _result_ok("pull completed")
+    end
+
+    func ListApps(bool include_system) as OpResult
+        string cmd = "pm list packages"
+        if include_system == false then
+            cmd = "pm list packages -3"
+        end
+        string output = self.Shell(cmd, 15000)
+        return _result_ok("apps listed")
+    end
+
+    func AppExists(string package) as bool
+        string pkg = _validate_package_name(package)
+        string output = self.Shell("pm list packages " + pkg, 15000)
+        return string.indexOf(output, "package:" + pkg) >= 0
+    end
+
+    func GetCurrentApp() as string
+        string output = self.Shell("dumpsys window windows", 15000)
+        // 简单提取 package/activity
+        int pos = string.indexOf(output, "mCurrentFocus=")
+        if pos >= 0 then
+            int start = pos + 14
+            int end_pos = _xbot_index_of_from(output, "\n", start)
+            if end_pos < 0 then end_pos = string.len(output) end
+            return string.trim(string.mid(output, start, end_pos - start))
+        end
+        return ""
+    end
+
+    // ─── 电源管理 ───
+
+    virtual func Reboot() as OpResult
+        self._Run("reboot", 10000)
+        return _result_ok("ADB reboot command sent")
+    end
+
+    virtual func GetPowerState() as OpResult
+        string state = string.trim(string.lower(self._Run("get-state", 10000)))
+        bool online = (state == "device")
+        return _result_ok("adb online=" + string(online))
+    end
+
+    // 尝试通过 ADB 关闭设备
+    virtual func PowerOff() as OpResult
+        self._Run("shell reboot -p", 10000)
+        return _result_ok("ADB power-off command sent")
+    end
+
+    // 普通 ADB 设备无法远程开机
+    virtual func PowerOn() as OpResult
+        return _result_fail("普通 ADB 设备无法在关机后通过 ADB 开机；请使用云手机设备或外部电源控制")
+    end
+
+    // 普通 ADB 设备不支持平台级系统重置
+    virtual func Reset() as OpResult
+        return _result_fail("普通 ADB 设备不支持平台级系统重置；该能力仅支持火山云手机")
+    end
+
+    // 普通 ADB 设备暂不支持平台录屏
+    virtual func StartRecording(float duration, bool save_on_device) as OpResult
+        return _result_fail("普通 ADB 设备暂不支持平台录屏；请使用火山云手机设备或外部录屏服务")
+    end
+
+    virtual func StopRecording() as OpResult
+        return _result_fail("普通 ADB 设备不存在可由 xbot 停止的平台录屏会话")
+    end
+
+    // ─── ADBKeyboard 配置 ───
+
+    func SetupAdbKeyboard() as OpResult
+        if self.keyboard_ready then
+            return _result_ok("ADBKeyboard already ready")
+        end
+
+        // 检查是否已安装
+        string installed = self.Shell("pm list packages " + ADB_KEYBOARD_PACKAGE, 15000)
+        if string.indexOf(installed, "package:" + ADB_KEYBOARD_PACKAGE) < 0 then
+            // 需要安装 APK
+            string apk_path = _get_adb_keyboard_apk()
+            if apk_path == "" or file.exists(apk_path) == false then
+                return _result_fail("未找到 ADBKeyboard APK")
+            end
+            OpResult inst = self.InstallApk(apk_path, true)
+            if inst.success == false then
+                return inst
+            end
+        end
+        // 等待 IME 注册
+        self._WaitForAdbKeyboardIme(45000, 1000)
+
+        // 启用并切换
+        int attempts = 0
+        while attempts < 30
+            self.Shell("ime enable " + ADB_KEYBOARD_IME, 15000)
+            string output = self.Shell("ime set " + ADB_KEYBOARD_IME, 15000)
+            string lower = string.lower(output)
+            if string.indexOf(lower, "error") < 0 and string.indexOf(lower, "unknown") < 0 then
+                self.keyboard_ready = true
+                return _result_ok("ADBKeyboard ready")
+            end
+            time.sleep(1000)
+            attempts += 1
+        end
+        return _result_fail("启用 ADBKeyboard 输入法超时")
+    end
+
+    // ─── 内部方法 ───
+
+    // 执行带 -s serial 的 ADB 命令，传输断开时自动重连一次
+    func _Run(string args, int timeout_ms) as string
+        int attempt = 0
+        while attempt < 2
+            string raw = xxbot_adb_run(self.adb_path, self.serial, args, timeout_ms)
+            // 解析 "EXIT_CODE\r\nSTDOUT\r\nSTDERR"
+            int first_nl = string.indexOf(raw, "\r\n")
+            if first_nl < 0 then
+                if attempt == 0 and self._IsTransportDisconnectedError(raw) then
+                    self._Reconnect()
+                    attempt += 1
+                    continue
+                end
+                throw RuntimeError "ADB 命令失败: " + raw
+            end
+            int exit_code = int(string.mid(raw, 0, first_nl))
+            int second_nl = _xbot_index_of_from(raw, "\r\n", first_nl + 2)
+            string stdout = ""
+            string stderr = ""
+            if second_nl < 0 then
+                stdout = string.mid(raw, first_nl + 2, string.len(raw) - first_nl - 2)
+            else
+                stdout = string.mid(raw, first_nl + 2, second_nl - first_nl - 2)
+                stderr = string.mid(raw, second_nl + 2, string.len(raw) - second_nl - 2)
+            end
+
+            if exit_code == 0 then
+                return stdout
+            end
+
+            string detail = stderr
+            if detail == "" then detail = stdout end
+            if attempt == 0 and self._IsTransportDisconnectedError(detail) then
+                self._Reconnect()
+                attempt += 1
+                continue
+            end
+            throw RuntimeError "ADB 命令失败（exit_code=" + string(exit_code) + "）: " + args + "\n" + detail
+        end
+        throw RuntimeError "ADB 命令自动重连后未执行"
+    end
+
+    // 执行不绑定 serial 的服务命令（如 connect/disconnect）
+    func _RunServer(string args, int timeout_ms) as string
+        string raw = xxbot_adb_run(self.adb_path, "", args, timeout_ms)
+        int first_nl = string.indexOf(raw, "\r\n")
+        if first_nl < 0 then
+            return raw
+        end
+        int exit_code = int(string.mid(raw, 0, first_nl))
+        int second_nl = _xbot_index_of_from(raw, "\r\n", first_nl + 2)
+        string stdout = ""
+        if second_nl < 0 then
+            stdout = string.mid(raw, first_nl + 2, string.len(raw) - first_nl - 2)
+        else
+            stdout = string.mid(raw, first_nl + 2, second_nl - first_nl - 2)
+        end
+        if exit_code != 0 then
+            throw RuntimeError "ADB 服务命令失败: " + args + "\n" + stdout
+        end
+        return stdout
+    end
+
+    // 等待 Android 系统启动完成
+    func _WaitForAndroidBoot(int timeout_ms, int poll_ms)
+        float deadline = time.timer() + float(timeout_ms) / 1000.0
+        bool announced = false
+        while time.timer() < deadline
+            string boot = string.trim(self._Run("shell getprop sys.boot_completed", 15000))
+            if boot == "1" then
+                LogInfo("Android 系统启动完成")
+                return
+            end
+            if announced == false then
+                LogInfo("ADB 已连接，等待 Android 系统启动完成 ...")
+                announced = true
+            end
+            time.sleep(poll_ms)
+        end
+        throw RuntimeError "等待 Android 系统启动完成超时"
+    end
+
+    // 等待 ADBKeyboard IME 注册
+    func _WaitForAdbKeyboardIme(int timeout_ms, int poll_ms)
+        float deadline = time.timer() + float(timeout_ms) / 1000.0
+        bool announced = false
+        while time.timer() < deadline
+            string output = self.Shell("ime list -a", 15000)
+            if string.indexOf(output, ADB_KEYBOARD_IME) >= 0 then
+                return
+            end
+            if announced == false then
+                LogInfo("ADBKeyboard 已安装，等待输入法服务注册 ...")
+                announced = true
+            end
+            time.sleep(poll_ms)
+        end
+        throw RuntimeError "等待 ADBKeyboard 输入法服务注册超时"
+    end
+
+    // 自动重连
+    virtual func _Reconnect()
+        if self.closed then
+            throw RuntimeError "设备已释放，不能重新连接 ADB"
+        end
+        if string.indexOf(self.serial, ":") < 0 then
+            throw RuntimeError "当前 ADB 设备不是 TCP 地址，无法自动重连: " + self.serial
+        end
+        LogInfo("ADB 连接已断开，正在自动重连 " + self.serial + " ...")
+        string output = self._RunServer("connect " + self.serial, 15000)
+        string lower = string.lower(output)
+        if string.indexOf(lower, "failed") >= 0 or string.indexOf(lower, "unable") >= 0 then
+            throw RuntimeError "ADB 自动重连失败: " + output
+        end
+        // 验证状态
+        string state = string.trim(string.lower(self._Run("get-state", 15000)))
+        if state != "device" then
+            throw RuntimeError "ADB 自动重连后设备未就绪: " + state
+        end
+        LogInfo("ADB 自动重连成功: " + self.serial)
+    end
+
+    // 判断是否为传输断开错误
+    func _IsTransportDisconnectedError(string message) as bool
+        string text = string.lower(message)
+        if string.indexOf(text, "device not found") >= 0 then return true end
+        if string.indexOf(text, "no such device") >= 0 then return true end
+        if string.indexOf(text, "device offline") >= 0 then return true end
+        if string.indexOf(text, "device unauthorized") >= 0 then return true end
+        if string.indexOf(text, "no devices/emulators found") >= 0 then return true end
+        if string.indexOf(text, "cannot connect to daemon") >= 0 then return true end
+        if string.indexOf(text, "connection reset") >= 0 then return true end
+        if string.indexOf(text, "connection refused") >= 0 then return true end
+        if string.indexOf(text, "transport error") >= 0 then return true end
+        if string.indexOf(text, "protocol fault") >= 0 then return true end
+        return false
+    end
+end
+// ─── 工厂函数 ───
+
+// 创建 Android ADB 设备
+export func UseAndroid(string serial, string adb_path) as AndroidAdbDevice
+    string adb = adb_path
+    if adb == "" then
+        adb = _find_adb_path()
+    end
+    return AndroidAdbDevice(serial, adb, true, 180000)
+end
+
+// ─── 内部辅助 ───
+
+// 校验 Android 包名格式
+func _validate_package_name(string package) as string
+    string pkg = string.trim(package)
+    if pkg == "" then
+        throw RuntimeError "包名不能为空"
+    end
+    // 简单校验：必须包含至少一个点，且以字母开头
+    if string.indexOf(pkg, ".") < 0 then
+        throw RuntimeError "不是有效的 Android 包名: " + package
+    end
+    string first = string.mid(pkg, 0, 1)
+    if (first >= "a" and first <= "z") or (first >= "A" and first <= "Z") then
+        return pkg
+    end
+    throw RuntimeError "不是有效的 Android 包名: " + package
+end
+
+// Android 按键码映射
+func _android_key_code(string key) as int
+    string upper = string.upper(key)
+    if upper == "HOME" then
+        return 3
+    elseif upper == "BACK" then
+        return 4
+    elseif upper == "CALL" then
+        return 5
+    elseif upper == "ENDCALL" then
+        return 6
+    elseif upper == "ENTER" or upper == "RETURN" then
+        return 66
+    elseif upper == "DEL" or upper == "DELETE" or upper == "BACKSPACE" then
+        return 67
+    elseif upper == "MENU" then
+        return 82
+    elseif upper == "CAMERA" then
+        return 27
+    elseif upper == "POWER" then
+        return 26
+    elseif upper == "VOLUME_UP" then
+        return 24
+    elseif upper == "VOLUME_DOWN" then
+        return 25
+    elseif upper == "MUTE" then
+        return 164
+    elseif upper == "APP_SWITCH" or upper == "RECENT" or upper == "RECENTS" then
+        return 187
+    elseif upper == "WAKEUP" then
+        return 224
+    elseif upper == "SLEEP" then
+        return 223
+    elseif upper == "SEARCH" then
+        return 84
+    elseif upper == "UP" then
+        return 19
+    elseif upper == "DOWN" then
+        return 20
+    elseif upper == "LEFT" then
+        return 21
+    elseif upper == "RIGHT" then
+        return 22
+    elseif upper == "CENTER" then
+        return 23
+    elseif upper == "TAB" then
+        return 61
+    elseif upper == "ESC" or upper == "ESCAPE" then
+        return 111
+    elseif upper == "SPACE" then
+        return 62
+    end
+    // 尝试直接作为数字 keycode
+    return int(key)
+end
+
+// 查找 ADB 路径
+func _find_adb_path() as string
+    // 优先使用运行时目录下的 adb
+    string runtime_adb = path.join(path.appDir(), "tools", "adb.exe")
+    if file.exists(runtime_adb) then
+        return runtime_adb
+    end
+    // 回退到 PATH 中的 adb
+    return "adb"
+end
+
+// 获取 ADBKeyboard APK 路径
+func _get_adb_keyboard_apk() as string
+    string p = path.join(path.appDir(), "tools", "ADBKeyboard.apk")
+    if file.exists(p) then
+        return p
+    end
+    return ""
+end
+
+// Base64 编码文本（用于 ADBKeyboard 输入）
+func _base64_encode_text(string text) as string
+    // 使用原生 HTTP 层的 base64 编码（写临时文件再编码）
+    string tmp = _xbot_temp_file("xbot_b64_", ".txt")
+    file.writeText(tmp, text)
+        string result = _xbot_base64_file(tmp)
+    file.delete(tmp)
+    // 去除 data URI 前缀 (data:application/octet-stream;base64,)
+    int comma = string.indexOf(result, ",")
+    if comma >= 0 then
+        return string.mid(result, comma + 1, string.len(result) - comma - 1)
+    end
+    return result
+end

@@ -1,43 +1,78 @@
 import miniz
 
-assert miniz.available(), "miniz available failed"
 
-string sample = "miniz extension round trip text"
-string srcPath = "examples_out/extlibs/miniz_source.txt"
-string packedPath = "examples_out/extlibs/miniz_source.bin"
-string packedLevelPath = "examples_out/extlibs/miniz_source_level.bin"
-string outPath = "examples_out/extlibs/miniz_out.txt"
-string zipPath = "examples_out/extlibs/miniz_sample.zip"
 
-dir.createAll("examples_out/extlibs")
-file.writeText(srcPath, sample)
-file.delete(packedPath)
-file.delete(packedLevelPath)
-file.delete(outPath)
-file.delete(zipPath)
+func main(...) as int
+    // ─── 1. 一次性压缩 / 解压（Buffer 二进制安全）───
+    Buffer source = Buffer()
+    source.append("xlang miniz ")
+    source.appendByte(0)
+    source.appendByte(255)
 
-assert string.len(miniz.version()) > 0, "miniz version missing"
-string packedHex = miniz.compress_hex(sample)
-string packedLevelHex = miniz.compress_hex_level(sample, 1)
-string packedAliasHex = miniz.compress(sample)
-string packedLevelAliasHex = miniz.compress(sample, 1)
-assert string.len(packedHex) > 0, "miniz compress_hex failed"
-assert string.len(packedLevelHex) > 0, "miniz compress_hex_level failed"
-assert string.len(packedAliasHex) > 0, "miniz compress alias failed"
-assert string.len(packedLevelAliasHex) > 0, "miniz compress level alias failed"
-assert miniz.decompress_hex(packedHex) == sample, "miniz decompress_hex mismatch"
-assert miniz.decompress_hex(packedLevelHex) == sample, "miniz decompress_hex_level mismatch"
-assert miniz.decompress(packedAliasHex) == sample, "miniz decompress alias mismatch"
-assert miniz.decompress(packedLevelAliasHex) == sample, "miniz decompress level alias mismatch"
-assert miniz.compress_file(srcPath, packedPath) != 0, "miniz compress_file failed"
-assert miniz.compress_file_level(srcPath, packedLevelPath, 1) != 0, "miniz compress_file_level failed"
-assert miniz.compress_file(srcPath, packedLevelPath, 1) != 0, "miniz compress_file level alias failed"
-assert miniz.decompress_file(packedLevelPath, outPath) != 0, "miniz decompress_file failed"
-assert file.readText(outPath) == sample, "miniz file round trip mismatch"
-assert miniz.zip_write_text(zipPath, "hello.txt", sample) != 0, "miniz zip_write_text failed"
-assert miniz.zip_count(zipPath) == 1, "miniz zip_count mismatch"
-assert miniz.zip_first_name(zipPath) == "hello.txt", "miniz zip_first_name mismatch"
-assert miniz.zip_read_text(zipPath, "hello.txt") == sample, "miniz zip_read_text mismatch"
-assert string.len(miniz.last_error()) >= 0, "miniz last_error should return a string"
+    Buffer packed = miniz.compress(source)
+    Buffer plain = miniz.decompress(packed)
+    assert plain == source, "miniz Buffer round trip failed"
+    println("一次性: ", source.len(), " 字节 -> ", packed.len(), " 字节")
 
-println("miniz extlib ok")
+    // 直接压缩字符串（内部自动转 Buffer）。
+    Buffer textPacked = miniz.compress("hello miniz")
+    assert miniz.decompressText(textPacked) == "hello miniz"
+    println("引擎版本: ", miniz.version())
+
+    // ─── 2. 增量流式压缩：update -> drain -> finish ───
+    // drain() 随时取走已产出的压缩字节，适合边喂数据边落盘/发送。
+    auto encoder = miniz.compressor()
+    Buffer streamPacked = Buffer()
+    encoder.update("hello ")
+    streamPacked.append(encoder.drain())
+    encoder.update("stream")
+    streamPacked.append(encoder.drain())
+    encoder.finish()                 // 封存流（写入成员结束标记）
+    streamPacked.append(encoder.drain())
+    println("流式压缩: 喂入 ", encoder.inputBytes, " 字节, 产出 ",
+        encoder.outputBytes, " 字节")
+
+    // ─── 3. 增量流式解压 + 进度回显 + 多成员统计 ───
+    auto decoder = miniz.decompressor()
+    Buffer restored = Buffer()
+    decoder.update(streamPacked)
+    restored.append(decoder.drain()) // 取走已解压数据
+    println("解压进度: 已喂入 ", decoder.inputBytes, " / 已产出 ",
+        decoder.outputBytes, " 字节, 完成=", decoder.finished)
+    decoder.finish()                 // 校验流完整性
+    restored.append(decoder.drain())
+    assert restored.text() == "hello stream", "miniz incremental round trip failed"
+    println("成员数: ", decoder.members) // 1；>1 表示串联多成员流
+
+    // ─── 4. 压缩级别调优（0..10，越高压缩率越高但越慢）───
+    auto tuned = miniz.compressor(miniz.MINIZ_MAX_LEVEL)
+    tuned.update("tune me")
+    tuned.finish()
+    assert miniz.decompress(tuned.drain()).text() == "tune me"
+    println("最高级别 L10 流式往返: OK")
+
+    // ─── 5. 损坏数据必然抛出 CompressionError（块体安全校验生效）───
+    bool rejected = false
+    int mid = streamPacked.len() / 2
+    streamPacked[mid] = streamPacked[mid] ^ 255
+    try
+        miniz.decompress(streamPacked)
+    catch CompressionError e
+        rejected = true
+    end
+    assert rejected, "corrupt miniz must raise CompressionError"
+    println("损坏检出: OK")
+
+    // ─── 6. 文件便捷接口（XRT reader/writer，临时文件+原子重命名）───
+    dir.createAll("tmp")
+    file.writeBytes("tmp/miniz_example_source.bin", source)
+    miniz.compressFile("tmp/miniz_example_source.bin", "tmp/miniz_example.miniz")
+    miniz.decompressFile("tmp/miniz_example.miniz", "tmp/miniz_example_plain.bin")
+    assert file.readBytes("tmp/miniz_example_plain.bin") == source
+    file.delete("tmp/miniz_example_source.bin")
+    file.delete("tmp/miniz_example.miniz")
+    file.delete("tmp/miniz_example_plain.bin")
+
+    println("miniz example: PASS")
+    return 0
+end

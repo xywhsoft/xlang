@@ -3,6 +3,6 @@ class Box
 end
 
 func bad()
-    Box box
+    Box box = Box()
     box.value = "bad"
 end

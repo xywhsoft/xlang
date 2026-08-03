@@ -1,0 +1,478 @@
+// xbot/device_cloud.xl - 火山云手机设备
+// 对应 xbot.py L5139-6003：VolcCloudPhoneClient + VolcCloudPhoneDevice
+// 通过火山引擎 ACEP OpenAPI 管理云手机实例的生命周期与 ADB 连接
+
+// ─── 原生 C 层声明（需要在 xbot_crypto.c / xbot_adb.c 中实现）───
+extern "xxbot_sha256_hex" func xxbot_sha256_hex(string data) as string
+extern "xxbot_hmac_sha256_hex" func xxbot_hmac_sha256_hex(string key, string data) as string
+extern "xxbot_url_encode" func xxbot_url_encode(string value) as string
+extern "xxbot_read_ini_value" func xxbot_read_ini_value(string file_path, string section, string key) as string
+
+// ─── 火山云手机 API 常量 ───
+const string VOLC_SERVICE_NAME = "ACEP"
+const string VOLC_API_VERSION = "2023-10-30"
+const string VOLC_REGION = "cn-north-1"
+const string VOLC_HOST = "open.volcengineapi.com"
+const string VOLC_CONTENT_TYPE = "application/json"
+const string VOLC_RECORDING_API_VERSION = "2025-05-01"
+
+// ─── 云手机电源状态映射 ───
+func _volc_power_state(string online_value) as string
+    if online_value == "0" then
+        return "starting"
+    elseif online_value == "1" then
+        return "online"
+    elseif online_value == "2" then
+        return "offline"
+    elseif online_value == "3" then
+        return "stopping"
+    elseif online_value == "4" then
+        return "rebooting"
+    elseif online_value == "5" then
+        return "error"
+    end
+    return "unknown"
+end
+
+func _volc_power_display(string state) as string
+    if state == "starting" then
+        return "开机中"
+    elseif state == "online" then
+        return "已开机"
+    elseif state == "offline" then
+        return "未开机"
+    elseif state == "stopping" then
+        return "关机中"
+    elseif state == "rebooting" then
+        return "重启中"
+    elseif state == "error" then
+        return "异常"
+    end
+    return "未知"
+end
+
+// ─── 火山云手机 API 客户端 ───
+export class VolcCloudPhoneClient
+    string ak
+    string sk
+    string product_id
+    string config_path
+    float timeout
+
+    create(string ini_path)
+        self.config_path = ini_path
+        self.timeout = 30.0
+        // 从 config.ini 的 [service] 节读取签名配置
+        self.ak = xxbot_read_ini_value(ini_path, "service", "ak")
+        self.sk = xxbot_read_ini_value(ini_path, "service", "sk")
+        self.product_id = xxbot_read_ini_value(ini_path, "service", "productid")
+        if self.ak == "" or self.sk == "" or self.product_id == "" then
+            throw RuntimeError "config.ini 的 [service] 节缺少 ak/sk/productid 配置: " + ini_path
+        end
+    end
+    // ─── API 签名 ───
+
+    // 生成 HMAC-SHA256 HTTP 请求头
+    func _Sign(string method, string canonical_query, string body) as string
+        // 获取 UTC 时间戳（简化：使用 time.now() 转换）
+        string date_text = _utc_timestamp()
+        string short_date = string.mid(date_text, 0, 8)
+        string content_hash = xxbot_sha256_hex(body)
+        string signed_headers = "content-type;host;x-content-sha256;x-date"
+        string canonical_headers = "content-type:" + VOLC_CONTENT_TYPE + "\n"
+        canonical_headers = canonical_headers + "host:" + VOLC_HOST + "\n"
+        canonical_headers = canonical_headers + "x-content-sha256:" + content_hash + "\n"
+        canonical_headers = canonical_headers + "x-date:" + date_text
+        string canonical_request = method + "\n/\n" + canonical_query + "\n" + canonical_headers + "\n\n" + signed_headers + "\n" + content_hash
+        string scope = short_date + "/" + VOLC_REGION + "/" + VOLC_SERVICE_NAME + "/request"
+        string request_hash = xxbot_sha256_hex(canonical_request)
+        string string_to_sign = "HMAC-SHA256\n" + date_text + "\n" + scope + "\n" + request_hash
+        // 派生签名密钥
+        string k_date = xxbot_hmac_sha256_hex(self.sk, short_date)
+        string k_region = xxbot_hmac_sha256_hex(k_date, VOLC_REGION)
+        string k_service = xxbot_hmac_sha256_hex(k_region, VOLC_SERVICE_NAME)
+        string k_signing = xxbot_hmac_sha256_hex(k_service, "request")
+        string signature = xxbot_hmac_sha256_hex(k_signing, string_to_sign)
+        // 构造 Authorization 头
+        string auth = "HMAC-SHA256 Credential=" + self.ak + "/" + scope + ", SignedHeaders=" + signed_headers + ", Signature=" + signature
+        // 返回完整请求头（多行格式）
+        string headers = "Host: " + VOLC_HOST + "\r\n"
+        headers = headers + "Content-Type: " + VOLC_CONTENT_TYPE + "\r\n"
+        headers = headers + "X-Content-Sha256: " + content_hash + "\r\n"
+        headers = headers + "X-Date: " + date_text + "\r\n"
+        headers = headers + "Authorization: " + auth
+        return headers
+    end
+
+    // ─── API 调用 ───
+
+    // 调用火山云手机 API
+    func _Call(string action, string body_json, string version) as string
+        string ver = version
+        if ver == "" then ver = VOLC_API_VERSION end
+        string query = "Action=" + action + "&Version=" + ver + "&Limit=10"
+        string url = "https://" + VOLC_HOST + "/?" + query
+        string headers = self._Sign("POST", query, body_json)
+        string response = _xbot_http_request("POST", url, body_json, headers, int(self.timeout * 1000.0))
+        // 检查响应中的错误
+        if string.indexOf(response, "\"Error\"") >= 0 then
+            string err_msg = _extract_json_string(response, "Message")
+            if err_msg == "" then err_msg = "火山云手机接口失败" end
+            throw RuntimeError "火山云手机请求失败（" + action + "）: " + err_msg
+        end
+        return response
+    end
+
+    // 构造单 Pod 请求体
+    func _PodBody(string pod_id) as string
+        string pid = string.trim(pod_id)
+        if pid == "" then
+            throw RuntimeError "PodID 不能为空"
+        end
+        return "{\"ProductId\":\"" + self.product_id + "\",\"PodId\":\"" + pid + "\"}"
+    end
+
+    // 构造 PodIdList 请求体
+    func _PodListBody(string pod_id) as string
+        string pid = string.trim(pod_id)
+        if pid == "" then
+            throw RuntimeError "PodID 不能为空"
+        end
+        return "{\"ProductId\":\"" + self.product_id + "\",\"PodIdList\":[\"" + pid + "\"]}"
+    end
+
+    // ─── 电源管理 ───
+
+    func GetPowerState(string pod_id) as OpResult
+        string body = self._PodBody(pod_id)
+        string response = self._Call("DetailPod", body, "")
+        string online = _extract_json_string(response, "Online")
+        string state = _volc_power_state(online)
+        return _result_ok("cloud phone state=" + state)
+    end
+
+    func PowerOn(string pod_id) as OpResult
+        string body = self._PodBody(pod_id)
+        self._Call("PowerOnPod", body, "")
+        return _result_ok("cloud phone power-on requested")
+    end
+
+    func PowerOff(string pod_id) as OpResult
+        string body = self._PodBody(pod_id)
+        self._Call("PowerOffPod", body, "")
+        return _result_ok("cloud phone power-off requested")
+    end
+
+    func Reboot(string pod_id) as OpResult
+        string body = self._PodListBody(pod_id)
+        self._Call("RebootPod", body, "")
+        return _result_ok("cloud phone reboot requested")
+    end
+
+    func Reset(string pod_id) as OpResult
+        string body = self._PodListBody(pod_id)
+        self._Call("ResetPod", body, "")
+        return _result_ok("cloud phone reset requested")
+    end
+
+    // ─── 录屏 ───
+
+    func StartRecording(string pod_id, float duration, bool save_on_device) as OpResult
+        int dur = int(duration)
+        if dur < 1 then dur = 1 end
+        string body = "{\"ProductId\":\"" + self.product_id + "\",\"PodId\":\"" + string.trim(pod_id) + "\""
+        body = body + ",\"DurationLimit\":" + string(dur)
+        body = body + ",\"RoundId\":\"" + _generate_uuid() + "\""
+        body = body + ",\"IsSavedOnPod\":" + string(save_on_device) + "}"
+        string response = self._Call("StartRecording", body, VOLC_RECORDING_API_VERSION)
+        return _result_ok("cloud phone recording started")
+    end
+
+    func StopRecording(string pod_id) as OpResult
+        string body = self._PodBody(pod_id)
+        string response = self._Call("StopRecording", body, VOLC_RECORDING_API_VERSION)
+        string url = _extract_json_string(response, "DownloadUrl")
+        if url == "" then
+            url = _extract_json_string(response, "DownloadURL")
+        end
+        OpResult r = _result_ok("cloud phone recording stopped")
+        return r
+    end
+
+    // ─── ADB 管理 ───
+
+    func EnableAdb(string pod_id)
+        string body = "{\"ProductId\":\"" + self.product_id + "\",\"PodId\":\"" + string.trim(pod_id) + "\",\"Enable\":true}"
+        self._Call("PodAdb", body, "")
+    end
+
+    func DetailAdb(string pod_id) as string
+        string body = self._PodBody(pod_id)
+        string response = self._Call("DetailPod", body, "")
+        // 检查 AdbStatus
+        string status = _extract_json_string(response, "AdbStatus")
+        if status != "1" then
+            return ""
+        end
+        return _extract_json_string(response, "Adb")
+    end
+
+    // 等待云手机开机
+    func WaitForOnline(string pod_id, float timeout_sec, float poll_sec, bool auto_power_on)
+        float deadline = time.timer() + timeout_sec
+        int interval = int(poll_sec * 1000.0)
+        if interval < 100 then interval = 100 end
+        bool power_on_requested = false
+        string last_state = ""
+
+        while time.timer() < deadline
+            string body = self._PodBody(pod_id)
+            string response = self._Call("DetailPod", body, "")
+            string online = _extract_json_string(response, "Online")
+            string state = _volc_power_state(online)
+
+            if state != last_state then
+                if state == "starting" then
+                    LogInfo("云手机开机中 ...")
+                elseif state == "rebooting" then
+                    LogInfo("云手机重启中 ...")
+                elseif state == "stopping" then
+                    LogInfo("云手机关机中，等待关机完成后自动开启 ...")
+                end
+                last_state = state
+            end
+
+            if state == "online" then
+                LogInfo("云手机已开机")
+                return
+            end
+
+            if state == "offline" and auto_power_on and power_on_requested == false then
+                LogInfo("自动开启云手机 ...")
+                self.PowerOn(pod_id)
+                power_on_requested = true
+            elseif state == "offline" and auto_power_on == false then
+                throw RuntimeError "云手机当前未开机，且已禁用自动开机"
+            elseif state == "error" then
+                throw RuntimeError "云手机状态异常，无法建立 ADB 连接"
+            end
+
+            time.sleep(interval)
+        end
+        throw RuntimeError "等待云手机开机超时（" + string(int(timeout_sec)) + "秒）"
+    end
+
+    // 等待 ADB 传输服务可连接
+    func _WaitForAdbTransport(string address, float timeout_sec, float poll_sec, string adb_path)
+        float deadline = time.timer() + timeout_sec
+        int interval = int(poll_sec * 1000.0)
+        if interval < 100 then interval = 100 end
+        LogInfo("云手机 ADB 地址已下发，等待 ADB 服务可连接：" + address)
+
+        while time.timer() < deadline
+            // 尝试 adb connect
+            string connect_out = xxbot_adb_run(adb_path, "", "connect " + address, 15000)
+            if string.indexOf(string.lower(connect_out), "connected") >= 0 or string.indexOf(string.lower(connect_out), "already") >= 0 then
+                // 验证 get-state
+                string state_out = xxbot_adb_run(adb_path, address, "get-state", 15000)
+                if string.indexOf(state_out, "device") >= 0 then
+                    LogInfo("云手机 ADB 连接已就绪：" + address)
+                    return
+                end
+            end
+            time.sleep(interval)
+        end
+        throw RuntimeError "云手机 ADB 服务连接超时（" + string(int(timeout_sec)) + "秒）"
+    end
+
+    // 解析云手机 ADB 地址：等待开机 → 开启 ADB → 获取地址 → 验证连接
+    func ResolveAdb(string pod_id, float timeout_sec, float poll_sec, bool auto_power_on) as string
+        float deadline = time.timer() + timeout_sec
+        // 等待开机
+        self.WaitForOnline(pod_id, timeout_sec, poll_sec, auto_power_on)
+        LogInfo("云手机已就绪，正在开启 ADB ...")
+
+        string adb_path = _find_adb_path()
+        int max_attempts = 3
+        int attempt = 1
+        while attempt <= max_attempts
+            if time.timer() >= deadline then break end
+            if attempt > 1 then
+                LogWarn("ADB 传输连接失败，准备重新开启云手机 ADB（" + string(attempt) + "/" + string(max_attempts) + "）")
+            end
+            // 开启 ADB
+            self.EnableAdb(pod_id)
+            // 等待地址下发
+            float addr_deadline = time.timer() + 30.0
+            string address = ""
+            while time.timer() < addr_deadline
+                address = self.DetailAdb(pod_id)
+                if address != "" then break end
+                time.sleep(int(poll_sec * 1000.0))
+            end
+            if address == "" then
+                attempt += 1
+                continue
+            end
+            LogInfo("云手机 ADB 地址已就绪：" + address)
+            // 验证传输连接
+            float remaining = deadline - time.timer()
+            if remaining < 1.0 then remaining = 1.0 end
+            self._WaitForAdbTransport(address, remaining, poll_sec, adb_path)
+            return address
+        end
+        throw RuntimeError "Pod " + pod_id + " 的 ADB 地址获取超时（已尝试 " + string(max_attempts) + " 次）"
+    end
+
+    // ─── 应用商店安装 ───
+
+    func InstallStoreApp(string pod_id, string app_id, string ver_id, string ver_desc, float timeout_sec, float poll_sec) as OpResult
+        string pid = string.trim(pod_id)
+        string aid = string.trim(app_id)
+        string vid = string.trim(ver_id)
+        if pid == "" or aid == "" then
+            return _result_fail("应用商店安装需要 PodID 与 AppID")
+        end
+        if vid == "" then
+            return _result_fail("应用商店安装需要 VerID")
+        end
+        // 提交安装任务
+        string body = "{\"ProductId\":\"" + self.product_id + "\",\"PodIdList\":[\"" + pid + "\"],\"AppId\":\"" + aid + "\",\"VersionId\":\"" + vid + "\"}"
+        string response = self._Call("InstallApp", body, "")
+        string task_id = _extract_json_string(response, "TaskId")
+        if task_id == "" then
+            return _result_fail("InstallApp 未返回 TaskId")
+        end
+        LogInfo("云手机 APK 安装任务已提交: task_id=" + task_id)
+        // 轮询任务状态
+        float deadline = time.timer() + timeout_sec
+        int interval = int(poll_sec * 1000.0)
+        if interval < 500 then interval = 500 end
+        while time.timer() < deadline
+            string task_body = "{\"ProductId\":\"" + self.product_id + "\",\"TaskId\":\"" + task_id + "\"}"
+            string task_resp = self._Call("GetTaskInfo", task_body, "")
+            string task_result = _extract_json_string(task_resp, "TaskResult")
+            if task_result == "100" then
+                return _result_ok("火山云手机应用安装成功")
+            end
+            if task_result != "10" and task_result != "" and task_result != "-1" then
+                return _result_fail("火山云手机应用安装失败: TaskResult=" + task_result)
+            end
+            time.sleep(interval)
+        end
+        return _result_fail("火山云手机应用安装超时（" + string(int(timeout_sec)) + "秒）")
+    end
+end
+// ─── 火山云手机设备 ───
+export class VolcCloudPhoneDevice extends AndroidAdbDevice
+    string pod_id
+    VolcCloudPhoneClient cloud_client
+
+    create(string pod, string adb_address, VolcCloudPhoneClient client)
+        base(adb_address, _find_adb_path(), true, 180000)
+        self.pod_id = pod
+        self.cloud_client = client
+    end
+
+    // 重连：先尝试原地址，失败时重新解析云手机 ADB 地址
+    override func _Reconnect()
+        // 先尝试基类重连
+        base._Reconnect()
+    end
+
+    // 应用商店安装
+    func InstallStoreApp(string app_id, string ver_id, string ver_desc, float timeout_sec, float poll_sec) as OpResult
+        return self.cloud_client.InstallStoreApp(self.pod_id, app_id, ver_id, ver_desc, timeout_sec, poll_sec)
+    end
+
+    // 电源管理委托
+    override func GetPowerState() as OpResult
+        return self.cloud_client.GetPowerState(self.pod_id)
+    end
+
+    override func PowerOn() as OpResult
+        return self.cloud_client.PowerOn(self.pod_id)
+    end
+
+    override func PowerOff() as OpResult
+        return self.cloud_client.PowerOff(self.pod_id)
+    end
+
+    override func Reboot() as OpResult
+        return self.cloud_client.Reboot(self.pod_id)
+    end
+
+    override func Reset() as OpResult
+        return self.cloud_client.Reset(self.pod_id)
+    end
+
+    override func StartRecording(float duration, bool save_on_device) as OpResult
+        return self.cloud_client.StartRecording(self.pod_id, duration, save_on_device)
+    end
+
+    override func StopRecording() as OpResult
+        return self.cloud_client.StopRecording(self.pod_id)
+    end
+
+end
+// ─── 全局工厂函数 ───
+
+// 通过 PodID 创建火山云手机设备
+export func ConnectCloudHS(string pod_id, string config_path, float timeout_sec, float poll_sec, bool auto_power_on) as VolcCloudPhoneDevice
+    VolcCloudPhoneClient client = VolcCloudPhoneClient(config_path)
+    string adb_address = client.ResolveAdb(pod_id, timeout_sec, poll_sec, auto_power_on)
+    VolcCloudPhoneDevice dev = VolcCloudPhoneDevice(pod_id, adb_address, client)
+    _replace_default_device(dev)
+    return dev
+end
+
+// 无需 ADB 连接，直接向 Pod 安装应用
+export func InstallCloudHSApp(string pod_id, string app_id, string ver_id, string ver_desc, string config_path, float timeout_sec, float poll_sec) as OpResult
+    VolcCloudPhoneClient client = VolcCloudPhoneClient(config_path)
+    return client.InstallStoreApp(pod_id, app_id, ver_id, ver_desc, timeout_sec, poll_sec)
+end
+
+// ─── 内部辅助 ───
+
+// 获取 UTC 时间戳（格式：20260729T120000Z）
+func _utc_timestamp() as string
+    // 简化实现：使用 time.now() 的毫秒数转换为 UTC 格式
+    // 实际需要系统时间 API，此处使用占位格式
+    return _xbot_utc_format("yyyyMMddTHHmmssZ")
+end
+
+// 生成简单 UUID
+func _generate_uuid() as string
+    return string(time.toUnix(time.now())) + "-" + string(random.u32())
+end
+
+// 从 JSON 字符串中提取指定 key 的字符串值
+func _extract_json_string(string json, string key) as string
+    string search = "\"" + key + "\":\""
+    int pos = string.indexOf(json, search)
+    if pos < 0 then
+        // 尝试数字值
+        string num_search = "\"" + key + "\":"
+        int num_pos = string.indexOf(json, num_search)
+        if num_pos < 0 then return "" end
+        int val_start = num_pos + string.len(num_search)
+        int val_end = val_start
+        int len = string.len(json)
+        while val_end < len
+            string ch = string.mid(json, val_end, 1)
+            if (ch >= "0" and ch <= "9") or ch == "-" or ch == "." then
+                val_end += 1
+            else
+                break
+            end
+        end
+        if val_end > val_start then
+            return string.mid(json, val_start, val_end - val_start)
+        end
+        return ""
+    end
+    int val_start = pos + string.len(search)
+    int val_end = _xbot_index_of_from(json, "\"", val_start)
+    if val_end < 0 then return "" end
+    return string.mid(json, val_start, val_end - val_start)
+end

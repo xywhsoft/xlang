@@ -7,14 +7,14 @@ func main(...) as int
     println("Module 0 = " + gsl.module(0))
 
     // Factorial
-    println("5! = " + string.float(gsl.factorial(5)))
+    println("5! = " + string(gsl.factorial(5)))
 
     // Combination
-    println("C(10,3) = " + string.float(gsl.combination(10, 3)))
+    println("C(10,3) = " + string(gsl.combination(10, 3)))
 
     // Statistics
-    println("Mean [2,4,6] = " + string.float(gsl.mean("2,4,6")))
-    println("Var [2,4,6] = " + string.float(gsl.variance("2,4,6")))
+    println("Mean [2,4,6] = " + string(gsl.mean("2,4,6")))
+    println("Var [2,4,6] = " + string(gsl.variance("2,4,6")))
 
     println("gsl example: PASS")
     return 0

@@ -1,0 +1,8 @@
+import module_types as Point
+
+class Point
+end
+
+func main(...) as int
+    return 0
+end

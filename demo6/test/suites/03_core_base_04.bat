@@ -249,7 +249,7 @@ if errorlevel 1 (
     echo type_values.c missing dict type literal comparison.
     exit /b 1
 )
-findstr /C:"static const xrt_generic_type generic" build\test\type_values.c >nul
+findstr /R /C:"static const xrt_generic_type xl6_runtime_type_desc_[0-9A-F]*_generic" build\test\type_values.c >nul
 if errorlevel 1 (
     echo type_values.c missing XRT generic type metadata.
     exit /b 1

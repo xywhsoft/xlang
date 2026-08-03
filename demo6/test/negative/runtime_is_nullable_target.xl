@@ -1,0 +1,7 @@
+func main(...) as int
+    var value = 1
+    if value is int? then
+        return 1
+    end
+    return 0
+end

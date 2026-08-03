@@ -1,0 +1,9 @@
+// 字典写入采用借用契约，生成器负责平衡右值临时引用。
+var values = {"count": 6}
+var key = "count"
+
+func main(...) as int
+    values[key] = 8
+    values["count"] = 9
+    return int(values[key]) == 9 ? 0 : 1
+end

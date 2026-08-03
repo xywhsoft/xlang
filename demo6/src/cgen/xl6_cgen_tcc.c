@@ -67,6 +67,7 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("void xrtSetError(const void* sError, bool bFree);\n", out);
     xl6OutputPuts("void xrtClearError(void);\n", out);
     xl6OutputPuts("char* xrtGetError(void);\n", out);
+    xl6OutputPuts("bool xrtConsoleWrite(int iStream, const void* pText, size_t iSize);\n", out);
     xl6OutputPuts("void xrtRandomBytes(unsigned char* pBuffer, size_t iLength);\n", out);
     xl6OutputPuts("bool xrtPathIsSafeArchiveEntry(char* sPath, bool bDirectory);\n", out);
     xl6OutputPuts("bool xrtFileCreateSymbolicLink(char* sLinkPath, char* sTargetPath, bool bTargetDirectory);\n", out);
@@ -223,6 +224,7 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xrtSetError);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xrtClearError);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xrtGetError);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xrtConsoleWrite);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xrtRandomBytes);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xrtPathIsSafeArchiveEntry);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xrtFileCreateSymbolicLink);\n", out);
@@ -326,6 +328,16 @@ static void xl6CgenEmitTccRuntime(XL6_Output* out)
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoShare);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoEnsureUnique);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoUnref);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoWeakCreate);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoWeakInit);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoWeakSet);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoWeakCopy);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoWeakClone);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoWeakMove);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoWeakUnit);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoWeakExpired);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoWeakLock);\n", out);
+    xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoWeakLockValue);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoCopyEx);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoDeepCopyEx);\n", out);
     xl6OutputPuts("    XL6_TCC_ADD_SYMBOL(xvoType);\n", out);

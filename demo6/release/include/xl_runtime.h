@@ -21,6 +21,13 @@ typedef int64 xtime;
 typedef struct xvalue_struct* xvalue;
 #endif
 
+#ifndef XL6_XRT_VALUE_WEAK_TYPEDEF
+#define XL6_XRT_VALUE_WEAK_TYPEDEF
+typedef struct xrt_value_weak {
+    struct xrt_value_weak_control* Control;
+} xrt_value_weak;
+#endif
+
 #ifndef XL6_XRT_TYPED_CONTAINER_TYPEDEF
 #define XL6_XRT_TYPED_CONTAINER_TYPEDEF
 typedef struct xrt_typed_array_struct* xtarray;
@@ -42,9 +49,24 @@ typedef struct xrt_method_desc xrt_method_desc;
 typedef struct xrt_method_table xrt_method_table;
 typedef struct xrt_func_param xrt_func_param;
 typedef struct xrt_func_sig xrt_func_sig;
+typedef struct xrtenumfield xrtenumfield;
+typedef struct xrtenumvariant xrtenumvariant;
+typedef struct xrtenum xrtenum;
+typedef struct xrtprotocolrequirement xrtprotocolrequirement;
+typedef struct xrtprotocolentry xrtprotocolentry;
+typedef struct xrtprotocol xrtprotocol;
+typedef struct xrtprotocolwitness xrtprotocolwitness;
+typedef struct xrtprotocolregistry xrtprotocolregistry;
 typedef struct xrt_call_frame xrt_call_frame;
 typedef struct xrt_call_result xrt_call_result;
 typedef struct xrt_callable xrt_callable;
+#ifndef XRT_ONCE_TYPEDEF
+#define XRT_ONCE_TYPEDEF
+typedef struct xrt_once_struct {
+    volatile uint32 State;
+} xrt_once;
+typedef void (*xrtonceproc)(ptr pContext);
+#endif
 typedef bool (*xrt_xcall_proc)(xrt_call_frame* pFrame, xrt_call_result* pResult);
 
 #define XL6_XRT_TYPE_KIND_INVALID 0u
@@ -55,6 +77,9 @@ typedef bool (*xrt_xcall_proc)(xrt_call_frame* pFrame, xrt_call_result* pResult)
 #define XL6_XRT_TYPE_KIND_RECORD 13u
 #define XL6_XRT_TYPE_KIND_HANDLE 14u
 #define XL6_XRT_TYPE_KIND_CLASS 17u
+#define XL6_XRT_TYPE_KIND_PROTOCOL 18u
+#define XL6_XRT_TYPE_KIND_ENUM 19u
+#define XL6_XRT_TYPE_KIND_NULLABLE 20u
 #define XL6_XRT_HANDLE_FLAG_OWNED 0x00000001u
 #define XL6_XRT_HANDLE_FLAG_BORROWED 0x00000002u
 #define XL6_XRT_HANDLE_FLAG_NULLABLE 0x00000004u
@@ -68,6 +93,10 @@ typedef bool (*xrt_xcall_proc)(xrt_call_frame* pFrame, xrt_call_result* pResult)
 #define XL6_XRT_FUNC_FLAG_VARARGS 0x00000001u
 #define XL6_XRT_FUNC_FLAG_KWARGS 0x00000002u
 #define XL6_XRT_FUNC_PARAM_OPTIONAL 0x00000001u
+#define XRT_ENUM_FLAG_NUMERIC 0x00000001u
+#define XRT_ENUM_FLAG_TAGGED 0x00000002u
+#define XRT_ENUM_VARIANT_HAS_PAYLOAD 0x00000001u
+#define XRT_ONCE_INIT { 0u }
 #define XRT_CALL_RESULT_INLINE_COUNT 4u
 #ifndef XL6_XRT_FUNC_SIG_TYPEDEF
 #define XL6_XRT_FUNC_SIG_TYPEDEF
@@ -139,6 +168,30 @@ struct xrt_func_sig {
     uint32 Flags;
 };
 
+struct xrtenumfield {
+    const char* Name;
+    uint32 NameSize;
+    const xrt_type_desc* Type;
+    size_t Offset;
+};
+
+struct xrtenumvariant {
+    const char* Name;
+    uint32 NameSize;
+    uint64 Value;
+    uint32 FieldCount;
+    const xrtenumfield* Fields;
+    uint32 Flags;
+};
+
+struct xrtenum {
+    const xrt_type_desc* Type;
+    const xrt_type_desc* BackingType;
+    uint32 VariantCount;
+    const xrtenumvariant* Variants;
+    uint32 Flags;
+};
+
 struct xrt_call_frame {
     xvalue Self;
     ptr Env;
@@ -163,6 +216,32 @@ struct xrt_callable {
     xrt_xcall_proc XCallEntry;
     ptr Env;
     void (*DropEnv)(ptr pEnv);
+};
+
+struct xrtprotocolrequirement {
+    const char* Name;
+    uint32 NameSize;
+    const xrt_func_sig* Signature;
+};
+
+struct xrtprotocol {
+    const xrt_type_desc* Type;
+    uint32 RequirementCount;
+    const xrtprotocolrequirement* Requirements;
+};
+
+struct xrtprotocolentry {
+    const char* Name;
+    uint32 NameSize;
+    const xrt_func_sig* Signature;
+    ptr Entry;
+};
+
+struct xrtprotocolwitness {
+    const xrtprotocol* Protocol;
+    const xrt_type_desc* ConcreteType;
+    uint32 EntryCount;
+    const xrtprotocolentry* Entries;
 };
 #endif
 
@@ -191,6 +270,20 @@ typedef bool (*Dict_EachProc)(Dict_Key* pKey, ptr pVal, ptr pArg);
 
 void* xrtInit(void);
 void xrtUnit(void);
+void xrtOnceRun(xrt_once* pOnce, xrtonceproc pProc, ptr pContext);
+void xrtOnceRunGraph(xrt_once* pOnce, xrtonceproc pProc, ptr pContext);
+bool xrtProtocolWitnessValidate(const xrtprotocolwitness* witness);
+const xrtprotocolentry* xrtProtocolWitnessFind(
+    const xrtprotocolwitness* witness,
+    const char* name,
+    uint32 nameSize,
+    uint64 signatureId);
+xrtprotocolregistry* xrtProtocolDefaultRegistry(void);
+bool xrtProtocolRegister(const xrtprotocolwitness* witness);
+bool xrtProtocolUnregister(const xrtprotocolwitness* witness);
+const xrtprotocolwitness* xrtProtocolLookup(
+    uint32 protocolTypeId,
+    uint32 concreteTypeId);
 void* xrtMalloc(size_t iSize);
 void* xrtRealloc(void* pMem, size_t iSize);
 void xrtFree(void* pMem);
@@ -201,6 +294,7 @@ char* xrtCopyStr(const char* sText, size_t iSize);
 char* xrtStrConcat(const char* sLeft, const char* sRight);
 str xrtStrJoin(uint32 iCount, ...);
 int xrtStrComp(const char* s1, const char* s2, size_t iSize, bool bCase);
+size_t xrtStrCharLen(const char* sText, size_t iSize);
 const char* xrtFindStr(const char* sText, size_t iSize, const char* sSubText, size_t iSubSize, bool bCase);
 uint64 xrtHash64(const void* key, size_t len);
 int xrtI64ToStr(int64 num, char* buffer);
@@ -238,11 +332,31 @@ const xrt_type_desc* xrtTypeList(void);
 const xrt_type_desc* xrtTypeSet(void);
 const xrt_type_desc* xrtTypeDict(void);
 const xrt_type_desc* xrtTypeType(void);
+const xrt_type_desc* xrtTypeValue(void);
 bool xrtTypeSame(const xrt_type_desc* pA, const xrt_type_desc* pB);
 bool xrtTypeIsA(const xrt_type_desc* pType, const xrt_type_desc* pTarget);
 uint32 xrtTypeGenericArgCount(const xrt_type_desc* pType);
 const xrt_type_desc* xrtTypeGenericArg(const xrt_type_desc* pType, uint32 iIndex);
 xvalue xrtTypeBoxValue(const xrt_type_desc* pType, const void* pObj);
+bool xrtTypeInitValue(const xrt_type_desc* pType, void* pObj);
+bool xrtTypeCopyValue(const xrt_type_desc* pType, void* pDst, const void* pSrc);
+bool xrtTypeMoveValue(const xrt_type_desc* pType, void* pDst, void* pSrc);
+bool xrtTypeCloneValue(const xrt_type_desc* pType, void* pDst, const void* pSrc);
+int xrtTypeCompareValue(const xrt_type_desc* pType, const void* pA, const void* pB);
+uint64_t xrtTypeHashValue(const xrt_type_desc* pType, const void* pObj);
+str xrtTypeToStringValue(const xrt_type_desc* pType, const void* pObj, uint32* pSize);
+const xrtenum* xrtEnumInfo(const xrt_type_desc* pType);
+const xrtenumvariant* xrtEnumVariantAt(const xrtenum* pEnum, uint32 iIndex);
+const xrtenumvariant* xrtEnumFindVariant(
+    const xrtenum* pEnum,
+    const char* sName,
+    uint32 iNameSize);
+const xrtenumvariant* xrtEnumFindValue(const xrtenum* pEnum, uint64 iValue);
+const xrtenumfield* xrtEnumFieldAt(const xrtenumvariant* pVariant, uint32 iIndex);
+const xrtenumfield* xrtEnumFindField(
+    const xrtenumvariant* pVariant,
+    const char* sName,
+    uint32 iNameSize);
 uint64 xrtFuncSigTypeId(const xrt_func_sig* pSig);
 
 xvalue xvoCreateNull(void);
@@ -271,6 +385,16 @@ xvalue xvoShare(xvalue pVal);
 bool xvoEnsureUnique(xvalue pVal);
 bool xvoIsShared(xvalue pVal);
 void xvoUnref(xvalue pVal);
+xrt_value_weak xvoWeakCreate(xvalue pVal);
+void xvoWeakInit(xrt_value_weak* pWeak);
+bool xvoWeakSet(xrt_value_weak* pWeak, xvalue pVal);
+bool xvoWeakCopy(xrt_value_weak* pDst, const xrt_value_weak* pSrc);
+xrt_value_weak xvoWeakClone(const xrt_value_weak* pSrc);
+void xvoWeakMove(xrt_value_weak* pDst, xrt_value_weak* pSrc);
+void xvoWeakUnit(xrt_value_weak* pWeak);
+bool xvoWeakExpired(const xrt_value_weak* pWeak);
+xvalue xvoWeakLock(const xrt_value_weak* pWeak);
+xvalue xvoWeakLockValue(xrt_value_weak Weak);
 xvalue xvoCopy(xvalue pVal);
 xvalue xvoDeepCopy(xvalue pVal);
 xvalue xvoCopyEx(xvalue pVal, uint32 iMode);
@@ -291,6 +415,7 @@ ptr xvoGetRecordData(xvalue pVal);
 xvalue xvoGetRecordOwner(const ptr pData);
 ptr xvoGetHandleData(xvalue pVal);
 ptr* xvoGetHandleSlot(xvalue pVal);
+xvalue xvoGetHandleOwner(const ptr* pSlot);
 xrt_callable* xvoGetCallable(xvalue pVal);
 const xrt_func_sig* xvoCallableSig(xvalue pVal);
 bool xvoInvoke(xvalue pFunc, xrt_call_frame* pFrame, xrt_call_result* pResult);
@@ -493,6 +618,56 @@ static void* xl6_point_take(void** slot)
 #endif
 
 #ifdef XL_RUNTIME_NEED_LIFECYCLE
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+
+static UINT xl6_runtime_console_output_cp = 0;
+static int xl6_runtime_console_output_changed = 0;
+
+static int xl6_runtime_handle_is_console(DWORD stdHandle)
+{
+    HANDLE handle = GetStdHandle(stdHandle);
+    DWORD mode = 0;
+    return handle != NULL &&
+           handle != INVALID_HANDLE_VALUE &&
+           GetConsoleMode(handle, &mode);
+}
+
+static void xl6_runtime_console_begin(void)
+{
+    xl6_runtime_console_output_changed = 0;
+
+    /*
+     * 输入代码页属于父子进程共享状态，不能由生成程序调用 SetConsoleCP。
+     * 输出使用 UTF-8 代码页；未来交互输入应走 ReadConsoleW 后转换为 UTF-8。
+     */
+    if ( xl6_runtime_handle_is_console(STD_OUTPUT_HANDLE) ||
+         xl6_runtime_handle_is_console(STD_ERROR_HANDLE) ) {
+        xl6_runtime_console_output_cp = GetConsoleOutputCP();
+        if ( xl6_runtime_console_output_cp != 0 &&
+             xl6_runtime_console_output_cp != CP_UTF8 &&
+             SetConsoleOutputCP(CP_UTF8) ) {
+            xl6_runtime_console_output_changed = 1;
+        }
+    }
+}
+
+static void xl6_runtime_console_end(void)
+{
+    /*
+     * 宿主可能在 xlang 运行期间主动修改代码页。只有代码页仍是本运行时
+     * 设置的 UTF-8 时才恢复，避免覆盖宿主的新设置。
+     */
+    if ( xl6_runtime_console_output_changed && GetConsoleOutputCP() == CP_UTF8 ) {
+        (void)SetConsoleOutputCP(xl6_runtime_console_output_cp);
+    }
+    xl6_runtime_console_output_changed = 0;
+}
+#else
+static void xl6_runtime_console_begin(void) { }
+static void xl6_runtime_console_end(void) { }
+#endif
+
 #ifndef XL6_INIT_OPTIONS_DEFINED
 #define XL6_INIT_OPTIONS_DEFINED
 #ifndef XL_INIT_OPTIONS_VERSION
@@ -533,8 +708,12 @@ int xlInit(const XL_InitOptions* options)
         if ( options->version != XL_INIT_OPTIONS_VERSION ) { return 0; }
     }
     if ( xl__runtime_init_count == 0 ) {
+        xl6_runtime_console_begin();
 #ifdef XL6_USE_XRT_LIFECYCLE
-        if ( xrtInit() == 0 ) { return 0; }
+        if ( xrtInit() == 0 ) {
+            xl6_runtime_console_end();
+            return 0;
+        }
 #endif
     }
     xl__runtime_init_count += 1;
@@ -549,6 +728,7 @@ void xlUnit(void)
 #ifdef XL6_USE_XRT_LIFECYCLE
         xrtUnit();
 #endif
+        xl6_runtime_console_end();
     }
 }
 
@@ -592,9 +772,38 @@ static char* xl6_xrt_str_dup(const char* value)
     return (char*)xrtCopyStr((str)value, 0);
 }
 
-static char* xl6_xrt_str_concat(const char* left, const char* right)
+/*
+    nullable string 仍然拥有非空字符串。
+    null 必须原样保留，不能像普通 string 一样折叠为空字符串。
+*/
+static const char* xl6_nullable_string_copy(const char* value)
 {
-    return (char*)xrtStrConcat((str)left, (str)right);
+    return value != 0 ? xrtCopyStr((str)value, 0) : 0;
+}
+
+static const char* xl6_xrt_str_concat(const char* left, const char* right)
+{
+    size_t leftLen = left != 0 ? strlen(left) : 0;
+    size_t rightLen = right != 0 ? strlen(right) : 0;
+    size_t totalLen = leftLen + rightLen;
+    char* text;
+
+    /* 拼接表达式属于当前 XRT 临时区，持久化目标只在边界处复制一次。 */
+    if ( totalLen == 0 ) {
+        return "";
+    }
+    text = (char*)xrtTempMemory(totalLen + 1);
+    if ( text == 0 ) {
+        return "";
+    }
+    if ( leftLen > 0 ) {
+        memcpy(text, left, leftLen);
+    }
+    if ( rightLen > 0 ) {
+        memcpy(text + leftLen, right, rightLen);
+    }
+    text[totalLen] = 0;
+    return text;
 }
 
 /*
@@ -688,8 +897,7 @@ static uint64 xl6_xrt_type_name_id(const char* name, uint32 size)
 
 static const char* xl6_xrt_type_name_from_id(uint64 typeId)
 {
-    uint32 low = (uint32)typeId;
-#define XL6_XRT_MATCH_TYPE_NAME(name, size) if ( low == (uint32)xl6_xrt_type_name_id(name, size) ) { return name; }
+#define XL6_XRT_MATCH_TYPE_NAME(name, size) if ( typeId == xl6_xrt_type_name_id(name, size) ) { return name; }
     XL6_XRT_MATCH_TYPE_NAME("null", 4)
     XL6_XRT_MATCH_TYPE_NAME("bool", 4)
     XL6_XRT_MATCH_TYPE_NAME("int", 3)
@@ -1652,58 +1860,10 @@ static const char* xl6_xrt_take_cstr(void* value)
 }
 #endif
 
-#ifndef XL6_XRT_VALUE_STRING_HELPERS
-#define XL6_XRT_VALUE_STRING_HELPERS
-static const char* xl6_xrt_value_to_string(xvalue value)
-{
-    return xl6_xrt_take_cstr((char*)xvoToString(value, 0));
-}
-
-static const char* xl6_xrt_value_to_string_release(xvalue value)
-{
-    const char* text = xl6_xrt_value_to_string(value);
-    if ( value != 0 ) { xvoUnref(value); }
-    return text;
-}
-#endif
-
-#ifndef XL6_XRT_VALUE_RELEASE_CONVERT_HELPERS
-#define XL6_XRT_VALUE_RELEASE_CONVERT_HELPERS
-static int64 xl6_xrt_value_to_i64_release(xvalue value)
-{
-    int64 result = value != 0 ? xvoGetInt(value) : 0;
-    if ( value != 0 ) { xvoUnref(value); }
-    return result;
-}
-
-static double xl6_xrt_value_to_f64_release(xvalue value)
-{
-    double result = value != 0 ? xvoGetFloat(value) : 0.0;
-    if ( value != 0 ) { xvoUnref(value); }
-    return result;
-}
-
-static int xl6_xrt_value_to_bool_release(xvalue value)
-{
-    int result = value != 0 && xvoGetBool(value) ? 1 : 0;
-    if ( value != 0 ) { xvoUnref(value); }
-    return result;
-}
-
-static int64 xl6_xrt_value_to_time_release(xvalue value)
-{
-    int64 result = value != 0 ? xvoGetTime(value) : 0;
-    if ( value != 0 ) { xvoUnref(value); }
-    return result;
-}
-
-static void* xl6_xrt_value_to_point_release(xvalue value)
-{
-    void* result = value != 0 ? xvoGetPoint(value) : 0;
-    if ( value != 0 ) { xvoUnref(value); }
-    return result;
-}
-#endif
+/*
+    var 临时值的消费依赖当前生成单元的临时作用域表。
+    这些帮助函数由 cgen 在作用域实现之后生成，运行时头不保留第二份定义。
+*/
 
 static xvalue xl6_xrt_typed_box_or_null(const xrt_type_desc* type, const void* item)
 {

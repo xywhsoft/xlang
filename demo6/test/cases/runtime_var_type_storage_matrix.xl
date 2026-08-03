@@ -1,0 +1,35 @@
+class RuntimeTypeBox
+    int value = 7
+end
+
+func main(...) as int
+    var nullValue = null
+    var boolValue = true
+    var intValue = 42
+    var floatValue = 3.5
+    var stringValue = "xlang"
+    var timeValue = #2026-08-01#
+    var arrayValue = [1, 2, 3]
+    var dictValue = {"name": "xlang"}
+    var classValue = RuntimeTypeBox()
+
+    assert type(nullValue) == null
+    assert type(boolValue) == bool
+    assert type(intValue) == int
+    assert type(floatValue) == float
+    assert type(stringValue) == string
+    assert type(timeValue) == time
+    assert type(arrayValue) == array
+    assert type(dictValue) == dict
+    assert type(classValue) == RuntimeTypeBox
+
+    if intValue is int then
+        assert type(intValue) == int
+        assert intValue + 1 == 43
+    end
+
+    intValue = "changed"
+    assert type(intValue) == string
+    println("runtime var storage matrix ok")
+    return 0
+end

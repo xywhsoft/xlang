@@ -7,10 +7,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `import counter` 后使用 `counter.inc()` |
-| 生成规则描述 | import 分片维护文本构造器、导入符号表、命名空间表。符号项记录 namespace、外部名称、内部改名和是否可由当前 C ABI 桥接支持；命名空间记录 namespace 是否为私有依赖。 |
+| 生成规则描述 | import 分片维护导入符号表、命名空间表和直接名称映射表。符号项记录 namespace、公开名称、唯一内部名称、AST 声明种类及当前桥接能力；命名空间项记录公开/私有状态和模块是否已经加载；名称映射项服务于 `from ... import ...` 与内置模块别名。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:7` |
-| 对应生成的 C 代码 | 不直接生成 C；后续生成 xlang extern 声明并再进入 cgen。 |
-| 中间形态伪代码 | `symbol = {ns,name,internalName,supported}; namespace={ns,isPrivate}` |
+| 对应生成的 C 代码 | 不直接生成 C；导入源码声明经唯一改名后合并到当前 AST，再由常规 sem/cgen 路径生成 C。 |
+| 中间形态伪代码 | `symbol={ns,name,internalName,kind,supported}; namespace={ns,isPrivate,loaded}; direct={localName,internalName}` |
 | 实现同等功能手写的 C 代码 | 手写 C 通常通过头文件前缀或命名空间约定避免符号冲突。 |
 | 额外依赖的封装代码 | import symbol table。 |
 
@@ -175,10 +175,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 单个模块 import 展开期间 |
-| 生成规则描述 | 符号表初始化清零；释放时释放每个 symbol 的 ns/name/internalName，以及 namespace 的 ns，最后释放数组并清零。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:597` |
+| 生成规则描述 | 符号表和直接名称映射表分别初始化。释放时逐项释放 symbol 的 ns/name/internalName、namespace 的 ns，以及直接映射的 name/internalName，最后释放数组并清零；部分分配失败也会释放本次尚未登记的字段。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:669` |
 | 对应生成的 C 代码 | 不生成 C；管理 import 展开状态。 |
-| 中间形态伪代码 | `free symbols[] and namespaces[]` |
+| 中间形态伪代码 | `free symbols[]; free namespaces[]; free directImports[]` |
 | 实现同等功能手写的 C 代码 | 手写工具需要管理临时符号表生命周期。 |
 | 额外依赖的封装代码 | import symbol table。 |
 
@@ -187,10 +187,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 直接 `import A` 与 A 的私有依赖 B |
-| 生成规则描述 | namespace 为空不能登记。若 namespace 已存在，且新登记为 public，则把 existing->isPrivate 清为 0；私有登记不会覆盖已有 public。新 namespace 保存 ns 和 isPrivate。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:624` |
+| 生成规则描述 | namespace 为空不能登记。若 namespace 已存在，公开登记会把 `isPrivate` 清零，私有登记不会覆盖已有公开状态。每个 namespace 另有 `loaded` 位：同一模块无论普通导入、别名导入还是选择性导入，只展开一次；先作为传递私有依赖加载、后被用户直接导入时会升级为公开命名空间而不重复合并 AST。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:781` |
 | 对应生成的 C 代码 | 不生成 C；决定 `B.xxx` 是否可被用户访问。 |
-| 中间形态伪代码 | `existing ? public wins : add {ns,isPrivate}` |
+| 中间形态伪代码 | `existing ? public upgrades visibility : add {ns,isPrivate,loaded=false}; load only once` |
 | 实现同等功能手写的 C 代码 | 手写包系统需要区分直接依赖和传递私有依赖。 |
 | 额外依赖的封装代码 | import namespace table。 |
 
@@ -198,11 +198,11 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `counter.inc` |
-| 生成规则描述 | 导入符号按 namespace 和 name 精确匹配查找。namespace 已存在但 symbol 不存在时，后续会给出 “无导出符号” 或 “私有依赖不可导出” 诊断。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:678` |
-| 对应生成的 C 代码 | 不生成 C；决定成员访问是否重写为内部名称。 |
-| 中间形态伪代码 | `find symbol where item.ns==ns && item.name==name` |
+| xlang 写法 | `counter.inc`、`counter.Point`、`from counter import Point as P` |
+| 生成规则描述 | 导入符号按 namespace 和公开名称精确匹配，并保留声明 kind。表达式成员访问可匹配函数、变量和常量；限定类型或选择性类型导入还要求 kind 为 class、union、typedef 或 extern type。namespace 已存在但符号缺失、符号不是类型或 namespace 为私有依赖时分别给出确定诊断。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:864` |
+| 对应生成的 C 代码 | 不直接生成 C；决定表达式或类型引用是否重写为同一个唯一内部名称。 |
+| 中间形态伪代码 | `symbol=find(ns,name); if type-position require kind in {class,union,typedef,extern-type}` |
 | 实现同等功能手写的 C 代码 | 手写桥接代码通过命名表或头文件查找符号。 |
 | 额外依赖的封装代码 | import symbol table。 |
 
@@ -247,9 +247,9 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | source export 进入 import 符号表 |
-| 生成规则描述 | 若同 namespace/name 符号已存在，直接成功。否则追加 symbol，复制 ns/name/internalName，并保存 supported 标记。不支持的导出仍登记，但 internalName 为空，用于后续访问时报明确诊断。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:812` |
-| 对应生成的 C 代码 | 不直接生成 C；支持的符号才会生成 extern 声明。 |
-| 中间形态伪代码 | `add symbol if missing {ns,name,internalName,supported}` |
+| 生成规则描述 | 若同 namespace/name 已登记则复用原身份；否则复制 ns/name/internalName，并保存 AST kind 与 supported。公开 class、具名 union、typedef、extern type、xlang func、直接映射的 extern func/var、var、const 都可登记；非公开声明不会进入表。命名空间别名只复制符号视图，内部名称不变，因此别名、限定名与选择性导入保持同一类型身份。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1669` |
+| 对应生成的 C 代码 | 不直接生成 C；源码声明已合并到 AST，后续引用统一指向其唯一内部名称。 |
+| 中间形态伪代码 | `add-if-missing {ns,name,internalName,kind,supported}; alias reuses internalName` |
 | 实现同等功能手写的 C 代码 | 手写桥接表也需要记录哪些符号可用。 |
 | 额外依赖的封装代码 | import symbol table。 |

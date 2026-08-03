@@ -1,0 +1,15 @@
+import tar
+
+func myCallback(string name, int idx, int bytes) as bool
+    return true
+end
+
+func main(...) as int
+    auto writer = tar.create()
+    writer.add("a.txt", "hello")
+    Buffer packed = writer.finish()
+    auto reader = tar.open(packed)
+    reader.extractWithProgress("test_min_out", myCallback)
+    println("ok")
+    return 0
+end

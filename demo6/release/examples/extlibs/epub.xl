@@ -13,7 +13,7 @@ func main(...) as int
     println("Field 0 = " + epub.metadataField(0))
 
     // ISBN validation
-    println("ISBN 9780306406157 valid = " + string.int(epub.validateIsbn("9780306406157")))
+    println("ISBN 9780306406157 valid = " + string(epub.validateIsbn("9780306406157")))
 
     println("epub example: PASS")
     return 0

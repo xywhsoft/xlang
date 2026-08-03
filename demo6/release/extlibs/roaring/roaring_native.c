@@ -4,9 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
-extern void xrtSetError(const char *msg);
-
+extern void xrtSetError(const void *msg, int bFree);
 static char rb_buf[8192];
 
 #define RB_CONTAINER_SIZE 65536
@@ -115,7 +113,7 @@ static void container_remove(Container *c, unsigned short val) {
 
 void *xroaring_create(void) {
     XRoaring *rb = (XRoaring *)calloc(1, sizeof(XRoaring));
-    if (!rb) { xrtSetError("roaring: out of memory"); return NULL; }
+    if (!rb) { xrtSetError("roaring: out of memory", 0); return NULL; }
     rb->cap = 16;
     rb->keys = (unsigned short *)malloc(sizeof(unsigned short) * rb->cap);
     rb->containers = (Container *)calloc(rb->cap, sizeof(Container));

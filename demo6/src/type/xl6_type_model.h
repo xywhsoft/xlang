@@ -4,6 +4,7 @@
 #include "src/ast/xl6_ast.h"
 
 const XL6_AstNode* xl6TypeResolveAlias(const XL6_AstNode* root, const XL6_AstNode* typeNode);
+const char* xl6TypeCanonicalBuiltinName(const char* name);
 char* xl6TypeToCanonicalString(const XL6_AstNode* root, const XL6_AstNode* typeNode);
 int xl6TypeTextIsArrayVararg(const char* text);
 int xl6TypeTextIsDictVararg(const char* text);

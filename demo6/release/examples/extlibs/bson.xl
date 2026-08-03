@@ -1,20 +1,78 @@
+// bson 扩展库教学范例 - var 直转架构
+// 运行: xl.exe run examples\extlibs\bson.xl
 import bson
 
-
-
 func main(...) as int
-    // Build {"hello": "world", "count": 42}
-    auto elems = bson.concat(bson.encodeStr("hello", "world"), bson.encodeInt32("count", 42))
-    auto doc = bson.encodeDoc(elems)
+    // ═══ 1. 基本编解码 ═══
+    // var table 直接编码为 BSON 二进制，无需手动构建
+    var doc = {"name": "xlang", "version": 6, "pi": 3.14159, "active": true}
+    var bin = bson.encode(doc)
+    println("编码长度: ", bson.docLength(bin))
 
-    println("BSON doc: ", doc)
-    println("doc len:  ", bson.docLen(doc))
-    println("key@4:    ", bson.elemKey(doc, 4))
-    println("val@4:    ", bson.decodeStr(doc, 4))
+    // 解码回 var，直接用字符串键索引
+    var decoded = bson.decode(bin)
+    println("name = ", decoded["name"])
+    println("version = ", decoded["version"])
+    println("pi = ", decoded["pi"])
+    println("active = ", decoded["active"])
 
-    auto off2 = bson.nextElem(doc, 4)
-    println("key@next: ", bson.elemKey(doc, off2))
-    println("val@next: ", bson.decodeInt32(doc, off2))
+    // ═══ 2. 嵌套文档 ═══
+    // 嵌套 table 自动编码为子文档，解码后支持链式索引
+    var nested = {"type": "user", "profile": {"city": "Beijing", "zip": 100000}}
+    var n = bson.decode(bson.encode(nested))
+    println("city = ", n["profile"]["city"])
+
+    // ═══ 3. 数组 ═══
+    // xlang array 编码为 BSON Array，解码后还原为原生 array
+    // 支持整数索引、.length、for in 迭代
+    var withArr = {"title": "demo", "tags": ["dev", "fun", "xlang"]}
+    var a = bson.decode(bson.encode(withArr))
+    println("tag[0] = ", a["tags"][0])
+    println("tag[2] = ", a["tags"][2])
+    println("tags.length = ", a["tags"].length)
+
+    // ═══ 4. null 和 int64 ═══
+    // null 映射为 BSON Null，超出 int32 范围自动使用 int64
+    var mixed = {"nothing": null, "big": 9876543210, "small": 42}
+    var m = bson.decode(bson.encode(mixed))
+    println("nothing = ", m["nothing"])
+    println("big = ", m["big"])
+
+    // ═══ 5. ObjectId ═══
+    // 生成 24 字符十六进制 ObjectId (兼容 MongoDB)
+    string oid1 = bson.objectId()
+    string oid2 = bson.objectId()
+    println("OID 1: ", oid1)
+    println("OID 2: ", oid2)
+
+    // 从 ObjectId 提取创建时间 (返回 xtime 秒数)
+    int oidSecs = bson.oidTime(oid1)
+    println("OID 年份: ", time.year(time(oidSecs)))
+
+    // ═══ 6. Hex 调试 ═══
+    // 将 BSON 二进制转为可读 hex 字符串
+    var tiny = {"x": 1}
+    string hexStr = bson.toHex(bson.encode(tiny))
+    println("hex: ", hexStr)
+
+    // ═══ 7. 文件 I/O ═══
+    // 一步完成 table → BSON → 文件，以及反向操作
+    var fileDoc = {"saved": true, "count": 7}
+    int written = bson.save("build/bson_example_tmp.bson", fileDoc)
+    println("写入字节: ", written)
+    var loaded = bson.load("build/bson_example_tmp.bson")
+    println("loaded.count = ", loaded["count"])
+
+    // ═══ 8. 多文档流 ═══
+    // MongoDB 导出文件通常为多个 BSON 文档拼接
+    // concat 二进制安全拼接，decodeAll 批量解码为 array
+    var doc1 = {"id": 1, "msg": "hello"}
+    var doc2 = {"id": 2, "msg": "world"}
+    var stream = bson.concat(bson.encode(doc1), bson.encode(doc2))
+    var docs = bson.decodeAll(stream)
+    println("文档数: ", docs.length)
+    println("doc[0].msg = ", docs[0]["msg"])
+    println("doc[1].msg = ", docs[1]["msg"])
 
     println("bson example: PASS")
     return 0

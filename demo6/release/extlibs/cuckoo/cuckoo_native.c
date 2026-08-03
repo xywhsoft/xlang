@@ -7,9 +7,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-
-extern void xrtSetError(const char *msg);
-
+extern void xrtSetError(const void *msg, int bFree);
 /* ------------------------------------------------------------------ */
 /* Hashing                                                             */
 /* ------------------------------------------------------------------ */
@@ -64,7 +62,7 @@ void *xcuckoo_create(long long capacity) {
     unsigned long long total_entries;
 
     if (capacity <= 0) {
-        xrtSetError("cuckoo: capacity must be positive");
+        xrtSetError("cuckoo: capacity must be positive", 0);
         return NULL;
     }
 
@@ -82,13 +80,13 @@ void *xcuckoo_create(long long capacity) {
 
     cf = (XCuckoo *)calloc(1, sizeof(XCuckoo));
     if (!cf) {
-        xrtSetError("cuckoo: out of memory");
+        xrtSetError("cuckoo: out of memory", 0);
         return NULL;
     }
     cf->buckets = (unsigned short *)calloc(total_entries, sizeof(unsigned short));
     if (!cf->buckets) {
         free(cf);
-        xrtSetError("cuckoo: out of memory for buckets");
+        xrtSetError("cuckoo: out of memory for buckets", 0);
         return NULL;
     }
     cf->nbuckets = nbuckets;
@@ -192,7 +190,7 @@ int xcuckoo_add(void *ptr, const char *data, long long len) {
         }
     }
 
-    xrtSetError("cuckoo: filter is full");
+    xrtSetError("cuckoo: filter is full", 0);
     return 0;
 }
 

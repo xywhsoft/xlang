@@ -1,37 +1,78 @@
 import lzma
 
-assert lzma.available(), "lzma available failed"
 
-string sample = "lzma extension round trip text"
-string srcPath = "examples_out/extlibs/lzma_source.txt"
-string packedPath = "examples_out/extlibs/lzma_source.lzma"
-string packedLevelPath = "examples_out/extlibs/lzma_source_level.lzma"
-string outPath = "examples_out/extlibs/lzma_out.txt"
 
-dir.createAll("examples_out/extlibs")
-file.writeText(srcPath, sample)
-file.delete(packedPath)
-file.delete(packedLevelPath)
-file.delete(outPath)
+func main(...) as int
+    // ─── 1. 一次性压缩 / 解压（Buffer 二进制安全）───
+    Buffer source = Buffer()
+    source.append("xlang lzma ")
+    source.appendByte(0)
+    source.appendByte(255)
 
-assert lzma.version() == "lzma 0.1.0", "lzma version mismatch"
-string packedHex = lzma.compress_hex(sample)
-string packedLevelHex = lzma.compress_hex_level(sample, 1)
-string packedAliasHex = lzma.compress(sample)
-string packedLevelAliasHex = lzma.compress(sample, 1)
-assert string.len(packedHex) > 0, "lzma compress_hex failed"
-assert string.len(packedLevelHex) > 0, "lzma compress_hex_level failed"
-assert string.len(packedAliasHex) > 0, "lzma compress alias failed"
-assert string.len(packedLevelAliasHex) > 0, "lzma compress level alias failed"
-assert lzma.decompress_hex(packedHex) == sample, "lzma decompress_hex mismatch"
-assert lzma.decompress_hex(packedLevelHex) == sample, "lzma decompress_hex_level mismatch"
-assert lzma.decompress(packedAliasHex) == sample, "lzma decompress alias mismatch"
-assert lzma.decompress(packedLevelAliasHex) == sample, "lzma decompress level alias mismatch"
-assert lzma.compress_file(srcPath, packedPath) != 0, "lzma compress_file failed"
-assert lzma.compress_file_level(srcPath, packedLevelPath, 1) != 0, "lzma compress_file_level failed"
-assert lzma.compress_file(srcPath, packedLevelPath, 1) != 0, "lzma compress_file level alias failed"
-assert lzma.decompress_file(packedLevelPath, outPath) != 0, "lzma decompress_file failed"
-assert file.readText(outPath) == sample, "lzma file round trip mismatch"
-assert string.len(lzma.last_error()) >= 0, "lzma last_error should return a string"
+    Buffer packed = lzma.compress(source, lzma.LZMA_MAX_LEVEL)
+    Buffer plain = lzma.decompress(packed)
+    assert plain == source, "lzma Buffer round trip failed"
+    println("一次性: ", source.len(), " 字节 -> ", packed.len(), " 字节")
 
-println("lzma extlib ok")
+    // 直接压缩字符串（内部自动转 Buffer）。
+    Buffer textPacked = lzma.compress("hello lzma")
+    assert lzma.decompressText(textPacked) == "hello lzma"
+    println("引擎版本: ", lzma.version())
+
+    // ─── 2. 增量流式压缩：update -> drain -> finish ───
+    // drain() 随时取走已产出的压缩字节，适合边喂数据边落盘/发送。
+    auto encoder = lzma.compressor()
+    Buffer streamPacked = Buffer()
+    encoder.update("hello ")
+    streamPacked.append(encoder.drain())
+    encoder.update("stream")
+    streamPacked.append(encoder.drain())
+    encoder.finish()                 // 封存流（写入成员结束标记）
+    streamPacked.append(encoder.drain())
+    println("流式压缩: 喂入 ", encoder.inputBytes, " 字节, 产出 ",
+        encoder.outputBytes, " 字节")
+
+    // ─── 3. 增量流式解压 + 进度回显 + 多成员统计 ───
+    auto decoder = lzma.decompressor()
+    Buffer restored = Buffer()
+    decoder.update(streamPacked)
+    restored.append(decoder.drain()) // 取走已解压数据
+    println("解压进度: 已喂入 ", decoder.inputBytes, " / 已产出 ",
+        decoder.outputBytes, " 字节, 完成=", decoder.finished)
+    decoder.finish()                 // 校验流完整性
+    restored.append(decoder.drain())
+    assert restored.text() == "hello stream", "lzma incremental round trip failed"
+    println("成员数: ", decoder.members) // 1；>1 表示串联多成员流
+
+    // ─── 4. 压缩级别调优（0..9，0 最快、9 压缩率最高）───
+    auto tuned = lzma.compressor(lzma.LZMA_MAX_LEVEL)
+    tuned.update("tune me")
+    tuned.finish()
+    assert lzma.decompress(tuned.drain()).text() == "tune me"
+    println("最高级别 L9 流式往返: OK")
+
+    // ─── 5. 损坏数据必然抛 CompressionError（CRC32 校验生效）───
+    bool rejected = false
+    int mid = streamPacked.len() / 2
+    streamPacked[mid] = streamPacked[mid] ^ 255
+    try
+        lzma.decompress(streamPacked)
+    catch CompressionError e
+        rejected = true
+    end
+    assert rejected, "corrupt lzma must raise CompressionError"
+    println("损坏检出: OK")
+
+    // ─── 6. 文件便捷接口（XRT reader/writer，临时文件+原子重命名）───
+    dir.createAll("tmp")
+    file.writeBytes("tmp/lzma_example_source.bin", source)
+    lzma.compressFile("tmp/lzma_example_source.bin", "tmp/lzma_example.lzma")
+    lzma.decompressFile("tmp/lzma_example.lzma", "tmp/lzma_example_plain.bin")
+    assert file.readBytes("tmp/lzma_example_plain.bin") == source
+    file.delete("tmp/lzma_example_source.bin")
+    file.delete("tmp/lzma_example.lzma")
+    file.delete("tmp/lzma_example_plain.bin")
+
+    println("lzma example: PASS")
+    return 0
+end

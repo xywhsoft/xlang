@@ -10,6 +10,10 @@ class ParentSpeaker extends RootSpeaker
     override func speak() as string
         return "parent"
     end
+
+    func parentLength() as int
+        return string.len(base.speak())
+    end
 end
 
 class ChildSpeaker extends ParentSpeaker
@@ -25,5 +29,6 @@ end
 ChildSpeaker child = ChildSpeaker()
 assert child.speak() == "child", "normal call must use virtual dispatch"
 assert child.parentSpeak() == "parent", "base call must use direct parent implementation"
+assert child.parentLength() == 4, "base call return type must survive typed HIR"
 
 println("base static dispatch ok")

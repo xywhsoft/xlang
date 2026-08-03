@@ -1,0 +1,44 @@
+// ch25 — 三角形：填充、描边、锯齿装饰
+import xge
+
+func draw_scene()
+    // 大三角形（填充 + 描边）
+    xge.xgeShapeTriangleFill(c_float(400), c_float(80), c_float(250), c_float(380), c_float(550), c_float(380),
+        xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(255)))
+    xge.xgeShapeTriangleStroke(c_float(400), c_float(80), c_float(250), c_float(380), c_float(550), c_float(380),
+        c_float(3.0), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
+
+    // 箭头指示器
+    xge.xgeShapeTriangleFill(c_float(650), c_float(200), c_float(610), c_float(180), c_float(610), c_float(220),
+        xge.XGE_COLOR_RGBA(c_uint(255), c_uint(107), c_uint(94), c_uint(255)))
+
+    // 锯齿装饰
+    int i = 0
+    while i < 20
+        float x0 = float(i * 40)
+        c_uint col
+        if i % 2 != 0 then
+            col = xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(96))
+        else
+            col = xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(96))
+        end
+        xge.xgeShapeTriangleFill(c_float(x0), c_float(520), c_float(x0 + 40.0), c_float(520), c_float(x0 + 20.0), c_float(490), col)
+        i = i + 1
+    end
+end
+
+func on_frame()
+    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    draw_scene()
+    xge.xgeTutorialEndFrame()
+end
+
+func main(...) as int
+    c_int ret = xge.xgeTutorialInit(840, 640, "ch25")
+    if ret != c_int(0) then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.xgeTutorialRun(on_frame)
+    return 0
+end

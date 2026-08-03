@@ -1,7 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include "include/xrt_zstd.h"
 #include "third_party/zstd.h"
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -10,220 +7,73 @@
 #define XZSTD_EXPORT
 #endif
 
-#if defined(__GNUC__)
-#define XZSTD_THREAD __thread
-#elif defined(_MSC_VER)
-#define XZSTD_THREAD __declspec(thread)
-#else
-#define XZSTD_THREAD
-#endif
 
-static XZSTD_THREAD char g_xzstd_error[512];
-#define XZSTD_RESULT_SLOTS 8u
 
-static XZSTD_THREAD char* g_xzstd_results[XZSTD_RESULT_SLOTS];
-static XZSTD_THREAD size_t g_xzstd_result_index;
-
-XZSTD_EXPORT const char* xzstd_compress_hex_level(const char* text, int level);
-XZSTD_EXPORT int xzstd_compress_file_level(const char* input_path, const char* output_path, int level);
-
-static void xzstd_set_error(const char* text)
+static void xzstd_publish_error(const xrtzstderror* pError)
 {
-    size_t i = 0u;
-
-    if ( text == NULL ) {
-        text = "";
-    }
-
-    while ( i + 1u < sizeof(g_xzstd_error) && text[i] != '\0' ) {
-        g_xzstd_error[i] = text[i];
-        ++i;
-    }
-    g_xzstd_error[i] = '\0';
+	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
+		pError->sMessage : "zstd operation failed";
+	xrtSetError(xrtFormat("%s", sMessage), TRUE);
 }
 
-static const char* xzstd_store_result(char* text)
+static void xzstd_options(xrtzstdoptions* pOptions, int iLevel, uint64 iMaxInput,
+	uint64 iMaxOutput, uint32 iMaxRatio)
 {
-	char** slot = &g_xzstd_results[g_xzstd_result_index % XZSTD_RESULT_SLOTS];
-	g_xzstd_result_index = (g_xzstd_result_index + 1u) % XZSTD_RESULT_SLOTS;
-	free(*slot);
-	*slot = text;
-	return *slot == NULL ? "" : *slot;
+	xrtZstdOptionsInit(pOptions);
+	if ( iLevel != 0 ) { pOptions->iLevel = iLevel; }
+	if ( iMaxInput != 0u ) { pOptions->tLimits.iMaxInputBytes = iMaxInput; }
+	if ( iMaxOutput != 0u ) { pOptions->tLimits.iMaxOutputBytes = iMaxOutput; }
+	if ( iMaxRatio != 0u ) { pOptions->tLimits.iMaxCompressionRatio = iMaxRatio; }
 }
 
-static char* xzstd_hex_encode(const unsigned char* data, size_t size)
+static bool xzstd_transform_file(str sSource, str sDestination, bool bCompress,
+	bool bOverwrite, const xrtzstdoptions* pOptions)
 {
-	static const char digits[] = "0123456789abcdef";
-	char* out = (char*)malloc(size * 2u + 1u);
-	size_t i;
-	if ( out == NULL ) return NULL;
-	for ( i = 0u; i < size; ++i ) {
-		out[i * 2u] = digits[data[i] >> 4];
-		out[i * 2u + 1u] = digits[data[i] & 15u];
+	xrtzstderror tError;
+	xreader pReader = NULL;
+	xwriter pWriter = NULL;
+	str sTemp = NULL;
+	bool bResult = FALSE;
+	if ( sSource == NULL || sSource[0] == 0 || sDestination == NULL || sDestination[0] == 0 ) {
+		xrtSetError(xrtFormat("zstd source and destination paths are required"), TRUE);
+		return FALSE;
 	}
-	out[size * 2u] = '\0';
-	return out;
+	if ( xrtPathExists(sDestination) && !bOverwrite ) {
+		xrtSetError(xrtFormat("zstd destination already exists: %s", sDestination), TRUE);
+		return FALSE;
+	}
+	sTemp = xrtPathRandom(sDestination, 0u, (str)".xrt-zstd-tmp", 0u, 8u);
+	pReader = xrtReaderOpen(sSource);
+	pWriter = sTemp != NULL ? xrtWriterOpen(sTemp, TRUE) : NULL;
+	if ( pReader == NULL || pWriter == NULL ) {
+		xrtSetError(xrtFormat("cannot open zstd file stream: %s", sSource), TRUE);
+		goto cleanup;
+	}
+	bResult = bCompress ? xrtZstdCompressStream(pReader, pWriter, pOptions, &tError) :
+		xrtZstdDecompressStream(pReader, pWriter, pOptions, &tError);
+	if ( !bResult ) { xzstd_publish_error(&tError); }
+	if ( bResult && !xrtWriterFlush(pWriter) ) {
+		xrtSetError(xrtFormat("cannot flush zstd destination: %s", sDestination), TRUE);
+		bResult = FALSE;
+	}
+
+cleanup:
+	xrtReaderDestroy(pReader);
+	xrtWriterDestroy(pWriter);
+	if ( bResult && !xrtFileRename(sTemp, sDestination, bOverwrite) ) {
+		xrtSetError(xrtFormat("cannot commit zstd destination: %s", sDestination), TRUE);
+		bResult = FALSE;
+	}
+	if ( !bResult && sTemp != NULL && xrtFileExists(sTemp) ) { xrtFileDelete(sTemp); }
+	xrtFree(sTemp);
+	return bResult;
 }
 
-static int xzstd_hex_value(char ch)
-{
-	if ( ch >= '0' && ch <= '9' ) return ch - '0';
-	if ( ch >= 'a' && ch <= 'f' ) return ch - 'a' + 10;
-	if ( ch >= 'A' && ch <= 'F' ) return ch - 'A' + 10;
-	return -1;
-}
 
-static unsigned char* xzstd_hex_decode(const char* text, size_t* out_size)
-{
-	size_t len;
-	size_t i;
-	unsigned char* out;
-	if ( text == NULL ) text = "";
-	len = strlen(text);
-	if ( (len & 1u) != 0u ) {
-		xzstd_set_error("hex text has odd length");
-		return NULL;
-	}
-	out = (unsigned char*)malloc(len / 2u + 1u);
-	if ( out == NULL ) {
-		xzstd_set_error("out of memory");
-		return NULL;
-	}
-	for ( i = 0u; i < len; i += 2u ) {
-		int hi = xzstd_hex_value(text[i]);
-		int lo = xzstd_hex_value(text[i + 1u]);
-		if ( hi < 0 || lo < 0 ) {
-			free(out);
-			xzstd_set_error("hex text contains invalid character");
-			return NULL;
-		}
-		out[i / 2u] = (unsigned char)((hi << 4) | lo);
-	}
-	*out_size = len / 2u;
-	return out;
-}
 
-static unsigned char* xzstd_read_file(const char* path, size_t* out_size)
+XZSTD_EXPORT bool xzstd_available(void)
 {
-	FILE* fp;
-	long len;
-	unsigned char* data;
-	if ( path == NULL || path[0] == '\0' ) {
-		xzstd_set_error("empty file path");
-		return NULL;
-	}
-	fp = fopen(path, "rb");
-	if ( fp == NULL ) {
-		xzstd_set_error("failed to open input file");
-		return NULL;
-	}
-	if ( fseek(fp, 0, SEEK_END) != 0 ) {
-		fclose(fp);
-		xzstd_set_error("failed to seek input file");
-		return NULL;
-	}
-	len = ftell(fp);
-	if ( len < 0 ) {
-		fclose(fp);
-		xzstd_set_error("failed to measure input file");
-		return NULL;
-	}
-	rewind(fp);
-	data = (unsigned char*)malloc((size_t)len + 1u);
-	if ( data == NULL ) {
-		fclose(fp);
-		xzstd_set_error("out of memory");
-		return NULL;
-	}
-	if ( len > 0 && fread(data, 1u, (size_t)len, fp) != (size_t)len ) {
-		free(data);
-		fclose(fp);
-		xzstd_set_error("failed to read input file");
-		return NULL;
-	}
-	fclose(fp);
-	*out_size = (size_t)len;
-	return data;
-}
-
-static int xzstd_write_file(const char* path, const unsigned char* data, size_t size)
-{
-	FILE* fp;
-	if ( path == NULL || path[0] == '\0' ) {
-		xzstd_set_error("empty output file path");
-		return 0;
-	}
-	fp = fopen(path, "wb");
-	if ( fp == NULL ) {
-		xzstd_set_error("failed to open output file");
-		return 0;
-	}
-	if ( size > 0u && fwrite(data, 1u, size, fp) != size ) {
-		fclose(fp);
-		xzstd_set_error("failed to write output file");
-		return 0;
-	}
-	fclose(fp);
-	return 1;
-}
-
-static int xzstd_compress_bytes(const unsigned char* src, size_t src_size, int level, unsigned char** out, size_t* out_size)
-{
-	size_t bound = ZSTD_compressBound(src_size);
-	size_t written;
-	if ( ZSTD_isError(bound) || bound == 0u ) {
-		xzstd_set_error("input too large");
-		return 0;
-	}
-	*out = (unsigned char*)malloc(bound);
-	if ( *out == NULL ) {
-		xzstd_set_error("out of memory");
-		return 0;
-	}
-	written = ZSTD_compress(*out, bound, src, src_size, level);
-	if ( ZSTD_isError(written) ) {
-		xzstd_set_error(ZSTD_getErrorName(written));
-		free(*out);
-		*out = NULL;
-		return 0;
-	}
-	*out_size = written;
-	xzstd_set_error("");
-	return 1;
-}
-
-static int xzstd_decompress_bytes(const unsigned char* src, size_t src_size, unsigned char** out, size_t* out_size)
-{
-	unsigned long long content_size = ZSTD_getFrameContentSize(src, src_size);
-	size_t written;
-	if ( content_size == ZSTD_CONTENTSIZE_ERROR ) {
-		xzstd_set_error("not a zstd frame");
-		return 0;
-	}
-	if ( content_size == ZSTD_CONTENTSIZE_UNKNOWN ) {
-		xzstd_set_error("zstd frame has unknown content size");
-		return 0;
-	}
-	*out = (unsigned char*)malloc((size_t)content_size + 1u);
-	if ( *out == NULL ) {
-		xzstd_set_error("out of memory");
-		return 0;
-	}
-	written = ZSTD_decompress(*out, (size_t)content_size, src, src_size);
-	if ( ZSTD_isError(written) ) {
-		xzstd_set_error(ZSTD_getErrorName(written));
-		free(*out);
-		*out = NULL;
-		return 0;
-	}
-	*out_size = written;
-	xzstd_set_error("");
-	return 1;
-}
-
-XZSTD_EXPORT int xzstd_available(void)
-{
-	return 1;
+	return TRUE;
 }
 
 XZSTD_EXPORT const char* xzstd_version(void)
@@ -233,91 +83,192 @@ XZSTD_EXPORT const char* xzstd_version(void)
 
 XZSTD_EXPORT const char* xzstd_last_error(void)
 {
-	return g_xzstd_error;
+	return xrtGetError();
 }
 
-XZSTD_EXPORT const char* xzstd_compress_hex(const char* text)
-{
-	return xzstd_compress_hex_level(text, ZSTD_defaultCLevel());
-}
 
-XZSTD_EXPORT const char* xzstd_compress_hex_level(const char* text, int level)
+
+XZSTD_EXPORT void* xzstd_compress(const void* pData, size_t iSize, int iLevel,
+	uint64 iMaxInput, uint64 iMaxOutput)
 {
-	unsigned char* packed = NULL;
-	size_t packed_size = 0u;
-	char* hex;
-	if ( text == NULL ) text = "";
-	if ( !xzstd_compress_bytes((const unsigned char*)text, strlen(text), level, &packed, &packed_size) ) return "";
-	hex = xzstd_hex_encode(packed, packed_size);
-	free(packed);
-	if ( hex == NULL ) {
-		xzstd_set_error("out of memory");
-		return "";
+	xrtzstdoptions tOptions;
+	xrtzstderror tError;
+	xbuffer pOutput = NULL;
+	xrtClearError();
+	xzstd_options(&tOptions, iLevel, iMaxInput, iMaxOutput, 0u);
+	if ( !xrtZstdCompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
+		xzstd_publish_error(&tError);
+		return NULL;
 	}
-	return xzstd_store_result(hex);
+	return pOutput;
 }
 
-XZSTD_EXPORT const char* xzstd_decompress_hex(const char* hex_text)
+XZSTD_EXPORT void* xzstd_decompress(const void* pData, size_t iSize, uint64 iMaxInput,
+	uint64 iMaxOutput, uint32 iMaxRatio)
 {
-	unsigned char* packed;
-	unsigned char* plain = NULL;
-	size_t packed_size = 0u;
-	size_t plain_size = 0u;
-	char* text;
-	packed = xzstd_hex_decode(hex_text, &packed_size);
-	if ( packed == NULL ) return "";
-	if ( !xzstd_decompress_bytes(packed, packed_size, &plain, &plain_size) ) {
-		free(packed);
-		return "";
+	xrtzstdoptions tOptions;
+	xrtzstderror tError;
+	xbuffer pOutput = NULL;
+	xrtClearError();
+	xzstd_options(&tOptions, 0, iMaxInput, iMaxOutput, iMaxRatio);
+	if ( !xrtZstdDecompress(pData, iSize, &tOptions, &pOutput, &tError) ) {
+		xzstd_publish_error(&tError);
+		return NULL;
 	}
-	free(packed);
-	text = (char*)malloc(plain_size + 1u);
-	if ( text == NULL ) {
-		free(plain);
-		xzstd_set_error("out of memory");
-		return "";
+	return pOutput;
+}
+
+XZSTD_EXPORT bool xzstd_compress_file(str sSource, str sDestination, int iLevel,
+	bool bOverwrite, uint64 iMaxInput, uint64 iMaxOutput)
+{
+	xrtzstdoptions tOptions;
+	xrtClearError();
+	xzstd_options(&tOptions, iLevel, iMaxInput, iMaxOutput, 0u);
+	return xzstd_transform_file(sSource, sDestination, TRUE, bOverwrite, &tOptions);
+}
+
+XZSTD_EXPORT bool xzstd_decompress_file(str sSource, str sDestination, bool bOverwrite,
+	uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio)
+{
+	xrtzstdoptions tOptions;
+	xrtClearError();
+	xzstd_options(&tOptions, 0, iMaxInput, iMaxOutput, iMaxRatio);
+	return xzstd_transform_file(sSource, sDestination, FALSE, bOverwrite, &tOptions);
+}
+
+
+
+XZSTD_EXPORT void* xzstd_compressor_create(int iLevel, uint64 iMaxInput, uint64 iMaxOutput)
+{
+	xrtzstdoptions tOptions;
+	xrtzstdcompressor* pCompressor;
+	xrtClearError();
+	xzstd_options(&tOptions, iLevel, iMaxInput, iMaxOutput, 0u);
+	pCompressor = xrtZstdCompressorCreate(&tOptions);
+	if ( pCompressor == NULL || xrtZstdCompressorError(pCompressor)->iCode != XRT_ZSTD_OK ) {
+		xzstd_publish_error(xrtZstdCompressorError(pCompressor));
+		xrtZstdCompressorDestroy(pCompressor);
+		return NULL;
 	}
-	memcpy(text, plain, plain_size);
-	text[plain_size] = '\0';
-	free(plain);
-	return xzstd_store_result(text);
+	return pCompressor;
 }
 
-XZSTD_EXPORT int xzstd_compress_file(const char* input_path, const char* output_path)
+XZSTD_EXPORT void xzstd_compressor_destroy(void* pHandle)
 {
-	return xzstd_compress_file_level(input_path, output_path, ZSTD_defaultCLevel());
+	xrtZstdCompressorDestroy((xrtzstdcompressor*)pHandle);
 }
 
-XZSTD_EXPORT int xzstd_compress_file_level(const char* input_path, const char* output_path, int level)
+XZSTD_EXPORT bool xzstd_compressor_update(void* pHandle, const void* pData, size_t iSize)
 {
-	unsigned char* src;
-	unsigned char* packed = NULL;
-	size_t src_size = 0u;
-	size_t packed_size = 0u;
-	int ok;
-	src = xzstd_read_file(input_path, &src_size);
-	if ( src == NULL ) return 0;
-	ok = xzstd_compress_bytes(src, src_size, level, &packed, &packed_size);
-	free(src);
-	if ( !ok ) return 0;
-	ok = xzstd_write_file(output_path, packed, packed_size);
-	free(packed);
-	return ok;
+	xrtzstdcompressor* pCompressor = (xrtzstdcompressor*)pHandle;
+	if ( !xrtZstdCompressorUpdate(pCompressor, pData, iSize) ) {
+		xzstd_publish_error(xrtZstdCompressorError(pCompressor));
+		return FALSE;
+	}
+	return TRUE;
 }
 
-XZSTD_EXPORT int xzstd_decompress_file(const char* input_path, const char* output_path)
+XZSTD_EXPORT bool xzstd_compressor_finish(void* pHandle)
 {
-	unsigned char* src;
-	unsigned char* plain = NULL;
-	size_t src_size = 0u;
-	size_t plain_size = 0u;
-	int ok;
-	src = xzstd_read_file(input_path, &src_size);
-	if ( src == NULL ) return 0;
-	ok = xzstd_decompress_bytes(src, src_size, &plain, &plain_size);
-	free(src);
-	if ( !ok ) return 0;
-	ok = xzstd_write_file(output_path, plain, plain_size);
-	free(plain);
-	return ok;
+	xrtzstdcompressor* pCompressor = (xrtzstdcompressor*)pHandle;
+	if ( !xrtZstdCompressorFinish(pCompressor) ) {
+		xzstd_publish_error(xrtZstdCompressorError(pCompressor));
+		return FALSE;
+	}
+	return TRUE;
+}
+
+XZSTD_EXPORT void* xzstd_compressor_drain(void* pHandle)
+{
+	xrtzstdcompressor* pCompressor = (xrtzstdcompressor*)pHandle;
+	xbuffer pOutput = xrtZstdCompressorDrainBuffer(pCompressor);
+	if ( pOutput == NULL ) {
+		xzstd_publish_error(xrtZstdCompressorError(pCompressor));
+		return NULL;
+	}
+	return pOutput;
+}
+
+XZSTD_EXPORT uint64 xzstd_compressor_input_bytes(void* pHandle)
+{
+	return xrtZstdCompressorInputBytes((const xrtzstdcompressor*)pHandle);
+}
+
+XZSTD_EXPORT uint64 xzstd_compressor_output_bytes(void* pHandle)
+{
+	return xrtZstdCompressorOutputBytes((const xrtzstdcompressor*)pHandle);
+}
+
+
+
+XZSTD_EXPORT void* xzstd_decompressor_create(uint64 iMaxInput, uint64 iMaxOutput,
+	uint32 iMaxRatio)
+{
+	xrtzstdoptions tOptions;
+	xrtzstddecompressor* pDecompressor;
+	xrtClearError();
+	xzstd_options(&tOptions, 0, iMaxInput, iMaxOutput, iMaxRatio);
+	pDecompressor = xrtZstdDecompressorCreate(&tOptions);
+	if ( pDecompressor == NULL || xrtZstdDecompressorError(pDecompressor)->iCode != XRT_ZSTD_OK ) {
+		xzstd_publish_error(xrtZstdDecompressorError(pDecompressor));
+		xrtZstdDecompressorDestroy(pDecompressor);
+		return NULL;
+	}
+	return pDecompressor;
+}
+
+XZSTD_EXPORT void xzstd_decompressor_destroy(void* pHandle)
+{
+	xrtZstdDecompressorDestroy((xrtzstddecompressor*)pHandle);
+}
+
+XZSTD_EXPORT bool xzstd_decompressor_update(void* pHandle, const void* pData, size_t iSize)
+{
+	xrtzstddecompressor* pDecompressor = (xrtzstddecompressor*)pHandle;
+	if ( !xrtZstdDecompressorUpdate(pDecompressor, pData, iSize) ) {
+		xzstd_publish_error(xrtZstdDecompressorError(pDecompressor));
+		return FALSE;
+	}
+	return TRUE;
+}
+
+XZSTD_EXPORT bool xzstd_decompressor_finish(void* pHandle)
+{
+	xrtzstddecompressor* pDecompressor = (xrtzstddecompressor*)pHandle;
+	if ( !xrtZstdDecompressorFinish(pDecompressor) ) {
+		xzstd_publish_error(xrtZstdDecompressorError(pDecompressor));
+		return FALSE;
+	}
+	return TRUE;
+}
+
+XZSTD_EXPORT void* xzstd_decompressor_drain(void* pHandle)
+{
+	xrtzstddecompressor* pDecompressor = (xrtzstddecompressor*)pHandle;
+	xbuffer pOutput = xrtZstdDecompressorDrainBuffer(pDecompressor);
+	if ( pOutput == NULL ) {
+		xzstd_publish_error(xrtZstdDecompressorError(pDecompressor));
+		return NULL;
+	}
+	return pOutput;
+}
+
+XZSTD_EXPORT uint64 xzstd_decompressor_input_bytes(void* pHandle)
+{
+	return xrtZstdDecompressorInputBytes((const xrtzstddecompressor*)pHandle);
+}
+
+XZSTD_EXPORT uint64 xzstd_decompressor_output_bytes(void* pHandle)
+{
+	return xrtZstdDecompressorOutputBytes((const xrtzstddecompressor*)pHandle);
+}
+
+XZSTD_EXPORT bool xzstd_decompressor_finished(void* pHandle)
+{
+	return xrtZstdDecompressorFinished((const xrtzstddecompressor*)pHandle);
+}
+
+XZSTD_EXPORT uint64 xzstd_decompressor_members(void* pHandle)
+{
+	return xrtZstdDecompressorMembers((const xrtzstddecompressor*)pHandle);
 }

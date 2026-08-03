@@ -31,12 +31,12 @@ if errorlevel 1 (
     echo cgen_var_runtime_objects.c missing overflow multi-return xcall result.
     exit /b 1
 )
-findstr /C:"xl6_fnvalue_xl_fn_pairDefault_arity1_xcall" build\test\cgen_var_runtime_objects.c >nul
+findstr /R /C:"xl6_fnvalue_xl_fn_pairDefault_sig[0-9A-F]*_arity1_xcall" build\test\cgen_var_runtime_objects.c >nul
 if errorlevel 1 (
     echo cgen_var_runtime_objects.c missing optional multi-return adapter xcall.
     exit /b 1
 )
-findstr /C:"xl6_fnvalue_xl_fn_totalDefault_arity0_vararg_xcall" build\test\cgen_var_runtime_objects.c >nul
+findstr /R /C:"xl6_fnvalue_xl_fn_totalDefault_sig[0-9A-F]*_arity0_vararg_xcall" build\test\cgen_var_runtime_objects.c >nul
 if errorlevel 1 (
     echo cgen_var_runtime_objects.c missing optional vararg adapter xcall.
     exit /b 1

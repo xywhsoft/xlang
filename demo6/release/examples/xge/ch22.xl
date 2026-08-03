@@ -1,0 +1,46 @@
+// ch22 — 矩形：填充、描边、网格
+import xge
+
+func draw_scene()
+    // 网格背景
+    float x = 0.0
+    while x < 800.0
+        xge.xgeShapeLine(c_float(x), c_float(0), c_float(x), c_float(600), c_float(0.5), xge.XGE_COLOR_RGBA(c_uint(26), c_uint(42), c_uint(48), c_uint(64)))
+        x = x + 40.0
+    end
+    float y = 0.0
+    while y < 600.0
+        xge.xgeShapeLine(c_float(0), c_float(y), c_float(800), c_float(y), c_float(0.5), xge.XGE_COLOR_RGBA(c_uint(26), c_uint(42), c_uint(48), c_uint(64)))
+        y = y + 40.0
+    end
+
+    // 填充矩形
+    xge.xgeShapeRectFill(c_float(100), c_float(100), c_float(300), c_float(200), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(255)))
+
+    // 半透明叠加
+    xge.xgeShapeRectFill(c_float(200), c_float(150), c_float(300), c_float(200), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(128)))
+
+    // 描边矩形
+    xge.xgeShapeRectFill(c_float(150), c_float(400), c_float(500), c_float(100), xge.XGE_COLOR_RGBA(c_uint(26), c_uint(42), c_uint(48), c_uint(255)))
+    xge.xgeShapeRectStroke(c_float(150), c_float(400), c_float(500), c_float(100), c_float(1.5), xge.XGE_COLOR_RGBA(c_uint(109), c_uint(179), c_uint(242), c_uint(255)))
+
+    // 高亮单元格
+    xge.xgeShapeRectFill(c_float(120), c_float(80), c_float(40), c_float(40), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(48)))
+    xge.xgeShapeRectStroke(c_float(120), c_float(80), c_float(40), c_float(40), c_float(1.0), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(255)))
+end
+
+func on_frame()
+    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    draw_scene()
+    xge.xgeTutorialEndFrame()
+end
+
+func main(...) as int
+    c_int ret = xge.xgeTutorialInit(840, 640, "ch22")
+    if ret != c_int(0) then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.xgeTutorialRun(on_frame)
+    return 0
+end

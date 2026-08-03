@@ -1,0 +1,73 @@
+export enum HttpStatus as uint16
+    ok = 200
+    created
+    notFound = 404
+end
+
+export enum Packet<T>
+    empty
+    value(T item)
+    failure(int code, string message)
+end
+
+export enum Batch
+    items(array<int> values)
+end
+
+class EnumInspector
+    int calls = 0
+
+    export "enum_inspector_packet_value" func packetValue(Packet<int> packet) as int
+        return match packet
+        case empty then -1
+        case value(value) then value
+        case failure(code, message) then -code
+        end
+    end
+
+    export "enum_inspector_batch_count" func batchCount(array<int> values) as int
+        return values.length
+    end
+end
+
+export "enum_make_packet" func makePacket(int value) as Packet<int>
+    return Packet::<int>.value(value)
+end
+
+export "enum_packet_value" func packetValue(Packet<int> packet) as int
+    return match packet
+    case empty then -1
+    case value(value) then value
+    case failure(code, message) then -code
+    end
+end
+
+export "enum_make_failure" func makeFailure(string message) as Packet<string>
+    return Packet::<string>.failure(503, message)
+end
+
+export "enum_failure_code" func failureCode(Packet<string> packet) as int
+    return match packet
+    case empty then 0
+    case value(value) then value.length
+    case failure(code, message) then code
+    end
+end
+
+export "enum_make_batch" func makeBatch(array<int> values) as Batch
+    return Batch.items(values)
+end
+
+export "enum_batch_count" func batchCount(Batch batch) as int
+    return match batch
+    case items(values) then values.length
+    end
+end
+
+export "enum_kind_int" func enum_kind(int value) as int
+    return value + 1
+end
+
+export "enum_kind_string" func enum_kind(string value) as int
+    return value.length
+end

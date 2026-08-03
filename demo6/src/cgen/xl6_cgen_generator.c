@@ -257,7 +257,28 @@ static void xl6CgenGeneratorFrameFreeFunc(XL6_CgenContext* ctx, const XL6_AstNod
         const XL6_AstNode* typeNode = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
         char fieldName[512];
 
-        if ( !xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+        if ( xl6CgenIsWeakType(typeNode) ) {
+            xl6CgenCIdentText(fieldName, sizeof(fieldName), param->text);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "xvoWeakUnit(&value->%s);\n", fieldName);
+            continue;
+        }
+        if ( xl6CgenIsFunctionType(typeNode) ) {
+            char fieldPath[1024];
+            xl6CgenCIdentText(fieldName, sizeof(fieldName), param->text);
+            snprintf(fieldPath, sizeof(fieldPath), "value->%s", fieldName);
+            xl6CgenReleaseFunctionPath(ctx, fieldPath);
+            continue;
+        }
+        if ( xl6CgenNullableHasManagedInner(ctx, typeNode) ) {
+            char dropName[64];
+            xl6CgenCIdentText(fieldName, sizeof(fieldName), param->text);
+            xl6CgenNullableDropHelperName(dropName, sizeof(dropName), typeNode);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s(&value->%s);\n", dropName, fieldName);
+            continue;
+        }
+        if ( !xl6CgenIsOwnedStringTypeNode(ctx, typeNode) ) {
             continue;
         }
         xl6CgenCIdentText(fieldName, sizeof(fieldName), param->text);
@@ -321,8 +342,31 @@ static void xl6CgenGeneratorWorker(XL6_CgenContext* ctx, const XL6_AstNode* node
             xl6OutputPuts(param != NULL && param->childCount > 0 ? xl6CgenTypeName(ctx, param->children[0]) : "int", ctx->out);
             xl6OutputPutc(' ', ctx->out);
             xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
-            xl6OutputPuts(" = __xl6_frame->", ctx->out);
-            xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
+            xl6OutputPuts(" = ", ctx->out);
+            if ( param != NULL && param->childCount > 0 &&
+                 xl6CgenIsWeakType(param->children[0]) ) {
+                xl6OutputPuts("xvoWeakClone(&__xl6_frame->", ctx->out);
+                xl6CgenFputsCIdent(ctx->out, param->text);
+                xl6OutputPuts(")", ctx->out);
+            } else if ( param != NULL && param->childCount > 0 &&
+                        xl6CgenIsFunctionType(param->children[0]) ) {
+                xl6OutputPuts("xl6_function_copy_value(__xl6_frame->", ctx->out);
+                xl6CgenFputsCIdent(ctx->out, param->text);
+                xl6OutputPuts(")", ctx->out);
+            } else if ( param != NULL && param->childCount > 0 &&
+                        xl6CgenNullableHasManagedInner(ctx, param->children[0]) ) {
+                char copyName[64];
+                xl6CgenNullableCopyHelperName(
+                    copyName,
+                    sizeof(copyName),
+                    param->children[0]);
+                xl6OutputPrintf(ctx->out, "%s(__xl6_frame->", copyName);
+                xl6CgenFputsCIdent(ctx->out, param->text);
+                xl6OutputPuts(")", ctx->out);
+            } else {
+                xl6OutputPuts("__xl6_frame->", ctx->out);
+                xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
+            }
             xl6OutputPuts(";\n", ctx->out);
         }
     }
@@ -408,12 +452,20 @@ static void xl6CgenGeneratorFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenCIdentText(fieldName, sizeof(fieldName), param != NULL ? param->text : NULL);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "__xl6_frame->%s = ", fieldName);
-            if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
-                xl6OutputPuts("xrtCopyStr(", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
-                xl6OutputPuts(" != 0 ? ", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
-                xl6OutputPuts(" : \"\", 0u)", ctx->out);
+            if ( xl6CgenIsOwnedStringTypeNode(ctx, typeNode) ) {
+                if ( xl6CgenIsNullableStringTypeNode(ctx, typeNode) ) {
+                    xl6OutputPuts("xl6_nullable_string_copy(", ctx->out);
+                    xl6CgenFputsCIdent(
+                        ctx->out,
+                        param != NULL ? param->text : NULL);
+                    xl6OutputPutc(')', ctx->out);
+                } else {
+                    xl6OutputPuts("xrtCopyStr(", ctx->out);
+                    xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
+                    xl6OutputPuts(" != 0 ? ", ctx->out);
+                    xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
+                    xl6OutputPuts(" : \"\", 0u)", ctx->out);
+                }
             } else {
                 xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
             }

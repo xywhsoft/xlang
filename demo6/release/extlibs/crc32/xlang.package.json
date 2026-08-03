@@ -1,12 +1,13 @@
 {
     "format":  "xlang-package-1",
     "name":  "crc32",
-    "version":  "0.1.0",
+    "version":  "1.0.0",
     "abiVersion":  "1",
     "kind":  "demo6-extlib",
     "artifact":  {
                      "kind":  "source",
                      "cSources":  [
+                                      "xrt_crc32.c",
                                       "crc32_native.c"
                                   ],
                      "xlSources":  [

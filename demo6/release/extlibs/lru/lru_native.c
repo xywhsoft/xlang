@@ -4,9 +4,7 @@
  */
 #include <stdlib.h>
 #include <string.h>
-
-extern void xrtSetError(const char *msg);
-
+extern void xrtSetError(const void *msg, int bFree);
 static char lru_buf[4096];
 
 /* ------------------------------------------------------------------ */
@@ -110,9 +108,9 @@ static void lru_evict(XLru *c) {
 
 void *xlru_create(long long capacity, int mode) {
     XLru *c;
-    if (capacity <= 0) { xrtSetError("lru: capacity must be positive"); return NULL; }
+    if (capacity <= 0) { xrtSetError("lru: capacity must be positive", 0); return NULL; }
     c = (XLru *)calloc(1, sizeof(XLru));
-    if (!c) { xrtSetError("lru: out of memory"); return NULL; }
+    if (!c) { xrtSetError("lru: out of memory", 0); return NULL; }
     c->capacity = capacity;
     c->mode = mode;
     return c;
@@ -145,7 +143,7 @@ void xlru_put(void *ptr, const char *key, const char *value) {
     if (c->count >= c->capacity) lru_evict(c);
 
     e = (LruEntry *)calloc(1, sizeof(LruEntry));
-    if (!e) { xrtSetError("lru: out of memory"); return; }
+    if (!e) { xrtSetError("lru: out of memory", 0); return; }
     e->key = strdup(key);
     e->value = strdup(value ? value : "");
     e->freq = 1;

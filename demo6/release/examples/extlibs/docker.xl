@@ -5,7 +5,7 @@ func main(...) as int
 
     println("State 1 = " + docker.containerState(1))
     println("Network 0 = " + docker.networkMode(0))
-    println("Port 8080:80 = " + string.int(docker.parsePort("8080:80")))
+    println("Port 8080:80 = " + string(docker.parsePort("8080:80")))
 
     println("docker example: PASS")
     return 0

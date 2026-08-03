@@ -4,5 +4,6 @@ end
 
 func bad() as int
     Payload payload
+    payload.i = 0
     return payload.missing
 end

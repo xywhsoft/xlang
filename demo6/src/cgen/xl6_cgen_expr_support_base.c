@@ -25,9 +25,13 @@ static XL6_AstNode* xl6CgenClassHandleTypeForClassType(
 
 static int xl6CgenIsXValueType(const XL6_AstNode* typeNode)
 {
+    if ( xl6CgenNullableUsesXValue(typeNode) ) {
+        return 1;
+    }
     return typeNode != NULL && typeNode->text != NULL &&
            (xl6CTextEquals(typeNode->text, "var") ||
             xl6CTextEquals(typeNode->text, "__class_handle") ||
+            (typeNode->flags & XL6_AST_FLAG_PROTOCOL_HANDLE) != 0 ||
             xl6CgenIsArrayXValueType(typeNode) ||
             xl6CgenIsListXValueType(typeNode) ||
             xl6CgenIsSetXValueType(typeNode) ||
@@ -364,7 +368,8 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
     XL6_AstNode* result;
     XL6_AstNode* ownedReceiverType;
 
-    if ( ctx == NULL || member == NULL || member->kind != XL6_AST_MEMBER ) {
+    if ( ctx == NULL || member == NULL ||
+         (member->kind != XL6_AST_MEMBER && member->kind != XL6_AST_SAFE_MEMBER) ) {
         return NULL;
     }
 
@@ -376,7 +381,9 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
     receiver = member->childCount > 0 ? member->children[0] : NULL;
     if ( receiver == NULL || (receiver->kind != XL6_AST_NAME &&
                               receiver->kind != XL6_AST_MEMBER &&
+                              receiver->kind != XL6_AST_SAFE_MEMBER &&
                               receiver->kind != XL6_AST_INDEX &&
+                              receiver->kind != XL6_AST_SAFE_INDEX &&
                               receiver->kind != XL6_AST_CALL) ) {
         return NULL;
     }
@@ -384,10 +391,25 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
     receiverType = NULL;
     classType = NULL;
     ownedReceiverType = NULL;
-    if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_INDEX || receiver->kind == XL6_AST_CALL ) {
+    if ( receiver->kind == XL6_AST_MEMBER || receiver->kind == XL6_AST_SAFE_MEMBER ||
+         receiver->kind == XL6_AST_INDEX || receiver->kind == XL6_AST_SAFE_INDEX ||
+         receiver->kind == XL6_AST_CALL ) {
         receiverType = receiver->kind == XL6_AST_MEMBER
             ? xl6CgenCloneMemberFieldTypeForInference(ctx, receiver)
             : xl6CgenCloneExprTypeForInference(ctx, receiver);
+        if ( member->kind == XL6_AST_SAFE_MEMBER &&
+             xl6CgenIsNullableType(receiverType) ) {
+            XL6_AstNode* effectiveType = xl6CgenCloneCanonicalTypeNode(
+                ctx,
+                xl6CgenNullableInnerType(receiverType));
+            xl6AstFree((XL6_AstNode*)receiverType);
+            receiverType = effectiveType;
+        }
+        if ( receiverType != NULL && xl6CTextEquals(receiverType->text, "var") ) {
+            result = xl6AstNewText(XL6_AST_TYPE, "var", 3, NULL);
+            xl6AstFree((XL6_AstNode*)receiverType);
+            return result;
+        }
         if ( receiverType != NULL && xl6CgenIsPlainRecordType(ctx, receiverType) ) {
             field = xl6CgenFindPlainRecordFieldNode(ctx, receiverType, member->text);
             result = field != NULL && field->childCount > 0 ? xl6CgenCloneCanonicalTypeNode(ctx, field->children[0]) : NULL;
@@ -438,6 +460,19 @@ static XL6_AstNode* xl6CgenCloneMemberFieldTypeForInference(XL6_CgenContext* ctx
     } else {
         ownedReceiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
         receiverType = ownedReceiverType;
+        if ( member->kind == XL6_AST_SAFE_MEMBER &&
+             xl6CgenIsNullableType(receiverType) ) {
+            ownedReceiverType = xl6CgenCloneCanonicalTypeNode(
+                ctx,
+                xl6CgenNullableInnerType(receiverType));
+            xl6AstFree((XL6_AstNode*)receiverType);
+            receiverType = ownedReceiverType;
+        }
+        if ( receiverType != NULL && xl6CTextEquals(receiverType->text, "var") ) {
+            result = xl6AstNewText(XL6_AST_TYPE, "var", 3, NULL);
+            xl6AstFree((XL6_AstNode*)ownedReceiverType);
+            return result;
+        }
         classType = xl6CgenClassHandleTargetType(ctx, receiverType);
         if ( classType == NULL ) {
             classType = receiverType;
@@ -517,10 +552,16 @@ static int xl6CgenClassNeedsDestroy(XL6_CgenContext* ctx, const XL6_AstNode* cla
                 continue;
             }
             typeNode = member->children[0];
-            if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+            if ( xl6CgenIsOwnedStringTypeNode(ctx, typeNode) ) {
                 return 1;
             }
             if ( xl6CgenIsFunctionType(typeNode) ) {
+                return 1;
+            }
+            if ( xl6CgenNullableHasManagedInner(ctx, typeNode) ) {
+                return 1;
+            }
+            if ( xl6CgenIsWeakType(typeNode) ) {
                 return 1;
             }
             if ( xl6CgenIsXValueType(typeNode) ) {
@@ -749,10 +790,22 @@ static void xl6CgenClassFunctionFieldRefs(
         typeNode = xl6CgenSubstituteGenericType(ctx, member->children[0]);
         xl6CgenCIdentText(cFieldName, sizeof(cFieldName), member->text);
         snprintf(fieldPath, sizeof(fieldPath), "%s.%s", valuePath, cFieldName);
-        if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+        if ( xl6CgenIsOwnedStringTypeNode(ctx, typeNode) ) {
             xl6CgenIndent(ctx);
             if ( retain ) {
-                xl6OutputPrintf(ctx->out, "%s = xrtCopyStr(%s, 0u);\n", fieldPath, fieldPath);
+                if ( xl6CgenIsNullableStringTypeNode(ctx, typeNode) ) {
+                    xl6OutputPrintf(
+                        ctx->out,
+                        "%s = xl6_nullable_string_copy(%s);\n",
+                        fieldPath,
+                        fieldPath);
+                } else {
+                    xl6OutputPrintf(
+                        ctx->out,
+                        "%s = xrtCopyStr(%s, 0u);\n",
+                        fieldPath,
+                        fieldPath);
+                }
             } else {
                 xl6OutputPrintf(ctx->out, "xrtFree((void*)%s); %s = 0;\n", fieldPath, fieldPath);
             }
@@ -774,6 +827,19 @@ static void xl6CgenClassFunctionFieldRefs(
                 xl6OutputPuts("; ", ctx->out);
                 xl6OutputPuts(fieldPath, ctx->out);
                 xl6OutputPuts(" = 0;\n", ctx->out);
+            }
+            continue;
+        }
+        if ( xl6CgenIsWeakType(typeNode) ) {
+            xl6CgenIndent(ctx);
+            if ( retain ) {
+                xl6OutputPrintf(
+                    ctx->out,
+                    "%s = xvoWeakClone(&%s);\n",
+                    fieldPath,
+                    fieldPath);
+            } else {
+                xl6OutputPrintf(ctx->out, "xvoWeakUnit(&%s);\n", fieldPath);
             }
             continue;
         }
@@ -941,8 +1007,13 @@ static void xl6CgenRetainClassFunctionFieldsForType(XL6_CgenContext* ctx, const 
 {
     XL6_AstNode* classNode;
 
-    /* class 对外是 xvalue 句柄；借用读取只需保留对象本身，字段随对象共同存活。 */
-    if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
+    /*
+        所有以 xvalue 保存的类型都遵守同一条借用提升规则。
+        这里不能只识别 class：protocol、var、nullable 和部分泛型实例同样以
+        xvalue 保存。循环或 future 从容器中借用它们后，局部变量会在作用域结束时
+        unref，因此必须先取得自己的强引用。
+    */
+    if ( xl6CTextEquals(xl6CgenValueStorageCType(ctx, typeNode), "xvalue") ) {
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoAddRef(%s); }\n", valuePath, valuePath);
         return;
@@ -959,7 +1030,20 @@ static void xl6CgenReleaseClassFunctionFieldsForType(XL6_CgenContext* ctx, const
 
     if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", valuePath, valuePath, valuePath);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", valuePath);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(
+            ctx->out,
+            "(void)xl6_temp_managed_disown((void*)%s, (XL6_TempManagedDrop)xvoUnref);\n",
+            valuePath);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", valuePath);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = 0;\n", valuePath);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
         return;
     }
     classNode = xl6CgenClassNodeForType(ctx, typeNode);
@@ -1095,6 +1179,13 @@ static void xl6CgenReleaseReturnedValuePath(XL6_CgenContext* ctx, const XL6_AstN
     }
     if ( xl6CgenIsFunctionType(typeNode) ) {
         xl6CgenReleaseFunctionPath(ctx, valuePath);
+        return;
+    }
+    if ( xl6CgenNullableHasManagedInner(ctx, typeNode) ) {
+        char dropName[64];
+        xl6CgenNullableDropHelperName(dropName, sizeof(dropName), typeNode);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s(&%s);\n", dropName, valuePath);
         return;
     }
     if ( xl6CgenClassTypeNeedsFunctionFieldCleanup(ctx, typeNode) ) {

@@ -1,0 +1,9 @@
+// 动态数组写入成功后由容器接管右值，生成器不能再次释放。
+var values = [10, 20]
+var index = 1
+
+func main(...) as int
+    values[0] = 42
+    values[index] = 77
+    return int(values[0]) + int(values[1]) == 119 ? 0 : 1
+end

@@ -6,9 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-
-extern void xrtSetError(const char *msg);
-
+extern void xrtSetError(const void *msg, int bFree);
 static char j5_buf[8192];
 
 /* Skip whitespace and comments */

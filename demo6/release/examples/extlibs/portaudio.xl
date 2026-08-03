@@ -11,7 +11,7 @@ func main(...) as int
     println("Fmt 1 = " + portaudio.sampleFormat(1))
 
     // Valid rates
-    println("44100 valid = " + string.format("{}", portaudio.validRate(44100)))
+    println("44100 valid = " + string(portaudio.validRate(44100)))
 
     println("portaudio example: PASS")
     return 0

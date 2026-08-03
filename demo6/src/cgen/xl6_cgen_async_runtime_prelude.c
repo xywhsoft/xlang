@@ -56,7 +56,7 @@ static void xl6CgenEmitAsyncRuntimePrelude(XL6_Output* out)
     xl6OutputPuts("const xrt_type_desc* xrtTypeFuture(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeHandle(void);\n", out);
     xl6OutputPuts("const xrt_type_desc* xrtTypeValue(void);\n", out);
-    xl6OutputPuts("xvalue xrtTypeBoxValue(const xrt_type_desc* pType, const void* pObj);\nbool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, void* pOut);\n", out);
+    xl6OutputPuts("bool xrtTypeCopyValue(const xrt_type_desc* pType, void* pDst, const void* pSrc);\nxvalue xrtTypeBoxValue(const xrt_type_desc* pType, const void* pObj);\nbool xrtTypeUnboxValue(const xrt_type_desc* pType, xvalue pVal, void* pOut);\n", out);
     xl6OutputPuts("xvalue xvoCreateHandle(const xrt_type_desc* pType, void* pHandle, unsigned int iFlags);\n", out);
     xl6OutputPuts("xtarray xrtTypedArrayCreate(const xrt_type_desc* pItemType, unsigned int iMode);\n", out);
     xl6OutputPuts("void xrtTypedArrayDestroy(xtarray pArray);\n", out);

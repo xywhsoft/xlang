@@ -6,7 +6,7 @@ func main(...) as int
     println("Model 0 = " + llama.modelType(0))
     println("Quant 0 = " + llama.quantType(0))
     println("Sampler 0 = " + llama.sampler(0))
-    println("Perplexity(1.0) = " + string.fromFloat(llama.perplexity(1.0)))
+    println("Perplexity(1.0) = " + string(llama.perplexity(1.0)))
 
     println("llama example: PASS")
     return 0

@@ -1,0 +1,9 @@
+enum Result
+    ok(int value)
+    error(string message)
+end
+
+Result result = Result.ok(1)
+int value = match result
+case ok(number) then number
+end

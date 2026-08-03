@@ -302,6 +302,25 @@ XXAPI xbuffer xrtBz2CompressorTakeBuffer(xrtbz2compressor* pCompressor)
 	return pOutput;
 }
 
+XXAPI xbuffer xrtBz2CompressorDrainBuffer(xrtbz2compressor* pCompressor)
+{
+	xbuffer pOutput;
+	if ( pCompressor == NULL || pCompressor->Failed || pCompressor->Output == NULL ) { return NULL; }
+	pOutput = xrtBufferFrom((ptr)pCompressor->Output->Buffer, (size_t)pCompressor->Output->Length);
+	pCompressor->Output->Length = 0u;
+	return pOutput;
+}
+
+XXAPI uint64 xrtBz2CompressorInputBytes(const xrtbz2compressor* pCompressor)
+{
+	return pCompressor != NULL ? pCompressor->InputBytes : 0u;
+}
+
+XXAPI uint64 xrtBz2CompressorOutputBytes(const xrtbz2compressor* pCompressor)
+{
+	return pCompressor != NULL ? pCompressor->OutputBytes : 0u;
+}
+
 XXAPI const xrtbz2error* xrtBz2CompressorError(const xrtbz2compressor* pCompressor)
 {
 	return pCompressor != NULL ? &pCompressor->Error : NULL;
@@ -460,6 +479,35 @@ XXAPI xbuffer xrtBz2DecompressorTakeBuffer(xrtbz2decompressor* pDecompressor)
 	pOutput = pDecompressor->Output;
 	pDecompressor->Output = NULL;
 	return pOutput;
+}
+
+XXAPI xbuffer xrtBz2DecompressorDrainBuffer(xrtbz2decompressor* pDecompressor)
+{
+	xbuffer pOutput;
+	if ( pDecompressor == NULL || pDecompressor->Failed || pDecompressor->Output == NULL ) { return NULL; }
+	pOutput = xrtBufferFrom((ptr)pDecompressor->Output->Buffer, (size_t)pDecompressor->Output->Length);
+	pDecompressor->Output->Length = 0u;
+	return pOutput;
+}
+
+XXAPI uint64 xrtBz2DecompressorInputBytes(const xrtbz2decompressor* pDecompressor)
+{
+	return pDecompressor != NULL ? pDecompressor->InputBytes : 0u;
+}
+
+XXAPI uint64 xrtBz2DecompressorOutputBytes(const xrtbz2decompressor* pDecompressor)
+{
+	return pDecompressor != NULL ? pDecompressor->OutputBytes : 0u;
+}
+
+XXAPI bool xrtBz2DecompressorFinished(const xrtbz2decompressor* pDecompressor)
+{
+	return pDecompressor != NULL && pDecompressor->MemberEnded;
+}
+
+XXAPI uint64 xrtBz2DecompressorMembers(const xrtbz2decompressor* pDecompressor)
+{
+	return pDecompressor != NULL ? pDecompressor->MemberCount : 0u;
 }
 
 XXAPI const xrtbz2error* xrtBz2DecompressorError(const xrtbz2decompressor* pDecompressor)

@@ -38,7 +38,7 @@
 //
 // 全局只初始化一次，全程只读，规避「typed 容器作函数形参被值拷贝」。
 // ========================================================================
-var gFont = {}
+dict<array<string>> gFont = dict{}
 
 // 空白字形（未定义字符的占位）
 array<string> gBlank = array[]
@@ -576,7 +576,7 @@ end
 //     逐列（0..4）取源像素，重复 scale 次追加到该行缓冲；
 //     字符末尾追加 scale 列空格作间隔。
 func loadGlyph(string ch) as array<string>
-    var src = gFont[ch]
+    array<string> src = gFont[ch]
     array<string> outputValue = array[]
     int i = 0
     int n = src.length

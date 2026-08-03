@@ -127,6 +127,7 @@ RUNTIME_SOURCES=(
     "$ROOT/src/diag/xl6_diag.c"
     "$ROOT/src/ast/xl6_ast.c"
     "$ROOT/src/ir/xl6_hir.c"
+    "$ROOT/src/ir/xl6_hir_type.c"
     "$ROOT/src/cgen/xl6_cgen_entry.c"
     "$ROOT/src/cgen/xl6_cgen_lifecycle.c"
     "$ROOT/src/cgen/xl6_cgen_runtime.c"

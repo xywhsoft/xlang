@@ -3,24 +3,53 @@ import bz2
 
 
 func main(...) as int
+    // ─── 1. 一次性压缩 / 解压（Buffer 二进制安全）───
     Buffer source = Buffer()
     source.append("xlang bz2 ")
     source.appendByte(0)
     source.appendByte(255)
 
-    Buffer packed = bz2.compress(source, 9)
+    Buffer packed = bz2.compress(source, bz2.BZ2_MAX_LEVEL)
     Buffer plain = bz2.decompress(packed)
     assert plain == source, "bz2 Buffer round trip failed"
+    println("一次性: ", source.len(), " 字节 -> ", packed.len(), " 字节")
 
+    // 直接压缩字符串（内部自动转 Buffer）。
+    Buffer textPacked = bz2.compress("hello bz2")
+    assert bz2.decompressText(textPacked) == "hello bz2"
+
+    // ─── 2. 增量流式压缩：update -> drain -> finish ───
+    // drain() 随时取走已产出的压缩字节，适合边喂数据边落盘/发送。
     auto encoder = bz2.compressor(6)
+    Buffer streamPacked = Buffer()
     encoder.update("hello ")
+    streamPacked.append(encoder.drain())
     encoder.update("stream")
-    Buffer streamPacked = encoder.finish()
+    streamPacked.append(encoder.drain())
+    encoder.finish()                 // 封存流（写入尾部校验）
+    streamPacked.append(encoder.drain())
+    println("流式压缩: 喂入 ", encoder.inputBytes, " 字节, 产出 ",
+        encoder.outputBytes, " 字节")
 
+    // ─── 3. 增量流式解压 + 进度回显 + 多成员统计 ───
     auto decoder = bz2.decompressor()
+    Buffer restored = Buffer()
     decoder.update(streamPacked)
-    assert decoder.finish().text() == "hello stream", "bz2 incremental round trip failed"
+    restored.append(decoder.drain()) // 取走已解压数据
+    println("解压进度: 已喂入 ", decoder.inputBytes, " / 已产出 ",
+        decoder.outputBytes, " 字节, 完成=", decoder.finished)
+    decoder.finish()                 // 校验流完整性
+    restored.append(decoder.drain())
+    assert restored.text() == "hello stream", "bz2 incremental round trip failed"
+    println("成员数: ", decoder.members) // 1；>1 表示串联多成员流
 
+    // ─── 4. workFactor 调优（0..250，控制压缩率/速度权衡）───
+    auto tuned = bz2.compressor(bz2.BZ2_MAX_LEVEL, bz2.BZ2_MAX_WORK_FACTOR)
+    tuned.update("tune me")
+    tuned.finish()
+    assert bz2.decompress(tuned.drain()).text() == "tune me"
+
+    // ─── 5. 损坏数据必然抛 CompressionError ───
     bool rejected = false
     streamPacked[10] = streamPacked[10] ^ 1
     try
@@ -30,7 +59,7 @@ func main(...) as int
     end
     assert rejected, "corrupt bz2 must raise CompressionError"
 
-    // 文件便捷接口使用 XRT reader/writer，适合大文件和 UTF-8 路径。
+    // ─── 6. 文件便捷接口（XRT reader/writer，临时文件+原子重命名）───
     dir.createAll("tmp")
     file.writeBytes("tmp/bz2_example_source.bin", source)
     bz2.compressFile("tmp/bz2_example_source.bin", "tmp/bz2_example.bz2")

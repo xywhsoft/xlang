@@ -1,0 +1,513 @@
+// xbot/llm.xl - LLM 引擎
+// 对应 xbot.py L1000-1754：5 平台适配 + Function Calling + JSON 回退协议
+
+// ─── 平台常量 ───
+const string LLM_PROVIDER_XBOT = "xbot"
+const string LLM_PROVIDER_DOUBAO = "doubao"
+const string LLM_PROVIDER_QWEN = "qwen"
+const string LLM_PROVIDER_KIMI = "kimi"
+const string LLM_PROVIDER_GLM = "glm"
+
+// ─── 默认模型 ───
+const string DEFAULT_LLM_TEXT_MODEL = "gpt-4o-mini"
+const string DEFAULT_LLM_VISION_MODEL = "gpt-4o"
+
+// ─── 全局状态 ───
+string _llm_last_error = ""
+
+export func LLMLastError() as string
+    return _llm_last_error
+end
+
+// ─── 平台配置 ───
+class LLMSettings
+    string provider
+    string api_base
+    string api_key
+    string default_model
+    string vision_model
+    float temperature
+    int max_output_tokens
+    string api_mode
+    string vision
+
+    create(string prov)
+        self.provider = prov
+        self.api_base = ""
+        self.api_key = ""
+        self.default_model = ""
+        self.vision_model = ""
+        self.temperature = 0.7
+        self.max_output_tokens = 4096
+        self.api_mode = "compatible"
+        self.vision = "true"
+    end
+end
+// 从 config.ini 加载平台配置
+func _load_llm_settings(string provider) as LLMSettings
+    LLMSettings s = LLMSettings(provider)
+    string section = "llm_" + provider
+    if provider == LLM_PROVIDER_XBOT then
+        section = "xbot_llm"
+    end
+
+    s.api_base = ReadConfig(section, "api_base", "")
+    s.api_key = ReadConfig(section, "api_key", "")
+    s.default_model = ReadConfig(section, "default_model", DEFAULT_LLM_TEXT_MODEL)
+    s.vision_model = ReadConfig(section, "vision_model", DEFAULT_LLM_VISION_MODEL)
+    s.vision = ReadConfig(section, "vision", "true")
+
+    string temp_str = ReadConfig(section, "temperature", "0.7")
+    s.temperature = float(temp_str)
+
+    string max_str = ReadConfig(section, "max_output_tokens", "4096")
+    s.max_output_tokens = int(max_str)
+
+    if provider == LLM_PROVIDER_QWEN then
+        s.api_mode = ReadConfig(section, "api_mode", "native")
+    end
+
+    // 平台默认 API 地址
+    if s.api_base == "" then
+        if provider == LLM_PROVIDER_XBOT then
+            s.api_base = "http://ai-gw.cyouops.com/v1"
+        elseif provider == LLM_PROVIDER_DOUBAO then
+            s.api_base = "https://ark.cn-beijing.volces.com/api/v3"
+        elseif provider == LLM_PROVIDER_QWEN then
+            s.api_base = "https://dashscope.aliyuncs.com/api/v1"
+        elseif provider == LLM_PROVIDER_KIMI then
+            s.api_base = "https://api.moonshot.cn/v1"
+        elseif provider == LLM_PROVIDER_GLM then
+            s.api_base = "https://open.bigmodel.cn/api/paas/v4"
+        end
+    end
+    return s
+end
+
+// ─── LLM 客户端 ───
+export class LLMClient
+    string provider
+    string model
+    LLMSettings settings
+    array<string> history
+
+    create(string prov, string mdl)
+        self.provider = _normalize_provider(prov)
+        self.model = mdl
+        self.settings = _load_llm_settings(self.provider)
+        self.history = []
+    end
+
+    func ClearHistory()
+        self.history = []
+    end
+
+    // 单轮问答
+    func Ask(string prompt, array<string> images, bool json_mode) as OpResult
+        array<string> msgs = []
+        msgs.push(prompt)
+        return self._invoke_simple(msgs, images, json_mode)
+    end
+
+    // 多轮对话（使用内部历史）
+    func Chat(string prompt, array<string> images) as OpResult
+        self.history.push(prompt)
+        OpResult result = self._invoke_simple(self.history, images, false)
+        if result.success then
+            self.history.push(result.reply)
+        end
+        return result
+    end
+
+    // 内部：构建请求并发送
+    func _invoke_simple(array<string> messages, array<string> images, bool json_mode) as OpResult
+        string model_id = self._resolve_model(images.length > 0)
+        if model_id == "" then
+            return _result_fail(_llm_last_error)
+        end
+
+        string payload = self._build_payload(messages, images, json_mode, model_id)
+        string url = self.settings.api_base + "/chat/completions"
+        if self.provider == LLM_PROVIDER_XBOT then
+            url = self.settings.api_base + "/responses"
+        end
+
+        string headers = "Authorization: Bearer " + self.settings.api_key
+        string resp = _xbot_http_post_status(url, payload, headers, 60000)
+
+        // 解析响应: "STATUS\r\nBODY"
+        int sep = string.indexOf(resp, "\r\n")
+        if sep <= 0 then
+            _llm_last_error = "LLM 请求无响应"
+            return _result_fail(_llm_last_error)
+        end
+
+        int status = int(string.mid(resp, 0, sep))
+        string body = string.mid(resp, sep + 2, string.len(resp) - sep - 2)
+
+        if status != 200 then
+            _llm_last_error = "LLM HTTP " + string(status) + ": " + string.mid(body, 0, 200)
+            return _result_fail(_llm_last_error)
+        end
+
+        // 提取模型回复文本
+        string text = _llm_extract_text(body)
+        OpResult result = _result_ok(text)
+        result.data = body
+        return result
+    end
+
+    // 解析模型 ID
+    func _resolve_model(bool has_images) as string
+        if self.model != "" then
+            return self.model
+        end
+        if has_images then
+            if self.settings.vision == "false" then
+                _llm_last_error = "[" + self.provider + "] 已配置 vision=false，不能调用视觉函数"
+                return ""
+            end
+            return self.settings.vision_model
+        end
+        return self.settings.default_model
+    end
+
+    // 构建请求 JSON
+    func _build_payload(array<string> messages, array<string> images, bool json_mode, string model_id) as string
+        Buffer buf = Buffer()
+        buf.append("{\"model\":\"")
+        buf.append(model_id)
+        buf.append("\",\"messages\":[")
+
+        int i = 0
+        while i < messages.length
+            if i > 0 then
+                buf.append(",")
+            end
+            string role = "user"
+            if i == 0 and messages.length > 1 then
+                role = "system"
+            end
+            // 最后一条如果是助手回复则标记
+            if i == messages.length - 1 and messages.length > 1 and i > 0 then
+                role = "user"
+            end
+            buf.append("{\"role\":\"")
+            buf.append(role)
+            buf.append("\",\"content\":\"")
+            buf.append(_json_escape(messages[i]))
+            buf.append("\"}")
+            i += 1
+        end
+
+        buf.append("],\"temperature\":")
+        buf.append(string(self.settings.temperature))
+        buf.append(",\"max_tokens\":")
+        buf.append(string(self.settings.max_output_tokens))
+
+        if json_mode then
+            buf.append(",\"response_format\":{\"type\":\"json_object\"}")
+        end
+
+        // 图片输入
+        if images.length > 0 then
+            // 图片通过 content 数组传递（简化：追加到最后的 user 消息）
+            // 此处简化处理，完整实现需要重构 messages 结构
+        end
+
+        buf.append("}")
+        return buf.text()
+    end
+end
+// ─── 全局工厂函数 ───
+
+export func CreateLLM(string provider, string model) as LLMClient
+    return LLMClient(provider, model)
+end
+
+export func ListLLMProviders() as array<string>
+    array<string> providers = []
+    providers.push(LLM_PROVIDER_XBOT)
+    providers.push(LLM_PROVIDER_DOUBAO)
+    providers.push(LLM_PROVIDER_QWEN)
+    providers.push(LLM_PROVIDER_KIMI)
+    providers.push(LLM_PROVIDER_GLM)
+    return providers
+end
+
+// 列出内网网关模型及其视觉能力
+export func ListLLMModels() as array<string>
+    array<string> models = []
+    models.push("doubao_seed_21_pro|Doubao Seed 2.1 Pro|doubao-seed2.1-pro|auto")
+    models.push("glm_52|GLM 5.2|zlxn-glm-5.2|auto")
+    models.push("kimi_k27_code|Kimi K2.7 Code|zlxn-kimi-k2.7-code|true")
+    models.push("kimi_k27_code_highspeed|Kimi K2.7 Code HighSpeed|zlxn-kimi-k2.7-code-highspeed|true")
+    models.push("deepseek_v4_pro|DeepSeek V4 Pro|zlxn-deepseek-v4-pro|false")
+    models.push("deepseek_v4_flash|DeepSeek V4 Flash|zlxn-deepseek-v4-flash|false")
+    models.push("minimax_m3|MiniMax M3|zlxn-minimax-m3|true")
+    models.push("hy_3|HY 3|zlxn-hy3|auto")
+    return models
+end
+
+// ─── 内部辅助 ───
+
+// 规范化平台名
+func _normalize_provider(string provider) as string
+    string p = string.lower(provider)
+    if p == "" then
+        return LLM_PROVIDER_XBOT
+    elseif p == "xbot" then
+        return LLM_PROVIDER_XBOT
+    elseif p == "doubao" or p == "volc" then
+        return LLM_PROVIDER_DOUBAO
+    elseif p == "qwen" or p == "tongyi" or p == "dashscope" then
+        return LLM_PROVIDER_QWEN
+    elseif p == "kimi" or p == "moonshot" then
+        return LLM_PROVIDER_KIMI
+    elseif p == "glm" or p == "zhipu" or p == "chatglm" then
+        return LLM_PROVIDER_GLM
+    end
+    return p
+end
+
+// 从 LLM 响应 JSON 中提取回复文本
+func _llm_extract_text(string json_body) as string
+    // OpenAI compatible: choices[0].message.content
+    string content = _json_extract_string(json_body, "content")
+    if content != "" then
+        return content
+    end
+    // Responses API: output[0].content[0].text
+    string text = _json_extract_string(json_body, "text")
+    if text != "" then
+        return text
+    end
+    // output_text
+    string output_text = _json_extract_string(json_body, "output_text")
+    if output_text != "" then
+        return output_text
+    end
+    return ""
+end
+
+// ─── LLM 结果后处理（供 device.xl 调用）───
+
+// 比较两张图片（设备级 LLMCompare 的实际实现）
+export func LLMCompareImages(string image_a, string image_b, string instruction, string model, float min_confidence, string provider) as OpResult
+    string extra = "无额外规则。"
+    if instruction != "" then
+        extra = "补充规则：" + instruction
+    end
+    string prompt = "你是自动化测试的 UI 画面对比器。按顺序收到两张图片：第一张为当前画面，第二张为预期画面。\n"
+    prompt = prompt + "请判断两者是否满足同一预期页面状态；忽略未被规则要求关注的动态时间、网络状态或光标。\n"
+    prompt = prompt + "只能返回 JSON 对象，格式为：\n"
+    prompt = prompt + "{\"matched\":true,\"confidence\":0.0,\"differences\":[\"\u5dee异说明\"],\"reason\":\"简短依据\"}\n"
+    prompt = prompt + "confidence 必须在 0 到 1 之间。\n" + extra
+
+    LLMClient client = CreateLLM(provider, model)
+    array<string> images = [image_a, image_b]
+    OpResult response = client.Ask(prompt, images, true)
+    if response.success == false then
+        return response
+    end
+    // 解析 JSON 结果
+    string text = response.reply
+    float confidence = _llm_extract_confidence(text)
+    bool matched = _llm_extract_bool(text, "matched") and confidence >= min_confidence
+    OpResult r = OpResult(matched, "LLM compare: confidence=" + string(confidence), "")
+    return r
+end
+
+// 在图片中按自然语言定位目标（设备级 LLMFind 的实际实现）
+export func LLMFindInImage(string image_path, string target, string model, float min_confidence, string provider, AutomationDevice? device) as OpResult
+    string prompt = "你是 UI 自动化的视觉定位器。请在唯一一张屏幕截图中寻找：" + target + "\n"
+    prompt = prompt + "不能找到时返回 found=false。找到时只返回 JSON：\n"
+    prompt = prompt + "{\"found\":true,\"confidence\":0.0,\"bbox\":{\"x\":0.0,\"y\":0.0,\"w\":0.0,\"h\":0.0},\"reason\":\"简短依据\"}\n"
+    prompt = prompt + "bbox 的 x、y、w、h 必须为相对于整张截图的 0 到 1 归一化值；x,y 是左上角，w,h 是宽高。\n"
+    prompt = prompt + "不要执行任何点击，不要返回 Markdown 或额外文本。"
+
+    LLMClient client = CreateLLM(provider, model)
+    array<string> images = [image_path]
+    OpResult response = client.Ask(prompt, images, true)
+    if response.success == false then
+        return response
+    end
+    string text = response.reply
+    float confidence = _llm_extract_confidence(text)
+    bool found = _llm_extract_bool(text, "found") and confidence >= min_confidence
+    if found == false then
+        OpResult r = _result_ok("LLM find: not found")
+        return r
+    end
+    // 提取 bbox 并转换为 MatchResult
+    MatchResult? result = _llm_extract_bbox(text, device)
+    if result == null then
+        return _result_fail("LLM 返回的 bbox 无效")
+    end
+    OpResult r = _result_ok("LLM find: confidence=" + string(confidence))
+    r.data = result
+    return r
+end
+
+// 以参考图在截图中语义找图（设备级 LLMFindImage 的实际实现）
+export func LLMFindImageInImage(string screenshot, string template_path, string description, string model, float min_confidence, string provider, AutomationDevice? device) as OpResult
+    string extra = "无补充描述。"
+    if description != "" then
+        extra = "补充描述：" + description
+    end
+    string prompt = "你是 UI 自动化的参考图定位器。按顺序收到两张图片：第一张是参考图，第二张是当前屏幕截图。\n"
+    prompt = prompt + "请在第二张截图寻找与第一张相同或视觉等价的目标。\n" + extra + "\n"
+    prompt = prompt + "找不到时返回 found=false；找到时只返回 JSON：\n"
+    prompt = prompt + "{\"found\":true,\"confidence\":0.0,\"bbox\":{\"x\":0.0,\"y\":0.0,\"w\":0.0,\"h\":0.0},\"reason\":\"简短依据\"}\n"
+    prompt = prompt + "bbox 必须是第二张截图的 0 到 1 归一化坐标，x,y 为左上角，w,h 为宽高。不要输出 Markdown 或额外文本。"
+
+    LLMClient client = CreateLLM(provider, model)
+    array<string> images = [template_path, screenshot]
+    OpResult response = client.Ask(prompt, images, true)
+    if response.success == false then
+        return response
+    end
+    string text = response.reply
+    float confidence = _llm_extract_confidence(text)
+    bool found = _llm_extract_bool(text, "found") and confidence >= min_confidence
+    if found == false then
+        OpResult r = _result_ok("LLM image find: not found")
+        return r
+    end
+    MatchResult? result = _llm_extract_bbox(text, device)
+    if result == null then
+        return _result_fail("LLM 返回的 bbox 无效")
+    end
+    OpResult r = _result_ok("LLM image find: confidence=" + string(confidence))
+    r.data = result
+    return r
+end
+
+// ─── LLM 后处理内部辅助 ───
+
+// 从 LLM JSON 响应中提取 confidence 字段
+func _llm_extract_confidence(string json_text) as float
+    int pos = string.indexOf(json_text, "\"confidence\"")
+    if pos < 0 then return 0.0 end
+    int colon = _xbot_index_of_from(json_text, ":", pos)
+    if colon < 0 then return 0.0 end
+    int start = colon + 1
+    int len = string.len(json_text)
+    // 跳过空格
+    while start < len and string.mid(json_text, start, 1) == " "
+        start += 1
+    end
+    int end_pos = start
+    while end_pos < len
+        string ch = string.mid(json_text, end_pos, 1)
+        if (ch >= "0" and ch <= "9") or ch == "." then
+            end_pos += 1
+        else
+            break
+        end
+    end
+    if end_pos > start then
+        float val = float(string.mid(json_text, start, end_pos - start))
+        if val > 1.0 then val = 1.0 end
+        if val < 0.0 then val = 0.0 end
+        return val
+    end
+    return 0.0
+end
+
+// 从 LLM JSON 响应中提取布尔字段
+func _llm_extract_bool(string json_text, string key) as bool
+    string search = "\"" + key + "\""
+    int pos = string.indexOf(json_text, search)
+    if pos < 0 then return false end
+    int colon = _xbot_index_of_from(json_text, ":", pos)
+    if colon < 0 then return false end
+    // 检查冒号后的值
+    int start = colon + 1
+    int len = string.len(json_text)
+    while start < len and string.mid(json_text, start, 1) == " "
+        start += 1
+    end
+    if start < len then
+        string ch = string.mid(json_text, start, 1)
+        if ch == "t" or ch == "T" or ch == "1" then
+            return true
+        end
+    end
+    return false
+end
+
+// 从 LLM JSON 响应中提取 bbox 并转换为 MatchResult
+func _llm_extract_bbox(string json_text, AutomationDevice? device) as MatchResult?
+    // 找 "bbox":{
+    int bbox_pos = string.indexOf(json_text, "\"bbox\"")
+    if bbox_pos < 0 then
+        bbox_pos = string.indexOf(json_text, "\"box\"")
+    end
+    if bbox_pos < 0 then return null end
+    // 提取 x, y, w, h
+    float bx = _llm_extract_nested_float(json_text, bbox_pos, "x")
+    float by = _llm_extract_nested_float(json_text, bbox_pos, "y")
+    float bw = _llm_extract_nested_float(json_text, bbox_pos, "w")
+    float bh = _llm_extract_nested_float(json_text, bbox_pos, "h")
+    // 校验
+    if bw <= 0.0 or bh <= 0.0 then return null end
+    // 如果值 > 1 且 <= 100，视为百分比
+    if (bx > 1.0 or by > 1.0 or bw > 1.0 or bh > 1.0) and bx <= 100.0 and by <= 100.0 and bw <= 100.0 and bh <= 100.0 then
+        bx = bx / 100.0
+        by = by / 100.0
+        bw = bw / 100.0
+        bh = bh / 100.0
+    end
+    // 裁剪到 0~1
+    if bx < 0.0 then bx = 0.0 end
+    if by < 0.0 then by = 0.0 end
+    if bx > 1.0 then bx = 1.0 end
+    if by > 1.0 then by = 1.0 end
+    if bx + bw > 1.0 then bw = 1.0 - bx end
+    if by + bh > 1.0 then bh = 1.0 - by end
+    if bw <= 0.0 or bh <= 0.0 then return null end
+    // 转换为像素坐标
+    if device == null then return null end
+    AutomationDevice active = device as AutomationDevice
+    Size s = active.EnsureSize()
+    int px = int(bx * float(s.width))
+    int py = int(by * float(s.height))
+    int pw = int(bw * float(s.width))
+    int ph = int(bh * float(s.height))
+    if pw < 1 then pw = 1 end
+    if ph < 1 then ph = 1 end
+    MatchResult mr = MatchResult(device, px, py, pw, ph)
+    mr.score = _llm_extract_confidence(json_text)
+    return mr
+end
+
+// 从 bbox 对象内提取浮点字段
+func _llm_extract_nested_float(string json_text, int search_start, string key) as float
+    string search = "\"" + key + "\""
+    int pos = _xbot_index_of_from(json_text, search, search_start)
+    if pos < 0 or pos > search_start + 200 then return 0.0 end
+    int colon = _xbot_index_of_from(json_text, ":", pos)
+    if colon < 0 then return 0.0 end
+    int start = colon + 1
+    int len = string.len(json_text)
+    while start < len and string.mid(json_text, start, 1) == " "
+        start += 1
+    end
+    int end_pos = start
+    if end_pos < len and string.mid(json_text, end_pos, 1) == "-" then
+        end_pos += 1
+    end
+    while end_pos < len
+        string ch = string.mid(json_text, end_pos, 1)
+        if (ch >= "0" and ch <= "9") or ch == "." then
+            end_pos += 1
+        else
+            break
+        end
+    end
+    if end_pos > start then
+        return float(string.mid(json_text, start, end_pos - start))
+    end
+    return 0.0
+end

@@ -840,15 +840,15 @@ func verifyRoundtrip(Buffer data, string label) as int
     println("  decompress: " + float.format((t3 - t2) * 1000.0, ".3") + " ms")
 
     // Verify roundtrip: byte-by-byte comparison
-    bool match = true
+    bool matched = true
     if decompressed.length != origSize then
-        match = false
+        matched = false
         println("  length mismatch: " + string(decompressed.length) + " vs " + string(origSize))
     else
         int i = 0
         while i < origSize
             if decompressed[i] != data.byteAt(i) then
-                match = false
+                matched = false
                 println("  byte mismatch at offset " + string(i) + ": " + string(decompressed[i]) + " vs " + string(data.byteAt(i)))
                 break
             end
@@ -859,12 +859,12 @@ func verifyRoundtrip(Buffer data, string label) as int
     int decompCrc = crc32Arr(decompressed)
 
     println("  CRC32:      orig=" + formatHex32(origCrc) + "  decomp=" + formatHex32(decompCrc) + "  " + (origCrc == decompCrc ? "[MATCH]" : "[DIFF]"))
-    println("  roundtrip:  " + (match ? "PASS" : "FAIL"))
+    println("  roundtrip:  " + (matched ? "PASS" : "FAIL"))
 
     // File-name fingerprint using hash standard library
     println("  hash.u64(name): " + int.format(hash.u64(label), "x16"))
 
-    if not match then
+    if not matched then
         return 1
     end
     return 0

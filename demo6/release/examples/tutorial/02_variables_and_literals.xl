@@ -11,9 +11,9 @@ func main(...) as int
     auto inferred = 43
     var dynamic = "43"
 
-    int defaultInt
-    bool defaultBool
-    string defaultString
+    int defaultInt = 0
+    bool defaultBool = false
+    string defaultString = ""
     var defaultVar
 
     Count count = 7

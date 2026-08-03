@@ -1,27 +1,94 @@
+// bloom 扩展库教学范例
+// 布隆过滤器（Bloom Filter）：以极小内存做集合存在性判定，允许极低误判率，绝不漏判。
+// 本范例逐步覆盖全部 API：创建 / 增删查 / 批量 / 基数估计 / 序列化 / 合并 / 克隆 / 计数版。
 import bloom
 
 
 
 func main(...) as int
+    // ─── 1. 创建过滤器 & 基础查询 ───
+    // create(容量, 期望误判率)，误判率可省略（默认 0.01 = 1%）
     auto f = bloom.create(10000, 0.001)
-    println("bits:", f.bits, "hashes:", f.hashes)
 
+    println("有效: ", f.valid)        // true
+    println("容量: ", f.capacity)     // 10000（创建时声明的元素上限）
+    println("位数: ", f.bits)         // 位数组总位数（由容量+误判率推导）
+    println("哈希数: ", f.hashes)     // 独立哈希函数个数 k
+    println("元素数: ", f.count)      // 0（add 调用次数）
+
+    // ─── 2. 添加与存在性判定 ───
     f.add("user:1001")
     f.add("user:1002")
     f.add("user:1003")
 
-    println("contains user:1001 =", f.contains("user:1001"))
-    println("contains user:9999 =", f.contains("user:9999"))
-    println("count:", f.count)
+    // contains：可能存在 / 一定不存在。返回 true 不代表一定存在（有误判），返回 false 则一定不存在。
+    println("含 user:1001 = ", f.contains("user:1001"))  // true
+    println("含 user:9999 = ", f.contains("user:9999"))  // false（一定不在）
+    println("元素数: ", f.count)                          // 3
 
+    // ─── 3. 批量操作 ───
+    f.addAll(["user:2001", "user:2002", "user:2003"])
+    println("批量后元素数: ", f.count)                                  // 6
+    println("全部命中: ", f.containsAll(["user:1001", "user:2001"]))   // true
+    println("含缺失项: ", f.containsAll(["user:1001", "user:0"]))      // false
+    println("任一命中: ", f.containsAny(["user:0", "user:2002"]))      // true
+
+    // ─── 4. 基数估计与运行时误判率 ───
+    // count 是 add 调用次数（含重复）；estimatedCount 由填充率反推的去重基数估计。
+    println("估计基数: ", f.estimatedCount())
+    // estimatedFpp：当前填充率下的实际误判概率，随元素增多而上升。
+    println("当前误判率: ", f.estimatedFpp())
+
+    // ─── 5. 序列化与反序列化（持久化 / 跨进程共享）───
+    string blob = f.serialize()           // 导出为可移植 hex 字符串
+    println("序列化长度: ", string.len(blob))
+
+    auto restored = bloom.deserialize(blob)
+    println("还原有效: ", restored.valid)               // true
+    println("还原元素数: ", restored.count)             // 6
+    println("还原含 user:1001 = ", restored.contains("user:1001"))  // true
+
+    // ─── 6. 合并（并集）与克隆 ───
+    auto a = bloom.create(10000, 0.001)
+    auto b = bloom.create(10000, 0.001)
+    a.add("left")
+    b.add("right")
+
+    // merge：就地并集，a 之后也包含 b 的全部元素。维度不一致时返回 false。
+    println("合并成功: ", a.merge(b))     // true
+    println("a 含 right = ", a.contains("right"))  // true
+
+    // clone：独立深拷贝。配合 merge 实现「非破坏性并集」——不改动原过滤器。
+    auto u1 = bloom.create(10000, 0.001)
+    auto u2 = bloom.create(10000, 0.001)
+    u1.add("p")
+    u2.add("q")
+    auto combined = u1.clone()
+    combined.merge(u2)
+    println("combined 含 p = ", combined.contains("p"))  // true
+    println("combined 含 q = ", combined.contains("q"))  // true
+    println("u1 仍不含 q = ", not u1.contains("q"))      // true（原过滤器未受影响）
+
+    // ─── 7. 计数布隆过滤器（支持删除）───
+    // 标准布隆过滤器不可删除；计数版用 4-bit 计数器记录每个槽位，从而支持 remove。
     auto cf = bloom.createCounting(5000)
+    println("计数版槽数: ", cf.slots, " 哈希数: ", cf.hashes)
+
     cf.add("session:abc")
     cf.add("session:def")
-    println("cf contains session:abc =", cf.contains("session:abc"))
+    println("cf 含 session:abc = ", cf.contains("session:abc"))  // true
 
     cf.remove("session:abc")
-    println("after remove, contains session:abc =", cf.contains("session:abc"))
-    println("cf count:", cf.count)
+    println("删除后含 session:abc = ", cf.contains("session:abc"))  // false
+    println("cf 仍含 session:def = ", cf.contains("session:def"))  // true
+    println("cf 元素数: ", cf.count)                                 // 1
+
+    // 计数版同样支持批量 / 估计 / 序列化 / 合并 / 克隆
+    cf.addAll(["s1", "s2"])
+    println("cf 估计基数: ", cf.estimatedCount())
+    string cblob = cf.serialize()
+    auto crf = bloom.deserializeCounting(cblob)
+    println("计数版还原含 s1 = ", crf.contains("s1"))  // true
 
     println("bloom example: PASS")
     return 0

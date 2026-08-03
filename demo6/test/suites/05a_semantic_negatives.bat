@@ -4,6 +4,17 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: semantic negatives...
 
+release\xl.exe check test\cases\sem_string_index_unsupported.xl >nul 2> build\test\sem_string_index_unsupported.err.txt
+if not errorlevel 1 (
+    echo sem_string_index_unsupported.xl should fail.
+    exit /b 1
+)
+findstr /C:"string does not support [] index access" build\test\sem_string_index_unsupported.err.txt >nul
+if errorlevel 1 (
+    echo sem_string_index_unsupported.err.txt missing string index diagnostic.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\sem_logical_operand_type.xl >nul 2> build\test\sem_logical_operand_type.err.txt
 if not errorlevel 1 (
     echo sem_logical_operand_type.xl should fail.

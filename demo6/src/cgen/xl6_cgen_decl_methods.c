@@ -30,6 +30,32 @@ static void xl6CgenRegisterParamTypesEx(XL6_CgenContext* ctx, const XL6_AstNode*
                 if ( modeFlags == 0 && !borrowXValues && xl6CgenIsXValueType(param->children[0]) ) {
                     xl6CgenAddXValueCleanup(ctx, param->text, param->children[0]);
                 }
+                if ( modeFlags == 0 && !borrowXValues && xl6CgenIsWeakType(param->children[0]) ) {
+                    xl6CgenAddWeakCleanup(ctx, param->text, param->children[0]);
+                }
+                if ( modeFlags == 0 && !borrowXValues &&
+                     xl6CgenIsFunctionType(param->children[0]) ) {
+                    xl6CgenAddFunctionCleanup(
+                        ctx,
+                        param->text,
+                        param->children[0]);
+                }
+                if ( modeFlags == 0 && !borrowXValues &&
+                     xl6CgenNullableHasManagedInner(
+                         ctx,
+                         param->children[0]) ) {
+                    xl6CgenAddNullableManagedCleanup(
+                        ctx,
+                        param->text,
+                        param->children[0]);
+                }
+                if ( modeFlags == 0 && !borrowXValues &&
+                     xl6CgenIsTaggedEnumType(ctx, param->children[0]) ) {
+                    xl6CgenAddTypedValueCleanup(
+                        ctx,
+                        param->text,
+                        param->children[0]);
+                }
             }
         }
     }
@@ -73,18 +99,31 @@ static void xl6CgenEmitManagedParamOwners(XL6_CgenContext* ctx, const XL6_AstNod
             /* 调用侧已经传递一个 owned 句柄；默认模式和 byval 都共享对象身份。 */
             continue;
         }
-        if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+        if ( xl6CgenIsOwnedStringTypeNode(ctx, typeNode) ) {
             char paramName[512];
+            int nullableString =
+                xl6CgenIsNullableStringTypeNode(ctx, typeNode);
 
             xl6CgenCIdentText(paramName, sizeof(paramName), param->text);
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out,
-                            "%s = xrtCopyStr(%s != 0 ? %s : \"\", 0u);\n",
-                            paramName,
-                            paramName,
-                            paramName);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_runtime_fatal(3); }\n", paramName);
+            if ( nullableString ) {
+                xl6OutputPrintf(
+                    ctx->out,
+                    "%s = xl6_nullable_string_copy(%s);\n",
+                    paramName,
+                    paramName);
+            } else {
+                xl6OutputPrintf(ctx->out,
+                                "%s = xrtCopyStr(%s != 0 ? %s : \"\", 0u);\n",
+                                paramName,
+                                paramName,
+                                paramName);
+                xl6CgenIndent(ctx);
+                xl6OutputPrintf(
+                    ctx->out,
+                    "if (%s == 0) { xl6_runtime_fatal(3); }\n",
+                    paramName);
+            }
             xl6CgenAddStringCleanup(ctx, param->text, typeNode);
             continue;
         }
@@ -242,7 +281,7 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
         }
         xl6CgenCIdentText(cFieldName, sizeof(cFieldName), member->text);
         typeNode = member->children[0];
-        if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+        if ( xl6CgenIsOwnedStringTypeNode(ctx, typeNode) ) {
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "xrtFree((void*)self->%s); self->%s = 0;\n", cFieldName, cFieldName);
             continue;
@@ -250,6 +289,11 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
         if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
             snprintf(path, sizeof(path), "self->%s", cFieldName);
             xl6CgenTypedContainerFieldRef(ctx, typeNode, path, 0);
+            continue;
+        }
+        if ( xl6CgenIsWeakType(typeNode) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "xvoWeakUnit(&self->%s);\n", cFieldName);
             continue;
         }
         if ( xl6CgenIsXValueType(typeNode) ) {
@@ -270,6 +314,21 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
+            continue;
+        }
+        if ( xl6CgenNullableHasManagedInner(ctx, typeNode) ) {
+            char dropName[64];
+
+            xl6CgenNullableDropHelperName(
+                dropName,
+                sizeof(dropName),
+                typeNode);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(
+                ctx->out,
+                "%s(&self->%s);\n",
+                dropName,
+                cFieldName);
             continue;
         }
         nativeClassNode = xl6CgenFindNativeBackedClass(ctx, typeNode != NULL ? typeNode->text : NULL);
@@ -723,6 +782,7 @@ static void xl6CgenClassExportWrapper(XL6_CgenContext* ctx, const XL6_AstNode* c
     size_t i;
     const XL6_AstNode* returns;
     const XL6_AstNode* params;
+    int hasParamTemps;
 
     xl6CgenClassExportWrapperProto(ctx, classNode, funcNode);
     xl6OutputPuts("\n{\n", ctx->out);
@@ -730,18 +790,29 @@ static void xl6CgenClassExportWrapper(XL6_CgenContext* ctx, const XL6_AstNode* c
 
     returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
     params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
+    hasParamTemps = xl6CgenExportWrapperHasParamTemps(ctx, params);
+    xl6CgenEmitExportWrapperParamTemps(ctx, params);
 
     xl6CgenIndent(ctx);
     if ( returns != NULL && returns->childCount > 1 ) {
         xl6CgenFuncReturnStructName(ctx, funcNode);
         xl6OutputPuts(" __xl6_return = ", ctx->out);
     } else if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts("return ", ctx->out);
+        if ( hasParamTemps ) {
+            xl6OutputPuts(xl6CgenCAbiTypeName(ctx, returns->children[0]), ctx->out);
+            xl6OutputPuts(" __xl6_return = ", ctx->out);
+        } else {
+            xl6OutputPuts("return ", ctx->out);
+        }
     }
     xl6CgenClassCallableSymbol(ctx, classNode, funcNode);
     xl6OutputPuts("(self", ctx->out);
-    xl6CgenEmitNativeExternArgNames(ctx, params, 1);
+    if ( params != NULL && params->childCount > 0 ) {
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenEmitExportWrapperParamArgs(ctx, params);
+    }
     xl6OutputPuts(");\n", ctx->out);
+    xl6CgenEmitExportWrapperParamTempCleanups(ctx, params);
 
     if ( returns != NULL && returns->childCount > 1 ) {
         for ( i = 0; i < returns->childCount; ++i ) {
@@ -756,6 +827,11 @@ static void xl6CgenClassExportWrapper(XL6_CgenContext* ctx, const XL6_AstNode* c
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
         }
+    } else if ( hasParamTemps &&
+               returns != NULL &&
+               returns->childCount == 1 ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("return __xl6_return;\n", ctx->out);
     }
 
     ctx->indent -= 1;
@@ -790,6 +866,8 @@ static void xl6CgenClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* classNo
             if ( member->text != NULL && member->text[0] != '\0' ) {
                 xl6CgenClassExportWrapper(ctx, classNode, member);
             }
+        } else if ( member->kind == XL6_AST_ASYNC_FUNC ) {
+            xl6CgenAsyncClassFunc(ctx, classNode, NULL, member);
         } else if ( member->kind == XL6_AST_FUNC || member->kind == XL6_AST_GET || member->kind == XL6_AST_LET ) {
             xl6CgenClassFunc(ctx, classNode, member);
         } else if ( member->kind == XL6_AST_CREATE ) {
@@ -863,7 +941,13 @@ static void xl6CgenGenericClassMethods(XL6_CgenContext* ctx)
         hasDestroy = 0;
         for ( j = 0; j < body->childCount; ++j ) {
             const XL6_AstNode* member = body->children[j];
-            if ( member != NULL &&
+            if ( member != NULL && member->kind == XL6_AST_ASYNC_FUNC ) {
+                xl6CgenAsyncClassFunc(
+                    ctx,
+                    classNode,
+                    typeNode,
+                    member);
+            } else if ( member != NULL &&
                  (member->kind == XL6_AST_FUNC || member->kind == XL6_AST_GET || member->kind == XL6_AST_LET) ) {
                 xl6CgenGenericClassFunc(ctx, classNode, typeNode, member);
             } else if ( member != NULL && member->kind == XL6_AST_CREATE ) {
@@ -876,6 +960,7 @@ static void xl6CgenGenericClassMethods(XL6_CgenContext* ctx)
         if ( !hasDestroy && xl6CgenGenericClassNeedsDestroy(ctx, classNode, typeNode) ) {
             xl6CgenGenericClassAutoDestroy(ctx, classNode, typeNode);
         }
+        xl6CgenEmitGenericDynamicMethodDefinitions(ctx, classNode, typeNode);
     }
 }
 
@@ -965,7 +1050,12 @@ static void xl6CgenNativeClassMethods(XL6_CgenContext* ctx, const XL6_AstNode* n
 
     for ( i = 0; i < body->childCount; ++i ) {
         const XL6_AstNode* member = body->children[i];
-        if ( member != NULL && member->kind == XL6_AST_FUNC ) {
+        if ( member != NULL && member->kind == XL6_AST_ASYNC_FUNC ) {
+            xl6CgenAsyncNativeClassFunc(
+                ctx,
+                nativeClassNode,
+                member);
+        } else if ( member != NULL && member->kind == XL6_AST_FUNC ) {
             xl6CgenNativeClassFunc(ctx, nativeClassNode, member);
         }
     }

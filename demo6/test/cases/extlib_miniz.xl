@@ -1,0 +1,124 @@
+import miniz
+
+
+
+func main(...) as int
+    Buffer source = Buffer()
+    source.append("abc")
+    source.appendByte(0)
+    source.appendByte(255)
+    Buffer packed = miniz.compress(source)
+    Buffer plain = miniz.decompress(packed)
+    if not (plain == source) then
+        return 1
+    end
+
+    auto encoder = miniz.compressor()
+    encoder.update("left")
+    encoder.update("right")
+    encoder.finish()
+    Buffer incremental = encoder.drain()
+    auto decoder = miniz.decompressor()
+    decoder.update(incremental)
+    decoder.finish()
+    if decoder.drain().text() != "leftright" then
+        return 2
+    end
+    if decoder.members != 1 then
+        return 6
+    end
+
+    // 流式分块收集 + 字节计数器（进度回显基础）。
+    auto enc2 = miniz.compressor()
+    Buffer collected = Buffer()
+    enc2.update("aaaa")
+    collected.append(enc2.drain())
+    enc2.update("bbbb")
+    collected.append(enc2.drain())
+    enc2.finish()
+    collected.append(enc2.drain())
+    if enc2.inputBytes != 8 then
+        return 7
+    end
+    auto dec2 = miniz.decompressor()
+    dec2.update(collected)
+    dec2.finish()
+    if dec2.drain().text() != "aaaabbbb" then
+        return 8
+    end
+    if not dec2.finished then
+        return 9
+    end
+
+    // 最高压缩级别与级别常量。
+    auto enc3 = miniz.compressor(miniz.MINIZ_MAX_LEVEL)
+    enc3.update("tune")
+    enc3.finish()
+    if miniz.decompress(enc3.drain()).text() != "tune" then
+        return 10
+    end
+    bool badLevel = false
+    try
+        miniz.compressor(99)
+    catch ValueError e
+        badLevel = true
+    end
+    if not badLevel then
+        return 11
+    end
+
+    // 串联多成员流：两个独立成员拼接后一次解出。
+    auto frameA = miniz.compressor()
+    frameA.update("AAA")
+    frameA.finish()
+    auto frameB = miniz.compressor()
+    frameB.update("BBB")
+    frameB.finish()
+    Buffer joined = Buffer()
+    joined.append(frameA.drain())
+    joined.append(frameB.drain())
+    auto multi = miniz.decompressor()
+    multi.update(joined)
+    multi.finish()
+    if multi.drain().text() != "AAABBB" then
+        return 12
+    end
+    if multi.members != 2 then
+        return 13
+    end
+
+    bool rejected = false
+    int mid = incremental.len() / 2
+    incremental[mid] = incremental[mid] ^ 255
+    try
+        miniz.decompress(incremental)
+    catch CompressionError e
+        rejected = true
+    end
+    if not rejected then
+        return 3
+    end
+
+    string sourcePath = "tmp/extlib_miniz_source.bin"
+    string packedPath = "tmp/extlib_miniz_stream.miniz"
+    string plainPath = "tmp/extlib_miniz_plain.bin"
+    file.writeBytes(sourcePath, source)
+    miniz.compressFile(sourcePath, packedPath)
+    miniz.decompressFile(packedPath, plainPath)
+    if file.readBytes(plainPath) != source then
+        return 4
+    end
+    bool overwriteRejected = false
+    try
+        miniz.compressFile(sourcePath, packedPath, overwrite = false)
+    catch CompressionError e
+        overwriteRejected = true
+    end
+    if not overwriteRejected then
+        return 5
+    end
+    file.delete(sourcePath)
+    file.delete(packedPath)
+    file.delete(plainPath)
+    return 0
+end

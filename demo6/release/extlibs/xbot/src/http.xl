@@ -1,0 +1,71 @@
+// xbot/http.xl - 基于 xlang/XRT 标准库的 HTTP 与文件编码薄封装
+
+func _xbot_apply_headers(HttpClientRequest request, string headers)
+    string normalized = string.replace(headers, "\r\n", "\n")
+    array<string> lines = string.split(normalized, "\n")
+    int index = 0
+    while index < lines.length
+        string line = string.trim(lines[index])
+        int colon = string.indexOf(line, ":")
+        if colon > 0 then
+            string name = string.trim(string.mid(line, 0, colon))
+            string value = string.trim(string.mid(line, colon + 1, string.len(line) - colon - 1))
+            if name != "" then
+                request.addHeader(name, value)
+            end
+        end
+        index += 1
+    end
+end
+
+func _xbot_http_response(string method, string url, string body, string headers, int timeout_ms) as HttpClientResponse
+    HttpClientRequest request = HttpClientRequest(url)
+    request.method(method)
+    request.timeout(timeout_ms)
+    request.idleTimeout(timeout_ms)
+    _xbot_apply_headers(request, headers)
+    if body != "" then
+        request.text(body)
+    end
+    return request.execute()
+end
+
+func _xbot_http_request(string method, string url, string body, string headers, int timeout_ms) as string
+    return _xbot_http_response(method, url, body, headers, timeout_ms).body()
+end
+
+func _xbot_http_post_status(string url, string body, string headers, int timeout_ms) as string
+    HttpClientResponse response = _xbot_http_response("POST", url, body, headers, timeout_ms)
+    return string(response.status()) + "\r\n" + response.body()
+end
+
+func _xbot_http_get(string url, int timeout_ms) as string
+    return _xbot_http_response("GET", url, "", "", timeout_ms).body()
+end
+
+func _xbot_http_download(string url, string save_path, int timeout_ms) as int
+    HttpClientResponse response = _xbot_http_response("GET", url, "", "", timeout_ms)
+    if response.status() < 200 or response.status() >= 300 then
+        return 0
+    end
+    if file.writeBytes(save_path, response.bodyBytes()) then
+        return 1
+    end
+    return 0
+end
+
+func _xbot_file_mime(string file_path) as string
+    string extension = string.lower(path.ext(file_path))
+    if extension == "png" then return "image/png" end
+    if extension == "jpg" or extension == "jpeg" then return "image/jpeg" end
+    if extension == "gif" then return "image/gif" end
+    if extension == "webp" then return "image/webp" end
+    if extension == "bmp" then return "image/bmp" end
+    return "application/octet-stream"
+end
+
+func _xbot_base64_file(string file_path) as string
+    Buffer data = file.readBytes(file_path)
+    string encoded = codec.base64EncodeBytes(data.data(), c_size(data.len()))
+    return "data:" + _xbot_file_mime(file_path) + ";base64," + encoded
+end

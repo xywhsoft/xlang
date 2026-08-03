@@ -1,0 +1,8 @@
+import tcc as tc
+
+func main(...) as int
+    if tc.MEMORY < 0 then
+        return 1
+    end
+    return 0
+end

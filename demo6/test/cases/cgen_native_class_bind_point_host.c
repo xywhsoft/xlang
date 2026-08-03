@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 typedef struct BorrowedBox {
     long long value;
@@ -39,6 +40,7 @@ long long borrowed_box_value(void* self)
 void expect_i64(long long actual, long long expected)
 {
     if ( actual != expected ) {
+        fprintf(stderr, "cgen_native_class_bind_point: actual=%lld expected=%lld\n", actual, expected);
         exit(1);
     }
 }

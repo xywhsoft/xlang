@@ -1,27 +1,78 @@
 import lz4
 
-assert lz4.available(), "lz4 available failed"
 
-string sample = "lz4 extension round trip text"
-string srcPath = "examples_out/extlibs/lz4_source.txt"
-string packedPath = "examples_out/extlibs/lz4_source.lz4"
-string outPath = "examples_out/extlibs/lz4_out.txt"
 
-dir.createAll("examples_out/extlibs")
-file.writeText(srcPath, sample)
-file.delete(packedPath)
-file.delete(outPath)
+func main(...) as int
+    // ─── 1. 一次性压缩 / 解压（Buffer 二进制安全）───
+    Buffer source = Buffer()
+    source.append("xlang lz4 ")
+    source.appendByte(0)
+    source.appendByte(255)
 
-assert string.len(lz4.version()) > 0, "lz4 version missing"
-string packedHex = lz4.compress_hex(sample)
-string packedAliasHex = lz4.compress(sample)
-assert string.len(packedHex) > 0, "lz4 compress_hex failed"
-assert string.len(packedAliasHex) > 0, "lz4 compress alias failed"
-assert lz4.decompress_hex(packedHex) == sample, "lz4 decompress_hex mismatch"
-assert lz4.decompress(packedAliasHex) == sample, "lz4 decompress alias mismatch"
-assert lz4.compress_file(srcPath, packedPath) != 0, "lz4 compress_file failed"
-assert lz4.decompress_file(packedPath, outPath) != 0, "lz4 decompress_file failed"
-assert file.readText(outPath) == sample, "lz4 file round trip mismatch"
-assert string.len(lz4.last_error()) >= 0, "lz4 last_error should return a string"
+    Buffer packed = lz4.compress(source)
+    Buffer plain = lz4.decompress(packed)
+    assert plain == source, "lz4 Buffer round trip failed"
+    println("一次性: ", source.len(), " 字节 -> ", packed.len(), " 字节")
 
-println("lz4 extlib ok")
+    // 直接压缩字符串（内部自动转 Buffer）。
+    Buffer textPacked = lz4.compress("hello lz4")
+    assert lz4.decompressText(textPacked) == "hello lz4"
+    println("引擎版本: ", lz4.version())
+
+    // ─── 2. 增量流式压缩：update -> drain -> finish ───
+    // drain() 随时取走已产出的压缩字节，适合边喂数据边落盘/发送。
+    auto encoder = lz4.compressor()
+    Buffer streamPacked = Buffer()
+    encoder.update("hello ")
+    streamPacked.append(encoder.drain())
+    encoder.update("stream")
+    streamPacked.append(encoder.drain())
+    encoder.finish()                 // 封存流（写入成员结束标记）
+    streamPacked.append(encoder.drain())
+    println("流式压缩: 喂入 ", encoder.inputBytes, " 字节, 产出 ",
+        encoder.outputBytes, " 字节")
+
+    // ─── 3. 增量流式解压 + 进度回显 + 多成员统计 ───
+    auto decoder = lz4.decompressor()
+    Buffer restored = Buffer()
+    decoder.update(streamPacked)
+    restored.append(decoder.drain()) // 取走已解压数据
+    println("解压进度: 已喂入 ", decoder.inputBytes, " / 已产出 ",
+        decoder.outputBytes, " 字节, 完成=", decoder.finished)
+    decoder.finish()                 // 校验流完整性
+    restored.append(decoder.drain())
+    assert restored.text() == "hello stream", "lz4 incremental round trip failed"
+    println("成员数: ", decoder.members) // 1；>1 表示串联多成员流
+
+    // ─── 4. 加速因子调优（1..65537，越大越快但压缩率越低）───
+    auto tuned = lz4.compressor(lz4.LZ4_MAX_ACCELERATION)
+    tuned.update("tune me")
+    tuned.finish()
+    assert lz4.decompress(tuned.drain()).text() == "tune me"
+    println("最高加速流式往返: OK")
+
+    // ─── 5. 损坏数据必然抛 CompressionError（块体安全校验生效）───
+    bool rejected = false
+    int mid = streamPacked.len() / 2
+    streamPacked[mid] = streamPacked[mid] ^ 255
+    try
+        lz4.decompress(streamPacked)
+    catch CompressionError e
+        rejected = true
+    end
+    assert rejected, "corrupt lz4 must raise CompressionError"
+    println("损坏检出: OK")
+
+    // ─── 6. 文件便捷接口（XRT reader/writer，临时文件+原子重命名）───
+    dir.createAll("tmp")
+    file.writeBytes("tmp/lz4_example_source.bin", source)
+    lz4.compressFile("tmp/lz4_example_source.bin", "tmp/lz4_example.lz4")
+    lz4.decompressFile("tmp/lz4_example.lz4", "tmp/lz4_example_plain.bin")
+    assert file.readBytes("tmp/lz4_example_plain.bin") == source
+    file.delete("tmp/lz4_example_source.bin")
+    file.delete("tmp/lz4_example.lz4")
+    file.delete("tmp/lz4_example_plain.bin")
+
+    println("lz4 example: PASS")
+    return 0
+end

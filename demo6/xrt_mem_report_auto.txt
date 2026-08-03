@@ -24,79 +24,578 @@
 ## Live Objects
 
 ## Site Stats
-- site=D:\GIT\xrt\lib/queue.h:528 allocator=global alloc_count=1 alloc_bytes=64 free_count=1 free_bytes=64 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=64
-- site=D:\GIT\xrt\lib/queue.h:1355 allocator=global alloc_count=1 alloc_bytes=192 free_count=1 free_bytes=192 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=192
-- site=D:\GIT\xrt\lib/typed_special.h:600 allocator=global alloc_count=2 alloc_bytes=16 free_count=2 free_bytes=16 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=8
-- site=D:\GIT\xrt\lib/queue.h:901 allocator=global alloc_count=1 alloc_bytes=128 free_count=1 free_bytes=128 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=128
-- site=D:\GIT\xrt\lib/queue.h:937 allocator=global alloc_count=1 alloc_bytes=168 free_count=1 free_bytes=168 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=168
-- site=D:\GIT\xrt\lib/typed_special.h:528 allocator=global alloc_count=2 alloc_bytes=80 free_count=2 free_bytes=80 live_count=0 live_bytes=0 peak_live_count=2 peak_live_bytes=80
-- site=D:\GIT\xrt\lib/array.h:24 allocator=global alloc_count=1 alloc_bytes=2056 free_count=1 free_bytes=2056 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=2056
-- site=D:\GIT\xrt\lib/avltree_base.h:339 allocator=global alloc_count=1 alloc_bytes=392 free_count=1 free_bytes=392 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=392
-- site=D:\GIT\xrt\lib/typed_container.h:113 allocator=global alloc_count=1 alloc_bytes=96 free_count=1 free_bytes=96 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=96
-- site=D:\GIT\xrt\lib/mempool_fs.h:179 allocator=fsmempool alloc_count=2 alloc_bytes=96 free_count=0 free_bytes=0 live_count=2 live_bytes=96 peak_live_count=2 peak_live_bytes=96
-- site=D:\GIT\xrt\lib/bsmm.h:35 allocator=global alloc_count=1 alloc_bytes=512 free_count=1 free_bytes=512 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=512
-- site=D:\GIT\xrt\lib/bsmm.h:156 allocator=global alloc_count=1 alloc_bytes=8192 free_count=1 free_bytes=8192 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=8192
-- site=D:\GIT\xrt\lib/memunit.h:18 allocator=global alloc_count=1 alloc_bytes=13632 free_count=1 free_bytes=13632 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=13632
-- site=D:\GIT\xrt\lib/typed_special.h:237 allocator=global alloc_count=1 alloc_bytes=376 free_count=1 free_bytes=376 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=376
-- site=D:\GIT\xrt\lib/array_point.h:26 allocator=global alloc_count=1 alloc_bytes=512 free_count=1 free_bytes=512 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=512
-- site=D:\GIT\xrt\lib/stack_dyn.h:112 allocator=global alloc_count=1 alloc_bytes=2048 free_count=1 free_bytes=2048 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=2048
-- site=D:\GIT\xrt\lib/typed_special.h:40 allocator=global alloc_count=1 alloc_bytes=104 free_count=1 free_bytes=104 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=104
-- site=D:\GIT\xrt\lib/string.h:181 allocator=global alloc_count=7 alloc_bytes=50 free_count=7 free_bytes=50 live_count=0 live_bytes=0 peak_live_count=7 peak_live_bytes=50
-- site=D:\GIT\xrt\lib/charset.h:236 allocator=global alloc_count=1 alloc_bytes=70 free_count=1 free_bytes=70 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=70
+- site=./src/cgen/xl6_cgen_loop_target.c:18 allocator=global alloc_count=1 alloc_bytes=256 free_count=1 free_bytes=256 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=256
+- site=./src/cgen/xl6_cgen_expr_cleanup.c:996 allocator=global alloc_count=9 alloc_bytes=1152 free_count=9 free_bytes=1152 live_count=0 live_bytes=0 peak_live_count=2 peak_live_bytes=256
+- site=./src/cgen/xl6_cgen_expr_cleanup.c:955 allocator=global alloc_count=1 alloc_bytes=1024 free_count=1 free_bytes=1024 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=1024
+- site=./src/cgen/xl6_cgen_core_names.c:27 allocator=global alloc_count=1 alloc_bytes=4127 free_count=1 free_bytes=4127 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=4127
+- site=./src/cgen/xl6_cgen_core_state.c:207 allocator=global alloc_count=1 alloc_bytes=128 free_count=1 free_bytes=128 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=128
+- site=./lib/xrt/xrt.h:98937 allocator=global alloc_count=2 alloc_bytes=196705 free_count=2 free_bytes=196705 live_count=0 live_bytes=0 peak_live_count=2 peak_live_bytes=196705
+- site=./src/cgen/xl6_cgen_core_runtime_state.c:439 allocator=global alloc_count=3 alloc_bytes=448 free_count=3 free_bytes=448 live_count=0 live_bytes=0 peak_live_count=2 peak_live_bytes=384
+- site=./src/cgen/xl6_cgen_expr_cleanup.c:12 allocator=global alloc_count=1 alloc_bytes=640 free_count=1 free_bytes=640 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=640
+- site=./src/cgen/xl6_cgen_core_runtime_state.c:295 allocator=global alloc_count=1 alloc_bytes=64 free_count=1 free_bytes=64 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=64
+- site=./src/cgen/xl6_cgen_core_state.c:122 allocator=global alloc_count=1 alloc_bytes=512 free_count=1 free_bytes=512 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=512
+- site=./src/cgen/xl6_cgen_closure.c:57 allocator=global alloc_count=4 alloc_bytes=1216 free_count=4 free_bytes=1216 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=352
+- site=./src/cgen/xl6_cgen_closure.c:26 allocator=global alloc_count=8 alloc_bytes=3712 free_count=8 free_bytes=3712 live_count=0 live_bytes=0 peak_live_count=2 peak_live_bytes=1216
+- site=./src/cgen/xl6_cgen_core_lookup.c:41 allocator=global alloc_count=1 alloc_bytes=320 free_count=1 free_bytes=320 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=320
+- site=./lib/xrt/xrt.h:98899 allocator=global alloc_count=1 alloc_bytes=24 free_count=1 free_bytes=24 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=24
+- site=src\ir\xl6_hir.c:798 allocator=global alloc_count=1 alloc_bytes=1676 free_count=1 free_bytes=1676 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=1676
+- site=src\ir\xl6_hir_type.c:214 allocator=global alloc_count=4 alloc_bytes=16 free_count=4 free_bytes=16 live_count=0 live_bytes=0 peak_live_count=4 peak_live_bytes=16
+- site=src\ir\xl6_hir_type.c:425 allocator=global alloc_count=28 alloc_bytes=112 free_count=28 free_bytes=112 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=4
+- site=src\ir\xl6_hir.c:386 allocator=global alloc_count=2 alloc_bytes=3072 free_count=2 free_bytes=3072 live_count=0 live_bytes=0 peak_live_count=2 peak_live_bytes=3072
+- site=src\ir\xl6_hir_type.c:193 allocator=global alloc_count=1 alloc_bytes=2048 free_count=1 free_bytes=2048 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=2048
+- site=src\ir\xl6_hir_type.c:118 allocator=global alloc_count=1 alloc_bytes=1024 free_count=1 free_bytes=1024 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=1024
+- site=src\ir\xl6_hir.c:155 allocator=global alloc_count=1 alloc_bytes=1024 free_count=1 free_bytes=1024 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=1024
+- site=src\ir\xl6_hir.c:609 allocator=global alloc_count=226 alloc_bytes=1672 free_count=226 free_bytes=1672 live_count=0 live_bytes=0 peak_live_count=9 peak_live_bytes=212
+- site=src\ir\xl6_hir.c:77 allocator=global alloc_count=3 alloc_bytes=28672 free_count=3 free_bytes=28672 live_count=0 live_bytes=0 peak_live_count=2 peak_live_bytes=24576
+- site=src\ir\xl6_hir.c:322 allocator=global alloc_count=3 alloc_bytes=86016 free_count=3 free_bytes=86016 live_count=0 live_bytes=0 peak_live_count=2 peak_live_bytes=73728
+- site=src\sem\xl6_sem.c:7774 allocator=global alloc_count=2 alloc_bytes=28 free_count=2 free_bytes=28 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=20
+- site=src\sem\xl6_sem.c:6052 allocator=global alloc_count=14 alloc_bytes=112 free_count=14 free_bytes=112 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=8
+- site=src\sem\xl6_sem.c:833 allocator=global alloc_count=4 alloc_bytes=58 free_count=4 free_bytes=58 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=16
+- site=src\sem\xl6_sem.c:832 allocator=global alloc_count=4 alloc_bytes=464 free_count=4 free_bytes=464 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=128
+- site=src\sem\xl6_sem.c:3832 allocator=global alloc_count=9 alloc_bytes=100 free_count=9 free_bytes=100 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=20
+- site=src\sem\xl6_sem.c:14821 allocator=global alloc_count=17 alloc_bytes=192 free_count=17 free_bytes=192 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=80
+- site=src\sem\xl6_sem.c:763 allocator=global alloc_count=2 alloc_bytes=192 free_count=2 free_bytes=192 live_count=0 live_bytes=0 peak_live_count=2 peak_live_bytes=192
+- site=src\sem\xl6_sem.c:691 allocator=global alloc_count=15 alloc_bytes=6144 free_count=15 free_bytes=6144 live_count=0 live_bytes=0 peak_live_count=3 peak_live_bytes=1536
+- site=src\sem\xl6_sem.c:572 allocator=global alloc_count=15 alloc_bytes=2048 free_count=15 free_bytes=2048 live_count=0 live_bytes=0 peak_live_count=3 peak_live_bytes=512
+- site=./lib/xrt/xrt.h:13723 allocator=global alloc_count=3 alloc_bytes=98 free_count=3 free_bytes=98 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=33
+- site=src\sem\xl6_type_registry.c:211 allocator=global alloc_count=4 alloc_bytes=13440 free_count=4 free_bytes=13440 live_count=0 live_bytes=0 peak_live_count=2 peak_live_bytes=10752
+- site=src\sem\xl6_type_registry.c:89 allocator=global alloc_count=2 alloc_bytes=3072 free_count=2 free_bytes=3072 live_count=0 live_bytes=0 peak_live_count=2 peak_live_bytes=3072
+- site=src\stdlib\xl6_stdlib.c:69 allocator=global alloc_count=2 alloc_bytes=1536 free_count=2 free_bytes=1536 live_count=0 live_bytes=0 peak_live_count=2 peak_live_bytes=1536
+- site=src\stdlib\xl6_stdlib.c:509 allocator=global alloc_count=10 alloc_bytes=704 free_count=10 free_bytes=704 live_count=0 live_bytes=0 peak_live_count=4 peak_live_bytes=320
+- site=src\compile\xl6_imports.c:88 allocator=global alloc_count=2 alloc_bytes=512 free_count=2 free_bytes=512 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=256
+- site=src\package\xl6_package.c:127 allocator=global alloc_count=122 alloc_bytes=5456 free_count=122 free_bytes=5456 live_count=0 live_bytes=0 peak_live_count=5 peak_live_bytes=288
+- site=./lib/xrt/xrt.h:18084 allocator=global alloc_count=1 alloc_bytes=60 free_count=1 free_bytes=60 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=60
+- site=./lib/xrt/xrt.h:18040 allocator=global alloc_count=1 alloc_bytes=496 free_count=1 free_bytes=496 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=496
+- site=./lib/xrt/xrt.h:18117 allocator=global alloc_count=1 alloc_bytes=42 free_count=1 free_bytes=42 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=42
+- site=src\ast\xl6_ast.c:185 allocator=global alloc_count=1621 alloc_bytes=53344 free_count=1621 free_bytes=53344 live_count=0 live_bytes=0 peak_live_count=309 peak_live_bytes=10560
+- site=src\ast\xl6_ast.c:100 allocator=global alloc_count=5142 alloc_bytes=617040 free_count=5142 free_bytes=617040 live_count=0 live_bytes=0 peak_live_count=709 peak_live_bytes=85080
+- site=src\parser\xl6_parser_api.c:1185 allocator=global alloc_count=2 alloc_bytes=568 free_count=2 free_bytes=568 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=386
+- site=src\parser\xl6_parser_api.c:1445 allocator=global alloc_count=2 alloc_bytes=2272 free_count=2 free_bytes=2272 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=1544
+- site=src\parser\xl6_parser_api.c:197 allocator=global alloc_count=20 alloc_bytes=20480 free_count=20 free_bytes=20480 live_count=0 live_bytes=0 peak_live_count=3 peak_live_bytes=5120
+- site=src\parser\xl6_parser_api.c:191 allocator=global alloc_count=20 alloc_bytes=942080 free_count=20 free_bytes=942080 live_count=0 live_bytes=0 peak_live_count=3 peak_live_bytes=235520
+- site=./lib/xrt/xrt.h:20397 allocator=global alloc_count=1 alloc_bytes=1545 free_count=1 free_bytes=1545 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=1545
+- site=./lib/xrt/xrt.h:19944 allocator=global alloc_count=2 alloc_bytes=48 free_count=2 free_bytes=48 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=24
+- site=./lib/xrt/xrt.h:16446 allocator=global alloc_count=4 alloc_bytes=270 free_count=4 free_bytes=270 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=80
+- site=src\api\xl_api.c:597 allocator=global alloc_count=1 alloc_bytes=42 free_count=1 free_bytes=42 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=42
+- site=src\api\xl_api.c:4095 allocator=global alloc_count=1 alloc_bytes=808 free_count=1 free_bytes=808 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=808
+- site=./lib/xrt/xrt.h:17910 allocator=global alloc_count=2 alloc_bytes=82 free_count=2 free_bytes=82 live_count=0 live_bytes=0 peak_live_count=2 peak_live_bytes=82
+- site=./lib/xrt/xrt.h:17877 allocator=global alloc_count=2 alloc_bytes=8192 free_count=2 free_bytes=8192 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=4096
+- site=src\api\xl_api.c:341 allocator=global alloc_count=1 alloc_bytes=42 free_count=1 free_bytes=42 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=42
+- site=src\api\xl_api.c:3216 allocator=global alloc_count=1 alloc_bytes=208 free_count=1 free_bytes=208 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=208
+- site=./lib/xrt/xrt.h:13148 allocator=global alloc_count=4552 alloc_bytes=29305 free_count=4552 free_bytes=29305 live_count=0 live_bytes=0 peak_live_count=684 peak_live_bytes=4814
+- site=./lib/xrt/xrt.h:16612 allocator=global alloc_count=3 alloc_bytes=75 free_count=3 free_bytes=75 live_count=0 live_bytes=0 peak_live_count=3 peak_live_bytes=75
+- site=./lib/xrt/xrt.h:118986 allocator=global alloc_count=1 alloc_bytes=24 free_count=1 free_bytes=24 live_count=0 live_bytes=0 peak_live_count=1 peak_live_bytes=24
 
 ## Recent Events
-- ALLOC ptr=0000021741647ee0 size=70 kind=global file=D:\GIT\xrt\lib/charset.h:236 thread=17932 time_ms=236848078
-- ALLOC ptr=0000021741648ed0 size=30 kind=global file=D:\GIT\xrt\lib/string.h:181 thread=17932 time_ms=236848078
-- ALLOC ptr=00000217416472b8 size=104 kind=global file=D:\GIT\xrt\lib/typed_special.h:40 thread=17932 time_ms=236848078
-- ALLOC ptr=0000021741647638 size=2048 kind=global file=D:\GIT\xrt\lib/stack_dyn.h:112 thread=17932 time_ms=236848078
-- ALLOC ptr=000002174164b288 size=512 kind=global file=D:\GIT\xrt\lib/array_point.h:26 thread=17932 time_ms=236848078
-- ALLOC ptr=000002174164d378 size=376 kind=global file=D:\GIT\xrt\lib/typed_special.h:237 thread=17932 time_ms=236848078
-- ALLOC ptr=00000217415200e8 size=13632 kind=global file=D:\GIT\xrt\lib/memunit.h:18 thread=17932 time_ms=236848078
-- ALLOC ptr=0000021741523f48 size=8192 kind=global file=D:\GIT\xrt\lib/bsmm.h:156 thread=17932 time_ms=236848078
-- ALLOC ptr=000002174164b010 size=512 kind=global file=D:\GIT\xrt\lib/bsmm.h:35 thread=17932 time_ms=236848078
-- ALLOC ptr=0000021741520228 size=48 kind=fsmempool file=D:\GIT\xrt\lib/mempool_fs.h:179 thread=17932 time_ms=236848078
-- ALLOC ptr=000002174164dfb8 size=2 kind=global file=D:\GIT\xrt\lib/string.h:181 thread=17932 time_ms=236848078
-- ALLOC ptr=000002174152025c size=48 kind=fsmempool file=D:\GIT\xrt\lib/mempool_fs.h:179 thread=17932 time_ms=236848078
-- ALLOC ptr=000002174164df40 size=2 kind=global file=D:\GIT\xrt\lib/string.h:181 thread=17932 time_ms=236848078
-- ALLOC ptr=00000217416471e0 size=96 kind=global file=D:\GIT\xrt\lib/typed_container.h:113 thread=17932 time_ms=236848078
-- ALLOC ptr=0000021741526da8 size=392 kind=global file=D:\GIT\xrt\lib/avltree_base.h:339 thread=17932 time_ms=236848078
-- ALLOC ptr=0000021741526fa8 size=2056 kind=global file=D:\GIT\xrt\lib/array.h:24 thread=17932 time_ms=236848078
-- ALLOC ptr=000002174164dec8 size=2 kind=global file=D:\GIT\xrt\lib/string.h:181 thread=17932 time_ms=236848078
-- FREE ptr=0000021741526da8 size=392 kind=global file=D:\GIT\xrt\lib/avltree_base.h:406 thread=17932 time_ms=236848078
-- ALLOC ptr=000002174164de50 size=2 kind=global file=D:\GIT\xrt\lib/string.h:181 thread=17932 time_ms=236848078
-- ALLOC ptr=0000021741649850 size=40 kind=global file=D:\GIT\xrt\lib/typed_special.h:528 thread=17932 time_ms=236848078
-- ALLOC ptr=0000021741528678 size=168 kind=global file=D:\GIT\xrt\lib/queue.h:937 thread=17932 time_ms=236848078
-- ALLOC ptr=0000021741529638 size=128 kind=global file=D:\GIT\xrt\lib/queue.h:901 thread=17932 time_ms=236848078
-- ALLOC ptr=000002174164ddd8 size=8 kind=global file=D:\GIT\xrt\lib/typed_special.h:600 thread=17932 time_ms=236848078
-- ALLOC ptr=000002174164dd60 size=6 kind=global file=D:\GIT\xrt\lib/string.h:181 thread=17932 time_ms=236848078
-- ALLOC ptr=000002174164dce8 size=6 kind=global file=D:\GIT\xrt\lib/string.h:181 thread=17932 time_ms=236848078
-- FREE ptr=000002174164dd60 size=6 kind=global file=D:\GIT\xrt\lib/type.h:434 thread=17932 time_ms=236848078
-- FREE ptr=000002174164ddd8 size=8 kind=global file=D:\GIT\xrt\lib/typed_special.h:626 thread=17932 time_ms=236848078
-- FREE ptr=000002174164dce8 size=6 kind=global file=D:\GIT\xrt\lib/type.h:434 thread=17932 time_ms=236848078
-- ALLOC ptr=00000217416497b8 size=40 kind=global file=D:\GIT\xrt\lib/typed_special.h:528 thread=17932 time_ms=236848078
-- ALLOC ptr=000002174152b610 size=192 kind=global file=D:\GIT\xrt\lib/queue.h:1355 thread=17932 time_ms=236848078
-- ALLOC ptr=0000021741648a60 size=64 kind=global file=D:\GIT\xrt\lib/queue.h:528 thread=17932 time_ms=236848078
-- ALLOC ptr=000002174164dce8 size=8 kind=global file=D:\GIT\xrt\lib/typed_special.h:600 thread=17932 time_ms=236848078
-- FREE ptr=000002174164dce8 size=8 kind=global file=D:\GIT\xrt\lib/typed_special.h:626 thread=17932 time_ms=236848078
-- FREE ptr=0000021741648a60 size=64 kind=global file=D:\GIT\xrt\lib/queue.h:555 thread=17932 time_ms=236848078
-- FREE ptr=000002174152b610 size=192 kind=global file=D:\GIT\xrt\lib/queue.h:1374 thread=17932 time_ms=236848078
-- FREE ptr=00000217416497b8 size=40 kind=global file=D:\GIT\xrt\lib/typed_special.h:588 thread=17932 time_ms=236848078
-- FREE ptr=0000021741529638 size=128 kind=global file=D:\GIT\xrt\lib/queue.h:928 thread=17932 time_ms=236848078
-- FREE ptr=0000021741528678 size=168 kind=global file=D:\GIT\xrt\lib/queue.h:956 thread=17932 time_ms=236848078
-- FREE ptr=0000021741649850 size=40 kind=global file=D:\GIT\xrt\lib/typed_special.h:588 thread=17932 time_ms=236848078
-- FREE ptr=000002174164dec8 size=2 kind=global file=D:\GIT\xrt\lib/type.h:434 thread=17932 time_ms=236848078
-- FREE ptr=000002174164de50 size=2 kind=global file=D:\GIT\xrt\lib/type.h:434 thread=17932 time_ms=236848078
-- FREE ptr=0000021741526fa8 size=2056 kind=global file=D:\GIT\xrt\lib/array.h:8 thread=17932 time_ms=236848078
-- FREE ptr=00000217416471e0 size=96 kind=global file=D:\GIT\xrt\lib/typed_container.h:140 thread=17932 time_ms=236848078
-- FREE ptr=000002174164df40 size=2 kind=global file=D:\GIT\xrt\lib/type.h:434 thread=17932 time_ms=236848078
-- FREE ptr=000002174164dfb8 size=2 kind=global file=D:\GIT\xrt\lib/type.h:434 thread=17932 time_ms=236848078
-- FREE ptr=00000217415200e8 size=13632 kind=global file=D:\GIT\xrt\lib/mempool_fs.h:57 thread=17932 time_ms=236848078
-- FREE ptr=0000021741523f48 size=8192 kind=global file=D:\GIT\xrt\lib/bsmm.h:125 thread=17932 time_ms=236848078
-- FREE ptr=000002174164b010 size=512 kind=global file=D:\GIT\xrt\lib/bsmm.h:8 thread=17932 time_ms=236848078
-- FREE ptr=000002174164d378 size=376 kind=global file=D:\GIT\xrt\lib/typed_special.h:285 thread=17932 time_ms=236848078
-- FREE ptr=0000021741647638 size=2048 kind=global file=D:\GIT\xrt\lib/stack_dyn.h:38 thread=17932 time_ms=236848078
-- FREE ptr=000002174164b288 size=512 kind=global file=D:\GIT\xrt\lib/array_point.h:7 thread=17932 time_ms=236848078
-- FREE ptr=00000217416472b8 size=104 kind=global file=D:\GIT\xrt\lib/typed_special.h:86 thread=17932 time_ms=236848078
-- TEMP_RESET ptr=0000000000000000 size=0 kind=global file=D:\GIT\xrt\lib/base.h:286 thread=17932 time_ms=236848078
-- FREE ptr=0000021741647ee0 size=70 kind=global file=D:\GIT\xrt\xrt.c:674 thread=17932 time_ms=236848078
-- FREE ptr=0000021741648ed0 size=30 kind=global file=D:\GIT\xrt\xrt.c:676 thread=17932 time_ms=236848078
+- FREE ptr=0000000000a71148 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6ea90 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e0d20 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f74b8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a799a8 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a71060 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e0f00 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025ebf90 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a79930 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70f78 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6e9f8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e0f78 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025ebcd8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a798b8 size=3 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70e90 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6e960 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a79840 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70da8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e0ca8 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025ebdc0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a797c8 size=10 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70cc0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e0c30 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025ec500 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a79750 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70bd8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6e8c8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a5d8 size=3 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70af0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6ebc0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a72af8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6e830 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a560 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70a08 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025de380 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025ebea8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a4e8 size=10 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70920 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e0d98 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f73d0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a470 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70838 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6f708 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025deb00 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f72e8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a3f8 size=3 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70750 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6f670 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a380 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a715d0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa8258 size=17 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6e638 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1ab8 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f7200 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6f5d8 size=31 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6e550 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6f540 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6e468 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6f4a8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6e380 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6f410 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a290 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6e298 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6f378 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6e1b0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1a40 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025ebbf0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a218 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6e0c8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6f248 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a1a0 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6def8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a76598 size=256 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a55700 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a55c70 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a52b48 size=64 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a128 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6dfe0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6db58 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a308 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6d988 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025de038 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f7118 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a79fc0 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6e720 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aab180 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e08c8 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f7030 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a79f48 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70558 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6f1b0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a54a0 size=9 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70470 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5d88 size=10 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6f8a8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5518 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70388 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c75c0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5950 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a702a0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7528 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a701b8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5ba8 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a700d0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7490 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6ffe8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d68b8 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f6ac0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f1c48 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f6d78 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f1bb0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a82a78 size=15 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f6ba8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5b30 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6fe18 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c73f8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d6a98 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f6c90 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5ab8 size=9 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6fd30 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d6c78 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f6f48 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5a40 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6fc48 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c72c8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d5ee0 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f69d8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a59c8 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6fa78 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7230 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5e78 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6f990 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7360 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6ff00 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6d8a0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a52a90 size=64 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5e00 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6fb60 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa81d0 size=13 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c11e0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a6c8 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a70640 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7198 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a650 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c1da8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a79ed0 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c1bd8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7068 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a57e8 size=6 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c1af0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7100 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c1cc0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c1a08 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e19c8 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f4520 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f1d78 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f68f0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f1a80 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a829f0 size=15 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f4608 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5770 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c1838 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c6fd0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1950 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f75a0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a56f8 size=9 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c1750 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e18d8 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f6808 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5680 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c1668 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c6ea0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1860 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f4438 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5608 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c1498 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e17e8 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f4268 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5c98 size=6 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c1580 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c6f38 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5c20 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c13b0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c6e08 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c1920 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6f7c0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a529d8 size=64 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a58d8 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c12c8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5428 size=9 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c33b8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5d10 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c1010 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c6d70 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5860 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c1e90 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7c48 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3cc8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5158 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3be0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7bb0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3af8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1770 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f3de0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f1fd8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f4350 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f1950 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a82968 size=15 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f3ec8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5590 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3928 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7b18 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e16f8 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f4098 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a50e0 size=9 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3840 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1680 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f4180 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5ef0 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3758 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c79e8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1608 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f3cf8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5f68 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3588 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7950 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a51d0 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c34a0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7a80 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3a10 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c10f8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a52920 size=64 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a53b0 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3670 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0478 size=12 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c4430 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5338 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c31e8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c78b8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a52c0 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3100 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5248 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c2f30 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7788 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a6058 size=6 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3db0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7820 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3018 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c4c58 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e14a0 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f46f0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f1b18 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f3c10 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f2790 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a828e0 size=15 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f3870 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a5fe0 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c4a88 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c76f0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1428 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f3958 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0748 size=9 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c49a0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e13b0 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f3b28 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d06d0 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c48b8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c08d0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1ba8 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f5598 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0658 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c46e8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1b30 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f53c8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d05e0 size=6 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c47d0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0968 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0568 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c4600 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0838 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c4b70 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c32d0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a52868 size=64 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d04f0 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c4518 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a527b0 size=64 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6da70 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6dc40 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7658 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0400 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c4348 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa80c0 size=23 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c5b00 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0388 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c4260 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0708 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0310 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c4178 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0298 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3fa8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c05d8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0220 size=8 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c3ec0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0670 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c4090 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c4d40 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0540 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa8148 size=16 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c5be8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa8038 size=20 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c5cd0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d01a8 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c5a18 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c04a8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0130 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c5930 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d00b8 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c5760 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0378 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0040 size=9 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c5678 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0ec8 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c5590 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c02e0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0e50 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c54a8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0dd8 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c53c0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0248 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0d60 size=9 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c52d8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0ce8 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c51f0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c01b0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0c70 size=11 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c5108 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a526f8 size=64 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c5848 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0bf8 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c5020 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0410 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c4f38 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0118 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0b80 size=11 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c4e50 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa7f28 size=17 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7d00 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0a90 size=11 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c88c8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0080 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0b08 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c89b0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0f58 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c87e0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c86f8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa7fb0 size=23 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c8528 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d8f30 size=11 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f52e0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0a18 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c8440 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0ec0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c8358 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1518 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f5110 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d09a0 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c8188 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0d90 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c80a0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0e28 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c8270 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0cf8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0928 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7fb8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0c60 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7ed0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0bc8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c8610 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c8a98 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a52640 size=64 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d08b0 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c7de8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa7e18 size=25 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c2340 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0838 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c9a28 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0b30 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d07c0 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c9940 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0fb8 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c9770 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0a00 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d0f40 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c9688 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1758 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c95a0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e22d0 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f54b0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d16e0 size=6 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c94b8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c66c8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1668 size=11 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c93d0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c0a98 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c9858 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d15f0 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c92e8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c6630 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c9200 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa7ea0 size=20 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c9030 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e21e0 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f51f8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1578 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c8f48 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c6598 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c8e60 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e2168 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f5028 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1500 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c8c90 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c6468 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c9b10 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e20f0 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f4f40 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1488 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c2d38 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c63d0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c2c50 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e2078 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f4e58 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1410 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c2b68 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c6338 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c2a80 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e2000 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f4d70 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1398 size=11 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c2998 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c62a0 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c28b0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a52588 size=64 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c8d78 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c6500 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1f88 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f4c88 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1320 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c27c8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1f10 size=4 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f4ba0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d12a8 size=2 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c26e0 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c6208 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e2258 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025f48e8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1230 size=3 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c25f8 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c60d8 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d11b8 size=7 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c2428 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c6170 size=32 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c9118 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c8b80 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a524d0 size=64 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1140 size=5 kind=global file=src\ast\xl6_ast.c:221 thread=16816 time_ms=431301218
+- FREE ptr=00000000025c2510 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a52418 size=64 kind=global file=src\ast\xl6_ast.c:219 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a6dd28 size=120 kind=global file=src\ast\xl6_ast.c:223 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7a038 size=8 kind=global file=src\package\xl6_package.c:111 thread=16816 time_ms=431301218
+- FREE ptr=00000000025de650 size=7 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1e60 size=7 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d8be8 size=11 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d6138 size=4 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1338 size=6 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1de8 size=5 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1ed8 size=6 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1050 size=4 kind=global file=src\ir\xl6_hir_type.c:97 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d10c8 size=5 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d62a0 size=4 kind=global file=src\ir\xl6_hir_type.c:97 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e2348 size=4 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e0e10 size=4 kind=global file=src\ir\xl6_hir_type.c:97 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1590 size=5 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1e98 size=4 kind=global file=src\ir\xl6_hir_type.c:97 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d1d70 size=5 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1da8 size=4 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1d30 size=5 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d5dd0 size=7 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1cb8 size=7 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025e1c40 size=7 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=00000000025d5e48 size=7 kind=global file=src\ir\xl6_hir_type.c:96 thread=16816 time_ms=431301218
+- FREE ptr=0000000002606d18 size=2048 kind=global file=src\ir\xl6_hir_type.c:100 thread=16816 time_ms=431301218
+- FREE ptr=0000000000a7c7e8 size=1024 kind=global file=src\ir\xl6_hir_type.c:101 thread=16816 time_ms=431301218
+- FREE ptr=000000000260f698 size=49152 kind=global file=src\ir\xl6_hir.c:50 thread=16816 time_ms=431301218
+- FREE ptr=000000000261bf98 size=16384 kind=global file=src\ir\xl6_hir.c:51 thread=16816 time_ms=431301218
+- FREE ptr=0000000002606898 size=1024 kind=global file=src\ir\xl6_hir.c:52 thread=16816 time_ms=431301218
+- FREE ptr=000000000261b718 size=2048 kind=global file=src\ir\xl6_hir.c:53 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aab478 size=40 kind=global file=src\api\xl_api.c:4045 thread=16816 time_ms=431301218
+- FREE ptr=00000000009a1a28 size=808 kind=global file=src\api\xl_api.c:4115 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa8478 size=20 kind=global file=src\api\xl_api.c:3134 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa83f0 size=22 kind=global file=src\api\xl_api.c:3135 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aab510 size=42 kind=global file=src\api\xl_api.c:3136 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aad6a8 size=2 kind=global file=src\api\xl_api.c:3138 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aad630 size=8 kind=global file=src\api\xl_api.c:3139 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aad5b8 size=8 kind=global file=src\api\xl_api.c:3140 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa8368 size=15 kind=global file=src\api\xl_api.c:3141 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aad540 size=4 kind=global file=src\api\xl_api.c:3142 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa82e0 size=14 kind=global file=src\api\xl_api.c:3143 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aaa198 size=208 kind=global file=src\api\xl_api.c:3151 thread=16816 time_ms=431301218
+- TEMP_RESET ptr=0000000000000000 size=0 kind=global file=./lib/xrt/xrt.h:12475 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aaab90 size=35 kind=global file=./lib/xrt/xrt.h:129696 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa7bf8 size=28 kind=global file=./lib/xrt/xrt.h:129698 thread=16816 time_ms=431301218
+- FREE ptr=0000000000aa7b70 size=24 kind=global file=./lib/xrt/xrt.h:119004 thread=16816 time_ms=431301218

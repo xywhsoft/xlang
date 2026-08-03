@@ -305,7 +305,7 @@ class HitRecord
     Vec3 p = Vec3(0.0, 0.0, 0.0)
     Vec3 normal = Vec3(0.0, 0.0, 0.0)
     bool frontFace = false
-    Material mat = null
+    Material? mat = null
 
     // 根据光线方向决定法线朝外（始终指向入射侧）
     func setFaceNormal(Ray r, Vec3 outwardNormal)
@@ -429,7 +429,7 @@ end
 class Sphere extends Shape
     Vec3 center = Vec3(0.0, 0.0, 0.0)
     float radius = 1.0
-    Material mat = null
+    Material? mat = null
 
     create(Vec3 center, float radius, Material mat)
         self.center = center
@@ -476,7 +476,7 @@ end
 class Plane extends Shape
     Vec3 point = Vec3(0.0, 0.0, 0.0)
     Vec3 normal = Vec3(0.0, 1.0, 0.0)
-    Material mat = null
+    Material? mat = null
 
     create(Vec3 point, Vec3 normal, Material mat)
         self.point = point
@@ -616,7 +616,7 @@ func traceRay(Ray r, World world, int depth) as Color
     if not hit then
         return skyColor(r.dir.normalize())
     end
-    Material mat = rec.mat
+    Material mat = rec.mat as Material
     bool scattered = false
     Vec3 zeroV = Vec3(0.0, 0.0, 0.0)
     Ray scatteredRay = Ray(zeroV, zeroV)
@@ -935,7 +935,7 @@ func cmdTest() as int
         Vec3 zero = Vec3(0.0, 0.0, 0.0)
         Ray scatteredRay = Ray(zero, zero)
         Color attenuation = colorBlack()
-        Material material = rec.mat
+        Material material = rec.mat as Material
         scattered, scatteredRay, attenuation = material.scatter(ray, rec)
         rayCheck("Lambertian scatter dispatch succeeds", scattered)
         rayCheck("scatter attenuation uses concrete material", math.abs(attenuation.r - 0.7) < 0.000001)

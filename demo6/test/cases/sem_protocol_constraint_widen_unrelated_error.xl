@@ -1,0 +1,11 @@
+protocol Named
+    func name() as string
+end
+
+protocol Counted
+    func count() as int
+end
+
+func invalidWiden<T is Named>(T value) as Counted
+    return value
+end

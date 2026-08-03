@@ -1,0 +1,24 @@
+export typedef SourceCount = int
+
+export union SourceNumber
+    int integer
+    float64 real
+end
+
+export class SourcePoint
+    int x
+    int y
+
+    create(int x, int y)
+        self.x = x
+        self.y = y
+    end
+
+    func sum() as int
+        return self.x + self.y
+    end
+end
+
+export func answer() as int
+    return 42
+end

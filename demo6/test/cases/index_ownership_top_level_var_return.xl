@@ -1,0 +1,15 @@
+// 顶层复合赋值使用 var 返回值时，调用结果只能消费一次。
+int probe = 0
+
+func nextProbe() as var
+    probe += 1
+    return 3
+end
+
+auto values = [10, 20, 30]
+auto sparse = [0: 11, 2: 22]
+
+values[1] += nextProbe()
+sparse[2] *= nextProbe()
+
+int result = int(values[1]) + int(sparse[2]) + probe

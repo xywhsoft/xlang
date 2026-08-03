@@ -11,6 +11,12 @@ static void xl6CgenXValueFromExprForTarget(XL6_CgenContext* ctx, const XL6_AstNo
             isCtor = genericCtorType != NULL && ctorClass != NULL;
         }
         if ( !isCtor ) {
+            XL6_HirOwnership ownership = xl6CgenHirOwnership(ctx, expr);
+            int ownershipPlanned = xl6CgenHirOwnershipIsPlanned(ctx, expr);
+            int needsRetain = ownershipPlanned
+                ? ownership != XL6_HIR_OWNERSHIP_MOVE
+                : xl6CgenExprIsXValueBorrow(ctx, expr);
+
             for ( replacementIndex = 0; replacementIndex < ctx->exprReplacementCount; ++replacementIndex ) {
                 const XL6_CgenExprReplacement* replacement = &ctx->exprReplacements[replacementIndex];
                 if ( replacement->expr == expr && replacement->cName != NULL &&
@@ -28,7 +34,12 @@ static void xl6CgenXValueFromExprForTarget(XL6_CgenContext* ctx, const XL6_AstNo
                 具名变量和字段则是借用值；二者都不能再次按透明结构体装箱。
             */
             if ( expr->kind != XL6_AST_NAME || !xl6CTextEquals(expr->text, "self") ) {
-                if ( xl6CgenExprIsXValueBorrow(ctx, expr) ) {
+                /*
+                 * class 的 COPY 是复制受管理句柄，而不是复制对象 payload。
+                 * 因此 COPY/SHARED/BORROW 都需要 retain；只有明确 MOVE 的
+                 * 构造或返回临时值可以直接转移给被调函数。
+                 */
+                if ( needsRetain ) {
                     xl6OutputPuts("xl6_xrt_retain(", ctx->out);
                     xl6CgenExpr(ctx, expr);
                     xl6OutputPutc(')', ctx->out);
@@ -169,6 +180,33 @@ static void xl6CgenTypedContainerRetainCExpr(
     xl6OutputPutc(')', ctx->out);
 }
 
+static void xl6CgenTypedContainerCloneCExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cExpr)
+{
+    const XL6_AstNode* concreteType;
+    const char* typeName;
+
+    concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+    typeName = concreteType != NULL ? concreteType->text : NULL;
+    if ( xl6CTextEquals(typeName, "array") ) {
+        xl6OutputPuts("xrtTypedArrayClone(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "list") ) {
+        xl6OutputPuts("xrtTypedListClone(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "set") ) {
+        xl6OutputPuts("xrtTypedSetClone(", ctx->out);
+    } else if ( xl6CTextEquals(typeName, "dict") ) {
+        xl6OutputPuts("xrtTypedDictClone(", ctx->out);
+    } else {
+        xl6CgenError(ctx, typeNode, "typed container clone requires array/list/set/dict");
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+    xl6OutputPuts(cExpr != NULL ? cExpr : "0", ctx->out);
+    xl6OutputPutc(')', ctx->out);
+}
+
 static int xl6CgenTypedContainerExprIsSharedStorage(
     XL6_CgenContext* ctx,
     const XL6_AstNode* expr)
@@ -232,11 +270,12 @@ static int xl6CgenTypedContainerExprTypeMatches(XL6_CgenContext* ctx, const XL6_
     int result;
 
     targetType = xl6CgenCloneCanonicalTypeNode(ctx, typeNode);
-    exprType = xl6CgenCloneExprTypeForInference(ctx, expr);
+    /* typed container 的复制兼容性由真实存储类型决定。 */
+    exprType = xl6CgenCloneExprStorageType(ctx, expr);
     result = targetType != NULL &&
              exprType != NULL &&
              xl6CgenIsTypedContainerType(ctx, exprType) &&
-             xl6CgenTypeNodeEqual(targetType, exprType);
+             xl6CgenStorageTypeNodeEqual(targetType, exprType);
     xl6AstFree(targetType);
     xl6AstFree(exprType);
     return result;
@@ -274,7 +313,9 @@ static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6
         ctx->currentGenericParams = prevParams;
         ctx->currentGenericArgs = prevArgs;
         xl6AstFree(inferredArgs);
-        return result;
+        if ( result ) {
+            return 1;
+        }
     }
 
     if ( callee->kind == XL6_AST_GENERIC_INSTANT && callee->childCount > 1 ) {
@@ -295,7 +336,9 @@ static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6
         result = xl6CgenFuncSingleReturnUsesTypedContainerStorage(ctx, func);
         ctx->currentGenericParams = prevParams;
         ctx->currentGenericArgs = prevArgs;
-        return result;
+        if ( result ) {
+            return 1;
+        }
     }
 
     if ( callee->kind == XL6_AST_MEMBER ) {
@@ -309,18 +352,14 @@ static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6
     }
 
     /*
-        这是一个无副作用兜底：成员函数和泛型实例化函数在部分路径下
-        不一定能从 callee 本身还原完整函数签名，但 call 表达式的整体
-        类型推断已经能给出 array<T>/list<T>/set<T>/dict<T>。只要它是
-        call 且结果是静态 typed container，就按“返回 storage”处理。
+        typed HIR 已经给整个调用表达式记录了规范返回类型。跨源文件、导入函数、
+        成员函数和泛型实例化都应以这份类型为最终事实，不能要求后端再次从
+        callee AST 还原声明，否则 package 内调用会错误退回字面量初始化路径。
     */
-    if ( callee->kind == XL6_AST_MEMBER ) {
-        inferredType = xl6CgenCloneExprTypeForInference(ctx, expr);
-        result = xl6CgenIsTypedContainerType(ctx, inferredType);
-        xl6AstFree(inferredType);
-        return result;
-    }
-    return 0;
+    inferredType = xl6CgenCloneExprTypeForInference(ctx, expr);
+    result = xl6CgenIsTypedContainerType(ctx, inferredType);
+    xl6AstFree(inferredType);
+    return result;
 }
 
 static int xl6CgenExprIsTypedContainerCopyBuiltin(XL6_CgenContext* ctx, const XL6_AstNode* expr)
@@ -365,6 +404,10 @@ static int xl6CgenTypedContainerCanCopyFromExpr(XL6_CgenContext* ctx, const XL6_
     if ( initExpr == NULL || xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ) {
         return 0;
     }
+    if ( xl6CgenHirOwnershipIsPlanned(ctx, initExpr) &&
+         xl6CgenHirOwnership(ctx, initExpr) == XL6_HIR_OWNERSHIP_MOVE ) {
+        return 0;
+    }
     /*
      * 静态容器索引返回容器内部保存的借用句柄。目标变量必须复制该句柄
      * 指向的容器，不能把借用值当成新所有者，也不能退回字面量初始化。
@@ -391,6 +434,10 @@ static int xl6CgenTypedContainerCanMoveFromExpr(XL6_CgenContext* ctx, const XL6_
 
     if ( initExpr == NULL || xl6CgenTypedContainerInitLiteral(ctx, typeNode, initExpr) != NULL ) {
         return 0;
+    }
+    if ( xl6CgenHirOwnershipIsPlanned(ctx, initExpr) &&
+         xl6CgenHirOwnership(ctx, initExpr) == XL6_HIR_OWNERSHIP_MOVE ) {
+        return xl6CgenTypedContainerExprTypeMatches(ctx, typeNode, initExpr);
     }
     binaryResultType = NULL;
     canMoveBinary = initExpr->kind == XL6_AST_BINARY &&

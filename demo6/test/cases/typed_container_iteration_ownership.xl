@@ -1,0 +1,56 @@
+class IterationBox
+    string text = ""
+
+    create(string value)
+        self.text = value
+    end
+end
+
+func main(...) as int
+    IterationBox first = IterationBox("first")
+    IterationBox second = IterationBox("second")
+
+    // class、var 和 nullable class 都使用 xvalue 存储。
+    // 循环变量必须取得自己的强引用，不能偷走容器持有的引用。
+    array<IterationBox> classes = array[first, second]
+    array<var> dynamics = array<var>[first, second]
+    IterationBox? present = first
+    array<IterationBox?> optionals = array[present, null]
+
+    int classCount = 0
+    for item in classes
+        assert(item.text != "")
+        classCount += 1
+    end
+    assert(classCount == 2)
+    assert(classes[0].text == "first")
+    assert(classes[1].text == "second")
+
+    int dynamicCount = 0
+    for value in dynamics
+        assert(value is IterationBox)
+        IterationBox item = value as IterationBox
+        assert(item.text != "")
+        dynamicCount += 1
+    end
+    assert(dynamicCount == 2)
+    assert((dynamics[0] as IterationBox).text == "first")
+    assert((dynamics[1] as IterationBox).text == "second")
+
+    int optionalCount = 0
+    for item in optionals
+        if item != null
+            assert(item.text == "first")
+            optionalCount += 1
+        end
+    end
+    assert(optionalCount == 1)
+    IterationBox? storedOptional = optionals[0]
+    assert(storedOptional != null)
+    if storedOptional != null
+        assert(storedOptional.text == "first")
+    end
+
+    println("typed container iteration ownership ok")
+    return 0
+end

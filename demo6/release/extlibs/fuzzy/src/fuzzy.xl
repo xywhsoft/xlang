@@ -9,7 +9,9 @@ export func levenshtein(string a, string b) as int
     return __fuzzy_levenshtein(a, b)
 end
 
-export func match(string pattern, string text) as int
+// 返回子序列匹配分数；不匹配时返回 -1。
+// `match` 是语言关键字，公开 API 使用更准确的 score 命名。
+export func score(string pattern, string text) as int
     return __fuzzy_match(pattern, text)
 end
 

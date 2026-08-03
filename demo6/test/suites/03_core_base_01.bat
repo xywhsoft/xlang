@@ -411,9 +411,14 @@ if errorlevel 1 (
     echo cgen_union_var_box.c missing typed union array descriptor.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_to_xvalue(xl6_type_desc_XL_Union_Payload(), __xl6_user_global_copied)" build\test\cgen_union_var_box.c >nul
+findstr /C:"xl6_xrt_typed_container_box_ref(xl6_runtime_type_desc_" build\test\cgen_union_var_box.c >nul
 if errorlevel 1 (
-    echo cgen_union_var_box.c missing typed union array boxing.
+    echo cgen_union_var_box.c missing handle-preserving typed union array boxing.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_typed_array_to_xvalue(xl6_type_desc_XL_Union_Payload(), __xl6_user_global_copied)" build\test\cgen_union_var_box.c >nul
+if not errorlevel 1 (
+    echo cgen_union_var_box.c materialized a typed union array during ordinary var boxing.
     exit /b 1
 )
 findstr /C:"xrtTypedSetCreate(xl6_type_desc_XL_Union_Payload()" build\test\cgen_union_var_box.c >nul

@@ -53,14 +53,15 @@ static int xl6CgenTypeContainsFunctionType(const XL6_AstNode* typeNode)
     return 0;
 }
 
-static int xl6CgenContainerIsDynamicXValueType(const XL6_AstNode* typeNode, const char* name, const char* legacyName)
+static int xl6CgenContainerIsDynamicXValueType(const XL6_AstNode* typeNode, const char* name, const char* syntheticName)
 {
     const XL6_AstNode* args;
 
     if ( typeNode == NULL || typeNode->text == NULL || name == NULL ) {
         return 0;
     }
-    if ( legacyName != NULL && xl6CTextEquals(typeNode->text, legacyName) ) {
+    /* `...` / `***` 参数由解析器直接生成扁平的内部类型节点。 */
+    if ( syntheticName != NULL && xl6CTextEquals(typeNode->text, syntheticName) ) {
         return 1;
     }
     if ( !xl6CTextEquals(typeNode->text, name) ) {

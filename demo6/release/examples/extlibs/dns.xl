@@ -15,7 +15,7 @@ func main(...) as int
     println("encode example.com = " + dns.encodeName("example.com"))
 
     // Validation
-    println("valid 'test.org' = " + string.format("{}", dns.validName("test.org")))
+    println("valid 'test.org' = " + string(dns.validName("test.org")))
 
     println("dns example: PASS")
     return 0

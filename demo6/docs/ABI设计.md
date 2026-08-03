@@ -175,6 +175,24 @@ typedef intptr_t xl6_ssize_t;
 
 因此 xlang 源码使用 `c_ssize`，生成的 C ABI 使用 `xl6_ssize_t`。这样可以和 `c_intptr` 在语义上区分开，同时保留后续切换到平台原生 `ssize_t` / `SSIZE_T` 的空间。
 
+### 4.2 规范类型身份
+
+编译期类型身份使用驻留类型池中的 `XL6_HirTypeId`，符号绑定使用稳定
+`XL6_SymbolId`。名称文本只用于诊断、dump 和公开 ABI 名称，不参与同一编译
+单元内的类型相等判断。
+
+`XL6_HirTypeId` 是编译会话内身份，不能直接持久化。XAPI/package 元数据应
+序列化规范类型结构、模块限定名、参数模式和泛型实参，并由此计算 ABI hash；
+读取后重新驻留为当前会话的 TypeId。
+
+以下修饰属于类型身份和 ABI hash，不能在导出时被擦除：
+
+- nullable `T?`
+- `weak<T>`
+- protocol 类型与完整 requirement 签名
+- numeric enum 的底层整数类型和 variant 值
+- tagged enum 的类型参数、variant 顺序与 payload 字段类型
+
 ## 5. internal ABI symbol
 
 internal ABI symbol 是生成 C 代码时使用的内部函数名。
@@ -364,6 +382,25 @@ byref/out class -> C xvalue*
 - 捕获闭包
 - 带可选参数的原函数
 - 带 `...` 或 `***` 的原函数
+
+### 10.1 nullable、weak、protocol 与 enum
+
+这些类型可以进入 XAPI 和生成头文件，但必须保持真实布局与生命周期：
+
+- nullable class、protocol 和其他 XRT 句柄复用可空句柄表示；nullable 标量、
+  numeric enum、union 及其他静态值使用 `hasValue + value` 的 tagged storage。
+- `weak<T>` 使用 XRT 受管理弱引用；C 侧通过 weak API 创建、保留、释放和
+  lock，lock 的结果按 nullable `T?` 处理。弱引用不延长对象 payload 生命周期。
+- protocol 值保存具体对象身份和满足关系；C 侧通过 XRT protocol descriptor、
+  requirement、witness registry 和 lookup API 查询与调用，不依赖 xlang 语法。
+- numeric enum 生成固定宽度 C 整数 typedef、variant 常量和类型描述器。它在
+  xlang 中仍是独立类型，不因 C 布局相同而隐式参与整数运算。
+- tagged enum 生成 `uint32_t tag + union payload` 布局，以及 type/copy/move/drop
+  和 variant constructor helper。包含 string、class、容器等受管理 payload 时，
+  helper 必须承担完整生命周期，C 侧不能裸 `memcpy` 伪造所有权。
+
+XAPI JSON 使用 `numeric_enum` 和 `tagged_enum` kind 保存上述信息。导入时必须
+校验底层类型、variant、payload、类型参数和 ABI hash，不能只按 enum 名称接受。
 
 ## 11. class 数据 ABI
 

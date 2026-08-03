@@ -1,0 +1,15 @@
+import module_types as mt
+from module_types import Point as DirectPoint
+
+func sumPoint(mt.Point point) as int
+    return point.sum()
+end
+
+func main(...) as int
+    DirectPoint direct = DirectPoint(21, 21)
+    mt.Point qualified = direct
+    if sumPoint(qualified) != 42 then
+        return 1
+    end
+    return 0
+end

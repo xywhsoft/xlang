@@ -5,9 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
-extern void xrtSetError(const char *msg);
-
+extern void xrtSetError(const void *msg, int bFree);
 static char py_buf[8192];
 
 typedef struct { unsigned int code; const char *py; } PyEntry;

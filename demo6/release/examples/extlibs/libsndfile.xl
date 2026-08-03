@@ -11,7 +11,7 @@ func main(...) as int
     println("0x0002 = " + libsndfile.formatSubtype(0x0002))
 
     // Extension detection
-    println("wav = " + string.format("{}", libsndfile.formatFromExt("wav")))
+    println("wav = " + string(libsndfile.formatFromExt("wav")))
 
     println("libsndfile example: PASS")
     return 0

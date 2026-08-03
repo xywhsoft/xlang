@@ -56,10 +56,13 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_KW_TYPEDEF: return XL6PG_KW_TYPEDEF;
     case XL6_KW_AS: return XL6PG_KW_AS;
     case XL6_KW_IMPORT: return XL6PG_KW_IMPORT;
+    case XL6_KW_FROM: return XL6PG_KW_FROM;
     case XL6_KW_EXTERN: return XL6PG_KW_EXTERN;
     case XL6_KW_EXPORT: return XL6PG_KW_EXPORT;
     case XL6_KW_INCLUDE: return XL6PG_KW_INCLUDE;
     case XL6_KW_CLASS: return XL6PG_KW_CLASS;
+    case XL6_KW_PROTOCOL: return XL6PG_KW_PROTOCOL;
+    case XL6_KW_ENUM: return XL6PG_KW_ENUM;
     case XL6_KW_EXTENDS: return XL6PG_KW_EXTENDS;
     case XL6_KW_UNION: return XL6PG_KW_UNION;
     case XL6_KW_DERIVE: return XL6PG_KW_DERIVE;
@@ -77,6 +80,8 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_KW_BYVAL: return XL6PG_KW_BYVAL;
     case XL6_KW_BYREF: return XL6PG_KW_BYREF;
     case XL6_KW_OUT: return XL6PG_KW_OUT;
+    case XL6_KW_MATCH: return XL6PG_KW_MATCH;
+    case XL6_KW_CASE: return XL6PG_KW_CASE;
     case XL6_KW_RETURN: return XL6PG_KW_RETURN;
     case XL6_KW_END: return XL6PG_KW_END;
     case XL6_KW_IF: return XL6PG_KW_IF;
@@ -275,6 +280,25 @@ static void xl6ParserMarkPostWhileTokens(XL6_ParseTokenStream* stream)
     }
 }
 
+/*
+ * match 语句和 match 表达式共享源码关键字，但语法体分别使用 block
+ * 和 `then expr`。在语句起点提前分类，避免把二义性扩散到整个表达式文法。
+ */
+static void xl6ParserMarkStatementMatchTokens(XL6_ParseTokenStream* stream)
+{
+    size_t i;
+
+    if ( stream == NULL ) {
+        return;
+    }
+    for ( i = 0; i < stream->count; ++i ) {
+        if ( stream->tokens[i].kind == XL6_KW_MATCH &&
+             xl6ParserIsStmtStart(stream, i) ) {
+            stream->parserKinds[i] = XL6PG_STMT_MATCH;
+        }
+    }
+}
+
 static int xl6ParserMatchTypeExpr(const XL6_ParseTokenStream* stream, size_t index, size_t* outNext);
 static int xl6ParserMatchTypeRef(const XL6_ParseTokenStream* stream, size_t index, size_t* outNext);
 static int xl6ParserMatchFunctionTypeRef(const XL6_ParseTokenStream* stream, size_t index, size_t* outNext);
@@ -286,10 +310,16 @@ static int xl6ParserMatchTypeList(const XL6_ParseTokenStream* stream, size_t ind
     if ( !xl6ParserMatchTypeExpr(stream, index, &next) ) {
         return 0;
     }
+    if ( next < stream->count && stream->tokens[next].kind == XL6_TK_QUESTION ) {
+        next += 1;
+    }
 
     while ( next < stream->count && stream->tokens[next].kind == XL6_TK_COMMA ) {
         if ( !xl6ParserMatchTypeExpr(stream, next + 1, &next) ) {
             return 0;
+        }
+        if ( next < stream->count && stream->tokens[next].kind == XL6_TK_QUESTION ) {
+            next += 1;
         }
     }
 
@@ -339,7 +369,14 @@ static int xl6ParserMatchFunctionReturnSig(const XL6_ParseTokenStream* stream, s
         return 1;
     }
 
-    return xl6ParserMatchTypeExpr(stream, next, outNext);
+    if ( !xl6ParserMatchTypeExpr(stream, next, &next) ) {
+        return 0;
+    }
+    if ( next < stream->count && stream->tokens[next].kind == XL6_TK_QUESTION ) {
+        next += 1;
+    }
+    *outNext = next;
+    return 1;
 }
 
 static int xl6ParserMatchFunctionTypeRef(const XL6_ParseTokenStream* stream, size_t index, size_t* outNext)
@@ -379,6 +416,11 @@ static int xl6ParserMatchTypeRef(const XL6_ParseTokenStream* stream, size_t inde
     }
 
     next = index + 1;
+    while ( next + 1 < stream->count &&
+            stream->tokens[next].kind == XL6_TK_DOT &&
+            xl6ParserIsNameToken(&stream->tokens[next + 1]) ) {
+        next += 2;
+    }
     if ( next < stream->count && stream->tokens[next].kind == XL6_TK_LT ) {
         if ( !xl6ParserMatchTypeList(stream, next + 1, &next) ) {
             return 0;
@@ -395,6 +437,17 @@ static int xl6ParserMatchTypeRef(const XL6_ParseTokenStream* stream, size_t inde
 
 static int xl6ParserMatchTypeExpr(const XL6_ParseTokenStream* stream, size_t index, size_t* outNext)
 {
+    size_t next;
+
+    if ( stream != NULL &&
+         index + 1 < stream->count &&
+         stream->tokens[index].kind == XL6_TK_LPAREN &&
+         xl6ParserMatchFunctionTypeRef(stream, index + 1, &next) &&
+         next < stream->count &&
+         stream->tokens[next].kind == XL6_TK_RPAREN ) {
+        *outNext = next + 1;
+        return 1;
+    }
     if ( xl6ParserMatchFunctionTypeRef(stream, index, outNext) ) {
         return 1;
     }
@@ -459,10 +512,16 @@ static int xl6ParserVMatchTypeList(const XL6_ParseTokenStream* stream, XL6_VToke
     if ( !xl6ParserVMatchTypeExpr(stream, pos, &next) ) {
         return 0;
     }
+    if ( xl6ParserVKindAt(stream, next) == XL6_TK_QUESTION ) {
+        next = xl6ParserVNext(stream, next);
+    }
     while ( xl6ParserVKindAt(stream, next) == XL6_TK_COMMA ) {
         next = xl6ParserVNext(stream, next);
         if ( !xl6ParserVMatchTypeExpr(stream, next, &next) ) {
             return 0;
+        }
+        if ( xl6ParserVKindAt(stream, next) == XL6_TK_QUESTION ) {
+            next = xl6ParserVNext(stream, next);
         }
     }
 
@@ -504,7 +563,14 @@ static int xl6ParserVMatchFunctionReturnSig(const XL6_ParseTokenStream* stream, 
         return 1;
     }
 
-    return xl6ParserVMatchTypeExpr(stream, next, outNext);
+    if ( !xl6ParserVMatchTypeExpr(stream, next, &next) ) {
+        return 0;
+    }
+    if ( xl6ParserVKindAt(stream, next) == XL6_TK_QUESTION ) {
+        next = xl6ParserVNext(stream, next);
+    }
+    *outNext = next;
+    return 1;
 }
 
 static int xl6ParserVMatchFunctionTypeRef(const XL6_ParseTokenStream* stream, XL6_VTokenPos pos, XL6_VTokenPos* outNext)
@@ -550,6 +616,14 @@ static int xl6ParserVMatchTypeRef(const XL6_ParseTokenStream* stream, XL6_VToken
     }
 
     next = xl6ParserVNext(stream, pos);
+    while ( xl6ParserVKindAt(stream, next) == XL6_TK_DOT ) {
+        XL6_VTokenPos part = xl6ParserVNext(stream, next);
+
+        if ( !xl6ParserVIsNameToken(stream, part) ) {
+            return 0;
+        }
+        next = xl6ParserVNext(stream, part);
+    }
     kind = xl6ParserVKindAt(stream, next);
     if ( kind == XL6_TK_LT ) {
         next = xl6ParserVNext(stream, next);
@@ -568,6 +642,22 @@ static int xl6ParserVMatchTypeRef(const XL6_ParseTokenStream* stream, XL6_VToken
 
 static int xl6ParserVMatchTypeExpr(const XL6_ParseTokenStream* stream, XL6_VTokenPos pos, XL6_VTokenPos* outNext)
 {
+    XL6_VTokenPos inner;
+    XL6_VTokenPos next;
+
+    /*
+     * 函数签名自身已经使用括号表示参数和多返回值。
+     * 外层括号只用于让后缀 ? 作用于完整函数值类型：
+     *     (func(int) as int)?
+     */
+    if ( xl6ParserVKindAt(stream, pos) == XL6_TK_LPAREN ) {
+        inner = xl6ParserVNext(stream, pos);
+        if ( xl6ParserVMatchFunctionTypeRef(stream, inner, &next) &&
+             xl6ParserVKindAt(stream, next) == XL6_TK_RPAREN ) {
+            *outNext = xl6ParserVNext(stream, next);
+            return 1;
+        }
+    }
     if ( xl6ParserVMatchFunctionTypeRef(stream, pos, outNext) ) {
         return 1;
     }
@@ -634,6 +724,7 @@ static int xl6ParserTypeRefFollowerKind(int kind)
 {
     switch ( kind ) {
     case XL6_TK_IDENT:
+    case XL6_TK_QUESTION:
     case XL6_TK_COMMA:
     case XL6_TK_RPAREN:
     case XL6_KW_AS:
@@ -807,6 +898,179 @@ static void xl6ParserMarkFunctionTypeTokens(XL6_ParseTokenStream* stream)
     }
 }
 
+static int xl6ParserNullableNamedDeclContext(
+    const XL6_ParseTokenStream* stream,
+    size_t typeStart,
+    size_t question)
+{
+    size_t stmtStart;
+    size_t i;
+    int follower;
+
+    if ( stream == NULL || question + 1 >= stream->count ||
+         !xl6ParserIsNameToken(&stream->tokens[question + 1]) ) {
+        return 0;
+    }
+
+    follower = question + 2 < stream->count
+        ? stream->tokens[question + 2].kind
+        : XL6_TK_EOF;
+    if ( follower != XL6_TK_ASSIGN &&
+         follower != XL6_TK_COMMA &&
+         follower != XL6_TK_RPAREN &&
+         follower != XL6_TK_SEP &&
+         follower != XL6_TK_EOF &&
+         follower != XL6_TK_AT ) {
+        return 0;
+    }
+
+    if ( xl6ParserIsStmtStart(stream, typeStart) ) {
+        return 1;
+    }
+    if ( typeStart > 0 &&
+         (stream->tokens[typeStart - 1].kind == XL6_KW_BYVAL ||
+          stream->tokens[typeStart - 1].kind == XL6_KW_BYREF ||
+          stream->tokens[typeStart - 1].kind == XL6_KW_OUT) ) {
+        return 1;
+    }
+
+    /*
+     * 参数类型只会出现在函数、属性或 class 特殊方法的声明头中。
+     * 这里检查当前语句头，避免把普通调用里的三元表达式改写成类型后缀。
+     */
+    stmtStart = xl6ParserStmtStartIndex(stream, typeStart);
+    for ( i = stmtStart; i < typeStart; ++i ) {
+        if ( stream->tokens[i].kind == XL6_KW_FUNC ||
+             stream->tokens[i].kind == XL6_KW_GET ||
+             stream->tokens[i].kind == XL6_KW_LET ) {
+            return 1;
+        }
+    }
+    return stmtStart + 1 < typeStart &&
+           xl6ParserIsNameToken(&stream->tokens[stmtStart]) &&
+           stream->tokens[stmtStart + 1].kind == XL6_TK_LPAREN;
+}
+
+static int xl6ParserNullableAliasContext(
+    const XL6_ParseTokenStream* stream,
+    size_t typeStart)
+{
+    size_t stmtStart;
+    size_t i;
+
+    if ( stream == NULL || typeStart == 0 ||
+         stream->tokens[typeStart - 1].kind != XL6_TK_ASSIGN ) {
+        return 0;
+    }
+    stmtStart = xl6ParserStmtStartIndex(stream, typeStart);
+    for ( i = stmtStart; i < typeStart; ++i ) {
+        if ( stream->tokens[i].kind == XL6_KW_TYPEDEF ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/*
+ * is/as 后面的类型名与三元表达式共用问号字符。
+ * `value is int ? 1 : 0` 的问号后紧跟一段表达式，不能把它改写成 int?；
+ * `value is int?`、`value as int? ?? 0` 则由后续运算符结束类型后缀。
+ */
+static int xl6ParserTokenStartsExpression(int kind)
+{
+    switch ( kind ) {
+    case XL6_TK_IDENT:
+    case XL6_TK_INT:
+    case XL6_TK_FLOAT:
+    case XL6_TK_STRING:
+    case XL6_TK_FSTRING:
+    case XL6_TK_TIME:
+    case XL6_KW_NULL:
+    case XL6_KW_TRUE:
+    case XL6_KW_FALSE:
+    case XL6_KW_FUNC:
+    case XL6_KW_AWAIT:
+    case XL6_TK_LPAREN:
+    case XL6_TK_LBRACKET:
+    case XL6_TK_LBRACE:
+    case XL6_TK_PLUS:
+    case XL6_TK_MINUS:
+    case XL6_KW_NOT:
+    case XL6_TK_BANG:
+    case XL6_TK_BIT_NOT:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+static int xl6ParserNullableTypeContext(
+    const XL6_ParseTokenStream* stream,
+    size_t typeStart,
+    size_t question)
+{
+    int follower;
+    int previous;
+
+    if ( stream == NULL || question >= stream->count ||
+         stream->tokens[question].kind != XL6_TK_QUESTION ) {
+        return 0;
+    }
+
+    follower = question + 1 < stream->count
+        ? stream->tokens[question + 1].kind
+        : XL6_TK_EOF;
+    previous = typeStart > 0
+        ? stream->tokens[typeStart - 1].kind
+        : XL6_TK_EOF;
+
+    if ( xl6ParserNullableNamedDeclContext(stream, typeStart, question) ) {
+        return 1;
+    }
+    if ( previous == XL6_KW_AS || previous == XL6_KW_IS ) {
+        return !xl6ParserTokenStartsExpression(follower);
+    }
+    if ( xl6ParserNullableAliasContext(stream, typeStart) ) {
+        return 1;
+    }
+
+    /*
+     * 无声明名的类型只出现在泛型实参、函数类型参数和多返回值列表中。
+     * 这些位置的后继符号不可能构成合法三元表达式，因此可以安全分类。
+     */
+    return follower == XL6_TK_COMMA ||
+           follower == XL6_TK_RPAREN ||
+           follower == XL6_TK_GT ||
+           follower == XL6_TK_SHR;
+}
+
+static void xl6ParserMarkNullableTypeQuestions(XL6_ParseTokenStream* stream)
+{
+    size_t i;
+    size_t next;
+
+    if ( stream == NULL ) {
+        return;
+    }
+
+    for ( i = 0; i < stream->count; ++i ) {
+        if ( !xl6ParserMatchTypeExpr(stream, i, &next) ||
+             next >= stream->count ||
+             stream->tokens[next].kind != XL6_TK_QUESTION ) {
+            continue;
+        }
+        if ( xl6ParserNullableTypeContext(stream, i, next) ) {
+            stream->parserKinds[next] = XL6PG_TYPE_QUESTION;
+            if ( i + 1 < next &&
+                 stream->tokens[i].kind == XL6_TK_LPAREN &&
+                 stream->tokens[i + 1].kind == XL6_KW_FUNC &&
+                 stream->tokens[next - 1].kind == XL6_TK_RPAREN ) {
+                stream->parserKinds[next - 1] = XL6PG_TYPE_RPAREN;
+            }
+        }
+    }
+}
+
 static void xl6ParserDelimiterStep(const XL6_Token* token, int* paren, int* bracket, int* brace)
 {
     if ( token == NULL ) {
@@ -960,6 +1224,7 @@ static int xl6ParserInsertAnonBlockSeparators(XL6_ParseTokenStream* stream)
                     blockDepth -= 1;
                 } else if ( kind == XL6_KW_IF || kind == XL6_KW_FOR ||
                             kind == XL6_KW_TRY || kind == XL6_KW_DO ||
+                            kind == XL6_KW_MATCH ||
                             (kind == XL6_KW_WHILE && !xl6ParserWhileLineEndsBlock(stream, j)) ) {
                     blockDepth += 1;
                 } else if ( kind == XL6_KW_FUNC ) {
@@ -1058,6 +1323,110 @@ static int xl6ParserRewriteSplitShr(XL6_ParseTokenStream* stream, const int* spl
         }
     }
 
+    xl6ParseTokenStreamFree(stream);
+    *stream = rewritten;
+    return 1;
+}
+
+/*
+ * Lemon 在语句开头无法只靠一个 token 的前瞻区分 `module.Type value`
+ * 和 `object.field = value`。词法结果保持原样，这里仅把“后面明确跟着声明名”
+ * 的点分类型合并成 parser 虚拟 token，避免把普通成员访问引入类型语法。
+ */
+static int xl6ParserQualifiedDeclTypeEnd(
+    const XL6_ParseTokenStream* stream,
+    size_t start,
+    size_t* outEnd)
+{
+    size_t end;
+
+    if ( stream == NULL || outEnd == NULL || start + 2 >= stream->count ||
+         !xl6ParserIsNameToken(&stream->tokens[start]) ||
+         stream->tokens[start + 1].kind != XL6_TK_DOT ||
+         !xl6ParserIsNameToken(&stream->tokens[start + 2]) ) {
+        return 0;
+    }
+
+    end = start + 3;
+    while ( end + 1 < stream->count &&
+            stream->tokens[end].kind == XL6_TK_DOT &&
+            xl6ParserIsNameToken(&stream->tokens[end + 1]) ) {
+        end += 2;
+    }
+    if ( end < stream->count && xl6ParserIsNameToken(&stream->tokens[end]) ) {
+        *outEnd = end;
+        return 1;
+    }
+    if ( end + 1 < stream->count &&
+         stream->tokens[end].kind == XL6_TK_QUESTION &&
+         xl6ParserIsNameToken(&stream->tokens[end + 1]) ) {
+        *outEnd = end;
+        return 1;
+    }
+    if ( end < stream->count && stream->tokens[end].kind == XL6_TK_LT ) {
+        size_t cursor = end;
+        int depth = 0;
+
+        while ( cursor < stream->count ) {
+            if ( stream->tokens[cursor].kind == XL6_TK_LT ) {
+                depth += 1;
+            } else if ( stream->tokens[cursor].kind == XL6_TK_GT ) {
+                depth -= 1;
+                if ( depth == 0 ) {
+                    cursor += 1;
+                    break;
+                }
+            } else if ( stream->tokens[cursor].kind == XL6_TK_SEP ||
+                        stream->tokens[cursor].kind == XL6_TK_EOF ) {
+                return 0;
+            }
+            cursor += 1;
+        }
+        if ( depth == 0 && cursor < stream->count &&
+             (xl6ParserIsNameToken(&stream->tokens[cursor]) ||
+              (cursor + 1 < stream->count &&
+               stream->tokens[cursor].kind == XL6_TK_QUESTION &&
+               xl6ParserIsNameToken(&stream->tokens[cursor + 1]))) ) {
+            *outEnd = end;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int xl6ParserRewriteQualifiedDeclTypes(XL6_ParseTokenStream* stream)
+{
+    XL6_ParseTokenStream rewritten;
+    size_t i;
+
+    if ( stream == NULL ) {
+        return 0;
+    }
+    xl6ParseTokenStreamInit(&rewritten);
+    for ( i = 0; i < stream->count; ++i ) {
+        size_t end;
+
+        if ( xl6ParserQualifiedDeclTypeEnd(stream, i, &end) ) {
+            XL6_Token token = stream->tokens[i];
+            const XL6_Token* last = &stream->tokens[end - 1];
+
+            token.len = last->endOffset - token.startOffset;
+            token.endOffset = last->endOffset;
+            token.endLine = last->endLine;
+            token.endColumn = last->endColumn;
+            if ( !xl6ParseTokenStreamAppend(&rewritten, &token) ) {
+                xl6ParseTokenStreamFree(&rewritten);
+                return 0;
+            }
+            rewritten.parserKinds[rewritten.count - 1] = XL6PG_QUALIFIED_TYPE;
+            i = end - 1;
+            continue;
+        }
+        if ( !xl6ParseTokenStreamAppend(&rewritten, &stream->tokens[i]) ) {
+            xl6ParseTokenStreamFree(&rewritten);
+            return 0;
+        }
+    }
     xl6ParseTokenStreamFree(stream);
     *stream = rewritten;
     return 1;
@@ -1185,6 +1554,11 @@ static void xl6ParserMarkGenericDeclTypeLt(XL6_ParseTokenStream* stream)
         if ( !xl6ParserMatchTypeRef(stream, i, &afterType) ) {
             continue;
         }
+        if ( afterType < stream->count &&
+             stream->tokens[afterType].kind == XL6_TK_QUESTION ) {
+            stream->parserKinds[afterType] = XL6PG_TYPE_QUESTION;
+            afterType += 1;
+        }
         if ( afterType >= stream->count || !xl6ParserIsNameToken(&stream->tokens[afterType]) ) {
             continue;
         }
@@ -1245,13 +1619,19 @@ static int xl6ParserReadTokens(XL6_Lexer* lexer, XL6_ParseTokenStream* stream, X
         xl6DiagAdd(diags, token.startLine, token.startColumn, "内存不足，无法拆分嵌套泛型 token");
         return 0;
     }
+    if ( !xl6ParserRewriteQualifiedDeclTypes(stream) ) {
+        xl6DiagAdd(diags, token.startLine, token.startColumn, "内存不足，无法标记限定类型");
+        return 0;
+    }
     xl6ParserMarkFunctionTypeTokens(stream);
     if ( !xl6ParserInsertAnonBlockSeparators(stream) ) {
         xl6DiagAdd(diags, token.startLine, token.startColumn, "内存不足，无法补齐匿名函数块分隔符");
         return 0;
     }
     xl6ParserMarkFunctionTypeTokens(stream);
+    xl6ParserMarkNullableTypeQuestions(stream);
     xl6ParserMarkPostWhileTokens(stream);
+    xl6ParserMarkStatementMatchTokens(stream);
     xl6ParserMarkContainerLiteralTypeLt(stream);
     xl6ParserMarkGenericDeclTypeLt(stream);
     return 1;

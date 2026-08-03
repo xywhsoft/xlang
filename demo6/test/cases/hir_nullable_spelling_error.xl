@@ -1,0 +1,4 @@
+func main(...) as int
+    nullable<int> value = null
+    return 0
+end

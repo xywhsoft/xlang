@@ -1,10 +1,87 @@
 static void xl6CgenAsyncFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     xl6OutputPuts("xfuture* ", ctx->out);
-    xl6CgenFuncSymbol(ctx, node);
+    xl6CgenAsyncCallableSymbol(ctx, node);
     xl6OutputPutc('(', ctx->out);
-    xl6CgenAsyncEmitParamList(ctx, xl6CgenAsyncParams(node));
+    if ( xl6CgenAsyncIsClassMethod(ctx) ) {
+        if ( ctx->currentAsyncNativeClass != NULL ) {
+            xl6CgenNativeBackedTypeName(
+                ctx->out,
+                ctx->currentAsyncNativeClass->text);
+        } else if ( ctx->currentAsyncClassType != NULL ) {
+            xl6OutputPuts(
+                xl6CgenTypeName(ctx, ctx->currentAsyncClassType),
+                ctx->out);
+        } else {
+            xl6CgenClassTypeName(
+                ctx->out,
+                ctx->currentAsyncClass->text);
+        }
+        xl6OutputPuts("* self", ctx->out);
+        if ( xl6CgenAsyncParams(node) != NULL &&
+             xl6CgenAsyncParams(node)->childCount > 0 ) {
+            xl6OutputPuts(", ", ctx->out);
+        }
+    }
+    if ( !xl6CgenAsyncIsClassMethod(ctx) ||
+         (xl6CgenAsyncParams(node) != NULL &&
+          xl6CgenAsyncParams(node)->childCount > 0) ) {
+        xl6CgenAsyncEmitParamList(ctx, xl6CgenAsyncParams(node));
+    }
     xl6OutputPutc(')', ctx->out);
+}
+
+static void xl6CgenAsyncClassFuncProto(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* classType,
+    const XL6_AstNode* node)
+{
+    const XL6_AstNode* prevClass = ctx->currentAsyncClass;
+    const XL6_AstNode* prevClassType = ctx->currentAsyncClassType;
+    const XL6_AstNode* prevNativeClass = ctx->currentAsyncNativeClass;
+    const XL6_AstNode* prevParams = ctx->currentGenericParams;
+    const XL6_AstNode* prevArgs = ctx->currentGenericArgs;
+    int prevStatic = ctx->currentAsyncStatic;
+
+    ctx->currentAsyncClass = classNode;
+    ctx->currentAsyncClassType = classType;
+    ctx->currentAsyncNativeClass = NULL;
+    ctx->currentAsyncStatic = xl6CgenIsStaticMember(node);
+    if ( classType != NULL ) {
+        ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
+        ctx->currentGenericArgs = classType->childCount > 0
+            ? classType->children[0]
+            : NULL;
+    }
+    xl6CgenAsyncFuncProto(ctx, node);
+    ctx->currentGenericParams = prevParams;
+    ctx->currentGenericArgs = prevArgs;
+    ctx->currentAsyncClass = prevClass;
+    ctx->currentAsyncClassType = prevClassType;
+    ctx->currentAsyncNativeClass = prevNativeClass;
+    ctx->currentAsyncStatic = prevStatic;
+}
+
+static void xl6CgenAsyncNativeClassFuncProto(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* node)
+{
+    const XL6_AstNode* prevClass = ctx->currentAsyncClass;
+    const XL6_AstNode* prevClassType = ctx->currentAsyncClassType;
+    const XL6_AstNode* prevNativeClass = ctx->currentAsyncNativeClass;
+    int prevStatic = ctx->currentAsyncStatic;
+
+    ctx->currentAsyncClass = NULL;
+    ctx->currentAsyncClassType = NULL;
+    ctx->currentAsyncNativeClass = classNode;
+    ctx->currentAsyncStatic = xl6CgenIsStaticMember(node);
+    xl6CgenAsyncFuncProto(ctx, node);
+    ctx->currentAsyncClass = prevClass;
+    ctx->currentAsyncClassType = prevClassType;
+    ctx->currentAsyncNativeClass = prevNativeClass;
+    ctx->currentAsyncStatic = prevStatic;
 }
 
 static int xl6CgenIsChannelGenericInstant(const XL6_AstNode* node)

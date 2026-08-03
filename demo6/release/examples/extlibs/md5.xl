@@ -1,20 +1,28 @@
 import md5
 
-assert md5.available(), "md5 available failed"
-
 string sample = "hello xlang"
 string samplePath = "examples_out/extlibs/md5_sample.txt"
 
 dir.createAll("examples_out/extlibs")
 file.writeText(samplePath, sample)
 
-assert md5.version() == "md5 0.1.0", "md5 version mismatch"
-assert md5.hex("") == "d41d8cd98f00b204e9800998ecf8427e", "md5 empty digest mismatch"
-assert md5.hex("abc") == "900150983cd24fb0d6963f7d28e17f72", "md5 abc digest mismatch"
-assert md5.file(samplePath) == md5.hex(sample), "md5 file digest mismatch"
-assert md5.valid(md5.hex(sample)) != 0, "md5 valid digest failed"
-assert md5.valid("not-md5") == 0, "md5 invalid digest failed"
-assert md5.file("") == "", "md5 empty path should fail"
-assert md5.last_error() == "empty file path", "md5 diagnostic mismatch"
+assert md5.version() != "", "md5 version mismatch"
+assert md5.hashHex("") == "d41d8cd98f00b204e9800998ecf8427e", "md5 empty digest mismatch"
+assert md5.hashHex("abc") == "900150983cd24fb0d6963f7d28e17f72", "md5 abc digest mismatch"
+assert md5.hash(sample).len() == md5.MD5_DIGEST_SIZE, "md5 binary digest size mismatch"
+assert md5.hashFileHex(samplePath) == md5.hashHex(sample), "md5 file digest mismatch"
+assert md5.hashFile(samplePath).len() == md5.MD5_DIGEST_SIZE, "md5 binary file digest mismatch"
+
+md5.Md5Hasher streaming = md5.hasher()
+streaming.update("hello ")
+streaming.update("xlang")
+assert streaming.digestHex() == md5.hashHex(sample), "md5 streaming mismatch"
+assert streaming.inputBytes == string.byteLen(sample), "md5 streaming inputBytes mismatch"
+
+try
+    md5.hashFileHex("")
+    assert false, "md5 empty path should fail"
+catch FileError
+end
 
 println("md5 extlib ok")

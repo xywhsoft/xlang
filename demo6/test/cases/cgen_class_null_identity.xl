@@ -6,7 +6,7 @@ class RefIdentity
     end
 end
 
-RefIdentity empty = null
+RefIdentity? empty = null
 RefIdentity first = RefIdentity(1)
 RefIdentity alias = first
 RefIdentity second = RefIdentity(1)
@@ -18,7 +18,7 @@ assert first == alias
 assert first != second
 
 func verifyLocalIdentity()
-    RefIdentity localEmpty = null
+    RefIdentity? localEmpty = null
     RefIdentity localFirst = RefIdentity(2)
     RefIdentity localAlias = localFirst
     RefIdentity localSecond = RefIdentity(2)

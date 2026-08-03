@@ -1,0 +1,4 @@
+func main(...) as int
+    print("hello")
+    return 0
+end

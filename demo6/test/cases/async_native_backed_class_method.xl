@@ -1,0 +1,24 @@
+class AsyncNativeCounter
+    native point handle
+    extern "counter_open" create(int seed)
+    extern "counter_close" destroy()
+    extern "counter_value" func value() as int
+
+    async func readAfter(int delayMs) as int
+        time.sleep(delayMs)
+        return self.value()
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "counter_closed" func counterClosed() as int
+
+func startRead() as future<int>
+    AsyncNativeCounter counter = AsyncNativeCounter(73)
+    return counter.readAfter(20)
+end
+
+future<int> pending = startRead()
+expect(await pending, 73)
+expect(counterClosed(), 1)
+println("async native-backed class method ok")

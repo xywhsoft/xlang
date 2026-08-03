@@ -2,22 +2,26 @@ import crc32
 
 string sample = "123456789"
 
-assert crc32.available(), "crc32 available failed"
-assert crc32.version() == "crc32 0.1.0", "crc32 version mismatch"
-assert crc32.checksum_hex(sample) == "cbf43926", "crc32 checksum_hex mismatch"
-assert crc32.hex(crc32.checksum(sample)) == "cbf43926", "crc32 checksum mismatch"
+assert crc32.version() != "", "crc32 version mismatch"
+assert crc32.checksumHex(sample) == "cbf43926", "crc32 checksumHex mismatch"
+assert crc32.checksum(sample) != 0, "crc32 checksum mismatch"
 
-int streaming = crc32.init()
-streaming = crc32.update(streaming, "1234")
-streaming = crc32.update(streaming, "56789")
-assert crc32.finish(streaming) == crc32.checksum(sample), "crc32 streaming mismatch"
+crc32.Crc32Hasher streaming = crc32.hasher()
+streaming.update("1234")
+streaming.update("56789")
+assert streaming.digestHex() == "cbf43926", "crc32 streaming mismatch"
+assert streaming.inputBytes == 9, "crc32 streaming inputBytes mismatch"
 
 dir.createAll("examples_out/extlibs")
-file.writeText("examples_out/extlibs/crc32_sample.txt", sample)
-assert crc32.file_hex("examples_out/extlibs/crc32_sample.txt") == "cbf43926", "crc32 file_hex mismatch"
-assert crc32.hex(crc32.file("examples_out/extlibs/crc32_sample.txt")) == "cbf43926", "crc32 file mismatch"
+string samplePath = "examples_out/extlibs/crc32_sample.txt"
+file.writeText(samplePath, sample)
+assert crc32.checksumFileHex(samplePath) == "cbf43926", "crc32 checksumFileHex mismatch"
+assert crc32.checksumFile(samplePath) == crc32.checksum(sample), "crc32 checksumFile mismatch"
 
-assert crc32.file("") == 0, "crc32 empty path should fail"
-assert crc32.last_error() == "empty file path", "crc32 empty path diagnostic mismatch"
+try
+    crc32.checksumFile("")
+    assert false, "crc32 empty path should fail"
+catch FileError
+end
 
 println("crc32 extlib ok")

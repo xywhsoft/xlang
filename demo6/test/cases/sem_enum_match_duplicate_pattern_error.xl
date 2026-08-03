@@ -1,0 +1,14 @@
+enum State
+    idle
+    running
+end
+
+State state = State.idle()
+match state
+case idle
+    println("first")
+case idle
+    println("duplicate")
+case running
+    println("running")
+end

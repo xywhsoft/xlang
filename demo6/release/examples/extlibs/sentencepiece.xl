@@ -5,7 +5,7 @@ func main(...) as int
 
     println("Model 0 = " + sentencepiece.modelType(0))
     println("Encode = " + sentencepiece.encode("hello world"))
-    println("Pieces = " + string.fromInt(sentencepiece.countPieces("hello world")))
+    println("Pieces = " + string(sentencepiece.countPieces("hello world")))
 
     println("sentencepiece example: PASS")
     return 0

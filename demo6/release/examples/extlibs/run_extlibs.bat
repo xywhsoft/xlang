@@ -9,21 +9,27 @@ if errorlevel 1 exit /b 1
 set "EXTLIB_TEST_DIR=build\test\extlibs"
 if not exist "%EXTLIB_TEST_DIR%" mkdir "%EXTLIB_TEST_DIR%"
 
-call :run_example release\examples\extlibs\crc32.xl crc32 xcrc32_string_hex
+call :run_example release\examples\extlibs\crc32.xl crc32 xcrc32_hash_hex
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\clipboard.xl clipboard x_clipboard_set_text
 if errorlevel 1 exit /b 1
 call :export_example release\examples\extlibs\com.xl com x_com_test_object
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\md5.xl md5 xmd5_hex
+call :run_example release\examples\extlibs\md5.xl md5 xmd5_hash_hex
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\lz4.xl lz4 xlz4_compress_hex
+call :run_example release\examples\extlibs\lz4.xl lz4 xlz4_compress
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\zstd.xl zstd xzstd_compress_hex
+call :run_example release\examples\extlibs\zstd.xl zstd xzstd_compress
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\lzma.xl lzma xlzma_compress_hex
+call :run_example release\examples\extlibs\lzma.xl lzma xlzma_compress
 if errorlevel 1 exit /b 1
-call :run_example release\examples\extlibs\miniz.xl miniz xminiz_compress_hex
+call :run_example release\examples\extlibs\miniz.xl miniz xminiz_compress
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\brotli.xl brotli xbrotli_compress
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\snappy.xl snappy xsnappy_compress
+if errorlevel 1 exit /b 1
+call :run_example release\examples\extlibs\xxhash.xl xxhash xxxhash_hash64
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\gzip.xl gzip xgzip_compress
 if errorlevel 1 exit /b 1
@@ -96,6 +102,10 @@ if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\ui_auto.xl ui.auto xl6_export_____xl6__import__ui__auto__test__window
 if errorlevel 1 exit /b 1
 call :run_example release\examples\extlibs\redis.xl redis xl6_export_____xl6__import__redis__resp__encode3
+if errorlevel 1 exit /b 1
+
+rem Wires: release/examples/extlibs/*.xl
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_extlib_examples.ps1
 if errorlevel 1 exit /b 1
 
 echo DEMO6 extension library examples ok.

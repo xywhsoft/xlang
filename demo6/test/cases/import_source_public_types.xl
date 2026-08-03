@@ -1,0 +1,15 @@
+import import_source_public_types_module as source
+from import_source_public_types_module import SourcePoint as Point, SourceNumber, SourceCount
+
+func main(...) as int
+    Point point = Point(20, 22)
+    source.SourcePoint qualified = point
+    SourceNumber number
+    number.integer = source.answer()
+    SourceCount count = qualified.sum()
+
+    if count != 42 or number.integer != 42 then
+        return 1
+    end
+    return 0
+end

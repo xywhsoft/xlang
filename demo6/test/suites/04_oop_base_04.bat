@@ -53,6 +53,13 @@ if errorlevel 1 exit /b 1
 build\test\cgen_field_persistence_attrs.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe cgen test\cases\cgen_persistence_array_var_field.xl --emit build\test\cgen_persistence_array_var_field.c
+if errorlevel 1 exit /b 1
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_persistence_array_var_field.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_persistence_array_var_field.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_persistence_array_var_field.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe check test\cases\cgen_class_overloads.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_class_overloads.xl --emit build\test\cgen_class_overloads.c

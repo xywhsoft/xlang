@@ -165,7 +165,7 @@ func analyzeDir(string logDir) as int
 
             // timestamp + hourly volume bucket (inlined tally)
             string tsText = ""
-            RegexMatch ts = tsRegex.match(line)
+        RegexMatch ts = tsRegex.find(line)
             if ts.ok then
                 tsText = string(ts.text)
                 parsedLines = parsedLines + 1
@@ -185,7 +185,7 @@ func analyzeDir(string logDir) as int
             // level (regex alternation; .text is the whole match) + inlined tally
             string level = "OTHER"
             int levelEnd = -1
-            RegexMatch lm = lvlRegex.match(line)
+        RegexMatch lm = lvlRegex.find(line)
             if lm.ok then
                 level = string(lm.text)
                 levelEnd = lm.end

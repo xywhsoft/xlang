@@ -2270,7 +2270,7 @@ func cmdExplore(int maxSteps, string controllerName) as int
     r.maxAng = 1.0
 
     // 选择控制器：基类引用直接持有具体控制器。
-    ControllerBase ctrl = null
+    ControllerBase ctrl
     if controllerName == "potential" then
         ctrl = PotentialController(0.5, 1.0)
     else

@@ -1,0 +1,37 @@
+class ThreadBox<T>
+    T value
+
+    create(T input)
+        self.value = input
+    end
+end
+
+enum ThreadResult<T>
+    value(T item)
+end
+
+extern "host_thread_value" func hostThreadValue(int value) as int
+extern "host_thread_checkpoint" func hostThreadCheckpoint(int index, int stage)
+
+hostThreadCheckpoint(0, 0)
+ThreadBox<int> box = ThreadBox::<int>(0)
+hostThreadCheckpoint(0, 1)
+ThreadBox<int>? maybe = box
+ThreadResult<string> result = ThreadResult::<string>.value("ready")
+
+if maybe != null
+    assert maybe.value == 0
+else
+    assert false
+end
+
+hostThreadCheckpoint(0, 2)
+string resultText = match result
+case value(item) then item
+end
+assert resultText == "ready"
+hostThreadCheckpoint(0, 3)
+
+int value = hostThreadValue(0)
+assert value == 1000
+hostThreadCheckpoint(0, 4)

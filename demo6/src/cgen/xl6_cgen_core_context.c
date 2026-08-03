@@ -9,6 +9,8 @@ typedef struct XL6_CgenRootTypeSlot {
     const char* name;
     XL6_AstNode* classNode;
     XL6_AstNode* unionNode;
+    XL6_AstNode* protocolNode;
+    XL6_AstNode* enumNode;
 } XL6_CgenRootTypeSlot;
 
 #define XL6_CGEN_VAR_TYPED_CONTAINER 0x00000001u
@@ -34,6 +36,9 @@ typedef enum XL6_CgenCleanupKind {
     XL6_CGEN_CLEANUP_STRING,
     XL6_CGEN_CLEANUP_XRT_PTR,
     XL6_CGEN_CLEANUP_TYPED_CONTAINER_PARAM,
+    XL6_CGEN_CLEANUP_WEAK,
+    XL6_CGEN_CLEANUP_NULLABLE_MANAGED,
+    XL6_CGEN_CLEANUP_TYPED_VALUE,
     XL6_CGEN_CLEANUP_TEMP_SCOPE
 } XL6_CgenCleanupKind;
 
@@ -42,7 +47,11 @@ typedef struct XL6_CgenCleanup {
     XL6_CgenCleanupKind kind;
     const XL6_AstNode* typeNode;
     const XL6_AstNode* classTypeNode;
+    unsigned int flags;
+    uint32 scopeDepth;
 } XL6_CgenCleanup;
+
+#define XL6_CGEN_CLEANUP_MODULE_GLOBAL 0x00000001u
 
 typedef struct XL6_CgenGenericInstance {
     const XL6_AstNode* func;
@@ -55,9 +64,25 @@ typedef struct XL6_CgenGenericClassInstance {
     const XL6_AstNode* typeNode;
 } XL6_CgenGenericClassInstance;
 
+typedef struct XL6_CgenGenericProtocolInstance {
+    const XL6_AstNode* protocolNode;
+    XL6_AstNode* typeNode;
+} XL6_CgenGenericProtocolInstance;
+
+typedef struct XL6_CgenGenericEnumInstance {
+    const XL6_AstNode* enumNode;
+    XL6_AstNode* typeNode;
+} XL6_CgenGenericEnumInstance;
+
 typedef struct XL6_CgenRuntimeTypeDesc {
     const XL6_AstNode* typeNode;
 } XL6_CgenRuntimeTypeDesc;
+
+typedef struct XL6_CgenNullableType {
+    XL6_AstNode* typeNode;
+    unsigned long long typeId;
+    int runtimeCastHelperEmitted;
+} XL6_CgenNullableType;
 
 typedef struct XL6_CgenAnonCapture {
     char* name;
@@ -75,12 +100,14 @@ typedef struct XL6_CgenAnonFunc {
 typedef struct XL6_CgenLoopTarget {
     size_t breakCleanupMark;
     size_t continueCleanupMark;
+    uint32 region;
     int breakId;
     int continueId;
 } XL6_CgenLoopTarget;
 
 typedef struct XL6_CgenTryTarget {
     size_t cleanupMark;
+    uint32 region;
     int id;
     int targetFinally;
 } XL6_CgenTryTarget;
@@ -117,6 +144,7 @@ typedef struct XL6_CgenExprReplacement {
 } XL6_CgenExprReplacement;
 
 #define XL6_CGEN_EXPR_REPLACEMENT_XVALUE 0x1u
+#define XL6_CGEN_EXPR_REPLACEMENT_MOVE   0x2u
 
 /*
     类型推断会被参数匹配、容器 lowering 和表达式生成反复调用。
@@ -133,9 +161,27 @@ typedef struct XL6_CgenTypeCacheEntry {
     XL6_AstNode* type;
 } XL6_CgenTypeCacheEntry;
 
+typedef struct XL6_CgenCoalesceSlot {
+    const XL6_AstNode* node;
+    int id;
+} XL6_CgenCoalesceSlot;
+
+/*
+    代码生成期间会反复构造 class、enum、nullable 等 C 类型名。
+    文本块归当前上下文所有，使返回指针在整次生成期间保持稳定，
+    同时避免函数级 static 缓冲区造成多上下文并发覆盖。
+*/
+typedef struct XL6_CgenTextBlock {
+    struct XL6_CgenTextBlock* next;
+    size_t used;
+    size_t capacity;
+    char data[1];
+} XL6_CgenTextBlock;
+
 typedef struct XL6_CgenContext {
     XL6_Output* out;
     XL6_AstNode* root;
+    const XL6_HirModule* hir;
     XL6_DiagList* diags;
     XL6_CgenRootTypeSlot* rootTypeSlots;
     size_t rootTypeSlotCount;
@@ -169,15 +215,25 @@ typedef struct XL6_CgenContext {
     XL6_CgenGenericClassInstance* genericClassInstances;
     size_t genericClassInstanceCount;
     size_t genericClassInstanceCapacity;
+    XL6_CgenGenericProtocolInstance* genericProtocolInstances;
+    size_t genericProtocolInstanceCount;
+    size_t genericProtocolInstanceCapacity;
+    XL6_CgenGenericEnumInstance* genericEnumInstances;
+    size_t genericEnumInstanceCount;
+    size_t genericEnumInstanceCapacity;
     XL6_CgenRuntimeTypeDesc* runtimeTypeDescs;
     size_t runtimeTypeDescCount;
     size_t runtimeTypeDescCapacity;
+    XL6_CgenNullableType* nullableTypes;
+    size_t nullableTypeCount;
+    size_t nullableTypeCapacity;
     XL6_CgenAnonFunc* anonFuncs;
     size_t anonFuncCount;
     size_t anonFuncCapacity;
     XL6_AstNode** ownedTypeNodes;
     size_t ownedTypeNodeCount;
     size_t ownedTypeNodeCapacity;
+    XL6_CgenTextBlock* textBlocks;
     unsigned long long* emittedFunctionReturns;
     size_t emittedFunctionReturnCount;
     size_t emittedFunctionReturnCapacity;
@@ -189,6 +245,14 @@ typedef struct XL6_CgenContext {
     const XL6_AstNode* currentReturnFunc;
     const XL6_AstNode* currentClass;
     const XL6_AstNode* currentNativeClass;
+    /*
+        异步类方法的 launcher 与 worker 分开生成。
+        这里单独保存其声明上下文，避免借用 currentClass 导致顶层 async 串入类符号。
+    */
+    const XL6_AstNode* currentAsyncClass;
+    const XL6_AstNode* currentAsyncClassType;
+    const XL6_AstNode* currentAsyncNativeClass;
+    int currentAsyncStatic;
     const XL6_CgenAnonFunc* currentAnonFunc;
     const XL6_AstNode* currentGeneratorItemType;
     const char* currentGeneratorHandleName;
@@ -199,6 +263,9 @@ typedef struct XL6_CgenContext {
     XL6_CgenTypeCacheEntry* typeCache;
     size_t typeCacheCount;
     size_t typeCacheCapacity;
+    XL6_CgenCoalesceSlot* coalesceSlots;
+    size_t coalesceSlotCount;
+    size_t coalesceSlotCapacity;
     unsigned long long typeScopeEpoch;
     int currentAsyncWorker;
     int debugMode;
@@ -210,6 +277,7 @@ typedef struct XL6_CgenContext {
     int ok;
     int indent;
     int tempId;
+    uint32 currentScopeDepth;
 } XL6_CgenContext;
 
 static int xl6CgenParamRequiredCount(const XL6_AstNode* params);
@@ -241,6 +309,24 @@ static int xl6CgenClassBasePath(XL6_CgenContext* ctx, const XL6_AstNode* fromCla
 static void xl6CgenEmitRecordFieldHelpers(XL6_CgenContext* ctx);
 static void xl6CgenAsyncFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenAsyncFunc(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static void xl6CgenAsyncClassFuncProto(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* classType,
+    const XL6_AstNode* node);
+static void xl6CgenAsyncNativeClassFuncProto(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* node);
+static void xl6CgenAsyncClassFunc(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* classType,
+    const XL6_AstNode* node);
+static void xl6CgenAsyncNativeClassFunc(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* node);
 static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenAwaitExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static int xl6CgenChannelCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* callee);

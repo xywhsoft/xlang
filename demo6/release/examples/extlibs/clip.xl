@@ -4,7 +4,7 @@ func main(...) as int
     // CLIP multimodal model
 
     println("Model 0 = " + clip.model(0))
-    println("EmbedDim 0 = " + string.fromInt(clip.embedDim(0)))
+    println("EmbedDim 0 = " + string(clip.embedDim(0)))
     println("Preprocess 0 = " + clip.preprocess(0))
 
     println("clip example: PASS")

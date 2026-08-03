@@ -1,0 +1,49 @@
+protocol Named
+    func name() as string
+end
+
+class Person
+    string stored = ""
+
+    create(string value)
+        self.stored = value
+    end
+
+    func name() as string
+        return self.stored
+    end
+end
+
+class Base
+    func kind() as string
+        return "base"
+    end
+end
+
+class Derived extends Base
+end
+
+func readName(Named value) as string
+    return value.name()
+end
+
+func widenNamed<T is Named>(T value) as Named
+    Named local = value
+    array<Named> values = array[value, local]
+    assert readName(value) == local.name()
+    return values[0]
+end
+
+func widenBase<T is Derived>(T value) as Base
+    return value
+end
+
+func main(...) as int
+    Named named = widenNamed::<Person>(Person("constraint"))
+    Base base = widenBase::<Derived>(Derived())
+
+    assert named.name() == "constraint"
+    assert base.kind() == "base"
+    println("protocol constraint widening matrix ok")
+    return 0
+end

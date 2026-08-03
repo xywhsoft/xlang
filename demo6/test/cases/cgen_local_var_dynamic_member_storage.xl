@@ -1,0 +1,16 @@
+class DynamicStorageBox extends object
+end
+
+func writeLocalDynamicField() as int
+    DynamicStorageBox source = DynamicStorageBox()
+    var boxed = source
+
+    // HIR 可以把读取类型收窄为 class，但写回必须继续使用 var 的 xvalue 存储。
+    boxed.score = 42
+    assert(int(boxed.score) == 42)
+    assert(int(source.score) == 42)
+    return int(boxed.score)
+end
+
+assert(writeLocalDynamicField() == 42)
+println("local var dynamic member storage ok")

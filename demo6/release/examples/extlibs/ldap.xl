@@ -15,7 +15,7 @@ func main(...) as int
     println("mail = " + ldap.attrDesc("mail"))
 
     // DN validation
-    println("valid DN = " + string.format("{}", ldap.validDn("cn=admin,dc=example,dc=com")))
+    println("valid DN = " + string(ldap.validDn("cn=admin,dc=example,dc=com")))
 
     println("ldap example: PASS")
     return 0

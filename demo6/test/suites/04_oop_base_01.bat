@@ -351,6 +351,16 @@ if not errorlevel 1 (
     echo cgen_index_access.c should not unref borrowed index current values.
     exit /b 1
 )
+findstr /C:"xvoGetInt(xvoIndexGetI64(__xl6_user_global_maybe, (long long)(0LL)))" build\test\cgen_index_access.c >nul
+if errorlevel 1 (
+    echo cgen_index_access.c should read ordinary dynamic indexes without consuming container elements.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_value_to_i64_release(xvoIndexGetI64(__xl6_user_global_maybe" build\test\cgen_index_access.c >nul
+if not errorlevel 1 (
+    echo cgen_index_access.c must not release borrowed ordinary dynamic index values.
+    exit /b 1
+)
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_index_access.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_index_access.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_index_access.exe
@@ -364,12 +374,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_safe_index.xl --emit build\test\cgen_safe_index.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(__xl6_user_global_values, (long long)(1LL)))" build\test\cgen_safe_index.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_safe_index.c' -Raw; if($t -notmatch '__xl6_safe_container_[0-9]+ = __xl6_user_global_values.*xl6_xrt_typed_array_get_at\(.*\? \(XL6_Nullable_[0-9a-f]+\)\{ true, \(\*\(long long\*\)'){exit 1}"
 if errorlevel 1 (
     echo cgen_safe_index.c missing typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedDictGet(__xl6_user_global_table, \"count\", 0))" build\test\cgen_safe_index.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_safe_index.c' -Raw; if($t -notmatch '__xl6_safe_container_[0-9]+ = __xl6_user_global_table.*xrtTypedDictGet\(.*\"count\", 0\).*\? \(XL6_Nullable_[0-9a-f]+\)\{ true, \(\*\(long long\*\)'){exit 1}"
 if errorlevel 1 (
     echo cgen_safe_index.c missing typed dict safe index lowering.
     exit /b 1
@@ -389,12 +399,12 @@ if errorlevel 1 (
     echo cgen_safe_index.c missing null safe index lowering.
     exit /b 1
 )
-findstr /C:"return xvoIndexGetI64(values, index);" release\include\xl_runtime.h >nul
+findstr /C:"return xl6_xrt_retain(xvoIndexGetI64(values, index));" release\include\xl_runtime.h >nul
 if errorlevel 1 (
     echo xl_runtime.h should delegate numeric safe index misses to XRT.
     exit /b 1
 )
-findstr /C:"return xvoIndexGetKey(values, (str)key, 0);" release\include\xl_runtime.h >nul
+findstr /C:"return xl6_xrt_retain(xvoIndexGetKey(values, (str)key, 0));" release\include\xl_runtime.h >nul
 if errorlevel 1 (
     echo xl_runtime.h should delegate keyed safe index misses to XRT.
     exit /b 1
@@ -431,39 +441,39 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_safe_index.xl --emit build\test\cgen_typed_container_safe_index.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(__xl6_user_global_values" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"static XL6_Nullable_" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_box_or_null(xrtTypeString(), xrtTypedListGet(__xl6_user_global_names" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"xl6_nullable_string_copy(((__xl6_safe_container_" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedDictGet(__xl6_user_global_scores" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"xrtTypedDictGet(__xl6_safe_container_" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing typed dict safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybeValue = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xrtTypeInt(), xl6_xrt_typed_array_get_at(__xl6_user_global_values" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"__xl6_user_global_maybeValue = ((__xl6_safe_container_" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_safe_index.c missing auto typed array safe index as xvalue.
+    echo cgen_typed_container_safe_index.c missing inferred nullable typed array safe index.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_missingName = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xrtTypeString(), xrtTypedListGet(__xl6_user_global_names" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"__xl6_user_global_missingName = xl6_nullable_string_copy(" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_safe_index.c missing auto typed list safe index as xvalue.
+    echo cgen_typed_container_safe_index.c missing inferred nullable string safe index.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_missingScore = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xrtTypeInt(), xrtTypedDictGet(__xl6_user_global_scores" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"__xl6_user_global_missingScore = ((__xl6_safe_container_" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_safe_index.c missing auto typed dict safe index as xvalue.
+    echo cgen_typed_container_safe_index.c missing inferred nullable typed dict safe index.
     exit /b 1
 )
-findstr /C:"xl6_xrt_value_to_i64_release(xl6_xrt_typed_box_or_null" build\test\cgen_typed_container_safe_index.c >nul
-if errorlevel 1 (
-    echo cgen_typed_container_safe_index.c missing temporary xvalue release conversion helper.
+findstr /C:"xl6_xrt_typed_box_or_null" build\test\cgen_typed_container_safe_index.c >nul
+if not errorlevel 1 (
+    echo cgen_typed_container_safe_index.c should not box statically typed nullable values.
     exit /b 1
 )
 findstr /C:"__xl6_conv_" build\test\cgen_typed_container_safe_index.c >nul
@@ -472,8 +482,8 @@ if not errorlevel 1 (
     exit /b 1
 )
 findstr /C:"xl6_xrt_value_to_string_release(xl6_xrt_typed_box_or_null" build\test\cgen_typed_container_safe_index.c >nul
-if errorlevel 1 (
-    echo cgen_typed_container_safe_index.c missing temporary xvalue string conversion release.
+if not errorlevel 1 (
+    echo cgen_typed_container_safe_index.c should not box nullable strings for conversion.
     exit /b 1
 )
 findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue __xl6_nc_" build\test\cgen_typed_container_safe_index.c >nul
@@ -481,9 +491,9 @@ if not errorlevel 1 (
     echo cgen_typed_container_safe_index.c should pre-evaluate null coalesce scalar arguments.
     exit /b 1
 )
-findstr /C:"expect_str(__xl6_call_arg_" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"expect_str(((__xl6_coalesce_" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
-    echo cgen_typed_container_safe_index.c missing string call argument handoff.
+    echo cgen_typed_container_safe_index.c missing direct nullable string coalesce.
     exit /b 1
 )
 findstr /C:"xl6_xrt_value_to_string_release(({ xvalue __xl6_nc_" build\test\cgen_typed_container_safe_index.c >nul
@@ -498,92 +508,92 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_safe_index_objects_functions.xl --emit build\test\cgen_typed_container_safe_index_objects_functions.c
 if errorlevel 1 exit /b 1
-findstr /C:"__xl6_user_global_maybePair = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_runtime_type_desc_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybePair = xl6_xrt_move_to_shared(((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybePayload = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xl6_xrt_typed_array_get_at(__xl6_user_global_payloads" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybePayload = ((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybeNative = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_runtime_type_desc_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybeNative = xl6_xrt_move_to_shared(((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybeFn = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xrtTypeFunction(), xl6_xrt_typed_array_get_at(__xl6_user_global_funcs" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybeFn = ((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c | findstr /C:"xl6_function_from_callable" >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybeListPair = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_runtime_type_desc_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybeListPair = xl6_xrt_move_to_shared(((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybeListPayload = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedListGet(__xl6_user_global_payloadList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybeListPayload = ((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybeListNative = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_runtime_type_desc_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybeListNative = xl6_xrt_move_to_shared(((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybeListFn = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xrtTypeFunction(), xrtTypedListGet(__xl6_user_global_funcList" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybeListFn = ((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c | findstr /C:"xl6_function_from_callable" >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_dict_get_var_key(__xl6_user_global_pairDict" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_dict_get_var_key(__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed dict dynamic safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybeDictPayload = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_type_desc_XL_Union_Payload(), xrtTypedDictGet(__xl6_user_global_payloadDict" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybeDictPayload = ((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed dict safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybeDictNative = xl6_xrt_move_to_shared(xl6_xrt_typed_box_or_null(xl6_runtime_type_desc_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybeDictNative = xl6_xrt_move_to_shared(((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed dict safe index lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_dict_get_var_key(__xl6_user_global_funcDict" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"xl6_xrt_typed_dict_get_var_key(__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function typed dict dynamic safe index lowering.
     exit /b 1
 )
-findstr /C:"xl6_xrt_type_value_id(__xl6_user_global_maybeFn, false) == __xl6_user_global_fnType" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"(__xl6_user_global_maybeFn).value.signature ==" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function signature type preservation.
     exit /b 1
 )
-findstr /C:"xl6_xrt_type_value_id(__xl6_user_global_maybeListFn, false) == __xl6_user_global_fnType" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"(__xl6_user_global_maybeListFn).value.signature ==" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing list function signature type preservation.
     exit /b 1
 )
-findstr /C:"xl6_xrt_type_value_id(__xl6_user_global_maybeDictFn, false) == __xl6_user_global_fnType" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"(__xl6_user_global_maybeDictFn).value.signature ==" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing dict function signature type preservation.
     exit /b 1
 )
-findstr /C:"xl6_var_call(__xl6_user_global_maybeFn, 1" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"(__xl6_user_global_maybeFn).value.invoke" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function safe index var call lowering.
     exit /b 1
 )
-findstr /C:"xl6_var_call(__xl6_user_global_maybeListFn, 1" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"(__xl6_user_global_maybeListFn).value.invoke" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing list function safe index var call lowering.
     exit /b 1
 )
-findstr /C:"xl6_var_call(__xl6_user_global_maybeDictFn, 1" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"(__xl6_user_global_maybeDictFn).value.invoke" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing dict function safe index var call lowering.
     exit /b 1

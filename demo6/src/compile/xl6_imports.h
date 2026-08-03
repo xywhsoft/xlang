@@ -22,6 +22,12 @@ typedef struct XL6_ImportDeps {
     XL6_PackageStringList cSources;
     XL6_PackageStringList links;
     XL6_PackageStringList loadlibs;
+    /*
+     * 当前递归展开栈中的源码绝对路径。
+     * 这里只跟踪“正在展开”的文件，不把已经完成的文件永久缓存，
+     * 因此共享依赖仍可从不同导入分支正常进入。
+     */
+    XL6_PackageStringList activeSources;
     char** packageIds;
     size_t packageCount;
     XL6_ImportNativeItem* natives;

@@ -1,177 +1,216 @@
-#include <stdint.h>
+#include "include/xrt_crc32.h"
+
 #include <stdio.h>
 #include <string.h>
 
-static char g_xcrc32_error[512];
-static uint32_t g_xcrc32_table[256];
-static int g_xcrc32_table_ready = 0;
+#if defined(_WIN32) || defined(_WIN64)
+#define XCRC32_EXPORT __declspec(dllexport)
+#else
+#define XCRC32_EXPORT
+#endif
+
+#if defined(__GNUC__)
+#define XCRC32_THREAD __thread
+#elif defined(_MSC_VER)
+#define XCRC32_THREAD __declspec(thread)
+#else
+#define XCRC32_THREAD
+#endif
 
 #define XCRC32_HEX_SLOTS 8u
 
-static char g_xcrc32_hex[XCRC32_HEX_SLOTS][9];
-static size_t g_xcrc32_hex_index;
+static XCRC32_THREAD char g_xcrc32_hex[XCRC32_HEX_SLOTS][12];
+static XCRC32_THREAD size_t g_xcrc32_hex_index;
 
-static void xcrc32_set_error(const char* text)
+static const char* xcrc32_format32(uint32 iValue)
 {
-    size_t i = 0u;
-
-    if ( text == NULL ) {
-        text = "";
-    }
-
-    while ( i + 1u < sizeof(g_xcrc32_error) && text[i] != '\0' ) {
-        g_xcrc32_error[i] = text[i];
-        ++i;
-    }
-    g_xcrc32_error[i] = '\0';
+	char* sSlot = g_xcrc32_hex[g_xcrc32_hex_index % XCRC32_HEX_SLOTS];
+	g_xcrc32_hex_index = (g_xcrc32_hex_index + 1u) % XCRC32_HEX_SLOTS;
+	snprintf(sSlot, sizeof(g_xcrc32_hex[0]), "%08x", (unsigned)iValue);
+	return sSlot;
 }
 
-static void xcrc32_init_table(void)
+static void xcrc32_publish_error(const xrtcrc32error* pError)
 {
-    uint32_t i;
-
-    if ( g_xcrc32_table_ready ) {
-        return;
-    }
-
-    for ( i = 0u; i < 256u; ++i ) {
-        uint32_t crc = i;
-        int bit;
-
-        for ( bit = 0; bit < 8; ++bit ) {
-            if ( (crc & 1u) != 0u ) {
-                crc = (crc >> 1) ^ 0xedb88320u;
-            } else {
-                crc >>= 1;
-            }
-        }
-        g_xcrc32_table[i] = crc;
-    }
-    g_xcrc32_table_ready = 1;
+	const char* sMessage = pError != NULL && pError->sMessage[0] != 0 ?
+		pError->sMessage : "crc32 operation failed";
+	xrtSetError(xrtFormat("%s", sMessage), TRUE);
 }
 
-static uint32_t xcrc32_update_value(uint32_t crc, const unsigned char* data, size_t size)
-{
-    size_t i;
 
-    xcrc32_init_table();
-    for ( i = 0u; i < size; ++i ) {
-        crc = g_xcrc32_table[(crc ^ (uint32_t)data[i]) & 0xffu] ^ (crc >> 8);
-    }
-    return crc;
+
+XCRC32_EXPORT bool xcrc32_available(void)
+{
+	return TRUE;
 }
 
-static uint32_t xcrc32_string_value(const char* text)
+XCRC32_EXPORT const char* xcrc32_version(void)
 {
-    if ( text == NULL ) {
-        text = "";
-    }
-    return xcrc32_update_value(0xffffffffu, (const unsigned char*)text, strlen(text)) ^ 0xffffffffu;
+	return "1.0.0";
 }
 
-static const char* xcrc32_format(uint32_t value)
+XCRC32_EXPORT const char* xcrc32_last_error(void)
 {
-    char* out = g_xcrc32_hex[g_xcrc32_hex_index % XCRC32_HEX_SLOTS];
-
-    g_xcrc32_hex_index = (g_xcrc32_hex_index + 1u) % XCRC32_HEX_SLOTS;
-    snprintf(out, sizeof(g_xcrc32_hex[0]), "%08lx", (unsigned long)value);
-    xcrc32_set_error("");
-    return out;
+	return xrtGetError();
 }
 
-int xcrc32_available(void)
+
+
+/* ---- 一次性哈希 ---- */
+
+XCRC32_EXPORT unsigned int xcrc32_hash(const void* pData, size_t iSize)
 {
-    return 1;
+	uint32 iCrc = 0u;
+	xrtcrc32error tError;
+	xrtClearError();
+	if (!xrtCrc32Hash(pData, iSize, &iCrc, &tError)) {
+		xcrc32_publish_error(&tError);
+		return 0u;
+	}
+	return (unsigned int)iCrc;
 }
 
-const char* xcrc32_version(void)
+XCRC32_EXPORT const char* xcrc32_hash_hex(const void* pData, size_t iSize)
 {
-    return "crc32 0.1.0";
+	uint32 iCrc = 0u;
+	xrtcrc32error tError;
+	xrtClearError();
+	if (!xrtCrc32Hash(pData, iSize, &iCrc, &tError)) {
+		xcrc32_publish_error(&tError);
+		return "";
+	}
+	return xcrc32_format32(iCrc);
 }
 
-const char* xcrc32_last_error(void)
+XCRC32_EXPORT unsigned int xcrc32_hash_str(const char* sText, size_t iSize)
 {
-    return g_xcrc32_error;
+	return xcrc32_hash((const void*)sText, iSize);
 }
 
-long long xcrc32_init(void)
+XCRC32_EXPORT const char* xcrc32_hash_str_hex(const char* sText, size_t iSize)
 {
-    xcrc32_set_error("");
-    return (long long)0xffffffffu;
+	return xcrc32_hash_hex((const void*)sText, iSize);
 }
 
-long long xcrc32_update(long long crc, const char* text)
-{
-    uint32_t value = (uint32_t)crc;
 
-    if ( text == NULL ) {
-        text = "";
-    }
-    xcrc32_set_error("");
-    return (long long)xcrc32_update_value(value, (const unsigned char*)text, strlen(text));
+
+/* ---- 文件哈希 ---- */
+
+static bool xcrc32_file_options(str sPath, uint64 iMaxInput, xrtcrc32options* pOptions)
+{
+	xrtCrc32OptionsInit(pOptions);
+	if (iMaxInput != 0u) { pOptions->tLimits.iMaxInputBytes = iMaxInput; }
+	if (sPath == NULL || sPath[0] == 0) {
+		xrtSetError(xrtFormat("crc32 file path is required"), TRUE);
+		return FALSE;
+	}
+	if (!xrtPathExists(sPath)) {
+		xrtSetError(xrtFormat("crc32 file does not exist: %s", sPath), TRUE);
+		return FALSE;
+	}
+	return TRUE;
 }
 
-long long xcrc32_finish(long long crc)
+XCRC32_EXPORT unsigned int xcrc32_file(str sPath, unsigned long long iMaxInput)
 {
-    xcrc32_set_error("");
-    return (long long)((uint32_t)crc ^ 0xffffffffu);
+	xrtcrc32options tOptions;
+	xrtcrc32error tError;
+	xreader pReader = NULL;
+	uint32 iCrc = 0u;
+	bool bResult;
+	xrtClearError();
+	if (!xcrc32_file_options(sPath, (uint64)iMaxInput, &tOptions)) { return 0u; }
+	pReader = xrtReaderOpen(sPath);
+	if (pReader == NULL) {
+		xrtSetError(xrtFormat("cannot open crc32 file: %s", sPath), TRUE);
+		return 0u;
+	}
+	bResult = xrtCrc32File(pReader, &tOptions.tLimits, &iCrc, &tError);
+	xrtReaderDestroy(pReader);
+	if (!bResult) { xcrc32_publish_error(&tError); return 0u; }
+	return (unsigned int)iCrc;
 }
 
-long long xcrc32_string(const char* text)
+XCRC32_EXPORT const char* xcrc32_file_hex(str sPath, unsigned long long iMaxInput)
 {
-    xcrc32_set_error("");
-    return (long long)xcrc32_string_value(text);
+	unsigned int iCrc = xcrc32_file(sPath, iMaxInput);
+	if (xrtGetError()[0] != 0) { return ""; }
+	return xcrc32_format32((uint32)iCrc);
 }
 
-const char* xcrc32_string_hex(const char* text)
+
+
+/* ---- 流式哈希器 ---- */
+
+XCRC32_EXPORT void* xcrc32_hasher_create(unsigned long long iMaxInput)
 {
-    return xcrc32_format(xcrc32_string_value(text));
+	xrtcrc32options tOptions;
+	xrtcrc32hasher* pHasher;
+	xrtClearError();
+	xrtCrc32OptionsInit(&tOptions);
+	if (iMaxInput != 0u) { tOptions.tLimits.iMaxInputBytes = (uint64)iMaxInput; }
+	pHasher = xrtCrc32HasherCreate(&tOptions);
+	if (pHasher == NULL || xrtCrc32HasherError(pHasher)->iCode != XRT_CRC32_OK) {
+		xcrc32_publish_error(xrtCrc32HasherError(pHasher));
+		xrtCrc32HasherDestroy(pHasher);
+		return NULL;
+	}
+	return pHasher;
 }
 
-long long xcrc32_file(const char* path)
+XCRC32_EXPORT void xcrc32_hasher_destroy(void* pHandle)
 {
-    unsigned char buffer[32768];
-    uint32_t crc = 0xffffffffu;
-    FILE* fp;
-    size_t n;
-
-    if ( path == NULL || path[0] == '\0' ) {
-        xcrc32_set_error("empty file path");
-        return 0;
-    }
-
-    fp = fopen(path, "rb");
-    if ( fp == NULL ) {
-        xcrc32_set_error("failed to open file");
-        return 0;
-    }
-
-    while ( (n = fread(buffer, 1u, sizeof(buffer), fp)) > 0u ) {
-        crc = xcrc32_update_value(crc, buffer, n);
-    }
-
-    if ( ferror(fp) ) {
-        fclose(fp);
-        xcrc32_set_error("failed to read file");
-        return 0;
-    }
-
-    fclose(fp);
-    xcrc32_set_error("");
-    return (long long)(crc ^ 0xffffffffu);
+	xrtCrc32HasherDestroy((xrtcrc32hasher*)pHandle);
 }
 
-const char* xcrc32_file_hex(const char* path)
+XCRC32_EXPORT bool xcrc32_hasher_update(void* pHandle, const void* pData, size_t iSize)
 {
-    long long value = xcrc32_file(path);
-
-    if ( g_xcrc32_error[0] != '\0' ) {
-        return "";
-    }
-    return xcrc32_format((uint32_t)value);
+	xrtcrc32hasher* pHasher = (xrtcrc32hasher*)pHandle;
+	if (!xrtCrc32HasherUpdate(pHasher, pData, iSize)) {
+		xcrc32_publish_error(xrtCrc32HasherError(pHasher));
+		return FALSE;
+	}
+	return TRUE;
 }
 
-const char* xcrc32_hex(long long crc)
+XCRC32_EXPORT bool xcrc32_hasher_update_str(void* pHandle, const char* sText, size_t iSize)
 {
-    return xcrc32_format((uint32_t)crc);
+	return xcrc32_hasher_update(pHandle, (const void*)sText, iSize);
+}
+
+XCRC32_EXPORT unsigned int xcrc32_hasher_digest(void* pHandle)
+{
+	xrtcrc32hasher* pHasher = (xrtcrc32hasher*)pHandle;
+	uint32 iCrc = 0u;
+	if (!xrtCrc32HasherDigest(pHasher, &iCrc)) {
+		xcrc32_publish_error(xrtCrc32HasherError(pHasher));
+		return 0u;
+	}
+	return (unsigned int)iCrc;
+}
+
+XCRC32_EXPORT const char* xcrc32_hasher_digest_hex(void* pHandle)
+{
+	xrtcrc32hasher* pHasher = (xrtcrc32hasher*)pHandle;
+	uint32 iCrc = 0u;
+	if (!xrtCrc32HasherDigest(pHasher, &iCrc)) {
+		xcrc32_publish_error(xrtCrc32HasherError(pHasher));
+		return "";
+	}
+	return xcrc32_format32(iCrc);
+}
+
+XCRC32_EXPORT bool xcrc32_hasher_reset(void* pHandle)
+{
+	xrtcrc32hasher* pHasher = (xrtcrc32hasher*)pHandle;
+	if (!xrtCrc32HasherReset(pHasher)) {
+		xcrc32_publish_error(xrtCrc32HasherError(pHasher));
+		return FALSE;
+	}
+	return TRUE;
+}
+
+XCRC32_EXPORT unsigned long long xcrc32_hasher_input_bytes(void* pHandle)
+{
+	return (unsigned long long)xrtCrc32HasherInputBytes((const xrtcrc32hasher*)pHandle);
 }

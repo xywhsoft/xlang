@@ -1,0 +1,4 @@
+protocol Invalid
+    func run(int value) as int
+    func run(int value) as int
+end

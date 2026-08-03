@@ -4,9 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
-extern void xrtSetError(const char *msg);
-
+extern void xrtSetError(const void *msg, int bFree);
 static char dotenv_buf[4096];
 
 #define DOTENV_MAX_VARS 512
@@ -57,9 +55,9 @@ int xdotenv_load(const char *path) {
     FILE *f;
     char line[2048];
     int loaded = 0;
-    if (!path || !path[0]) { xrtSetError("dotenv: empty path"); return -1; }
+    if (!path || !path[0]) { xrtSetError("dotenv: empty path", 0); return -1; }
     f = fopen(path, "r");
-    if (!f) { xrtSetError("dotenv: cannot open file"); return -1; }
+    if (!f) { xrtSetError("dotenv: cannot open file", 0); return -1; }
 
     while (fgets(line, sizeof(line), f)) {
         char *eq, *key, *value;

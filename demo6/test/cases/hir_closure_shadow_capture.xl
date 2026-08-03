@@ -1,0 +1,12 @@
+func makeShadowAdder(int outerValue) as func(int) as int
+    return func(int outerValue) as int
+        func(int) as int inner = func(int value) as int
+            return outerValue + value
+        end
+        return inner(2)
+    end
+end
+
+func(int) as int shadowAdder = makeShadowAdder(100)
+assert shadowAdder(40) == 42, "inner parameter shadows outer capture"
+println("hir_closure_shadow_capture ok")

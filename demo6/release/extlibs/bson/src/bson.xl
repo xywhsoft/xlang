@@ -1,87 +1,76 @@
-extern "xbson_encode_doc" func __bson_doc(string elems_hex) as string
-extern "xbson_encode_str" func __bson_str(string key, string value) as string
-extern "xbson_encode_int32" func __bson_i32(string key, int value) as string
-extern "xbson_encode_int64" func __bson_i64(string key, int value) as string
-extern "xbson_encode_double" func __bson_dbl(string key, float value) as string
-extern "xbson_encode_bool" func __bson_bool(string key, bool value) as string
-extern "xbson_encode_null" func __bson_null(string key) as string
-extern "xbson_doc_len" func __bson_dlen(string hex) as int
-extern "xbson_elem_type" func __bson_etype(string hex, int offset) as int
-extern "xbson_elem_key" func __bson_ekey(string hex, int offset) as string
-extern "xbson_decode_str" func __bson_dstr(string hex, int offset) as string
-extern "xbson_decode_int32" func __bson_di32(string hex, int offset) as int
-extern "xbson_decode_int64" func __bson_di64(string hex, int offset) as int
-extern "xbson_decode_double" func __bson_ddbl(string hex, int offset) as float
-extern "xbson_decode_bool" func __bson_dbool(string hex, int offset) as bool
-extern "xbson_next_elem" func __bson_next(string hex, int offset) as int
-extern "xbson_concat" func __bson_cat(string a, string b) as string
+// bson/src/bson.xl - BSON 编解码库 (var 直转架构)
+// 基于 cloudwu/lua-bson (MIT) 内核，BSON ↔ xlang var 双向自动转换
+// 类型映射: Document→table, Array→array, Date→xtime,
+//           String→string, Int32/Int64→int, Double→float, Bool→bool, Null→null
 
+// ─── Native 绑定 ───
+extern "xbson_decode" func _bson_decode(var data) as var
+extern "xbson_decode_all" func _bson_decode_all(var data) as var
+extern "xbson_concat" func _bson_concat(var a, var b) as var
+extern "xbson_encode" func _bson_encode(var doc) as var
+extern "xbson_load" func _bson_load(string path) as var
+extern "xbson_save" func _bson_save(string path, var doc) as int
+extern "xbson_to_hex" func _bson_to_hex(var data) as string
+extern "xbson_gen_oid" func _bson_gen_oid() as string
+extern "xbson_doc_length" func _bson_doc_len(var data) as int
+extern "xbson_oid_time" func _bson_oid_time(string hex24) as int
 
+// ═══════════════════════════════════════════
+// 核心 API
+// ═══════════════════════════════════════════
 
-export func encodeDoc(string elements_hex) as string
-    return __bson_doc(elements_hex)
+// BSON 二进制 → var (table)
+// 自动映射: Document→table, Array→array, Date→xtime
+export func decode(var data) as var
+    return _bson_decode(data)
 end
 
-export func encodeStr(string key, string value) as string
-    return __bson_str(key, value)
+// 拼接 BSON 流 → array of table (多文档解码)
+export func decodeAll(var data) as var
+    return _bson_decode_all(data)
 end
 
-export func encodeInt32(string key, int value) as string
-    return __bson_i32(key, value)
+// 二进制安全拼接两个 BSON var (用于构造多文档流)
+export func concat(var a, var b) as var
+    return _bson_concat(a, b)
 end
 
-export func encodeInt64(string key, int value) as string
-    return __bson_i64(key, value)
+// var (table) → BSON 二进制
+// 自动推断: int→Int32/Int64, float→Double, xtime→Date, table→Document, array→Array
+export func encode(var doc) as var
+    return _bson_encode(doc)
 end
 
-export func encodeDouble(string key, float value) as string
-    return __bson_dbl(key, value)
+// 从文件加载 BSON → var
+export func load(string path) as var
+    return _bson_load(path)
 end
 
-export func encodeBool(string key, bool value) as string
-    return __bson_bool(key, value)
+// var → BSON 并保存到文件，返回写入字节数
+export func save(string path, var doc) as int
+    return _bson_save(path, doc)
 end
 
-export func encodeNull(string key) as string
-    return __bson_null(key)
+// ═══════════════════════════════════════════
+// 工具函数
+// ═══════════════════════════════════════════
+
+// BSON 二进制 → hex 字符串 (调试用)
+export func toHex(var data) as string
+    return _bson_to_hex(data)
 end
 
-export func docLen(string hex) as int
-    return __bson_dlen(hex)
+// 生成新的 ObjectId (24 字符 hex)
+export func objectId() as string
+    return _bson_gen_oid()
 end
 
-export func elemType(string hex, int offset) as int
-    return __bson_etype(hex, offset)
+// 获取 BSON 文档字节长度
+export func docLength(var data) as int
+    return _bson_doc_len(data)
 end
 
-export func elemKey(string hex, int offset) as string
-    return __bson_ekey(hex, offset)
-end
-
-export func decodeStr(string hex, int offset) as string
-    return __bson_dstr(hex, offset)
-end
-
-export func decodeInt32(string hex, int offset) as int
-    return __bson_di32(hex, offset)
-end
-
-export func decodeInt64(string hex, int offset) as int
-    return __bson_di64(hex, offset)
-end
-
-export func decodeDouble(string hex, int offset) as float
-    return __bson_ddbl(hex, offset)
-end
-
-export func decodeBool(string hex, int offset) as bool
-    return __bson_dbool(hex, offset)
-end
-
-export func nextElem(string hex, int offset) as int
-    return __bson_next(hex, offset)
-end
-
-export func concat(string a, string b) as string
-    return __bson_cat(a, b)
+// 从 ObjectId 提取创建时间 → xtime (需 time() 转换)
+export func oidTime(string hex24) as int
+    return _bson_oid_time(hex24)
 end

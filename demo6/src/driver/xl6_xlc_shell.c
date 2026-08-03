@@ -1733,18 +1733,26 @@ int main(void)
     char** argv;
     int rc;
 
+    xl6ConsoleSessionBegin();
     argv = xlcShellMakeUtf8Argv(&argc);
     if ( argv == NULL ) {
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot decode command line\n");
+        xl6ConsoleSessionEnd();
         return 1;
     }
     rc = xlcShellMain(argc, argv);
     xlcShellFreeUtf8Argv(argc, argv);
+    xl6ConsoleSessionEnd();
     return rc;
 }
 #else
 int main(int argc, char** argv)
 {
-    return xlcShellMain(argc, argv);
+    int rc;
+
+    xl6ConsoleSessionBegin();
+    rc = xlcShellMain(argc, argv);
+    xl6ConsoleSessionEnd();
+    return rc;
 }
 #endif

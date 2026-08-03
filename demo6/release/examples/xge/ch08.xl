@@ -1,0 +1,46 @@
+// ch08 — 帧统计与调试：HUD 性能面板
+import xge
+
+func draw_scene()
+    // 模拟场景：多个随机圆形
+    xge.xgeShapeCircleFill(c_float(200), c_float(200), c_float(60), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(180)))
+    xge.xgeShapeCircleFill(c_float(500), c_float(350), c_float(80), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(150)))
+    xge.xgeShapeCircleFill(c_float(650), c_float(150), c_float(40), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(107), c_uint(94), c_uint(200)))
+    xge.xgeShapeCircleFill(c_float(350), c_float(450), c_float(50), xge.XGE_COLOR_RGBA(c_uint(109), c_uint(179), c_uint(242), c_uint(160)))
+
+    // HUD 面板背景
+    xge.xgeShapeRectFill(c_float(20), c_float(20), c_float(320), c_float(130), xge.XGE_COLOR_RGBA(c_uint(0), c_uint(0), c_uint(0), c_uint(180)))
+    xge.xgeShapeRectStroke(c_float(20), c_float(20), c_float(320), c_float(130), c_float(1.0), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(120)))
+
+    // 帧时间条形图（模拟最近几帧）
+    int i = 0
+    while i < 12
+        float h = 10.0 + float((i * 7 + 3) % 11) * 3.0
+        float x = 30.0 + float(i) * 22.0
+        c_uint col = xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(220))
+        if h > 30.0 then
+            col = xge.XGE_COLOR_RGBA(c_uint(255), c_uint(107), c_uint(94), c_uint(220))
+        end
+        xge.xgeShapeRectFill(c_float(x), c_float(130.0 - h), c_float(16), c_float(h), col)
+        i = i + 1
+    end
+
+    // 16.6ms 参考线
+    xge.xgeShapeLine(c_float(30), c_float(130.0 - 16.6), c_float(294), c_float(130.0 - 16.6), c_float(1.0), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(180)))
+end
+
+func on_frame()
+    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    draw_scene()
+    xge.xgeTutorialEndFrame()
+end
+
+func main(...) as int
+    c_int ret = xge.xgeTutorialInit(840, 640, "ch08")
+    if ret != c_int(0) then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.xgeTutorialRun(on_frame)
+    return 0
+end

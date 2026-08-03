@@ -1,0 +1,55 @@
+func dynamicInt(int value) as var
+    return value
+end
+
+func dynamicString(string value) as var
+    return value
+end
+
+func acceptInt(int value) as int
+    return value + 1
+end
+
+func returnIntFromDynamic() as int
+    return int(dynamicInt(7))
+end
+
+func narrowedString(var value) as string
+    if value is string then
+        string copied = string(value)
+        return copied
+    end
+    return ""
+end
+
+class ScalarBridgeBox
+    int value = 0
+
+    create(var input)
+        self.value = int(input)
+    end
+end
+
+func main(...) as int
+    int declared = int(dynamicInt(1))
+    int assigned = 0
+    assigned = int(dynamicInt(2))
+    assigned += int(dynamicInt(3))
+
+    int positional = acceptInt(int(dynamicInt(4)))
+    int named = acceptInt(value = int(dynamicInt(5)))
+    int returned = returnIntFromDynamic()
+    string text = string(dynamicString("ok"))
+    ScalarBridgeBox box = ScalarBridgeBox(dynamicInt(8))
+
+    assert declared == 1
+    assert assigned == 5
+    assert positional == 5
+    assert named == 6
+    assert returned == 7
+    assert text == "ok"
+    assert narrowedString("narrowed") == "narrowed"
+    assert box.value == 8
+    println("xvalue scalar bridge matrix ok")
+    return 0
+end

@@ -568,9 +568,9 @@ if not errorlevel 1 (
     echo sem_task_spawn_arg_multi_return.xl should fail.
     exit /b 1
 )
-findstr /C:"multi-return call cannot be passed as one task.spawn argument" build\test\sem_task_spawn_arg_multi_return.err.txt >nul
+powershell -NoProfile -Command "$t=[IO.File]::ReadAllText('build\test\sem_task_spawn_arg_multi_return.err.txt',[Text.Encoding]::UTF8); $e=-join @(0x591A,0x8FD4,0x56DE,0x503C,0x51FD,0x6570,0x8C03,0x7528,0x4E0D,0x80FD,0x4F5C,0x4E3A,0x5355,0x4E2A,0x5B9E,0x53C2 | ForEach-Object {[char]$_}); if(-not $t.Contains($e)){exit 1}"
 if errorlevel 1 (
-    echo sem_task_spawn_arg_multi_return.xl missing task.spawn multi-return argument diagnostic.
+    echo sem_task_spawn_arg_multi_return.xl missing unified multi-return argument diagnostic.
     exit /b 1
 )
 

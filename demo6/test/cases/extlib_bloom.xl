@@ -65,5 +65,127 @@ func main(...) as int
         caught = true
     end
     assert caught, "bloom create(-5) must throw ValueError"
+
+    // ─── estimatedFpp / estimatedCount ───
+    auto ef = bloom.create(1000)
+    assert ef.estimatedCount() == 0, "empty estimatedCount"
+    assert ef.estimatedFpp() == 0.0, "empty estimatedFpp"
+    ef.add("a")
+    ef.add("b")
+    ef.add("c")
+    assert ef.estimatedCount() >= 1, "estimatedCount positive after adds"
+    assert ef.estimatedFpp() > 0.0, "estimatedFpp positive after adds"
+    assert ef.estimatedFpp() < 0.5, "estimatedFpp low for sparse filter"
+
+    // ─── batch operations ───
+    auto bf = bloom.create(1000)
+    bf.addAll(["x1", "x2", "x3"])
+    assert bf.count == 3, "addAll count"
+    assert bf.containsAll(["x1", "x2", "x3"]), "containsAll present"
+    assert not bf.containsAll(["x1", "nope"]), "containsAll with missing"
+    assert bf.containsAny(["nope", "x2"]), "containsAny hit"
+    assert not bf.containsAny(["nope1", "nope2"]), "containsAny miss"
+
+    // ─── serialize / deserialize round-trip ───
+    auto sf = bloom.create(1000)
+    sf.add("persist1")
+    sf.add("persist2")
+    string blob = sf.serialize()
+    assert string.len(blob) > 0, "serialize non-empty"
+    auto rf = bloom.deserialize(blob)
+    assert rf.valid, "deserialized valid"
+    assert rf.count == 2, "deserialized count"
+    assert rf.contains("persist1"), "deserialized contains persist1"
+    assert rf.contains("persist2"), "deserialized contains persist2"
+    assert not rf.contains("absent"), "deserialized not contains absent"
+    assert rf.bits == sf.bits, "deserialized bits match"
+    assert rf.hashes == sf.hashes, "deserialized hashes match"
+
+    // ─── deserialize invalid input throws ───
+    caught = false
+    try
+        bloom.deserialize("zzzz")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "deserialize invalid must throw"
+
+    // ─── merge (union) ───
+    auto m1 = bloom.create(1000)
+    auto m2 = bloom.create(1000)
+    m1.add("left")
+    m2.add("right")
+    assert m1.merge(m2), "merge compatible"
+    assert m1.contains("left"), "merge keeps left"
+    assert m1.contains("right"), "merge gains right"
+    auto big = bloom.create(100000)
+    assert not m1.merge(big), "merge incompatible dimensions"
+
+    // ─── counting bloom: estimated / batch / serialize / merge ───
+    auto ccf = bloom.createCounting(500)
+    ccf.addAll(["k1", "k2", "k3"])
+    assert ccf.count == 3, "counting addAll count"
+    assert ccf.containsAll(["k1", "k2", "k3"]), "counting containsAll"
+    assert ccf.containsAny(["zz", "k2"]), "counting containsAny"
+    assert ccf.estimatedCount() >= 1, "counting estimatedCount"
+    assert ccf.estimatedFpp() > 0.0, "counting estimatedFpp"
+
+    string cblob = ccf.serialize()
+    auto crf = bloom.deserializeCounting(cblob)
+    assert crf.valid, "counting deserialized valid"
+    assert crf.contains("k1"), "counting deserialized contains k1"
+    assert crf.contains("k2"), "counting deserialized contains k2"
+    assert not crf.contains("absent"), "counting deserialized not contains absent"
+    crf.remove("k1")
+    assert not crf.contains("k1"), "counting deserialized remove works"
+
+    auto cm1 = bloom.createCounting(500)
+    auto cm2 = bloom.createCounting(500)
+    cm1.add("aa")
+    cm2.add("bb")
+    assert cm1.merge(cm2), "counting merge compatible"
+    assert cm1.contains("aa"), "counting merge keeps aa"
+    assert cm1.contains("bb"), "counting merge gains bb"
+
+    // ─── capacity getter ───
+    auto capf = bloom.create(2000)
+    assert capf.capacity == 2000, "capacity getter"
+    auto capcf = bloom.createCounting(300)
+    assert capcf.capacity == 300, "counting capacity getter"
+
+    // ─── clone (standard) ───
+    auto orig = bloom.create(1000)
+    orig.add("c1")
+    orig.add("c2")
+    auto cp = orig.clone()
+    assert cp.valid, "clone valid"
+    assert cp.count == 2, "clone count"
+    assert cp.contains("c1"), "clone contains c1"
+    assert cp.contains("c2"), "clone contains c2"
+    cp.add("c3")
+    assert cp.contains("c3"), "clone has c3"
+    assert not orig.contains("c3"), "original unaffected by clone add"
+    assert orig.count == 2, "original count unchanged"
+
+    // non-destructive union via clone
+    auto u1 = bloom.create(1000)
+    auto u2 = bloom.create(1000)
+    u1.add("p")
+    u2.add("q")
+    auto combined = u1.clone()
+    assert combined.merge(u2), "clone merge ok"
+    assert combined.contains("p"), "combined has p"
+    assert combined.contains("q"), "combined has q"
+    assert not u1.contains("q"), "u1 unchanged after clone-merge"
+
+    // ─── clone (counting) ───
+    auto ccorig = bloom.createCounting(500)
+    ccorig.add("z1")
+    auto ccp = ccorig.clone()
+    assert ccp.contains("z1"), "counting clone contains"
+    ccp.remove("z1")
+    assert not ccp.contains("z1"), "counting clone removed"
+    assert ccorig.contains("z1"), "counting original unaffected"
+
     return 0
 end

@@ -1,0 +1,5 @@
+import a
+
+export func fromB() as int
+    return 2
+end

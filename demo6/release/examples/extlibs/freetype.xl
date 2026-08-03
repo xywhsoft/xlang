@@ -3,7 +3,7 @@ import freetype
 func main(...) as int
     println("Format 0 = " + freetype.format(0))
     println("Style 2 = " + freetype.style(2))
-    println("12em@96dpi = " + string.float(freetype.emToPx(12.0, 96.0)) + "px")
+    println("12em@96dpi = " + string(freetype.emToPx(12.0, 96.0)) + "px")
     println("Hinting 3 = " + freetype.hinting(3))
 
     println("freetype example: PASS")

@@ -2282,15 +2282,11 @@ const char* xl6StdlibRegexClassSource =
     "        return self.fullMatchNative(text, __xl_std_crt_strlen(text)) != 0\n"
     "    end\n"
     "\n"
-    "    func match(string text, int start = 0) as RegexMatch\n"
+    "    func find(string text, int start = 0) as RegexMatch\n"
     "        if start < 0 then\n"
     "            start = 0\n"
     "        end\n"
     "        return RegexMatch(self.matchNative(text, __xl_std_crt_strlen(text), c_size(start)))\n"
-    "    end\n"
-    "\n"
-    "    func find(string text, int start = 0) as RegexMatch\n"
-    "        return self.match(text, start)\n"
     "    end\n"
     "\n"
     "    func captureName(int index) as string\n"
@@ -2340,7 +2336,7 @@ const char* xl6StdlibRegexClassSource =
     "        return array(self.matchesNative(text, __xl_std_crt_strlen(text), c_size(start), uint32(maxCount)))\n"
     "    end\n"
     "\n"
-    "    func match(int index, string text, int start = 0) as RegexMatch\n"
+    "    func find(int index, string text, int start = 0) as RegexMatch\n"
     "        if index < 0 then\n"
     "            index = int(self.patternCount)\n"
     "        end\n"
@@ -7429,7 +7425,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"dir", "ensureEmpty", "__xl_std_dir_ensure_empty", NULL, NULL, 0, "bool", xl6StdDirEnsureEmptyBody},
     {"dir", "glob", "__xl_std_dir_glob", NULL, NULL, 0, "array", xl6StdDirGlobBody},
     {"dir", "entries", "__xl_std_dir_entries", NULL, NULL, 0, "array", xl6StdDirEntriesBody},
-    {"dir", "match", "__xl_std_dir_match", NULL, NULL, 0, "array", xl6StdDirMatchBody},
+    {"dir", "matchEntries", "__xl_std_dir_match", NULL, NULL, 0, "array", xl6StdDirMatchBody},
     {"dir", "walk", "__xl_std_dir_walk", NULL, NULL, 0, "array", xl6StdDirWalkBody},
     {"dir", "createAsync", "__xl_std_dir_create_async", "xl6_xrt_dir_create_async", xl6StdPathUnaryParams, 1, "future<bool>", NULL},
     {"dir", "createAllAsync", "__xl_std_dir_create_all_async", "xl6_xrt_dir_create_all_async", xl6StdPathUnaryParams, 1, "future<bool>", NULL},
@@ -7623,7 +7619,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"regex", "isMatch", "__xl_std_regex_is_match", NULL, NULL, 0, "bool", xl6StdRegexIsMatchBody},
     {"regex", "fullMatch", "__xl_std_regex_full_match", NULL, NULL, 0, "bool", xl6StdRegexFullMatchBody},
     {"regex", "find", "__xl_std_regex_find", NULL, NULL, 0, "int", xl6StdRegexFindBody},
-    {"regex", "match", "__xl_std_regex_match", NULL, NULL, 0, "RegexMatch", xl6StdRegexMatchBody},
+    {"regex", "findMatch", "__xl_std_regex_match", NULL, NULL, 0, "RegexMatch", xl6StdRegexMatchBody},
     {"regex", "set", "__xl_std_regex_set", NULL, NULL, 0, "RegexSet", xl6StdRegexSetBody},
 
     {"process", "exec", "__xl_std_process_exec", NULL, NULL, 0, "string", xl6StdProcessExecBody},

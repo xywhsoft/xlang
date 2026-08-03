@@ -5,7 +5,7 @@ func main(...) as int
 
     println("Language 2 = " + treesitter.language(2))
     println("Node 1 = " + treesitter.nodeType(1))
-    println("Depth '((()))' = " + string.int(treesitter.maxDepth("((()))")))
+    println("Depth '((()))' = " + string(treesitter.maxDepth("((()))")))
 
     println("treesitter example: PASS")
     return 0

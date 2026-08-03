@@ -42,7 +42,9 @@ function Read-PublicXrtSymbols($path)
 {
     $symbols = New-StringSet
     $text = Read-Utf8Text $path
-    $matches = [regex]::Matches($text, 'XXAPI\s+[^;{]+?\b([A-Za-z_][A-Za-z0-9_]*)\s*\(')
+    $matches = [regex]::Matches(
+        $text,
+        '(?m)^\s*(?!#)\s*XXAPI\s+[^;{]+?\b([A-Za-z_][A-Za-z0-9_]*)\s*\(')
 
     foreach ( $match in $matches ) {
         $symbols.Add($match.Groups[1].Value) | Out-Null

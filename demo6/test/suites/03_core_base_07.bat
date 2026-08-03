@@ -31,9 +31,9 @@ if errorlevel 1 (
     echo cgen_runtime_type_baseline.c missing callable runtime type boxing.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_runtime_type_baseline.c' -Raw; if($t -notmatch 'xrtTypedArrayCreate\(xl6_runtime_type_desc_([0-9A-F]+)\(\),[\s\S]*?xl6_xrt_typed_array_to_xvalue\(xl6_runtime_type_desc_\1\(\), __xl6_user_global_children\)'){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_runtime_type_baseline.c' -Raw; if($t -notmatch 'xrtTypedArrayCreate\(xl6_runtime_type_desc_[0-9A-F]+\(\), XRT_OBJMODE_SHARED\)'){exit 1}; if($t -notmatch 'xl6_xrt_typed_container_box_ref\(xl6_runtime_type_desc_[0-9A-F]+\(\), \(void\*\)\(__xl6_user_global_children\)\)'){exit 2}; if($t -match 'xl6_xrt_typed_array_to_xvalue\([^;]*__xl6_user_global_children'){exit 3}"
 if errorlevel 1 (
-    echo cgen_runtime_type_baseline.c missing typed class array runtime descriptor binding.
+    echo cgen_runtime_type_baseline.c missing handle-preserving typed class array runtime descriptors.
     exit /b 1
 )
 "%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_runtime_type_baseline.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_runtime_type_baseline.exe
@@ -350,32 +350,32 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_function_named_value.xl --emit build\test\cgen_function_named_value.c
 if errorlevel 1 exit /b 1
-findstr /C:"static long long xl6_fnvalue_xl_fn_add_invoke(void* __xl6_env, long long left, long long right)" build\test\cgen_function_named_value.c >nul
+findstr /R /C:"static long long xl6_fnvalue_xl_fn_add_sig[0-9A-F]*_invoke(void\* __xl6_env, long long left, long long right)" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing named function typed wrapper.
     exit /b 1
 )
-findstr /C:"static xvalue xl6_fnvalue_xl_fn_add_invoke_var(void* __xl6_env, int __xl6_argc, xvalue* __xl6_argv)" build\test\cgen_function_named_value.c >nul
+findstr /R /C:"static xvalue xl6_fnvalue_xl_fn_add_sig[0-9A-F]*_invoke_var(void\* __xl6_env, int __xl6_argc, xvalue\* __xl6_argv)" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing named function erased wrapper.
     exit /b 1
 )
-findstr /C:"typed = xl6_fnvalue_xl_fn_add_make();" build\test\cgen_function_named_value.c >nul
+findstr /R /C:"typed = xl6_fnvalue_xl_fn_add_sig[0-9A-F]*_make();" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing typed function value init.
     exit /b 1
 )
-findstr /C:"erased = xl6_fnvalue_xl_fn_add_make();" build\test\cgen_function_named_value.c >nul
+findstr /R /C:"erased = xl6_fnvalue_xl_fn_add_sig[0-9A-F]*_make();" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing bare function value init.
     exit /b 1
 )
-findstr /C:"oneDefault = xl6_fnvalue_xl_fn_addDefault_arity1_make();" build\test\cgen_function_named_value.c >nul
+findstr /R /C:"oneDefault = xl6_fnvalue_xl_fn_addDefault_sig[0-9A-F]*_arity1_make();" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing optional parameter function adapter.
     exit /b 1
 )
-findstr /C:"variadicDefault = xl6_fnvalue_xl_fn_totalDefault_arity0_vararg_make();" build\test\cgen_function_named_value.c >nul
+findstr /R /C:"variadicDefault = xl6_fnvalue_xl_fn_totalDefault_sig[0-9A-F]*_arity0_vararg_make();" build\test\cgen_function_named_value.c >nul
 if errorlevel 1 (
     echo cgen_function_named_value.c missing optional vararg function adapter.
     exit /b 1
@@ -522,12 +522,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_named_function_argument.xl --emit build\test\cgen_named_function_argument.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl_fn_apply(5LL, xl6_fnvalue_xl_fn_doubleIt_make())" build\test\cgen_named_function_argument.c >nul
+findstr /R /C:"xl_fn_apply(5LL, xl6_fnvalue_xl_fn_doubleIt_sig[0-9A-F]*_make())" build\test\cgen_named_function_argument.c >nul
 if errorlevel 1 (
     echo cgen_named_function_argument.c missing direct named function argument lowering.
     exit /b 1
 )
-findstr /C:"xl_fn_apply(5LL, xl6_fnvalue_xl_fn_withDefault_arity1_make())" build\test\cgen_named_function_argument.c >nul
+findstr /R /C:"xl_fn_apply(5LL, xl6_fnvalue_xl_fn_withDefault_sig[0-9A-F]*_arity1_make())" build\test\cgen_named_function_argument.c >nul
 if errorlevel 1 (
     echo cgen_named_function_argument.c missing optional parameter adapter argument lowering.
     exit /b 1

@@ -1,0 +1,43 @@
+// ch26 — 椭圆：行星轨道
+import xge
+
+func draw_scene()
+    float cx = 400.0
+    float cy = 300.0
+    float angle = 0.8
+
+    // 横向椭圆
+    xge.xgeShapeEllipseFill(c_float(200), c_float(150), c_float(120), c_float(60), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(200)))
+
+    // 纵向椭圆
+    xge.xgeShapeEllipseFill(c_float(600), c_float(150), c_float(40), c_float(100), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(200)))
+
+    // 轨道
+    xge.xgeShapeEllipseStroke(c_float(cx), c_float(cy), c_float(250), c_float(120), c_float(1.5), xge.XGE_COLOR_RGBA(c_uint(100), c_uint(120), c_uint(140), c_uint(150)))
+
+    // 中心恒星
+    xge.xgeShapeCircleFill(c_float(cx), c_float(cy), c_float(25), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
+
+    // 行星
+    xge.xgeShapeCircleFill(c_float(cx + 250.0 * math.cos(angle)), c_float(cy + 120.0 * math.sin(angle)), c_float(12), xge.XGE_COLOR_RGBA(c_uint(109), c_uint(179), c_uint(242), c_uint(255)))
+
+    // 角色阴影
+    xge.xgeShapeEllipseFill(c_float(400), c_float(520), c_float(40), c_float(12), xge.XGE_COLOR_RGBA(c_uint(0), c_uint(0), c_uint(0), c_uint(96)))
+    xge.xgeShapeCircleFill(c_float(400), c_float(460), c_float(30), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(107), c_uint(94), c_uint(255)))
+end
+
+func on_frame()
+    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    draw_scene()
+    xge.xgeTutorialEndFrame()
+end
+
+func main(...) as int
+    c_int ret = xge.xgeTutorialInit(840, 640, "ch26")
+    if ret != c_int(0) then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.xgeTutorialRun(on_frame)
+    return 0
+end

@@ -5,7 +5,7 @@ func main(...) as int
 
     println("Model 0 = " + tokenizers.model(0))
     println("Normalizer 0 = " + tokenizers.normalizer(0))
-    println("Tokens = " + string.fromInt(tokenizers.countTokens("hello world")))
+    println("Tokens = " + string(tokenizers.countTokens("hello world")))
     println("Special 0 = " + tokenizers.specialToken(0))
 
     println("tokenizers example: PASS")

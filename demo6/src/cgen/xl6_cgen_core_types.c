@@ -340,6 +340,29 @@ static int xl6CgenIsStringTypeNode(XL6_CgenContext* ctx, const XL6_AstNode* type
     return typeNode != NULL && xl6CTextEquals(typeNode->text, "string");
 }
 
+static int xl6CgenIsNullableStringTypeNode(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* inner;
+
+    typeNode = xl6CgenSubstituteGenericType(ctx, typeNode);
+    typeNode = xl6CgenResolveAliasType(ctx, typeNode);
+    inner = xl6CgenNullableInnerType(typeNode);
+    inner = xl6CgenResolveAliasType(
+        ctx,
+        xl6CgenSubstituteGenericType(ctx, inner));
+    return inner != NULL && xl6CTextEquals(inner->text, "string");
+}
+
+static int xl6CgenIsOwnedStringTypeNode(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode)
+{
+    return xl6CgenIsStringTypeNode(ctx, typeNode) ||
+           xl6CgenIsNullableStringTypeNode(ctx, typeNode);
+}
+
 static int xl6CgenIsBuiltinConvertTypeName(const char* name)
 {
     return xl6CgenIsIntegerTypeName(name) || xl6CgenIsFloatTypeName(name) ||
@@ -462,12 +485,14 @@ static int xl6CgenIsKnownTypeName(XL6_CgenContext* ctx, const char* name)
            xl6CgenFindTypeAlias(ctx, name) != NULL ||
            xl6CgenFindClass(ctx, name) != NULL ||
            xl6CgenFindNativeBackedClass(ctx, name) != NULL ||
+           xl6CgenFindProtocol(ctx, name) != NULL ||
            xl6CgenFindUnion(ctx, name) != NULL;
 }
 
 static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
-    static char typeTextBuffer[256];
+    char typeTextBuffer[1024];
+    const char* stableText;
 
     typeNode = xl6CgenSubstituteGenericType(ctx, typeNode);
     typeNode = xl6CgenResolveAliasType(ctx, typeNode);
@@ -475,6 +500,36 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
     if ( typeNode == NULL || typeNode->text == NULL ) {
         xl6CgenError(ctx, typeNode, "缺少类型");
         return "int";
+    }
+    if ( xl6CgenIsNullableType(typeNode) ) {
+        const XL6_AstNode* inner = xl6CgenNullableInnerType(typeNode);
+        const XL6_AstNode* concreteInner;
+
+        /*
+         * 容器元素和导入类型有时仍保留协议/class 的公开类型名，尚未改写为
+         * __class_handle。物理存储判定必须解析当前上下文，不能只看 AST 标记。
+         */
+        concreteInner = xl6CgenResolveAliasType(
+            ctx,
+            xl6CgenSubstituteGenericType(ctx, inner));
+        if ( xl6CgenNullableUsesXValue(typeNode) ||
+             xl6CgenIsProtocolType(ctx, concreteInner) ||
+             (concreteInner != NULL && concreteInner->text != NULL &&
+              xl6CgenFindClass(ctx, concreteInner->text) != NULL) ) {
+            return "xvalue";
+        }
+        if ( xl6CgenNullableUsesPointer(typeNode) ) {
+            if ( xl6CgenTypedContainerConcreteType(ctx, inner) != NULL ) {
+                return xl6CgenTypedContainerCType(ctx, inner);
+            }
+            return xl6CgenTypeName(ctx, inner);
+        }
+        xl6CgenNullableCTypeName(typeTextBuffer, sizeof(typeTextBuffer), typeNode);
+        stableText = xl6CgenOwnText(ctx, typeTextBuffer);
+        return stableText != NULL ? stableText : "int";
+    }
+    if ( xl6CgenIsWeakType(typeNode) ) {
+        return "xrt_value_weak";
     }
 
     if ( xl6CTextEquals(typeNode->text, "int") || xl6CTextEquals(typeNode->text, "int64") ) {
@@ -576,9 +631,23 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
     if ( xl6CTextEquals(typeNode->text, "function") ) {
         return "XL6_Function";
     }
+    if ( xl6CgenIsProtocolType(ctx, typeNode) ) {
+        return "xvalue";
+    }
+    if ( xl6CgenIsTaggedEnumType(ctx, typeNode) ) {
+        xl6CgenEnumTypeRefName(typeTextBuffer, sizeof(typeTextBuffer), typeNode);
+        stableText = xl6CgenOwnText(ctx, typeTextBuffer);
+        return stableText != NULL ? stableText : "int";
+    }
+    if ( xl6CgenIsNumericEnumType(ctx, typeNode) ) {
+        xl6CgenEnumTypeRefName(typeTextBuffer, sizeof(typeTextBuffer), typeNode);
+        stableText = xl6CgenOwnText(ctx, typeTextBuffer);
+        return stableText != NULL ? stableText : "int";
+    }
     if ( xl6CgenIsNativeBackedClassType(ctx, typeNode) ) {
         xl6CgenNativeBackedTypeRefName(typeTextBuffer, sizeof(typeTextBuffer), typeNode->text);
-        return typeTextBuffer;
+        stableText = xl6CgenOwnText(ctx, typeTextBuffer);
+        return stableText != NULL ? stableText : "int";
     }
     if ( xl6CgenIsClassType(ctx, typeNode) ) {
         XL6_AstNode* canonicalType = NULL;
@@ -592,11 +661,13 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
         }
         xl6CgenClassTypeRefName(typeTextBuffer, sizeof(typeTextBuffer), refType);
         xl6AstFree(canonicalType);
-        return typeTextBuffer;
+        stableText = xl6CgenOwnText(ctx, typeTextBuffer);
+        return stableText != NULL ? stableText : "int";
     }
     if ( xl6CgenIsUnionType(ctx, typeNode) ) {
         xl6CgenUnionTypeTextName(typeTextBuffer, sizeof(typeTextBuffer), typeNode->text);
-        return typeTextBuffer;
+        stableText = xl6CgenOwnText(ctx, typeTextBuffer);
+        return stableText != NULL ? stableText : "int";
     }
 
     snprintf(typeTextBuffer, sizeof(typeTextBuffer), "C generator does not support type node: %s (%s)",
@@ -607,11 +678,30 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
 
 static const char* xl6CgenCAbiTypeName(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
+    char typeTextBuffer[1024];
+    const char* stableText;
+
     typeNode = xl6CgenSubstituteGenericType(ctx, typeNode);
     typeNode = xl6CgenResolveAliasType(ctx, typeNode);
 
     if ( typeNode == NULL || typeNode->text == NULL ) {
         return "void";
+    }
+    if ( xl6CgenIsNullableType(typeNode) ) {
+        const XL6_AstNode* inner = xl6CgenNullableInnerType(typeNode);
+
+        if ( xl6CgenNullableUsesXValue(typeNode) ) {
+            return "xvalue";
+        }
+        if ( xl6CgenNullableUsesPointer(typeNode) ) {
+            return xl6CgenCAbiTypeName(ctx, inner);
+        }
+        xl6CgenNullableCTypeName(typeTextBuffer, sizeof(typeTextBuffer), typeNode);
+        stableText = xl6CgenOwnText(ctx, typeTextBuffer);
+        return stableText != NULL ? stableText : "void";
+    }
+    if ( xl6CgenIsWeakType(typeNode) ) {
+        return "xrt_value_weak";
     }
     if ( xl6CTextEquals(typeNode->text, "bool") ) {
         return "bool";
@@ -707,6 +797,37 @@ static int xl6CgenTypeNodeEqual(const XL6_AstNode* a, const XL6_AstNode* b)
     }
     for ( i = 0; i < a->childCount; ++i ) {
         if ( !xl6CgenTypeNodeEqual(a->children[i], b->children[i]) ) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+static int xl6CgenStorageTypeNodeEqual(
+    const XL6_AstNode* a,
+    const XL6_AstNode* b)
+{
+    size_t i;
+
+    if ( a == NULL || b == NULL ) {
+        return a == b;
+    }
+    if ( a->kind != b->kind || a->childCount != b->childCount ) {
+        return 0;
+    }
+    if ( (a->text == NULL) != (b->text == NULL) ) {
+        return 0;
+    }
+    if ( a->text != NULL && !xl6CTextEquals(a->text, b->text) ) {
+        /* int/int64、float/float64 等注册别名共享稳定 ABI 身份。 */
+        if ( a->semanticTypeAbiId == XL6_TYPE_ABI_ID_INVALID ||
+             b->semanticTypeAbiId == XL6_TYPE_ABI_ID_INVALID ||
+             a->semanticTypeAbiId != b->semanticTypeAbiId ) {
+            return 0;
+        }
+    }
+    for ( i = 0; i < a->childCount; ++i ) {
+        if ( !xl6CgenStorageTypeNodeEqual(a->children[i], b->children[i]) ) {
             return 0;
         }
     }

@@ -34,11 +34,14 @@ int main(void)
 #endif
 
 #define XL_THREAD_COUNT 4
+#define XL_THREAD_ITERATIONS 8
+
+static volatile LONG xl_thread_progress[XL_THREAD_COUNT];
 
 typedef struct LifetimeRunArg {
     XL_Context* ctx;
     XL_Module* module;
-    int runModule;
+    int mode;
     int ok;
 } LifetimeRunArg;
 
@@ -47,6 +50,10 @@ static HANDLE xl_lifetime_release;
 
 static void host_lifetime_wait(void)
 {
+    if ( getenv("XL6_THREADED_TRACE") != NULL ) {
+        fprintf(stderr, "lifetime callback entered\n");
+        fflush(stderr);
+    }
     SetEvent(xl_lifetime_entered);
     WaitForSingleObject(xl_lifetime_release, INFINITE);
 }
@@ -54,17 +61,24 @@ static void host_lifetime_wait(void)
 static DWORD WINAPI lifetime_run_proc(LPVOID param)
 {
     LifetimeRunArg* arg = (LifetimeRunArg*)param;
-    const char* source =
+    const char* xlangSource =
         "extern \"host_lifetime_wait\" func hostLifetimeWait()\n"
         "hostLifetimeWait()\n";
+    const char* cSource =
+        "extern void host_lifetime_wait(void);\n"
+        "int main(void) { host_lifetime_wait(); return 0; }\n";
 
-    arg->ok = arg->runModule ?
-              xlRunModuleMain(arg->ctx, arg->module, NULL) :
-              xlRunScriptString(arg->ctx, source);
+    if ( arg->mode == 1 ) {
+        arg->ok = xlRunModuleMain(arg->ctx, arg->module, NULL);
+    } else if ( arg->mode == 2 ) {
+        arg->ok = xlRunCSourceString(arg->ctx, cSource, 0, NULL);
+    } else {
+        arg->ok = xlRunScriptString(arg->ctx, xlangSource);
+    }
     return 0;
 }
 
-static int run_destroy_lifetime_test(int runModule)
+static int run_destroy_lifetime_test(int mode)
 {
     XL_ContextOptions options = xlDefaultContextOptions();
     XL_Context* ctx = NULL;
@@ -76,6 +90,10 @@ static int run_destroy_lifetime_test(int runModule)
         "hostLifetimeWait()\n";
     int ok = 0;
 
+    if ( getenv("XL6_THREADED_TRACE") != NULL ) {
+        fprintf(stderr, "lifetime mode %d begin\n", mode);
+        fflush(stderr);
+    }
     memset(&arg, 0, sizeof(arg));
     xl_lifetime_entered = CreateEventA(NULL, TRUE, FALSE, NULL);
     xl_lifetime_release = CreateEventA(NULL, TRUE, FALSE, NULL);
@@ -86,7 +104,7 @@ static int run_destroy_lifetime_test(int runModule)
     if ( ctx == NULL || !xlRegisterCFunction(ctx, "host_lifetime_wait", (void*)host_lifetime_wait) ) {
         goto cleanup;
     }
-    if ( runModule ) {
+    if ( mode == 1 ) {
         module = xlCompileScriptStringToModule(ctx, source);
         if ( module == NULL ) {
             goto cleanup;
@@ -94,13 +112,13 @@ static int run_destroy_lifetime_test(int runModule)
     }
     arg.ctx = ctx;
     arg.module = module;
-    arg.runModule = runModule;
+    arg.mode = mode;
     thread = CreateThread(NULL, 0, lifetime_run_proc, &arg, 0, NULL);
     if ( thread == NULL || WaitForSingleObject(xl_lifetime_entered, 30000) != WAIT_OBJECT_0 ) {
         goto cleanup;
     }
 
-    if ( runModule ) {
+    if ( mode == 1 ) {
         xlDestroyModule(module);
         module = NULL;
     } else {
@@ -135,6 +153,10 @@ cleanup:
     }
     xl_lifetime_entered = NULL;
     xl_lifetime_release = NULL;
+    if ( getenv("XL6_THREADED_TRACE") != NULL ) {
+        fprintf(stderr, "lifetime mode %d end: %s\n", mode, ok ? "ok" : "failed");
+        fflush(stderr);
+    }
     return ok;
 }
 
@@ -159,6 +181,18 @@ typedef struct ThreadArg {
 static long long host_thread_value(long long value)
 {
     return value + 1000;
+}
+
+static void host_thread_checkpoint(long long index, long long stage)
+{
+    if ( index < 0 || index >= XL_THREAD_COUNT ) {
+        return;
+    }
+    InterlockedExchange(&xl_thread_progress[index], (LONG)stage);
+    if ( getenv("XL6_THREADED_TRACE") != NULL ) {
+        fprintf(stderr, "thread %lld script stage %lld\n", index, stage);
+        fflush(stderr);
+    }
 }
 
 static int get_current_dir(char* out, size_t outSize)
@@ -244,8 +278,9 @@ static DWORD WINAPI thread_proc(LPVOID param)
     ThreadArg* arg = (ThreadArg*)param;
     XL_ContextOptions options;
     XL_Context* ctx;
-    char source[1024];
+    char source[4096];
     int expected;
+    int iteration;
 
     arg->ok = 0;
     expected = arg->index + 1000;
@@ -261,7 +296,8 @@ static DWORD WINAPI thread_proc(LPVOID param)
         return 1;
     }
     if ( !add_default_paths(ctx, arg) ||
-         !xlRegisterCFunction(ctx, "host_thread_value", (void*)host_thread_value) ) {
+         !xlRegisterCFunction(ctx, "host_thread_value", (void*)host_thread_value) ||
+         !xlRegisterCFunction(ctx, "host_thread_checkpoint", (void*)host_thread_checkpoint) ) {
         set_error(arg, xlGetLastError(ctx));
         xlDestroyContext(ctx);
         return 1;
@@ -269,22 +305,81 @@ static DWORD WINAPI thread_proc(LPVOID param)
 
     snprintf(source,
              sizeof(source),
+             "class ThreadBox<T>\n"
+             "    T value\n"
+             "    create(T input)\n"
+             "        self.value = input\n"
+             "    end\n"
+             "end\n"
+             "enum ThreadResult<T>\n"
+             "    value(T item)\n"
+             "end\n"
              "extern \"host_thread_value\" func hostThreadValue(int value) as int\n"
+             "extern \"host_thread_checkpoint\" func hostThreadCheckpoint(int index, int stage)\n"
+             "hostThreadCheckpoint(%d, 0)\n"
+             "ThreadBox<int> box = ThreadBox::<int>(%d)\n"
+             "hostThreadCheckpoint(%d, 1)\n"
+             "ThreadBox<int>? maybe = box\n"
+             "ThreadResult<string> result = ThreadResult::<string>.value(\"ready\")\n"
+             "if maybe != null\n"
+             "    assert maybe.value == %d, \"generic class value failed\"\n"
+             "else\n"
+             "    assert false, \"nullable generic class failed\"\n"
+             "end\n"
+             "hostThreadCheckpoint(%d, 2)\n"
+             "string resultText = match result\n"
+             "case value(item) then item\n"
+             "end\n"
+             "assert resultText == \"ready\", \"generic enum value failed\"\n"
+             "hostThreadCheckpoint(%d, 3)\n"
              "int value = hostThreadValue(%d)\n"
              "assert value == %d, \"host thread value failed\"\n"
+             "hostThreadCheckpoint(%d, 4)\n"
              "file.writeText(\"thread_marker_%d.txt\", \"ok\")\n"
-             "assert file.exists(\"thread_marker_%d.txt\"), \"thread marker missing\"\n",
+             "assert file.exists(\"thread_marker_%d.txt\"), \"thread marker missing\"\n"
+             "hostThreadCheckpoint(%d, 5)\n",
+             arg->index,
+             arg->index,
+             arg->index,
+             arg->index,
+             arg->index,
+             arg->index,
              arg->index,
              expected,
              arg->index,
+             arg->index,
+             arg->index,
              arg->index);
 
-    if ( !xlRunScriptString(ctx, source) ) {
-        set_error(arg, xlGetLastError(ctx));
-        xlDestroyContext(ctx);
-        return 1;
+    /* 先验证不含托管全局值的最小脚本可在同一上下文重复运行。 */
+    for ( iteration = 0; iteration < 2; ++iteration ) {
+        if ( !xlRunScriptString(ctx, "int probe = 1\nassert probe == 1\n") ) {
+            set_error(arg, xlGetLastError(ctx));
+            xlDestroyContext(ctx);
+            return 1;
+        }
+    }
+
+    for ( iteration = 0; iteration < XL_THREAD_ITERATIONS; ++iteration ) {
+        if ( getenv("XL6_THREADED_TRACE") != NULL ) {
+            fprintf(stderr, "thread %d iteration %d begin\n", arg->index, iteration);
+            fflush(stderr);
+        }
+        if ( !xlRunScriptString(ctx, source) ) {
+            set_error(arg, xlGetLastError(ctx));
+            xlDestroyContext(ctx);
+            return 1;
+        }
+        if ( getenv("XL6_THREADED_TRACE") != NULL ) {
+            fprintf(stderr, "thread %d iteration %d end\n", arg->index, iteration);
+            fflush(stderr);
+        }
     }
     xlDestroyContext(ctx);
+    if ( InterlockedCompareExchange(&xl_thread_progress[arg->index], 0, 0) != 5 ) {
+        set_error(arg, "script checkpoints were incomplete");
+        return 1;
+    }
     if ( !file_exists(arg->marker) ) {
         set_error(arg, "marker was not written");
         return 1;
@@ -377,6 +472,10 @@ int main(void)
     }
     if ( !run_destroy_lifetime_test(1) ) {
         fprintf(stderr, "module destroy during execution failed\n");
+        return 1;
+    }
+    if ( !run_destroy_lifetime_test(2) ) {
+        fprintf(stderr, "context destroy during C execution failed\n");
         return 1;
     }
 

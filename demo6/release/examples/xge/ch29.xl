@@ -1,0 +1,37 @@
+// ch29 — 圆角矩形（基础）：卡片 + 不同半径
+import xge
+
+func draw_scene()
+    // 卡片背景
+    xge.xgeShapeRoundRectFill(c_float(100), c_float(80), c_float(300), c_float(200), c_float(12.0), xge.XGE_COLOR_RGBA(c_uint(26), c_uint(42), c_uint(48), c_uint(255)))
+    xge.xgeShapeRoundRectStroke(c_float(100), c_float(80), c_float(300), c_float(200), c_float(12.0), c_float(1.5), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(96)))
+
+    // Draw 一次完成
+    xge.xgeShapeRoundRectDraw(c_float(500), c_float(80), c_float(180), c_float(50), c_float(8.0),
+        xge.XGE_COLOR_RGBA(c_uint(42), c_uint(58), c_uint(64), c_uint(255)), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
+
+    // 不同半径对比
+    int i = 0
+    while i < 5
+        float x = 80.0 + float(i) * 140.0
+        float radius = float(i) * 6.0
+        xge.xgeShapeRoundRectFill(c_float(x), c_float(380), c_float(120), c_float(80), c_float(radius), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(255)))
+        i = i + 1
+    end
+end
+
+func on_frame()
+    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    draw_scene()
+    xge.xgeTutorialEndFrame()
+end
+
+func main(...) as int
+    c_int ret = xge.xgeTutorialInit(840, 640, "ch29")
+    if ret != c_int(0) then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.xgeTutorialRun(on_frame)
+    return 0
+end

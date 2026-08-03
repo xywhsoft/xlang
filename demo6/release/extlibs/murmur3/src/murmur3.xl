@@ -1,0 +1,213 @@
+// murmur3 — MurmurHash3 高性能非加密哈希（32/128 位），Buffer/string/文件/流式。
+extern "xrtGetError" func __murmur3_error() as string
+extern "xmurmur3_version" func __murmur3_version() as string
+extern "xmurmur3_hash32" func __murmur3_hash32(point data, c_size size, c_uint seed) as int
+extern "xmurmur3_hash32_str" func __murmur3_hash32_str_int(string data, c_size size, c_uint seed) as int
+extern "xmurmur3_hash32_hex" func __murmur3_hash32_hex(point data, c_size size, c_uint seed) as string
+extern "xmurmur3_hash32_str_hex" func __murmur3_hash32_str(string data, c_size size, c_uint seed) as string
+extern "xmurmur3_hash128_hex" func __murmur3_hash128_hex(point data, c_size size, c_uint seed) as string
+extern "xmurmur3_hash128_str_hex" func __murmur3_hash128_str(string data, c_size size, c_uint seed) as string
+extern "xmurmur3_hash32_bytes" func __murmur3_hash32_bytes(point data, c_size size, c_uint seed) as point
+extern "xmurmur3_hash32_str_bytes" func __murmur3_hash32_str_bytes(string data, c_size size, c_uint seed) as point
+extern "xmurmur3_hash128_bytes" func __murmur3_hash128_bytes(point data, c_size size, c_uint seed) as point
+extern "xmurmur3_hash128_str_bytes" func __murmur3_hash128_str_bytes(string data, c_size size, c_uint seed) as point
+extern "xmurmur3_file32" func __murmur3_file32(string path, c_ulonglong maxInput, c_uint seed) as int
+extern "xmurmur3_file128_hex" func __murmur3_file128_hex(string path, c_ulonglong maxInput, c_uint seed) as string
+
+
+
+// 返回内嵌 MurmurHash3 引擎的版本号。
+export func version() as string
+    return __murmur3_version()
+end
+
+func __murmur3_check_limit(int value, string name)
+    if value <= 0 then
+        throw ValueError name + " must be greater than zero"
+    end
+end
+
+
+
+// ═══════════════ 32 位哈希 ═══════════════
+
+// MurmurHash3 32 位哈希（返回整数值）。
+export func hash32(Buffer data, int seed = 0) as int
+    return __murmur3_hash32(data.data(), c_size(data.len()), c_uint(seed))
+end
+
+export func hash32(string text, int seed = 0) as int
+    return __murmur3_hash32_str_int(text, c_size(string.len(text)), c_uint(seed))
+end
+
+// MurmurHash3 32 位哈希（返回 8 字符十六进制字符串）。
+export func hash32Hex(Buffer data, int seed = 0) as string
+    return __murmur3_hash32_hex(data.data(), c_size(data.len()), c_uint(seed))
+end
+
+export func hash32Hex(string text, int seed = 0) as string
+    return __murmur3_hash32_str(text, c_size(string.len(text)), c_uint(seed))
+end
+
+// MurmurHash3 32 位哈希（返回 4 字节原始摘要 Buffer）。
+export func hash32Bytes(Buffer data, int seed = 0) as Buffer
+    point result = __murmur3_hash32_bytes(data.data(), c_size(data.len()), c_uint(seed))
+    if result == null then
+        throw ValueError __murmur3_error()
+    end
+    return Buffer(result)
+end
+
+export func hash32Bytes(string text, int seed = 0) as Buffer
+    point result = __murmur3_hash32_str_bytes(text, c_size(string.len(text)), c_uint(seed))
+    if result == null then
+        throw ValueError __murmur3_error()
+    end
+    return Buffer(result)
+end
+
+
+
+// ═══════════════ 128 位哈希 ═══════════════
+
+// MurmurHash3 128 位哈希（返回 32 字符十六进制字符串）。
+export func hash128Hex(Buffer data, int seed = 0) as string
+    string result = __murmur3_hash128_hex(data.data(), c_size(data.len()), c_uint(seed))
+    if result == "" then
+        throw ValueError __murmur3_error()
+    end
+    return result
+end
+
+export func hash128Hex(string text, int seed = 0) as string
+    string result = __murmur3_hash128_str(text, c_size(string.len(text)), c_uint(seed))
+    if result == "" then
+        throw ValueError __murmur3_error()
+    end
+    return result
+end
+
+// MurmurHash3 128 位哈希（返回 16 字节原始摘要 Buffer）。
+export func hash128Bytes(Buffer data, int seed = 0) as Buffer
+    point result = __murmur3_hash128_bytes(data.data(), c_size(data.len()), c_uint(seed))
+    if result == null then
+        throw ValueError __murmur3_error()
+    end
+    return Buffer(result)
+end
+
+export func hash128Bytes(string text, int seed = 0) as Buffer
+    point result = __murmur3_hash128_str_bytes(text, c_size(string.len(text)), c_uint(seed))
+    if result == null then
+        throw ValueError __murmur3_error()
+    end
+    return Buffer(result)
+end
+
+
+
+// ═══════════════ 文件哈希 ═══════════════
+
+export func hashFile32(string path, int seed = 0, int maxInput = 268435456) as int
+    __murmur3_check_limit(maxInput, "maxInput")
+    int result = __murmur3_file32(path, c_ulonglong(maxInput), c_uint(seed))
+    if result == 0 then
+        string err = __murmur3_error()
+        if err != "" then
+            throw FileError err
+        end
+    end
+    return result
+end
+
+export func hashFile128Hex(string path, int seed = 0, int maxInput = 268435456) as string
+    __murmur3_check_limit(maxInput, "maxInput")
+    string result = __murmur3_file128_hex(path, c_ulonglong(maxInput), c_uint(seed))
+    if result == "" then
+        throw FileError __murmur3_error()
+    end
+    return result
+end
+
+
+
+// ═══════════════ 流式哈希器（128 位变体） ═══════════════
+
+export class Murmur3Hasher
+    native point handle
+    extern "xmurmur3_hasher_create" create(c_uint seed, c_ulonglong maxInput)
+    extern "xmurmur3_hasher_adopt" create(point handle)
+    extern "xmurmur3_hasher_destroy" destroy()
+    extern "xmurmur3_hasher_update" func updateNative(point data, c_size size) as bool
+    extern "xmurmur3_hasher_update_str" func updateStrNative(string data, c_size size) as bool
+    extern "xmurmur3_hasher_digest_hex" func digestHexNative() as string
+    extern "xmurmur3_hasher_digest_bytes" func digestBytesNative() as point
+    extern "xmurmur3_hasher_reset" func resetNative() as bool
+    extern "xmurmur3_hasher_input_bytes" func inputBytesNative() as int
+    extern "xmurmur3_hasher_clone" func cloneNative() as point
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    get inputBytes() as int
+        return self.inputBytesNative()
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw ValueError __murmur3_error()
+        end
+    end
+
+    func update(string text)
+        if not self.updateStrNative(text, c_size(string.len(text))) then
+            throw ValueError __murmur3_error()
+        end
+    end
+
+    func digestHex() as string
+        string result = self.digestHexNative()
+        if result == "" then
+            throw ValueError __murmur3_error()
+        end
+        return result
+    end
+
+    // 读取当前 128 位摘要（16 字节原始 Buffer，不终结状态）。
+    func digestBytes() as Buffer
+        point result = self.digestBytesNative()
+        if result == null then
+            throw ValueError __murmur3_error()
+        end
+        return Buffer(result)
+    end
+
+    func reset() as bool
+        if not self.resetNative() then
+            throw ValueError __murmur3_error()
+        end
+        return true
+    end
+
+    func clone() as Murmur3Hasher
+        point hp = self.cloneNative()
+        if hp == null then
+            throw ValueError __murmur3_error()
+        end
+        return Murmur3Hasher(hp)
+    end
+end
+
+
+
+// ═══════════════ 工厂函数 ═══════════════
+
+export func hasher(int seed = 0, int maxInput = 268435456) as Murmur3Hasher
+    __murmur3_check_limit(maxInput, "maxInput")
+    Murmur3Hasher result = Murmur3Hasher(c_uint(seed), c_ulonglong(maxInput))
+    if not result.valid then
+        throw ValueError __murmur3_error()
+    end
+    return result
+end

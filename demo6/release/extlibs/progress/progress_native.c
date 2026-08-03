@@ -4,9 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
-extern void xrtSetError(const char *msg);
-
+extern void xrtSetError(const void *msg, int bFree);
 static char prog_buf[4096];
 
 typedef struct {
@@ -18,9 +16,9 @@ typedef struct {
 
 void *xprog_create(long long total) {
     XProg *p;
-    if (total <= 0) { xrtSetError("progress: total must be positive"); return NULL; }
+    if (total <= 0) { xrtSetError("progress: total must be positive", 0); return NULL; }
     p = (XProg *)calloc(1, sizeof(XProg));
-    if (!p) { xrtSetError("progress: out of memory"); return NULL; }
+    if (!p) { xrtSetError("progress: out of memory", 0); return NULL; }
     p->total = total;
     p->bar_width = 40;
     strcpy(p->prefix, "Progress");

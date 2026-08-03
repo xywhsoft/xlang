@@ -927,21 +927,12 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInferenceRaw(XL6_CgenContext* ctx, co
                              (typedContainer != NULL && xl6CTextEquals(typedContainer->text, "dict"));
                 int isContainerMethod = 0;
 
-                if ( isVar ) {
-                    isContainerMethod = xl6CTextEquals(callee->text, "push") ||
-                                        xl6CTextEquals(callee->text, "append") ||
-                                        xl6CTextEquals(callee->text, "insert") ||
-                                        xl6CTextEquals(callee->text, "remove") ||
-                                        xl6CTextEquals(callee->text, "removeValue") ||
-                                        xl6CTextEquals(callee->text, "pop") ||
-                                        xl6CTextEquals(callee->text, "take") ||
-                                        xl6CTextEquals(callee->text, "clear") ||
-                                        xl6CTextEquals(callee->text, "reserve") ||
-                                        xl6CTextEquals(callee->text, "swap") ||
-                                        xl6CTextEquals(callee->text, "add") ||
-                                        xl6CTextEquals(callee->text, "contains") ||
-                                        xl6CTextEquals(callee->text, "indexOf");
-                } else if ( isArray ) {
+                /*
+                    var 的真实运行时类型可能是 class，也可能是容器。
+                    这里不能按方法名猜测容器，否则 class.add 等同名方法会被提前截获。
+                    var 成员统一返回 var，由运行时先解析 class 方法，再回退到隐性容器方法。
+                */
+                if ( !isVar && isArray ) {
                     isContainerMethod = xl6CTextEquals(callee->text, "push") ||
                                         xl6CTextEquals(callee->text, "append") ||
                                         xl6CTextEquals(callee->text, "insert") ||
@@ -957,17 +948,17 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInferenceRaw(XL6_CgenContext* ctx, co
                                         (typedContainer != NULL &&
                                          xl6CTextEquals(typedContainer->text, "array") &&
                                          xl6CTextEquals(callee->text, "reverse"));
-                } else if ( isList ) {
+                } else if ( !isVar && isList ) {
                     isContainerMethod = xl6CTextEquals(callee->text, "remove") ||
                                         xl6CTextEquals(callee->text, "take") ||
                                         xl6CTextEquals(callee->text, "clear") ||
                                         xl6CTextEquals(callee->text, "contains");
-                } else if ( isSet ) {
+                } else if ( !isVar && isSet ) {
                     isContainerMethod = xl6CTextEquals(callee->text, "add") ||
                                         xl6CTextEquals(callee->text, "remove") ||
                                         xl6CTextEquals(callee->text, "contains") ||
                                         xl6CTextEquals(callee->text, "clear");
-                } else if ( isDict ) {
+                } else if ( !isVar && isDict ) {
                     isContainerMethod = xl6CTextEquals(callee->text, "remove") ||
                                         xl6CTextEquals(callee->text, "contains") ||
                                         xl6CTextEquals(callee->text, "take") ||

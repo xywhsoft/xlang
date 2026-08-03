@@ -5,7 +5,7 @@ func main(...) as int
 
     println("Mode 0 = " + jieba.mode(0))
     println("POS 0 = " + jieba.posTag(0))
-    println("Char count 'hello' = " + string.int(jieba.charCount("hello")))
+    println("Char count 'hello' = " + string(jieba.charCount("hello")))
 
     println("jieba example: PASS")
     return 0

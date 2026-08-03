@@ -1,0 +1,29 @@
+func choose(bool first) as int
+    int value
+    if first then
+        value = 10
+    else
+        value = 20
+    end
+    return value
+end
+
+func produce(out int value)
+    value = 31
+end
+
+func main(...) as int
+    assert(choose(true) == 10)
+    assert(choose(false) == 20)
+
+    int once
+    do
+        once = 7
+    while false end
+    assert(once == 7)
+
+    int output
+    produce(out output)
+    assert(output == 31)
+    return 0
+end

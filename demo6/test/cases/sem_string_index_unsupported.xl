@@ -1,0 +1,6 @@
+func main(...) as int
+    string text = "abc"
+    string first = text[0]
+    println(first)
+    return 0
+end

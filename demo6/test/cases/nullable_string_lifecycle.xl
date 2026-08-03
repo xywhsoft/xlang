@@ -1,0 +1,64 @@
+string? moduleText = null
+
+func passNullableText(string? value) as string?
+    return value
+end
+
+class NullableTextBox
+    string? value = null
+
+    create(string? initial)
+        self.value = initial
+    end
+
+    func read() as string?
+        return self.value
+    end
+
+    func write(string? next)
+        self.value = next
+    end
+end
+
+func main(...) as int
+    string? local = "alpha"
+    assert(local != null)
+    string localValue = local ?? ""
+    assert(localValue == "alpha")
+
+    local = null
+    assert(local == null)
+    local = "beta"
+
+    string? returned = passNullableText(local)
+    assert(returned != null)
+    string returnedValue = returned ?? ""
+    assert(returnedValue == "beta")
+
+    moduleText = returned
+    assert(moduleText != null)
+    string moduleValue = moduleText ?? ""
+    assert(moduleValue == "beta")
+
+    NullableTextBox box = NullableTextBox(moduleText)
+    moduleText = "changed outside"
+    string? fieldValue = box.read()
+    string fieldText = fieldValue ?? ""
+    assert(fieldText == "beta")
+
+    box.write(null)
+    assert(box.read() == null)
+    box.write("field")
+    string rewrittenField = box.read() ?? ""
+    assert(rewrittenField == "field")
+
+    string? captured = "closure"
+    func() as string? reader = func() as string?
+        return captured
+    end
+    captured = "changed after capture"
+    string closureValue = reader() ?? ""
+    assert(closureValue == "closure")
+
+    return 0
+end

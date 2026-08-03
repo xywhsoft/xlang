@@ -1,0 +1,115 @@
+// bson 扩展库测试 (var 直转架构)
+// 验证: encode/decode 双向转换、xtime 互操作、文件 I/O、工具函数
+
+import bson
+
+func main(...) as int
+    print("=== bson var 直转测试 ===")
+
+    // ─── 1. 基本 encode/decode 往返 ───
+    print("\n--- 基本往返 ---")
+    var doc = {"name": "xlang", "version": 6, "pi": 3.14159, "active": true}
+    var bin = bson.encode(doc)
+    print("编码长度: " + string(bson.docLength(bin)))
+
+    var decoded = bson.decode(bin)
+    print("name = " + string(decoded["name"]))
+    print("version = " + string(decoded["version"]))
+    print("pi = " + string(decoded["pi"]))
+    print("active = " + string(decoded["active"]))
+
+    // ─── 2. 直接索引访问 ───
+    print("\n--- 索引访问 ---")
+    var user = {"email": "test@example.com", "age": 25, "score": 99.5}
+    var userBin = bson.encode(user)
+    var u = bson.decode(userBin)
+    print("email = " + string(u["email"]))
+    print("age = " + string(u["age"]))
+    print("score = " + string(u["score"]))
+
+    // ─── 3. 嵌套文档 ───
+    print("\n--- 嵌套文档 ---")
+    var nested = {"type": "user", "profile": {"city": "Beijing", "zip": 100000}}
+    var nestedBin = bson.encode(nested)
+    var n = bson.decode(nestedBin)
+    print("type = " + string(n["type"]))
+    print("city = " + string(n["profile"]["city"]))
+    print("zip = " + string(n["profile"]["zip"]))
+
+    // ─── 4. 数组 ───
+    print("\n--- 数组 ---")
+    var withArr = {"title": "test", "tags": ["dev", "fun", "xlang"]}
+    var arrBin = bson.encode(withArr)
+    var a = bson.decode(arrBin)
+    print("title = " + string(a["title"]))
+    print("tag0 = " + string(a["tags"][0]))
+    print("tag1 = " + string(a["tags"][1]))
+    print("tag2 = " + string(a["tags"][2]))
+    print("len = " + string(a["tags"].length))
+
+    // ─── 5. xtime 互操作 ───
+    print("\n--- xtime 互操作 ---")
+    auto now = time.now()
+    var timed = {"event": "login", "at": now}
+    var timeBin = bson.encode(timed)
+    var td = bson.decode(timeBin)
+    print("event = " + string(td["event"]))
+    print("year = " + string(time.year(time(td["at"]))))
+    print("month = " + string(time.month(time(td["at"]))))
+
+    // ─── 6. null 和 int64 ───
+    print("\n--- null / int64 ---")
+    var mixed = {"nothing": null, "big": 9876543210, "small": 42}
+    var mixBin = bson.encode(mixed)
+    var m = bson.decode(mixBin)
+    print("nothing = " + string(m["nothing"]))
+    print("big = " + string(m["big"]))
+    print("small = " + string(m["small"]))
+
+    // ─── 7. ObjectId ───
+    print("\n--- ObjectId ---")
+    auto oid1 = bson.objectId()
+    auto oid2 = bson.objectId()
+    print("OID 1: " + oid1)
+    print("OID 2: " + oid2)
+    print("长度: " + string(string.len(oid1)))
+
+    // ─── 8. ObjectId 时间提取 ───
+    print("\n--- OID 时间 ---")
+    auto oidT = bson.oidTime(oid1)
+    print("OID 年份: " + string(time.year(time(oidT))))
+
+    // ─── 9. Hex 调试 ───
+    print("\n--- Hex ---")
+    var tiny = {"x": 1}
+    var tinyBin = bson.encode(tiny)
+    auto hexStr = bson.toHex(tinyBin)
+    print("hex 长度: " + string(string.len(hexStr)))
+    print("hex 前16: " + string.slice(hexStr, 0, 16))
+
+    // ─── 10. 文件 I/O ───
+    print("\n--- 文件 I/O ---")
+    var fileDoc = {"saved": true, "count": 7}
+    auto tmpPath = "build/bson_test_tmp.bson"
+    auto written = bson.save(tmpPath, fileDoc)
+    print("写入字节: " + string(written))
+    var loaded = bson.load(tmpPath)
+    print("loaded.saved = " + string(loaded["saved"]))
+    print("loaded.count = " + string(loaded["count"]))
+
+    // ─── 11. 多文档流 ───
+    print("\n--- 多文档 ---")
+    var doc1 = {"id": 1, "msg": "hello"}
+    var doc2 = {"id": 2, "msg": "world"}
+    var bin1 = bson.encode(doc1)
+    var bin2 = bson.encode(doc2)
+    // 拼接两个 BSON 文档
+    var stream = bson.concat(bin1, bin2)
+    var docs = bson.decodeAll(stream)
+    print("文档数: " + string(docs.length))
+    print("doc[0].msg = " + string(docs[0]["msg"]))
+    print("doc[1].id = " + string(docs[1]["id"]))
+
+    print("\n=== 测试完成 ===")
+    return 0
+end

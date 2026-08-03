@@ -1,0 +1,40 @@
+// ch13 — 深度测试：重叠图形的遮挡关系
+import xge
+
+func draw_scene()
+    // 绘制三个重叠的矩形，用不同颜色表示不同"深度层"
+    // 后层（远）
+    xge.xgeShapeRectFill(c_float(200), c_float(150), c_float(250), c_float(200), xge.XGE_COLOR_RGBA(c_uint(109), c_uint(179), c_uint(242), c_uint(255)))
+
+    // 中层
+    xge.xgeShapeRectFill(c_float(300), c_float(220), c_float(250), c_float(200), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(255)))
+
+    // 前层（近）
+    xge.xgeShapeRectFill(c_float(400), c_float(290), c_float(250), c_float(200), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
+
+    // 深度指示箭头
+    xge.xgeShapeLine(c_float(150), c_float(500), c_float(700), c_float(500), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(200), c_uint(210), c_uint(220), c_uint(150)))
+    xge.xgeShapeLine(c_float(700), c_float(500), c_float(685), c_float(492), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(200), c_uint(210), c_uint(220), c_uint(150)))
+    xge.xgeShapeLine(c_float(700), c_float(500), c_float(685), c_float(508), c_float(2.0), xge.XGE_COLOR_RGBA(c_uint(200), c_uint(210), c_uint(220), c_uint(150)))
+
+    // Z 轴标记点
+    xge.xgeShapeCircleFill(c_float(200), c_float(500), c_float(5), xge.XGE_COLOR_RGBA(c_uint(109), c_uint(179), c_uint(242), c_uint(255)))
+    xge.xgeShapeCircleFill(c_float(425), c_float(500), c_float(5), xge.XGE_COLOR_RGBA(c_uint(79), c_uint(216), c_uint(194), c_uint(255)))
+    xge.xgeShapeCircleFill(c_float(650), c_float(500), c_float(5), xge.XGE_COLOR_RGBA(c_uint(255), c_uint(180), c_uint(84), c_uint(255)))
+end
+
+func on_frame()
+    xge.xgeTutorialBeginFrame(xge.XGE_COLOR_RGBA(c_uint(13), c_uint(17), c_uint(22), c_uint(255)))
+    draw_scene()
+    xge.xgeTutorialEndFrame()
+end
+
+func main(...) as int
+    c_int ret = xge.xgeTutorialInit(840, 640, "ch13")
+    if ret != c_int(0) then
+        println("xgeInit failed: " + string(ret))
+        return 1
+    end
+    xge.xgeTutorialRun(on_frame)
+    return 0
+end

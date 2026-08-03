@@ -1,0 +1,3 @@
+enum ByteValue as uint8
+    tooLarge = 256
+end

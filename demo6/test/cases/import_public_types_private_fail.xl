@@ -1,0 +1,5 @@
+from module_types import Hidden
+
+func main(...) as int
+    return 0
+end

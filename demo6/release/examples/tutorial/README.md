@@ -18,6 +18,7 @@
 - `10_c_interop_and_native_class.xl`：extern C 函数、extern C 变量、native-backed class C 句柄类。
 - `11_export_to_c.xl`：xlang 导出 C ABI，由 C 宿主调用。
 - `12_errors_and_docs.xl`：字符串异常、`try/catch/finally`、`assert` 和 `#doc ... #end`。
+- `13_modern_type_semantics.xl`：确定赋值、nullable、weak、用户 protocol、数值/带载荷 enum 与 `match`。
 
 ## 运行
 

@@ -1,0 +1,290 @@
+// xbot/types.xl - 基础类型定义
+// 对应 xbot.py L1-330：Anchor, Size, Pixel, Ratio, TargetPoint, MatchResult, OpResult
+// 以及坐标解析辅助函数。
+
+// ─── 版本常量 ───
+export const string XBOT_VERSION = "0.1.2-dev"
+export const string XBOT_RESOURCE_VERSION = "2026.07.17"
+
+// ─── 文本匹配模式 ───
+const string MATCH_WILDCARD = "wildcard"
+const string MATCH_REGEX = "regex"
+const string MATCH_UNORDERED = "unordered"
+
+// 从 UTF-8 字符下标开始查找，返回原字符串中的字符下标。
+func _xbot_index_of_from(string text, string part, int start) as int
+    if start <= 0 then
+        return string.indexOf(text, part)
+    end
+    int length = string.len(text)
+    if start >= length then
+        return -1
+    end
+    int found = string.indexOf(string.slice(text, start, length - start), part)
+    if found < 0 then
+        return -1
+    end
+    return start + found
+end
+
+func _xbot_temp_file(string prefix, string suffix) as string
+    return path.join(path.temp(), path.random(prefix, suffix))
+end
+
+func _xbot_utc_format(string pattern) as string
+    return time.formatPattern(time.nowUTC(), pattern)
+end
+
+// ─── 九宫格锚点常量 ───
+const string ANCHOR_TOP_LEFT = "top_left"
+const string ANCHOR_TOP = "top"
+const string ANCHOR_TOP_RIGHT = "top_right"
+const string ANCHOR_LEFT = "left"
+const string ANCHOR_CENTER = "center"
+const string ANCHOR_RIGHT = "right"
+const string ANCHOR_BOTTOM_LEFT = "bottom_left"
+const string ANCHOR_BOTTOM = "bottom"
+const string ANCHOR_BOTTOM_RIGHT = "bottom_right"
+
+// ─── 锚点比例查找表 ───
+// 返回锚点对应的 (ratio_x, ratio_y)，以 "x,y" 格式编码
+func _anchor_ratio(string anchor) as string
+    if anchor == ANCHOR_TOP_LEFT then
+        return "0.0,0.0"
+    elseif anchor == ANCHOR_TOP then
+        return "0.5,0.0"
+    elseif anchor == ANCHOR_TOP_RIGHT then
+        return "1.0,0.0"
+    elseif anchor == ANCHOR_LEFT then
+        return "0.0,0.5"
+    elseif anchor == ANCHOR_CENTER then
+        return "0.5,0.5"
+    elseif anchor == ANCHOR_RIGHT then
+        return "1.0,0.5"
+    elseif anchor == ANCHOR_BOTTOM_LEFT then
+        return "0.0,1.0"
+    elseif anchor == ANCHOR_BOTTOM then
+        return "0.5,1.0"
+    elseif anchor == ANCHOR_BOTTOM_RIGHT then
+        return "1.0,1.0"
+    end
+    throw RuntimeError "anchor 必须是有效的九宫格锚点名: " + anchor
+end
+
+// ─── 统一操作返回格式 ───
+export class OpResult
+    bool success
+    string reply
+    string error
+    var data
+
+    create(bool ok, string msg, string err)
+        self.success = ok
+        self.reply = msg
+        self.error = err
+        self.data = null
+    end
+
+    func ok() as bool
+        return self.success
+    end
+
+    func fail() as bool
+        return self.success == false
+    end
+end
+// 快捷构造：成功
+func _result_ok(string reply) as OpResult
+    return OpResult(true, reply, "")
+end
+
+// 快捷构造：失败
+func _result_fail(string err) as OpResult
+    return OpResult(false, "", err)
+end
+
+// ─── 尺寸 ───
+export class Size
+    int width
+    int height
+
+    create(int w, int h)
+        self.width = w
+        self.height = h
+    end
+end
+// ─── 显式像素坐标 ───
+export class Pixel
+    float x
+    float y
+
+    create(float px, float py)
+        self.x = px
+        self.y = py
+    end
+end
+// ─── 显式归一化坐标 ───
+export class Ratio
+    float x
+    float y
+
+    create(float rx, float ry)
+        self.x = rx
+        self.y = ry
+    end
+end
+// ─── 绑定设备的像素点 ───
+export class TargetPoint
+    AutomationDevice? device
+    int x
+    int y
+
+    create(AutomationDevice? dev, int px, int py)
+        self.device = dev
+        self.x = px
+        self.y = py
+    end
+
+    // 按设备比例或像素偏移，返回新点
+    func Offset(float dx, float dy) as TargetPoint
+        if self.device == null then
+            throw RuntimeError "未绑定设备的坐标不能执行偏移"
+        end
+        AutomationDevice device = self.device as AutomationDevice
+        int delta_x = device.ResolveDeltaX(dx)
+        int delta_y = device.ResolveDeltaY(dy)
+        return TargetPoint(self.device, self.x + delta_x, self.y + delta_y)
+    end
+
+    // 点击此点
+    func Click(int times, float interval) as OpResult
+        if self.device == null then
+            throw RuntimeError "未绑定设备的坐标不能点击"
+        end
+        AutomationDevice device = self.device as AutomationDevice
+        return device.Click(self, 0, ANCHOR_CENTER, null, times, interval)
+    end
+
+    // Click 的别名
+    func Tap(int times, float interval) as OpResult
+        return self.Click(times, interval)
+    end
+
+    // 返回 "x,y" 字符串
+    func ToStr() as string
+        return string(self.x) + "," + string(self.y)
+    end
+end
+// ─── 识别结果 ───
+export class MatchResult
+    AutomationDevice? device
+    int x
+    int y
+    int w
+    int h
+    int cx
+    int cy
+    string text
+    float score
+    string method
+
+    create(AutomationDevice? dev, int rx, int ry, int rw, int rh)
+        self.device = dev
+        self.x = rx
+        self.y = ry
+        self.w = rw
+        self.h = rh
+        self.cx = rx + rw / 2
+        self.cy = ry + rh / 2
+        self.text = ""
+        self.score = 0.0
+        self.method = ""
+    end
+
+    // 返回识别框指定锚点对应的设备像素点
+    func At(string anchor) as TargetPoint
+        string ratios = _anchor_ratio(anchor)
+        float ratio_x = _parse_first(ratios)
+        float ratio_y = _parse_second(ratios)
+        int px = int(float(self.x) + float(self.w) * ratio_x)
+        int py = int(float(self.y) + float(self.h) * ratio_y)
+        return TargetPoint(self.device, px, py)
+    end
+
+    // 从指定锚点偏移
+    func Offset(float dx, float dy, string anchor) as TargetPoint
+        TargetPoint pt = self.At(anchor)
+        return pt.Offset(dx, dy)
+    end
+
+    // 点击识别框指定锚点
+    func Click(string anchor, int times, float interval) as OpResult
+        if self.device == null then
+            throw RuntimeError "未绑定设备的匹配结果不能点击"
+        end
+        TargetPoint pt = self.At(anchor)
+        AutomationDevice device = self.device as AutomationDevice
+        return device.Click(pt, 0, ANCHOR_CENTER, null, times, interval)
+    end
+
+    // Click 的别名
+    func Tap(string anchor, int times, float interval) as OpResult
+        return self.Click(anchor, times, interval)
+    end
+
+    // 返回 "x,y,w,h" 描述
+    func ToStr() as string
+        return string(self.x) + "," + string(self.y) + "," + string(self.w) + "," + string(self.h)
+    end
+end
+// ─── 坐标解析辅助 ───
+
+// 将 -1~1 解释为比例，其余数值解释为像素
+func _resolve_component(float value, int length) as int
+    if value >= -1.0 and value <= 1.0 then
+        return int(value * float(length))
+    end
+    return int(value)
+end
+
+// 解析 "x,y" 格式字符串中的第一个浮点数
+func _parse_first(string pair) as float
+    int comma = string.indexOf(pair, ",")
+    if comma <= 0 then
+        return 0.0
+    end
+    return float(string.mid(pair, 0, comma))
+end
+
+// 解析 "x,y" 格式字符串中的第二个浮点数
+func _parse_second(string pair) as float
+    int comma = string.indexOf(pair, ",")
+    if comma <= 0 then
+        return 0.0
+    end
+    return float(string.mid(pair, comma + 1, string.len(pair) - comma - 1))
+end
+
+// 规范化锚点：支持字符串锚点名或 "rx,ry" 比例坐标
+func _normalize_anchor(string anchor) as string
+    // 如果是已知锚点名，直接返回对应比例
+    if anchor == ANCHOR_TOP_LEFT or anchor == ANCHOR_TOP or anchor == ANCHOR_TOP_RIGHT then
+        return _anchor_ratio(anchor)
+    end
+    if anchor == ANCHOR_LEFT or anchor == ANCHOR_CENTER or anchor == ANCHOR_RIGHT then
+        return _anchor_ratio(anchor)
+    end
+    if anchor == ANCHOR_BOTTOM_LEFT or anchor == ANCHOR_BOTTOM or anchor == ANCHOR_BOTTOM_RIGHT then
+        return _anchor_ratio(anchor)
+    end
+    // 尝试解析为 "rx,ry" 格式
+    int comma = string.indexOf(anchor, ",")
+    if comma > 0 then
+        float rx = float(string.mid(anchor, 0, comma))
+        float ry = float(string.mid(anchor, comma + 1, string.len(anchor) - comma - 1))
+        if rx >= 0.0 and rx <= 1.0 and ry >= 0.0 and ry <= 1.0 then
+            return anchor
+        end
+    end
+    throw RuntimeError "anchor 必须是 Anchor 名或 0~1 的二元组: " + anchor
+end

@@ -1,0 +1,44 @@
+protocol Named
+    func name() as string
+end
+
+class Person
+    string stored = ""
+
+    create(string value)
+        self.stored = value
+    end
+
+    func name() as string
+        return self.stored
+    end
+end
+
+func makeExpired() as weak<Named>
+    Named local = Person("expired")
+    weak<Named> result = local
+    return result
+end
+
+func main(...) as int
+    Named strong = Person("alive")
+    weak<Named> first = strong
+    weak<Named> copied = first
+
+    Named? alive = copied.lock()
+    assert alive != null
+    if alive != null
+        assert alive.name() == "alive"
+    end
+
+    weak<Named> expired = makeExpired()
+    Named? missing = expired.lock()
+    assert missing == null
+
+    first = null
+    copied = null
+    assert strong.name() == "alive"
+
+    println("protocol weak lifecycle ok")
+    return 0
+end

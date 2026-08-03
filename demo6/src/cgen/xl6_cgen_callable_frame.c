@@ -38,7 +38,12 @@ static void xl6CgenEmitVarInvokeValueExpr(XL6_CgenContext* ctx, const XL6_AstNod
     concreteType = xl6CgenResolveAliasType(ctx, concreteType);
     typeName = concreteType != NULL ? concreteType->text : NULL;
 
-    if ( xl6CTextEquals(typeName, "var") || xl6CgenIsArrayXValueType(concreteType) ||
+    if ( xl6CgenClassHandleTargetType(ctx, concreteType) != NULL ) {
+        /* class 参数在调用帧中就是带 TypeDesc 的 xvalue 对象句柄。 */
+        xl6OutputPuts("xl6_xrt_retain(", ctx->out);
+        xl6OutputPuts(valueExpr != NULL ? valueExpr : "0", ctx->out);
+        xl6OutputPutc(')', ctx->out);
+    } else if ( xl6CTextEquals(typeName, "var") || xl6CgenIsArrayXValueType(concreteType) ||
          xl6CgenIsListXValueType(concreteType) || xl6CgenIsSetXValueType(concreteType) ||
          xl6CgenIsDictXValueType(concreteType) ) {
         /* 动态调用帧只借用 argv；目标函数按统一形参 ABI 接收 owned 引用。 */
@@ -256,7 +261,15 @@ static void xl6CgenEmitXCallTypeChecks(XL6_CgenContext* ctx, const XL6_AstNode* 
         const XL6_AstNode* param = params->children[i];
         const XL6_AstNode* paramType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
         const char* runtimeType = xl6CgenXValueRuntimeTypeConst(ctx, paramType);
-        if ( xl6CTextEquals(paramType != NULL ? paramType->text : NULL, "error") ) {
+        if ( xl6CgenClassHandleTargetType(ctx, paramType) != NULL ) {
+            xl6OutputPrintf(ctx->out,
+                "    if (__xl6_arg_%u == 0 || !xrtTypeIsA(xvoTypeDesc(__xl6_arg_%u), ",
+                (unsigned)i, (unsigned)i);
+            xl6CgenEmitXrtTypeDescRef(
+                ctx,
+                xl6CgenClassHandleTargetType(ctx, paramType));
+            xl6OutputPuts(")) {\n        return false;\n    }\n", ctx->out);
+        } else if ( xl6CTextEquals(paramType != NULL ? paramType->text : NULL, "error") ) {
             xl6OutputPrintf(ctx->out,
                 "    if (__xl6_arg_%u != 0 && (xvoType(__xl6_arg_%u) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_arg_%u) != xrtTypeHandle())) {\n",
                 (unsigned)i, (unsigned)i, (unsigned)i);
@@ -371,7 +384,21 @@ static void xl6CgenEmitVarInvokeTypeChecks(XL6_CgenContext* ctx, const XL6_AstNo
         const XL6_AstNode* param = params->children[i];
         const XL6_AstNode* paramType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
         const char* runtimeType = xl6CgenXValueRuntimeTypeConst(ctx, paramType);
-        if ( xl6CTextEquals(paramType != NULL ? paramType->text : NULL, "error") ) {
+        if ( xl6CgenClassHandleTargetType(ctx, paramType) != NULL ) {
+            if ( (int)i >= requiredCount ) {
+                xl6OutputPrintf(ctx->out,
+                    "    if (__xl6_argc > %u && (__xl6_argv[%u] == 0 || !xrtTypeIsA(xvoTypeDesc(__xl6_argv[%u]), ",
+                    (unsigned)i, (unsigned)i, (unsigned)i);
+            } else {
+                xl6OutputPrintf(ctx->out,
+                    "    if (__xl6_argv[%u] == 0 || !xrtTypeIsA(xvoTypeDesc(__xl6_argv[%u]), ",
+                    (unsigned)i, (unsigned)i);
+            }
+            xl6CgenEmitXrtTypeDescRef(
+                ctx,
+                xl6CgenClassHandleTargetType(ctx, paramType));
+            xl6OutputPuts(")) {\n        xl6_function_fatal(3);\n    }\n", ctx->out);
+        } else if ( xl6CTextEquals(paramType != NULL ? paramType->text : NULL, "error") ) {
             if ( (int)i >= requiredCount ) {
                 xl6OutputPrintf(ctx->out,
                     "    if (__xl6_argc > %u && (xvoType(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_argv[%u]) != xrtTypeHandle())) {\n",

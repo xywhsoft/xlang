@@ -823,17 +823,17 @@ func matchBase(array<string> base, array<string> other) as array<int>
         i += 1
     end
 
-    array<int> match = array[]
+    array<int> mapping = array[]
     int mi = 0
     while mi < m
-        match.push(-1)
+        mapping.push(-1)
         mi += 1
     end
     int bi = m
     int bj = n
     while bi > 0 and bj > 0
         if base[bi - 1] == other[bj - 1] then
-            match[bi - 1] = bj - 1
+            mapping[bi - 1] = bj - 1
             bi -= 1
             bj -= 1
         elseif dp[(bi - 1) * cols + bj] >= dp[bi * cols + (bj - 1)] then
@@ -842,7 +842,7 @@ func matchBase(array<string> base, array<string> other) as array<int>
             bj -= 1
         end
     end
-    return match
+    return mapping
 end
 
 // 比较 a[alo..ahi) 与 b[blo..bhi) 两个切片是否完全相同.

@@ -1,0 +1,48 @@
+import counter
+
+class ShadowValue
+    int x = 42
+end
+
+func readShadow(ShadowValue counter) as int
+    return counter.x
+end
+
+func main(...) as int
+    // 没有局部遮蔽时，counter 是导入命名空间。
+    if counter.counterAdd(10, 32) != 42 then
+        return 1
+    end
+
+    if true then
+        ShadowValue counter = ShadowValue()
+        if counter.x != 42 then
+            return 2
+        end
+    end
+    if counter.counterAdd(20, 22) != 42 then
+        return 3
+    end
+
+    ShadowValue value = ShadowValue()
+    if readShadow(value) != 42 then
+        return 4
+    end
+
+    int total = 0
+    for counter in array<ShadowValue>[ShadowValue()]
+        total += counter.x
+    end
+    if total != 42 then
+        return 5
+    end
+    if counter.counterAdd(40, 2) != 42 then
+        return 6
+    end
+
+    ShadowValue counter = ShadowValue()
+    if counter.x != 42 then
+        return 7
+    end
+    return 0
+end

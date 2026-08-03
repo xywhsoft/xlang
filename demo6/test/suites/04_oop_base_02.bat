@@ -36,9 +36,9 @@ if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing direct dynamic member assignment lowering.
     exit /b 1
 )
-findstr /C:"xl6_record_field_set_borrow(xl6_record_field_get_mutable(__xl6_user_global_nested, \"inner\")," build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"xl6_record_field_set_borrow(xl6_record_field_get_owned(__xl6_user_global_nested, \"inner\", 0)," build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
-    echo cgen_dynamic_member_access.c missing nested dynamic member COW assignment lowering.
+    echo cgen_dynamic_member_access.c missing nested dynamic member reference assignment lowering.
     exit /b 1
 )
 findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue __xl6_nc_" build\test\cgen_dynamic_member_access.c >nul
@@ -107,12 +107,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_safe_member.xl --emit build\test\cgen_safe_member.c
 if errorlevel 1 exit /b 1
-findstr /C:"__xl6_user_global_valuesLength = xl6_xrt_move_to_shared(xvoCreateInt((long long)(xrtTypedArrayCount(__xl6_user_global_values))))" build\test\cgen_safe_member.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_safe_member.c' -Raw; if($t -notmatch '__xl6_user_global_valuesLength = xl6_xrt_move_to_shared\(xl6_nullable_box_[0-9a-f]+\(.*xrtTypedArrayCount\('){exit 1}"
 if errorlevel 1 (
     echo cgen_safe_member.c missing typed array safe member lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_tableLength = xl6_xrt_move_to_shared(xvoCreateInt((long long)(xrtTypedDictCount(__xl6_user_global_table))))" build\test\cgen_safe_member.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_safe_member.c' -Raw; if($t -notmatch '__xl6_user_global_tableLength = xl6_xrt_move_to_shared\(xl6_nullable_box_[0-9a-f]+\(.*xrtTypedDictCount\('){exit 1}"
 if errorlevel 1 (
     echo cgen_safe_member.c missing typed dict safe member lowering.
     exit /b 1
@@ -265,19 +265,19 @@ if errorlevel 1 (
     echo cgen_null_coalesce.c missing static null coalesce fallback assignment.
     exit /b 1
 )
-findstr /C:"long long __xl6_call_arg_" build\test\cgen_null_coalesce.c >nul
+findstr /C:"XL6_Nullable_" build\test\cgen_null_coalesce.c | findstr /C:"__xl6_coalesce_" >nul
 if errorlevel 1 (
-    echo cgen_null_coalesce.c missing static null coalesce call argument temp.
+    echo cgen_null_coalesce.c missing typed nullable call argument slot.
     exit /b 1
 )
-findstr /C:"__xl6_call_arg_" build\test\cgen_null_coalesce.c | findstr /C:"__xl6_nc_" >nul
+findstr /C:"expect_i64(((__xl6_coalesce_" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
-    echo cgen_null_coalesce.c missing static null coalesce call argument branch assignment.
+    echo cgen_null_coalesce.c missing direct static null coalesce call argument.
     exit /b 1
 )
-findstr /C:"expect_i64(__xl6_call_arg_" build\test\cgen_null_coalesce.c >nul
+findstr /C:".hasValue ? __xl6_coalesce_" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
-    echo cgen_null_coalesce.c missing static null coalesce call argument replacement.
+    echo cgen_null_coalesce.c missing static null coalesce value branch.
     exit /b 1
 )
 findstr /C:"__xl6_user_global_fallback = ({ xvalue __xl6_nc_" build\test\cgen_null_coalesce.c >nul
@@ -421,6 +421,16 @@ if errorlevel 1 (
 powershell -NoProfile -Command "$count=(Select-String -Path 'build\test\cgen_native_class_bind_point.c' -SimpleMatch 'xl6_point_take((void**)&(raw))').Count; if ($count -ne 3) { exit 1 }"
 if errorlevel 1 (
     echo cgen_native_class_bind_point.c must transfer each point exactly once.
+    exit /b 1
+)
+powershell -NoProfile -Command "$t=Get-Content 'build\test\cgen_native_class_bind_point.c' -Raw; if($t -notmatch 'xl_fn_consume\(xl6_xrt_bind_type\(__xl6_call_arg_[0-9]+,') { exit 1 }"
+if errorlevel 1 (
+    echo cgen_native_class_bind_point.c missing owned class argument move.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_retain(__xl6_call_arg_" build\test\cgen_native_class_bind_point.c >nul
+if not errorlevel 1 (
+    echo cgen_native_class_bind_point.c retained an owned class argument temporary.
     exit /b 1
 )
 findstr /C:"if (empty != 0)" build\test\cgen_native_class_bind_point.c >nul

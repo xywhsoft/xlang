@@ -1,45 +1,259 @@
-// Source package exports. The compiler imports this source file directly.
+// lz4 的压缩结果和输入统一使用 Buffer，避免二进制数据经过字符串转换。
+extern "xrtGetError" func __lz4_error() as string
+extern "xlz4_version" func __lz4_version() as string
+extern "xlz4_compress" func __lz4_compress(point data, c_size size, c_int acceleration,
+    c_ulonglong maxInput, c_ulonglong maxOutput) as point
+extern "xlz4_compress_str" func __lz4_compress_str(string data, c_size size, c_int acceleration,
+    c_ulonglong maxInput, c_ulonglong maxOutput) as point
+extern "xlz4_decompress" func __lz4_decompress(point data, c_size size,
+    c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as point
+extern "xlz4_compress_file" func __lz4_compress_file(string source, string destination,
+    c_int acceleration, c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput) as bool
+extern "xlz4_decompress_file" func __lz4_decompress_file(string source, string destination,
+    c_bool overwrite, c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio) as bool
 
-extern "xlz4_available" func __xl6_native_lz4_available() as bool
 
-export func available() as bool
-    return __xl6_native_lz4_available()
-end
-extern "xlz4_version" func __xl6_native_lz4_version() as string
 
+// 加速因子常量（LZ4 调优维度：1 为默认压缩率优先，越大越快但压缩率越低）。
+export const int LZ4_MIN_ACCELERATION = 1
+export const int LZ4_MAX_ACCELERATION = 65537
+export const int LZ4_DEFAULT_ACCELERATION = 1
+
+
+
+// 返回内嵌 LZ4 引擎的版本号（例如 "1.9.4"）。
 export func version() as string
-    return __xl6_native_lz4_version()
-end
-extern "xlz4_last_error" func __xl6_native_lz4_last_error() as string
-
-export func last_error() as string
-    return __xl6_native_lz4_last_error()
-end
-extern "xlz4_compress_hex" func __xl6_native_lz4_compress_hex(string text) as string
-
-export func compress_hex(string text) as string
-    return __xl6_native_lz4_compress_hex(text)
+    return __lz4_version()
 end
 
-export func compress(string text) as string
-    return compress_hex(text)
-end
-extern "xlz4_decompress_hex" func __xl6_native_lz4_decompress_hex(string hex_text) as string
-
-export func decompress_hex(string hex_text) as string
-    return __xl6_native_lz4_decompress_hex(hex_text)
+func __lz4_check_acceleration(int acceleration)
+    if acceleration < LZ4_MIN_ACCELERATION or acceleration > LZ4_MAX_ACCELERATION then
+        throw ValueError "lz4 acceleration must be 1..65537"
+    end
 end
 
-export func decompress(string hex_text) as string
-    return decompress_hex(hex_text)
+func __lz4_check_limit(int value, string name)
+    if value <= 0 then
+        throw ValueError name + " must be greater than zero"
+    end
 end
-extern "xlz4_compress_file" func __xl6_native_lz4_compress_file(string input_path, string output_path) as c_int
 
-export func compress_file(string input_path, string output_path) as c_int
-    return __xl6_native_lz4_compress_file(input_path, output_path)
+
+
+export func compress(Buffer data, int acceleration = LZ4_DEFAULT_ACCELERATION,
+    int maxInput = 268435456, int maxOutput = 536870912) as Buffer
+    __lz4_check_acceleration(acceleration)
+    __lz4_check_limit(maxInput, "maxInput")
+    __lz4_check_limit(maxOutput, "maxOutput")
+    point result = __lz4_compress(data.data(), c_size(data.len()), c_int(acceleration),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if result == null then
+        throw CompressionError __lz4_error()
+    end
+    return Buffer(result)
 end
-extern "xlz4_decompress_file" func __xl6_native_lz4_decompress_file(string input_path, string output_path) as c_int
 
-export func decompress_file(string input_path, string output_path) as c_int
-    return __xl6_native_lz4_decompress_file(input_path, output_path)
+export func compress(string text, int acceleration = LZ4_DEFAULT_ACCELERATION,
+    int maxInput = 268435456, int maxOutput = 536870912) as Buffer
+    __lz4_check_acceleration(acceleration)
+    __lz4_check_limit(maxInput, "maxInput")
+    __lz4_check_limit(maxOutput, "maxOutput")
+    point result = __lz4_compress_str(text, c_size(string.len(text)), c_int(acceleration),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if result == null then
+        throw CompressionError __lz4_error()
+    end
+    return Buffer(result)
+end
+
+export func decompress(Buffer data, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxRatio = 1000) as Buffer
+    __lz4_check_limit(maxInput, "maxInput")
+    __lz4_check_limit(maxOutput, "maxOutput")
+    __lz4_check_limit(maxRatio, "maxRatio")
+    point result = __lz4_decompress(data.data(), c_size(data.len()),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
+    if result == null then
+        throw CompressionError __lz4_error()
+    end
+    return Buffer(result)
+end
+
+export func decompressText(Buffer data, int maxInput = 268435456,
+    int maxOutput = 536870912, int maxRatio = 1000) as string
+    return decompress(data, maxInput, maxOutput, maxRatio).text()
+end
+
+export func compressFile(string source, string destination,
+    int acceleration = LZ4_DEFAULT_ACCELERATION, bool overwrite = true,
+    int maxInput = 268435456, int maxOutput = 536870912)
+    __lz4_check_acceleration(acceleration)
+    __lz4_check_limit(maxInput, "maxInput")
+    __lz4_check_limit(maxOutput, "maxOutput")
+    if not __lz4_compress_file(source, destination, c_int(acceleration), c_bool(overwrite),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput)) then
+        throw CompressionError __lz4_error()
+    end
+end
+
+export func decompressFile(string source, string destination, bool overwrite = true,
+    int maxInput = 268435456, int maxOutput = 536870912, int maxRatio = 1000)
+    __lz4_check_limit(maxInput, "maxInput")
+    __lz4_check_limit(maxOutput, "maxOutput")
+    __lz4_check_limit(maxRatio, "maxRatio")
+    if not __lz4_decompress_file(source, destination, c_bool(overwrite),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio)) then
+        throw CompressionError __lz4_error()
+    end
+end
+
+
+
+// 增量流式压缩器：update() 喂入数据，drain() 随时取走已产出的压缩字节，
+// finish() 封存流。配合 inputBytes/outputBytes 可自行驱动进度回显。
+export class Lz4Compressor
+    native point handle
+    extern "xlz4_compressor_create" create(c_int acceleration, c_ulonglong maxInput, c_ulonglong maxOutput)
+    extern "xlz4_compressor_destroy" destroy()
+    extern "xlz4_compressor_update" func updateNative(point data, c_size size) as bool
+    extern "xlz4_compressor_update_str" func updateStrNative(string data, c_size size) as bool
+    extern "xlz4_compressor_finish" func finishNative() as bool
+    extern "xlz4_compressor_drain" func drainNative() as point
+    extern "xlz4_compressor_input_bytes" func inputBytesNative() as int
+    extern "xlz4_compressor_output_bytes" func outputBytesNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    // 已喂入的原始字节数（进度回显用）。
+    get inputBytes() as int
+        return self.inputBytesNative()
+    end
+
+    // 已产出的压缩字节数（进度回显用）。
+    get outputBytes() as int
+        return self.outputBytesNative()
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw CompressionError __lz4_error()
+        end
+    end
+
+    func update(string text)
+        if not self.updateStrNative(text, c_size(string.len(text))) then
+            throw CompressionError __lz4_error()
+        end
+    end
+
+    // 取走当前已产出的压缩字节并清空内部输出缓冲；无数据时返回空 Buffer。
+    func drain() as Buffer
+        point result = self.drainNative()
+        if result == null then
+            throw CompressionError __lz4_error()
+        end
+        return Buffer(result)
+    end
+
+    // 封存压缩流（写入成员结束标记）。返回后 drain() 可取走最后的压缩字节。
+    func finish() as bool
+        if not self.finishNative() then
+            throw CompressionError __lz4_error()
+        end
+        return true
+    end
+end
+
+
+
+// 增量流式解压器：update() 喂入压缩字节，drain() 随时取走已解压数据，
+// finished 反映当前成员是否结束，members 统计已完整解出的成员数（支持串联多成员流）。
+export class Lz4Decompressor
+    native point handle
+    extern "xlz4_decompressor_create" create(c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio)
+    extern "xlz4_decompressor_destroy" destroy()
+    extern "xlz4_decompressor_update" func updateNative(point data, c_size size) as bool
+    extern "xlz4_decompressor_finish" func finishNative() as bool
+    extern "xlz4_decompressor_drain" func drainNative() as point
+    extern "xlz4_decompressor_input_bytes" func inputBytesNative() as int
+    extern "xlz4_decompressor_output_bytes" func outputBytesNative() as int
+    extern "xlz4_decompressor_finished" func finishedNative() as bool
+    extern "xlz4_decompressor_members" func membersNative() as int
+
+    get valid() as bool
+        return self.handle != null
+    end
+
+    // 已喂入的压缩字节数（进度回显用）。
+    get inputBytes() as int
+        return self.inputBytesNative()
+    end
+
+    // 已产出的解压字节数（进度回显用）。
+    get outputBytes() as int
+        return self.outputBytesNative()
+    end
+
+    // 当前成员是否已完整解出（流结束时为 true）。
+    get finished() as bool
+        return self.finishedNative()
+    end
+
+    // 已完整解出的成员数；大于 1 表示输入是串联的多成员 lz4 流。
+    get members() as int
+        return self.membersNative()
+    end
+
+    func update(Buffer data)
+        if not self.updateNative(data.data(), c_size(data.len())) then
+            throw CompressionError __lz4_error()
+        end
+    end
+
+    // 取走当前已解压的数据并清空内部输出缓冲；无数据时返回空 Buffer。
+    func drain() as Buffer
+        point result = self.drainNative()
+        if result == null then
+            throw CompressionError __lz4_error()
+        end
+        return Buffer(result)
+    end
+
+    // 校验流已完整结束；流被截断或为空时抛出 CompressionError。
+    func finish() as bool
+        if not self.finishNative() then
+            throw CompressionError __lz4_error()
+        end
+        return true
+    end
+end
+
+
+
+export func compressor(int acceleration = LZ4_DEFAULT_ACCELERATION,
+    int maxInput = 268435456, int maxOutput = 536870912) as Lz4Compressor
+    __lz4_check_acceleration(acceleration)
+    __lz4_check_limit(maxInput, "maxInput")
+    __lz4_check_limit(maxOutput, "maxOutput")
+    Lz4Compressor result = Lz4Compressor(c_int(acceleration),
+        c_ulonglong(maxInput), c_ulonglong(maxOutput))
+    if not result.valid then
+        throw CompressionError __lz4_error()
+    end
+    return result
+end
+
+export func decompressor(int maxInput = 268435456, int maxOutput = 536870912,
+    int maxRatio = 1000) as Lz4Decompressor
+    __lz4_check_limit(maxInput, "maxInput")
+    __lz4_check_limit(maxOutput, "maxOutput")
+    __lz4_check_limit(maxRatio, "maxRatio")
+    Lz4Decompressor result = Lz4Decompressor(c_ulonglong(maxInput),
+        c_ulonglong(maxOutput), c_uint(maxRatio))
+    if not result.valid then
+        throw CompressionError __lz4_error()
+    end
+    return result
 end

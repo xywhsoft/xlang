@@ -1,0 +1,5 @@
+func main(...) as int
+    array<string> lines = string.splitLines("alpha\nbeta")
+    assert lines.length == 2
+    return 0
+end

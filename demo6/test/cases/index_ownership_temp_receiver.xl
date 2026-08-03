@@ -1,0 +1,14 @@
+// 临时容器索引必须同时释放接收者，并保留返回元素。
+func makeArray() as var
+    return [101, 102]
+end
+
+func makeDict() as var
+    return {"temp": 44}
+end
+
+func main(...) as int
+    int left = int(makeArray()?[0])
+    int right = int(makeDict()?["temp"])
+    return left + right == 145 ? 0 : 1
+end

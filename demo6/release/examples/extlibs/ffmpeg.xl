@@ -6,7 +6,7 @@ func main(...) as int
     println("Codec 0 = " + ffmpeg.codec(0))
     println("Container 0 = " + ffmpeg.container(0))
     println("Pixel fmt 0 = " + ffmpeg.pixelFormat(0))
-    println("Bitrate 1MB/10s = " + string.int(ffmpeg.calcBitrate(1000000, 10)) + " kbps")
+    println("Bitrate 1MB/10s = " + string(ffmpeg.calcBitrate(1000000, 10)) + " kbps")
 
     println("ffmpeg example: PASS")
     return 0

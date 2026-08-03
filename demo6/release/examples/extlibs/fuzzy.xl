@@ -5,7 +5,7 @@ import fuzzy
 func main(...) as int
     println("levenshtein(kitten, sitting):", fuzzy.levenshtein("kitten", "sitting"))
     println("ratio(hello, hallo):", fuzzy.ratio("hello", "hallo"))
-    println("match(fb, foobar):", fuzzy.match("fb", "foobar"))
+    println("score(fb, foobar):", fuzzy.score("fb", "foobar"))
     println("isMatch(xyz, foobar):", fuzzy.isMatch("xyz", "foobar"))
 
     string candidates = "src/main.c\nsrc/utils.c\nlib/parser.c\nlib/lexer.c"

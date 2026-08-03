@@ -61,16 +61,16 @@ func findFrom(string text, string token, int from) as int
     int last = n - tn
     int i = from
     while i <= last
-        bool match = true
+        bool matched = true
         int j = 0
         while j < tn
             if string.charAt(text, i + j) != string.charAt(token, j) then
-                match = false
+                matched = false
                 break
             end
             j = j + 1
         end
-        if match then
+        if matched then
             return i
         end
         i = i + 1

@@ -1,0 +1,8 @@
+// 字典可变参数的生成和销毁不应污染索引容器的引用计数。
+func options(string path, ***) as int
+    return int(arg["retry"]) + int(arg["mode"])
+end
+
+func main(...) as int
+    return options("demo.txt", retry = 3, mode = 4) == 7 ? 0 : 1
+end

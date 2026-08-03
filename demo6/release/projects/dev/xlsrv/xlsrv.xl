@@ -1450,7 +1450,7 @@ func getReferences(string uri, int line, int character, bool includeDecl) as arr
         if d is null then
             continue
         end
-        searchReferencesInText(docUri, d.text, word, includeDecl, result)
+        searchReferencesInText(docUri, d.text as string, word, includeDecl, result)
     end
 
     // 如果没有打开文档，至少搜当前文件
@@ -2390,7 +2390,7 @@ func outputAnalysisText(string filePath)
         println("  (no diagnostics)")
     else
         for d in diags
-            string sev = sevName(d.severity)
+            string sev = sevName(d.severity as int)
             string message = string(d.message)
             println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + message)
         end
@@ -2552,7 +2552,7 @@ func cmdCheck(string filePath) as int
     println("[Diagnostics for " + filePath + "]")
     int errors = 0
     for d in diags
-        string sev = sevName(d.severity)
+        string sev = sevName(d.severity as int)
         string source = string(d.source)
         string message = string(d.message)
         println("  " + string.padRight(sev, 8) + " " + string(d.line) + ":" + string(d.column) + "  " + source + ": " + message)
@@ -2836,7 +2836,7 @@ func testDefinition()
     if defs.length > 0 then
         var loc = defs[0]
         // add 定义在第 3 行
-        expectEq(loc.startLine, 2, "'add' definition at line 3 (0-based 2)")
+        expectEq(loc.startLine as int, 2, "'add' definition at line 3 (0-based 2)")
     end
 
     // 查找 Point 的定义 (class Point: Point 起始列 6)

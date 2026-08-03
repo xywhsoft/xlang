@@ -1,0 +1,32 @@
+class Token
+    int value = 0
+end
+
+func pass<T>(T value) as T
+    return value
+end
+
+func pair<T>(T value) as (bool, T)
+    return true, value
+end
+
+func main(...) as int
+    Token source = Token()
+    source.value = 42
+
+    // 推断和显式实例化都必须为托管参数创建独立共享引用。
+    Token inferred = pass(source)
+    Token explicit = pass::<Token>(source)
+
+    bool ok = false
+    Token returned = Token()
+    ok, returned = pair(source)
+
+    if not ok or inferred.value != 42 or explicit.value != 42 or returned.value != 42
+        return 1
+    end
+    if source.value != 42
+        return 2
+    end
+    return 0
+end

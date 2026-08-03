@@ -17,16 +17,16 @@ require("basic",
     regex.fullMatch("a\nb", "a.b", regex.dotAll))
 
 Regex compiled = regex.compile("[0-9]+")
-RegexMatch match = compiled.match(text)
+RegexMatch found = compiled.find(text)
 require("match",
-    match.ok and
-    match.byteStart == 5 and
-    match.byteEnd == 9 and
-    match.start == 5 and
-    match.end == 9 and
-    string(match.text) == "2026")
+    found.ok and
+    found.byteStart == 5 and
+    found.byteEnd == 9 and
+    found.start == 5 and
+    found.end == 9 and
+    string(found.text) == "2026")
 
-RegexMatch shifted = regex.match("a1 b2", "[0-9]+", 0, 2)
+RegexMatch shifted = regex.findMatch("a1 b2", "[0-9]+", 0, 2)
 RegexMatch missing = compiled.find("missing")
 var missingText = missing.text
 require("lazy",
@@ -51,7 +51,7 @@ require("set",
 RegexBuilder builder = regex.builder("(?<word>[a-z]+)-([0-9]+)?")
 builder.addFlags(regex.multiline)
 Regex namedRegex = builder.build()
-RegexMatch namedMatch = namedRegex.match("你abc-42好")
+RegexMatch namedMatch = namedRegex.find("你abc-42好")
 array groups = namedMatch.groups()
 dict namedGroups = namedMatch.namedGroups()
 require("capture",
@@ -64,7 +64,7 @@ require("capture",
     groups.length == 3 and
     string(namedGroups["word"]) == "abc")
 
-RegexMatch optional = namedRegex.match("abc-")
+RegexMatch optional = namedRegex.find("abc-")
 Regex cloned = namedRegex.clone()
 RegexSet clonedSet = regexSet.clone()
 require("diagnostic",
@@ -75,5 +75,5 @@ require("diagnostic",
     regex.errorBytePos("[") >= 0 and
     not optional.groupMatched(2) and
     type(optional.group(2)) == null and
-    string(cloned.match("copy-7").group("word")) == "copy" and
+    string(cloned.find("copy-7").group("word")) == "copy" and
     clonedSet.patternCount == 2)

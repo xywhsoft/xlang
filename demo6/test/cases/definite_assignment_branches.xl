@@ -1,0 +1,18 @@
+func write(out int result)
+    result = 41
+end
+
+func main(...) as int
+    int value
+    if true then
+        value = 31
+    else
+        value = 37
+    end
+    assert(value == 31)
+
+    int outValue
+    write(out outValue)
+    assert(outValue == 41)
+    return 0
+end

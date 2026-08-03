@@ -1,0 +1,9 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+Regex compiled = regex.compile("[0-9]+")
+RegexMatch found = compiled.find("id=2026")
+expect(found.ok, 1)
+expect(found.start, 3)
+expect(found.end, 7)
+expectStr(string(found.text), "2026")

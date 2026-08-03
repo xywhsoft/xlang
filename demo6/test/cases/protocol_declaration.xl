@@ -1,0 +1,16 @@
+protocol Writer
+    func write(string text) as int
+    func write(int codepoint) as int
+
+    get closed() as bool
+    let closed(bool value)
+end
+
+protocol Mapper<T>
+    func map<U>(T value, func(T) as U transform) as U
+end
+
+func main(...) as int
+    println("protocol declaration ok")
+    return 0
+end

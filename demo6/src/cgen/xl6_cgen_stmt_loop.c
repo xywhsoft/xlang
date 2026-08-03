@@ -88,6 +88,7 @@ static void xl6CgenRegisterLoopTargetType(XL6_CgenContext* ctx, const XL6_AstNod
 static void xl6CgenTypedLoopValueBegin(XL6_CgenContext* ctx, const XL6_AstNode* itemType)
 {
     const XL6_AstNode* concreteType;
+    char copyName[96];
 
     concreteType = xl6CgenTypedContainerConcreteType(ctx, itemType);
     if ( concreteType != NULL ) {
@@ -100,6 +101,18 @@ static void xl6CgenTypedLoopValueBegin(XL6_CgenContext* ctx, const XL6_AstNode* 
         } else {
             xl6OutputPuts("xrtTypedDictRetain(*(xtdict*)", ctx->out);
         }
+        return;
+    }
+    if ( xl6CgenIsNullableType(itemType) ) {
+        xl6CgenNullableOwnedCopyHelperName(
+            copyName,
+            sizeof(copyName),
+            itemType);
+        xl6OutputPrintf(
+            ctx->out,
+            "%s(*(%s*)",
+            copyName,
+            xl6CgenValueStorageCType(ctx, itemType));
         return;
     }
     if ( xl6CgenTypeContainsFunctionType(itemType) ) {
@@ -174,7 +187,14 @@ static const XL6_AstNode* xl6CgenForTargetStorageType(
         return NULL;
     }
     target = targets->children[targetIndex];
-    inferredType = xl6HirExprType(target);
+    {
+        XL6_AstNode* ownedInferredType = xl6CgenCloneExprTypeForInference(ctx, target);
+
+        if ( ownedInferredType != NULL ) {
+            xl6CgenOwnTypeNode(ctx, ownedInferredType);
+        }
+        inferredType = ownedInferredType;
+    }
     targetCount = targets->childCount;
 
     if ( xl6CgenIsRangeCall(iterable) ) {
@@ -189,7 +209,12 @@ static const XL6_AstNode* xl6CgenForTargetStorageType(
     }
     concreteType = xl6CgenResolveAliasType(ctx, iterableType);
     typeName = concreteType != NULL ? concreteType->text : NULL;
+    /*
+     * 匿名函数预扫描发生在局部变量表建立之前，不能只依赖 cgen 跟踪状态。
+     * 完整的 array<T>/list<T>/set<T>/dict<T> 类型已经足以确定底层采用 typed storage。
+     */
     usesTypedStorage =
+        xl6CgenIsTypedContainerType(ctx, iterableType) ||
         xl6CgenExprUsesTypedContainerStorage(ctx, iterable) ||
         xl6CgenExprIsTypedContainerReturnCall(ctx, iterable);
 
@@ -269,7 +294,14 @@ static void xl6CgenFinishLoopIteration(XL6_CgenContext* ctx, size_t cleanupMark,
 static void xl6CgenForLoopBody(XL6_CgenContext* ctx, const XL6_AstNode* node, size_t breakCleanupMark, size_t continueCleanupMark, size_t varMark, int breakId, int continueId)
 {
     xl6CgenBeginTempScope(ctx, node);
-    xl6CgenPushLoopTarget(ctx, breakCleanupMark, continueCleanupMark, breakId, continueId);
+    xl6CgenPushLoopTarget(
+        ctx,
+        breakCleanupMark,
+        continueCleanupMark,
+        xl6CgenHirRegion(ctx, node),
+        breakId,
+        continueId
+    );
     if ( node->childCount > 2 ) {
         xl6CgenBlock(ctx, node->children[2]);
     }

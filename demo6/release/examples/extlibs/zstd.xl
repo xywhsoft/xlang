@@ -1,37 +1,78 @@
 import zstd
 
-assert zstd.available(), "zstd available failed"
 
-string sample = "zstd extension round trip text"
-string srcPath = "examples_out/extlibs/zstd_source.txt"
-string packedPath = "examples_out/extlibs/zstd_source.zst"
-string packedLevelPath = "examples_out/extlibs/zstd_source_level.zst"
-string outPath = "examples_out/extlibs/zstd_out.txt"
 
-dir.createAll("examples_out/extlibs")
-file.writeText(srcPath, sample)
-file.delete(packedPath)
-file.delete(packedLevelPath)
-file.delete(outPath)
+func main(...) as int
+    // ─── 1. 一次性压缩 / 解压（Buffer 二进制安全）───
+    Buffer source = Buffer()
+    source.append("xlang zstd ")
+    source.appendByte(0)
+    source.appendByte(255)
 
-assert string.len(zstd.version()) > 0, "zstd version missing"
-string packedHex = zstd.compress_hex(sample)
-string packedLevelHex = zstd.compress_hex_level(sample, 1)
-string packedAliasHex = zstd.compress(sample)
-string packedLevelAliasHex = zstd.compress(sample, 1)
-assert string.len(packedHex) > 0, "zstd compress_hex failed"
-assert string.len(packedLevelHex) > 0, "zstd compress_hex_level failed"
-assert string.len(packedAliasHex) > 0, "zstd compress alias failed"
-assert string.len(packedLevelAliasHex) > 0, "zstd compress level alias failed"
-assert zstd.decompress_hex(packedHex) == sample, "zstd decompress_hex mismatch"
-assert zstd.decompress_hex(packedLevelHex) == sample, "zstd decompress_hex_level mismatch"
-assert zstd.decompress(packedAliasHex) == sample, "zstd decompress alias mismatch"
-assert zstd.decompress(packedLevelAliasHex) == sample, "zstd decompress level alias mismatch"
-assert zstd.compress_file(srcPath, packedPath) != 0, "zstd compress_file failed"
-assert zstd.compress_file_level(srcPath, packedLevelPath, 1) != 0, "zstd compress_file_level failed"
-assert zstd.compress_file(srcPath, packedLevelPath, 1) != 0, "zstd compress_file level alias failed"
-assert zstd.decompress_file(packedLevelPath, outPath) != 0, "zstd decompress_file failed"
-assert file.readText(outPath) == sample, "zstd file round trip mismatch"
-assert string.len(zstd.last_error()) >= 0, "zstd last_error should return a string"
+    Buffer packed = zstd.compress(source, zstd.ZSTD_MAX_LEVEL)
+    Buffer plain = zstd.decompress(packed)
+    assert plain == source, "zstd Buffer round trip failed"
+    println("一次性: ", source.len(), " 字节 -> ", packed.len(), " 字节")
 
-println("zstd extlib ok")
+    // 直接压缩字符串（内部自动转 Buffer）。
+    Buffer textPacked = zstd.compress("hello zstd")
+    assert zstd.decompressText(textPacked) == "hello zstd"
+    println("引擎版本: ", zstd.version())
+
+    // ─── 2. 增量流式压缩：update -> drain -> finish ───
+    // drain() 随时取走已产出的压缩字节，适合边喂数据边落盘/发送。
+    auto encoder = zstd.compressor(6)
+    Buffer streamPacked = Buffer()
+    encoder.update("hello ")
+    streamPacked.append(encoder.drain())
+    encoder.update("stream")
+    streamPacked.append(encoder.drain())
+    encoder.finish()                 // 封存流（写入帧尾部校验）
+    streamPacked.append(encoder.drain())
+    println("流式压缩: 喂入 ", encoder.inputBytes, " 字节, 产出 ",
+        encoder.outputBytes, " 字节")
+
+    // ─── 3. 增量流式解压 + 进度回显 + 多帧统计 ───
+    auto decoder = zstd.decompressor()
+    Buffer restored = Buffer()
+    decoder.update(streamPacked)
+    restored.append(decoder.drain()) // 取走已解压数据
+    println("解压进度: 已喂入 ", decoder.inputBytes, " / 已产出 ",
+        decoder.outputBytes, " 字节, 完成=", decoder.finished)
+    decoder.finish()                 // 校验流完整性
+    restored.append(decoder.drain())
+    assert restored.text() == "hello stream", "zstd incremental round trip failed"
+    println("帧数: ", decoder.members) // 1；>1 表示串联多帧流
+
+    // ─── 4. 压缩级别调优（-131072..22，负数更快、正数压缩率更高）───
+    auto tuned = zstd.compressor(zstd.ZSTD_MAX_LEVEL)
+    tuned.update("tune me")
+    tuned.finish()
+    assert zstd.decompress(tuned.drain()).text() == "tune me"
+    println("最高级别 L22 流式往返: OK")
+
+    // ─── 5. 损坏数据必然抛 CompressionError（内容校验和生效）───
+    bool rejected = false
+    int mid = streamPacked.len() / 2
+    streamPacked[mid] = streamPacked[mid] ^ 255
+    try
+        zstd.decompress(streamPacked)
+    catch CompressionError e
+        rejected = true
+    end
+    assert rejected, "corrupt zstd must raise CompressionError"
+    println("损坏检出: OK")
+
+    // ─── 6. 文件便捷接口（XRT reader/writer，临时文件+原子重命名）───
+    dir.createAll("tmp")
+    file.writeBytes("tmp/zstd_example_source.bin", source)
+    zstd.compressFile("tmp/zstd_example_source.bin", "tmp/zstd_example.zst")
+    zstd.decompressFile("tmp/zstd_example.zst", "tmp/zstd_example_plain.bin")
+    assert file.readBytes("tmp/zstd_example_plain.bin") == source
+    file.delete("tmp/zstd_example_source.bin")
+    file.delete("tmp/zstd_example.zst")
+    file.delete("tmp/zstd_example_plain.bin")
+
+    println("zstd example: PASS")
+    return 0
+end

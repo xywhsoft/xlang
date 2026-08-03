@@ -573,30 +573,16 @@ func runAll(int jobs)
         xtestWorker()
         return
     end
-    thread t1
-    thread t2
-    thread t3
-    thread t4
-    thread t5
-    thread t6
-    thread t7
-    thread t8
-    if nj >= 1 then t1 = thread(xtestWorker) end
-    if nj >= 2 then t2 = thread(xtestWorker) end
-    if nj >= 3 then t3 = thread(xtestWorker) end
-    if nj >= 4 then t4 = thread(xtestWorker) end
-    if nj >= 5 then t5 = thread(xtestWorker) end
-    if nj >= 6 then t6 = thread(xtestWorker) end
-    if nj >= 7 then t7 = thread(xtestWorker) end
-    if nj >= 8 then t8 = thread(xtestWorker) end
-    if nj >= 1 then t1.wait() end
-    if nj >= 2 then t2.wait() end
-    if nj >= 3 then t3.wait() end
-    if nj >= 4 then t4.wait() end
-    if nj >= 5 then t5.wait() end
-    if nj >= 6 then t6.wait() end
-    if nj >= 7 then t7.wait() end
-    if nj >= 8 then t8.wait() end
+    func() as int workerProc = xtestWorker
+    array<future<int>> workers = array[]
+    int i = 0
+    while i < nj
+        workers.append(task.spawn(workerProc))
+        i += 1
+    end
+    for worker in workers
+        worker.wait()
+    end
 end
 
 // ===== 排序 =====

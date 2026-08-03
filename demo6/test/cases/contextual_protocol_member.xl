@@ -1,0 +1,7 @@
+var options = {"protocol": "chat"}
+
+assert(options.protocol == "chat")
+options.protocol = "h2"
+assert(options.protocol == "h2")
+
+println("contextual protocol member ok")

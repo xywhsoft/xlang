@@ -241,7 +241,7 @@ func regexReplaceFirst(string text, string pattern, string replacement, bool ign
     if ignoreCase then
         flags = regex.ignoreCase
     end
-    RegexMatch m = regex.match(text, pattern, flags, 0)
+    RegexMatch m = regex.findMatch(text, pattern, flags, 0)
     if not m.ok then
         return text
     end
@@ -265,7 +265,7 @@ func regexReplaceAll(string text, string pattern, string replacement, bool ignor
         if pos > textLen then
             break
         end
-        RegexMatch m = regex.match(text, pattern, flags, pos)
+        RegexMatch m = regex.findMatch(text, pattern, flags, pos)
         if not m.ok then
             result = result + string.mid(text, pos)
             done = true

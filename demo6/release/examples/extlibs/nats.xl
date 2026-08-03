@@ -8,8 +8,8 @@ func main(...) as int
     println("Op 6 = " + nats.opName(6))
 
     // Subject matching
-    println("foo.* vs foo.bar = " + string.format("{}", nats.subjectMatch("foo.*", "foo.bar")))
-    println("foo.> vs foo.a.b = " + string.format("{}", nats.subjectMatch("foo.>", "foo.a.b")))
+    println("foo.* vs foo.bar = " + string(nats.subjectMatch("foo.*", "foo.bar")))
+    println("foo.> vs foo.a.b = " + string(nats.subjectMatch("foo.>", "foo.a.b")))
 
     // JetStream
     println("Storage 0 = " + nats.storageType(0))
