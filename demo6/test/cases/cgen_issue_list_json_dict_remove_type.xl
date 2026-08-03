@@ -10,4 +10,4 @@ assert table.length == 1, "dict.remove should shrink table"
 assert json.stringify(table) == "{\"1\":{\"x\":1}}", "dict.remove should remove the key from json output"
 
 int64 value = 100
-assert string(type(value)) == "int64", "string(type(value)) should use type name"
+assert string(type(value)) == "int", "int64 should use the canonical int type name"

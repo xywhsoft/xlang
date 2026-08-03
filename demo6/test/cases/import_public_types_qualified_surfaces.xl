@@ -1,0 +1,43 @@
+import module_types
+
+class LocalPoint extends module_types.Point
+    create(int x, int y)
+        base(x, y)
+    end
+end
+
+func echoPoint(module_types.Point point) as module_types.Point
+    return point
+end
+
+func keepPoint<T is module_types.Point>(T point) as T
+    return point
+end
+
+func pair() as (module_types.Point, module_types.Count)
+    return module_types.Point(21, 21), 42
+end
+
+func main(...) as int
+    LocalPoint local = keepPoint::<LocalPoint>(LocalPoint(20, 22))
+    module_types.Point basePoint = echoPoint(local)
+
+    array<module_types.Box<int>> boxes = []
+    boxes.push(module_types.Box::<int>(basePoint.sum()))
+
+    func(module_types.Point) as int reader = func(module_types.Point point) as int
+        return point.sum()
+    end
+
+    module_types.Point pairPoint
+    module_types.Count pairCount
+    pairPoint, pairCount = pair()
+
+    if boxes[0].get() != 42 or reader(basePoint) != 42 then
+        return 1
+    end
+    if pairPoint.sum() != 42 or pairCount != 42 then
+        return 1
+    end
+    return 0
+end

@@ -1,8 +1,18 @@
 #include "release/include/xl.h"
 
 #include <stdio.h>
+#include <windows.h>
 
 typedef long long (*XL_TestValueProc)(void);
+
+static DWORD WINAPI testWatchdog(LPVOID ignored)
+{
+    (void)ignored;
+    Sleep(30000u);
+    fputs("xl.dll module dependency lifetime timed out\n", stderr);
+    ExitProcess(124u);
+    return 0;
+}
 
 int main(void)
 {
@@ -10,11 +20,18 @@ int main(void)
     XL_Context* ctx;
     XL_Module* module;
     XL_TestValueProc valueProc;
+    HANDLE watchdog;
     const char* source =
         "extern long long xl6_dll_loadlib_value(void);\n"
         "long long module_dependency_value(void) {\n"
         "    return xl6_dll_loadlib_value();\n"
         "}\n";
+
+    watchdog = CreateThread(NULL, 0, testWatchdog, NULL, 0, NULL);
+    if ( watchdog == NULL ) {
+        fprintf(stderr, "cannot create module lifetime watchdog\n");
+        return 10;
+    }
 
     options.workDir = ".";
     ctx = xlCreateContext(&options);
@@ -50,6 +67,7 @@ int main(void)
         return 5;
     }
     xlDestroyModule(module);
+    CloseHandle(watchdog);
     printf("xl.dll module dependency lifetime ok\n");
     return 0;
 }

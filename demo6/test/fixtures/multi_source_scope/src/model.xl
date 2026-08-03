@@ -1,0 +1,16 @@
+class HiddenValue
+    int value
+
+    create(int input)
+        self.value = input
+    end
+end
+
+export class PublicBox
+    int value
+
+    create(int input)
+        // normalizeValue 定义在同一包的另一个源文件中。
+        self.value = normalizeValue(input)
+    end
+end

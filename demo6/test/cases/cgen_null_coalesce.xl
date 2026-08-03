@@ -4,6 +4,10 @@ extern "nc_probe_next" func nextProbeInt() as int
 extern "nc_probe_next_var" func nextProbe() as var
 extern "nc_probe_count" func probeCount() as int
 
+func nextNullableProbe() as int?
+    return nextProbeInt()
+end
+
 var empty
 var fallback = empty ?? 9
 var literal = null ?? 7
@@ -20,12 +24,12 @@ expect(int(probed), 33)
 expect(probeCount(), 1)
 
 resetProbe()
-auto staticProbed = nextProbeInt() ?? 44
+auto staticProbed = nextNullableProbe() ?? 44
 expect(staticProbed, 33)
 expect(probeCount(), 1)
 
 resetProbe()
-expect(nextProbeInt() ?? 44, 33)
+expect(nextNullableProbe() ?? 44, 33)
 expect(probeCount(), 1)
 
 expect(int(fallback), 9)

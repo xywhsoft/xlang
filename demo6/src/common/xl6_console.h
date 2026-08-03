@@ -9,6 +9,8 @@ typedef enum XL6_ConsoleStream {
     XL6_CONSOLE_STDERR = 2
 } XL6_ConsoleStream;
 
+void xl6ConsoleSessionBegin(void);
+void xl6ConsoleSessionEnd(void);
 int xl6ConsoleWrite(XL6_ConsoleStream stream, const char* text, size_t size);
 int xl6ConsolePuts(XL6_ConsoleStream stream, const char* text);
 int xl6ConsoleVPrintf(XL6_ConsoleStream stream, const char* format, va_list args);

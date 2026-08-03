@@ -1,0 +1,27 @@
+class DynamicBag
+    derive value
+
+    array<var> values = []
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectText(string actual, string expected)
+
+DynamicBag source = DynamicBag()
+source.values.append(7)
+source.values.append("two")
+source.values.append(true)
+
+string jsonText = json.stringify(source)
+DynamicBag fromJson = json.parse::<DynamicBag>(jsonText)
+expect(fromJson.values.length, 3)
+expect(int(fromJson.values[0]), 7)
+expectText(string(fromJson.values[1]), "two")
+assert bool(fromJson.values[2]), "JSON array<var> bool item should survive"
+
+string xsonText = xson.stringify(source)
+DynamicBag fromXson = xson.parse::<DynamicBag>(xsonText)
+expect(fromXson.values.length, 3)
+expect(int(fromXson.values[0]), 7)
+expectText(string(fromXson.values[1]), "two")
+assert bool(fromXson.values[2]), "XSON array<var> bool item should survive"

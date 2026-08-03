@@ -25,7 +25,10 @@ static int xl6CgenBuildRootTypeIndex(XL6_CgenContext* ctx)
     for ( i = 0; i < ctx->root->childCount; ++i ) {
         XL6_AstNode* node = ctx->root->children[i];
         if ( node != NULL && node->text != NULL &&
-             (node->kind == XL6_AST_CLASS || node->kind == XL6_AST_UNION) ) {
+             (node->kind == XL6_AST_CLASS ||
+              node->kind == XL6_AST_UNION ||
+              node->kind == XL6_AST_PROTOCOL ||
+              node->kind == XL6_AST_ENUM) ) {
             typeCount += 1;
         }
     }
@@ -47,7 +50,10 @@ static int xl6CgenBuildRootTypeIndex(XL6_CgenContext* ctx)
         size_t slot;
 
         if ( node == NULL || node->text == NULL ||
-             (node->kind != XL6_AST_CLASS && node->kind != XL6_AST_UNION) ) {
+             (node->kind != XL6_AST_CLASS &&
+              node->kind != XL6_AST_UNION &&
+              node->kind != XL6_AST_PROTOCOL &&
+              node->kind != XL6_AST_ENUM) ) {
             continue;
         }
         slot = (size_t)(xl6CgenRootTypeHash(node->text) & (capacity - 1));
@@ -58,8 +64,12 @@ static int xl6CgenBuildRootTypeIndex(XL6_CgenContext* ctx)
         ctx->rootTypeSlots[slot].name = node->text;
         if ( node->kind == XL6_AST_CLASS ) {
             ctx->rootTypeSlots[slot].classNode = node;
-        } else {
+        } else if ( node->kind == XL6_AST_UNION ) {
             ctx->rootTypeSlots[slot].unionNode = node;
+        } else if ( node->kind == XL6_AST_PROTOCOL ) {
+            ctx->rootTypeSlots[slot].protocolNode = node;
+        } else {
+            ctx->rootTypeSlots[slot].enumNode = node;
         }
     }
     return 1;
@@ -133,6 +143,55 @@ static XL6_AstNode* xl6CgenFindUnion(XL6_CgenContext* ctx, const char* name)
 
     slot = xl6CgenFindRootTypeSlot(ctx, name);
     return slot != NULL ? slot->unionNode : NULL;
+}
+
+static XL6_AstNode* xl6CgenFindProtocol(XL6_CgenContext* ctx, const char* name)
+{
+    XL6_CgenRootTypeSlot* slot;
+
+    slot = xl6CgenFindRootTypeSlot(ctx, name);
+    return slot != NULL ? slot->protocolNode : NULL;
+}
+
+static XL6_AstNode* xl6CgenFindEnum(XL6_CgenContext* ctx, const char* name)
+{
+    XL6_CgenRootTypeSlot* slot;
+
+    slot = xl6CgenFindRootTypeSlot(ctx, name);
+    return slot != NULL ? slot->enumNode : NULL;
+}
+
+static int xl6CgenIsNumericEnumType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    XL6_AstNode* enumNode;
+
+    enumNode = typeNode != NULL && typeNode->text != NULL ?
+        xl6CgenFindEnum(ctx, typeNode->text) :
+        NULL;
+    return enumNode != NULL &&
+           (enumNode->flags & XL6_AST_FLAG_NUMERIC_ENUM) != 0;
+}
+
+static int xl6CgenIsTaggedEnumType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    XL6_AstNode* enumNode;
+
+    if ( typeNode != NULL &&
+         (typeNode->flags & XL6_AST_FLAG_TAGGED_ENUM) != 0 ) {
+        return 1;
+    }
+    enumNode = typeNode != NULL && typeNode->text != NULL ?
+        xl6CgenFindEnum(ctx, typeNode->text) :
+        NULL;
+    return enumNode != NULL &&
+           (enumNode->flags & XL6_AST_FLAG_NUMERIC_ENUM) == 0;
+}
+
+static int xl6CgenIsProtocolType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    return typeNode != NULL && typeNode->text != NULL &&
+           ((typeNode->flags & XL6_AST_FLAG_PROTOCOL_HANDLE) != 0 ||
+            xl6CgenFindProtocol(ctx, typeNode->text) != NULL);
 }
 
 static int xl6CgenIsNativeBackedClassType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
@@ -210,6 +269,20 @@ static const XL6_AstNode* xl6CgenFieldDefaultExpr(const XL6_AstNode* field)
 static const XL6_AstNode* xl6CgenClassTypeParams(const XL6_AstNode* classNode)
 {
     return classNode != NULL && classNode->childCount > 2 ? classNode->children[2] : NULL;
+}
+
+static const XL6_AstNode* xl6CgenEnumTypeParams(const XL6_AstNode* enumNode)
+{
+    return enumNode != NULL && enumNode->childCount > 2 ?
+        enumNode->children[2] :
+        NULL;
+}
+
+static int xl6CgenEnumHasTypeParams(const XL6_AstNode* enumNode)
+{
+    const XL6_AstNode* typeParams = xl6CgenEnumTypeParams(enumNode);
+
+    return typeParams != NULL && typeParams->childCount > 0;
 }
 
 static const XL6_AstNode* xl6CgenFuncTypeParams(const XL6_AstNode* funcNode)

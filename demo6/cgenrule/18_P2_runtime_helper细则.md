@@ -1,4 +1,4 @@
-﻿# P2 runtime helper 细则
+# P2 runtime helper 细则
 
 本文细化 `xl6_cgen_runtime.c`、`xl6_cgen_lifecycle.c`、`xl6_cgen_main.c`、`xl6_cgen_main_wrapper.c`、`xl6_cgen_xvalue_runtime.c` 和 `xl6_cgen_xvalue_runtime_index_ops.c`。这些规则多数不是单一语法节点本体，而是为了表达式、动态值、脚本入口和生命周期生成额外 C helper。相关 emitter 是 `static`，通过 `xl6_cgen.c` 的分片 include 顺序进入同一个翻译单元，由 `xl6_cgen_module.c` 调用。
 
@@ -140,7 +140,7 @@
 |---|---|
 | xlang 写法 | `func main(...) ... end` |
 | 生成规则描述 | 生成 xlang main wrapper 前，输出 `xl6_argv_to_arg`。它创建 xvalue array，把每个 `argv[i]` 包装成文本 xvalue 并追加；任何一步失败都会释放已创建对象并返回 0。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main.c:1` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main_globals.c:1` |
 | 对应生成的 C 代码 | `static xvalue xl6_argv_to_arg(int argc, char** argv) { ... }` |
 | 中间形态伪代码 | `arg = xvoCreateArray(); for argv: append xvoCreateText(argv[i]); on fail cleanup` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自己构造动态数组并处理引用释放。 |
@@ -152,7 +152,7 @@
 |---|---|
 | xlang 写法 | `func main(...) int ... end` 或无返回 main |
 | 生成规则描述 | 通过 main 函数 AST 的返回列表判定是否有一个返回值。当前生成器只区分“有一个返回值”和“无返回值”，有返回值路径会把结果作为进程退出码。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main.c:25` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main_globals.c:25` |
 | 对应生成的 C 代码 | 不直接生成 C；影响 main wrapper 分支。 |
 | 中间形态伪代码 | `returnsInt = returns != null && returns.childCount == 1` |
 | 实现同等功能手写的 C 代码 | 手写 C main 直接决定是否返回函数结果。 |

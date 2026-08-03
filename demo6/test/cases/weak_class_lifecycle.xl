@@ -1,0 +1,83 @@
+class WeakTarget
+    int value = 0
+
+    create(int initial)
+        self.value = initial
+    end
+end
+
+weak<WeakTarget> moduleWeak = null
+
+class WeakHolder
+    weak<WeakTarget> target = null
+
+    create(WeakTarget initial)
+        self.target = initial
+    end
+
+    func read() as WeakTarget?
+        return self.target.lock()
+    end
+
+    func clear()
+        self.target = null
+    end
+end
+
+func makeExpiredWeak() as weak<WeakTarget>
+    WeakTarget local = WeakTarget(41)
+    weak<WeakTarget> result = local
+    return result
+end
+
+func weakStatus(weak<WeakTarget> source) as generator<int>
+    if source.lock() != null
+        yield 1
+    else
+        yield 0
+    end
+end
+
+func main(...) as int
+    WeakTarget strong = WeakTarget(17)
+    weak<WeakTarget> first = strong
+    weak<WeakTarget> copied = first
+    moduleWeak = copied
+
+    WeakTarget? alive = copied.lock()
+    assert(alive != null)
+    if alive != null
+        assert(alive.value == 17)
+    end
+
+    WeakTarget? moduleAlive = moduleWeak.lock()
+    assert(moduleAlive != null)
+
+    WeakHolder holder = WeakHolder(strong)
+    WeakTarget? held = holder.read()
+    assert(held != null)
+    holder.target = copied
+    assert(holder.read() != null)
+    holder.clear()
+    assert(holder.read() == null)
+
+    weak<WeakTarget> captured = strong
+    func() as WeakTarget? reader = func() as WeakTarget?
+        return captured.lock()
+    end
+    assert(reader() != null)
+
+    generator<int> status = weakStatus(copied)
+    int statusValue = 0
+    for statusValue in status
+        assert(statusValue == 1)
+    end
+
+    generator<int> neverStarted = weakStatus(copied)
+
+    weak<WeakTarget> expired = makeExpiredWeak()
+    WeakTarget? missing = expired.lock()
+    assert(missing == null)
+
+    return 0
+end

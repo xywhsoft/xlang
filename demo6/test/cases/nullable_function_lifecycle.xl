@@ -1,0 +1,61 @@
+(func(int) as int)? globalCallback = null
+
+class CallbackBox
+    (func(int) as int)? callback = null
+end
+
+func makeAdder(int base) as (func(int) as int)?
+    if base < 0 then
+        return null
+    end
+    return func(int value) as int
+        return base + value
+    end
+end
+
+func pass((func(int) as int)? callback) as (func(int) as int)?
+    return callback
+end
+
+func main(...) as int
+    (func(int) as int)? local
+    assert local == null
+
+    local = makeAdder(10)
+    if local != null then
+        assert local(5) == 15
+    else
+        assert false
+    end
+
+    (func(int) as int)? copied = local
+    local = null
+    if copied != null then
+        assert copied(7) == 17
+    else
+        assert false
+    end
+
+    globalCallback = pass(copied)
+    copied = null
+    if globalCallback != null then
+        assert globalCallback(9) == 19
+    else
+        assert false
+    end
+
+    CallbackBox box = CallbackBox()
+    box.callback = globalCallback
+    globalCallback = null
+    (func(int) as int)? fromField = box.callback
+    box.callback = null
+    if fromField != null then
+        assert fromField(11) == 21
+    else
+        assert false
+    end
+
+    fromField = makeAdder(-1)
+    assert fromField == null
+    return 0
+end

@@ -1,0 +1,16 @@
+class AsyncGenericBox<T>
+    T value
+
+    create(T value)
+        self.value = value
+    end
+
+    async func read() as T
+        return self.value
+    end
+end
+
+AsyncGenericBox<int> box = AsyncGenericBox::<int>(91)
+future<int> pending = box.read()
+assert await pending == 91
+println("async generic class method ok")

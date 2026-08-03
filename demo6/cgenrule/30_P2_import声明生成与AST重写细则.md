@@ -1,255 +1,255 @@
-# P2 import 声明生成与 AST 重写细则
+# P2 import 声明合并与 AST 重写细则
 
-本文继续细化 `demo6/src/compile/xl6_imports.c` 的后半部分，覆盖 source export/type 到 xlang extern 声明的生成、生成声明重新解析并合并 AST、命名空间冲突检查，以及 `pkg.symbol` 成员访问重写为内部名称。
+本文细化 `demo6/src/compile/xl6_imports.c` 的模块源码展开路径。当前实现直接解析被导入的 `.xl` 源码，将公开声明登记到模块符号表，对模块内全部声明做唯一改名后合并 AST；不再生成一份简化 extern 文本作为 XLang 接口真相。
 
-## CGEN-IMPG-001 function export 是否可进入 extern
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `import pkg` 后使用 `pkg.foo()` |
-| 生成规则描述 | 只有 kind 为 `function`，callingConvention 为空或 `cdecl`，varargMode 为空或 `none`，返回值不超过一个，且所有参数都不是 optional/vararg 的函数，才能生成当前阶段的 extern 声明。其他导出登记为 unsupported，访问时给出诊断。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:842` |
-| 对应生成的 C 代码 | 支持者后续生成 `extern "c_symbol" func __xl6_import_pkg_foo(...)` 并由 cgen 生成 C extern 调用。 |
-| 中间形态伪代码 | `function && cdecl && no vararg && <=1 return && no optional params` |
-| 实现同等功能手写的 C 代码 | 手写桥接当前也只能直接声明简单 C ABI 函数。 |
-| 额外依赖的封装代码 | source callable metadata。 |
-
-## CGEN-IMPG-002 泛型参数文本输出
+## CGEN-IMPG-001 限定名称拆分
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | 导入 `class Box<T>` |
-| 生成规则描述 | 类型有 typeParams 时输出 `<T, U>`，参数之间使用 `, ` 分隔。无 typeParams 时不输出任何内容。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:866` |
-| 对应生成的 C 代码 | 不直接生成 C；生成 import 声明中的 `class __xl6_import_pkg_Box<T>`。 |
-| 中间形态伪代码 | `if typeParamCount: emit "<" + params.join(", ") + ">"` |
-| 实现同等功能手写的 C 代码 | 手写桥接声明需要保留泛型形状。 |
-| 额外依赖的封装代码 | import text builder。 |
+| xlang 写法 | `pkg.sub.Type`、`pkg.value` |
+| 生成规则描述 | member AST 被拆成由名称组成的点分段；只有完整的名称链才参与 import namespace 匹配，普通对象成员表达式不会被当作模块名。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:891` |
+| 对应生成的 C 代码 | 不直接生成 C；成功匹配后整条限定名称会被替换为唯一内部名称。 |
+| 中间形态伪代码 | `member(member(name("pkg"),"sub"),"Type") -> ["pkg","sub","Type"]` |
+| 实现同等功能手写的 C 代码 | C 通常直接使用头文件中带前缀的平坦符号名。 |
+| 额外依赖的封装代码 | AST member 模型。 |
 
-## CGEN-IMPG-003 字段声明输出并重写类型
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | 导入 class/union 字段 |
-| 生成规则描述 | 字段必须有 name 和 type。输出缩进、重写后的类型、空格、字段名和换行。类型重写会把同导入模块内的类型名替换为内部名称。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:883` |
-| 对应生成的 C 代码 | 不直接生成 C；生成 xlang 字段声明文本。 |
-| 中间形态伪代码 | `emit indent + rewrite(type) + " " + field.name` |
-| 实现同等功能手写的 C 代码 | 手写桥接类型声明也需要字段类型加前缀。 |
-| 额外依赖的封装代码 | import type rewrite helper。 |
-
-## CGEN-IMPG-004 union 类型声明生成
+## CGEN-IMPG-002 点分名称连接
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | source type kind 为 `union` |
-| 生成规则描述 | 输出 `union <internalName>`，随后按字段顺序输出字段声明，最后输出 `end`。字段类型会按 import 类型重写规则处理。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:901` |
-| 对应生成的 C 代码 | 经解析和 cgen 后会生成对应 union C 声明。 |
-| 中间形态伪代码 | `union internalName; fields; end` |
-| 实现同等功能手写的 C 代码 | 手写桥接声明需要给导入 union 改名并保留字段。 |
-| 额外依赖的封装代码 | import generated declaration parser。 |
-
-## CGEN-IMPG-005 class 类型声明生成与 inline union 恢复
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | source type kind 为 `class`，字段 storage 可能是 `inline-union` |
-| 生成规则描述 | 输出 `class <internalName>` 加泛型参数；有 base 时输出 `extends <rewritten base>`。字段顺序输出，连续 `inline-union` 字段会包在 `union ... end` 块中，非 inline 字段会关闭已打开的 union。最后输出 class `end`。 |
+| xlang 写法 | `pkg.sub.Type` |
+| 生成规则描述 | 把限定名称的连续分段按 `.` 连接，用于尝试最长 namespace 前缀；分配失败立即停止 import 展开。 |
 | 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:919` |
-| 对应生成的 C 代码 | 经解析和 cgen 后生成改名后的 class C 布局。 |
-| 中间形态伪代码 | `class internal<T> extends base; fields with inline union grouping; end` |
-| 实现同等功能手写的 C 代码 | 手写桥接声明需要恢复 class 继承、泛型和匿名 union 形状。 |
-| 额外依赖的封装代码 | import type rewrite helper。 |
+| 对应生成的 C 代码 | 不直接生成 C。 |
+| 中间形态伪代码 | `join(["pkg","sub"], ".") -> "pkg.sub"` |
+| 实现同等功能手写的 C 代码 | 手写 C 不需要此语法层步骤。 |
+| 额外依赖的封装代码 | XRT 内存管理。 |
 
-## CGEN-IMPG-006 native-backed class 类型声明生成
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | source type kind 为 `native-backed class` |
-| 生成规则描述 | native-backed class 导入生成 `class <internalName>`、`native point handle`、`end` 空壳声明。当前导入侧不恢复 extern 方法映射。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:957` |
-| 对应生成的 C 代码 | 经 cgen 后生成 native-backed class handle 类型基础声明。 |
-| 中间形态伪代码 | `class internalName; native point handle; end` |
-| 实现同等功能手写的 C 代码 | 手写桥接可以先声明 opaque native-backed class 类型，再显式声明函数。 |
-| 额外依赖的封装代码 | import generated declaration parser。 |
-
-## CGEN-IMPG-007 导入模块类型声明批量生成
+## CGEN-IMPG-003 模块公开声明内部名称
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | import package 中的 class/native-backed class/union |
-| 生成规则描述 | 遍历 module types，跳过无 name 或 kind 的项。每个类型生成内部名称，再按 kind 分派为 union/class/native-backed class 声明。未知 kind 不输出声明。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:964` |
-| 对应生成的 C 代码 | 后续 cgen 看到一组改名后的类型声明。 |
-| 中间形态伪代码 | `for type: internalName = make(ns,type.name); emit by kind` |
-| 实现同等功能手写的 C 代码 | 手写桥接头需要先声明导入类型。 |
-| 额外依赖的封装代码 | import type declaration generator。 |
+| xlang 写法 | `export class Point ... end`、`export func make()` |
+| 生成规则描述 | 模块顶层声明统一改名为 `__xl6_import_<namespace>_<name>`；namespace 和名称中的非 C 标识符字符会稳定替换为 `_`。同一声明无论通过原 namespace、namespace 别名还是选择性导入访问，都指向这一内部名称。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:948` |
+| 对应生成的 C 代码 | 例如 `module.Point` 最终由常规 cgen 生成为内部类型 `__xl6_import_module_Point`。 |
+| 中间形态伪代码 | `internal(ns,name) = "__xl6_import_" + sanitize(ns) + "_" + sanitize(name)` |
+| 实现同等功能手写的 C 代码 | 手写 C 可用 `module_Point` 一类前缀约定。 |
+| 额外依赖的封装代码 | import 名称编码规则。 |
 
-## CGEN-IMPG-008 function extern 声明生成
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | source function export 可进入 extern |
-| 生成规则描述 | 输出 `extern "<cSymbol>" func <internalName>(...)`。参数按顺序输出重写后的类型和参数名；当前只支持 0 或 1 个返回值，1 个返回值输出 ` as <type>`。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:994` |
-| 对应生成的 C 代码 | 经 cgen 后生成 C extern 原型并可直接调用 C symbol。 |
-| 中间形态伪代码 | `extern "cSymbol" func internal(params) as ret?` |
-| 实现同等功能手写的 C 代码 | 手写 xlang 桥接声明需要同样写 extern 函数。 |
-| 额外依赖的封装代码 | import type rewrite helper。 |
-
-## CGEN-IMPG-009 var extern 声明生成
+## CGEN-IMPG-004 模块私有声明内部名称
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | source var export |
-| 生成规则描述 | 只有 kind 为 `var` 且 type 存在时输出 `extern "<cSymbol>" var <type> <internalName>`。const 导出当前不会生成 extern var 声明。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1024` |
-| 对应生成的 C 代码 | 经 cgen 后生成 C extern 变量声明。 |
-| 中间形态伪代码 | `if kind var: extern "cSymbol" var rewrittenType internalName` |
-| 实现同等功能手写的 C 代码 | 手写桥接声明需要 extern 变量。 |
-| 额外依赖的封装代码 | import type rewrite helper。 |
+| xlang 写法 | 模块源码中的未 export class、func、var、const |
+| 生成规则描述 | 私有顶层声明同样必须改名，避免多个包的实现细节发生链接冲突；若公开内部名已被合并依赖占用，则使用带 `_local_` 的内部名称。私有声明不会进入用户可见符号表。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:970` |
+| 对应生成的 C 代码 | 例如私有 `helper` 生成包私有前缀名称，不暴露 `pkg.helper`。 |
+| 中间形态伪代码 | `privateInternal = "__xl6_import_" + ns + "_local_" + name` |
+| 实现同等功能手写的 C 代码 | C 模块常用 `static` 或私有前缀；当前合并单元使用稳定私有前缀。 |
+| 额外依赖的封装代码 | import 名称编码规则。 |
 
-## CGEN-IMPG-010 导入模块声明生成与符号登记
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `import pkg` 后可使用 `pkg.foo` |
-| 生成规则描述 | 先生成所有导入类型声明，再遍历 exports。每个 export 都会登记符号；supported 为 simple C ABI function 或 var。supported 的导出生成内部 extern 声明；unsupported 的导出只登记，用于访问时报明确错误。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1043` |
-| 对应生成的 C 代码 | supported 声明经解析后进入 AST，再由 cgen 生成 C。 |
-| 中间形态伪代码 | `emit types; for export: add symbol; if supported emit extern decl` |
-| 实现同等功能手写的 C 代码 | 手写桥接需要同时维护声明和符号映射。 |
-| 额外依赖的封装代码 | import symbol table 和 generated declaration parser。 |
-
-## CGEN-IMPG-011 生成声明重新解析并合并 AST
+## CGEN-IMPG-005 已导入内部名称反解
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | import 生成的隐式声明 |
-| 生成规则描述 | 若 generated 为空，直接成功。否则调用 `xl6ParseSource(generated, "<source-import>")` 重新解析生成文本；解析失败会把解析诊断转移到当前诊断列表。解析成功后把 result.root 的 children 移动到当前 root。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1087` |
-| 对应生成的 C 代码 | 不直接生成 C；合并后的 AST 会被后续 sem/cgen 正常处理。 |
-| 中间形态伪代码 | `parse generated declarations; move children into root` |
-| 实现同等功能手写的 C 代码 | 手写编译器也可直接构造 AST，当前实现选择复用 parser。 |
-| 额外依赖的封装代码 | parser API。 |
+| xlang 写法 | 被导入模块自身又 `import dep`，并在实现中使用 `dep.Type` |
+| 生成规则描述 | 对已带 `__xl6_import_` 前缀的声明识别其原公开短名，保留依赖模块已有内部身份，不按当前模块再次改名；`_local_` 私有声明不能反解为公开名称。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:992` |
+| 对应生成的 C 代码 | 传递依赖只保留一份内部声明和一份 C 符号。 |
+| 中间形态伪代码 | `publicNameFromInternal(ns, internal); reject "_local_"` |
+| 实现同等功能手写的 C 代码 | C 构建系统通过 include guard 和链接去重避免重复定义。 |
+| 额外依赖的封装代码 | package namespace 身份。 |
 
-## CGEN-IMPG-012 import namespace 选择
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `import target` 后访问 `namespace.symbol` |
-| 生成规则描述 | namespace 优先取 resolver 的 packageName；其次取 source module packageName；再取 module name；最后回退到 import target 或 `package`。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1116` |
-| 对应生成的 C 代码 | 不生成 C；影响用户访问前缀和内部名称前缀。 |
-| 中间形态伪代码 | `ns = resolved.packageName || module.packageName || module.name || target || package` |
-| 实现同等功能手写的 C 代码 | 手写包系统需要稳定命名空间策略。 |
-| 额外依赖的封装代码 | package resolver 和 source module model。 |
-
-## CGEN-IMPG-013 resolver 结果覆盖 package 身份
+## CGEN-IMPG-006 可改名声明与名称写回
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | import 解析到带版本的 package 实例 |
-| 生成规则描述 | 若 resolver 提供非空 packageId，则释放 source module 中的 packageName/version/abiVersion/packageId，并用 resolver 的 packageName/packageVersion/abiVersion/packageId 覆盖。这样导入模块身份以实际解析到的 package 实例为准。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1130` |
-| 对应生成的 C 代码 | 不生成 C；影响 namespace、packageId 和 exportId 语义。 |
-| 中间形态伪代码 | `module.package = resolved.package` |
-| 实现同等功能手写的 C 代码 | 手写包管理器应以 resolver 实例身份为权威。 |
-| 额外依赖的封装代码 | source module model。 |
+| xlang 写法 | 顶层 func、class、union、typedef、extern type、var、const |
+| 生成规则描述 | 根据 AST kind 从节点文本或函数名称子节点读取声明名，并在改名后写回同一位置。方法、局部声明和匿名表达式不作为模块顶层符号改名入口。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1041` |
+| 对应生成的 C 代码 | 后续 sem/cgen 只看到改名后的声明。 |
+| 中间形态伪代码 | `declName(node); if renameable setDeclName(node, internal)` |
+| 实现同等功能手写的 C 代码 | 相当于给所有文件级 C 声明加稳定 package 前缀。 |
+| 额外依赖的封装代码 | AST 声明布局。 |
 
-## CGEN-IMPG-014 单个 import 目标解析
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `import counter` |
-| 生成规则描述 | 先去掉 import target 引号，再调用 package resolver。若未解析成功，当前实现视为非 package/path import，释放 target 并成功返回，不产生诊断和声明。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1145` |
-| 对应生成的 C 代码 | 未解析 import 不生成任何 C 或隐式声明。 |
-| 中间形态伪代码 | `target=unquote; resolved=resolve; if !resolved return success` |
-| 实现同等功能手写的 C 代码 | 手写实现可选择把未解析 import 留给其他模块系统。 |
-| 额外依赖的封装代码 | package resolver。 |
-
-## CGEN-IMPG-015 import 缺少 package source manifest 诊断
+## CGEN-IMPG-007 模块公开符号种类
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | import 解析到 package，但找不到可用 manifest 或 xlSources |
-| 生成规则描述 | 如果 resolver 不能得到 manifestPath，或 manifest 不可读取/没有 xlSources，则诊断并失败。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1174` |
-| 对应生成的 C 代码 | 不生成 C；阻断 import 展开。 |
-| 中间形态伪代码 | `if no manifestPath or !hasXlSources: diag; fail` |
-| 实现同等功能手写的 C 代码 | 手写包导入也必须要求 manifest 和源码入口存在。 |
-| 额外依赖的封装代码 | package resolver 和 XRT file exists。 |
+| xlang 写法 | `export func`、`export extern "c_name" func`、`export var`、`export extern "c_name" Type var`、`export const`、`export class`、`export union`、`export typedef`、`export extern type` |
+| 生成规则描述 | xlang 函数、变量和常量使用各自 export AST kind；直接映射的 extern 函数/变量以及 class、具名 union、typedef、extern type 使用 PUBLIC 标志。仅这些声明进入模块公开符号表。DEMO6 当前没有 enum 语句，因此不虚构 enum 导出；未来增加 enum 时应在该统一公开声明判定中扩展。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1135` |
+| 对应生成的 C 代码 | export 控制 XLang 模块可见性；不会自动生成额外 C ABI wrapper 或导出成员方法。 |
+| 中间形态伪代码 | `public = export-func/var/const || public-flag(extern-func/extern-var/class/union/typedef/extern-type)` |
+| 实现同等功能手写的 C 代码 | C 的公开面通常由头文件声明和链接器导出表共同决定。 |
+| 额外依赖的封装代码 | AST PUBLIC 标志；C ABI 导出仍由独立 ABI/XAPI 规则控制。 |
 
-## CGEN-IMPG-016 public namespace 冲突检查
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | 同一源文件直接 import 两个同名 namespace |
-| 生成规则描述 | 加载 package/source 后选择 namespace。若符号表中已存在同名 namespace 且该 namespace 不是 private，则诊断 `duplicate import namespace` 并失败；否则登记 public namespace。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1190` |
-| 对应生成的 C 代码 | 不生成 C；避免 `pkg.symbol` 解析二义性。 |
-| 中间形态伪代码 | `if existing namespace public: duplicate error; else add public namespace` |
-| 实现同等功能手写的 C 代码 | 手写包系统需要检测公开命名空间冲突。 |
-| 额外依赖的封装代码 | import namespace table。 |
-
-## CGEN-IMPG-017 单个 import 的完整展开顺序
+## CGEN-IMPG-008 重复传递声明去重
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `import pkg` |
-| 生成规则描述 | 单个 import 的成功路径为：解析 target -> 读取 package manifest 或源码文件 -> 覆盖 package 身份 -> 检查/登记 namespace -> 收集 manifest deps -> 收集 manifest dependency graph -> 合并 xlSources/source module -> 重写 namespace 符号 -> 释放临时资源。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1209` |
-| 对应生成的 C 代码 | 隐式声明进入 AST 后由 cgen 生成 C。 |
-| 中间形态伪代码 | `resolve/load/collect/generate/parse/merge/free` |
-| 实现同等功能手写的 C 代码 | 手写工具链也需要固定 import 展开阶段顺序。 |
-| 额外依赖的封装代码 | source import loader、package manifest、parser API。 |
+| xlang 写法 | A、B 都依赖同一 package C |
+| 生成规则描述 | 合并源码前，若待合并声明已经是 import 内部名称且目标 AST 已有同名声明，则释放重复节点；用户自然声明不参与这条内部去重规则。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1169` |
+| 对应生成的 C 代码 | 同一依赖声明只生成一次 C 定义。 |
+| 中间形态伪代码 | `if internalName && destination.has(name): drop duplicate` |
+| 实现同等功能手写的 C 代码 | 相当于 include guard 加依赖图去重。 |
+| 额外依赖的封装代码 | AST 所有权转移。 |
 
-## CGEN-IMPG-018 成员访问节点重写为名称
-
-| 项目 | 内容 |
-|---|---|
-| xlang 写法 | `pkg.foo` |
-| 生成规则描述 | 当 import 符号匹配成功时，释放 member 节点原有所有子节点和 text，把 AST kind 改为 `XL6_AST_NAME`，text 改为内部名称。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1235` |
-| 对应生成的 C 代码 | cgen 最终看到 `__xl6_import_pkg_foo` 名称。 |
-| 中间形态伪代码 | `member(pkg,foo) -> name("__xl6_import_pkg_foo")` |
-| 实现同等功能手写的 C 代码 | 手写预处理器也会把命名空间访问改写为内部符号。 |
-| 额外依赖的封装代码 | AST rewrite helper。 |
-
-## CGEN-IMPG-019 namespace 符号访问重写
+## CGEN-IMPG-009 直接导入名称的词法作用域
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `pkg.foo()`、`pkg.value` |
-| 生成规则描述 | 递归遍历 AST。若节点是 member，receiver 是 name，则尝试按 receiver.text 和成员名查 import symbol。找到 supported 符号时重写为内部名称；找到 unsupported 符号时报 `导入符号当前不能进入 C ABI bridge: <ns>.<symbol>`。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1257` |
-| 对应生成的 C 代码 | supported 符号经 cgen 生成对应内部 extern 调用/访问。 |
-| 中间形态伪代码 | `if member ns.name and symbol supported -> rewrite; unsupported -> diag` |
-| 实现同等功能手写的 C 代码 | 手写桥接需要把包命名空间符号映射到真实 C 声明。 |
+| xlang 写法 | `from pkg import value` 后在函数中声明同名参数或局部变量 |
+| 生成规则描述 | 直接名称映射维护块级 scope；参数、局部 var/const、多变量声明和 for 目标会进入当前作用域。局部名称优先，不会被选择性导入符号错误替换。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1254` |
+| 对应生成的 C 代码 | 局部 C 标识符保持局部身份，未遮蔽引用才生成导入内部符号。 |
+| 中间形态伪代码 | `if name in lexicalScope: keep; else apply directImportMap` |
+| 实现同等功能手写的 C 代码 | 与 C 的局部变量遮蔽文件级声明一致。 |
+| 额外依赖的封装代码 | package string list 作为临时 scope 集合。 |
+
+## CGEN-IMPG-010 直接名称与类型名称重写
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `from pkg import Point as P`、`P p`、`func(P) as P` |
+| 生成规则描述 | 递归重写 NAME 与 TYPE 节点，支持映射名称后的泛型/限定后缀。函数、属性、构造、匿名函数和嵌套块分别建立正确作用域；import 节点自身不重写。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1330` |
+| 对应生成的 C 代码 | 所有类型位置和表达式位置最终引用同一内部声明。 |
+| 中间形态伪代码 | `P -> __xl6_import_pkg_Point; P.Inner -> __xl6_import_pkg_Point.Inner` |
+| 实现同等功能手写的 C 代码 | 相当于预处理阶段将局部别名解析到真实 C typedef/符号。 |
+| 额外依赖的封装代码 | scope-aware AST walker。 |
+
+## CGEN-IMPG-011 源模块统一准备
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 导入任意 package `.xl` 或相对 `.xl` 文件 |
+| 生成规则描述 | 第一遍为模块中所有可改名顶层声明建立 oldName 到 internalName 映射并写回声明；公开声明同时登记符号 kind。第二遍按映射重写字段类型、继承、泛型约束、函数签名、函数体及初始化器中的引用。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1570` |
+| 对应生成的 C 代码 | 合并后的 AST 走与主文件相同的 sem/cgen 路径，不需要一套简化接口代码生成器。 |
+| 中间形态伪代码 | `collect+rename declarations; register exports; rewrite all module references` |
+| 实现同等功能手写的 C 代码 | 相当于给独立 C 模块做符号前缀化并生成一致头文件。 |
+| 额外依赖的封装代码 | 名称映射、作用域重写、公开符号表。 |
+
+## CGEN-IMPG-012 导入符号登记与类型身份
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `pkg.Point` 与 `from pkg import Point as P` 同时出现 |
+| 生成规则描述 | symbol 保存 namespace、公开名、唯一 internalName、AST kind 和 supported。重复 namespace/name 复用首次登记；别名不会创建新类型声明，所以 `pkg.Point` 与 `P` 的类型身份相同。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1669` |
+| 对应生成的 C 代码 | 两种写法都落到同一 C 类型或符号名。 |
+| 中间形态伪代码 | `identity(pkg.Point) == identity(P) == internalName` |
+| 实现同等功能手写的 C 代码 | C 的多个 typedef 别名最终也可指向同一底层声明。 |
 | 额外依赖的封装代码 | import symbol table。 |
 
-## CGEN-IMPG-020 namespace 存在但符号缺失的诊断
+## CGEN-IMPG-013 命名空间别名发布
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | `pkg.missing`、访问传递私有依赖 `dep.foo` |
-| 生成规则描述 | 如果 namespace 存在但没有对应 symbol，private namespace 诊断 `private package dependency is not exported`，public namespace 诊断 `import package has no such exported symbol`。这能区分“依赖私有不可见”和“公开包没有该导出”。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1276` |
-| 对应生成的 C 代码 | 不生成 C；语义阶段前阻止无效 import 访问。 |
-| 中间形态伪代码 | `namespace exists && symbol missing -> private/public diagnostic` |
-| 实现同等功能手写的 C 代码 | 手写包系统应给出清晰的缺符号错误。 |
-| 额外依赖的封装代码 | import namespace table。 |
+| xlang 写法 | `import long_package as lp` |
+| 生成规则描述 | 别名建立新的公开 namespace 视图，并复制源 namespace 的公开 symbol 记录；复制项继续引用原 internalName、kind 和 supported。指定别名后 canonical namespace 不向用户公开，除非另有普通 import。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1709` |
+| 对应生成的 C 代码 | `lp.Point` 与源模块内部声明共用同一 C 名称，不生成副本。 |
+| 中间形态伪代码 | `for symbol in sourceNs: publish(alias, symbol.name, same identity)` |
+| 实现同等功能手写的 C 代码 | 相当于仅在编译器符号表中增加命名空间别名。 |
+| 额外依赖的封装代码 | namespace table。 |
+
+## CGEN-IMPG-014 选择性导入绑定
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `from pkg import Point, make as create` |
+| 生成规则描述 | 每个选择项必须是模块公开符号；本地名不得与已有直接导入、公开 namespace、内置类型或当前文件自然顶层声明冲突。成功后只加入本地名称映射，不公开整个 package namespace，不支持通配符。内置 feature module 不接受选择性导入。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1747` |
+| 对应生成的 C 代码 | `Point`、`create()` 分别重写为对应唯一内部类型和函数名。 |
+| 中间形态伪代码 | `for selected: require exported; require no collision; direct[alias||name]=internal` |
+| 实现同等功能手写的 C 代码 | 相当于在当前 C 文件建立有限的 typedef/宏别名，但由编译器完成作用域处理。 |
+| 额外依赖的封装代码 | 公开符号表、内置类型注册表。 |
+
+## CGEN-IMPG-015 导入声明插入顺序
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | 文件先写 import，随后使用导入类型声明全局变量或 class |
+| 生成规则描述 | 被导入模块的 AST 子节点先追加，再整体移动到原文件正文之前、初始 import 节点之后，确保 sem 看到使用点之前已有完整类型与函数声明。移动只转移节点指针，不复制声明对象。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1811` |
+| 对应生成的 C 代码 | 导入类型和函数定义在使用它们的 C 代码之前生成。 |
+| 中间形态伪代码 | `[imports, body, appendedModules] -> [imports, appendedModules, body]` |
+| 实现同等功能手写的 C 代码 | 对应把依赖头文件/实现声明放在主文件使用点之前。 |
+| 额外依赖的封装代码 | AST child 所有权移动。 |
+
+## CGEN-IMPG-016 package 源码逐文件合并
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | package manifest 的 `xlSources` 包含多个文件 |
+| 生成规则描述 | 每个 manifest 相对路径经 package 目录解析并检查存在，随后 parse、递归展开其 import、复制诊断并移动 AST。缺文件、解析失败或递归 import 失败都会阻断当前导入。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1867` |
+| 对应生成的 C 代码 | 多个 package 源文件最终进入同一编译单元的常规 C 输出。 |
+| 中间形态伪代码 | `for xlSource: resolve -> parse -> expand imports -> move AST` |
+| 实现同等功能手写的 C 代码 | 相当于构建系统逐个编译/合并包源文件并传播诊断。 |
+| 额外依赖的封装代码 | package manifest、parser API、递归 import。 |
+
+## CGEN-IMPG-017 相对源码 import 解析
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `import helper`、`import "./helper.xl"` |
+| 生成规则描述 | package resolver 未命中后，按当前 sourcePath 目录尝试目标原名和 `.xl` 后缀。namespace 从 target 归一化：路径分隔符变成 `.`，末尾 `.xl` 去掉。最终无法解析会诊断 `cannot resolve import`，不再静默忽略。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1938` |
+| 对应生成的 C 代码 | 成功解析后与 package 源码使用相同 AST 合并路径。 |
+| 中间形态伪代码 | `resolve package; else resolve source-relative target(.xl); else error` |
+| 实现同等功能手写的 C 代码 | 类似 C include 搜索路径，但 XLang 导入的是模块语义而非文本替换。 |
+| 额外依赖的封装代码 | XRT UTF-8 文件访问、package resolver。 |
+
+## CGEN-IMPG-018 单个 import 加载与缓存
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `import pkg`、`import pkg as p`、`from pkg import Name` |
+| 生成规则描述 | 先处理内置 feature import，再解析 package，最后尝试源码路径。模块首次加载时收集依赖、递归展开并登记公开符号；后续导入复用 namespace 的 loaded 状态。普通 import 公开 canonical namespace，别名和选择性导入只私下加载 canonical namespace。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:2112` |
+| 对应生成的 C 代码 | 每个模块只生成一份 C 声明/定义。 |
+| 中间形态伪代码 | `load(target, exposeNamespace); if !loaded merge; mark loaded; return canonicalNs` |
+| 实现同等功能手写的 C 代码 | 对应构建图中的模块缓存和 include guard。 |
+| 额外依赖的封装代码 | package resolver、manifest、source loader、feature registry。 |
+
+## CGEN-IMPG-019 限定表达式符号重写
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `pkg.make()`、`alias.value`、多段 namespace 访问 |
+| 生成规则描述 | 先对完整 member 链寻找最长公开 namespace，再按剩余公开符号名查表。命中后将整个 member AST 原地改为 NAME internalName；私有 namespace、缺失符号和暂不支持的桥接分别给出明确诊断。普通对象成员访问保持不变。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:2249` |
+| 对应生成的 C 代码 | cgen 看到平坦唯一名称，例如 `__xl6_import_pkg_make(...)`。 |
+| 中间形态伪代码 | `qualifiedMember(ns,symbol) -> name(symbol.internalName)` |
+| 实现同等功能手写的 C 代码 | 手写 C 直接调用带 package 前缀的符号。 |
+| 额外依赖的封装代码 | import namespace/symbol table。 |
+
+## CGEN-IMPG-020 限定类型引用重写
+
+| 项目 | 内容 |
+|---|---|
+| xlang 写法 | `pkg.Point p`、`array<pkg.Box<int>>`、`func(pkg.Point) as pkg.Point`、`T is pkg.Base` |
+| 生成规则描述 | TYPE 或语法允许的类型 NAME 含点号时，按 namespace 和最后一段查询公开符号；仅 class、union、typedef、extern type 可进入类型位置。私有依赖、缺少类型、符号不是类型分别报错。重写只替换类型根名称，泛型子节点继续递归处理。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:2334` |
+| 对应生成的 C 代码 | 所有限定类型位置都落到导入声明的唯一 C 类型名。 |
+| 中间形态伪代码 | `type("pkg.Point") -> type("__xl6_import_pkg_Point")` |
+| 实现同等功能手写的 C 代码 | 相当于使用包前缀 C typedef/struct 名。 |
+| 额外依赖的封装代码 | 带 kind 的 import symbol table。 |
 
 ## CGEN-IMPG-021 模块 import 展开总入口
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | 编译含多个 import 的模块 |
-| 生成规则描述 | 总入口初始化符号表，记录初始 root childCount，只处理初始顶层 import，避免新合并声明被再次当成本轮 import 扫描。所有 import 都成功后，才递归重写 namespace 引用。最后释放符号表并返回整体 ok。 |
-| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:1299` |
-| 对应生成的 C 代码 | import 合并和重写完成后，后续 cgen 正常生成 C。 |
-| 中间形态伪代码 | `for initial imports loadOne; if ok rewriteNamespaceRefs(root)` |
-| 实现同等功能手写的 C 代码 | 手写编译器也会先完成 import 展开，再进入语义检查和代码生成。 |
-| 额外依赖的封装代码 | import loader、parser API、AST rewrite helper。 |
+| xlang 写法 | 顶层混合普通 import、namespace alias 和 `from ... import ...` |
+| 生成规则描述 | 只扫描进入函数时已有的顶层 import，逐个加载模块并完成 alias/selective 绑定。所有加载成功后，先按直接名称映射重写原文件 AST，再把导入声明移到正文前，最后重写 namespace 表达式和限定类型。别名、选择性名称和普通 namespace 均检查内置类型及自然顶层声明冲突。 |
+| 生成器文件名和行号 | `demo6/src/compile/xl6_imports.c:2479` |
+| 对应生成的 C 代码 | import 完全消解后由统一 sem/cgen 生成 C；import 语句自身不生成运行时代码。 |
+| 中间形态伪代码 | `load initial imports -> bind names -> rewrite direct refs -> reorder declarations -> rewrite qualified refs` |
+| 实现同等功能手写的 C 代码 | 相当于构建系统、头文件命名和链接前缀化三部分的组合。 |
+| 额外依赖的封装代码 | package/import loader、AST 重写、类型注册表、诊断系统。 |

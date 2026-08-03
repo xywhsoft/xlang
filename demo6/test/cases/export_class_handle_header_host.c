@@ -2,25 +2,26 @@
 
 int main(void)
 {
+    XL_InitOptions options = xlInitOptions(0, 0);
     xvalue value;
     xvalue copied;
     xvalue output;
     int64_t number;
     int result;
 
-    if ( xrtInit() == NULL ) {
+    if ( !xlInit(&options) ) {
         return 1;
     }
     value = xl6_class_make(41);
     if ( value == NULL || xvoIsNull(value) ) {
-        xrtUnit();
+        xlUnit();
         return 2;
     }
     copied = xvoCopy(value);
     if ( copied != NULL ) {
         xvoUnref(copied);
         xvoUnref(value);
-        xrtUnit();
+        xlUnit();
         return 5;
     }
     xvoAddRef(value);
@@ -28,7 +29,7 @@ int main(void)
     if ( xl6_class_read(copied) != 42 ) {
         xvoUnref(copied);
         xvoUnref(value);
-        xrtUnit();
+        xlUnit();
         return 6;
     }
     xvoUnref(copied);
@@ -42,11 +43,11 @@ int main(void)
         if ( output != NULL ) {
             xvoUnref(output);
         }
-        xrtUnit();
+        xlUnit();
         return 3;
     }
     xvoUnref(value);
     xvoUnref(output);
-    xrtUnit();
+    xlUnit();
     return result == 42 ? 0 : 4;
 }

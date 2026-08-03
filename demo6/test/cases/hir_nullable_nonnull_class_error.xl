@@ -1,0 +1,9 @@
+class Node
+    int value = 0
+end
+
+
+func main(...) as int
+    Node node = null
+    return 0
+end

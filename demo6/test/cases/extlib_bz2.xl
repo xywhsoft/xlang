@@ -16,11 +16,55 @@ func main(...) as int
     auto encoder = bz2.compressor()
     encoder.update("left")
     encoder.update("right")
-    Buffer incremental = encoder.finish()
+    encoder.finish()
+    Buffer incremental = encoder.drain()
     auto decoder = bz2.decompressor()
     decoder.update(incremental)
-    if decoder.finish().text() != "leftright" then
+    decoder.finish()
+    if decoder.drain().text() != "leftright" then
         return 2
+    end
+    if decoder.members != 1 then
+        return 6
+    end
+
+    // 流式分块收集 + 字节计数器（进度回显基础）。
+    auto enc2 = bz2.compressor(6)
+    Buffer collected = Buffer()
+    enc2.update("aaaa")
+    collected.append(enc2.drain())
+    enc2.update("bbbb")
+    collected.append(enc2.drain())
+    enc2.finish()
+    collected.append(enc2.drain())
+    if enc2.inputBytes != 8 then
+        return 7
+    end
+    auto dec2 = bz2.decompressor()
+    dec2.update(collected)
+    dec2.finish()
+    if dec2.drain().text() != "aaaabbbb" then
+        return 8
+    end
+    if not dec2.finished then
+        return 9
+    end
+
+    // workFactor 调优参数与常量。
+    auto enc3 = bz2.compressor(bz2.BZ2_MAX_LEVEL, bz2.BZ2_MAX_WORK_FACTOR)
+    enc3.update("tune")
+    enc3.finish()
+    if bz2.decompress(enc3.drain()).text() != "tune" then
+        return 10
+    end
+    bool badFactor = false
+    try
+        bz2.compressor(9, 999)
+    catch ValueError e
+        badFactor = true
+    end
+    if not badFactor then
+        return 11
     end
 
     bool rejected = false

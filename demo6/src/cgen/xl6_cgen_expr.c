@@ -224,6 +224,12 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     switch ( node->kind ) {
     case XL6_AST_NAME:
+        if ( xl6CgenRuntimeNarrowedNameExpr(ctx, node) ) {
+            break;
+        }
+        if ( xl6CgenNullableNarrowedNameExpr(ctx, node) ) {
+            break;
+        }
         if ( xl6CgenAnonCaptureIndex(ctx->currentAnonFunc, node->text) >= 0 ) {
             xl6OutputPuts("__env->", ctx->out);
             xl6CgenFputsCIdent(ctx->out, node->text);
@@ -288,18 +294,23 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenAwaitExpr(ctx, node);
         break;
     case XL6_AST_MEMBER:
-        if ( !xl6CgenStaticClassFieldExpr(ctx, node) &&
+        if ( !xl6CgenNumericEnumMemberExpr(ctx, node) &&
+             !xl6CgenStaticClassFieldExpr(ctx, node) &&
              !xl6CgenErrorMemberAccess(ctx, node) &&
+             !xl6CgenStaticStringMemberAccess(ctx, node) &&
              !xl6CgenTypedContainerMemberAccess(ctx, node) &&
+             !xl6CgenClassPropertyMemberAccess(ctx, node) &&
              !xl6CgenXValueMemberAccess(ctx, node) &&
              !xl6CgenPlainRecordFieldAccess(ctx, node) ) {
             xl6CgenClassFieldAccess(ctx, node);
         }
         break;
     case XL6_AST_SAFE_MEMBER:
-        if ( !xl6CgenSafeTypedContainerMemberAccess(ctx, node) &&
+        if ( !xl6CgenSafeClassFieldAccess(ctx, node) &&
+             !xl6CgenSafeStringMemberAccess(ctx, node) &&
+             !xl6CgenSafeTypedContainerMemberAccess(ctx, node) &&
              !xl6CgenSafeXValueMemberAccess(ctx, node) ) {
-            xl6CgenError(ctx, node, "当前 C 生成安全成员访问只支持容器 length");
+            xl6CgenError(ctx, node, "safe member access has no semantic lowering plan");
             xl6OutputPuts("0", ctx->out);
         }
         break;
@@ -316,6 +327,9 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenRuntimeTypeAsExpr(ctx, node);
         break;
     case XL6_AST_BINARY:
+        if ( xl6CgenNullableNullComparison(ctx, node) ) {
+            break;
+        }
         if ( xl6CgenBinaryPlusIsString(ctx, node) ) {
             xl6CgenStringConcatExpr(ctx, node);
             break;
@@ -429,16 +443,28 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         }
         xl6OutputPutc(')', ctx->out);
         break;
+    case XL6_AST_MATCH:
+        xl6CgenMatchExpr(ctx, node);
+        break;
     case XL6_AST_CALL:
         if ( node->childCount > 0 ) {
             const XL6_AstNode* callee = node->children[0];
             XL6_AstNode* knownFunc = NULL;
             int copyExternString = 0;
             if ( callee->kind == XL6_AST_MEMBER ) {
-                if ( xl6CgenPersistenceStdlibCall(ctx, node) ) {
+                if ( xl6CgenTaggedEnumCtorExpr(ctx, node, callee) ) {
+                    ;
+                } else if ( xl6CgenWeakLockCall(ctx, node, callee) ) {
+                    ;
+                } else if ( xl6CgenPersistenceStdlibCall(ctx, node) ) {
                     ;
                 } else if ( xl6CgenStaticClassMethodCall(ctx, node, callee) ) {
                     ;
+                } else if ( xl6CgenUserProtocolCall(ctx, node, callee) ) {
+                    ;
+                } else if ( xl6CgenIsImplicitToStringCall(ctx, node) ) {
+                    /* toString 是隐性类协议语法，优先于 var 的动态函数字段调用。 */
+                    xl6CgenImplicitToStringCall(ctx, node, callee);
                 } else if ( xl6CgenMemberFunctionInvoke(ctx, node, callee) ) {
                     ;
                 } else if ( xl6CgenTaskNamespaceCall(ctx, node, callee) ) {
@@ -455,8 +481,6 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                     ;
                 } else if ( xl6CgenContainerMethodCall(ctx, node, callee) ) {
                     ;
-                } else if ( xl6CgenIsImplicitToStringCall(ctx, node) ) {
-                    xl6CgenImplicitToStringCall(ctx, node, callee);
                 } else if ( xl6CgenNativeClassMethodCall(ctx, node, callee) ) {
                     ;
                 } else if ( !xl6CgenClassMethodCall(ctx, node, callee) ) {
@@ -465,7 +489,9 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 }
                 break;
             }
-            if ( callee->kind != XL6_AST_NAME && xl6CgenClassProtocolCallExpr(ctx, node) ) {
+            if ( callee->kind != XL6_AST_NAME &&
+                 callee->kind != XL6_AST_GENERIC_INSTANT &&
+                 xl6CgenClassProtocolCallExpr(ctx, node) ) {
                 break;
             }
             if ( xl6CgenBaseCtorCall(ctx, node) ) {
@@ -480,7 +506,12 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             if ( xl6CgenClassConstructorExpr(ctx, node) ) {
                 break;
             }
-            if ( callee->kind != XL6_AST_NAME ) {
+            /*
+                显式泛型调用已经由 HIR 解析为静态实例，必须先进入下方泛型直调。
+                它本身也携带完整 func 类型，但不能因此误降级成动态函数对象调用。
+            */
+            if ( callee->kind != XL6_AST_NAME &&
+                 callee->kind != XL6_AST_GENERIC_INSTANT ) {
                 XL6_AstNode* calleeType = xl6CgenCloneExprTypeForInference(ctx, callee);
                 if ( xl6CgenIsFunctionType(calleeType) ) {
                     xl6CgenFunctionInvokeExpr(ctx, callee, calleeType, node->childCount > 1 ? node->children[1] : NULL);
@@ -543,7 +574,12 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             if ( callee->kind == XL6_AST_NAME ) {
                 XL6_AstNode* externFunc = xl6CgenFindExternFunc(ctx, callee->text);
                 XL6_AstNode* exportFunc = xl6CgenFindExportFunc(ctx, callee->text);
-                const XL6_AstNode* functionVarType = xl6CgenFindVarType(ctx, callee->text);
+                const XL6_HirNode* callPlan = xl6CgenHirNode(ctx, node);
+                int isResolvedDirectCall = callPlan != NULL &&
+                    (callPlan->callKind == XL6_SEM_CALL_DIRECT ||
+                     callPlan->callKind == XL6_SEM_CALL_GENERIC_DIRECT);
+                const XL6_AstNode* functionVarType = isResolvedDirectCall ?
+                    NULL : xl6CgenFindVarType(ctx, callee->text);
                 if ( xl6CTextEquals(callee->text, "type") ) {
                     const XL6_AstNode* args = node->childCount > 1 ? node->children[1] : NULL;
                     const XL6_AstNode* arg = args != NULL && args->childCount == 1 ? args->children[0] : NULL;
@@ -564,11 +600,27 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                     xl6CgenVarFunctionInvoke(ctx, callee->text, node->childCount > 1 ? node->children[1] : NULL);
                     break;
                 }
+                if ( xl6CgenIsNullableType(functionVarType) ) {
+                    XL6_AstNode* narrowedType =
+                        xl6CgenCloneExprTypeForInference(ctx, callee);
+
+                    if ( xl6CgenIsFunctionType(narrowedType) ) {
+                        xl6CgenFunctionInvokeExpr(
+                            ctx,
+                            callee,
+                            narrowedType,
+                            node->childCount > 1 ? node->children[1] : NULL);
+                        xl6AstFree(narrowedType);
+                        break;
+                    }
+                    xl6AstFree(narrowedType);
+                }
                 if ( xl6CgenIsFunctionType(functionVarType) ) {
                     xl6CgenFunctionInvoke(ctx, callee->text, functionVarType, node->childCount > 1 ? node->children[1] : NULL);
                     break;
                 }
-                if ( xl6CgenClassProtocolCallExpr(ctx, node) ) {
+                /* 已解析的直接函数调用不能被同名局部变量的后端跟踪记录改写。 */
+                if ( !isResolvedDirectCall && xl6CgenClassProtocolCallExpr(ctx, node) ) {
                     break;
                 }
                 if ( externFunc != NULL ) {
@@ -677,24 +729,6 @@ static int xl6CgenTypeNodeApproxKind(XL6_CgenContext* ctx, const XL6_AstNode* ty
     return 0;
 }
 
-static int xl6CgenCTypeApproxKind(const char* cType)
-{
-    if ( cType == NULL ) {
-        return 0;
-    }
-    if ( xl6CTextEquals(cType, "long long") || xl6CTextEquals(cType, "int") ||
-         xl6CTextEquals(cType, "unsigned long long") || xl6CTextEquals(cType, "unsigned int") ) {
-        return 1;
-    }
-    if ( xl6CTextEquals(cType, "double") || xl6CTextEquals(cType, "float") ) {
-        return 2;
-    }
-    if ( xl6CTextEquals(cType, "const char*") ) {
-        return 3;
-    }
-    return 0;
-}
-
 static int xl6CgenExprApproxKind(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
     if ( expr == NULL ) {
@@ -721,10 +755,7 @@ static int xl6CgenExprApproxKind(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         XL6_AstNode* callType = xl6CgenCloneExprTypeForInference(ctx, expr);
         int kind = xl6CgenTypeNodeApproxKind(ctx, callType);
         xl6AstFree(callType);
-        if ( kind != 0 ) {
-            return kind;
-        }
-        return xl6CgenCTypeApproxKind(xl6CgenInferExprType(ctx, expr));
+        return kind;
     }
     case XL6_AST_UNARY:
         if ( xl6CTextEquals(expr->text, "+") || xl6CTextEquals(expr->text, "-") ) {
@@ -750,7 +781,7 @@ static int xl6CgenExprApproxKind(XL6_CgenContext* ctx, const XL6_AstNode* expr)
             }
             return 0;
         }
-        return xl6CgenCTypeApproxKind(xl6CgenInferExprType(ctx, expr));
+        return 0;
     default:
         return 0;
     }
@@ -772,8 +803,12 @@ static int xl6CgenExprIntPowKind(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6AstFree(memberType);
         return isInt;
     }
-    case XL6_AST_CALL:
-        return xl6CgenCTypeApproxKind(xl6CgenInferExprType(ctx, expr)) == 1;
+    case XL6_AST_CALL: {
+        XL6_AstNode* callType = xl6CgenCloneExprTypeForInference(ctx, expr);
+        int isInt = xl6CgenTypeNodeApproxKind(ctx, callType) == 1;
+        xl6AstFree(callType);
+        return isInt;
+    }
     case XL6_AST_UNARY:
         if ( xl6CTextEquals(expr->text, "+") || xl6CTextEquals(expr->text, "-") ||
              xl6CTextEquals(expr->text, "~") ) {

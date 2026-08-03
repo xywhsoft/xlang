@@ -11,6 +11,10 @@ class Player extends object
     int id = 0
     string name = ""
     Stats stats = Stats()
+    int? score = null
+    string? alias = null
+    Stats? backup = null
+    array<int>? levels = null
     var tags = []
 end
 
@@ -22,6 +26,11 @@ p.id = 7
 p.name = "hero"
 p.stats.hp = 120
 p.stats.speed = 3.5
+p.score = 42
+p.backup = Stats()
+Stats backup = p.backup as Stats
+backup.hp = 80
+p.levels = array[3, 5, 8]
 p.tags = ["tank", "lead"]
 p.rank = 9
 
@@ -30,6 +39,17 @@ auto fromJson = json.parse::<Player>(jsonText)
 expect(fromJson.id, 7)
 expectText(fromJson.name, "hero")
 expect(fromJson.stats.hp, 120)
+assert fromJson.score != null, "nullable scalar should survive JSON"
+expect(fromJson.score as int, 42)
+assert fromJson.alias == null, "nullable string null should survive JSON"
+Stats jsonBackup = fromJson.backup as Stats
+expect(jsonBackup.hp, 80)
+array<int>? jsonLevelsMaybe = fromJson.levels
+if jsonLevelsMaybe != null then
+    expect(jsonLevelsMaybe[2], 8)
+else
+    throw "nullable array should survive JSON"
+end
 expect(int(fromJson.rank), 9)
 expectText(string(fromJson.tags[0]), "tank")
 
@@ -38,6 +58,17 @@ auto fromXson = xson.parse::<Player>(xsonText)
 expect(fromXson.id, 7)
 expectText(fromXson.name, "hero")
 expect(fromXson.stats.hp, 120)
+assert fromXson.score != null, "nullable scalar should survive XSON"
+expect(fromXson.score as int, 42)
+assert fromXson.alias == null, "nullable string null should survive XSON"
+Stats xsonBackup = fromXson.backup as Stats
+expect(xsonBackup.hp, 80)
+array<int>? xsonLevelsMaybe = fromXson.levels
+if xsonLevelsMaybe != null then
+    expect(xsonLevelsMaybe[1], 5)
+else
+    throw "nullable array should survive XSON"
+end
 expect(int(fromXson.rank), 9)
 expectText(string(fromXson.tags[1]), "lead")
 

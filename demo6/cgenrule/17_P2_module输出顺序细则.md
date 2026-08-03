@@ -1,4 +1,4 @@
-﻿# P2 module 输出顺序细则
+# P2 module 输出顺序细则
 
 本文继续细化 `xl6_cgen_module.c` 的规则。这个文件不是单一语法节点的生成器，而是 C 输出的总装配器：它决定运行时片段注入顺序、声明顺序、函数体顺序、`main` 包装策略，以及生成失败时的资源释放。
 
@@ -68,7 +68,7 @@
 |---|---|
 | xlang 写法 | 使用 `var`、容器、函数值、隐性类类型描述、xlang `main(...)` |
 | 生成规则描述 | 只要模块需要动态值 runtime，就输出完整 xvalue runtime 和运行时类型描述。`argc/argv` 到 `xvalue array` 的构造 helper 独立于完整 xvalue runtime：只要存在 xlang `main` 或顶层运行语句，就额外输出轻量 `xvalue` typedef、四个 XRT 原型和 `xl6_argv_to_arg` helper，用于把 C `argc/argv` 映射到 xlang `arg`，避免最小脚本被迫注入整套 xvalue helper。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:105`、`demo6/src/cgen/xl6_cgen_module.c:106`、`demo6/src/cgen/xl6_cgen_module.c:109`、`demo6/src/cgen/xl6_cgen_main.c:1` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:105`、`demo6/src/cgen/xl6_cgen_module.c:106`、`demo6/src/cgen/xl6_cgen_module.c:109`、`demo6/src/cgen/xl6_cgen_main_globals.c:1` |
 | 对应生成的 C 代码 | 完整 xvalue helper、类型描述表，或仅 `typedef struct xvalue_struct* xvalue;`、`xvoCreateArray`、`xvoCreateText`、`xvoArrayAppendValue`、`xvoUnref` 与 `xl6_argv_to_arg`。 |
 | 中间形态伪代码 | `if needs.xvalue: emitXValueRuntime(); emitRuntimeTypeDescs(); if mainFunc or hasTopLevel: emitMainArgvArrayHelper()` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要人工构造动态值数组；只有真正使用动态值能力时才需要维护完整 xvalue helper。 |
@@ -116,7 +116,7 @@
 |---|---|
 | xlang 写法 | `extern func`、`extern var`、`export func`、`export var`、普通 `func`、`async func` |
 | 生成规则描述 | 顶层声明阶段按 AST 顺序处理：extern 函数输出外部原型，extern 变量输出外部声明，export 函数输出内部原型和 wrapper 原型，显式绑定 C 符号的 export 变量或常量输出 ABI 定义，普通函数输出原型，async 函数输出异步原型。未显式声明 C ABI 符号的普通模块全局量则编码为稳定的 `__xl6_user_global_<name>` 存储名，并使用 C `static` 内部链接；后续读取、写入、清理、闭包、异步和容器操作统一引用该存储名，避免合法的 xlang 标识符与 XRT/CRT 的 typedef、函数或其他 C 全局符号冲突。显式 `extern "symbol"`、`export "symbol"` 必须保留指定的 ABI 名。 |
-| 生成器文件名和行号 | 顶层 ABI 声明 `demo6/src/cgen/xl6_cgen_module.c:430`；内部存储命名 `demo6/src/cgen/xl6_cgen_core_state.c:34`；模块全局声明 `demo6/src/cgen/xl6_cgen_main.c:304` |
+| 生成器文件名和行号 | 顶层 ABI 声明 `demo6/src/cgen/xl6_cgen_module.c:430`；内部存储命名 `demo6/src/cgen/xl6_cgen_core_state.c:34`；模块全局声明 `demo6/src/cgen/xl6_cgen_main_globals.c:304` |
 | 对应生成的 C 代码 | `extern ...;`、export wrapper 原型、显式 C ABI 全局变量定义；普通 `point ptr = null` 生成 `static void* __xl6_user_global_ptr;`。 |
 | 中间形态伪代码 | `if decl.hasExplicitCAbi: keepAbiName(); else if decl.isModuleGlobal: storage = encode("__xl6_user_global_", sourceName); linkage = internal; else emitFuncProto()` |
 | 实现同等功能手写的 C 代码 | 手写 C 通常需要在文件顶部手动写函数原型和全局变量定义。 |
@@ -212,7 +212,7 @@
 |---|---|
 | xlang 写法 | 文件顶层直接写可执行语句，或声明 `func main(...) as int` |
 | 生成规则描述 | 只要模块具有入口运行内容，就生成幂等的 `xl_script_module_init(xvalue arg)` 与 `xl_script_module_unit()`。init 负责全局初始化和顶层运行语句，失败时清理已建立状态；unit 等待 async 空闲、逆序释放模块资源并清理参数状态。固定 `xlang_main` 调用 init，按需调用用户 main，最后保证 unit。 |
-| 生成器文件名和行号 | 调度 `demo6/src/cgen/xl6_cgen_module.c:532-540`，生命周期和固定入口 `demo6/src/cgen/xl6_cgen_main.c:1080-1188` |
+| 生成器文件名和行号 | 调度 `demo6/src/cgen/xl6_cgen_module.c:532-540`，生命周期和固定入口 `demo6/src/cgen/xl6_cgen_main_entry.c:319-427` |
 | 对应生成的 C 代码 | `int xl_script_module_init(xvalue arg) { ... } void xl_script_module_unit(void) { ... } int xlang_main(xvalue arg) { if (!xl_script_module_init(arg)) return 0; code = user_main(arg); xl_script_module_unit(); return code; }` |
 | 中间形态伪代码 | `module init(top-level/global state); user main if present; module unit(cleanups); return code` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要显式维护模块初始化标志、失败回滚、异步等待和逆序资源释放。 |
@@ -224,7 +224,7 @@
 |---|---|
 | xlang 写法 | 顶层语句里使用 `throw`、`assert` 或可能产生 xlang 错误的表达式 |
 | 生成规则描述 | 顶层初始化错误先进入 `__xl6_module_init_error`，等待异步、清理参数状态和临时作用域后返回失败。用户 main 返回后若仍有错误，`xlang_main` 进入 `__xl6_script_error`，先调用 module unit 再返回失败；未捕获错误的打印和清理由外层 C main 或嵌入错误桥负责，避免模块入口重复消费错误。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main.c:1095-1142`、`demo6/src/cgen/xl6_cgen_main.c:1161-1188`、错误桥 `demo6/src/cgen/xl6_cgen_main_wrapper.c:43-62` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_main_entry.c:334-381`、`demo6/src/cgen/xl6_cgen_main_entry.c:400-427`、错误桥 `demo6/src/cgen/xl6_cgen_main_wrapper.c:43-62` |
 | 对应生成的 C 代码 | `if (xl6_error_has()) goto __xl6_module_init_error; ... if (xl6_error_has()) goto __xl6_script_error; __xl6_script_error: xl_script_module_unit(); return 0;` |
 | 中间形态伪代码 | `init error -> rollback init; main error -> module unit; outer host reads/prints error` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要区分初始化失败、用户入口失败与宿主诊断职责，并保证所有路径只卸载一次。 |

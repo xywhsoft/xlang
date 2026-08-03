@@ -31,6 +31,7 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 - `check_example_wiring.ps1`
 - `check_format_extlibs.ps1`
 - `check_frontend_fuzz.ps1`
+- `check_generated_c_warnings.ps1`
 - `check_markdown_links.ps1`
 - `check_negative_diagnostics.ps1`
 - `check_package_fixtures.ps1`
@@ -40,6 +41,7 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 - `check_risk_ledger.ps1`
 - `check_source_encoding.ps1`
 - `check_source_wiring.ps1`
+- `check_typed_hir_contract.ps1`
 - `check_standalone_compiler_vfs.ps1`
 - `check_stdlib_coverage.ps1`
 - `check_stdlib_dll_symbols.ps1`
@@ -56,6 +58,8 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 `check_async_task_soak.ps1` runs a focused async/task/concurrency soak guard. The default mode covers direct `xl run` entries plus the `cgen_task_spawn.xl` build/run artifact path; use `-Repeat N -IncludeHeavy` before release cuts to include the larger `release\examples\task_api.xl` and `cgen_task_api.xl` paths.
 
 `check_frontend_fuzz.ps1` builds and runs the deterministic lexer/parser mutation harness. CI enables `-Sanitize` on Linux so address and undefined-behavior failures stop the build; the normal Windows suite runs the same corpus without requiring an external sanitizer runtime.
+
+`check_generated_c_warnings.ps1` compiles representative generated C translation units with GCC warning errors for missing returns and incompatible pointer types. It is part of both the full artifact-closure suite and the RC0 guard.
 
 `check_debugger_not_released.ps1` verifies that the incomplete probe/DAP prototype is not advertised or accepted by the first-release CLI. A real debugger must return through a new reviewed design and cannot reuse synthetic stack or variable responses.
 

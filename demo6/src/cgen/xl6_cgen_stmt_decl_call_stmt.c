@@ -180,6 +180,7 @@ static int xl6CgenTryKnownCallStatementWithScalarArgTemps(XL6_CgenContext* ctx, 
     ctx->exprReplacements = prevExprReplacements;
     ctx->exprReplacementCount = prevExprReplacementCount;
 
+    xl6CgenDeclDestroyCallArgTemps(ctx, temps, fixedCount);
     xrtFree(replacements);
     xl6CgenDeclFreeCallArgTemps(temps, fixedCount);
     return 1;

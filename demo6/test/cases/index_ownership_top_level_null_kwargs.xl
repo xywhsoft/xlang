@@ -1,0 +1,9 @@
+// 空值赋值与字典可变参数在模块初始化阶段必须独立释放。
+auto maybe = [null]
+maybe[0] ?= 9
+
+func options(string path, ***) as int
+    return int(arg["retry"]) + int(arg["mode"])
+end
+
+int result = int(maybe[0]) + options("demo.txt", retry = 3, mode = 4)

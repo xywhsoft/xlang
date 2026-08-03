@@ -1,4 +1,4 @@
-﻿static void xl6CgenNeedsAddDeclVarType(
+static void xl6CgenNeedsAddDeclVarType(
     XL6_CgenContext* ctx,
     const char* name,
     const XL6_AstNode* typeNode,
@@ -15,14 +15,31 @@
 
 static int xl6CgenNeedsTypeIsString(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
-    const XL6_AstNode* concreteType;
-
     if ( ctx == NULL || typeNode == NULL ) {
         return 0;
     }
+    return xl6CgenIsOwnedStringTypeNode(ctx, typeNode);
+}
 
-    concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
-    return concreteType != NULL && xl6CTextEquals(concreteType->text, "string");
+static int xl6CgenNeedsParamListHasString(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* params)
+{
+    size_t i;
+
+    if ( ctx == NULL || params == NULL ) {
+        return 0;
+    }
+
+    for ( i = 0; i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+
+        if ( param != NULL && param->childCount > 0 &&
+             xl6CgenNeedsTypeIsString(ctx, param->children[0]) ) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 static int xl6CgenNeedsClassValueDeriveStringTempCopy(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
@@ -84,7 +101,9 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
         return 1;
     }
     if ( node->kind == XL6_AST_CALL &&
-         (xl6CgenCallIsExternalStringReturn(ctx, node) || xl6CgenExprStaticTypeIs(ctx, node, "string")) ) {
+         (xl6CgenCallIsExternalStringReturn(ctx, node) ||
+          (xl6CgenExprHasStaticValueType(ctx, node) &&
+           xl6CgenExprStaticTypeIs(ctx, node, "string"))) ) {
         return 1;
     }
     if ( xl6CgenBinaryPlusIsString(ctx, node) ) {
@@ -106,6 +125,7 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
           node->kind == XL6_AST_SAFE_INDEX ||
           node->kind == XL6_AST_MEMBER ||
           node->kind == XL6_AST_SAFE_MEMBER) &&
+         xl6CgenExprHasStaticValueType(ctx, node) &&
          xl6CgenExprStaticTypeIs(ctx, node, "string") ) {
         return 1;
     }
@@ -115,6 +135,9 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
         const XL6_AstNode* initExpr = node->childCount > 1 ? node->children[1] : NULL;
 
         if ( initExpr != NULL && xl6CgenNodeNeedsStringRuntime(ctx, initExpr) ) {
+            return 1;
+        }
+        if ( xl6CgenNeedsTypeIsString(ctx, typeNode) ) {
             return 1;
         }
         if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "auto") ) {
@@ -154,7 +177,8 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
         } else if ( ctx->currentNativeClass != NULL ) {
             xl6CgenAddVarType(ctx, "self", ctx->currentNativeClass);
         }
-        returnNeedsString = xl6CgenNeedsReturnListHasString(ctx, returns);
+        returnNeedsString = xl6CgenNeedsParamListHasString(ctx, params) ||
+                            xl6CgenNeedsReturnListHasString(ctx, returns);
         xl6CgenRegisterParamTypes(ctx, params);
         ctx->currentAnonFunc = anonInfo;
         xl6CgenRegisterAnonCaptureTypes(ctx, anonInfo);
@@ -303,7 +327,19 @@ static int xl6CgenTypeConvertCallNeedsRuntime(XL6_CgenContext* ctx, const XL6_As
     source = sourceType != NULL ? sourceType->text : NULL;
     result = 0;
 
-    if ( xl6CgenIsIntegerTypeName(target) && xl6CgenIsFloatTypeName(source) ) {
+    /*
+        var/xvalue 到静态标量的转换会生成 xl6_xrt_value_to_* helper。
+        needs 必须以真实存储类型判断，不能只枚举旧的字符串/数值转换组合。
+    */
+    if ( xl6CgenIsXValueType(sourceType) &&
+         (xl6CgenIsIntegerTypeName(target) ||
+          xl6CgenIsFloatTypeName(target) ||
+          xl6CgenIsBoolTypeName(target) ||
+          xl6CTextEquals(target, "string") ||
+          xl6CTextEquals(target, "time") ||
+          xl6CTextEquals(target, "point")) ) {
+        result = 1;
+    } else if ( xl6CgenIsIntegerTypeName(target) && xl6CgenIsFloatTypeName(source) ) {
         result = 1;
     } else if ( (xl6CgenIsIntegerTypeName(target) || xl6CgenIsFloatTypeName(target) || xl6CTextEquals(target, "time")) &&
                 xl6CTextEquals(source, "string") ) {
@@ -319,6 +355,83 @@ static int xl6CgenTypeConvertCallNeedsRuntime(XL6_CgenContext* ctx, const XL6_As
     return result;
 }
 
+static int xl6CgenCallNeedsXValueScalarBridge(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* call)
+{
+    const XL6_AstNode* target;
+    const XL6_AstNode* params;
+    const XL6_AstNode* args;
+    int fixedCount;
+    int i;
+
+    if ( ctx == NULL || call == NULL || call->kind != XL6_AST_CALL ) {
+        return 0;
+    }
+    target = xl6CgenHirTarget(ctx, call);
+    params = xl6CgenCallableParams(target);
+    args = call->childCount > 1 ? call->children[1] : NULL;
+    fixedCount = xl6CgenFixedParamCount(params);
+    for ( i = 0; i < fixedCount; ++i ) {
+        const XL6_AstNode* param = params != NULL && (size_t)i < params->childCount
+            ? params->children[i]
+            : NULL;
+        const XL6_AstNode* targetType = param != NULL && param->childCount > 0
+            ? param->children[0]
+            : NULL;
+        const XL6_AstNode* expr = param != NULL
+            ? xl6CgenFindArgForParam(args, param->text, i)
+            : NULL;
+
+        if ( xl6CgenExprNeedsXValueScalarBridge(ctx, targetType, expr) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int xl6CgenAssignNeedsXValueScalarBridge(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* node)
+{
+    XL6_AstNode* targetType;
+    int result;
+
+    if ( ctx == NULL || node == NULL || node->kind != XL6_AST_ASSIGN ||
+         node->childCount < 2 ) {
+        return 0;
+    }
+    targetType = xl6CgenCloneExprTypeForInference(ctx, node->children[0]);
+    result = xl6CgenExprNeedsXValueScalarBridge(
+        ctx,
+        targetType,
+        node->children[1]);
+    xl6AstFree(targetType);
+    return result;
+}
+
+static int xl6CgenReturnNeedsXValueScalarBridge(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( ctx == NULL || node == NULL || node->kind != XL6_AST_RETURN ||
+         ctx->currentReturns == NULL ||
+         node->childCount != ctx->currentReturns->childCount ) {
+        return 0;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenExprNeedsXValueScalarBridge(
+                ctx,
+                ctx->currentReturns->children[i],
+                node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     size_t i;
@@ -330,6 +443,11 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
         return 1;
     }
     if ( xl6CgenTypeConvertCallNeedsRuntime(ctx, node) ) {
+        return 1;
+    }
+    if ( xl6CgenCallNeedsXValueScalarBridge(ctx, node) ||
+         xl6CgenAssignNeedsXValueScalarBridge(ctx, node) ||
+         xl6CgenReturnNeedsXValueScalarBridge(ctx, node) ) {
         return 1;
     }
     if ( xl6CgenFStringNeedsTypeConvertRuntime(ctx, node) ) {
@@ -347,6 +465,9 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
         const XL6_AstNode* initExpr = node->childCount > 1 ? node->children[1] : NULL;
 
         if ( initExpr != NULL && xl6CgenNodeNeedsTypeConvertRuntime(ctx, initExpr) ) {
+            return 1;
+        }
+        if ( xl6CgenExprNeedsXValueScalarBridge(ctx, typeNode, initExpr) ) {
             return 1;
         }
         if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "auto") ) {
@@ -370,6 +491,7 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
                                       : NULL;
         XL6_CgenAnonFunc* anonInfo = node->kind == XL6_AST_ANON_FUNC ? xl6CgenFindAnonFuncInfo(ctx, node) : NULL;
         const XL6_CgenAnonFunc* prevAnon = ctx->currentAnonFunc;
+        const XL6_AstNode* prevReturns = ctx->currentReturns;
         size_t varMark = ctx->varCount;
         size_t cleanupMark = ctx->cleanupCount;
         int result;
@@ -384,8 +506,12 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
         }
         xl6CgenRegisterParamTypes(ctx, params);
         ctx->currentAnonFunc = anonInfo;
+        ctx->currentReturns = node->childCount > (node->kind == XL6_AST_ANON_FUNC ? 1 : 2)
+            ? node->children[node->kind == XL6_AST_ANON_FUNC ? 1 : 2]
+            : NULL;
         xl6CgenRegisterAnonCaptureTypes(ctx, anonInfo);
         result = xl6CgenNodeNeedsTypeConvertRuntime(ctx, body);
+        ctx->currentReturns = prevReturns;
         ctx->currentAnonFunc = prevAnon;
         xl6CgenFreeCleanupsSince(ctx, cleanupMark);
         xl6CgenFreeVarsSince(ctx, varMark);
@@ -409,6 +535,15 @@ static int xl6CgenNodeNeedsTypeConvertRuntime(XL6_CgenContext* ctx, const XL6_As
         xl6CgenFreeCleanupsSince(ctx, cleanupMark);
         xl6CgenFreeVarsSince(ctx, varMark);
         return result;
+    }
+
+    if ( node->kind == XL6_AST_FIELD ) {
+        const XL6_AstNode* typeNode = node->childCount > 0 ? node->children[0] : NULL;
+        const XL6_AstNode* initExpr = node->childCount > 1 ? node->children[1] : NULL;
+
+        if ( xl6CgenExprNeedsXValueScalarBridge(ctx, typeNode, initExpr) ) {
+            return 1;
+        }
     }
 
     if ( node->kind == XL6_AST_FOR ) {
@@ -704,19 +839,57 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
     if ( node->kind == XL6_AST_CALL && node->childCount > 0 &&
          node->children[0] != NULL && node->children[0]->kind == XL6_AST_NAME ) {
         const XL6_AstNode* functionType = xl6CgenFindVarType(ctx, node->children[0]->text);
-        if ( xl6CgenIsFunctionType(functionType) ||
+        const XL6_AstNode* callableType = xl6CgenResolveAliasType(ctx, functionType);
+
+        if ( xl6CgenIsNullableType(callableType) ) {
+            callableType = xl6CgenResolveAliasType(
+                ctx,
+                xl6CgenNullableInnerType(callableType)
+            );
+        }
+        if ( xl6CgenIsFunctionType(callableType) ||
              (functionType != NULL && xl6CTextEquals(functionType->text, "var")) ) {
             return 1;
         }
     }
     if ( node->kind == XL6_AST_CALL && node->childCount > 0 &&
-         node->children[0] != NULL && node->children[0]->kind == XL6_AST_MEMBER ) {
+         node->children[0] != NULL && node->children[0]->kind == XL6_AST_MEMBER &&
+         xl6CgenExprHasStaticValueType(ctx, node->children[0]) ) {
         XL6_AstNode* memberType = xl6CgenCloneMemberFieldTypeForInference(ctx, node->children[0]);
-        int needsRuntime = xl6CgenIsFunctionType(memberType) ||
-                           (memberType != NULL && xl6CTextEquals(memberType->text, "var"));
+        const XL6_AstNode* callableType = xl6CgenResolveAliasType(ctx, memberType);
+        int needsRuntime;
+
+        if ( xl6CgenIsNullableType(callableType) ) {
+            callableType = xl6CgenResolveAliasType(
+                ctx,
+                xl6CgenNullableInnerType(callableType)
+            );
+        }
+        needsRuntime = xl6CgenIsFunctionType(callableType) ||
+                       (memberType != NULL && xl6CTextEquals(memberType->text, "var"));
         xl6AstFree(memberType);
         if ( needsRuntime ) {
             return 1;
+        }
+    }
+
+    /* CALL with bare function name argument passed to var parameter */
+    if ( node->kind == XL6_AST_CALL && node->childCount > 1 && node->children[1] != NULL ) {
+        const XL6_AstNode* args = node->children[1];
+        size_t argIdx;
+        for ( argIdx = 0; argIdx < args->childCount; ++argIdx ) {
+            const XL6_AstNode* arg = args->children[argIdx];
+            /* arguments are wrapped in XL6_AST_ARG nodes, unwrap to get the actual expression */
+            if ( arg != NULL && arg->kind == XL6_AST_ARG && arg->childCount > 0 ) {
+                arg = arg->children[0];
+            }
+            if ( arg != NULL && arg->kind == XL6_AST_NAME &&
+                 xl6CgenFindVarType(ctx, arg->text) == NULL ) {
+                int bareCount = 0;
+                if ( xl6CgenFindUniqueBareFunctionValueFunc(ctx, arg->text, &bareCount) != NULL ) {
+                    return 1;
+                }
+            }
         }
     }
 
@@ -747,6 +920,13 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
                 xl6AstFree(initType);
                 if ( needsRuntime ) {
                     return 1;
+                }
+                /* bare function name assigned to var: var f = someFunc */
+                if ( initExpr->kind == XL6_AST_NAME && xl6CgenFindVarType(ctx, initExpr->text) == NULL ) {
+                    int bareCount = 0;
+                    if ( xl6CgenFindUniqueBareFunctionValueFunc(ctx, initExpr->text, &bareCount) != NULL ) {
+                        return 1;
+                    }
                 }
             }
         }
@@ -885,4 +1065,50 @@ static int xl6CgenProgramNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6
         }
     }
     return 0;
+}
+
+/* Scan entire AST for CALL nodes with bare function name arguments.
+ * This catches the case where a function name is passed directly to
+ * an extern var parameter, e.g. xge.xgeTutorialRun(on_frame). */
+static int xl6CgenNodeHasBareFuncCallArg(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+
+    if ( node->kind == XL6_AST_CALL && node->childCount > 1 && node->children[1] != NULL ) {
+        const XL6_AstNode* args = node->children[1];
+        size_t argIdx;
+        for ( argIdx = 0; argIdx < args->childCount; ++argIdx ) {
+            const XL6_AstNode* arg = args->children[argIdx];
+            /* arguments are wrapped in XL6_AST_ARG nodes, unwrap to get the actual expression */
+            if ( arg != NULL && arg->kind == XL6_AST_ARG && arg->childCount > 0 ) {
+                arg = arg->children[0];
+            }
+            if ( arg != NULL && arg->kind == XL6_AST_NAME &&
+                 xl6CgenFindVarType(ctx, arg->text) == NULL ) {
+                int bareCount = 0;
+                if ( xl6CgenFindUniqueBareFunctionValueFunc(ctx, arg->text, &bareCount) != NULL ) {
+                    return 1;
+                }
+            }
+        }
+    }
+
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeHasBareFuncCallArg(ctx, node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int xl6CgenProgramHasBareFuncCallArg(XL6_CgenContext* ctx, const XL6_AstNode* root)
+{
+    int result = xl6CgenNodeHasBareFuncCallArg(ctx, root);
+    xl6CgenFreeCleanupsSince(ctx, 0);
+    xl6CgenFreeVarsSince(ctx, 0);
+    return result;
 }

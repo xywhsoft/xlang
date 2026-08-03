@@ -1,0 +1,21 @@
+class BoundTarget
+    int stored = 0
+
+    create(int value)
+        self.stored = value
+    end
+
+    func read() as int
+        return self.stored
+    end
+end
+
+var boundTarget = BoundTarget(73)
+
+func main(...) as int
+    var reader = boundTarget.read
+    boundTarget = null
+    assert int(reader()) == 73
+    println("dynamic bound method lifetime ok")
+    return 0
+end

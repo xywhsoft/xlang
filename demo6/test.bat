@@ -38,7 +38,13 @@ call test\suites\02_language_frontend.bat
 if errorlevel 1 exit /b 1
 call test\suites\03_cgen_runtime_core.bat
 if errorlevel 1 exit /b 1
+call test\suites\03_type_semantics.bat
+if errorlevel 1 exit /b 1
 call test\suites\04_oop_abi_export.bat
+if errorlevel 1 exit /b 1
+call test\suites\04_user_protocol.bat
+if errorlevel 1 exit /b 1
+call test\suites\04_enum_match.bat
 if errorlevel 1 exit /b 1
 call test\suites\05_semantics_exceptions_concurrency_base.bat
 if errorlevel 1 exit /b 1

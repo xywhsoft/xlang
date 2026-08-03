@@ -31,6 +31,7 @@ for %%f in (
     07_containers.xl
     08_generics.xl
     12_errors_and_docs.xl
+    13_modern_type_semantics.xl
 ) do (
     echo RUN %%f
     release\xl.exe run "release\examples\tutorial\%%f"

@@ -255,11 +255,15 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     if ( declaredAuto ) {
         XL6_AstNode* inferredTypeNode;
-        cType = initExpr != NULL ? xl6CgenInferExprType(ctx, initExpr) : "int";
+
         inferredTypeNode = xl6CgenCloneExprTypeForInference(ctx, initExpr);
         if ( inferredTypeNode != NULL ) {
             xl6CgenOwnTypeNode(ctx, inferredTypeNode);
             typeNode = inferredTypeNode;
+            cType = xl6CgenValueStorageCType(ctx, inferredTypeNode);
+        } else {
+            xl6CgenError(ctx, node, "typed HIR is missing the auto declaration type");
+            cType = "int";
         }
     } else {
         cType = typeNode != NULL ? xl6CgenTypeName(ctx, typeNode) : "int";
@@ -327,6 +331,50 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         return;
     }
     if ( initExpr != NULL && xl6CgenDeclTryTemporaryClassFieldInit(ctx, node, typeNode, cType, cName, initExpr) ) {
+        return;
+    }
+    if ( xl6CgenNullableTaggedDecl(ctx, node, typeNode, cName, initExpr) ) {
+        xl6CgenAddNullableManagedCleanup(ctx, node->text, typeNode);
+        return;
+    }
+    if ( xl6CgenWeakDecl(ctx, node, typeNode, cName, initExpr) ) {
+        return;
+    }
+    if ( xl6CgenIsNullableType(typeNode) &&
+         xl6CgenIsTypedContainerType(ctx, xl6CgenNullableInnerType(typeNode)) ) {
+        const XL6_AstNode* innerType = xl6CgenNullableInnerType(typeNode);
+        const XL6_AstNode* literal =
+            xl6CgenTypedContainerInitLiteral(ctx, innerType, initExpr);
+        XL6_HirOwnership ownership = xl6CgenHirOwnership(ctx, initExpr);
+
+        xl6OutputPrintf(
+            ctx->out,
+            "%s %s = ",
+            xl6CgenTypedContainerCType(ctx, innerType),
+            cName);
+        if ( initExpr == NULL || initExpr->kind == XL6_AST_NULL ) {
+            xl6OutputPuts("0", ctx->out);
+        } else if ( literal != NULL ) {
+            xl6CgenTypedContainerCreateExpr(ctx, innerType);
+        } else if ( ownership == XL6_HIR_OWNERSHIP_MOVE ) {
+            xl6CgenExpr(ctx, initExpr);
+        } else {
+            xl6CgenTypedContainerRetainExpr(ctx, innerType, initExpr);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenAddVarTypeWithFlags(
+            ctx,
+            node->text,
+            typeNode,
+            XL6_CGEN_VAR_TYPED_CONTAINER);
+        xl6CgenAddTypedContainerCleanup(ctx, node->text, innerType);
+        if ( literal != NULL ) {
+            xl6CgenTypedContainerFillFromLiteral(
+                ctx,
+                cName,
+                innerType,
+                initExpr);
+        }
         return;
     }
     if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
@@ -405,6 +453,18 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         }
         return;
     }
+    if ( xl6CgenIsTaggedEnumType(ctx, typeNode) ) {
+        xl6CgenAddVarType(ctx, node->text, typeNode);
+        xl6CgenAddTypedValueCleanup(ctx, node->text, typeNode);
+        xl6OutputPrintf(ctx->out, "%s %s = ", cType, cName);
+        if ( initExpr != NULL ) {
+            xl6CgenTaggedEnumValueExpr(ctx, typeNode, initExpr);
+        } else {
+            xl6OutputPrintf(ctx->out, "(%s){0}", cType);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+        return;
+    }
     if ( xl6CgenIsXValueType(typeNode) ) {
         XL6_AstNode* narrowType = NULL;
         XL6_AstNode* inferredType = NULL;
@@ -456,9 +516,42 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         }
         return;
     }
+    if ( xl6CgenIsNullableStringTypeNode(ctx, typeNode) ) {
+        xl6CgenAddVarType(ctx, node->text, typeNode);
+        xl6CgenAddStringCleanup(ctx, node->text, typeNode);
+        if ( initExpr != NULL &&
+             xl6CgenDeclTryStaticNullCoalesceInit(
+                 ctx,
+                 typeNode,
+                 cType,
+                 cName,
+                 initExpr) ) {
+            return;
+        }
+        xl6OutputPrintf(
+            ctx->out,
+            "const char* %s = xl6_nullable_string_copy(",
+            cName);
+        if ( initExpr != NULL ) {
+            xl6CgenExpr(ctx, initExpr);
+        } else {
+            xl6OutputPuts("0", ctx->out);
+        }
+        xl6OutputPuts(");\n", ctx->out);
+        return;
+    }
     if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
         xl6CgenAddVarType(ctx, node->text, typeNode);
         xl6CgenAddStringCleanup(ctx, node->text, typeNode);
+        if ( initExpr != NULL &&
+             xl6CgenDeclTryStaticNullCoalesceInit(
+                 ctx,
+                 typeNode,
+                 cType,
+                 cName,
+                 initExpr) ) {
+            return;
+        }
         if ( initExpr != NULL && xl6CgenDeclCanEmitCallArgTemp(ctx, typeNode, initExpr) ) {
             xl6OutputPrintf(ctx->out, "const char* %s = NULL;\n", cName);
             if ( !xl6CgenDeclEmitCallArgTemp(ctx, typeNode, "const char*", cName, initExpr) ) {

@@ -49,8 +49,12 @@ test\suites\02_language_frontend.bat
 以下前缀来自 `test/cases` 下递归发现的 `.xl` 用例。新增新前缀时，必须同步更新本节，避免测试资产变成只有批处理知道。
 
 <!-- case-prefix-index:start -->
+- `index`: indexed container read/write and temporary ownership regressions.
 - `runtime`: runtime type and dynamic value cases.
+- `bad`: focused negative regression cases for rejected source forms.
+- `contextual`: contextual keyword parsing and member-name cases.
 - `anonymous`：匿名函数基础用例。
+- `async`：异步函数、异步生成器和异步生命周期用例。
 - `c`：C ABI 类型用例。
 - `call`：调用参数、默认参数和命名参数用例。
 - `cgen`：代码生成、运行时 lowering 和生成 C 快照用例。
@@ -61,6 +65,8 @@ test\suites\02_language_frontend.bat
 - `container`：容器成员 API 和运算符补全用例。
 - `containers`：容器基础语义用例。
 - `control`：控制流用例。
+- `definite`：确定赋值数据流用例。
+- `enum`：数值枚举、带载荷枚举和 match 用例。
 - `export`：xlang 导出 C ABI 用例。
 - `extlib`：随发布包扩展库的 xlang 回归用例。
 - `extern`：C extern 函数/变量用例。
@@ -72,15 +78,19 @@ test\suites\02_language_frontend.bat
 - `invalid`：无效运算和无效 range 负例。
 - `layout`：布局和语句分隔用例。
 - `member`：成员与索引用例。
+- `nullable`：可空类型、空值收窄和安全访问用例。
 - `operators`：运算符基础用例。
 - `overload`：可变参数重载用例。
 - `overloads`：重载基础用例。
 - `parse`：解析器负例和边界诊断用例。
 - `perf`：长进程、递归分配和大 JSON/AST 生命周期性能回归。
+- `protocol`：用户协议、约束、见证表和动态派发用例。
 - `sem`：语义诊断负例。
 - `stdlib`：标准库函数与错误路径用例。
 - `type`：type 值和类型别名用例。
+- `typed`: typed container, nullable TypeDesc and ownership matrix cases.
 - `varargs`：可变参数基础用例。
+- `weak`：弱引用生命周期和升级用例。
 - `xlang`：xlang 嵌入、嵌套运行和脚本上下文用例。
 - `xl`：`xl run` 参数用例。
 <!-- case-prefix-index:end -->

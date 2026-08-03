@@ -1,4 +1,4 @@
-﻿# P1 声明、return 与多返回值细则
+# P1 声明、return 与多返回值细则
 
 本文细化 `xl6_cgen_stmt_decl.c` 与 `xl6_cgen_stmt_dispatch.c` 中声明、block cleanup、语句分派、return、多返回值声明/赋值的生成规则。class/native-backed class 的生命周期细节见 `12_P1_native_backed_class生命周期细则.md`，本文件只记录它们在声明分支中的入口和与其他声明规则的优先级。
 
@@ -236,7 +236,7 @@
 | --- | --- |
 | xlang 写法 | `arr[i], b = pair()` |
 | 生成规则描述 | 索引目标不能直接接收任意 C 类型。生成器先把返回字段按返回类型装箱成临时 xvalue，再调用 `xl6CgenIndexAssignTemp` 复用索引赋值规则写入容器。typed container setValue 成功后必须释放临时 xvalue；动态 dict key 路径还必须先释放临时 key，再释放临时 value。 |
-| 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:56`、`xl6_cgen_stmt_decl.c:186`、`xl6_cgen_stmt_decl.c:197`、`xl6_cgen_value_assign.c:10`、`xl6_cgen_value_assign.c:75`、`xl6_cgen_value_assign.c:1010` |
+| 生成器文件名和行号 | `xl6_cgen_stmt_decl.c:56`、`xl6_cgen_stmt_decl.c:186`、`xl6_cgen_stmt_decl.c:197`、`xl6_cgen_value_assign_target.c:10`、`xl6_cgen_value_assign_target.c:75`、`xl6_cgen_value_assign_stmt.c:246` |
 | 对应生成的 C 代码 | `xvalue __xl6_multi_index_1 = xvoCreateInt(__xl6_multi_0.value0); if (!xl6_xrt_typed_array_set_at(values, (unsigned int)(i), __xl6_multi_index_1)) { xl6_runtime_fatal(3); } xvoUnref(__xl6_multi_index_1);` |
 | 中间形态伪代码 | `returned C value -> xvalue temp -> index assignment -> release temp after container takes/copies value` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要按容器 API 将值装箱后 set，并在容器完成 copy/retain 后释放临时装箱值。 |

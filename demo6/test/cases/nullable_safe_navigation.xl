@@ -1,0 +1,41 @@
+class SafeNode
+    int value = 7
+    string name = "node"
+end
+
+int receiverCalls = 0
+int indexCalls = 0
+
+func makeNode(bool present) as SafeNode?
+    receiverCalls += 1
+    if present then
+        return SafeNode()
+    end
+    return null
+end
+
+func nextIndex() as int
+    indexCalls += 1
+    return 0
+end
+
+func main(...) as int
+    int? value = makeNode(true)?.value
+    assert((value ?? -1) == 7)
+    assert(receiverCalls == 1)
+
+    string? name = makeNode(false)?.name
+    assert(name == null)
+    assert(receiverCalls == 2)
+
+    array<int>? values = array[11]
+    int? item = values?[nextIndex()]
+    assert((item ?? -1) == 11)
+    assert(indexCalls == 1)
+
+    values = null
+    int? missing = values?[nextIndex()]
+    assert(missing == null)
+    assert(indexCalls == 1)
+    return 0
+end

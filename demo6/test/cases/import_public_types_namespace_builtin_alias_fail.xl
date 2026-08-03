@@ -1,0 +1,5 @@
+import module_types as string
+
+func main(...) as int
+    return 0
+end

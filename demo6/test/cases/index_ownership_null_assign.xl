@@ -1,0 +1,7 @@
+// 空值合并赋值必须释放旧 null，并仅保存新值一次。
+auto values = [null]
+
+func main(...) as int
+    values[0] ?= 9
+    return int(values[0]) == 9 ? 0 : 1
+end

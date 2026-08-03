@@ -1,0 +1,16 @@
+protocol Readable
+    func read() as int
+end
+
+class HiddenReader
+    private func read() as int
+        return 1
+    end
+end
+
+func accept<T is Readable>(T value) as int
+    return value.read()
+end
+
+HiddenReader reader = HiddenReader()
+int result = accept::<HiddenReader>(reader)

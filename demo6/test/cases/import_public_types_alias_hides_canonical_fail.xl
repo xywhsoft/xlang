@@ -1,0 +1,6 @@
+import module_types as mt
+
+func main(...) as int
+    module_types.Point point = mt.Point()
+    return point.sum()
+end

@@ -1,4 +1,4 @@
-WebSocketServer sharedUpgradeServer = null
+WebSocketServer? sharedUpgradeServer = null
 string sharedUpgradeServerText = ""
 string sharedUpgradeClientText = ""
 bool sharedUpgradeOpened = false
@@ -7,6 +7,9 @@ func sharedUpgradeRoute(point requestHandle, point responseHandle) as bool
     HttpRequest request = HttpRequest(requestHandle)
     HttpResponse response = HttpResponse(responseHandle)
     assert(request.path() == "/shared")
+    if sharedUpgradeServer == null
+        return false
+    end
     return response.upgradeWebSocket(sharedUpgradeServer)
 end
 
@@ -35,12 +38,14 @@ WebSocketServerOptions sharedOptions = WebSocketServerOptions(0, "127.0.0.1")
 assert(sharedOptions.path("/shared"))
 assert(sharedOptions.protocol("shared.v1"))
 sharedOptions.compression(true, 1, 1)
-sharedUpgradeServer = sharedOptions.server(sharedEngine)
+WebSocketServer activeUpgradeServer = sharedOptions.server(sharedEngine)
+sharedUpgradeServer = activeUpgradeServer
+assert(sharedUpgradeServer != null)
 
 func(point) sharedOpenFn = sharedUpgradeOpen
 func(point, string) sharedTextFn = sharedUpgradeText
-assert(sharedUpgradeServer.onOpen(sharedOpenFn))
-assert(sharedUpgradeServer.onText(sharedTextFn))
+assert(activeUpgradeServer.onOpen(sharedOpenFn))
+assert(activeUpgradeServer.onText(sharedTextFn))
 
 func(point, point) as bool sharedRouteFn = sharedUpgradeRoute
 assert(http.server.getRequest(httpServer, "/shared", sharedRouteFn))
@@ -73,7 +78,7 @@ assert(sharedClient.close(1000, "done") == 0)
 assert(sharedClient.waitClose(5000) == -4)
 
 sharedClient.stop()
-sharedUpgradeServer.stop()
+activeUpgradeServer.stop()
 http.server.stop(httpServer)
 http.server.destroy(httpServer)
 sharedUpgradeServer = null

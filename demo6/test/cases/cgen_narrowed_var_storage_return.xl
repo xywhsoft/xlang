@@ -1,0 +1,17 @@
+func keepDynamic(var value) as var
+    if value is string then
+        return value
+    elseif value is int then
+        return value
+    end
+    return null
+end
+
+var textValue = keepDynamic("typed HIR")
+var intValue = keepDynamic(42)
+
+assert(textValue is string)
+assert(string(textValue) == "typed HIR")
+assert(intValue is int)
+assert(int(intValue) == 42)
+println("narrowed var storage return ok")

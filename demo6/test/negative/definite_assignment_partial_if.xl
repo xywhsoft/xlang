@@ -1,0 +1,7 @@
+func main(...) as int
+    int value
+    if true then
+        value = 1
+    end
+    return value
+end

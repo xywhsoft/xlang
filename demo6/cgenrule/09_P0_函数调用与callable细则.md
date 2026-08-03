@@ -116,7 +116,7 @@
 | --- | --- |
 | xlang 写法 | `type(a)`、`int("123")` |
 | 生成规则描述 | 名字调用中 `type` 被特殊处理为类型值表达式；内置转换类型名且已知类型时，调用转成类型转换表达式，不按普通函数解析。 |
-| 生成器文件名和行号 | `xl6_cgen_expr.c:254`、`xl6_cgen_expr.c:260`、`xl6_cgen_args.c:831` |
+| 生成器文件名和行号 | `xl6_cgen_expr.c:254`、`xl6_cgen_expr.c:260`、`xl6_cgen_args_convert.c:270` |
 | 对应生成的 C 代码 | `xl6_type_id_of_expr` 或转换表达式，例如 `(long long)xvoGetInt(v)`、`xrtStrToInt(...)` 形态。 |
 | 中间形态伪代码 | `if callee == type: emit typeOf; if callee is builtin type: emit convert` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要直接调用类型转换或类型 id helper。 |
@@ -128,7 +128,7 @@
 | --- | --- |
 | xlang 写法 | `func(int) as int f; f(1)` |
 | 生成规则描述 | 静态类型为 `function` 且带签名时，调用点先计算签名 id，并生成三目表达式检查 `f.signature == expectedId`。签名匹配时优先走 `invoke` 直接调用；签名不匹配走集中 helper `xl6_function_fatal(3)`，该 helper 再委托模块级 `xl6_runtime_fatal`。 |
-| 生成器文件名和行号 | `xl6_cgen_expr.c:268`、`xl6_cgen_function_value.c:704`、`xl6_cgen_function_value.c:737`、`xl6_cgen_function_value.c:740`、`xl6_cgen_abi.c:168` |
+| 生成器文件名和行号 | `xl6_cgen_expr.c:268`、`xl6_cgen_function_value.c:704`、`xl6_cgen_function_value.c:737`、`xl6_cgen_function_value.c:740`、`xl6_cgen_abi_signature.c:168` |
 | 对应生成的 C 代码 | `((f.signature == 0x...ULL) ? ((f.invoke != 0) ? ((long long (*)(void*, long long))f.invoke)(f.env, 1LL) : fallback) : (xl6_function_fatal(3), (long long)0))` |
 | 中间形态伪代码 | `require signature; if direct invoke exists -> direct; else fallback xvalue call` |
 | 实现同等功能手写的 C 代码 | 手写 C 可直接强转 `invoke` 函数指针，但也应先检查签名。 |
@@ -212,7 +212,7 @@
 | --- | --- |
 | xlang 写法 | `func pair() (int, string)` |
 | 生成规则描述 | 多返回值函数使用由签名 hash 派生的结构体 `XL6_Function_Return_<id>`。function wrapper 直接返回该结构体；XCall wrapper 则把结构体的每个 `valueN` 分别装箱写入 `xrt_call_result`。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:194`、`xl6_cgen_abi.c:209`、`xl6_cgen_callable_wrappers.c:270`、`xl6_cgen_callable_frame.c:293`、`xl6_cgen_callable_wrappers.c:373` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:194`、`xl6_cgen_abi_signature.c:209`、`xl6_cgen_callable_wrappers.c:270`、`xl6_cgen_callable_frame.c:293`、`xl6_cgen_callable_wrappers.c:373` |
 | 对应生成的 C 代码 | `typedef struct XL6_Function_Return_ABCD { long long value0; const char* value1; } XL6_Function_Return_ABCD;` |
 | 中间形态伪代码 | `multi = func(); result[0] = box(multi.value0); result[1] = box(multi.value1)` |
 | 实现同等功能手写的 C 代码 | C 常用 struct 返回多值，或通过 out 参数返回。 |
@@ -224,7 +224,7 @@
 | --- | --- |
 | xlang 写法 | `obj.cb(1)`，其中 `cb` 是 function 字段 |
 | 生成规则描述 | 成员字段类型推断为 `function` 时按签名能力分流：参数和单返回值都能经由 xvalue runtime 表达时，单返回/无返回成员调用直接生成 erased call helper，即 `xl6_function_call_var(memberExpr, ...)` 或 `xl6_function_call_kwargs(memberExpr, ...)`，再按声明返回类型做 release 转换；多返回值声明/赋值语句在语句层先生成 `XL6_Function __xl6_member_fn_multi_N = memberExpr;`，再复用 typed direct invoke；非 erased-compatible 的成员 func 表达式语句会在语句层先生成 `XL6_Function __xl6_member_fn_stmt_N = memberExpr;`，无返回值时直接调用，单返回值被忽略时先落到 `__xl6_member_result_N`，多返回值被忽略时先落到 `XL6_Function_Return_* __xl6_member_result_N`，再按每个返回类型 cleanup；class 单返回成员调用处在显式 class 声明初始化、`auto` class 推断初始化、已有 class 赋值、“临时 class 返回值的普通字段初始化”、“临时 class 返回值作为声明初始化固定实参”或“临时 class 返回值作为表达式语句固定实参”时，会生成语句级临时再进入 typed direct invoke。`maker.make(40).value` 先生成 `__xl6_class_field_recv_N`，读取字段后 destroy；`readPayload(maker.make(60))`、`storePayload(maker.make(70), 70)` 和 `expect(readPayload(maker.make(100)) + 1, 101)` 会先生成 `__xl6_class_arg_N`，调用后 destroy；`sink.consume(explicitPayload, 10)` 会直接生成语句级成员 func 临时并调用；`maker.make(80)` 这类忽略 class 返回值的表达式语句会生成 `__xl6_member_result_N` 并 destroy；`factory.build(80)` 这类忽略多返回成员 func 表达式语句会生成 `__xl6_member_result_N.value0/value1` 并逐项 cleanup。签名不匹配兜底使用 `(ClassType){0}` 形式；其他复杂 typed return 表达式位置仍保留为后续 `RISK-CALL-001` 跟踪项。 |
-| 生成器文件名和行号 | `xl6_cgen_expr.c:190`、`xl6_cgen_function_value.c:593`、`xl6_cgen_function_value.c:861`、`xl6_cgen_function_member.c:136`、`xl6_cgen_expr_support_base.c:247`、`xl6_cgen_expr_support_base.c:255`、`xl6_cgen_core_context.c:73`、`xl6_cgen_expr.c:10`、`xl6_cgen_stmt_decl_class_temp.c:125`、`xl6_cgen_stmt_decl_class_temp.c:170`、`xl6_cgen_stmt_decl_class_temp.c:262`、`xl6_cgen_stmt_decl_class_temp.c:390`、`xl6_cgen_stmt_decl_class_temp.c:442`、`xl6_cgen_stmt_decl_call_args.c:225`、`xl6_cgen_stmt_dispatch.c:137`、`xl6_cgen_stmt_dispatch.c:139`、`xl6_cgen_stmt_dispatch.c:142`、`xl6_cgen_value_assign.c:730` |
+| 生成器文件名和行号 | `xl6_cgen_expr.c:190`、`xl6_cgen_function_value.c:593`、`xl6_cgen_function_value.c:861`、`xl6_cgen_function_member.c:136`、`xl6_cgen_expr_support_base.c:247`、`xl6_cgen_expr_support_base.c:255`、`xl6_cgen_core_context.c:73`、`xl6_cgen_expr.c:10`、`xl6_cgen_stmt_decl_class_temp.c:125`、`xl6_cgen_stmt_decl_class_temp.c:170`、`xl6_cgen_stmt_decl_class_temp.c:262`、`xl6_cgen_stmt_decl_class_temp.c:390`、`xl6_cgen_stmt_decl_class_temp.c:442`、`xl6_cgen_stmt_decl_call_args.c:225`、`xl6_cgen_stmt_dispatch.c:137`、`xl6_cgen_stmt_dispatch.c:139`、`xl6_cgen_stmt_dispatch.c:142`、`xl6_cgen_value_assign_target.c:730` |
 | 对应生成的 C 代码 | 常规单返回：`xl6_xvalue_to_i64_release(xl6_function_call_var(obj.cb, 1, xvoCreateInt(1)))`；多返回声明/赋值：`XL6_Function __xl6_member_fn_multi_N = obj.cb; XL6_Function_Return_* r = ((__xl6_member_fn_multi_N.signature == ...) ? ... : ...);`；class 单返回语句上下文：`XL6_Function __xl6_member_fn_stmt_N = maker.make; XL_Class_Payload p = ((__xl6_member_fn_stmt_N.signature == ...) ? ... : (xl6_function_fatal(3), (XL_Class_Payload){0}));`；临时 class 字段初始化：`XL_Class_Payload tmp = {0}; XL6_Function fn = maker.make; tmp = invoke(fn, 40); long long v = tmp.value; xl_class_Payload__destroy(&tmp);`；声明初始化临时 class 实参：`XL_Class_Payload arg = {0}; XL6_Function fn = maker.make; arg = invoke(fn, 60); long long v = readPayload(arg); xl_class_Payload__destroy(&arg);`；表达式语句固定实参：`XL_Class_Payload arg = {0}; XL6_Function fn = maker.make; arg = invoke(fn, 70); storePayload(arg, 70LL); xl_class_Payload__destroy(&arg);`；表达式语句嵌套实参：`XL_Class_Payload arg = {0}; XL6_Function fn = maker.make; arg = invoke(fn, 100); expect_i64((readPayload(arg) + 1LL), 101LL); xl_class_Payload__destroy(&arg);`；无返回成员 func 语句：`XL6_Function fn = sink.consume; ((fn.signature == ...) ? ((void (*)(void*, XL_Class_Payload, long long))fn.invoke)(fn.env, explicitPayload, 10LL) : xl6_function_fatal(3));`；忽略单返回值成员 func 语句：`XL6_Function fn = maker.make; XL_Class_Payload r = invoke(fn, 80); xl_class_Payload__destroy(&r);`；忽略多返回值成员 func 语句：`XL6_Function fn = factory.build; XL6_Function_Return_* r = invoke(fn, 80); xl_class_PairBox__destroy(&r.value0); if (r.value1.release != 0) r.value1.release(r.value1.env);` |
 | 中间形态伪代码 | `if erasedCompatible(signature) return convert(callVar(member,args)); else if stmtMemberCallNoReturn(call) tmpFn = member; invokeTyped(tmpFn,args); else if stmtMemberCallIgnoredSingleReturn(call) tmpFn = member; tmpResult = invokeTyped(tmpFn,args); cleanup(tmpResult); else if stmtMemberCallIgnoredMultiReturn(call) tmpFn = member; tmpResultStruct = invokeTyped(tmpFn,args); cleanupEach(tmpResultStruct.valueN); else if statementClassReturn(call) tmpFn = member; invokeTyped(tmpFn,args); else if declFromTempClassField(call.field) tmpObj = invokeTyped(tmpFn,args); target = tmpObj.field; destroy(tmpObj); else if declCallHasTempClassArg(call) tmpArg = invokeTyped(tmpFn,args); target = knownCall(tmpArg); destroy(tmpArg); else if exprStmtCallHasTempClassArg(call) tmpArg = invokeTyped(tmpFn,args); knownCall(tmpArg); destroy(tmpArg); else if exprStmtCallHasNestedTempClassArg(call) tmpArg = invokeTyped(tmpFn,args); replaceExpr(argCall,tmpArg); knownCall(replacedArgs); destroy(tmpArg); else fallbackExpr(call)` |
 | 实现同等功能手写的 C 代码 | 简单 callable 场景可直接 `xvalue r = xl6_function_call_var(obj.cb, 1, arg);`；多返回或复杂 typed 场景需要先把成员字段保存为 `XL6_Function fn = obj.cb;`，再按签名检查调用 `fn.invoke`。 |
@@ -360,7 +360,7 @@
 | --- | --- |
 | xlang 写法 | `func(int, string) bool` |
 | 生成规则描述 | func 签名用 FNV 风格 hash 计算 id，内容包含参数类型列表和返回类型列表。生成 `_make` wrapper 时输出静态 `xrt_func_param[]`、返回类型数组和 `xrt_func_sig`，并在 make 函数体内填充参数名、参数类型、可选参数 flag、返回类型、`...` / `***` 签名 flag 与签名 id。 |
-| 生成器文件名和行号 | `xl6_cgen_abi.c:168`、`xl6_cgen_abi.c:181`、`xl6_cgen_abi.c:333`、`xl6_cgen_abi.c:480`、`xl6_cgen_abi.c:504`、`xl6_cgen_callable_wrappers.c:723` |
+| 生成器文件名和行号 | `xl6_cgen_abi_signature.c:168`、`xl6_cgen_abi_signature.c:181`、`xl6_cgen_abi_signature.c:333`、`xl6_cgen_abi_signature.c:480`、`xl6_cgen_abi_signature.c:504`、`xl6_cgen_callable_wrappers.c:723` |
 | 对应生成的 C 代码 | `static xrt_func_param __xl6_sig_params[2u]; static const struct xrt_type_desc* __xl6_sig_returns[1u]; static xrt_func_sig __xl6_sig; __xl6_sig.Params = __xl6_sig_params; __xl6_sig.ReturnTypes = __xl6_sig_returns;` |
 | 中间形态伪代码 | `signatureId = hash(paramTypes, returnTypes); sig.Params = paramMetadata(params); sig.ReturnTypes = typeDescRefs(returns)` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要同时保持签名 id、参数元数据和返回类型元数据一致，才能被 xlang 调用点、XCall 和 ABI 元数据 长期复用。 |
@@ -383,7 +383,7 @@
 - `xl6CgenTypeSupportsVarInvokeValue` 明确拒绝静态 typed container，避免为 typed container 返回值生成不成立的 erased `invoke_var` 路径。
 - direct invoke 的 fallback 对 typed container 只允许 `xl6_function_fatal(3)` 并返回空 typed 句柄，不再生成 `xl6_function_call_var(...)`，从而消除三元表达式里 `xtarray` 与 `xvalue` 混用的 C ABI warning。
 - 成员 func 返回 typed container 用于声明初始化或赋值时，生成器先输出语句级 `XL6_Function __xl6_member_fn_stmt_N = memberExpr;`，再生成 `((xtarray (*)(void*))__xl6_member_fn_stmt_N.invoke)(...)` 形态。
-- 生成位置主要在 `xl6_cgen_expr_support_base.c:92`、`146`，`xl6_cgen_function_value.c:548`、`623`、`685`、`738`、`884`，`xl6_cgen_callable_wrappers.c:241`、`515`，以及 typed container move 接管分支 `xl6_cgen_stmt_decl.c:409`、`xl6_cgen_value_assign.c:704`。
+- 生成位置主要在 `xl6_cgen_expr_support_base.c:92`、`146`，`xl6_cgen_function_value.c:548`、`623`、`685`、`738`、`884`，`xl6_cgen_callable_wrappers.c:241`、`515`，以及 typed container move 接管分支 `xl6_cgen_stmt_decl.c:409`、`xl6_cgen_value_assign_target.c:704`。
 - 守门用例为 `cgen_typed_container_for_in_returned.xl`。`test.bat` 现在检查 `static xtarray xl6_fnvalue_makeValues_invoke`、`XL6_Function __xl6_member_fn_stmt_`、`((xtarray (*)(void*))__xl6_member_fn_stmt_`，并禁止 `xl6_function_call_var(__xl6_member_fn_stmt_`、`(xvalue (*)(void*))__xl6_member_fn_stmt_` 和 `({ XL6_Function __xl6_member_fn_` 回流。
 
 本轮不新增 `CGEN-*` 规则编号；当前全量守门确认 843 条唯一规则。`RISK-CALL-001` 保持关闭状态，但更复杂的 typed return 表达式位置、非固定实参和其他 function 表达式调用路径若后续扩展，仍需继续 helper 化或语句级化。

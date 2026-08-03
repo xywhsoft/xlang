@@ -1,0 +1,41 @@
+array<int>? globalMissing
+array<int>? globalValues = array[3, 5]
+array<int>? globalCopy = globalValues
+
+class NullableContainerBox
+    array<int>? values = null
+end
+
+func pass(array<int>? values) as array<int>?
+    return values
+end
+
+func make(bool present) as array<int>?
+    if present then
+        return array[7, 11]
+    end
+    return null
+end
+
+func main(...) as int
+    assert(globalMissing == null)
+    assert((globalValues?[1] ?? -1) == 5)
+    assert((globalCopy?[0] ?? -1) == 3)
+
+    array<int>? local
+    assert(local == null)
+    local = pass(globalValues)
+    assert((local?[0] ?? -1) == 3)
+    local = make(true)
+    assert((local?[1] ?? -1) == 11)
+    local = null
+    assert(local == null)
+
+    NullableContainerBox box = NullableContainerBox()
+    assert(box.values == null)
+    box.values = array[13, 17]
+    assert((box.values?[1] ?? -1) == 17)
+    box.values = null
+    assert(box.values == null)
+    return 0
+end

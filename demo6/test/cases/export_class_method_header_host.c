@@ -3,13 +3,14 @@
 
 int main(void)
 {
+    XL_InitOptions options = xlInitOptions(0, 0);
     int64_t x = 0;
     int64_t y = 0;
     xvalue point;
     XL_Class_Point* data;
     int result = 0;
 
-    if ( xrtInit() == NULL ) {
+    if ( !xlInit(&options) ) {
         return 1;
     }
     point = xl6_point_make_for_method(2, 3);
@@ -29,6 +30,6 @@ int main(void)
 
 cleanup:
     xvoUnref(point);
-    xrtUnit();
+    xlUnit();
     return result;
 }

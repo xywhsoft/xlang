@@ -11,6 +11,7 @@ typedef struct XL6_CompileUnit {
     char moduleName[256];
     XL6_ParseResult parse;
     XL6_ImportDeps importDeps;
+    XL6_HirModule hir;
     XL6_HirStats hirStats;
     int semChecked;
     int hirReady;

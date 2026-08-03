@@ -49,6 +49,18 @@ extern "C" {
   SHSTDAPI_(HINSTANCE) FindExecutableW(LPCWSTR lpFile,LPCWSTR lpDirectory,LPWSTR lpResult);
   SHSTDAPI_(LPWSTR *) CommandLineToArgvW(LPCWSTR lpCmdLine,int*pNumArgs);
 
+  /* Drag and drop support (required by sokol_app.h) */
+  typedef HANDLE HDROP;
+  WINSHELLAPI UINT WINAPI DragQueryFileA(HDROP hDrop,UINT iFile,LPSTR lpszFile,UINT cch);
+  WINSHELLAPI UINT WINAPI DragQueryFileW(HDROP hDrop,UINT iFile,LPWSTR lpszFile,UINT cch);
+  WINSHELLAPI void WINAPI DragFinish(HDROP hDrop);
+  WINSHELLAPI BOOL WINAPI DragQueryPoint(HDROP hDrop,LPPOINT lppt);
+#ifdef UNICODE
+#define DragQueryFile DragQueryFileW
+#else
+#define DragQueryFile DragQueryFileA
+#endif
+
 #ifdef __cplusplus
 }
 #endif

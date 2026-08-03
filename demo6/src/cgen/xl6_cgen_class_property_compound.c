@@ -127,6 +127,7 @@ static void xl6CgenPropertyArgTempInit(
 
 static int xl6CgenClassPropertyCompoundAssignStmt(
     XL6_CgenContext* ctx,
+    const XL6_AstNode* operation,
     const XL6_AstNode* left,
     const char* op,
     const XL6_AstNode* right)
@@ -188,6 +189,7 @@ static int xl6CgenClassPropertyCompoundAssignStmt(
              indexNode,
              NULL,
              XL6_AST_GET,
+             indexNode != NULL ? indexNode : member,
              &classNode,
              &ownerClass,
              &getter,
@@ -203,6 +205,7 @@ static int xl6CgenClassPropertyCompoundAssignStmt(
              indexNode,
              left,
              XL6_AST_LET,
+             operation,
              NULL,
              NULL,
              &setter,
@@ -337,7 +340,7 @@ static int xl6CgenClassPropertyCompoundAssignStmt(
     xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenValueStorageCType(ctx, propertyType), currentName);
     if ( xl6CgenIsStringTypeNode(ctx, propertyType) ) {
         xl6OutputPuts("xrtCopyStr(", ctx->out);
-        xl6CgenClassPropertyEmitCall(ctx, member, indexNode, NULL, XL6_AST_GET);
+        xl6CgenClassPropertyEmitCall(ctx, member, indexNode, NULL, XL6_AST_GET, indexNode != NULL ? indexNode : member);
         xl6OutputPuts(", 0u)", ctx->out);
     } else {
         xl6CgenPropertyTempDefaultValue(ctx, propertyType);
@@ -351,7 +354,7 @@ static int xl6CgenClassPropertyCompoundAssignStmt(
     } else {
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = ", currentName);
-        xl6CgenClassPropertyEmitCall(ctx, member, indexNode, NULL, XL6_AST_GET);
+        xl6CgenClassPropertyEmitCall(ctx, member, indexNode, NULL, XL6_AST_GET, indexNode != NULL ? indexNode : member);
         xl6OutputPuts(";\n", ctx->out);
     }
 
@@ -370,7 +373,14 @@ static int xl6CgenClassPropertyCompoundAssignStmt(
     fakeAssign.children = fakeChildren;
     fakeAssign.childCount = 2;
     fakeAssign.childCapacity = 2;
-    xl6CgenAssignStmt(ctx, &fakeAssign);
+    /*
+        该临时赋值由属性复合赋值 lowering 构造，不属于源 AST/HIR。
+        左侧一定是本函数刚声明的局部临时量，因此显式携带左值计划。
+    */
+    xl6CgenAssignStmtPlanned(
+        ctx,
+        &fakeAssign,
+        XL6_SEM_LVALUE_LOCAL);
 
     ctx->exprReplacements = savedReplacements;
     ctx->exprReplacementCount = savedReplacementCount;
@@ -390,7 +400,7 @@ static int xl6CgenClassPropertyCompoundAssignStmt(
         ctx->exprReplacements = replacements;
         ctx->exprReplacementCount = replacementCount;
         xl6CgenIndent(ctx);
-        xl6CgenClassPropertyEmitCall(ctx, member, indexNode, left, XL6_AST_LET);
+        xl6CgenClassPropertyEmitCall(ctx, member, indexNode, left, XL6_AST_LET, operation);
         xl6OutputPuts(";\n", ctx->out);
     }
 

@@ -44,7 +44,14 @@ static void xl6CgenWhile(XL6_CgenContext* ctx, const XL6_AstNode* node)
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
 
-    xl6CgenPushLoopTarget(ctx, iterationMark, iterationMark, id, id);
+    xl6CgenPushLoopTarget(
+        ctx,
+        iterationMark,
+        iterationMark,
+        xl6CgenHirRegion(ctx, node),
+        id,
+        id
+    );
     if ( node->childCount > 1 ) {
         xl6CgenBlock(ctx, node->children[1]);
     }
@@ -85,7 +92,14 @@ static void xl6CgenDoWhile(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     bodyMark = ctx->cleanupCount;
     xl6CgenBeginTempScope(ctx, node);
-    xl6CgenPushLoopTarget(ctx, bodyMark, bodyMark, id, id);
+    xl6CgenPushLoopTarget(
+        ctx,
+        bodyMark,
+        bodyMark,
+        xl6CgenHirRegion(ctx, node),
+        id,
+        id
+    );
     if ( node->childCount > 0 ) {
         xl6CgenBlock(ctx, node->children[0]);
     }

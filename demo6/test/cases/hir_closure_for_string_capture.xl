@@ -1,0 +1,13 @@
+func makeStringForCapture() as func() as string
+    func() as string selected = func() as string => ""
+    for item in array["first", "last"]
+        selected = func() as string
+            return item
+        end
+    end
+    return selected
+end
+
+func() as string stringForCapture = makeStringForCapture()
+assert stringForCapture() == "last", "closure owns captured iterator string"
+println("hir_closure_for_string_capture ok")

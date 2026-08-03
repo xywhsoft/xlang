@@ -1,0 +1,20 @@
+protocol Transformer<T>
+    func transform(T value) as T
+end
+
+class IntTransformer
+    func transform(int value) as int
+        return value * 2
+    end
+end
+
+func apply(Transformer<int> transformer, int value) as int
+    return transformer.transform(value)
+end
+
+func main(...) as int
+    IntTransformer transformer = IntTransformer()
+    assert apply(transformer, 21) == 42
+    println("generic protocol dispatch ok")
+    return 0
+end

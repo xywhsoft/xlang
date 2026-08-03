@@ -1,0 +1,112 @@
+import op
+
+func main(...) as int
+    // module-level: screen size
+    string size = op.getScreenSize()
+    assert size != "", "getScreenSize should return non-empty"
+
+    // module-level: cursor pos
+    string cursor = op.getCursorPos()
+    assert cursor != "", "getCursorPos should return non-empty"
+
+    // module-level: findWindow (desktop always exists)
+    int desktop = op.findWindow("Progman", "")
+    assert desktop != 0, "findWindow Progman should find desktop"
+
+    // module-level: window management
+    string rect = op.getWindowRect(desktop)
+    assert rect != "", "getWindowRect should return non-empty"
+
+    string title = op.getWindowTitle(desktop)
+    // desktop title may be empty, just ensure no crash
+
+    // module-level: coordinate conversion
+    string c2s = op.clientToScreen(desktop, 10, 20)
+    assert c2s != "", "clientToScreen should return non-empty"
+    string s2c = op.screenToClient(desktop, 10, 20)
+    assert s2c != "", "screenToClient should return non-empty"
+
+    // module-level: system tools
+    int rnd = op.randomInt(1, 100)
+    assert rnd >= 1, "randomInt should return >= min"
+    assert rnd <= 100, "randomInt should return <= max"
+
+    // module-level: clipboard (may fail in service/session0, just ensure no crash)
+    int clipRet = op.setClipboard("op_test_clip")
+    string clipVal = op.getClipboard()
+    // clipboard may not work in headless env, skip strict assert
+
+    // module-level: process enumeration
+    string procs = op.enumProcess("")
+    assert procs != "", "enumProcess should return non-empty"
+
+    // module-level: get process modules (current process = pid 4 system may fail, use self)
+    // just ensure no crash
+    string mods = op.getProcessModules(4)
+
+    // create instance
+    auto o = op.create()
+    assert o.isBind() == 0, "should not be bound initially"
+
+    // bind to desktop window
+    int ret = o.bindWindow(desktop, "normal", "normal", "normal", 0)
+    assert ret == 1, "bindWindow should succeed"
+    assert o.isBind() == 1, "should be bound after bindWindow"
+    assert o.getBindWindow() == desktop, "getBindWindow should return hwnd"
+
+    // frame info
+    string info = o.getFrameInfo()
+    assert info != "0x0", "getFrameInfo should return valid size"
+
+    // getColor at 0,0
+    string color = o.getColor(0, 0)
+    assert string.len(color) == 6, "getColor should return 6-char hex"
+
+    // findColor - search for the color we just got (should find at 0,0)
+    string pos = o.findColor(0, 0, 10, 10, color, 1.0, 0)
+    assert pos != "", "findColor should find the color we just read"
+
+    // findColorEx
+    string posEx = o.findColorEx(0, 0, 10, 10, color, 1.0, 0)
+    assert posEx != "", "findColorEx should find at least one match"
+
+    // getColorNum - count pixels matching color in small region
+    int cnum = o.getColorNum(0, 0, 10, 10, color, 1.0)
+    assert cnum >= 1, "getColorNum should find at least 1 matching pixel"
+
+    // findColorBlock - find a 1x1 block (always succeeds if color exists)
+    string block = o.findColorBlock(0, 0, 10, 10, color, 1.0, 1, 1)
+    assert block != "", "findColorBlock 1x1 should find match"
+
+    // capture to file
+    int cap = o.capture(0, 0, 32, 32, "op_test_capture.bmp")
+    assert cap == 1, "capture should succeed"
+
+    // captureToMem
+    string memCap = o.captureToMem(0, 0, 4, 4)
+    assert memCap != "", "captureToMem should return non-empty"
+    assert string.len(memCap) > 5, "captureToMem should have header + data"
+
+    // imageHash
+    string hash = o.imageHash(0, 0, 32, 32)
+    assert string.len(hash) == 16, "imageHash should return 16 hex chars"
+
+    // imageCompare with the captured file
+    float cmp = o.imageCompare(0, 0, 32, 32, "op_test_capture.bmp", 1.0)
+    assert cmp > 0.5, "imageCompare with same region should be high similarity"
+
+    // findPicN with the captured bmp
+    string picN = o.findPicN(0, 0, 100, 100, "op_test_capture.bmp", "", 0.9, 0)
+    assert picN != "", "findPicN should find the captured image"
+
+    // keyCombo - just ensure no crash (press and release shift)
+    ret = o.keyCombo("shift")
+    assert ret == 1, "keyCombo should succeed"
+
+    // unbind
+    ret = o.unbind()
+    assert ret == 1, "unbind should succeed"
+    assert o.isBind() == 0, "should not be bound after unbind"
+
+    return 0
+end

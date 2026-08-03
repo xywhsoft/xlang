@@ -79,7 +79,7 @@ expectStr(literalString, "matrix")
 expect(typedArrayItem, 20)
 expectStr(typedListItem, "two")
 expect(typedDictItem, 9)
-expect(type(missingTypedItem) == null, 1)
+expect(missingTypedItem == null, 1)
 
 expect(type(inferredArrayItem) == int, 1)
 expect(int(inferredArrayItem), 2)

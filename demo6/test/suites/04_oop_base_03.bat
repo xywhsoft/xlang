@@ -382,6 +382,28 @@ if errorlevel 1 (
     echo cgen_class_property_compound_managed.c missing class protocol compound call.
     exit /b 1
 )
+findstr /C:"scoreView = xl6_xrt_retain(" build\test\cgen_class_property_compound_managed.c >nul
+if not errorlevel 1 (
+    echo cgen_class_property_compound_managed.c retained an owned class getter result twice.
+    exit /b 1
+)
+findstr /C:"itemView = xrtTypedArrayRetain(" build\test\cgen_class_property_compound_managed.c >nul
+if not errorlevel 1 (
+    echo cgen_class_property_compound_managed.c retained an owned container getter result twice.
+    exit /b 1
+)
+findstr /C:"return (char*)xrtStrConcat" release\include\xl_runtime.h >nul
+if not errorlevel 1 (
+    echo xl_runtime.h must keep string concatenation in the XRT temporary scope.
+    exit /b 1
+)
+findstr /C:"xtarray __xl6_record_property_" build\test\cgen_class_property_compound_managed.c >nul
+if errorlevel 1 (
+    echo cgen_class_property_compound_managed.c lost the typed-container property storage type.
+    exit /b 1
+)
+"%XL6_BOOTSTRAP_CC%" -std=c11 -Werror=incompatible-pointer-types -Ibuild\test -fsyntax-only build\test\cgen_class_property_compound_managed.c
+if errorlevel 1 exit /b 1
 "%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_property_compound_managed.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_property_compound_managed.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_property_compound_managed.exe

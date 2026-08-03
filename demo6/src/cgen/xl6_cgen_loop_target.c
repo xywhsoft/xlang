@@ -1,4 +1,11 @@
-static void xl6CgenPushLoopTarget(XL6_CgenContext* ctx, size_t breakMark, size_t continueMark, int breakId, int continueId)
+static void xl6CgenPushLoopTarget(
+    XL6_CgenContext* ctx,
+    size_t breakMark,
+    size_t continueMark,
+    uint32 region,
+    int breakId,
+    int continueId
+)
 {
     XL6_CgenLoopTarget* newItems;
     size_t newCapacity;
@@ -18,6 +25,7 @@ static void xl6CgenPushLoopTarget(XL6_CgenContext* ctx, size_t breakMark, size_t
     }
     ctx->loopTargets[ctx->loopTargetCount].breakCleanupMark = breakMark;
     ctx->loopTargets[ctx->loopTargetCount].continueCleanupMark = continueMark;
+    ctx->loopTargets[ctx->loopTargetCount].region = region;
     ctx->loopTargets[ctx->loopTargetCount].breakId = breakId;
     ctx->loopTargets[ctx->loopTargetCount].continueId = continueId;
     ctx->loopTargetCount += 1;

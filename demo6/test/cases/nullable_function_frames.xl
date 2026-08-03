@@ -1,0 +1,64 @@
+func makeMultiplier(int factor) as (func(int) as int)?
+    if factor == 0 then
+        return null
+    end
+    return func(int value) as int
+        return factor * value
+    end
+end
+
+func capture((func(int) as int)? callback) as func(int) as int
+    return func(int value) as int
+        if callback != null then
+            return callback(value)
+        end
+        return -1
+    end
+end
+
+async func echoAsync((func(int) as int)? callback) as (func(int) as int)?
+    return callback
+end
+
+func applyOnce((func(int) as int)? callback) as generator<int>
+    if callback != null then
+        yield callback(4)
+    end
+end
+
+func pair(int factor) as ((func(int) as int)?, int)
+    return makeMultiplier(factor), factor
+end
+
+(func(int) as int)? source = makeMultiplier(3)
+func(int) as int captured = capture(source)
+source = null
+assert captured(5) == 15
+
+future<(func(int) as int)?> pending = echoAsync(makeMultiplier(4))
+(func(int) as int)? awaited = await pending
+if awaited != null then
+    assert awaited(5) == 20
+else
+    assert false
+end
+
+generator<int> started = applyOnce(awaited)
+int total = 0
+for value in started
+    total += value
+end
+assert total == 16
+
+// 未启动的生成器同样必须在模块卸载时释放帧中持有的函数值。
+generator<int> neverStarted = applyOnce(makeMultiplier(7))
+
+(func(int) as int)? fromPair = null
+int factor = 0
+fromPair, factor = pair(6)
+assert factor == 6
+if fromPair != null then
+    assert fromPair(5) == 30
+else
+    assert false
+end

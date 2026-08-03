@@ -6,7 +6,7 @@ echo Running DEMO6 suite: core C generation and runtime baseline 8/10...
 
 release\xl.exe cgen test\cases\cgen_extern_function_value.xl --emit build\test\cgen_extern_function_value.c
 if errorlevel 1 exit /b 1
-findstr /C:"static long long xl6_fnvalue_xl_fn_cadd_invoke(void* __xl6_env, long long left, long long right)" build\test\cgen_extern_function_value.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_extern_function_value.c' -Raw; if($t -notmatch 'static long long xl6_fnvalue_xl_fn_cadd_sig[0-9A-F]+_invoke\(void\* __xl6_env, long long left, long long right\)'){exit 1}"
 if errorlevel 1 (
     echo cgen_extern_function_value.c missing extern function typed wrapper.
     exit /b 1
@@ -16,7 +16,7 @@ if errorlevel 1 (
     echo cgen_extern_function_value.c missing native extern target call.
     exit /b 1
 )
-findstr /C:"xl6_fnvalue_xl_fn_cadd_xcall" build\test\cgen_extern_function_value.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_extern_function_value.c' -Raw; if($t -notmatch 'xl6_fnvalue_xl_fn_cadd_sig[0-9A-F]+_xcall'){exit 1}"
 if errorlevel 1 (
     echo cgen_extern_function_value.c missing extern function xcall adapter.
     exit /b 1
@@ -38,12 +38,12 @@ if errorlevel 1 (
     echo cgen_function_multi_return.c missing function multi-return struct.
     exit /b 1
 )
-findstr /C:"pairFn = xl6_fnvalue_xl_fn_pair_make();" build\test\cgen_function_multi_return.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_function_multi_return.c' -Raw; if($t -notmatch 'pairFn = xl6_fnvalue_xl_fn_pair_sig[0-9A-F]+_make\(\);'){exit 1}"
 if errorlevel 1 (
     echo cgen_function_multi_return.c missing multi-return named function value.
     exit /b 1
 )
-findstr /C:"defaultFn = xl6_fnvalue_xl_fn_pairDefault_arity1_make();" build\test\cgen_function_multi_return.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_function_multi_return.c' -Raw; if($t -notmatch 'defaultFn = xl6_fnvalue_xl_fn_pairDefault_sig[0-9A-F]+_arity1_make\(\);'){exit 1}"
 if errorlevel 1 (
     echo cgen_function_multi_return.c missing multi-return optional adapter.
     exit /b 1
@@ -363,7 +363,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_function_adapter_dedupe.xl --emit build\test\cgen_function_adapter_dedupe.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_function_adapter_dedupe.c' -Raw; if(([regex]::Matches($t, 'static XL6_Function xl6_fnvalue_xl_fn_addDefault_arity1_make\(void\)\s*\{')).Count -ne 1){exit 1}; if(([regex]::Matches($t, 'static long long xl6_fnvalue_xl_fn_addDefault_arity1_invoke\(')).Count -ne 1){exit 2}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_function_adapter_dedupe.c' -Raw; if(([regex]::Matches($t, 'static XL6_Function xl6_fnvalue_xl_fn_addDefault_sig[0-9A-F]+_arity1_make\(void\)\s*\{')).Count -ne 1){exit 1}; if(([regex]::Matches($t, 'static long long xl6_fnvalue_xl_fn_addDefault_sig[0-9A-F]+_arity1_invoke\(')).Count -ne 1){exit 2}"
 if errorlevel 1 (
     echo cgen_function_adapter_dedupe.c duplicated default-arg adapter.
     exit /b 1

@@ -1,0 +1,5 @@
+from module_types import Point as int
+
+func main(...) as int
+    return 0
+end

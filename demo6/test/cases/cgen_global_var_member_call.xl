@@ -1,0 +1,20 @@
+class DynamicCounter
+    int stored = 0
+
+    create(int value)
+        self.stored = value
+    end
+
+    virtual func read() as int
+        return self.stored
+    end
+end
+
+var globalCounter = DynamicCounter(42)
+
+func main(...) as int
+    var actual = globalCounter.read()
+    assert int(actual) == 42
+    println("global var member call ok")
+    return 0
+end

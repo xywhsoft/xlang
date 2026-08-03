@@ -6,6 +6,56 @@ static void xl6CgenError(XL6_CgenContext* ctx, const XL6_AstNode* node, const ch
     }
 }
 
+static const char* xl6CgenOwnText(XL6_CgenContext* ctx, const char* text)
+{
+    XL6_CgenTextBlock* block;
+    size_t length;
+    size_t capacity;
+    char* result;
+
+    if ( ctx == NULL || text == NULL ) {
+        return NULL;
+    }
+    length = strlen(text) + 1;
+    block = ctx->textBlocks;
+    if ( block == NULL || length > block->capacity - block->used ) {
+        capacity = length > 4096 ? length : 4096;
+        if ( capacity > SIZE_MAX - sizeof(XL6_CgenTextBlock) + 1 ) {
+            xl6CgenError(ctx, NULL, "C generator text arena size overflow");
+            return NULL;
+        }
+        block = (XL6_CgenTextBlock*)xrtMalloc(sizeof(XL6_CgenTextBlock) + capacity - 1);
+        if ( block == NULL ) {
+            xl6CgenError(ctx, NULL, "C generator text arena out of memory");
+            return NULL;
+        }
+        block->next = ctx->textBlocks;
+        block->used = 0;
+        block->capacity = capacity;
+        ctx->textBlocks = block;
+    }
+    result = block->data + block->used;
+    memcpy(result, text, length);
+    block->used += length;
+    return result;
+}
+
+static void xl6CgenFreeTextBlocks(XL6_CgenContext* ctx)
+{
+    XL6_CgenTextBlock* block;
+
+    if ( ctx == NULL ) {
+        return;
+    }
+    block = ctx->textBlocks;
+    while ( block != NULL ) {
+        XL6_CgenTextBlock* next = block->next;
+        xrtFree(block);
+        block = next;
+    }
+    ctx->textBlocks = NULL;
+}
+
 static void xl6CgenIndent(XL6_CgenContext* ctx)
 {
     int i;
@@ -236,6 +286,114 @@ static void xl6CgenFputsEncodedText(XL6_Output* out, const char* text)
     }
     xl6CgenEncodeSymbolComponent(encoded, sizeof(encoded), text);
     xl6OutputPuts(encoded, out);
+}
+
+/* ------------------------------------------------------------------------- */
+/* 自动导出符号：C 源、头文件和 ABI 元数据共用这一套唯一规则。 */
+
+static int xl6CgenAutoExportOverloadCount(
+    const XL6_AstNode* root,
+    const char* name)
+{
+    size_t i;
+    int count;
+
+    if ( root == NULL || name == NULL ) {
+        return 0;
+    }
+    count = 0;
+    for ( i = 0; i < root->childCount; ++i ) {
+        const XL6_AstNode* item = root->children[i];
+        const XL6_AstNode* itemName;
+
+        if ( item == NULL ||
+             item->kind != XL6_AST_EXPORT_FUNC ||
+             item->childCount == 0 ) {
+            continue;
+        }
+        itemName = item->children[0];
+        if ( itemName != NULL &&
+             itemName->text != NULL &&
+             strcmp(itemName->text, name) == 0 ) {
+            count += 1;
+        }
+    }
+    return count;
+}
+
+static void xl6CgenEmitAutoExportType(
+    XL6_Output* out,
+    const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* args;
+    size_t i;
+
+    if ( typeNode == NULL || typeNode->text == NULL ) {
+        xl6OutputPutc('_', out);
+        return;
+    }
+    xl6CgenFputsEncodedText(out, typeNode->text);
+    args = typeNode->childCount > 0 &&
+           typeNode->children[0] != NULL &&
+           typeNode->children[0]->kind == XL6_AST_LIST ?
+        typeNode->children[0] :
+        NULL;
+    if ( args == NULL || args->childCount == 0 ) {
+        return;
+    }
+    xl6OutputPuts("_of", out);
+    for ( i = 0; i < args->childCount; ++i ) {
+        xl6OutputPutc('_', out);
+        xl6CgenEmitAutoExportType(out, args->children[i]);
+    }
+}
+
+void xl6CgenEmitAutoExportSymbol(
+    XL6_Output* out,
+    const XL6_AstNode* root,
+    const XL6_AstNode* node)
+{
+    const XL6_AstNode* nameNode;
+    const XL6_AstNode* params;
+    size_t i;
+
+    if ( out == NULL ) {
+        return;
+    }
+    nameNode = node != NULL && node->childCount > 0 ?
+        node->children[0] :
+        NULL;
+    xl6OutputPuts("xl6_export_", out);
+    xl6CgenFputsEncodedText(
+        out,
+        nameNode != NULL && nameNode->text != NULL ?
+            nameNode->text :
+            "_");
+    if ( nameNode == NULL ||
+         xl6CgenAutoExportOverloadCount(root, nameNode->text) <= 1 ) {
+        return;
+    }
+
+    params = node->childCount > 1 ? node->children[1] : NULL;
+    if ( params == NULL || params->childCount == 0 ) {
+        xl6OutputPuts("__void", out);
+        return;
+    }
+    for ( i = 0; i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+
+        xl6OutputPuts("__", out);
+        if ( param != NULL && (param->flags & XL6_AST_FLAG_BYREF) != 0 ) {
+            xl6OutputPuts("byref_", out);
+        } else if ( param != NULL && (param->flags & XL6_AST_FLAG_OUT) != 0 ) {
+            xl6OutputPuts("out_", out);
+        }
+        xl6CgenEmitAutoExportType(
+            out,
+            param != NULL && param->childCount > 0 ?
+                param->children[0] :
+                NULL);
+    }
 }
 
 static void xl6CgenAppendText(char* buffer, size_t capacity, const char* text);
@@ -517,6 +675,34 @@ static void xl6CgenUnionTypeTextName(char* buffer, size_t capacity, const char* 
     buffer[0] = '\0';
     xl6CgenAppendText(buffer, capacity, "XL_Union_");
     xl6CgenAppendMangledText(buffer, capacity, name);
+}
+
+static void xl6CgenEnumTypeRefName(
+    char* buffer,
+    size_t capacity,
+    const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* args;
+    size_t i;
+
+    if ( buffer == NULL || capacity == 0 ) {
+        return;
+    }
+    buffer[0] = '\0';
+    xl6CgenAppendText(buffer, capacity, "XL_Enum_");
+    xl6CgenAppendMangledText(
+        buffer,
+        capacity,
+        typeNode != NULL ? typeNode->text : "_");
+    args = typeNode != NULL && typeNode->childCount > 0 &&
+           typeNode->children[0] != NULL &&
+           typeNode->children[0]->kind == XL6_AST_LIST ?
+        typeNode->children[0] :
+        NULL;
+    for ( i = 0; args != NULL && i < args->childCount; ++i ) {
+        xl6CgenAppendText(buffer, capacity, "__");
+        xl6CgenAppendTypeId(buffer, capacity, args->children[i]);
+    }
 }
 
 static void xl6CgenClassTypeRefName(char* buffer, size_t capacity, const XL6_AstNode* typeNode)

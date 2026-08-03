@@ -14,6 +14,18 @@ static int xl6TypeTextEquals(const char* a, const char* b)
     return a != NULL && b != NULL && strcmp(a, b) == 0;
 }
 
+const char* xl6TypeCanonicalBuiltinName(const char* name)
+{
+    /* int/float 是语言推荐名，并分别与 int64/float64 共享类型身份。 */
+    if ( xl6TypeTextEquals(name, "int64") ) {
+        return "int";
+    }
+    if ( xl6TypeTextEquals(name, "float64") ) {
+        return "float";
+    }
+    return name;
+}
+
 static int xl6TypeIsAliasDecl(const XL6_AstNode* node)
 {
     return node != NULL && (node->kind == XL6_AST_TYPE_ALIAS || node->kind == XL6_AST_EXTERN_TYPE_ALIAS);
@@ -185,7 +197,19 @@ static void xl6TypeAppendCanonicalBody(XL6_TypeStringBuilder* builder, const XL6
         return;
     }
 
-    xl6TypeStringBuilderAppend(builder, typeNode->text != NULL ? typeNode->text : "<missing-type>");
+    if ( xl6TypeTextEquals(typeNode->text, "nullable") &&
+         (typeNode->flags & XL6_AST_FLAG_INTERNAL_NULLABLE) != 0 &&
+         typeNode->childCount == 1 &&
+         typeNode->children[0] != NULL &&
+         typeNode->children[0]->childCount == 1 ) {
+        xl6TypeAppendCanonicalBody(builder, root, typeNode->children[0]->children[0]);
+        xl6TypeStringBuilderAppendChar(builder, '?');
+        return;
+    }
+
+    xl6TypeStringBuilderAppend(
+        builder,
+        typeNode->text != NULL ? xl6TypeCanonicalBuiltinName(typeNode->text) : "<missing-type>");
     if ( typeNode->childCount == 0 ) {
         return;
     }

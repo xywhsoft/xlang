@@ -1,0 +1,11 @@
+import module_types as mt
+
+func main(...) as int
+    mt.Point point = mt.Point(19, 23)
+    mt.Summable summable = point
+    mt.Box<string> box = mt.Box::<string>("ok")
+    if summable.sum() != 42 or box.get() != "ok" then
+        return 1
+    end
+    return 0
+end

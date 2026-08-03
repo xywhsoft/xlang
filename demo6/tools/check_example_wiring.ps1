@@ -18,8 +18,11 @@ $wiringFiles = @(
     "test_apps.bat",
     "test_feature_suite.bat",
     "tools\check_stdlib_examples.ps1",
+    "tools\run_extlib_examples.ps1",
+    "tools\run_xge_examples.ps1",
     "release\examples\apps\run_apps.bat",
     "release\examples\extlibs\run_extlibs.bat",
+    "release\examples\xge\run_xge_examples.bat",
     "release\examples\feature_suite\run_feature_suite.bat"
 )
 $draftExampleFiles = @()
@@ -75,7 +78,7 @@ function Read-TestRegressionText()
     return [string]::Join("`n", $parts)
 }
 
-function Test-WildcardCovered($relative)
+function Test-WildcardCovered($relative, $text)
 {
     if ( $relative -like "release/examples/feature_suite/*.xl" ) {
         return $true
@@ -88,6 +91,16 @@ function Test-WildcardCovered($relative)
     }
     if ( $relative -like "release/examples/stdlib_*.xl" ) {
         return $true
+    }
+
+    $patterns = [regex]::Matches(
+        $text,
+        'release[\\/]+examples[\\/]+([^"''\s>]*[*?][^"''\s>]*\.xl)')
+    foreach ( $patternMatch in $patterns ) {
+        $pattern = Normalize-ExamplePath ("release/examples/" + $patternMatch.Groups[1].Value)
+        if ( $relative -like $pattern ) {
+            return $true
+        }
     }
     return $false
 }
@@ -361,7 +374,8 @@ function Test-ExampleExecutionIndex($relativeDir, $batchRelative, $exportOnlyNam
 
     foreach ( $file in $files ) {
         $known.Add($file.Name) | Out-Null
-        if ( ! $batchText.Contains($file.Name) ) {
+        $wildcardMarker = "Wires: " + (Normalize-ExamplePath $relativeDir) + "/*.xl"
+        if ( ! $batchText.Contains($file.Name) -and ! $batchText.Contains($wildcardMarker) ) {
             Add-Failure "example batch does not explicitly execute or export ${relativeDir}/$($file.Name)"
         }
     }
@@ -415,7 +429,7 @@ if ( $examples.Count -lt $minExampleFiles ) {
 foreach ( $example in $examples ) {
     $relative = $example.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
 
-    if ( Test-WildcardCovered $relative ) {
+    if ( Test-WildcardCovered $relative $wiringText ) {
         continue
     }
 

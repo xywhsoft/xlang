@@ -1,0 +1,2 @@
+int probe = 1
+assert probe == 1

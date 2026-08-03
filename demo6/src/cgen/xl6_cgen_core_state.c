@@ -334,7 +334,13 @@ static void xl6CgenFreeFunctionReturnStructs(XL6_CgenContext* ctx)
     ctx->emittedFunctionReturnCapacity = 0;
 }
 
-static int xl6CgenPushTryTarget(XL6_CgenContext* ctx, size_t cleanupMark, int id, int targetFinally)
+static int xl6CgenPushTryTarget(
+    XL6_CgenContext* ctx,
+    size_t cleanupMark,
+    uint32 region,
+    int id,
+    int targetFinally
+)
 {
     XL6_CgenTryTarget* newItems;
     size_t newCapacity;
@@ -353,6 +359,7 @@ static int xl6CgenPushTryTarget(XL6_CgenContext* ctx, size_t cleanupMark, int id
         ctx->tryTargetCapacity = newCapacity;
     }
     ctx->tryTargets[ctx->tryTargetCount].cleanupMark = cleanupMark;
+    ctx->tryTargets[ctx->tryTargetCount].region = region;
     ctx->tryTargets[ctx->tryTargetCount].id = id;
     ctx->tryTargets[ctx->tryTargetCount].targetFinally = targetFinally;
     ctx->tryTargetCount += 1;

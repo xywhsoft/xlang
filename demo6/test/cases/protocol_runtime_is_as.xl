@@ -1,0 +1,25 @@
+protocol Named
+    func name() as string
+end
+
+class User
+    func name() as string
+        return "xlang"
+    end
+end
+
+func main(...) as int
+    var value = User()
+    assert value is Named
+
+    Named named = value as Named
+    assert named.name() == "xlang"
+
+    var other = 42
+    assert !(other is Named)
+    Named? missing = other as Named?
+    assert missing == null
+
+    println("protocol runtime is/as ok")
+    return 0
+end

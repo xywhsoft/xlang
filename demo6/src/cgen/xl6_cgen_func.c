@@ -123,21 +123,29 @@ static void xl6CgenExportWrapper(XL6_CgenContext* ctx, const XL6_AstNode* node)
     size_t i;
     const XL6_AstNode* returns;
     const XL6_AstNode* params;
+    int hasParamTemps;
 
     xl6CgenExportWrapperProto(ctx, node);
     xl6OutputPuts("\n{\n", ctx->out);
     ctx->indent += 1;
     returns = node->childCount > 2 ? node->children[2] : NULL;
+    params = node->childCount > 1 ? node->children[1] : NULL;
+    hasParamTemps = xl6CgenExportWrapperHasParamTemps(ctx, params);
+    xl6CgenEmitExportWrapperParamTemps(ctx, params);
     xl6CgenIndent(ctx);
     if ( returns != NULL && returns->childCount > 1 ) {
         xl6CgenFuncReturnStructName(ctx, node);
         xl6OutputPuts(" __xl6_return = ", ctx->out);
     } else if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts("return ", ctx->out);
+        if ( hasParamTemps ) {
+            xl6OutputPuts(xl6CgenCAbiTypeName(ctx, returns->children[0]), ctx->out);
+            xl6OutputPuts(" __xl6_return = ", ctx->out);
+        } else {
+            xl6OutputPuts("return ", ctx->out);
+        }
     }
     xl6CgenExportInternalSymbol(ctx, node);
     xl6OutputPutc('(', ctx->out);
-    params = node->childCount > 1 ? node->children[1] : NULL;
     if ( params != NULL ) {
         for ( i = 0; i < params->childCount; ++i ) {
             const XL6_AstNode* param = params->children[i];
@@ -151,12 +159,49 @@ static void xl6CgenExportWrapper(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 xl6OutputPuts("xl6_xrt_retain(", ctx->out);
                 xl6CgenFputsCIdent(ctx->out, param->text);
                 xl6OutputPutc(')', ctx->out);
+            } else if ( param != NULL && param->childCount > 0 &&
+                        xl6CgenIsFunctionType(param->children[0]) ) {
+                xl6OutputPuts("xl6_function_copy_value(", ctx->out);
+                xl6CgenFputsCIdent(ctx->out, param->text);
+                xl6OutputPutc(')', ctx->out);
+            } else if ( param != NULL && param->childCount > 0 &&
+                        xl6CgenNullableHasManagedInner(
+                            ctx,
+                            param->children[0]) ) {
+                char copyName[64];
+
+                xl6CgenNullableCopyHelperName(
+                    copyName,
+                    sizeof(copyName),
+                    param->children[0]);
+                xl6OutputPrintf(ctx->out, "%s(", copyName);
+                xl6CgenFputsCIdent(ctx->out, param->text);
+                xl6OutputPutc(')', ctx->out);
+            } else if ( param != NULL && param->childCount > 0 &&
+                        xl6CgenIsTaggedEnumType(ctx, param->children[0]) ) {
+                xl6CgenEnumOpsSymbol(
+                    ctx->out,
+                    param->children[0],
+                    "copy_value");
+                xl6OutputPutc('(', ctx->out);
+                xl6CgenFputsCIdent(ctx->out, param->text);
+                xl6OutputPutc(')', ctx->out);
+            } else if ( param != NULL && param->childCount > 0 &&
+                        xl6CgenIsTypedContainerType(ctx, param->children[0]) ) {
+                char tempName[64];
+
+                xl6CgenExportWrapperParamTempName(
+                    tempName,
+                    sizeof(tempName),
+                    i);
+                xl6OutputPuts(tempName, ctx->out);
             } else {
                 xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : NULL);
             }
         }
     }
     xl6OutputPuts(");\n", ctx->out);
+    xl6CgenEmitExportWrapperParamTempCleanups(ctx, params);
     if ( returns != NULL && returns->childCount > 1 ) {
         for ( i = 0; i < returns->childCount; ++i ) {
             xl6CgenIndent(ctx);
@@ -170,6 +215,11 @@ static void xl6CgenExportWrapper(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
         }
+    } else if ( hasParamTemps &&
+               returns != NULL &&
+               returns->childCount == 1 ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("return __xl6_return;\n", ctx->out);
     }
     ctx->indent -= 1;
     xl6OutputPuts("}\n\n", ctx->out);

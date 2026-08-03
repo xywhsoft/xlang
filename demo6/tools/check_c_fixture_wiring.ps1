@@ -166,8 +166,9 @@ foreach ( $packageDir in $packageDirs ) {
     foreach ( $json in $jsonFiles ) {
         $text = Read-Utf8Text $json.FullName
 
-        $sourceMatches = [regex]::Matches($text, '"cSources"\s*:\s*\[(?<items>[^\]]*)\]')
+        $sourceMatches = [regex]::Matches($text, '"(?<kind>cSources|cResources)"\s*:\s*\[(?<items>[^\]]*)\]')
         foreach ( $sourceMatch in $sourceMatches ) {
+            $sourceKind = $sourceMatch.Groups["kind"].Value
             $items = $sourceMatch.Groups["items"].Value
             $itemMatches = [regex]::Matches($items, '"([^"]+\.c)"')
             foreach ( $itemMatch in $itemMatches ) {
@@ -177,7 +178,7 @@ foreach ( $packageDir in $packageDirs ) {
 
                 if ( ! (Test-Path -LiteralPath $sourcePath -PathType Leaf) ) {
                     $relJson = $json.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
-                    Add-Failure "package cSources missing file: $relJson -> $source"
+                    Add-Failure "package $sourceKind missing file: $relJson -> $source"
                 }
             }
         }
@@ -186,8 +187,9 @@ foreach ( $packageDir in $packageDirs ) {
     foreach ( $xlp in $xlpFiles ) {
         $text = Read-Utf8Text $xlp.FullName
 
-        $sourceMatches = [regex]::Matches($text, '"cSources"\s*:\s*\[(?<items>[^\]]*)\]')
+        $sourceMatches = [regex]::Matches($text, '"(?<kind>cSources|cResources)"\s*:\s*\[(?<items>[^\]]*)\]')
         foreach ( $sourceMatch in $sourceMatches ) {
+            $sourceKind = $sourceMatch.Groups["kind"].Value
             $items = $sourceMatch.Groups["items"].Value
             $itemMatches = [regex]::Matches($items, '"([^"]+\.c)"')
             foreach ( $itemMatch in $itemMatches ) {
@@ -197,7 +199,7 @@ foreach ( $packageDir in $packageDirs ) {
 
                 if ( ! (Test-Path -LiteralPath $sourcePath -PathType Leaf) ) {
                     $relXlp = $xlp.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
-                    Add-Failure "xlp cSources missing file: $relXlp -> $source"
+                    Add-Failure "xlp $sourceKind missing file: $relXlp -> $source"
                 }
             }
         }

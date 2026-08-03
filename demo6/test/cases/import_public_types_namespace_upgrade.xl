@@ -1,0 +1,11 @@
+from module_types import Point
+import module_types
+
+func main(...) as int
+    Point direct = Point(20, 22)
+    module_types.Point qualified = direct
+    if qualified.sum() != 42 then
+        return 1
+    end
+    return 0
+end

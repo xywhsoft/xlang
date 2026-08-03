@@ -482,6 +482,11 @@ static int xl6CgenDeclTryStaticNullCoalesceInit(
     const XL6_AstNode* right;
     XL6_AstNode* leftType;
     XL6_AstNode* rightType;
+    const XL6_AstNode* nullableInner;
+    int nullableTagged;
+    int nullablePointer;
+    int targetIsNullable;
+    int targetIsInner;
     int id;
 
     if ( ctx == NULL || typeNode == NULL || cType == NULL || cName == NULL ||
@@ -498,6 +503,74 @@ static int xl6CgenDeclTryStaticNullCoalesceInit(
 
     leftType = xl6CgenCloneExprTypeForInference(ctx, left);
     rightType = xl6CgenCloneExprTypeForInference(ctx, right);
+    nullableInner = xl6CgenNullableInnerType(leftType);
+    nullableTagged = xl6CgenNullableUsesTaggedValue(leftType);
+    nullablePointer = xl6CgenNullableUsesPointer(leftType);
+    targetIsNullable = leftType != NULL && xl6CgenTypeNodeEqual(leftType, typeNode);
+    targetIsInner = nullableInner != NULL && xl6CgenTypeNodeEqual(nullableInner, typeNode);
+
+    if ( nullableInner != NULL && (nullableTagged || nullablePointer) &&
+         (targetIsNullable || targetIsInner) ) {
+        const char* leftCType = xl6CgenTypeName(ctx, leftType);
+
+        id = ctx->tempId++;
+        xl6OutputPrintf(ctx->out, "%s %s = ", cType, cName);
+        xl6CgenDefaultValue(ctx, typeNode);
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("{\n", ctx->out);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s __xl6_nc_%d = ", leftCType, id);
+        xl6CgenExpr(ctx, left);
+        xl6OutputPuts(";\n", ctx->out);
+        xl6CgenIndent(ctx);
+        if ( nullableTagged ) {
+            xl6OutputPrintf(ctx->out, "if (__xl6_nc_%d.hasValue) {\n", id);
+        } else {
+            xl6OutputPrintf(ctx->out, "if (__xl6_nc_%d != 0) {\n", id);
+        }
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", cName);
+        if ( xl6CgenIsOwnedStringTypeNode(ctx, typeNode) ) {
+            xl6OutputPuts("xl6_nullable_string_copy(", ctx->out);
+        }
+        xl6OutputPrintf(ctx->out, "__xl6_nc_%d", id);
+        if ( nullableTagged && targetIsInner ) {
+            xl6OutputPuts(".value", ctx->out);
+        }
+        if ( xl6CgenIsOwnedStringTypeNode(ctx, typeNode) ) {
+            xl6OutputPutc(')', ctx->out);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("} else {\n", ctx->out);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", cName);
+        if ( xl6CgenIsOwnedStringTypeNode(ctx, typeNode) ) {
+            xl6OutputPuts("xl6_nullable_string_copy(", ctx->out);
+            xl6CgenExpr(ctx, right);
+            xl6OutputPutc(')', ctx->out);
+        } else if ( targetIsNullable && nullableTagged ) {
+            xl6CgenNullableTaggedValueExpr(ctx, typeNode, right);
+        } else {
+            xl6CgenExpr(ctx, right);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        xl6AstFree(leftType);
+        xl6AstFree(rightType);
+        return 1;
+    }
+
     if ( leftType == NULL || rightType == NULL || !xl6CgenTypeNodeEqual(leftType, rightType) ) {
         xl6AstFree(leftType);
         xl6AstFree(rightType);

@@ -1,0 +1,64 @@
+enum HttpStatus as uint16
+    ok = 200
+    created
+    notFound = 404
+end
+
+enum Message<T>
+    empty
+    value(T item)
+    failure(int code, string text)
+end
+
+func describe(Message<string> message) as string
+    return match message
+    case empty then "empty"
+    case value(text) then text
+    case failure(code, text) then f"{code}:{text}"
+    end
+end
+
+func main(...) as int
+    assert HttpStatus.created == 201
+
+    int boolValue = match true
+    case true then 1
+    case false then 0
+    end
+    assert boolValue == 1
+
+    string numberText = match 7
+    case 0 then "zero"
+    case 7 then "seven"
+    else then "other"
+    end
+    assert numberText == "seven"
+
+    string? nullableText = null
+    string nullResult = match nullableText
+    case null then "null"
+    else then "value"
+    end
+    assert nullResult == "null"
+
+    Message<string> empty = Message::<string>.empty()
+    Message<string> value = Message::<string>.value("ready")
+    Message<string> failure = Message::<string>.failure(503, "offline")
+    assert describe(empty) == "empty"
+    assert describe(value) == "ready"
+    assert describe(failure) == "503:offline"
+
+    int assigned
+    match value
+    case empty
+        assigned = 0
+    case value(text)
+        assigned = text.length
+    case failure(code, text)
+        assigned = code + text.length
+    end
+    assert assigned == 5
+
+    println("enum match matrix ok")
+    return 0
+end

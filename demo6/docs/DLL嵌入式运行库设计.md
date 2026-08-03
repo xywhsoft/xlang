@@ -153,6 +153,8 @@ int xlcGetLastExitCode(XLC_Context* ctx);
 
 - `xlRuntimeInit` / `xlRuntimeUnit` 是进程级公共 API，用于管理 DLL 内部 XRT/libtcc 运行时计数。
 - `xlCreateContext` / `xlDestroyContext` 会为每个 context 持有独立运行时引用；公开 `xlRuntimeUnit` 只释放公开 `xlRuntimeInit` 取得的引用，不能提前释放仍被 context 持有的运行时。
+- 重定位得到的 `XL_Module` 独立持有运行时引用和 context 已加载依赖库的加载引用。因此可以先销毁创建它的 context，再继续调用模块符号，直到 `xlDestroyModule`。
+- 最后一个运行时引用只能在 TCC state、依赖库记录和模块/context 外壳等所有 XRT 分配对象释放后归还；不得在 `xrtUnit()` 完成内存池收尾后再次调用 `xrtFree()`。
 - `xlAddResourceFile` / `xlcAddResourceFile` 登记 Windows 资源配置文件。编译时资源配置被转换为 COFF `.rsrc` 对象并挂载到动态 VFS，再交给 TCC 链接，不生成磁盘 `.obj` 中间文件。
 - `xlLoadDependencyLibrary` 加载的依赖库句柄由当前 context 持有，`xlDestroyContext` 负责释放；该 API 会在调用时把路径按宿主当前目录固化为快照，然后用同一快照路径加载动态库并参与后续 TCC 链接。
 - 生成出来的 xlang/C 程序仍使用 `xlInit` / `xlUnit` 作为模块生命周期入口。
@@ -254,6 +256,7 @@ release\examples\xl_run_demo_win32.c
 - `xl_dll_null_context.c` 链接 `xl.def`，验证运行版 API 的 NULL context、cwd、路径快照和生命周期边界。
 - `xl_dll_threaded_host.c` 链接 `xl.def`，验证运行版 API 的多线程宿主边界。
 - `xl_dll_embed_string.c` 链接 `xlc.def`，验证字符串脚本运行、文件脚本运行、编译字符串脚本到 exe、编译文件脚本到 exe。
+- `test/cases/xl_dll_module_dependency_lifetime.c` 验证重定位模块在 context 销毁后仍保活动态依赖，并以测试侧看门线程阻止生命周期死锁无限挂住回归。
 
 ## 当前约束
 

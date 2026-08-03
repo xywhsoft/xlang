@@ -1,0 +1,30 @@
+enum HttpStatus as int32
+    ok = 200
+    notFound = 404
+end
+
+func main(...) as int
+    HttpStatus status = HttpStatus.ok
+    assert int(status) == 200
+
+    var boxed = status
+    HttpStatus restored = boxed as HttpStatus
+
+    match restored
+    case ok
+        println("ok")
+    case notFound
+        println("not found")
+    end
+
+    HttpStatus? maybe = boxed as HttpStatus?
+    if maybe != null
+        match maybe
+        case ok
+            println("nullable ok")
+        case notFound
+            println("nullable not found")
+        end
+    end
+    return 0
+end

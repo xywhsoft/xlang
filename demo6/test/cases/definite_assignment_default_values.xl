@@ -1,0 +1,17 @@
+class DefaultBox
+    int value = 7
+end
+
+func main(...) as int
+    string text
+    list<int> values
+    dict<string> names
+    DefaultBox box = DefaultBox()
+
+    assert(text == "")
+    assert(values.length == 0)
+    assert(names.length == 0)
+    assert(box.value == 7)
+    println("definite assignment defaults ok")
+    return 0
+end

@@ -120,12 +120,27 @@ static void xl6CgenLoopJump(XL6_CgenContext* ctx, const XL6_AstNode* node, int i
     int level;
     XL6_CgenLoopTarget* target;
     XL6_CgenFinallyTarget* finallyTarget;
+    const XL6_HirNode* hirNode;
     size_t targetIndex;
 
     level = node != NULL && node->childCount > 0 ? xl6CgenIntLiteralLevel(node->children[0]) : 1;
     target = xl6CgenLoopTargetAtLevel(ctx, level);
     if ( target == NULL ) {
         xl6CgenError(ctx, node, isContinue ? "continue 层数超过当前循环深度" : "break 层数超过当前循环深度");
+        return;
+    }
+    hirNode = xl6CgenHirNode(ctx, node);
+    if ( hirNode == NULL ||
+         hirNode->exitKind != (isContinue
+             ? XL6_SEM_EXIT_CONTINUE
+             : XL6_SEM_EXIT_BREAK) ) {
+        xl6CgenError(ctx, node, "typed HIR 缺少循环退出计划");
+        return;
+    }
+    if ( hirNode->targetRegion == 0 ||
+         target->region == 0 ||
+         hirNode->targetRegion != target->region ) {
+        xl6CgenError(ctx, node, "typed HIR loop target region does not match cgen loop stack");
         return;
     }
 
@@ -163,7 +178,10 @@ static void xl6CgenLoopJump(XL6_CgenContext* ctx, const XL6_AstNode* node, int i
         return;
     }
 
-    xl6CgenEmitCleanupsSince(ctx, isContinue ? target->continueCleanupMark : target->breakCleanupMark);
+    xl6CgenEmitCleanupsSince(
+        ctx,
+        isContinue ? target->continueCleanupMark : target->breakCleanupMark
+    );
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "goto __xl6_%s_%d;\n", isContinue ? "continue" : "break", isContinue ? target->continueId : target->breakId);
 }

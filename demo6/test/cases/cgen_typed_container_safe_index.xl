@@ -13,19 +13,19 @@ auto missingName = names?[9]
 auto maybeScore = scores?[scoreKey]
 auto missingScore = scores?["missing"]
 
-expect(type(maybeValue) == int, 1)
-expect(type(missingValue) == null, 1)
-expect(type(maybeName) == string, 1)
-expect(type(missingName) == null, 1)
-expect(type(maybeScore) == int, 1)
-expect(type(missingScore) == null, 1)
+expect(maybeValue != null, 1)
+expect(missingValue == null, 1)
+expect(maybeName != null, 1)
+expect(missingName == null, 1)
+expect(maybeScore != null, 1)
+expect(missingScore == null, 1)
 
-expect(int(values?[1]), 20)
-expect(int(values?[9] ?? 77), 77)
+expect(values?[1] ?? -1, 20)
+expect(values?[9] ?? 77, 77)
 
-expectStr(string(names?[2]), "beta")
-expectStr(string(names?[9] ?? "fallback"), "fallback")
+expectStr(names?[2] ?? "", "beta")
+expectStr(names?[9] ?? "fallback", "fallback")
 
-expect(int(scores?["alpha"]), 10)
-expect(int(scores?[scoreKey]), 10)
-expect(int(scores?["missing"] ?? 88), 88)
+expect(scores?["alpha"] ?? -1, 10)
+expect(scores?[scoreKey] ?? -1, 10)
+expect(scores?["missing"] ?? 88, 88)

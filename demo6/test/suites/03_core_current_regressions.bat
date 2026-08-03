@@ -4,6 +4,56 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: current core ownership regressions...
 
+for %%F in (test\cases\index_ownership*.xl) do (
+    release\xl.exe check "%%F"
+    if errorlevel 1 exit /b 1
+    release\xl.exe run "%%F"
+    if errorlevel 1 exit /b 1
+    release\xl.exe build "%%F" -o "build\test\%%~nF.exe"
+    if errorlevel 1 exit /b 1
+    "build\test\%%~nF.exe"
+    if errorlevel 1 exit /b 1
+)
+
+release\xl.exe cgen test\cases\index_ownership_top_level_var_return.xl --emit build\test\index_ownership_top_level_var_return.c
+if errorlevel 1 exit /b 1
+findstr /C:"static long long xl6_xrt_value_to_i64_release(xvalue value)" build\test\index_ownership_top_level_var_return.c >nul
+if errorlevel 1 (
+    echo index_ownership_top_level_var_return.c missing xvalue scalar bridge definition.
+    exit /b 1
+)
+findstr /C:"xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);" build\test\index_ownership_top_level_var_return.c >nul
+if errorlevel 1 (
+    echo index_ownership_top_level_var_return.c bypassed unified temporary release.
+    exit /b 1
+)
+powershell.exe -NoProfile -Command "$count = (Select-String -Path 'build\test\index_ownership_top_level_var_return.c' -Pattern '^static long long xl6_xrt_value_to_i64_release\(').Count; if ($count -ne 1) { exit 1 }"
+if errorlevel 1 (
+    echo index_ownership_top_level_var_return.c emitted duplicate scalar bridge definitions.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\hir_xvalue_scalar_bridge_matrix.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\hir_xvalue_scalar_bridge_matrix.xl --emit build\test\hir_xvalue_scalar_bridge_matrix.c
+if errorlevel 1 exit /b 1
+findstr /C:"xrtCopyStr(((const char*)xl6_runtime_value_as_string(value" build\test\hir_xvalue_scalar_bridge_matrix.c >nul
+if errorlevel 1 (
+    echo hir_xvalue_scalar_bridge_matrix.c missing single narrowed string conversion.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_value_to_string(((const char*)xl6_runtime_value_as_string" build\test\hir_xvalue_scalar_bridge_matrix.c >nul
+if not errorlevel 1 (
+    echo hir_xvalue_scalar_bridge_matrix.c emitted a double xvalue string conversion.
+    exit /b 1
+)
+release\xl.exe run test\cases\hir_xvalue_scalar_bridge_matrix.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\hir_xvalue_scalar_bridge_matrix.xl -o build\test\hir_xvalue_scalar_bridge_matrix.exe
+if errorlevel 1 exit /b 1
+build\test\hir_xvalue_scalar_bridge_matrix.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe check test\cases\cgen_global_identifier_collision.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_global_identifier_collision.xl --emit build\test\cgen_global_identifier_collision.c
@@ -75,6 +125,23 @@ release\xl.exe build test\cases\cgen_nested_anonymous_metadata.xl -o build\test\
 if errorlevel 1 exit /b 1
 build\test\cgen_nested_anonymous_metadata.exe
 if errorlevel 1 exit /b 1
+
+for %%F in (
+    hir_closure_nested_capture
+    hir_closure_shadow_capture
+    hir_closure_for_capture
+    hir_closure_for_string_capture
+    hir_closure_for_named_typed_array
+) do (
+    release\xl.exe check test\cases\%%F.xl
+    if errorlevel 1 exit /b 1
+    release\xl.exe run test\cases\%%F.xl
+    if errorlevel 1 exit /b 1
+    release\xl.exe build test\cases\%%F.xl -o build\test\%%F.exe
+    if errorlevel 1 exit /b 1
+    build\test\%%F.exe
+    if errorlevel 1 exit /b 1
+)
 
 release\xl.exe check test\cases\cgen_function_value_error_propagation.xl
 if errorlevel 1 exit /b 1
@@ -202,6 +269,9 @@ for %%F in (
     cgen_inline_container_for_in
     cgen_shift_range_errors
     cgen_typed_container_var_identity
+    hir_stdlib_array_conversion
+    hir_array_conversion_direct
+    hir_persistence_typed_container_matrix
 ) do (
     release\xl.exe check test\cases\%%F.xl
     if errorlevel 1 exit /b 1

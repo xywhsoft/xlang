@@ -1,0 +1,28 @@
+class ThreadBox<T>
+    T value
+
+    create(T input)
+        self.value = input
+    end
+end
+
+enum ThreadResult<T>
+    value(T item)
+end
+
+ThreadBox<int> box = ThreadBox::<int>(7)
+ThreadBox<int>? maybe = box
+ThreadResult<string> result = ThreadResult::<string>.value("ready")
+
+if maybe != null
+    assert maybe.value == 7
+else
+    assert false
+end
+
+string resultText = match result
+case value(item) then item
+end
+
+assert resultText == "ready"
+println("cgen context type text matrix ok")

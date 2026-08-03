@@ -1,0 +1,50 @@
+class PropertyEntry
+    string name = ""
+
+    create(string name)
+        self.name = name
+    end
+end
+
+class PropertyCatalog
+    array<string> values = ["zero", "one", "two"]
+    PropertyEntry selectedValue = PropertyEntry("chosen")
+
+    // 无维度 getter 返回容器，后续 [] 必须是普通容器索引。
+    get items() as array<string>
+        return self.values
+    end
+
+    // 带维度 getter 仍按属性协议派发。
+    get cell(int index) as string
+        return self.values[index]
+    end
+
+    // class 返回值也必须存活到调用者表达式结束。
+    get selected() as PropertyEntry
+        return self.selectedValue
+    end
+end
+
+
+
+func main(...) as int
+    PropertyCatalog catalog = PropertyCatalog()
+
+    assert catalog.items.length == 3, "managed property container length"
+    assert catalog.items[1] == "one", "managed property container chained index"
+    assert catalog.cell[2] == "two", "dimension property remains available"
+    assert catalog.selected.name == "chosen", "managed property class chain"
+
+    array<string> saved = catalog.items
+    assert saved.length == 3 and saved[0] == "zero", "managed property assignment owns its reference"
+
+    // 重复临时访问覆盖调用者作用域释放路径。
+    int i = 0
+    while i < 1000
+        assert catalog.items[2] == "two", "repeated managed property access"
+        i += 1
+    end
+
+    return 0
+end

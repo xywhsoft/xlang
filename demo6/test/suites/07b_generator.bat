@@ -238,7 +238,7 @@ if errorlevel 1 (
     echo cgen_generator.c missing pre-yield return generator function.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_xl_fn_returnBeforeYieldNums[\s\S]*?\{\s*XL6_Generator\* __xl6_gen = \(XL6_Generator\*\)__xl6_arg;[\s\S]*?xrtTempScopeEnd\(&__xl6_temp_scope_\d+\);\s*return;[\s\S]*?\{60LL\}'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'static void xl_gen_worker_xl_fn_returnBeforeYieldNums[\s\S]*?\{\s*XL6_Generator\* __xl6_gen = \(XL6_Generator\*\)__xl6_arg;[\s\S]*?xl6_temp_scope_end\(&__xl6_temp_scope_\d+\);\s*return;[\s\S]*?\{60LL\}'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing pre-yield return generator worker shape.
     exit /b 1
@@ -405,7 +405,7 @@ if errorlevel 1 (
     echo sem_generator_class_param.xl missing generator parameter diagnostic.
     exit /b 1
 )
-findstr /C:"bool" build\test\sem_generator_class_param.err.txt >nul
+findstr /C:"frame" build\test\sem_generator_class_param.err.txt >nul
 if errorlevel 1 (
     echo sem_generator_class_param.xl missing generator parameter type boundary.
     exit /b 1
@@ -421,7 +421,7 @@ if errorlevel 1 (
     echo sem_generator_var_param.xl missing generator var parameter diagnostic.
     exit /b 1
 )
-findstr /C:"bool" build\test\sem_generator_var_param.err.txt >nul
+findstr /C:"frame" build\test\sem_generator_var_param.err.txt >nul
 if errorlevel 1 (
     echo sem_generator_var_param.xl missing generator var parameter type boundary.
     exit /b 1
@@ -437,27 +437,16 @@ if errorlevel 1 (
     echo sem_generator_typed_array_param.xl missing generator typed array parameter diagnostic.
     exit /b 1
 )
-findstr /C:"bool" build\test\sem_generator_typed_array_param.err.txt >nul
+findstr /C:"frame" build\test\sem_generator_typed_array_param.err.txt >nul
 if errorlevel 1 (
     echo sem_generator_typed_array_param.xl missing generator typed array parameter type boundary.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generator_function_param.xl >nul 2> build\test\sem_generator_function_param.err.txt
-if not errorlevel 1 (
-    echo sem_generator_function_param.xl should fail.
-    exit /b 1
-)
-findstr /C:"generator" build\test\sem_generator_function_param.err.txt >nul
-if errorlevel 1 (
-    echo sem_generator_function_param.xl missing generator parameter diagnostic.
-    exit /b 1
-)
-findstr /C:"bool" build\test\sem_generator_function_param.err.txt >nul
-if errorlevel 1 (
-    echo sem_generator_function_param.xl missing generator parameter type boundary.
-    exit /b 1
-)
+release\xl.exe check test\cases\sem_generator_function_param.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\sem_generator_function_param.xl
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_generator_yield_type.xl >nul 2> build\test\sem_generator_yield_type.err.txt
 if not errorlevel 1 (

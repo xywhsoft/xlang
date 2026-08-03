@@ -1,0 +1,22 @@
+class ShadowValue
+end
+
+func bad(string label, string detail)
+    println(label + ": " + detail)
+end
+
+func exerciseTryScope()
+    try
+        try
+            ShadowValue bad = ShadowValue()
+            throw "inner"
+        catch inner
+            assert(inner.message == "inner")
+        end
+        throw "outer"
+    catch outer
+        bad("caught", outer.message)
+    end
+end
+
+exerciseTryScope()

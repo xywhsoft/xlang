@@ -1,0 +1,30 @@
+class AsyncWeakTarget
+    int value = 0
+
+    create(int initial)
+        self.value = initial
+    end
+end
+
+async func echoWeakAsync(weak<AsyncWeakTarget> source) as weak<AsyncWeakTarget>
+    return source
+end
+
+async func makeExpiredWeakAsync() as weak<AsyncWeakTarget>
+    AsyncWeakTarget local = AsyncWeakTarget(73)
+    weak<AsyncWeakTarget> result = local
+    return result
+end
+
+AsyncWeakTarget strong = AsyncWeakTarget(29)
+weak<AsyncWeakTarget> source = strong
+
+auto aliveFuture = echoWeakAsync(source)
+weak<AsyncWeakTarget> asyncAlive = await aliveFuture
+weak<AsyncWeakTarget> asyncAliveAgain = await aliveFuture
+assert(asyncAlive.lock() != null)
+assert(asyncAliveAgain.lock() != null)
+
+auto expiredFuture = makeExpiredWeakAsync()
+weak<AsyncWeakTarget> asyncExpired = await expiredFuture
+assert(asyncExpired.lock() == null)

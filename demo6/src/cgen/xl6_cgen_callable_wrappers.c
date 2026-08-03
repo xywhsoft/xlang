@@ -16,7 +16,7 @@ static void xl6CgenReleaseClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAno
         return;
     }
     xl6CgenClosureCapturePath(path, sizeof(path), capture);
-    if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+    if ( xl6CgenIsOwnedStringTypeNode(ctx, typeNode) ) {
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtFree((void*)%s); %s = 0; }\n", path, path, path);
     } else if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
@@ -32,11 +32,24 @@ static void xl6CgenReleaseClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAno
         xl6CgenIndent(ctx);
         xl6CgenSpecialCollectionReleaseCExpr(ctx, typeNode, path);
         xl6OutputPuts(";\n", ctx->out);
+    } else if ( xl6CgenIsWeakType(typeNode) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xvoWeakUnit(&%s);\n", path);
     } else if ( xl6CgenIsXValueType(typeNode) ) {
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", path, path, path);
     } else if ( xl6CgenIsFunctionType(typeNode) ) {
         xl6CgenReleaseFunctionPath(ctx, path);
+    } else if ( xl6CgenNullableHasManagedInner(ctx, typeNode) ) {
+        char dropName[64];
+        xl6CgenNullableDropHelperName(dropName, sizeof(dropName), typeNode);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s(&%s);\n", dropName, path);
+    } else if ( xl6CgenIsTaggedEnumType(ctx, typeNode) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("xrtTypeDropValue(", ctx->out);
+        xl6CgenEmitXrtTypeDescRef(ctx, typeNode);
+        xl6OutputPrintf(ctx->out, ", &%s);\n", path);
     } else {
         classNode = xl6CgenClassNodeForType(ctx, typeNode);
         if ( classNode != NULL ) {
@@ -60,6 +73,17 @@ static void xl6CgenCopyClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAnonCa
     xl6CgenClosureCapturePath(path, sizeof(path), capture);
     /* make helper 的捕获源始终是它自己的形参，不能被同名模块全局量覆盖。 */
     xl6CgenCIdentText(sourceName, sizeof(sourceName), capture->name);
+    if ( xl6CgenIsTaggedEnumType(ctx, typeNode) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("if (!xrtTypeCopyValue(", ctx->out);
+        xl6CgenEmitXrtTypeDescRef(ctx, typeNode);
+        xl6OutputPrintf(
+            ctx->out,
+            ", &%s, &%s)) { xl6_function_fatal(2); }\n",
+            path,
+            sourceName);
+        return;
+    }
     if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
         /*
          * 类型化容器需要保持引用身份，同时可能随闭包跨线程。
@@ -86,14 +110,25 @@ static void xl6CgenCopyClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAnonCa
     xl6CgenIndent(ctx);
     xl6OutputPuts(path, ctx->out);
     xl6OutputPuts(" = ", ctx->out);
-    if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
-        xl6OutputPrintf(ctx->out, "xrtCopyStr(%s, 0u)", sourceName);
+    if ( xl6CgenIsOwnedStringTypeNode(ctx, typeNode) ) {
+        xl6OutputPrintf(
+            ctx->out,
+            xl6CgenIsNullableStringTypeNode(ctx, typeNode) ?
+                "xl6_nullable_string_copy(%s)" :
+                "xrtCopyStr(%s, 0u)",
+            sourceName);
     } else if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
         xl6CgenSpecialCollectionRetainCExpr(ctx, typeNode, sourceName);
+    } else if ( xl6CgenIsWeakType(typeNode) ) {
+        xl6OutputPrintf(ctx->out, "xvoWeakClone(&%s)", sourceName);
     } else if ( xl6CgenIsXValueType(typeNode) ) {
         xl6OutputPrintf(ctx->out, "xl6_xrt_retain(%s)", sourceName);
     } else if ( xl6CgenIsFunctionType(typeNode) ) {
         xl6OutputPuts(sourceName, ctx->out);
+    } else if ( xl6CgenNullableHasManagedInner(ctx, typeNode) ) {
+        char copyName[64];
+        xl6CgenNullableCopyHelperName(copyName, sizeof(copyName), typeNode);
+        xl6OutputPrintf(ctx->out, "%s(%s)", copyName, sourceName);
     } else {
         classNode = xl6CgenClassNodeForType(ctx, typeNode);
         if ( classNode != NULL && !xl6CgenClassHasTypeParams(classNode) ) {

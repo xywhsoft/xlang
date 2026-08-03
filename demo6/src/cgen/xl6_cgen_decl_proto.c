@@ -92,6 +92,7 @@ static void xl6CgenExportWrapperProto(XL6_CgenContext* ctx, const XL6_AstNode* n
     const XL6_AstNode* returns;
     const XL6_AstNode* params;
 
+    xl6OutputPuts("XL6_C_API ", ctx->out);
     returns = node->childCount > 2 ? node->children[2] : NULL;
     if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts(xl6CgenCAbiTypeName(ctx, returns->children[0]), ctx->out);
@@ -150,6 +151,7 @@ static void xl6CgenClassExportWrapperProto(XL6_CgenContext* ctx, const XL6_AstNo
     const XL6_AstNode* params;
     int wroteParam;
 
+    xl6OutputPuts("XL6_C_API ", ctx->out);
     returns = node->childCount > 2 ? node->children[2] : NULL;
     if ( returns != NULL && returns->childCount == 1 ) {
         xl6OutputPuts(xl6CgenCAbiTypeName(ctx, returns->children[0]), ctx->out);
@@ -262,6 +264,7 @@ static void xl6CgenExportVarDef(XL6_CgenContext* ctx, const XL6_AstNode* node)
     const XL6_AstNode* typeNode;
     const XL6_AstNode* initExpr;
 
+    xl6OutputPuts("XL6_C_API ", ctx->out);
     typeNode = xl6CgenExternalVarTypeNode(node);
     initExpr = xl6CgenExternalVarInitExpr(node);
     if ( node != NULL && node->kind == XL6_AST_EXPORT_CONST ) {
@@ -294,9 +297,8 @@ static void xl6CgenClassParamListEx(XL6_CgenContext* ctx, const XL6_AstNode* cla
         if ( wroteParam ) {
             xl6OutputPuts(", ", ctx->out);
         }
-        if ( param->childCount == 0 || xl6CTextEquals(param->children[0]->text, "array<var>") ||
-             xl6CTextEquals(param->children[0]->text, "dict<var>") ) {
-            xl6CgenError(ctx, param, "class C 生成暂不支持可变参数方法");
+        if ( param->childCount == 0 ) {
+            xl6CgenError(ctx, param, "class 方法参数缺少类型");
             xl6OutputPuts("int ", ctx->out);
         } else {
             xl6OutputPuts(xl6CgenParamCType(ctx, param->children[0]), ctx->out);
@@ -414,11 +416,19 @@ static void xl6CgenEmitRecordBoxRuntime(
     const XL6_AstNode* equalsMethod;
     const XL6_AstNode* prevParams;
     const XL6_AstNode* prevArgs;
+    XL6_AstNode sourceType;
+    const XL6_AstNode* identityType;
+    const char* prevErrorExitLabel;
+    char defaultErrorLabel[640];
 
     if ( ctx == NULL || cTypeName == NULL || sourceName == NULL ) {
         return;
     }
     isGeneric = typeNode != NULL && typeNode->childCount > 0 && xl6CgenClassHasTypeParams(classNode);
+    memset(&sourceType, 0, sizeof(sourceType));
+    sourceType.kind = XL6_AST_TYPE;
+    sourceType.text = (char*)sourceName;
+    identityType = isGeneric ? typeNode : &sourceType;
     needsDestroy = isGeneric ?
         xl6CgenGenericClassNeedsDestroy(ctx, classNode, typeNode) :
         xl6CgenClassNeedsDestroy(ctx, classNode);
@@ -684,11 +694,20 @@ static void xl6CgenEmitRecordBoxRuntime(
                         cTypeName);
     }
 
+    if ( isGeneric ) {
+        xl6CgenEmitDynamicMethodTableProto(ctx, cTypeName);
+    } else {
+        xl6CgenEmitDynamicMethodTable(ctx, classNode, NULL, cTypeName);
+    }
+
     xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
     xl6CgenTypeDescSymbol(ctx->out, cTypeName);
     xl6OutputPuts("(void)\n{\n", ctx->out);
     xl6OutputPuts("    static xrt_type_desc desc = {\n", ctx->out);
-    xl6OutputPuts("        0u,\n", ctx->out);
+    xl6OutputPrintf(
+        ctx->out,
+        "        0x%08XU,\n",
+        (unsigned int)(xl6CgenTypeIdForTypeNode(ctx, identityType) & 0xFFFFFFFFULL));
     xl6OutputPuts("        XL6_XRT_TYPE_KIND_CLASS,\n", ctx->out);
     xl6OutputPuts("        ", ctx->out);
     xl6CgenCStringLiteral(ctx->out, sourceName);
@@ -705,6 +724,10 @@ static void xl6CgenEmitRecordBoxRuntime(
     }
     xl6OutputPuts(", 0\n", ctx->out);
     xl6OutputPuts("    };\n", ctx->out);
+    xl6OutputPuts("    if ( desc.Methods == 0 ) { desc.Methods = ", ctx->out);
+    xl6OutputPuts("xl6_method_table_", ctx->out);
+    xl6CgenFputsCIdent(ctx->out, cTypeName);
+    xl6OutputPuts("(); }\n", ctx->out);
     if ( xl6CgenClassHasBaseType(classNode) ) {
         xl6OutputPuts("    if ( desc.BaseType == 0 ) { desc.BaseType = ", ctx->out);
         xl6CgenEmitClassBaseTypeDesc(ctx, classNode);
@@ -728,7 +751,25 @@ static void xl6CgenEmitRecordBoxRuntime(
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s value = {0};\n", cTypeName);
+    snprintf(defaultErrorLabel, sizeof(defaultErrorLabel), "__xl6_default_error_%s", cTypeName);
+    prevErrorExitLabel = ctx->currentErrorExitLabel;
+    ctx->currentErrorExitLabel = defaultErrorLabel;
     xl6CgenClassDefaultInitFields(ctx, classNode, "value");
+    ctx->currentErrorExitLabel = prevErrorExitLabel;
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("return value;\n", ctx->out);
+    xl6OutputPrintf(ctx->out, "%s:\n", defaultErrorLabel);
+    if ( needsDestroy ) {
+        xl6CgenIndent(ctx);
+        if ( isGeneric ) {
+            xl6CgenGenericClassMemberSymbol(ctx, classNode, typeNode, "destroy");
+        } else {
+            xl6CgenClassMemberSymbol(ctx->out, classNode->text, "destroy");
+        }
+        xl6OutputPuts("(&value);\n", ctx->out);
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPuts("memset(&value, 0, sizeof(value));\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPuts("return value;\n", ctx->out);
     ctx->indent -= 1;
@@ -740,6 +781,11 @@ static void xl6CgenEmitRecordBoxRuntime(
 
 static void xl6CgenEmitPlainRecordBoxRuntime(XL6_CgenContext* ctx, const char* cTypeName, const char* sourceName)
 {
+    XL6_AstNode typeNode;
+
+    memset(&typeNode, 0, sizeof(typeNode));
+    typeNode.kind = XL6_AST_TYPE;
+    typeNode.text = (char*)sourceName;
     if ( ctx == NULL || cTypeName == NULL || sourceName == NULL ) {
         return;
     }
@@ -818,7 +864,10 @@ static void xl6CgenEmitPlainRecordBoxRuntime(XL6_CgenContext* ctx, const char* c
     xl6CgenTypeDescSymbol(ctx->out, cTypeName);
     xl6OutputPuts("(void)\n{\n", ctx->out);
     xl6OutputPuts("    static const xrt_type_desc desc = {\n", ctx->out);
-    xl6OutputPuts("        0u,\n", ctx->out);
+    xl6OutputPrintf(
+        ctx->out,
+        "        0x%08XU,\n",
+        (unsigned int)(xl6CgenTypeIdForTypeNode(ctx, &typeNode) & 0xFFFFFFFFULL));
     xl6OutputPuts("        XL6_XRT_TYPE_KIND_RECORD,\n", ctx->out);
     xl6OutputPuts("        ", ctx->out);
     xl6CgenCStringLiteral(ctx->out, sourceName);
@@ -845,15 +894,21 @@ static void xl6CgenEmitPlainRecordBoxRuntime(XL6_CgenContext* ctx, const char* c
 static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode* nativeClassNode, const char* cTypeName, const char* sourceName)
 {
     const XL6_AstNode* destroyNode;
+    XL6_AstNode typeNode;
 
     if ( ctx == NULL || cTypeName == NULL || sourceName == NULL ) {
         return;
     }
+    memset(&typeNode, 0, sizeof(typeNode));
+    typeNode.kind = XL6_AST_TYPE;
+    typeNode.text = (char*)sourceName;
     if ( nativeClassNode != NULL && nativeClassNode->kind == XL6_AST_CLASS ) {
         destroyNode = xl6CgenFindClassSpecial(nativeClassNode, "destroy");
     } else {
         destroyNode = xl6CgenFindNativeBackedClassSpecial(nativeClassNode, "destroy");
     }
+
+    xl6CgenEmitDynamicMethodTable(ctx, nativeClassNode, NULL, cTypeName);
 
     if ( destroyNode != NULL ) {
         xl6OutputPuts("long long ", ctx->out);
@@ -929,7 +984,10 @@ static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
     xl6CgenTypeDescSymbol(ctx->out, cTypeName);
     xl6OutputPuts("(void)\n{\n", ctx->out);
     xl6OutputPuts("    static xrt_type_desc desc = {\n", ctx->out);
-    xl6OutputPuts("        0u,\n", ctx->out);
+    xl6OutputPrintf(
+        ctx->out,
+        "        0x%08XU,\n",
+        (unsigned int)(xl6CgenTypeIdForTypeNode(ctx, &typeNode) & 0xFFFFFFFFULL));
     xl6OutputPuts("        XL6_XRT_TYPE_KIND_HANDLE,\n", ctx->out);
     xl6OutputPuts("        ", ctx->out);
     xl6CgenCStringLiteral(ctx->out, sourceName);
@@ -940,6 +998,9 @@ static void xl6CgenEmitHandleBoxRuntime(XL6_CgenContext* ctx, const XL6_AstNode*
     xl6OutputPuts("        sizeof(void*), sizeof(void*),\n", ctx->out);
     xl6OutputPrintf(ctx->out, "        &xl6_type_ops_%s, 0, 0, 0\n", cTypeName);
     xl6OutputPuts("    };\n", ctx->out);
+    xl6OutputPuts("    if ( desc.Methods == 0 ) { desc.Methods = ", ctx->out);
+    xl6CgenDynamicMethodTableSymbol(ctx, cTypeName);
+    xl6OutputPuts("(); }\n", ctx->out);
     if ( xl6CgenClassHasBaseType(nativeClassNode) ) {
         xl6OutputPuts("    if ( desc.BaseType == 0 ) { desc.BaseType = ", ctx->out);
         xl6CgenEmitClassBaseTypeDesc(ctx, nativeClassNode);

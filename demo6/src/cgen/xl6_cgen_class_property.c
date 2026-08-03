@@ -59,6 +59,7 @@ static int xl6CgenClassPropertyResolve(
     const XL6_AstNode* indexNode,
     const XL6_AstNode* valueExpr,
     XL6_AstKind kind,
+    const XL6_AstNode* semanticSource,
     const XL6_AstNode** outClass,
     const XL6_AstNode** outOwnerClass,
     const XL6_AstNode** outMethod,
@@ -71,6 +72,7 @@ static int xl6CgenClassPropertyResolve(
     XL6_AstNode* classNode;
     const XL6_AstNode* ownerClass;
     const XL6_AstNode* method;
+    const XL6_AstNode* hirTarget;
     XL6_AstNode* call;
     const XL6_AstNode* prevParams;
     const XL6_AstNode* prevArgs;
@@ -119,7 +121,39 @@ static int xl6CgenClassPropertyResolve(
         ctx->currentGenericArgs = concreteType->children[0];
     }
     ownerClass = NULL;
-    method = xl6CgenResolveClassProperty(ctx, classNode, call, member->text, kind, &ownerClass);
+    /*
+     * obj.property[index] 可能是两种完全不同的语义：
+     * 1. 带维度参数的属性 getter；
+     * 2. 无参数 getter 返回容器，再对返回值做普通索引。
+     *
+     * member 上的 HIR 目标只描述无参数的属性访问，不能拿它替代整个
+     * index 表达式的解析，否则第二种写法会丢失 index。存在索引参数时
+     * 必须重新按完整参数表解析；找不到维度 getter 后交回普通容器路径。
+     */
+    if ( semanticSource == NULL ) {
+        semanticSource = indexNode != NULL ? indexNode : member;
+    }
+    hirTarget = xl6CgenHirTarget(ctx, semanticSource);
+    if ( hirTarget != NULL ) {
+        ownerClass = xl6CgenFindCallableOwnerClass(ctx, classNode, hirTarget);
+        method = ownerClass != NULL &&
+                 hirTarget->kind == kind &&
+                 xl6CTextEquals(xl6CgenCallableName(hirTarget), member->text)
+            ? hirTarget
+            : NULL;
+        if ( method == NULL ) {
+            xl6CgenError(ctx, semanticSource, "typed HIR 属性访问器目标无效");
+        }
+    } else {
+        method = xl6CgenResolveClassProperty(
+            ctx,
+            classNode,
+            call,
+            member->text,
+            kind,
+            &ownerClass
+        );
+    }
     ctx->currentGenericParams = prevParams;
     ctx->currentGenericArgs = prevArgs;
     if ( method == NULL ) {
@@ -164,6 +198,11 @@ static XL6_AstNode* xl6CgenCloneClassPropertyMemberType(XL6_CgenContext* ctx, co
     XL6_AstNode* receiverType;
     XL6_AstNode* result;
 
+    if ( member != NULL &&
+         member->semanticCallKind == XL6_SEM_CALL_WITNESS ) {
+        return xl6CgenCloneExprTypeForInference(ctx, member);
+    }
+
     receiverType = NULL;
     if ( !xl6CgenClassPropertyResolve(
              ctx,
@@ -171,6 +210,7 @@ static XL6_AstNode* xl6CgenCloneClassPropertyMemberType(XL6_CgenContext* ctx, co
              indexNode,
              NULL,
              XL6_AST_GET,
+             indexNode != NULL ? indexNode : member,
              &classNode,
              &ownerClass,
              &method,
@@ -271,7 +311,8 @@ static int xl6CgenClassPropertyEmitCall(
     const XL6_AstNode* member,
     const XL6_AstNode* indexNode,
     const XL6_AstNode* valueExpr,
-    XL6_AstKind kind)
+    XL6_AstKind kind,
+    const XL6_AstNode* semanticSource)
 {
     const XL6_AstNode* classNode;
     const XL6_AstNode* ownerClass;
@@ -282,7 +323,16 @@ static int xl6CgenClassPropertyEmitCall(
     XL6_AstNode* call;
     int fixedCount;
 
-    if ( !xl6CgenClassPropertyResolve(ctx, member, indexNode, valueExpr, kind, &classNode, &ownerClass, &method, &receiverType, &call) ) {
+    if ( xl6CgenUserProtocolPropertyCall(
+            ctx,
+            member,
+            indexNode,
+            valueExpr,
+            kind,
+            semanticSource) ) {
+        return 1;
+    }
+    if ( !xl6CgenClassPropertyResolve(ctx, member, indexNode, valueExpr, kind, semanticSource, &classNode, &ownerClass, &method, &receiverType, &call) ) {
         return 0;
     }
 
@@ -328,7 +378,7 @@ static int xl6CgenClassPropertyEmitCall(
 
 static int xl6CgenClassPropertyMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode* member)
 {
-    return xl6CgenClassPropertyEmitCall(ctx, member, NULL, NULL, XL6_AST_GET);
+    return xl6CgenClassPropertyEmitCall(ctx, member, NULL, NULL, XL6_AST_GET, member);
 }
 
 static int xl6CgenClassPropertyIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
@@ -342,22 +392,22 @@ static int xl6CgenClassPropertyIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode
     if ( receiver == NULL || receiver->kind != XL6_AST_MEMBER ) {
         return 0;
     }
-    return xl6CgenClassPropertyEmitCall(ctx, receiver, node, NULL, XL6_AST_GET);
+    return xl6CgenClassPropertyEmitCall(ctx, receiver, node, NULL, XL6_AST_GET, node);
 }
 
-static int xl6CgenClassPropertyMemberSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* left, const XL6_AstNode* right)
+static int xl6CgenClassPropertyMemberSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* operation, const XL6_AstNode* left, const XL6_AstNode* right)
 {
     if ( left == NULL || left->kind != XL6_AST_MEMBER ) {
         return 0;
     }
-    if ( !xl6CgenClassPropertyEmitCall(ctx, left, NULL, right, XL6_AST_LET) ) {
+    if ( !xl6CgenClassPropertyEmitCall(ctx, left, NULL, right, XL6_AST_LET, operation) ) {
         return 0;
     }
     xl6OutputPuts(";\n", ctx->out);
     return 1;
 }
 
-static int xl6CgenClassPropertyIndexSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* left, const XL6_AstNode* right)
+static int xl6CgenClassPropertyIndexSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* operation, const XL6_AstNode* left, const XL6_AstNode* right)
 {
     const XL6_AstNode* member;
 
@@ -368,7 +418,7 @@ static int xl6CgenClassPropertyIndexSetStmt(XL6_CgenContext* ctx, const XL6_AstN
     if ( member == NULL || member->kind != XL6_AST_MEMBER ) {
         return 0;
     }
-    if ( !xl6CgenClassPropertyEmitCall(ctx, member, left, right, XL6_AST_LET) ) {
+    if ( !xl6CgenClassPropertyEmitCall(ctx, member, left, right, XL6_AST_LET, operation) ) {
         return 0;
     }
     xl6OutputPuts(";\n", ctx->out);

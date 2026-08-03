@@ -409,7 +409,7 @@ release\xl.exe run test\cases\cgen_class_string_ownership.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_class_string_ownership.xl --emit build\test\cgen_class_string_ownership.c
 if errorlevel 1 exit /b 1
-findstr /C:"xrtTempScope __xl6_temp_scope_" build\test\cgen_class_string_ownership.c >nul
+findstr /C:"XL6_TempScope __xl6_temp_scope_" build\test\cgen_class_string_ownership.c >nul
 if errorlevel 1 (
     echo cgen_class_string_ownership.c missing nested XRT temporary scope.
     exit /b 1

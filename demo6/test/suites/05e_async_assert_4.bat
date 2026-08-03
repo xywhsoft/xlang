@@ -11,7 +11,7 @@ if not "%XL6_ASYNC_CGEN_READY%"=="1" (
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async.c',[System.Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); [System.IO.File]::WriteAllText('build\test\cgen_async.assert.c',$text,(New-Object System.Text.UTF8Encoding($false)))"
 if errorlevel 1 exit /b 1
 
-findstr /C:"pendingAsyncSetValueB = xrtTypedSetRetain((*(xtset*)xl6_future_await_value(pendingAsyncSet" build\test\cgen_async.assert.c >nul
+findstr /C:"pendingAsyncSetValueB = xl6_xrt_typed_set_copy_mode(xrtTypeInt(), (*(xtset*)xl6_future_await_value(pendingAsyncSet" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing late typed set await retain after pending async worker completion.
     exit /b 1
@@ -31,12 +31,12 @@ if errorlevel 1 (
     echo cgen_async.c should cancel pending async typed dict future as borrowed.
     exit /b 1
 )
-findstr /C:"pendingAsyncDictValueA = xrtTypedDictRetain((*(xtdict*)xl6_future_await_value(pendingAsyncDict" build\test\cgen_async.assert.c >nul
+findstr /C:"pendingAsyncDictValueA = xl6_xrt_typed_dict_copy_mode(xrtTypeInt(), (*(xtdict*)xl6_future_await_value(pendingAsyncDict" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing first typed dict await retain after pending async cancel.
     exit /b 1
 )
-findstr /C:"pendingAsyncDictValueB = xrtTypedDictRetain((*(xtdict*)xl6_future_await_value(pendingAsyncDict" build\test\cgen_async.assert.c >nul
+findstr /C:"pendingAsyncDictValueB = xl6_xrt_typed_dict_copy_mode(xrtTypeInt(), (*(xtdict*)xl6_future_await_value(pendingAsyncDict" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing late typed dict await retain after pending async worker completion.
     exit /b 1
@@ -224,6 +224,11 @@ if errorlevel 1 (
 findstr /C:"if ( result != 0 ) { xvoAddRef(result); }" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await class-handle retain.
+    exit /b 1
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async.assert.c',[System.Text.Encoding]::UTF8); $start=$text.IndexOf('static void* xl6_async_zero_value'); $end=$text.IndexOf('static void* xl6_future_await_value',$start); if($start -lt 0 -or $end -le $start){exit 1}; $helper=$text.Substring($start,$end-$start); if(-not $helper.Contains('xrtTempMemory(valueSize)') -or $helper.Contains('xrtMalloc(valueSize)')){exit 1}"
+if errorlevel 1 (
+    echo cgen_async.c await failure placeholder must use XRT temporary memory.
     exit /b 1
 )
 findstr /C:"xl6_future_release_if_needed(pFuture)" build\test\cgen_async.assert.c >nul

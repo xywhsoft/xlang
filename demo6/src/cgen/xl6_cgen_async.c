@@ -17,22 +17,48 @@ static const char* xl6CgenAsyncParamCType(XL6_CgenContext* ctx, const XL6_AstNod
     return xl6CgenTypeName(ctx, typeNode);
 }
 
+static int xl6CgenAsyncIsClassMethod(const XL6_CgenContext* ctx)
+{
+    return ctx != NULL &&
+           !ctx->currentAsyncStatic &&
+           (ctx->currentAsyncClass != NULL ||
+            ctx->currentAsyncNativeClass != NULL);
+}
+
+static void xl6CgenAsyncCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* node)
+{
+    if ( ctx->currentAsyncNativeClass != NULL ) {
+        xl6CgenNativeCallableSymbol(ctx, ctx->currentAsyncNativeClass, node);
+    } else if ( ctx->currentAsyncClass != NULL &&
+                ctx->currentAsyncClassType != NULL ) {
+        xl6CgenGenericClassCallableSymbol(
+            ctx,
+            ctx->currentAsyncClass,
+            ctx->currentAsyncClassType,
+            node);
+    } else if ( ctx->currentAsyncClass != NULL ) {
+        xl6CgenClassCallableSymbol(ctx, ctx->currentAsyncClass, node);
+    } else {
+        xl6CgenFuncSymbol(ctx, node);
+    }
+}
+
 static void xl6CgenAsyncWorkerSymbol(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     xl6OutputPuts("xl_async_worker_", ctx->out);
-    xl6CgenFuncSymbol(ctx, node);
+    xl6CgenAsyncCallableSymbol(ctx, node);
 }
 
 static void xl6CgenAsyncArgsStructName(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     xl6OutputPuts("xl_async_args_", ctx->out);
-    xl6CgenFuncSymbol(ctx, node);
+    xl6CgenAsyncCallableSymbol(ctx, node);
 }
 
 static void xl6CgenAsyncResultFreeSymbol(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     xl6OutputPuts("xl_async_result_free_", ctx->out);
-    xl6CgenFuncSymbol(ctx, node);
+    xl6CgenAsyncCallableSymbol(ctx, node);
 }
 
 static void xl6CgenAsyncEmitParamList(XL6_CgenContext* ctx, const XL6_AstNode* params)

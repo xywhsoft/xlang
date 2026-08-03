@@ -1,0 +1,22 @@
+protocol Readable
+    func value() as int
+end
+
+class NativeCounter
+    native point handle
+
+    extern "protocol_native_counter_open" create(int value)
+    extern "protocol_native_counter_close" destroy()
+    extern "protocol_native_counter_value" func value() as int
+end
+
+func read(Readable value) as int
+    return value.value()
+end
+
+func main(...) as int
+    NativeCounter counter = NativeCounter(73)
+    assert read(counter) == 73
+    println("native-backed protocol dispatch ok")
+    return 0
+end

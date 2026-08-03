@@ -1,37 +1,109 @@
 import argon2
 
-
-
 func main(...) as int
-    // Hash a password
-    auto h = argon2.hash("mypassword", "somesalt", 1000, 32)
-    assert string.len(h) == 64, "hash is 64 hex chars"
+    // ═══ 1. 自动盐：hash 一行搞定（对标 Python ph.hash("password")） ═══
+    string encoded = argon2.hash("password123", timeCost = 2, memoryCost = 64, parallelism = 1)
+    assert encoded.length > 0, "hash should produce output"
+    assert string.byteAt(encoded, 0) == 36, "PHC starts with $"
+    println("auto-salt: ", encoded)
 
-    // Same input produces same hash (deterministic)
-    auto h2 = argon2.hash("mypassword", "somesalt", 1000, 32)
-    assert h == h2, "deterministic"
+    // 每次调用产生不同盐 → 不同哈希
+    string encoded2 = argon2.hash("password123", timeCost = 2, memoryCost = 64, parallelism = 1)
+    assert encoded != encoded2, "auto salt produces different hashes"
 
-    // Different password produces different hash
-    auto h3 = argon2.hash("otherpass", "somesalt", 1000, 32)
-    assert h3 != h, "different password"
+    // 但都能验证通过
+    assert argon2.verify("password123", encoded), "verify auto-salt 1"
+    assert argon2.verify("password123", encoded2), "verify auto-salt 2"
+    assert not argon2.verify("wrong", encoded), "wrong password fails"
 
-    // Different salt produces different hash
-    auto h4 = argon2.hash("mypassword", "othersalt", 1000, 32)
-    assert h4 != h, "different salt"
+    // ═══ 2. 手动盐（确定性） ═══
+    string salt = "somesalt12345678"
+    string h1 = argon2.hash("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1)
+    string h2 = argon2.hash("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1)
+    assert h1 == h2, "same salt = same hash (deterministic)"
 
-    // Verify
-    assert argon2.verify("mypassword", "somesalt", 1000, 32, h), "verify correct"
-    assert not argon2.verify("wrongpass", "somesalt", 1000, 32, h), "verify wrong"
+    // ═══ 3. secret 密钥哈希（对标 Python low_level hash_secret） ═══
+    string withSecret = argon2.hash("pw", salt = salt, secret = "server_key", timeCost = 2, memoryCost = 64, parallelism = 1)
+    string noSecret = argon2.hash("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1)
+    assert withSecret != noSecret, "secret changes the hash"
+    // 注意：verify 不含 secret，所以用 secret 生成的哈希无法通过普通 verify
+    // 这是设计意图：需要 secret 才能验证
 
-    // Generate salt
-    auto s1 = argon2.genSalt(12345, 16)
-    assert string.len(s1) == 32, "salt 32 hex chars"
-    auto s2 = argon2.genSalt(99999, 16)
-    assert s1 != s2, "different seeds different salts"
+    // ═══ 4. ad 附加数据 ═══
+    string withAd = argon2.hash("pw", salt = salt, ad = "user_id=42", timeCost = 2, memoryCost = 64, parallelism = 1)
+    assert withAd != noSecret, "ad changes the hash"
 
-    // Recommendations
-    assert argon2.recommendedIterations() == 10000, "rec iters"
+    // ═══ 5. parallelism 可配 ═══
+    string p1 = argon2.hash("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1)
+    string p2 = argon2.hash("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 2)
+    assert p1 != p2, "different parallelism = different hash"
+    // PHC 编码中包含 p=N
+    assert argon2.verify("pw", p1), "verify p=1"
+    assert argon2.verify("pw", p2), "verify p=2"
+
+    // ═══ 6. 三变体 ═══
+    string enc_d = argon2.hash("test", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1, type = argon2.ARGON2D)
+    string enc_i = argon2.hash("test", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1, type = argon2.ARGON2I)
+    string enc_id = argon2.hash("test", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1, type = argon2.ARGON2ID)
+    assert enc_d != enc_i, "argon2d != argon2i"
+    assert enc_i != enc_id, "argon2i != argon2id"
+    assert argon2.verify("test", enc_d), "verify argon2d"
+    assert argon2.verify("test", enc_i), "verify argon2i"
+    assert argon2.verify("test", enc_id), "verify argon2id"
+
+    // ═══ 7. hashRaw ═══
+    string raw = argon2.hashRaw("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1, hashLen = 32)
+    assert raw.length == 64, "32-byte = 64 hex chars"
+    string raw2 = argon2.hashRaw("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1, hashLen = 32)
+    assert raw == raw2, "hashRaw deterministic"
+
+    // ═══ 8. checkNeedsRehash（对标 Python check_needs_rehash） ═══
+    // 用弱参数生成
+    string weak = argon2.hash("pw", salt = salt, timeCost = 1, memoryCost = 64, parallelism = 1)
+    assert argon2.checkNeedsRehash(weak, timeCost = 3, memoryCost = 65536, parallelism = 4), "weak needs rehash"
+
+    // 参数完全匹配 → 不需要
+    string strong = argon2.hash("pw", salt = salt, timeCost = 3, memoryCost = 65536, parallelism = 4)
+    assert not argon2.checkNeedsRehash(strong, timeCost = 3, memoryCost = 65536, parallelism = 4), "strong ok"
+
+    // ═══ 9. 参数提取（对标 Python Parameters.extract） ═══
+    string sample = argon2.hash("x", salt = salt, timeCost = 5, memoryCost = 1024, parallelism = 2, hashLen = 48)
+    assert argon2.extractType(sample) == argon2.ARGON2ID, "extract type"
+    assert argon2.extractTimeCost(sample) == 5, "extract time"
+    assert argon2.extractMemoryCost(sample) == 1024, "extract memory"
+    assert argon2.extractParallelism(sample) == 2, "extract parallelism"
+
+    // argon2i 类型提取
+    string sample_i = argon2.hash("x", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1, type = argon2.ARGON2I)
+    assert argon2.extractType(sample_i) == argon2.ARGON2I, "extract type i"
+
+    // ═══ 10. generateSalt ═══
+    string s1 = argon2.generateSalt(16)
+    string s2 = argon2.generateSalt(16)
+    assert s1.length == 32, "16 bytes = 32 hex"
+    assert s1 != s2, "random salts differ"
+
+    // ═══ 11. 推荐参数 ═══
+    assert argon2.recommendedTime() == 3, "rec time"
+    assert argon2.recommendedMemory() == 65536, "rec memory"
+    assert argon2.recommendedParallelism() == 4, "rec parallelism"
     assert argon2.recommendedHashLen() == 32, "rec hashlen"
+    assert argon2.recommendedSaltLen() == 16, "rec saltlen"
 
+    // ═══ 12. Profiles 常量 ═══
+    assert argon2.PROFILE_LOW_MEMORY_TIME == 3, "low mem time"
+    assert argon2.PROFILE_LOW_MEMORY_MEMORY == 19456, "low mem memory"
+    assert argon2.PROFILE_LOW_MEMORY_PARALLELISM == 1, "low mem p"
+    assert argon2.PROFILE_HIGH_MEMORY_TIME == 4, "high mem time"
+    assert argon2.PROFILE_HIGH_MEMORY_MEMORY == 2097152, "high mem memory"
+    assert argon2.PROFILE_HIGH_MEMORY_PARALLELISM == 4, "high mem p"
+
+    // ═══ 13. 不同 hashLen ═══
+    string h16 = argon2.hashRaw("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1, hashLen = 16)
+    string h64 = argon2.hashRaw("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1, hashLen = 64)
+    assert h16.length == 32, "16-byte = 32 hex"
+    assert h64.length == 128, "64-byte = 128 hex"
+
+    println("argon2: all tests passed")
     return 0
 end

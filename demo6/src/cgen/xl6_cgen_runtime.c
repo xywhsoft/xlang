@@ -17,7 +17,141 @@ void xl6CgenEmitTempScopeRuntime(XL6_Output* out)
     xl6OutputPuts("xrtTempScope xrtTempScopeBegin(void);\n", out);
     xl6OutputPuts("void xrtTempScopeEnd(xrtTempScope* pScope);\n", out);
     xl6OutputPuts("char* xrtTempStringTake(char* sText, size_t iSize);\n", out);
-    xl6OutputPuts("char* xrtCopyStr(const char* sText, size_t iSize);\n\n", out);
+    xl6OutputPuts("char* xrtCopyStr(const char* sText, size_t iSize);\n", out);
+    xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
+    xl6OutputPuts("void xrtFree(void* pMemory);\n", out);
+    xl6OutputPuts("void* xrtThreadLocalGet(const char* sKey, size_t* pSize);\n", out);
+    xl6OutputPuts("void* xrtThreadLocalGetOrCreate(const char* sKey, size_t iSize);\n", out);
+    xl6OutputPuts("bool xrtThreadLocalRemove(const char* sKey);\n", out);
+    xl6OutputPuts("bool xrtThreadIsAttached(void);\n", out);
+    xl6OutputPuts("void* xrtThreadAttachCurrent(void);\n", out);
+    xl6OutputPuts("void xl6_runtime_fatal(int code);\n\n", out);
+
+    /*
+     * XRT 的临时内存负责无析构值；xlang 还需要把 getter 返回的引用值
+     * 延长到调用者表达式作用域。这里仅记录所有权，不复制对象本体。
+     */
+    xl6OutputPuts("typedef void (*XL6_TempManagedDrop)(void* value);\n", out);
+    xl6OutputPuts("typedef struct XL6_TempManagedEntry {\n", out);
+    xl6OutputPuts("    struct XL6_TempManagedEntry* previous;\n", out);
+    xl6OutputPuts("    void* value;\n", out);
+    xl6OutputPuts("    XL6_TempManagedDrop drop;\n", out);
+    xl6OutputPuts("    unsigned int depth;\n", out);
+    xl6OutputPuts("} XL6_TempManagedEntry;\n", out);
+    xl6OutputPuts("typedef struct XL6_TempManagedState {\n", out);
+    xl6OutputPuts("    XL6_TempManagedEntry* top;\n", out);
+    xl6OutputPuts("    unsigned int depth;\n", out);
+    xl6OutputPuts("} XL6_TempManagedState;\n", out);
+    xl6OutputPuts("typedef struct XL6_TempScope {\n", out);
+    xl6OutputPuts("    xrtTempScope xrt;\n", out);
+    xl6OutputPuts("    unsigned int depth;\n", out);
+    xl6OutputPuts("    bool active;\n", out);
+    xl6OutputPuts("} XL6_TempScope;\n\n", out);
+
+    xl6OutputPuts("static XL6_TempManagedState* xl6_temp_managed_state_existing(void)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    size_t size = 0u;\n", out);
+    xl6OutputPuts("    XL6_TempManagedState* state = (XL6_TempManagedState*)xrtThreadLocalGet(\"xlang.temp.managed.v1\", &size);\n", out);
+    xl6OutputPuts("    return state != 0 && size == sizeof(XL6_TempManagedState) ? state : 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static XL6_TempManagedState* xl6_temp_managed_state(void)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TempManagedState* state = (XL6_TempManagedState*)xrtThreadLocalGetOrCreate(\"xlang.temp.managed.v1\", sizeof(XL6_TempManagedState));\n", out);
+    xl6OutputPuts("    if ( state == 0 && !xrtThreadIsAttached() && xrtThreadAttachCurrent() != 0 ) {\n", out);
+    xl6OutputPuts("        state = (XL6_TempManagedState*)xrtThreadLocalGetOrCreate(\"xlang.temp.managed.v1\", sizeof(XL6_TempManagedState));\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( state == 0 ) { xl6_runtime_fatal(3); }\n", out);
+    xl6OutputPuts("    return state;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    /*
+     * 返回值被显式接管或释放时，必须先撤销一条对应的临时所有权记录。
+     * 同一容器可能因多次 retain 拥有多条记录，因此每次只移除一条。
+     */
+    xl6OutputPuts("static bool xl6_temp_managed_disown(void* value, XL6_TempManagedDrop drop)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TempManagedState* state;\n", out);
+    xl6OutputPuts("    XL6_TempManagedEntry** link;\n", out);
+    xl6OutputPuts("    XL6_TempManagedEntry* entry;\n", out);
+    xl6OutputPuts("    if ( value == 0 || drop == 0 ) { return false; }\n", out);
+    xl6OutputPuts("    state = xl6_temp_managed_state_existing();\n", out);
+    xl6OutputPuts("    if ( state == 0 ) { return false; }\n", out);
+    xl6OutputPuts("    link = &state->top;\n", out);
+    xl6OutputPuts("    while ( *link != 0 ) {\n", out);
+    xl6OutputPuts("        entry = *link;\n", out);
+    xl6OutputPuts("        if ( entry->value == value && entry->drop == drop ) {\n", out);
+    xl6OutputPuts("            *link = entry->previous;\n", out);
+    xl6OutputPuts("            xrtFree(entry);\n", out);
+    xl6OutputPuts("            return true;\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("        link = &entry->previous;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return false;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    /*
+     * 所有消费表达式临时值的 helper 都通过这一入口释放。
+     * 未登记的普通所有值仍会正常释放，已登记的临时值则先撤销作用域托管，避免二次释放。
+     */
+    xl6OutputPuts("static inline void xl6_temp_managed_release(void* value, XL6_TempManagedDrop drop)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    if ( value == 0 || drop == 0 ) { return; }\n", out);
+    xl6OutputPuts("    (void)xl6_temp_managed_disown(value, drop);\n", out);
+    xl6OutputPuts("    drop(value);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void xl6_temp_managed_drop_above(XL6_TempManagedState* state, unsigned int targetDepth)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    while ( state != 0 && state->top != 0 && state->top->depth > targetDepth ) {\n", out);
+    xl6OutputPuts("        XL6_TempManagedEntry* entry = state->top;\n", out);
+    xl6OutputPuts("        state->top = entry->previous;\n", out);
+    xl6OutputPuts("        if ( entry->value != 0 && entry->drop != 0 ) { entry->drop(entry->value); }\n", out);
+    xl6OutputPuts("        xrtFree(entry);\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static XL6_TempScope xl6_temp_scope_begin(void)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TempScope scope;\n", out);
+    xl6OutputPuts("    XL6_TempManagedState* state = xl6_temp_managed_state();\n", out);
+    xl6OutputPuts("    scope.xrt = xrtTempScopeBegin();\n", out);
+    xl6OutputPuts("    scope.depth = ++state->depth;\n", out);
+    xl6OutputPuts("    scope.active = true;\n", out);
+    xl6OutputPuts("    return scope;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void xl6_temp_scope_end(XL6_TempScope* scope)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TempManagedState* state;\n", out);
+    xl6OutputPuts("    if ( scope == 0 || !scope->active ) { return; }\n", out);
+    xl6OutputPuts("    state = xl6_temp_managed_state();\n", out);
+    xl6OutputPuts("    if ( state->depth != scope->depth ) { xl6_runtime_fatal(3); return; }\n", out);
+    xl6OutputPuts("    xl6_temp_managed_drop_above(state, scope->depth - 1u);\n", out);
+    xl6OutputPuts("    state->depth--;\n", out);
+    xl6OutputPuts("    scope->active = false;\n", out);
+    xl6OutputPuts("    xrtTempScopeEnd(&scope->xrt);\n", out);
+    xl6OutputPuts("    if ( state->depth == 0u ) { (void)xrtThreadLocalRemove(\"xlang.temp.managed.v1\"); }\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void* xl6_temp_promote_to(void* value, XL6_TempManagedDrop drop, unsigned int targetDepth)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_TempManagedState* state;\n", out);
+    xl6OutputPuts("    XL6_TempManagedEntry* entry;\n", out);
+    xl6OutputPuts("    if ( value == 0 || drop == 0 ) { return value; }\n", out);
+    xl6OutputPuts("    state = xl6_temp_managed_state();\n", out);
+    xl6OutputPuts("    if ( targetDepth >= state->depth ) { xl6_runtime_fatal(3); return 0; }\n", out);
+    xl6OutputPuts("    xl6_temp_managed_drop_above(state, targetDepth);\n", out);
+    xl6OutputPuts("    if ( targetDepth == 0 ) { return value; }\n", out);
+    xl6OutputPuts("    entry = (XL6_TempManagedEntry*)xrtMalloc(sizeof(XL6_TempManagedEntry));\n", out);
+    xl6OutputPuts("    if ( entry == 0 ) { drop(value); xl6_runtime_fatal(3); return 0; }\n", out);
+    xl6OutputPuts("    entry->previous = state->top;\n", out);
+    xl6OutputPuts("    entry->value = value;\n", out);
+    xl6OutputPuts("    entry->drop = drop;\n", out);
+    xl6OutputPuts("    entry->depth = targetDepth;\n", out);
+    xl6OutputPuts("    state->top = entry;\n", out);
+    xl6OutputPuts("    return value;\n", out);
+    xl6OutputPuts("}\n\n", out);
 }
 
 void xl6CgenEmitApproxProtos(XL6_Output* out)
@@ -44,6 +178,7 @@ void xl6CgenEmitStringRuntime(XL6_Output* out)
     xl6OutputPuts("#include <stdarg.h>\n", out);
     xl6OutputPuts("#include <string.h>\n", out);
     xl6OutputPuts("void* xrtMalloc(size_t iSize);\n\n", out);
+    xl6OutputPuts("char* xrtCopyStr(const char* sText, size_t iSize);\n\n", out);
     xl6OutputPuts("void* xrtTempMemory(size_t iSize);\n\n", out);
     xl6OutputPuts("int xrtStrComp(const char* s1, const char* s2, size_t iSize, bool bCase);\n", out);
     xl6OutputPuts("const char* xrtFindStr(const char* sText, size_t iSize, const char* sSubText, size_t iSubSize, bool bCase);\n", out);

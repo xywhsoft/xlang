@@ -1,0 +1,21 @@
+class AsyncLifetimeValue
+    string text = ""
+
+    create(string text)
+        self.text = text
+    end
+
+    async func readAfter(int delayMs) as string
+        time.sleep(delayMs)
+        return self.text
+    end
+end
+
+func startRead() as future<string>
+    AsyncLifetimeValue local = AsyncLifetimeValue("retained")
+    return local.readAfter(20)
+end
+
+future<string> pending = startRead()
+assert await pending == "retained"
+println("async class receiver lifetime ok")

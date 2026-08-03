@@ -3,11 +3,12 @@
 
 int main(void)
 {
+    XL_InitOptions options = xlInitOptions(0, 0);
     xvalue point;
     XL_Class_NamedPoint* data;
     int result = 0;
 
-    if ( xrtInit() == NULL ) {
+    if ( !xlInit(&options) ) {
         return 1;
     }
     point = xl6_named_point_make(5, 7, 30);
@@ -20,6 +21,6 @@ int main(void)
         result = 4;
     }
     xvoUnref(point);
-    xrtUnit();
+    xlUnit();
     return result;
 }

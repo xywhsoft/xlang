@@ -1,0 +1,30 @@
+// 同一动态容器先读取再写入时，旧元素和读取临时值必须完全独立。
+var dynValues = [10, 20]
+var dynSparse = [0: 11]
+var dynIndex = 1
+var dynTable = {"count": 6}
+var dynKey = "count"
+
+func makeDynArray() as var
+    return [101, 102]
+end
+
+func makeDynTable() as var
+    return {"temp": 44}
+end
+
+int beforeArray = int(dynValues[0])
+int beforeDict = int(dynTable[dynKey])
+int beforeSafe = int(dynTable?[dynKey])
+int temporaryArray = int(makeDynArray()?[0])
+int temporaryDict = int(makeDynTable()?["temp"])
+
+dynValues[0] = 42
+dynValues[dynIndex] = 77
+dynSparse[2] = 33
+dynTable[dynKey] = 8
+dynTable["count"] = 9
+
+int afterArray = int(dynValues[0]) + int(dynValues[1])
+int afterSparse = int(dynSparse[2])
+int afterDict = int(dynTable[dynKey])

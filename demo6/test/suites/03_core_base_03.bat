@@ -20,7 +20,7 @@ if not errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c regressed to xvalue array return.
     exit /b 1
 )
-findstr /C:"static xtarray xl6_fnvalue_xl_fn_makeValues_invoke" build\test\cgen_typed_container_for_in_returned.c >nul
+findstr /C:"static xtarray xl6_fnvalue_xl_fn_makeValues_sig" build\test\cgen_typed_container_for_in_returned.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed function value invoke ABI.
     exit /b 1
@@ -135,7 +135,7 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup before throw catch.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'if \(key != 0\) \{\s*xrtFree\(\(void\*\)key\);\s*key = 0;\s*}\s*if \(__xl6_typed_dict_snapshot_(\d+) != 0\) \{\s*xrtTypedDictDestroy\(__xl6_typed_dict_snapshot_\1\);\s*__xl6_typed_dict_snapshot_\1 = 0;\s*}\s*if \(__xl6_typed_iter_\1 != 0\) \{\s*xrtTypedDictDestroy\(__xl6_typed_iter_\1\);\s*__xl6_typed_iter_\1 = 0;\s*}\s*goto __xl6_break_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'if \(key != 0\) \{\s*xrtFree\(\(void\*\)key\);\s*key = 0;\s*}\s*if \(__xl6_typed_dict_snapshot_(\d+) != 0\) \{\s*\(void\)xl6_temp_managed_disown\(\(void\*\)__xl6_typed_dict_snapshot_\1, \(XL6_TempManagedDrop\)xrtTypedDictDestroy\);\s*xrtTypedDictDestroy\(__xl6_typed_dict_snapshot_\1\);\s*__xl6_typed_dict_snapshot_\1 = 0;\s*}\s*if \(__xl6_typed_iter_\1 != 0\) \{\s*\(void\)xl6_temp_managed_disown\(\(void\*\)__xl6_typed_iter_\1, \(XL6_TempManagedDrop\)xrtTypedDictDestroy\);\s*xrtTypedDictDestroy\(__xl6_typed_iter_\1\);\s*__xl6_typed_iter_\1 = 0;\s*}\s*goto __xl6_break_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing typed dict key cleanup before break.
     exit /b 1
@@ -175,7 +175,7 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed list cleanup before throw catch.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = id;[\s\S]*?if \(__xl6_typed_iter_(\d+) != 0\) \{\s*xrtTypedSetDestroy\(__xl6_typed_iter_\2\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = id;[\s\S]*?if \(__xl6_typed_iter_(\d+) != 0\) \{\s*\(void\)xl6_temp_managed_disown\(\(void\*\)__xl6_typed_iter_\2, \(XL6_TempManagedDrop\)xrtTypedSetDestroy\);\s*xrtTypedSetDestroy\(__xl6_typed_iter_\2\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed set cleanup before return.
     exit /b 1
@@ -190,7 +190,7 @@ if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed set cleanup before throw catch.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = value;[\s\S]*?if \(__xl6_typed_iter_(\d+) != 0\) \{\s*xrtTypedArrayDestroy\(__xl6_typed_iter_\2\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_typed_container_for_in_returned.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'long long __xl6_return_(\d+) = value;[\s\S]*?if \(__xl6_typed_iter_(\d+) != 0\) \{\s*\(void\)xl6_temp_managed_disown\(\(void\*\)__xl6_typed_iter_\2, \(XL6_TempManagedDrop\)xrtTypedArrayDestroy\);\s*xrtTypedArrayDestroy\(__xl6_typed_iter_\2\);[\s\S]*?return __xl6_return_\1;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_typed_container_for_in_returned.c missing returned typed array cleanup before return.
     exit /b 1
@@ -241,7 +241,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_type_desc_dedupe.xl --emit build\test\cgen_type_desc_dedupe.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_type_desc_dedupe.c' -Raw; if(([regex]::Matches($t, 'static const xrt_type_desc\* xl6_runtime_type_desc_[0-9A-F]+\(void\)\s*\{')).Count -ne 1){exit 1}; if(([regex]::Matches($t, 'static const xrt_generic_type generic')).Count -ne 1){exit 2}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_type_desc_dedupe.c' -Raw; if(([regex]::Matches($t, 'static const xrt_type_desc\* xl6_runtime_type_desc_[0-9A-F]+\(void\)\s*\{')).Count -ne 1){exit 1}; if(([regex]::Matches($t, 'static const xrt_generic_type xl6_runtime_type_desc_[0-9A-F]+_generic')).Count -ne 1){exit 2}"
 if errorlevel 1 (
     echo cgen_type_desc_dedupe.c duplicated runtime type desc for same typed container.
     exit /b 1

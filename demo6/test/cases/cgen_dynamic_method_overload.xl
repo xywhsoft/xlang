@@ -1,0 +1,23 @@
+class DynamicOverload
+    func pick(int value) as int
+        return value + 1
+    end
+
+    func pick(float value) as int
+        return int(value) + 10
+    end
+
+    func pick(string value) as int
+        return string.len(value)
+    end
+end
+
+var dynamicOverload = DynamicOverload()
+
+func main(...) as int
+    assert int(dynamicOverload.pick(41)) == 42
+    assert int(dynamicOverload.pick(2.5)) == 12
+    assert int(dynamicOverload.pick("hello")) == 5
+    println("dynamic method overload ok")
+    return 0
+end

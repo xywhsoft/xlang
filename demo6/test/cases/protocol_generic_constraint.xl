@@ -1,0 +1,20 @@
+protocol Identifiable
+    func id() as int
+end
+
+class Good
+    func id() as int
+        return 7
+    end
+end
+
+func accept<T is Identifiable>(T value) as int
+    return 1
+end
+
+func main(...) as int
+    Good value = Good()
+    assert accept::<Good>(value) == 1
+    println("protocol generic constraint ok")
+    return 0
+end

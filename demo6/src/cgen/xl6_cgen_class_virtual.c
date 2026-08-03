@@ -268,7 +268,7 @@ static void xl6CgenVirtualReturnType(XL6_CgenContext* ctx, const XL6_AstNode* me
     if ( returns != NULL && returns->childCount > 1 ) {
         xl6CgenFuncReturnStructName(ctx, member);
     } else if ( returns != NULL && returns->childCount == 1 ) {
-        xl6OutputPuts(xl6CgenTypeName(ctx, returns->children[0]), ctx->out);
+        xl6OutputPuts(xl6CgenFuncSingleReturnCType(ctx, member), ctx->out);
     } else {
         xl6OutputPuts("void", ctx->out);
     }

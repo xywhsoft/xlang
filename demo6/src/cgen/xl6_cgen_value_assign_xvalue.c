@@ -24,11 +24,8 @@ static int xl6CgenStaticScalarXValueExpr(
     const XL6_AstNode* targetType,
     const XL6_AstNode* expr)
 {
-    XL6_AstNode* exprType;
     const XL6_AstNode* concreteTarget;
-    const XL6_AstNode* concreteExpr;
     const char* targetName;
-    int result;
 
     if ( ctx == NULL || targetType == NULL || expr == NULL ) {
         return 0;
@@ -45,13 +42,7 @@ static int xl6CgenStaticScalarXValueExpr(
         return 0;
     }
 
-    exprType = xl6CgenCloneExprTypeForInference(ctx, expr);
-    concreteExpr = xl6CgenResolveAliasType(ctx, exprType);
-    result = xl6CgenIsXValueType(concreteExpr) ||
-             xl6CgenBinaryArithmeticIsXValue(ctx, expr) ||
-             xl6CgenConditionalIsXValue(ctx, expr);
-    xl6AstFree(exprType);
-    return result;
+    return xl6CgenExprNeedsXValueScalarBridge(ctx, concreteTarget, expr);
 }
 
 static int xl6CgenStaticScalarFromXValueExpr(

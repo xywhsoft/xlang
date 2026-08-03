@@ -237,6 +237,30 @@ static void xl6CgenClassValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeN
         xl6OutputPuts("xvoCreateNull()", ctx->out);
         return;
     }
+    if ( xl6CgenIsNullableType(concreteType) ) {
+        const XL6_AstNode* innerType = xl6CgenNullableInnerType(concreteType);
+        char innerPath[1024];
+
+        if ( xl6CgenNullableUsesTaggedValue(concreteType) ) {
+            snprintf(innerPath, sizeof(innerPath), "(%s).value", valuePath);
+            xl6OutputPrintf(ctx->out, "((%s).hasValue ? ", valuePath);
+            xl6CgenClassValueExpr(ctx, innerType, innerPath);
+            xl6OutputPuts(" : xvoCreateNull())", ctx->out);
+        } else if ( xl6CgenNullableUsesXValue(concreteType) ) {
+            xl6OutputPrintf(
+                ctx->out,
+                "(((%s) != 0 && !xvoIsNull(%s)) ? ",
+                valuePath,
+                valuePath);
+            xl6CgenClassValueExpr(ctx, innerType, valuePath);
+            xl6OutputPuts(" : xvoCreateNull())", ctx->out);
+        } else {
+            xl6OutputPrintf(ctx->out, "((%s) != 0 ? ", valuePath);
+            xl6CgenClassValueExpr(ctx, innerType, valuePath);
+            xl6OutputPuts(" : xvoCreateNull())", ctx->out);
+        }
+        return;
+    }
     if ( xl6CgenIsBoolTypeName(concreteType->text) ) {
         xl6OutputPuts("xvoCreateBool((bool)(", ctx->out);
         xl6OutputPuts(valuePath, ctx->out);
@@ -275,7 +299,7 @@ static void xl6CgenClassValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeN
         xl6OutputPuts("))", ctx->out);
         return;
     }
-    if ( xl6CgenPersistenceTypeIsTypedContainer(ctx, concreteType) ) {
+    if ( xl6CgenIsTypedContainerType(ctx, concreteType) ) {
         const XL6_AstNode* itemType = xl6CgenPersistenceContainerItemType(ctx, concreteType);
         if ( xl6CTextEquals(concreteType->text, "array") ) {
             xl6OutputPuts("xl6_xrt_typed_array_to_xvalue(", ctx->out);
@@ -339,6 +363,64 @@ static void xl6CgenClassValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeN
     xl6OutputPuts("xvoCreateNull()", ctx->out);
 }
 
+static void xl6CgenClassClearNullableValue(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* nullableType,
+    const char* valuePath)
+{
+    const XL6_AstNode* innerType = xl6CgenNullableInnerType(nullableType);
+
+    if ( innerType == NULL ) {
+        return;
+    }
+    if ( xl6CgenNullableUsesTaggedValue(nullableType) ) {
+        xl6CgenIndent(ctx);
+        if ( xl6CgenNullableHasManagedInner(ctx, nullableType) ) {
+            char dropName[64];
+            xl6CgenNullableDropHelperName(dropName, sizeof(dropName), nullableType);
+            xl6OutputPrintf(ctx->out, "%s(&%s);\n", dropName, valuePath);
+        } else {
+            xl6OutputPrintf(ctx->out, "memset(&%s, 0, sizeof(%s));\n", valuePath, valuePath);
+        }
+        return;
+    }
+    if ( xl6CgenNullableUsesXValue(nullableType) || xl6CgenIsXValueType(innerType) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(
+            ctx->out,
+            "if (%s != 0) { xvoUnref(%s); } %s = xvoCreateNull();\n",
+            valuePath,
+            valuePath,
+            valuePath);
+        return;
+    }
+    if ( xl6CgenIsTypedContainerType(ctx, innerType) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", valuePath);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6CgenTypedContainerDestroyValue(ctx, innerType, valuePath);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = 0;\n", valuePath);
+        return;
+    }
+    if ( xl6CTextEquals(innerType->text, "string") ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(
+            ctx->out,
+            "if (%s != 0) { xrtFree((void*)%s); } %s = 0;\n",
+            valuePath,
+            valuePath,
+            valuePath);
+        return;
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = 0;\n", valuePath);
+}
+
 static void xl6CgenClassAssignFromValue(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode,
@@ -352,6 +434,43 @@ static void xl6CgenClassAssignFromValue(
 
     concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
     if ( concreteType == NULL || concreteType->text == NULL ) {
+        return;
+    }
+    if ( xl6CgenIsNullableType(concreteType) ) {
+        const XL6_AstNode* innerType = xl6CgenNullableInnerType(concreteType);
+
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s == 0 || xvoIsNull(%s)) {\n", itemName, itemName);
+        ctx->indent += 1;
+        xl6CgenClassClearNullableValue(ctx, concreteType, valuePath);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("} else {\n", ctx->out);
+        ctx->indent += 1;
+        if ( xl6CgenNullableUsesTaggedValue(concreteType) ) {
+            char innerPath[1024];
+            snprintf(innerPath, sizeof(innerPath), "(%s).value", valuePath);
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "(%s).hasValue = true;\n", valuePath);
+            xl6CgenClassAssignFromValue(
+                ctx,
+                innerType,
+                innerPath,
+                itemName,
+                okName,
+                format);
+        } else {
+            xl6CgenClassAssignFromValue(
+                ctx,
+                innerType,
+                valuePath,
+                itemName,
+                okName,
+                format);
+        }
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
         return;
     }
     if ( xl6CgenIsBoolTypeName(concreteType->text) ) {
@@ -637,7 +756,9 @@ static int xl6CgenClassArrayValueStmt(
     int id;
 
     concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
-    if ( concreteType == NULL || !xl6CTextEquals(concreteType->text, "array") ) {
+    if ( concreteType == NULL ||
+         !xl6CgenIsTypedContainerType(ctx, concreteType) ||
+         !xl6CTextEquals(concreteType->text, "array") ) {
         return 0;
     }
     itemType = xl6CgenPersistenceContainerItemType(ctx, concreteType);
@@ -724,7 +845,10 @@ static int xl6CgenClassArrayAssignFromValueStmt(
     int id;
 
     concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
-    if ( concreteType == NULL || !xl6CTextEquals(concreteType->text, "array") ) {
+    /* array<var> 由 xvalue 保存，不能套用 xtarray 的销毁与重建规则。 */
+    if ( concreteType == NULL ||
+         !xl6CgenIsTypedContainerType(ctx, concreteType) ||
+         !xl6CTextEquals(concreteType->text, "array") ) {
         return 0;
     }
     itemType = xl6CgenPersistenceContainerItemType(ctx, concreteType);
@@ -1019,7 +1143,11 @@ static void xl6CgenClassAutoFromValueFormatProtocol(
         xl6CgenFieldPersistKeyLiteral(ctx, member, &cfg);
         xl6OutputPuts(", 0);\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPuts("if ( item != 0 && !xvoIsNull(item) ) {\n", ctx->out);
+        if ( xl6CgenIsNullableType(xl6CgenResolveAliasType(ctx, fieldType)) ) {
+            xl6OutputPuts("if ( item != 0 ) {\n", ctx->out);
+        } else {
+            xl6OutputPuts("if ( item != 0 && !xvoIsNull(item) ) {\n", ctx->out);
+        }
         ctx->indent += 1;
         xl6CgenClassAssignFromValue(ctx, fieldType, fieldPath, "item", "ok", format);
         ctx->indent -= 1;

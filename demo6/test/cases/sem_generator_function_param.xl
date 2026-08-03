@@ -7,3 +7,13 @@ end
 func bad(func(int) as int fn) as generator<int>
     yield fn(1)
 end
+
+func main(...) as int
+    int total = 0
+    for value in bad(makeAdder(40))
+        total += value
+    end
+    assert total == 41
+    println("ok")
+    return 0
+end

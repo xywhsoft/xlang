@@ -1,0 +1,110 @@
+protocol MatrixNamed
+    func name() as string
+end
+
+class MatrixValue
+    string stored = ""
+
+    create(string value)
+        self.stored = value
+    end
+
+    func name() as string
+        return self.stored
+    end
+end
+
+enum MatrixOutcome<T>
+    value(T item)
+    error(string message)
+end
+
+func outcomeText(MatrixOutcome<MatrixNamed> outcome) as string
+    return match outcome
+    case value(item) then item.name()
+    case error(message) then message
+    end
+end
+
+func selectOutcome(bool replace) as MatrixOutcome<MatrixNamed>
+    var dynamic = MatrixValue("initial")
+
+    if replace
+        dynamic = MatrixValue("branch")
+    end
+    assert dynamic is MatrixNamed
+    MatrixNamed named = dynamic as MatrixNamed
+    return MatrixOutcome::<MatrixNamed>.value(named)
+end
+
+func makeReader(MatrixOutcome<MatrixNamed> outcome) as func() as string
+    return func() as string
+        return outcomeText(outcome)
+    end
+end
+
+async func loadOutcome(MatrixNamed value) as MatrixOutcome<MatrixNamed>
+    time.sleep(1)
+    return MatrixOutcome::<MatrixNamed>.value(value)
+end
+
+async func exercise() as int
+    MatrixOutcome<MatrixNamed> first = selectOutcome(false)
+    MatrixOutcome<MatrixNamed> second = selectOutcome(true)
+
+    // enum 进入 var 后仍由同一个运行时类型描述符负责复制和释放。
+    var boxed = second
+    assert boxed is MatrixOutcome<MatrixNamed>
+    MatrixOutcome<MatrixNamed> restored = boxed as MatrixOutcome<MatrixNamed>
+    assert outcomeText(restored) == "branch"
+
+    // nullable enum 穿过三种静态容器时，每次读取都必须取得独立所有权。
+    MatrixOutcome<MatrixNamed>? some = first
+    MatrixOutcome<MatrixNamed>? none = null
+    array<MatrixOutcome<MatrixNamed>?> values = array[some, none, second]
+    list<MatrixOutcome<MatrixNamed>?> sparse = list[0: some, 3: second]
+    dict<array<MatrixOutcome<MatrixNamed>?>> groups = dict{"main": values}
+    array<MatrixOutcome<MatrixNamed>?> copied = groups["main"]
+
+    int arrayCount = 0
+    for candidate in copied
+        if candidate != null
+            assert outcomeText(candidate) != ""
+            arrayCount += 1
+        end
+    end
+    assert arrayCount == 2
+
+    int listCount = 0
+    for _, candidate in sparse
+        if candidate != null
+            assert outcomeText(candidate) != ""
+            listCount += 1
+        end
+    end
+    assert listCount == 2
+
+    // 闭包应持有捕获时的 enum 副本，不受调用方后续赋值影响。
+    func() as string reader = makeReader(restored)
+    restored = MatrixOutcome::<MatrixNamed>.error("changed")
+    assert reader() == "branch"
+
+    // protocol 句柄同时经过 weak 和 future，不能丢失 witness 或对象强引用。
+    MatrixNamed protocolValue = MatrixValue("async")
+    weak<MatrixNamed> observer = protocolValue
+    future<MatrixOutcome<MatrixNamed>> pending = loadOutcome(protocolValue)
+    MatrixOutcome<MatrixNamed> loaded = await pending
+    assert outcomeText(loaded) == "async"
+
+    MatrixNamed? locked = observer.lock()
+    assert locked != null
+    if locked != null
+        assert locked.name() == "async"
+    end
+
+    println("HIR flow value ownership matrix ok")
+    return 0
+end
+
+future<int> exerciseResult = exercise()
+assert await exerciseResult == 0

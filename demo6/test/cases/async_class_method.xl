@@ -1,0 +1,17 @@
+class AsyncMethodCounter
+    int value = 0
+
+    create(int initial)
+        self.value = initial
+    end
+
+    async func readAfter(int delayMs) as int
+        time.sleep(delayMs)
+        return self.value
+    end
+end
+
+AsyncMethodCounter counter = AsyncMethodCounter(37)
+future<int> pending = counter.readAfter(5)
+assert await pending == 37
+println("async class method ok")

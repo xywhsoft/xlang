@@ -1,0 +1,33 @@
+protocol Cell<T>
+    get value() as T
+    let value(T value)
+end
+
+class Box<T>
+    T stored
+
+    create(T value)
+        self.stored = value
+    end
+
+    get value() as T
+        return self.stored
+    end
+
+    let value(T value)
+        self.stored = value
+    end
+end
+
+func update(Cell<int> cell)
+    cell.value = 91
+    assert cell.value == 91
+end
+
+func main(...) as int
+    Box<int> box = Box::<int>(7)
+    update(box)
+    assert box.value == 91
+    println("generic protocol property dispatch ok")
+    return 0
+end

@@ -514,7 +514,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing completed named class task.race future.
     exit /b 1
 )
-findstr /C:"namedTaskBoxRaceB = xl6_xrt_move_to_shared(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(namedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
+findstr /C:"namedTaskBoxRaceB = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(namedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing repeated await for completed class task.race future.
     exit /b 1
@@ -524,7 +524,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should pass completed class task.race cancel as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelNamedTaskBoxRace = xl6_xrt_move_to_shared(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(namedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
+findstr /C:"postCancelNamedTaskBoxRace = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(namedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep completed class task.race awaitable after cancel.
     exit /b 1
@@ -624,7 +624,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array completed class task.race future path.
     exit /b 1
 )
-findstr /C:"typedTaskBoxRaceCompletedB = xl6_xrt_move_to_shared(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(typedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
+findstr /C:"typedTaskBoxRaceCompletedB = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(typedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing repeated await for typed-array completed class task.race future.
     exit /b 1
@@ -634,7 +634,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel typed-array completed class task.race future as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelTypedTaskBoxRaceCompleted = xl6_xrt_move_to_shared(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(typedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
+findstr /C:"postCancelTypedTaskBoxRaceCompleted = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(typedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep typed-array completed class task.race awaitable after cancel.
     exit /b 1
@@ -689,7 +689,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel pending typed-array class task.all group as borrowed.
     exit /b 1
 )
-findstr /C:"pendingTaskBoxAllLateValue = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(pendingTaskBoxAllRight" build\test\cgen_task_api.assert.c >nul
+findstr /C:"pendingTaskBoxAllLateValue = xl6_future_await_xvalue_copy(pendingTaskBoxAllRight" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing late canceled typed-array class task.all source await.
     exit /b 1
@@ -704,7 +704,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel pending typed-array class task.race group as borrowed.
     exit /b 1
 )
-findstr /C:"pendingTaskBoxRaceLateValue = xl6_xrt_retain((*(xvalue*)xl6_future_await_value(pendingTaskBoxRaceLeft" build\test\cgen_task_api.assert.c >nul
+findstr /C:"pendingTaskBoxRaceLateValue = xl6_future_await_xvalue_copy(pendingTaskBoxRaceLeft" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing late canceled typed-array class task.race source await.
     exit /b 1

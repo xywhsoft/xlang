@@ -8,10 +8,56 @@ release\xl.exe check test\cases\cgen_var_class_dispatch.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\cgen_var_class_dispatch.xl
 if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_var_class_dispatch.xl --emit build\test\cgen_var_class_dispatch.c
+if errorlevel 1 exit /b 1
+findstr /C:"methodValue = xvoCreateInt(" build\test\cgen_var_class_dispatch.c >nul
+if errorlevel 1 (
+    echo cgen_var_class_dispatch.c lost static var class return boxing.
+    exit /b 1
+)
+findstr /C:"propertyValue = xvoCreateText(" build\test\cgen_var_class_dispatch.c >nul
+if errorlevel 1 (
+    echo cgen_var_class_dispatch.c lost static var property return boxing.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_value_to_i64_release(xl6_var_call(" build\test\cgen_var_class_dispatch.c >nul
+if errorlevel 1 (
+    echo cgen_var_class_dispatch.c kept a stale class flow across a control-flow merge.
+    exit /b 1
+)
+findstr /C:"xl6_record_field_get_owned(boxed, \"label\", 0)" build\test\cgen_var_class_dispatch.c >nul
+if errorlevel 1 (
+    echo cgen_var_class_dispatch.c lost dynamic class property dispatch after a flow merge.
+    exit /b 1
+)
 release\xl.exe build test\cases\cgen_var_class_dispatch.xl -o build\test\cgen_var_class_dispatch.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_var_class_dispatch.exe
 if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\cgen_local_var_dynamic_member_storage.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_local_var_dynamic_member_storage.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_local_var_dynamic_member_storage.xl -o build\test\cgen_local_var_dynamic_member_storage.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_local_var_dynamic_member_storage.exe
+if errorlevel 1 exit /b 1
+
+for %%F in (
+    cgen_narrowed_var_storage_return
+    cgen_typed_container_storage_copy
+    cgen_try_scope_shadow_call
+) do (
+    release\xl.exe check test\cases\%%F.xl
+    if errorlevel 1 exit /b 1
+    release\xl.exe run test\cases\%%F.xl
+    if errorlevel 1 exit /b 1
+    release\xl.exe build test\cases\%%F.xl -o build\test\%%F.exe
+    if errorlevel 1 exit /b 1
+    build\test\%%F.exe
+    if errorlevel 1 exit /b 1
+)
 
 release\xl.exe check test\cases\cgen_generic_multi_return.xl
 if errorlevel 1 exit /b 1
@@ -75,6 +121,7 @@ for %%F in (
     cgen_class_polymorphism
     cgen_class_null_identity
     cgen_class_self_property_dispatch
+    cgen_property_managed_chain
     cgen_param_modes_class
     cgen_param_modes_container
     cgen_param_modes_container_matrix
@@ -143,15 +190,14 @@ for %%F in (
     if not errorlevel 0 exit /b 1
 )
 
-release\xl.exe build test\cases\cgen_class_null_dereference.xl -o build\test\cgen_class_null_dereference.exe
-if errorlevel 1 exit /b 1
-build\test\cgen_class_null_dereference.exe >nul 2>nul
-if errorlevel 5 (
-    echo cgen_class_null_dereference.exe returned an unexpected code above 4.
+release\xl.exe check test\cases\cgen_class_null_dereference.xl > build\test\cgen_class_null_dereference.err.txt 2>&1
+if not errorlevel 1 (
+    echo cgen_class_null_dereference.xl should reject an un-narrowed nullable receiver.
     exit /b 1
 )
-if not errorlevel 4 (
-    echo cgen_class_null_dereference.exe should fail with NullReferenceError code 4.
+findstr /C:"nullable receiver must be narrowed" build\test\cgen_class_null_dereference.err.txt >nul
+if errorlevel 1 (
+    echo cgen_class_null_dereference.xl lost the nullable member-access diagnostic.
     exit /b 1
 )
 
@@ -325,6 +371,34 @@ release\xl.exe build test\cases\cgen_base_method_static_dispatch.xl -o build\tes
 if errorlevel 1 exit /b 1
 build\test\cgen_base_method_static_dispatch.exe
 if errorlevel 1 exit /b 1
+
+rem Dynamic var receivers must prefer real class methods and retain container methods as fallback.
+for %%F in (
+    cgen_global_var_member_call
+    cgen_dynamic_method_overload
+    cgen_dynamic_method_inheritance
+    cgen_dynamic_method_bound_lifetime
+    cgen_dynamic_method_arguments
+    cgen_generic_dynamic_method
+) do (
+    release\xl.exe check test\cases\%%F.xl
+    if errorlevel 1 exit /b 1
+    release\xl.exe run test\cases\%%F.xl
+    if errorlevel 1 exit /b 1
+)
+
+release\xl.exe cgen test\cases\cgen_dynamic_method_arguments.xl --emit build\test\cgen_dynamic_method_arguments.c
+if errorlevel 1 exit /b 1
+findstr /C:"defaultResult = xl6_var_call(" build\test\cgen_dynamic_method_arguments.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_method_arguments.c lost dynamic var return typing.
+    exit /b 1
+)
+findstr /C:"defaultResult = xvoCreateBool(xl6_var_call(" build\test\cgen_dynamic_method_arguments.c >nul
+if not errorlevel 1 (
+    echo cgen_dynamic_method_arguments.c wrapped a dynamic return as bool.
+    exit /b 1
+)
 
 echo DEMO6 suite ok: current OOP and parameter-mode regressions
 exit /b 0

@@ -1,0 +1,19 @@
+import module_types
+
+func unwrap(module_types.Outcome<int> result) as int
+    return match result
+    case ok(value) then value
+    case error(message) then -1
+    end
+end
+
+func main(...) as int
+    module_types.Status status = module_types.Status.busy
+    module_types.Outcome<int> local = module_types.Outcome::<int>.ok(41)
+    module_types.Outcome<int> imported = module_types.makeOutcome(42)
+
+    assert int(status) == 2
+    assert unwrap(local) == 41
+    assert unwrap(imported) == 42
+    return 0
+end

@@ -1,0 +1,18 @@
+// 模块初始化阶段的动态索引读取必须与全局容器生命周期解耦。
+var dynValues = [10, 20]
+var dynTable = {"count": 6}
+var dynKey = "count"
+
+func makeDynArray() as var
+    return [101, 102]
+end
+
+func makeDynTable() as var
+    return {"temp": 44}
+end
+
+int first = int(dynValues[0])
+int second = int(dynTable[dynKey])
+int third = int(makeDynArray()?[0])
+int fourth = int(makeDynTable()?["temp"])
+int fifth = int(dynTable?[dynKey])

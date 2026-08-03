@@ -1,0 +1,30 @@
+class Node
+    int value = 0
+end
+
+
+func keepNode(Node? value) as Node?
+    return value
+end
+
+
+func keepCount(int? value) as int?
+    return value
+end
+
+
+func main(...) as int
+    Node node = Node()
+    Node? present = node
+    Node? missing = null
+    int? count = 7
+    int? noCount = null
+    weak<Node> observer = node
+
+    present = keepNode(present)
+    count = keepCount(count)
+    missing = null
+    noCount = null
+    observer = node
+    return 0
+end

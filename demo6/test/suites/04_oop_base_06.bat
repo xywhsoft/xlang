@@ -267,7 +267,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe cgen test\cases\export_add.xl --emit build\test\export_add.c
+release\xl.exe cgen test\cases\export_add.xl --emit build\test\export_add.c --emit-header build\test\export_add.h
 if errorlevel 1 exit /b 1
 findstr /C:"long long xl6_export_add__i64(long long a, long long b);" build\test\export_add.c >nul
 if errorlevel 1 (
@@ -279,7 +279,7 @@ if errorlevel 1 (
     echo export_add.c missing C export wrapper prototype.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_add.c test\cases\export_add_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_add_host.exe
+"%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_add.c test\cases\export_add_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_add_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_add_host.exe
 if errorlevel 1 exit /b 1

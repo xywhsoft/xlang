@@ -1,0 +1,4 @@
+func main(...) as int
+    (func(int) as int)? callback = null
+    return callback(1)
+end

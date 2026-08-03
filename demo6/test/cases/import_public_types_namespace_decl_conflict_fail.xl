@@ -1,0 +1,7 @@
+import module_types
+
+int module_types = 42
+
+func main(...) as int
+    return module_types
+end

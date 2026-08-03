@@ -1,0 +1,23 @@
+from module_types import Point, Summable, NumberData as Payload, Count
+from module_types import NativeCount, Box, exportedValue as answer, nativeAbs
+from module_types import mutableValue, fixedValue
+
+func main(...) as int
+    int from = 42
+    Point point = Point(18, 24)
+    Summable summable = point
+    Payload data
+    data.integer = answer()
+    Count count = point.sum()
+    NativeCount nativeCount = c_int(data.integer)
+    Box<int> box = Box::<int>(count)
+    mutableValue = 41
+
+    if from != 42 or summable.sum() != 42 or box.get() != 42 or int(nativeCount) != 42 or int(nativeAbs(c_int(-42))) != 42 then
+        return 1
+    end
+    if mutableValue != 41 or fixedValue != 2 then
+        return 1
+    end
+    return 0
+end

@@ -1,0 +1,13 @@
+func normalizeValue(int value) as int
+    return value < 0 ? -value : value
+end
+
+func unwrapHidden(HiddenValue value) as int
+    return normalizeValue(value.value)
+end
+
+export func answer(int input) as int
+    // HiddenValue 定义在同一包的另一个源文件中，但不对导入方公开。
+    HiddenValue value = HiddenValue(input)
+    return unwrapHidden(value)
+end

@@ -1,0 +1,28 @@
+protocol Named
+    func name() as string
+end
+
+class Entity
+    string value = ""
+
+    create(string value)
+        self.value = value
+    end
+
+    func name() as string
+        return self.value
+    end
+end
+
+class Player extends Entity
+    create(string value)
+        base(value)
+    end
+end
+
+func main(...) as int
+    Named named = Player("player")
+    assert named.name() == "player"
+    println("protocol inherited dispatch ok")
+    return 0
+end

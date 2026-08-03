@@ -651,6 +651,20 @@ if errorlevel 1 exit /b 1
 build\test\stdlib_regex.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe check test\cases\stdlib_regex_shutdown_match.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_regex_shutdown_match.xl --emit build\test\stdlib_regex_shutdown_match.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);" build\test\stdlib_regex_shutdown_match.c >nul
+if errorlevel 1 (
+    echo stdlib_regex_shutdown_match.c consumes a managed var result without disowning it.
+    exit /b 1
+)
+"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\stdlib_regex_shutdown_match.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_regex_shutdown_match.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_regex_shutdown_match.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe check test\cases\stdlib_regex_extended.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_regex_extended.xl --emit build\test\stdlib_regex_extended.c
@@ -1390,6 +1404,11 @@ for %%L in ("args=ok" "platform=ok" "cwd=ok" "env=ok" "run=ok" "startFile=ok" "c
     findstr /C:%%L build\test\stdlib_os_c.out.txt >nul
     if errorlevel 1 exit /b 1
 )
+
+release\xl.exe run test\cases\xrt_secure_random.c > build\test\xrt_secure_random.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"xrt_secure_random=ok" build\test\xrt_secure_random.out.txt >nul
+if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: extended standard library
 exit /b 0

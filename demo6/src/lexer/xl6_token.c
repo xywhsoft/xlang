@@ -44,11 +44,14 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_KW_THROW: return "KW_THROW";
     case XL6_KW_ASSERT: return "KW_ASSERT";
     case XL6_KW_IMPORT: return "KW_IMPORT";
+    case XL6_KW_FROM: return "KW_FROM";
     case XL6_KW_EXPORT: return "KW_EXPORT";
     case XL6_KW_EXTERN: return "KW_EXTERN";
     case XL6_KW_INCLUDE: return "KW_INCLUDE";
     case XL6_KW_DEFINE: return "KW_DEFINE";
     case XL6_KW_CLASS: return "KW_CLASS";
+    case XL6_KW_PROTOCOL: return "KW_PROTOCOL";
+    case XL6_KW_ENUM: return "KW_ENUM";
     case XL6_KW_EXTENDS: return "KW_EXTENDS";
     case XL6_KW_UNION: return "KW_UNION";
     case XL6_KW_DERIVE: return "KW_DERIVE";
@@ -66,6 +69,8 @@ const char* xl6TokenKindName(XL6_TokenKind kind)
     case XL6_KW_BYVAL: return "KW_BYVAL";
     case XL6_KW_BYREF: return "KW_BYREF";
     case XL6_KW_OUT: return "KW_OUT";
+    case XL6_KW_MATCH: return "KW_MATCH";
+    case XL6_KW_CASE: return "KW_CASE";
     case XL6_KW_AND: return "KW_AND";
     case XL6_KW_OR: return "KW_OR";
     case XL6_KW_NOT: return "KW_NOT";

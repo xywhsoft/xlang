@@ -1,0 +1,11 @@
+enum ThreadResult<T>
+    value(T item)
+end
+
+ThreadResult<string> result = ThreadResult::<string>.value("ready")
+string resultText = match result
+case value(item) then item
+end
+
+assert resultText == "ready"
+println("generic enum top-level match ok")

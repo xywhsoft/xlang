@@ -1,0 +1,151 @@
+protocol NullableNamed
+    func name() as string
+end
+
+class NullableNamedValue
+    string stored = ""
+
+    create(string value)
+        self.stored = value
+    end
+
+    func name() as string
+        return self.stored
+    end
+end
+
+func addOne(int value) as int
+    return value + 1
+end
+
+func main(...) as int
+    // tagged value：空标记和数值存储必须一同复制。
+    int? someNumber = 7
+    int? noNumber = null
+    array<int?> numbers = array[someNumber, noNumber, 9]
+    int total = 0
+    for value in numbers
+        if value != null
+            total += value
+        end
+    end
+    assert(total == 16)
+    assert(numbers[1] == null)
+
+    // 受管理指针：容器拥有自己的 XRT 字符串引用。
+    string? someText = "hello"
+    string? noText = null
+    array<string?> texts = array[someText, noText, "world"]
+    string? firstText = texts[0]
+    string? lastText = texts[2]
+    assert(firstText != null)
+    assert(texts[1] == null)
+    assert(lastText != null)
+    if firstText != null
+        assert(firstText == "hello")
+    end
+    if lastText != null
+        assert(lastText == "world")
+    end
+
+    // nullable callable：命名函数和捕获闭包都必须保留函数环境。
+    (func(int) as int)? named = addOne
+    int offset = 5
+    (func(int) as int)? closure = func(int value) as int
+        return value + offset
+    end
+    (func(int) as int)? noFunction = null
+    array<(func(int) as int)?> functions = array[named, closure, noFunction]
+    (func(int) as int)? firstFunction = functions[0]
+    (func(int) as int)? secondFunction = functions[1]
+    assert(firstFunction != null)
+    assert(secondFunction != null)
+    assert(functions[2] == null)
+    if firstFunction != null
+        assert(firstFunction(4) == 5)
+    end
+    if secondFunction != null
+        assert(secondFunction(4) == 9)
+    end
+
+    // protocol handle：nullable 的外层 TypeDesc 不得吞掉 witness 目标类型。
+    NullableNamed concrete = NullableNamedValue("protocol")
+    NullableNamed? someProtocol = concrete
+    NullableNamed? noProtocol = null
+    array<NullableNamed?> protocols = array[someProtocol, noProtocol]
+    NullableNamed? firstProtocol = protocols[0]
+    assert(firstProtocol != null)
+    assert(protocols[1] == null)
+    if firstProtocol != null
+        assert(firstProtocol.name() == "protocol")
+    end
+
+    // list：稀疏键读取和循环都必须复制 nullable string。
+    list<string?> textList = list[0: someText, 3: noText, 5: "tail"]
+    string? listFirst = textList[0]
+    string? listTail = textList?[5]
+    string? listMissing = textList?[2]
+    assert(listFirst != null)
+    assert(listTail != null)
+    assert(listMissing == null)
+    int listPresent = 0
+    for _, text in textList
+        if text != null
+            listPresent += 1
+        end
+    end
+    assert(listPresent == 2)
+
+    // set：nullable 标量通过 TypeDesc 的 compare/hash 去重并安全迭代。
+    set<int?> numberSet = set{someNumber, noNumber, 7}
+    int setPresent = 0
+    int setNull = 0
+    for value in numberSet
+        if value == null
+            setNull += 1
+        else
+            setPresent += 1
+        end
+    end
+    assert(setPresent == 1)
+    assert(setNull == 1)
+
+    // dict：nullable closure 的直接/安全读取和循环都取得独立环境引用。
+    dict<(func(int) as int)?> functionDict = dict{
+        "named": named,
+        "closure": closure,
+        "none": noFunction
+    }
+    (func(int) as int)? dictClosure = functionDict["closure"]
+    (func(int) as int)? dictMissing = functionDict?["missing"]
+    assert(dictClosure != null)
+    assert(dictMissing == null)
+    if dictClosure != null
+        assert(dictClosure(6) == 11)
+    end
+    int functionCount = 0
+    for _, fn in functionDict
+        if fn != null
+            functionCount += 1
+        end
+    end
+    assert(functionCount == 2)
+
+    // protocol nullable 也必须在非 array 容器中保持 xvalue 物理存储。
+    list<NullableNamed?> protocolList = list[0: someProtocol, 1: noProtocol]
+    NullableNamed? listProtocol = protocolList?[0]
+    assert(listProtocol != null)
+    if listProtocol != null
+        assert(listProtocol.name() == "protocol")
+    end
+    int protocolCount = 0
+    for _, item in protocolList
+        if item != null
+            protocolCount += 1
+        end
+    end
+    assert(protocolCount == 1)
+
+    println("typed nullable container matrix ok")
+    return 0
+end

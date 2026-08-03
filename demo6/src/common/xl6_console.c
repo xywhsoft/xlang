@@ -3,72 +3,19 @@
 
 #include <string.h>
 
-#if defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
-
 #define XL6_CONSOLE_STACK_BUFFER 1024u
 
-#if defined(_WIN32) || defined(_WIN64)
-static DWORD xl6ConsoleStdHandle(XL6_ConsoleStream stream)
+void xl6ConsoleSessionBegin(void)
 {
-    return stream == XL6_CONSOLE_STDERR ? STD_ERROR_HANDLE : STD_OUTPUT_HANDLE;
+    /*
+     * 控制台输出由 XRT 逐次处理，不修改进程共享的控制台代码页。
+     * 保留会话接口可让 CLI 与 DLL 生命周期调用点维持简单、稳定。
+     */
 }
 
-static int xl6ConsoleWriteConsoleW(HANDLE handle, const char* text, size_t size)
+void xl6ConsoleSessionEnd(void)
 {
-    u16str wideText;
-    size_t wideSize;
-    size_t pos;
-
-    wideSize = 0;
-    wideText = xrtUTF8to16((u8str)text, size, &wideSize);
-    if ( wideText == NULL ) {
-        return 0;
-    }
-
-    pos = 0;
-    while ( pos < wideSize ) {
-        DWORD chunk;
-        DWORD written;
-
-        chunk = (wideSize - pos) > 0x7fffffffu ? 0x7fffffffU : (DWORD)(wideSize - pos);
-        written = 0;
-        if ( !WriteConsoleW(handle, wideText + pos, chunk, &written, NULL) || written == 0 ) {
-            xrtFree(wideText);
-            return 0;
-        }
-        pos += written;
-    }
-
-    xrtFree(wideText);
-    return 1;
 }
-
-static int xl6ConsoleWriteFile(HANDLE handle, const char* text, size_t size)
-{
-    const char* cursor;
-    size_t remain;
-
-    cursor = text;
-    remain = size;
-    while ( remain > 0 ) {
-        DWORD chunk;
-        DWORD written;
-
-        chunk = remain > 0x7fffffffu ? 0x7fffffffU : (DWORD)remain;
-        written = 0;
-        if ( !WriteFile(handle, cursor, chunk, &written, NULL) || written == 0 ) {
-            return 0;
-        }
-        cursor += written;
-        remain -= (size_t)written;
-    }
-    return 1;
-}
-#endif
 
 int xl6ConsoleWrite(XL6_ConsoleStream stream, const char* text, size_t size)
 {
@@ -82,38 +29,13 @@ int xl6ConsoleWrite(XL6_ConsoleStream stream, const char* text, size_t size)
         return 1;
     }
 
-#if defined(_WIN32) || defined(_WIN64)
-    {
-        HANDLE handle;
-        DWORD mode;
-
-        handle = GetStdHandle(xl6ConsoleStdHandle(stream));
-        if ( handle == NULL || handle == INVALID_HANDLE_VALUE ) {
-            return 0;
-        }
-
-        mode = 0;
-        if ( GetConsoleMode(handle, &mode) ) {
-            return xl6ConsoleWriteConsoleW(handle, text, size);
-        }
-        return xl6ConsoleWriteFile(handle, text, size);
-    }
-#else
-    {
-        int fd;
-
-        fd = stream == XL6_CONSOLE_STDERR ? 2 : 1;
-        while ( size > 0 ) {
-            ssize_t written = write(fd, text, size);
-            if ( written <= 0 ) {
-                return 0;
-            }
-            text += (size_t)written;
-            size -= (size_t)written;
-        }
-        return 1;
-    }
-#endif
+    return xrtConsoleWrite(stream == XL6_CONSOLE_STDERR
+                               ? XRT_CONSOLE_STDERR
+                               : XRT_CONSOLE_STDOUT,
+                           text,
+                           size)
+               ? 1
+               : 0;
 }
 
 int xl6ConsolePuts(XL6_ConsoleStream stream, const char* text)

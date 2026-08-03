@@ -1,0 +1,19 @@
+{
+  "format": "xlang-package-1",
+  "name": "module_types",
+  "version": "1.0.0",
+  "abiVersion": "1",
+  "artifact": {
+    "kind": "source",
+    "xlSources": [
+      "src/module_types.xl"
+    ],
+    "cSources": []
+  },
+  "links": [],
+  "loadlibs": [],
+  "dependencies": [],
+  "native": {
+    "singleton": false
+  }
+}

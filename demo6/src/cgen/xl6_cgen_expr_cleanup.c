@@ -22,7 +22,44 @@ static void xl6CgenAddCleanupEntry(XL6_CgenContext* ctx, const char* name, XL6_C
     ctx->cleanups[ctx->cleanupCount].kind = kind;
     ctx->cleanups[ctx->cleanupCount].typeNode = typeNode;
     ctx->cleanups[ctx->cleanupCount].classTypeNode = classTypeNode;
+    ctx->cleanups[ctx->cleanupCount].flags = 0u;
+    ctx->cleanups[ctx->cleanupCount].scopeDepth =
+        ctx->currentScopeDepth != 0 || ctx->currentReturnFunc == NULL
+            ? ctx->currentScopeDepth
+            : 1;
     ctx->cleanupCount += 1;
+}
+
+static void xl6CgenMarkModuleGlobalCleanupsSince(
+    XL6_CgenContext* ctx,
+    size_t mark)
+{
+    size_t i;
+
+    if ( ctx == NULL || mark > ctx->cleanupCount ) {
+        return;
+    }
+    for ( i = mark; i < ctx->cleanupCount; ++i ) {
+        ctx->cleanups[i].flags |= XL6_CGEN_CLEANUP_MODULE_GLOBAL;
+    }
+}
+
+static size_t xl6CgenCleanupMarkForScopeDepth(
+    const XL6_CgenContext* ctx,
+    uint32 targetScopeDepth
+)
+{
+    size_t i;
+
+    if ( ctx == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < ctx->cleanupCount; ++i ) {
+        if ( ctx->cleanups[i].scopeDepth > targetScopeDepth ) {
+            return i;
+        }
+    }
+    return ctx->cleanupCount;
 }
 
 static void xl6CgenAddNativeClassCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* nativeClassNode)
@@ -47,6 +84,39 @@ static void xl6CgenAddFunctionCleanup(XL6_CgenContext* ctx, const char* name, co
         return;
     }
     xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_FUNCTION, typeNode, NULL);
+}
+
+static void xl6CgenAddNullableManagedCleanup(
+    XL6_CgenContext* ctx,
+    const char* name,
+    const XL6_AstNode* typeNode)
+{
+    if ( !xl6CgenNullableHasManagedInner(ctx, typeNode) ) {
+        return;
+    }
+    xl6CgenAddCleanupEntry(
+        ctx,
+        name,
+        XL6_CGEN_CLEANUP_NULLABLE_MANAGED,
+        typeNode,
+        NULL);
+}
+
+static void xl6CgenAddTypedValueCleanup(
+    XL6_CgenContext* ctx,
+    const char* name,
+    const XL6_AstNode* typeNode)
+{
+    if ( ctx == NULL || name == NULL || typeNode == NULL ||
+         !xl6CgenIsTaggedEnumType(ctx, typeNode) ) {
+        return;
+    }
+    xl6CgenAddCleanupEntry(
+        ctx,
+        name,
+        XL6_CGEN_CLEANUP_TYPED_VALUE,
+        typeNode,
+        NULL);
 }
 
 static void xl6CgenAddFutureCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode)
@@ -133,7 +203,7 @@ static void xl6CgenAddTypedContainerCleanup(XL6_CgenContext* ctx, const char* na
 
 static void xl6CgenAddStringCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode)
 {
-    if ( !xl6CgenIsStringTypeNode(ctx, typeNode) ) {
+    if ( !xl6CgenIsOwnedStringTypeNode(ctx, typeNode) ) {
         return;
     }
     xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_STRING, typeNode, NULL);
@@ -152,6 +222,14 @@ static void xl6CgenAddErrorCleanup(XL6_CgenContext* ctx, const char* name, const
     xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_ERROR, typeNode, NULL);
 }
 
+static void xl6CgenAddWeakCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode)
+{
+    if ( !xl6CgenIsWeakType(typeNode) ) {
+        return;
+    }
+    xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_WEAK, typeNode, NULL);
+}
+
 static void xl6CgenBeginTempScope(XL6_CgenContext* ctx, const XL6_AstNode* atNode)
 {
     char name[64];
@@ -161,8 +239,71 @@ static void xl6CgenBeginTempScope(XL6_CgenContext* ctx, const XL6_AstNode* atNod
     }
     snprintf(name, sizeof(name), "__xl6_temp_scope_%d", ctx->tempId++);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xrtTempScope %s = xrtTempScopeBegin();\n", name);
+    xl6OutputPrintf(ctx->out, "XL6_TempScope %s = xl6_temp_scope_begin();\n", name);
     xl6CgenAddCleanupEntry(ctx, name, XL6_CGEN_CLEANUP_TEMP_SCOPE, atNode, NULL);
+}
+
+/*
+ * 属性访问在表达式层是借用值，但 getter 函数必须返回一份独立所有权。
+ * 将这份所有权提升到调用者的根表达式作用域：赋值/传参会再 retain，
+ * 纯链式访问则在调用者语句结束时自动释放。
+ */
+static void xl6CgenPromotePropertyManagedReturn(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* returnName)
+{
+    const XL6_AstNode* concreteType;
+    const char* dropName;
+    const char* cType;
+    const char* rootScopeName;
+    size_t i;
+
+    if ( ctx == NULL || typeNode == NULL || returnName == NULL ||
+         ctx->currentReturnFunc == NULL ||
+         ctx->currentReturnFunc->kind != XL6_AST_GET ) {
+        return;
+    }
+
+    dropName = NULL;
+    cType = NULL;
+    if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+        concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
+        dropName = xl6CgenTypedContainerDestroyFuncName(
+            concreteType != NULL ? concreteType->text : NULL);
+        cType = xl6CgenTypedContainerCType(ctx, typeNode);
+    } else if ( xl6CgenIsXValueType(typeNode) ||
+                xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
+        dropName = "xvoUnref";
+        cType = xl6CgenValueStorageCType(ctx, typeNode);
+    }
+    if ( dropName == NULL || cType == NULL ) {
+        return;
+    }
+
+    rootScopeName = NULL;
+    for ( i = 0; i < ctx->cleanupCount; ++i ) {
+        if ( ctx->cleanups[i].kind == XL6_CGEN_CLEANUP_TEMP_SCOPE ) {
+            rootScopeName = ctx->cleanups[i].name;
+            break;
+        }
+    }
+    if ( rootScopeName == NULL ) {
+        xl6CgenError(ctx, ctx->currentReturnFunc, "property return has no root temporary scope");
+        return;
+    }
+
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(
+        ctx->out,
+        "%s = (%s)xl6_temp_promote_to((void*)%s, "
+        "(XL6_TempManagedDrop)%s, %s.depth > 0u ? %s.depth - 1u : 0u);\n",
+        returnName,
+        cType,
+        returnName,
+        dropName,
+        rootScopeName,
+        rootScopeName);
 }
 
 static void xl6CgenFreeCleanupsSince(XL6_CgenContext* ctx, size_t mark)
@@ -312,7 +453,30 @@ static void xl6CgenEmitOneCleanup(XL6_CgenContext* ctx, const XL6_CgenCleanup* c
     }
     if ( cleanup->kind == XL6_CGEN_CLEANUP_TEMP_SCOPE ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xrtTempScopeEnd(&%s);\n", cleanup->name);
+        xl6OutputPrintf(ctx->out, "xl6_temp_scope_end(&%s);\n", cleanup->name);
+        return;
+    }
+    if ( cleanup->kind == XL6_CGEN_CLEANUP_WEAK ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "xvoWeakUnit(&%s);\n", cleanup->name);
+        return;
+    }
+    if ( cleanup->kind == XL6_CGEN_CLEANUP_NULLABLE_MANAGED ) {
+        char dropName[64];
+
+        xl6CgenNullableDropHelperName(
+            dropName,
+            sizeof(dropName),
+            cleanup->typeNode);
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s(&%s);\n", dropName, cleanup->name);
+        return;
+    }
+    if ( cleanup->kind == XL6_CGEN_CLEANUP_TYPED_VALUE ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("xrtTypeDropValue(", ctx->out);
+        xl6CgenEmitXrtTypeDescRef(ctx, cleanup->typeNode);
+        xl6OutputPrintf(ctx->out, ", &%s);\n", cleanup->name);
         return;
     }
     if ( cleanup->kind == XL6_CGEN_CLEANUP_TYPED_CONTAINER_PARAM ) {
@@ -472,6 +636,11 @@ static void xl6CgenEmitOneCleanup(XL6_CgenContext* ctx, const XL6_CgenCleanup* c
         xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", cleanup->name);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
+        xl6OutputPrintf(
+            ctx->out,
+            "(void)xl6_temp_managed_disown((void*)%s, (XL6_TempManagedDrop)xvoUnref);\n",
+            cleanup->name);
+        xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", cleanup->name);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = 0;\n", cleanup->name);
@@ -490,12 +659,20 @@ static void xl6CgenEmitOneCleanup(XL6_CgenContext* ctx, const XL6_CgenCleanup* c
         ctx->indent += 1;
         xl6CgenIndent(ctx);
         if ( xl6CTextEquals(typeName, "array") ) {
+            xl6OutputPrintf(ctx->out, "(void)xl6_temp_managed_disown((void*)%s, (XL6_TempManagedDrop)xrtTypedArrayDestroy);\n", cleanup->name);
+            xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "xrtTypedArrayDestroy(%s);\n", cleanup->name);
         } else if ( xl6CTextEquals(typeName, "list") ) {
+            xl6OutputPrintf(ctx->out, "(void)xl6_temp_managed_disown((void*)%s, (XL6_TempManagedDrop)xrtTypedListDestroy);\n", cleanup->name);
+            xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "xrtTypedListDestroy(%s);\n", cleanup->name);
         } else if ( xl6CTextEquals(typeName, "set") ) {
+            xl6OutputPrintf(ctx->out, "(void)xl6_temp_managed_disown((void*)%s, (XL6_TempManagedDrop)xrtTypedSetDestroy);\n", cleanup->name);
+            xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "xrtTypedSetDestroy(%s);\n", cleanup->name);
         } else if ( xl6CTextEquals(typeName, "dict") ) {
+            xl6OutputPrintf(ctx->out, "(void)xl6_temp_managed_disown((void*)%s, (XL6_TempManagedDrop)xrtTypedDictDestroy);\n", cleanup->name);
+            xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "xrtTypedDictDestroy(%s);\n", cleanup->name);
         }
         xl6CgenIndent(ctx);
@@ -585,9 +762,47 @@ static int xl6CgenExprIsFunctionBorrow(XL6_CgenContext* ctx, const XL6_AstNode* 
 static int xl6CgenExprIsXValueBorrow(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
     const XL6_AstNode* typeNode;
+    XL6_HirOwnership ownership;
+    size_t replacementIndex;
 
     if ( ctx == NULL || expr == NULL ) {
         return 0;
+    }
+    for ( replacementIndex = 0; replacementIndex < ctx->exprReplacementCount; ++replacementIndex ) {
+        const XL6_CgenExprReplacement* replacement = &ctx->exprReplacements[replacementIndex];
+
+        if ( replacement->expr == expr && replacement->cName != NULL &&
+             (replacement->flags & XL6_CGEN_EXPR_REPLACEMENT_MOVE) != 0u ) {
+            return 0;
+        }
+    }
+    /*
+     * 源表达式的所有权已经由语义层写入 typed HIR，后端不得再次猜测。
+     * BORROW/SHARED 只有在表达式真实使用 xvalue 存储时才需要非消费读取；
+     * 普通 int/string 等值即使标记为借用，也不能误走 xvalue helper。
+     */
+    ownership = xl6CgenHirOwnership(ctx, expr);
+    if ( xl6CgenHirOwnershipIsPlanned(ctx, expr) ) {
+        if ( ownership == XL6_HIR_OWNERSHIP_MOVE ||
+             ownership == XL6_HIR_OWNERSHIP_COPY ) {
+            return 0;
+        }
+        if ( ownership == XL6_HIR_OWNERSHIP_BORROW ||
+             ownership == XL6_HIR_OWNERSHIP_SHARED ) {
+            XL6_AstNode* exprType = xl6CgenCloneExprTypeForInference(ctx, expr);
+            int isXValue = xl6CgenIsXValueType(exprType);
+
+            xl6AstFree(exprType);
+            if ( isXValue ) {
+                return 1;
+            }
+        }
+    }
+    if ( expr->kind == XL6_AST_NAME &&
+         expr->semanticSymbolId == XL6_SYMBOL_ID_INVALID &&
+         ownership == XL6_HIR_OWNERSHIP_BORROW ) {
+        /* 当前 class 的隐式字段名称没有局部符号，但语义层明确标记为借用。 */
+        return 1;
     }
     if ( expr->kind == XL6_AST_MEMBER || expr->kind == XL6_AST_SAFE_MEMBER ) {
         const XL6_AstNode* receiver;
@@ -684,6 +899,27 @@ static void xl6CgenEmitCleanupsSince(XL6_CgenContext* ctx, size_t mark)
     xl6CgenEmitCleanupsSinceExcept(ctx, mark, NULL);
 }
 
+static void xl6CgenEmitModuleCleanups(
+    XL6_CgenContext* ctx,
+    size_t mark,
+    int moduleGlobals)
+{
+    size_t i;
+
+    if ( ctx == NULL || mark > ctx->cleanupCount ) {
+        return;
+    }
+    for ( i = ctx->cleanupCount; i > mark; --i ) {
+        const XL6_CgenCleanup* cleanup = &ctx->cleanups[i - 1];
+        int isModuleGlobal =
+            (cleanup->flags & XL6_CGEN_CLEANUP_MODULE_GLOBAL) != 0;
+
+        if ( isModuleGlobal == moduleGlobals ) {
+            xl6CgenEmitOneCleanup(ctx, cleanup);
+        }
+    }
+}
+
 static void xl6CgenEmitCleanupRange(XL6_CgenContext* ctx, size_t mark, size_t end)
 {
     size_t i;
@@ -702,19 +938,6 @@ static XL6_CgenErrorScope* xl6CgenCurrentErrorScope(XL6_CgenContext* ctx)
         return NULL;
     }
     return &ctx->errorScopes[ctx->errorScopeCount - 1];
-}
-
-static int xl6CgenErrorTargetsEqual(const XL6_CgenErrorScope* left, const XL6_CgenErrorScope* right)
-{
-    if ( left == NULL || right == NULL || left->hasTarget != right->hasTarget ) {
-        return 0;
-    }
-    if ( !left->hasTarget ) {
-        return 1;
-    }
-    return left->target.cleanupMark == right->target.cleanupMark &&
-           left->target.id == right->target.id &&
-           left->target.targetFinally == right->target.targetFinally;
 }
 
 static int xl6CgenPushErrorScope(XL6_CgenContext* ctx, size_t cleanupMark)
@@ -806,7 +1029,6 @@ static int xl6CgenEmitCurrentErrorScopeJump(XL6_CgenContext* ctx)
 static void xl6CgenCloseErrorScope(XL6_CgenContext* ctx, size_t cleanupMark)
 {
     XL6_CgenErrorScope scope;
-    XL6_CgenErrorScope* parent;
     XL6_CgenErrorCheckpoint* parentCheckpoint;
     size_t terminalMark;
     size_t i;
@@ -825,15 +1047,23 @@ static void xl6CgenCloseErrorScope(XL6_CgenContext* ctx, size_t cleanupMark)
         return;
     }
 
+    parentCheckpoint = NULL;
+    if ( !scope.hasTarget && ctx->errorScopeCount > 0 ) {
+        XL6_CgenErrorScope* parent =
+            &ctx->errorScopes[ctx->errorScopeCount - 1];
+
+        /*
+            子作用域只销毁自己新增的值，再跳入父作用域的清理链。
+            不能在每个子出口重复内联全部父级清理；模块拥有大量全局值时，
+            那种写法会令生成代码按“全局数量 x 错误出口数量”平方级膨胀。
+        */
+        parentCheckpoint =
+            xl6CgenErrorScopeCheckpoint(ctx, parent, cleanupMark);
+    }
+
     /* 正常路径跳过异常清理标签。 */
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "goto __xl6_cleanup_done_%d;\n", scope.checkpoints[scope.checkpointCount - 1].id);
-
-    parent = xl6CgenCurrentErrorScope(ctx);
-    parentCheckpoint = NULL;
-    if ( parent != NULL && xl6CgenErrorTargetsEqual(&scope, parent) ) {
-        parentCheckpoint = xl6CgenErrorScopeCheckpoint(ctx, parent, cleanupMark);
-    }
 
     /*
         checkpoint 按源码生成顺序递增。每段只销毁前一个里程碑之后新增的值，
@@ -850,14 +1080,10 @@ static void xl6CgenCloseErrorScope(XL6_CgenContext* ctx, size_t cleanupMark)
             xl6OutputPrintf(ctx->out, "goto __xl6_cleanup_error_%d;\n", scope.checkpoints[i - 2].id);
             continue;
         }
-        if ( parentCheckpoint != NULL ) {
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "goto __xl6_cleanup_error_%d;\n", parentCheckpoint->id);
-            continue;
-        }
-
         terminalMark = scope.hasTarget ? scope.target.cleanupMark : 0;
-        xl6CgenEmitCleanupRange(ctx, terminalMark, cleanupMark);
+        if ( parentCheckpoint == NULL ) {
+            xl6CgenEmitCleanupRange(ctx, terminalMark, cleanupMark);
+        }
         if ( scope.hasTarget ) {
             xl6CgenIndent(ctx);
             xl6OutputPrintf(
@@ -865,6 +1091,12 @@ static void xl6CgenCloseErrorScope(XL6_CgenContext* ctx, size_t cleanupMark)
                 "goto __xl6_try_%s_%d;\n",
                 scope.target.targetFinally ? "finally" : "catch",
                 scope.target.id);
+        } else if ( parentCheckpoint != NULL ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(
+                ctx->out,
+                "goto __xl6_cleanup_error_%d;\n",
+                parentCheckpoint->id);
         } else if ( ctx->currentErrorExitLabel != NULL ) {
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "goto %s;\n", ctx->currentErrorExitLabel);

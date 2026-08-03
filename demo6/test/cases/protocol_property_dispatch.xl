@@ -1,0 +1,29 @@
+protocol Named
+    get name() as string
+    let name(string value)
+end
+
+class User
+    string value = ""
+
+    get name() as string
+        return self.value
+    end
+
+    let name(string value)
+        self.value = value
+    end
+end
+
+func rename(Named item)
+    item.name = "xlang"
+    assert item.name == "xlang"
+end
+
+func main(...) as int
+    User user = User()
+    rename(user)
+    assert user.name == "xlang"
+    println("protocol property dispatch ok")
+    return 0
+end

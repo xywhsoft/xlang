@@ -480,7 +480,13 @@ static XL6_CgenExprReplacement* xl6CgenDeclCreateCallArgReplacements(XL6_CgenCon
         }
         replacements[replacementIndex].expr = temps[i].expr;
         replacements[replacementIndex].cName = temps[i].name;
-        replacements[replacementIndex].flags = 0u;
+        /*
+            普通实参临时值由目标调用接管；方法接收者只是借用，调用后仍由当前作用域释放。
+            该事实必须跟随 replacement 进入表达式层，不能重新猜测源 AST 的所有权。
+        */
+        replacements[replacementIndex].flags = temps[i].releaseAfterUse
+            ? 0u
+            : XL6_CGEN_EXPR_REPLACEMENT_MOVE;
         replacementIndex += 1;
     }
     return replacements;

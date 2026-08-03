@@ -1,0 +1,15 @@
+protocol Identifiable
+    func id() as int
+end
+
+class Bad
+end
+
+func accept<T is Identifiable>(T value) as int
+    return 1
+end
+
+func main(...) as int
+    Bad value = Bad()
+    return accept::<Bad>(value)
+end

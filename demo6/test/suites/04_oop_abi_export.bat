@@ -32,6 +32,8 @@ if errorlevel 1 exit /b 1
 call "%~dp004_oop_current_regressions.bat"
 if errorlevel 1 exit /b 1
 
+call "%~dp004_user_protocol.bat"
+if errorlevel 1 exit /b 1
+
 echo DEMO6 suite ok: OOP ABI export and interop
 exit /b 0
-

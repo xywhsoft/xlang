@@ -1,15 +1,22 @@
 # DEMO6 功能清单
 
-> 更新日期：2026-07-16
+> 更新日期：2026-08-02
 >
 > 本清单用于快速核对当前 `demo6/release/xl.exe` 已实现能力、标准写法、测试入口和验收边界。DEMO6 不背负 demo3/demo4/demo5 的历史兼容口径；旧版本文档只能作为历史参考。
 
 ## 1. 当前状态
 
-- 编译管线固定为四阶段：词法分析、语法分析、语义检查/IR、C 代码生成/TCC 后端。
+- 编译管线固定为四阶段：词法分析、语法分析、语义检查/typed HIR、C 代码生成/TCC 后端。
+- 语义阶段建立独立 typed HIR、驻留类型池、`XL6_HirTypeId` 和稳定
+  `XL6_SymbolId`；源码节点的类型、存储类型、调用、左值、退出与所有权计划
+  由 HIR 统一提供，C 后端不重新选择重载或参数绑定。
 - 源文件固定 UTF-8；标识符大小写敏感；支持中文 UTF-8 标识符；保留字不能作为普通标识符。
+- 控制台和重定向输出统一使用 UTF-8：Windows 下 `print` / `println` 和编译器诊断直写 Unicode，混编 C/CRT 输出由运行会话临时切换输出代码页并在结束时恢复；重定向文件保持无转码 UTF-8。Linux/macOS 直接写 UTF-8 字节，不修改进程全局 locale。
 - `xl run` 支持内存态 TCC 运行；默认不应生成 `tmp` 或 `release/tmp` 临时产物，除非显式要求保存中间文件。
 - XRT 是 xlang 标准库和运行时基础；能由 XRT 提供的能力优先使用 XRT，不在 xlang 里重复制造平行实现。
+- DEMO6 构建固定使用仓库内 `demo6/lib/xrt/xrt.h` 发布候选快照，不直接读取
+  `D:/GIT/xrt` 开发主线。构建守门会拒绝外部 XRT 路径、环境变量或上级目录回读，
+  避免尚未稳定的 XRT 开发版本隐式进入发布物。
 - 本轮暂缓扩展 `http` 与 `websocket` 两个库；现有能力可继续使用，但不作为本轮新增和压实目标。
 
 ## 2. 命令行
@@ -54,7 +61,16 @@ xl impdef <file.dll> -o <output.def>
 - 支持安全拓宽转换；危险窄化或 ABI 截断应显式转换或报错。
 - 整数字面量必须落在目标类型范围内；无显式无符号目标时按有符号 `int64` 解释，`auto` / `var` 不会把超出 `INT64_MAX` 的值静默环绕。
 - `uint64` 转字符串、f-string 和 `print` / `println` 均按十进制无符号全精度输出。
-- 支持运行时 `is` / `as` 类型判断与转换；函数返回类型的 `as` 和表达式中的 `as` 由语法位置区分。
+- `T` 默认非空，`T?` 显式表示可空；`null` 只能赋给 nullable、`var` 或明确
+  允许空值的 C ABI 类型。
+- 支持 `?.` 安全成员、`?[...]` 安全索引和 `??` 空值合并；`if value != null`
+  与 match 分支会进行流类型收窄，失效写入会撤销收窄。
+- 支持运行时 `is` / `as` 类型判断与转换；`value as T` 失败抛可捕获的
+  `TypeError`，`value as T?` 失败返回 `null`。函数返回类型的 `as` 和表达式中的
+  `as` 由语法位置区分。
+- `weak<T>` 是不延长对象生命周期的受管理弱引用，`lock()` 返回 `T?`。
+- 支持 numeric enum 与 tagged enum；前者拥有显式整数底层类型，后者使用
+  `tag + union payload` 静态布局并维护受管理 payload 生命周期。
 
 ## 5. 表达式、控制流与容器
 
@@ -65,6 +81,8 @@ xl impdef <file.dll> -o <output.def>
 - 容器运算符：数组/列表拼接，集合并交差补，字典合并等走 XRT 容器能力。
 - 字符串默认 UTF-8；`string.len` 按 codepoint，`string.byteLen` 按字节；默认字符串迭代按字符。
 - `Buffer` 用作二进制载体和高性能字符串拼接缓冲，支持索引、迭代、拼接和文件二进制读写。
+- `match` 同时支持语句和表达式形式，可匹配 enum variant、字面量、`null` 与
+  `else`；enum、bool 和 nullable 执行穷尽检查，禁止重复和不可达 case。
 
 ## 6. 函数、闭包、泛型
 
@@ -74,6 +92,8 @@ xl impdef <file.dll> -o <output.def>
 - 泛型函数、泛型 class、静态泛型容器可用。
 - 泛型实例化调用采用 Rust 风格 turbofish：`max::<int>(a, b)`。
 - 泛型约束语法采用简化写法，例如 `func cloneAll<T is cloneable>(array<T> items) as array<T>`。
+- 用户 `protocol` 可直接作为泛型约束；结构化满足不要求 class 书写
+  `implements`，实例化时验证完整公开签名。
 
 ## 7. OOP 与协议
 
@@ -85,6 +105,10 @@ xl impdef <file.dll> -o <output.def>
 - 属性系统使用 `get` / `let`，支持维度参数和重载；`get`、`let`、`set` 不允许作为普通标识符。
 - 支持 `derive string/hash/equals`，用于生成字符串化、哈希和等价比较。
 - `copy` 与 `clone` 标准库函数接入协议能力；`clone` 表示深拷贝语义。
+- 支持用户声明 `protocol`。class 按公开方法/属性完整签名结构化满足；具体类型
+  可静态派发，protocol 类型值通过 XRT descriptor 与 witness table 派发。
+- protocol 可用于变量、参数、返回值、容器和泛型约束；native-backed class 的
+  extern 成员也可以满足 protocol。
 
 ## 8. 错误、文档、模块与扩展库
 
@@ -93,8 +117,27 @@ xl impdef <file.dll> -o <output.def>
 - 运行时整数除零/模零抛出 `ZeroDivisionError`；`INT64_MIN / -1` 及对应取模抛出 `OverflowError`，二者均可由 `ArithmeticError` 捕获。
 - `throw` 只抛出字符串描述，由运行时包装为分类错误。
 - 文档注释：`#doc ... #end`，支持 `desc`、`param`、`return`、`note`、`example`。
-- 模块系统：`import`、`export`、package、XAPI/interface metadata。
-- 扩展库推荐通过 `export func name(...)` 导出能力；内部 wrapper 名称不作为用户手写接口。
+- 模块系统支持命名空间导入、命名空间别名和选择性导入：
+
+```xlang
+import geometry
+import geometry as geo
+from geometry import Point, distance
+from geometry import Transform as Matrix
+```
+
+- `import geometry` 只绑定 `geometry.xxx`；`import geometry as geo` 只绑定 `geo.xxx`。
+- `from geometry import Point` 将单个公开符号直接绑定到当前文件；`as` 可为每个符号指定别名。
+- 不支持 `from module import *`。导入别名不能覆盖内置类型、顶层声明或其他公开命名空间。
+- `export` 可公开 xlang 函数、直接映射的 `extern` C 函数/变量、变量、常量、
+  `class`、numeric/tagged `enum`、具名 `union`、`typedef` 和 `extern type`。
+- 公开类型可以用于变量、字段、参数、返回值、函数值签名、泛型参数和 `extends`，例如 `array<geometry.Point>`。
+- 普通 `import` 不会把类型名展开到当前作用域；需要直接写 `Point` 时必须使用 `from geometry import Point`。
+- `export class` 只表示对 xlang 模块消费者公开，不会自动把全部成员函数导出为 C ABI。
+- numeric/tagged enum 均进入公开类型符号、`type()`、泛型、容器、XAPI、生成
+  C 头文件和 ABI hash；不提供旧枚举兼容占位。
+- `.xl` 源码是公开接口事实来源，package manifest 只记录定位、版本、依赖和构建输入；ABI 元数据与 C 头文件由机器生成。
+- 扩展库内部 wrapper 名称不作为用户手写接口。
 - 支持同一扩展库多版本共存，降低传递依赖版本冲突。
 
 ## 9. 并发、异步与运行时
@@ -392,3 +435,8 @@ assert zip.open(zipBytes).readText("hello.txt") == "hello"
 - 数据格式扩展库：`demo6/test/suites/10_format_extlibs.bat`。
 - RC 工程守门：`demo6/rc0_guard.bat`、`demo6/tools/rc0_guard.ps1`。
 - 示例目录：`demo6/release/examples`。
+
+2026-08-02 完整 `demo6/test.bat` 验证通过：444 条预期失败命令全部具备内容
+断言，1221 份测试工件通过闭包检查，172 个开发项目零失败；生成 C 的 GCC
+warning 守门、DLL API/XRT 快照边界、协议、枚举/match、nullable/weak、异步/任务、
+标准库与 XAPI/VFS 链路均通过。

@@ -1,0 +1,27 @@
+import module_types
+
+func pointSum(module_types.Point point) as int
+    return point.sum()
+end
+
+func main(...) as int
+    module_types.Point point = module_types.Point(20, 22)
+    module_types.Summable summable = point
+    array<module_types.Point> points = []
+    points.push(point)
+
+    module_types.NumberData data
+    data.integer = 42
+
+    module_types.Count count = 42
+    module_types.NativeCount nativeCount = c_int(42)
+    module_types.Box<int> box = module_types.Box::<int>(42)
+
+    if pointSum(points[0]) != 42 or summable.sum() != 42 or data.integer != 42 then
+        return 1
+    end
+    if count != 42 or int(nativeCount) != 42 or box.get() != 42 then
+        return 2
+    end
+    return 0
+end

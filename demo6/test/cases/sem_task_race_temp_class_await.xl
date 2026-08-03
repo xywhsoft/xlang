@@ -3,7 +3,7 @@ class TempRaceBox
 end
 
 async func makeTempRaceBox(int value) as TempRaceBox
-    TempRaceBox box
+    TempRaceBox box = TempRaceBox()
     box.value = value
     return box
 end

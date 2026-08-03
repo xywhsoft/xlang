@@ -1,0 +1,86 @@
+import tar
+
+func main(...) as int
+    // 1. Long filename (> 100 chars) triggers PAX path
+    string longName = ""
+    for idx in range(12)
+        longName = longName + "subdir_"
+    end
+    longName = longName + "deep_file.txt_extra_padding_to_exceed_one_hundred_characters_limit"
+
+    // 2. Unicode path
+    string unicodeName = "docs/日本語/报告_2026.txt"
+
+    // 3. Long username (> 32 chars) triggers PAX uname
+    string longUser = "a_very_long_user_name_that_exceeds_32_characters"
+
+    // Write archive with PAX extensions
+    auto writer = tar.create()
+    writer.add(longName, "deep content", 420, 0, 0, 0, longUser, "")
+    writer.add(unicodeName, "unicode content here")
+    writer.add("short.txt", "normal file")
+    Buffer packed = writer.finish()
+
+    // Read back and verify entry count
+    auto counter = tar.open(packed)
+    auto infos = counter.entries()
+    if infos.length != 3 then
+        return 1
+    end
+
+    // Verify long name roundtrip
+    auto reader = tar.open(packed)
+    if not reader.find(longName) then
+        return 2
+    end
+    string text1 = reader.readText()
+    if text1 != "deep content" then
+        return 3
+    end
+    if reader.info().userName != longUser then
+        return 4
+    end
+
+    // Verify unicode name roundtrip
+    auto reader2 = tar.open(packed)
+    if not reader2.find(unicodeName) then
+        return 5
+    end
+    string text2 = reader2.readText()
+    if text2 != "unicode content here" then
+        return 6
+    end
+
+    // Verify short name still works
+    auto reader3 = tar.open(packed)
+    if not reader3.find("short.txt") then
+        return 7
+    end
+    string text3 = reader3.readText()
+    if text3 != "normal file" then
+        return 8
+    end
+
+    // 4. Very long name (> 256 chars) - definitely needs PAX
+    string gnuLong = ""
+    for idx in range(30)
+        gnuLong = gnuLong + "directory_"
+    end
+    gnuLong = gnuLong + "file.txt"
+
+    auto writer2 = tar.create()
+    writer2.add(gnuLong, "gnu long content")
+    Buffer packed2 = writer2.finish()
+
+    auto reader4 = tar.open(packed2)
+    if not reader4.find(gnuLong) then
+        return 9
+    end
+    string text4 = reader4.readText()
+    if text4 != "gnu long content" then
+        return 10
+    end
+
+    print("P2 PAX/GNU tests passed!")
+    return 0
+end

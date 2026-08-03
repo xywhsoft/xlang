@@ -1,0 +1,41 @@
+enum Result<T>
+    ok(T value)
+    error(string message)
+end
+
+func pass(Result<string> value) as Result<string>
+    return value
+end
+
+func makeError(string message) as Result<string>
+    return Result::<string>.error(message)
+end
+
+func textOf(Result<string> value) as string
+    return match value
+    case ok(text) then text
+    case error(message) then message
+    end
+end
+
+func main(...) as int
+    Result<string> first = makeError("alpha")
+    Result<string> copied = first
+
+    first = Result::<string>.error("beta")
+    println(textOf(first))
+    println(textOf(copied))
+
+    Result<string> returned = pass(copied)
+    println(textOf(returned))
+
+    Result<string>? maybe = copied
+    if maybe != null
+        println(textOf(maybe))
+    end
+
+    var boxed = copied
+    Result<string> unboxed = boxed as Result<string>
+    println(textOf(unboxed))
+    return 0
+end

@@ -1,0 +1,7 @@
+func main(...) as int
+    int value
+    while false
+        value = 1
+    end
+    return value
+end

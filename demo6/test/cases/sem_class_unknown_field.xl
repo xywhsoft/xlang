@@ -3,6 +3,6 @@ class Point
 end
 
 func bad()
-    Point point
+    Point point = Point()
     point.y = 1
 end

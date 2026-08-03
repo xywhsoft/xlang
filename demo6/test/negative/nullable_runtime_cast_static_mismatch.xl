@@ -1,0 +1,5 @@
+func main(...) as int
+    int value = 1
+    string? text = value as string?
+    return 0
+end

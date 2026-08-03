@@ -181,7 +181,8 @@ static void xl6CgenDeclCollectOwnedClassReceiverTemp(
         return;
     }
     receiver = callee->children[0];
-    if ( receiver == NULL || xl6CgenDeclExprHasReplacement(ctx, receiver) ||
+    if ( receiver == NULL || !xl6CgenExprHasStaticValueType(ctx, receiver) ||
+         xl6CgenDeclExprHasReplacement(ctx, receiver) ||
          xl6CgenExprIsXValueBorrow(ctx, receiver) ) {
         return;
     }
@@ -209,6 +210,7 @@ static void xl6CgenDeclCollectOwnedClassReceiverTemp(
              tempType,
              "__xl6_call_receiver_",
              "out of memory while preparing class call receiver temporary") ) {
+        /* 成员调用只借用临时接收者，调用结束后仍由当前作用域释放。 */
         (*temps)[*count - 1].releaseAfterUse = 1;
     }
     xl6AstFree(receiverType);
@@ -288,7 +290,7 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
                 expr,
                 callee->text,
                 &ownerClass);
-        } else {
+        } else if ( xl6CgenExprHasStaticValueType(ctx, receiver) ) {
             if ( receiver != NULL && receiver->kind == XL6_AST_NAME &&
                  xl6CTextEquals(receiver->text, "self") && ctx->currentClass != NULL ) {
                 classNode = (XL6_AstNode*)ctx->currentClass;

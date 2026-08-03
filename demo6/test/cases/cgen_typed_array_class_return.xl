@@ -1,0 +1,20 @@
+class Item
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+end
+
+func makeItems() as array<Item>
+    return array[Item(21), Item(42)]
+end
+
+func main(...) as int
+    array<Item> items = makeItems()
+    assert items.length == 2
+    assert items[0].value == 21
+    assert items[1].value == 42
+    println("typed array class return ok")
+    return 0
+end

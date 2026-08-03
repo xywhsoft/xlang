@@ -2,6 +2,7 @@
 #define XL6_AST_H
 
 #include "src/lexer/xl6_token.h"
+#include "src/type/xl6_semantic_plan.h"
 
 typedef enum XL6_AstKind {
     XL6_AST_MODULE,
@@ -18,6 +19,9 @@ typedef enum XL6_AstKind {
     XL6_AST_TYPE_ALIAS,
     XL6_AST_EXTERN_TYPE_ALIAS,
     XL6_AST_CLASS,
+    XL6_AST_PROTOCOL,
+    XL6_AST_ENUM,
+    XL6_AST_ENUM_VARIANT,
     XL6_AST_UNION,
     XL6_AST_DERIVE,
     XL6_AST_FIELD,
@@ -76,6 +80,11 @@ typedef enum XL6_AstKind {
     XL6_AST_DO_WHILE,
     XL6_AST_FOR,
     XL6_AST_FOR_TARGETS,
+    XL6_AST_MATCH,
+    XL6_AST_MATCH_CASE,
+    XL6_AST_PATTERN_VARIANT,
+    XL6_AST_PATTERN_LITERAL,
+    XL6_AST_PATTERN_ELSE,
     XL6_AST_TRY,
     XL6_AST_CATCH,
     XL6_AST_THROW,
@@ -97,6 +106,13 @@ typedef enum XL6_AstKind {
 #define XL6_AST_FLAG_BYVAL    0x00000400u
 #define XL6_AST_FLAG_BYREF    0x00000800u
 #define XL6_AST_FLAG_OUT      0x00001000u
+#define XL6_AST_FLAG_IMPORT_SELECTIVE 0x00002000u
+#define XL6_AST_FLAG_PROTOCOL_REQUIREMENT 0x00004000u
+#define XL6_AST_FLAG_PROTOCOL_HANDLE 0x00008000u
+#define XL6_AST_FLAG_NUMERIC_ENUM 0x00010000u
+#define XL6_AST_FLAG_MATCH_EXPR 0x00020000u
+#define XL6_AST_FLAG_TAGGED_ENUM 0x00040000u
+#define XL6_AST_FLAG_INTERNAL_NULLABLE 0x40000000u
 /* 仅供语义规范化使用，源码不能构造该标记。 */
 #define XL6_AST_FLAG_CLASS_HANDLE 0x80000000u
 
@@ -107,6 +123,22 @@ typedef struct XL6_AstNode {
     char* doc;
     /* 语义阶段写入的规范化静态类型；由当前节点独占。 */
     struct XL6_AstNode* inferredType;
+    /*
+     * 语义身份只作为 AST 到 HIR 的迁移桥梁。
+     * 零值表示该节点不声明或不引用对应实体。
+     */
+    uint32 semanticTypeId;
+    uint64 semanticTypeAbiId;
+    uint32 semanticSymbolId;
+    uint32 semanticTargetSymbolId;
+    XL6_SemCallKind semanticCallKind;
+    XL6_SemLvalueKind semanticLvalueKind;
+    XL6_SemOwnershipAction semanticOwnership;
+    XL6_SemExitKind semanticExitKind;
+    uint32 semanticScopeDepth;
+    uint32 semanticTargetScopeDepth;
+    uint32 semanticRegionId;
+    uint32 semanticTargetRegionId;
     int line;
     int column;
     struct XL6_AstNode** children;

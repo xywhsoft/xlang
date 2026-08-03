@@ -1,0 +1,8 @@
+func main(...) as int
+    int value
+    if true then
+        value = 1
+    end
+    println(value)
+    return 0
+end

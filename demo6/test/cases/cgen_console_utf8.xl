@@ -1,0 +1,4 @@
+func main(...) as int
+    println("中文控制台 UTF-8")
+    return 0
+end

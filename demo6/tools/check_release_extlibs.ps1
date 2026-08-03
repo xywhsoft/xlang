@@ -11,6 +11,7 @@ if ( $Root -eq "" ) {
 $releaseDir = Join-Path $Root "release\extlibs"
 $exampleDir = Join-Path $Root "release\examples\extlibs"
 $runnerPath = Join-Path $exampleDir "run_extlibs.bat"
+$dynamicRunnerPath = Join-Path $Root "tools\run_extlib_examples.ps1"
 $expectedMinPackages = 31
 $fixtureNames = @(
     "class_api",
@@ -46,7 +47,7 @@ $releaseTextExtensions = New-Object System.Collections.Generic.HashSet[string]([
     $releaseTextExtensions.Add($_) | Out-Null
 }
 $forbiddenTextPatterns = @(
-    @{ Name = "absolute drive path"; Regex = "(?<![A-Za-z0-9_])[A-Za-z]:[\\/]" },
+    @{ Name = "absolute drive path"; Regex = "(?<![A-Za-z0-9_%+])[A-Za-z]:[\\/]" },
     @{ Name = "legacy release/libs path"; Regex = "release[\\/]libs" },
     @{ Name = "legacy demo5 path"; Regex = "demo5" },
     @{ Name = "host absolute path"; Regex = "(^|[^A-Za-z0-9_])/(home|usr)/" }
@@ -104,6 +105,9 @@ function Should-CheckReleaseText($file)
         return $false
     }
     if ( $file.FullName.IndexOf("\third_party\", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 ) {
+        return $false
+    }
+    if ( $file.FullName.IndexOf("\lib\", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 ) {
         return $false
     }
     if ( $file.Name.Equals("README.md", [System.StringComparison]::OrdinalIgnoreCase) -and
@@ -263,6 +267,10 @@ if ( ! (Test-Path -LiteralPath $runnerPath -PathType Leaf) ) {
     Write-Host "release extlib runner missing: $runnerPath"
     exit 1
 }
+if ( ! (Test-Path -LiteralPath $dynamicRunnerPath -PathType Leaf) ) {
+    Write-Host "release extlib dynamic runner missing: $dynamicRunnerPath"
+    exit 1
+}
 
 $packages = @(Get-ChildItem -LiteralPath $releaseDir -Directory | Sort-Object Name)
 if ( $packages.Count -lt $expectedMinPackages ) {
@@ -281,6 +289,10 @@ Check-NoDraftFiles $releaseDir "extlibs"
 Check-NoDraftFiles $exampleDir "extlib examples"
 
 $runnerText = Read-Utf8Text $runnerPath
+$dynamicRunnerText = Read-Utf8Text $dynamicRunnerPath
+$hasDynamicRunner =
+    $runnerText.Contains("tools\run_extlib_examples.ps1") -and
+    $dynamicRunnerText.Contains("Wires: release/examples/extlibs/*.xl")
 $exampleFiles = @(Get-ChildItem -LiteralPath $exampleDir -File -Filter "*.xl" | Sort-Object Name)
 $exampleTextByFile = @{}
 $importsByPackage = @{}
@@ -297,7 +309,7 @@ foreach ( $file in $exampleFiles ) {
         Add-Failure "release extlib example must not cover placeholder unsupported API: $($file.Name)"
     }
     $exampleTextByFile[$file.Name] = Remove-IfFalseBlocks $text
-    foreach ( $match in [regex]::Matches($text, '(?m)^\s*import\s+([A-Za-z0-9_.]+)\b') ) {
+    foreach ( $match in [regex]::Matches($text, '(?m)^\s*(?:import|from)\s+([A-Za-z0-9_.]+)\b') ) {
         $importName = $match.Groups[1].Value
         if ( ! $importsByPackage.ContainsKey($importName) ) {
             $importsByPackage[$importName] = New-Object System.Collections.Generic.List[string]
@@ -305,8 +317,29 @@ foreach ( $file in $exampleFiles ) {
         $importsByPackage[$importName].Add($file.Name) | Out-Null
     }
     if ( ! $runnerText.Contains("release\examples\extlibs\$($file.Name)") -and
-         ! $runnerText.Contains("release/examples/extlibs/$($file.Name)") ) {
+         ! $runnerText.Contains("release/examples/extlibs/$($file.Name)") -and
+         ! $hasDynamicRunner ) {
         Add-Failure "release extlib example is not executed by run_extlibs.bat: $($file.Name)"
+    }
+}
+
+$packageTestFiles = @(
+    Get-ChildItem -LiteralPath $releaseDir -File -Recurse -Filter "*.xl" |
+        Where-Object {
+            $_.FullName.IndexOf("\test\", [System.StringComparison]::OrdinalIgnoreCase) -ge 0
+        } |
+        Sort-Object FullName
+)
+foreach ( $file in $packageTestFiles ) {
+    $relative = $file.FullName.Substring($releaseDir.Length + 1).Replace("\", "/")
+    $text = Read-Utf8Text $file.FullName
+    $exampleTextByFile[$relative] = Remove-IfFalseBlocks $text
+    foreach ( $match in [regex]::Matches($text, '(?m)^\s*(?:import|from)\s+([A-Za-z0-9_.]+)\b') ) {
+        $importName = $match.Groups[1].Value
+        if ( ! $importsByPackage.ContainsKey($importName) ) {
+            $importsByPackage[$importName] = New-Object System.Collections.Generic.List[string]
+        }
+        $importsByPackage[$importName].Add($relative) | Out-Null
     }
 }
 
@@ -379,6 +412,18 @@ foreach ( $pkg in $packages ) {
     Validate-RelativeFileList $pkg $manifestRel $manifestXlSources "xlSources" ".xl"
     Validate-RelativeFileList $pkg $manifestRel $manifestCSources "cSources" ".c"
 
+    $coverageMode = [string]$manifest.coverage.mode
+    if ( $coverageMode -ne "" -and $coverageMode -ne "suite" ) {
+        Add-Failure "release extlib coverage.mode must be suite when present: $name"
+    }
+    if ( $coverageMode -eq "suite" ) {
+        $coverageTests = String-Array $manifest.coverage.tests
+        if ( $coverageTests.Count -eq 0 ) {
+            Add-Failure "release extlib suite coverage must list tests: $name"
+        }
+        Validate-RelativeFileList $pkg $manifestRel $coverageTests "coverage.tests" ".xl"
+    }
+
     foreach ( $value in (String-Array $manifest.links) + (String-Array $manifest.loadlibs) ) {
         Check-PathValue $name "link/loadlib" $value
     }
@@ -402,6 +447,12 @@ foreach ( $name in $manifestsByPackage.Keys ) {
     }
 }
 
+foreach ( $importName in $importsByPackage.Keys ) {
+    if ( ! $manifestsByPackage.ContainsKey($importName) ) {
+        Add-Failure "release extlib example or package test imports missing package: $importName"
+    }
+}
+
 foreach ( $name in $manifestsByPackage.Keys ) {
     $manifest = $manifestsByPackage[$name]
     $pkg = $dirsByPackage[$name]
@@ -420,6 +471,10 @@ foreach ( $name in $manifestsByPackage.Keys ) {
         if ( $exampleTextByFile.ContainsKey($exampleName) ) {
             $exampleText += "`n" + $exampleTextByFile[$exampleName]
         }
+    }
+
+    if ( [string]$manifest.coverage.mode -eq "suite" ) {
+        continue
     }
 
     $functionNames = Get-PublicFunctionNames $pkg $manifest

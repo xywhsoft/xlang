@@ -1,0 +1,8 @@
+// 动态数组读取必须返回独立的临时引用，释放结果不能破坏容器。
+var values = [10, 20]
+
+func main(...) as int
+    int first = int(values[0])
+    int second = int(values[1])
+    return first + second == 30 ? 0 : 1
+end

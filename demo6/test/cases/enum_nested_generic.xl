@@ -1,0 +1,30 @@
+enum Result<T>
+    ok(T value)
+    error(string message)
+end
+
+func unwrapCount(Result<array<Result<string>>> result) as int
+    return match result
+    case ok(items) then items.length
+    case error(message) then -1
+    end
+end
+
+func main(...) as int
+    array<Result<string>> items = [
+        Result::<string>.ok("alpha"),
+        Result::<string>.error("beta")
+    ]
+    Result<array<Result<string>>> nested = Result::<array<Result<string>>>.ok(items)
+
+    assert unwrapCount(nested) == 2
+
+    var boxed = nested
+    Result<array<Result<string>>> restored = boxed as Result<array<Result<string>>>
+    assert unwrapCount(restored) == 2
+
+    array<Result<array<Result<string>>>> values = [nested, restored]
+    assert values.length == 2
+    println("nested generic enum ok")
+    return 0
+end

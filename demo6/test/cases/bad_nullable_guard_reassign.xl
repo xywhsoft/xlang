@@ -1,0 +1,11 @@
+class GuardNode
+    int value = 7
+end
+
+func readAfterReassign(GuardNode? node) as int
+    if node == null
+        return -1
+    end
+    node = null
+    return node.value
+end

@@ -1,0 +1,39 @@
+protocol Named
+    func name() as string
+end
+
+class Person
+    string stored = ""
+
+    create(string value)
+        self.stored = value
+    end
+
+    func name() as string
+        return self.stored
+    end
+end
+
+func makeName(string value) as Named
+    return Person(value)
+end
+
+func firstName(array<Named> values) as Named
+    return values[0]
+end
+
+func main(...) as int
+    Named direct = makeName("direct")
+    array<Named> values = array[direct, Person("second")]
+    Named first = firstName(values)
+    Named? maybe = first
+    Named? missing = null
+
+    assert direct.name() == "direct"
+    assert first.name() == "direct"
+    assert maybe != null
+    assert missing == null
+    assert (maybe as Named).name() == "direct"
+    println("protocol value lifecycle ok")
+    return 0
+end

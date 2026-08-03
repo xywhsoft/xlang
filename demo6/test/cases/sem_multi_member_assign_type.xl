@@ -7,7 +7,7 @@ func pair() as (string, string)
 end
 
 func bad()
-    Box box
+    Box box = Box()
     string text
     box.value, text = pair()
 end

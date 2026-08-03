@@ -3,6 +3,6 @@ class Box
 end
 
 func values() as generator<Box>
-    Box box
+    Box box = Box()
     yield box
 end

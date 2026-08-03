@@ -4,6 +4,7 @@
 #include "src/cgen/xl6_cgen_needs_basic.h"
 #include "src/cgen/xl6_cgen_runtime.h"
 #include "src/ir/xl6_hir.h"
+#include "src/type/xl6_type_model.h"
 
 #include <limits.h>
 #include <stddef.h>
@@ -15,13 +16,21 @@
 */
 #include "src/cgen/xl6_cgen_core_context.c"
 #include "src/cgen/xl6_cgen_core_names.c"
+#include "src/cgen/xl6_cgen_hir.c"
 #include "src/cgen/xl6_cgen_core_lookup.c"
 #include "src/cgen/xl6_cgen_core_state.c"
+#include "src/cgen/xl6_cgen_type_nullable.c"
 static const XL6_AstNode* xl6CgenTypedContainerConcreteType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 static const char* xl6CgenTypedContainerCType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 #include "src/cgen/xl6_cgen_core_types.c"
 #include "src/cgen/xl6_cgen_core_generics.c"
 static XL6_AstNode* xl6CgenCloneImplicitSelfFieldType(XL6_CgenContext* ctx, const char* fieldName);
+static XL6_AstNode* xl6CgenCloneExprStorageType(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+static int xl6CgenConditionalIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static int xl6CgenBinaryArithmeticIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static unsigned long long xl6CgenTypeIdForTypeNode(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode);
 #include "src/cgen/xl6_cgen_core_runtime_state.c"
 #include "src/cgen/xl6_cgen_builtin_object.c"
 #include "src/cgen/xl6_cgen_type_infer_helpers.c"
@@ -31,6 +40,73 @@ static XL6_AstNode* xl6CgenCloneImplicitSelfFieldType(XL6_CgenContext* ctx, cons
 #include "src/cgen/xl6_cgen_type_hir.c"
 static const char* xl6CgenValueStorageCType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 #include "src/cgen/xl6_cgen_type_generic.c"
+static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
+static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name);
+static void xl6CgenAddWeakCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode);
+static int xl6CgenExprIsFunctionBorrow(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+static int xl6CgenDeclTryStaticNullCoalesceInit(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* typeNode,
+    const char* cType,
+    const char* cName,
+    const XL6_AstNode* initExpr);
+static int xl6CgenUserProtocolCall(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* call,
+    const XL6_AstNode* member);
+static int xl6CgenUserProtocolPropertyCall(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* member,
+    const XL6_AstNode* indexNode,
+    const XL6_AstNode* valueExpr,
+    XL6_AstKind kind,
+    const XL6_AstNode* semanticSource);
+static void xl6CgenProtocolTypeDescSymbol(
+    XL6_Output* out,
+    const XL6_AstNode* protocolNode);
+static void xl6CgenGenericProtocolTypeDescSymbol(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* protocolType);
+static void xl6CgenUserProtocolTypeProtos(XL6_CgenContext* ctx);
+static void xl6CgenBlock(XL6_CgenContext* ctx, const XL6_AstNode* block);
+static void xl6CgenAddManagedCleanupForType(
+    XL6_CgenContext* ctx,
+    const char* name,
+    const XL6_AstNode* typeNode
+);
+static void xl6CgenTaggedEnumValueExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* targetType,
+    const XL6_AstNode* expr
+);
+static void xl6CgenEnumOpsSymbol(
+    XL6_Output* out,
+    const XL6_AstNode* typeNode,
+    const char* suffix
+);
+static void xl6CgenEmitDynamicMethodXCallProtos(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* typeNode);
+static void xl6CgenEmitDynamicMethodTableProto(
+    XL6_CgenContext* ctx,
+    const char* cTypeName);
+static void xl6CgenEmitDynamicMethodTable(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* typeNode,
+    const char* cTypeName);
+static void xl6CgenDynamicMethodTableSymbol(
+    XL6_CgenContext* ctx,
+    const char* cTypeName);
+static void xl6CgenEmitDynamicMethodDefinitions(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode);
+static void xl6CgenEmitGenericDynamicMethodDefinitions(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* typeNode);
+#include "src/cgen/xl6_cgen_nullable.c"
 #include "src/cgen/xl6_cgen_expr_support_types.c"
 #include "src/cgen/xl6_cgen_expr_support_base.c"
 #include "src/cgen/xl6_cgen_extern_call.c"
@@ -43,8 +119,12 @@ static void xl6CgenDiscardPendingFinallyReturn(XL6_CgenContext* ctx, int targetI
 #include "src/cgen/xl6_cgen_function_member.c"
 static int xl6CgenExprIsTypedContainerReturnCall(XL6_CgenContext* ctx, const XL6_AstNode* expr);
 static void xl6CgenTypedContainerStorageToXValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* storageName);
+static void xl6CgenTypedContainerExprToXValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* valueExpr);
+static int xl6CgenPersistenceStringifyName(const char* name, const char** outFormat);
+static int xl6CgenPersistenceWriteName(const char* name, const char** outFormat);
+static const char* xl6CgenCallableName(const XL6_AstNode* node);
+static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* param, const XL6_AstNode* expr);
 static const XL6_AstNode* xl6CgenResolveClassCreateMode(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* call, int reportNoMatch);
-static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name);
 #include "src/cgen/xl6_cgen_args_box_typed.c"
 #include "src/cgen/xl6_cgen_args.c"
 #include "src/cgen/xl6_cgen_args_null.c"
@@ -74,6 +154,7 @@ static void xl6CgenClassPublishSharedFields(
 #include "src/cgen/xl6_cgen_class_property.c"
 static int xl6CgenClassPropertyCompoundAssignStmt(
     XL6_CgenContext* ctx,
+    const XL6_AstNode* operation,
     const XL6_AstNode* left,
     const char* op,
     const XL6_AstNode* right);
@@ -84,6 +165,7 @@ static int xl6CgenClassPropertyCompoundAssignStmt(
 static void xl6CgenXValueWriteReceiverExpr(XL6_CgenContext* ctx, const XL6_AstNode* receiver);
 #include "src/cgen/xl6_cgen_value_assign.c"
 #include "src/cgen/xl6_cgen_value_index.c"
+#include "src/cgen/xl6_cgen_enum.c"
 #include "src/cgen/xl6_cgen_expr.c"
 #include "src/cgen/xl6_cgen_stmt_decl_class_temp.c"
 #include "src/cgen/xl6_cgen_stmt_decl.c"
@@ -115,6 +197,7 @@ static void xl6CgenGenericClassFuncProto(
     const XL6_AstNode* typeNode,
     const XL6_AstNode* funcNode);
 #include "src/cgen/xl6_cgen_decl_proto.c"
+#include "src/cgen/xl6_cgen_export_wrapper.c"
 #include "src/cgen/xl6_cgen_class_virtual.c"
 #include "src/cgen/xl6_cgen_decl_union.c"
 #include "src/cgen/xl6_cgen_decl_class.c"
@@ -128,8 +211,10 @@ static void xl6CgenGenericClassFuncProto(
 #include "src/cgen/xl6_cgen_async_file.c"
 #include "src/cgen/xl6_cgen_closure.c"
 #include "src/cgen/xl6_cgen_abi.c"
+#include "src/cgen/xl6_cgen_user_protocol.c"
 #include "src/cgen/xl6_cgen_callable_runtime.c"
 #include "src/cgen/xl6_cgen_callable_frame.c"
+#include "src/cgen/xl6_cgen_class_dynamic_method.c"
 #include "src/cgen/xl6_cgen_callable_wrappers.c"
 #include "src/cgen/xl6_cgen_func.c"
 #include "src/cgen/xl6_cgen_needs.c"

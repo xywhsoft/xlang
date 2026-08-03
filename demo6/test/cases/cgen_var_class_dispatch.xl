@@ -28,7 +28,86 @@ func verifyDispatch()
 
     DispatchBase base = boxed as DispatchBase
     assert base.value() == 42, "var boxed class cast keeps dynamic dispatch"
+
+    boxed = DispatchBase()
+    var reassignedValue = boxed.value()
+    var reassignedLabel = boxed.label
+    assert int(reassignedValue) == 1, "sequential var class reassignment updates flow type"
+    assert string(reassignedLabel) == "base", "sequential property flow follows reassignment"
+end
+
+func valueAfterIf(bool replace) as int
+    var boxed = DispatchChild()
+    if replace
+        boxed = DispatchBase()
+    end
+    return int(boxed.value())
+end
+
+func labelAfterIf(bool replace) as string
+    var boxed = DispatchChild()
+    if replace
+        boxed = DispatchBase()
+    end
+    return string(boxed.label)
+end
+
+func valueAfterWhile(bool replace) as int
+    var boxed = DispatchChild()
+    while replace
+        boxed = DispatchBase()
+        replace = false
+    end
+    return int(boxed.value())
+end
+
+func valueAfterDoWhile() as int
+    var boxed = DispatchChild()
+    do
+        boxed = DispatchBase()
+    while false end
+    return int(boxed.value())
+end
+
+func valueAfterFor() as int
+    var boxed = DispatchChild()
+    for item in [1]
+        boxed = DispatchBase()
+    end
+    return int(boxed.value())
+end
+
+func valueAfterTry() as int
+    var boxed = DispatchChild()
+    try
+        boxed = DispatchBase()
+    catch e
+        boxed = DispatchChild()
+    end
+    return int(boxed.value())
+end
+
+func valueAfterMatch(bool replace) as int
+    var boxed = DispatchChild()
+    match replace
+    case true
+        boxed = DispatchBase()
+    case false
+        boxed = DispatchChild()
+    end
+    return int(boxed.value())
 end
 
 verifyDispatch()
+assert valueAfterIf(true) == 1, "if merge must discard stale child flow"
+assert valueAfterIf(false) == 42, "if merge keeps runtime child value"
+assert labelAfterIf(true) == "base", "property dispatch follows if merge"
+assert labelAfterIf(false) == "child", "property dispatch keeps runtime child value"
+assert valueAfterWhile(true) == 1, "while merge must discard stale child flow"
+assert valueAfterWhile(false) == 42, "zero-iteration while keeps runtime child value"
+assert valueAfterDoWhile() == 1, "do-while merge must discard body flow"
+assert valueAfterFor() == 1, "for merge must discard body flow"
+assert valueAfterTry() == 1, "try merge must discard branch flow"
+assert valueAfterMatch(true) == 1, "match merge follows base branch"
+assert valueAfterMatch(false) == 42, "match merge follows child branch"
 println("cgen_var_class_dispatch ok")

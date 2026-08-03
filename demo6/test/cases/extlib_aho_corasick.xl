@@ -1,54 +1,138 @@
 import aho_corasick
-
-
+from aho_corasick import Match, Automaton
 
 func main(...) as int
-    auto ac = aho_corasick.create()
-    assert ac.valid, "ac should be valid"
-    assert ac.patternCount == 0, "initial pattern count"
-    assert not ac.built, "not built initially"
+    // ─── Basic construction and search ───
+    Automaton ac = aho_corasick.create(["he", "she", "his", "hers"])
+    assert ac.valid, "automaton should be valid"
+    assert ac.built, "auto-build on create with patterns"
+    assert ac.patternCount == 4, "pattern count"
 
-    ac.addPattern("he")
-    ac.addPattern("she")
-    ac.addPattern("his")
-    ac.addPattern("hers")
-    assert ac.patternCount == 4, "pattern count after adds"
+    array<Match> results = ac.search("ushers")
+    assert results.length == 3, "ushers should have 3 matches"
 
-    ac.build()
-    assert ac.built, "built after build()"
+    // verify match contents (sorted by start)
+    assert results[0].pattern == "she", "first match is she"
+    assert results[0].start == 1, "she starts at 1"
+    assert results[0].endPos == 4, "she ends at 4"
+    assert results[0].length == 3, "she length is 3"
 
-    // search "ushers" should find: she@1, he@2, hers@2
-    string result = ac.search("ushers")
-    assert result != "", "search finds matches"
-    assert result.contains("she@1"), "finds she at 1"
-    assert result.contains("he@2"), "finds he at 2"
-    assert result.contains("hers@2"), "finds hers at 2"
+    assert results[1].pattern == "he", "second match is he"
+    assert results[1].start == 2, "he starts at 2"
+    assert results[1].endPos == 4, "he ends at 4"
 
-    // search with no matches
-    string empty = ac.search("xyz")
-    assert empty == "", "no matches returns empty"
+    assert results[2].pattern == "hers", "third match is hers"
+    assert results[2].start == 2, "hers starts at 2"
+    assert results[2].endPos == 6, "hers ends at 6"
+    assert results[2].length == 4, "hers length is 4"
 
-    // overlapping patterns
-    auto ac2 = aho_corasick.create()
-    ac2.addPattern("ab")
-    ac2.addPattern("bc")
-    ac2.addPattern("abc")
-    ac2.build()
-    string r2 = ac2.search("abc")
-    assert r2.contains("ab@0"), "finds ab at 0"
-    assert r2.contains("bc@1"), "finds bc at 1"
-    assert r2.contains("abc@0"), "finds abc at 0"
+    // ─── contains (optimized early-exit) ───
+    assert ac.contains("ushers"), "contains should find match"
+    assert not ac.contains("xyz"), "contains should return false for no match"
+    assert not ac.contains(""), "contains empty text"
 
-    // single char patterns
-    auto ac3 = aho_corasick.create()
-    ac3.addPattern("a")
-    ac3.addPattern("b")
-    ac3.build()
-    string r3 = ac3.search("abba")
-    assert r3.contains("a@0"), "finds a at 0"
-    assert r3.contains("b@1"), "finds b at 1"
-    assert r3.contains("b@2"), "finds b at 2"
-    assert r3.contains("a@3"), "finds a at 3"
+    // ─── count (optimized no-alloc) ───
+    assert ac.count("ushers") == 3, "count ushers"
+    assert ac.count("abc") == 0, "count no match"
+    assert ac.count("") == 0, "count empty"
 
+    // ─── searchFirst ───
+    Match first = ac.searchFirst("ushers") as Match
+    assert first.pattern == "she", "searchFirst pattern"
+
+    Match? none = ac.searchFirst("xyz")
+    assert none == null, "searchFirst no match returns null"
+
+    // ─── replace (merged intervals) ───
+    string replaced = ac.replace("ushers", "*")
+    assert replaced == "u*", "replace merged overlapping: got " + replaced
+
+    string replaced2 = ac.replace("he said she hers", "[x]")
+    assert replaced2 == "[x] said [x] [x]", "replace multiple: got " + replaced2
+
+    // ─── mask ───
+    string masked = ac.mask("ushers", "#")
+    assert masked == "u#####", "mask ushers: got " + masked
+
+    // ─── highlight ───
+    string hl = ac.highlight("ushers", "<b>", "</b>")
+    assert hl == "u<b>shers</b>", "highlight merges overlapping ranges: got " + hl
+
+    // ─── replaceWith callback ───
+    string cb = ac.replaceWith("ushers", func(Match m) as string
+        return "[" + m.pattern + "]"
+    end)
+    assert cb == "u[she]rs", "replaceWith keeps the first non-overlapping match: got " + cb
+
+    // ─── Case insensitive ───
+    Automaton ci = aho_corasick.create(["Hello", "WORLD"], ignoreCase = true)
+    assert ci.contains("hello world"), "case insensitive contains"
+    assert ci.contains("HELLO WORLD"), "case insensitive upper"
+    assert ci.count("Hello hello HELLO") == 3, "case insensitive count"
+
+    // ─── Manual build workflow ───
+    Automaton manual = aho_corasick.create()
+    assert not manual.built, "manual not built initially"
+    manual.addPattern("foo")
+    manual.addPattern("bar")
+    manual.addPattern("baz")
+    assert manual.patternCount == 3, "manual pattern count"
+    manual.build()
+    assert manual.built, "manual built after build()"
+    assert manual.contains("foobar"), "manual contains"
+    assert manual.count("foobarbaz") == 3, "manual count"
+
+    // ─── addPatterns batch ───
+    Automaton batch = aho_corasick.create()
+    batch.addPatterns(["alpha", "beta", "gamma"])
+    batch.build()
+    assert batch.count("alphabetagamma") == 3, "batch count"
+
+    // ─── Error handling ───
+    bool caught = false
+    try
+        Automaton errAc = aho_corasick.create(["x"])
+        errAc.addPattern("y")
+    catch RuntimeError e
+        caught = true
+    end
+    assert caught, "add after build must throw"
+
+    // ─── Empty patterns ───
+    Automaton empty = aho_corasick.create()
+    empty.build()
+    assert empty.count("anything") == 0, "empty automaton matches nothing"
+    assert not empty.contains("anything"), "empty automaton contains nothing"
+
+    // ─── scan: streaming callback, full scan ───
+    array<int> total = [0]
+    bool completed = ac.scan("ushers", func(Match m) as bool
+        total[0] += 1
+        return true
+    end)
+    assert completed, "scan should complete"
+    assert total[0] == 3, "scan visits all 3 matches"
+
+    // ─── scan: early stop ───
+    array<int> visited = [0]
+    bool stopped = ac.scan("ushers", func(Match m) as bool
+        visited[0] += 1
+        return false
+    end)
+    assert not stopped, "scan should report stopped"
+    assert visited[0] == 1, "scan stops after first match"
+
+    // ─── scan: conditional stop ───
+    array<string> foundPattern = [""]
+    ac.scan("ushers", func(Match m) as bool
+        if m.pattern == "hers" then
+            foundPattern[0] = m.pattern
+            return false
+        end
+        return true
+    end)
+    assert foundPattern[0] == "hers", "scan conditional stop finds hers"
+
+    println("aho_corasick: all tests passed")
     return 0
 end

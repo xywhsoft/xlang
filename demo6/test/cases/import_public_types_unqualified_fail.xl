@@ -1,0 +1,6 @@
+import module_types
+
+func main(...) as int
+    Point point = Point()
+    return point.sum()
+end

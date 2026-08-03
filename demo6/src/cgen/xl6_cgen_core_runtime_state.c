@@ -14,6 +14,38 @@ static void xl6CgenFreeGenericClassInstances(XL6_CgenContext* ctx)
     ctx->genericClassInstanceCapacity = 0;
 }
 
+static void xl6CgenFreeGenericProtocolInstances(XL6_CgenContext* ctx)
+{
+    size_t i;
+
+    if ( ctx == NULL ) {
+        return;
+    }
+    for ( i = 0; i < ctx->genericProtocolInstanceCount; ++i ) {
+        xl6AstFree(ctx->genericProtocolInstances[i].typeNode);
+    }
+    xrtFree(ctx->genericProtocolInstances);
+    ctx->genericProtocolInstances = NULL;
+    ctx->genericProtocolInstanceCount = 0;
+    ctx->genericProtocolInstanceCapacity = 0;
+}
+
+static void xl6CgenFreeGenericEnumInstances(XL6_CgenContext* ctx)
+{
+    size_t i;
+
+    if ( ctx == NULL ) {
+        return;
+    }
+    for ( i = 0; i < ctx->genericEnumInstanceCount; ++i ) {
+        xl6AstFree(ctx->genericEnumInstances[i].typeNode);
+    }
+    xrtFree(ctx->genericEnumInstances);
+    ctx->genericEnumInstances = NULL;
+    ctx->genericEnumInstanceCount = 0;
+    ctx->genericEnumInstanceCapacity = 0;
+}
+
 static const XL6_AstNode* xl6CgenTypeNodeGenericArgs(const XL6_AstNode* typeNode)
 {
     if ( typeNode == NULL || typeNode->childCount == 0 ) {
@@ -35,6 +67,10 @@ static const XL6_AstNode* xl6CgenClassHandleTargetType(
 
     typeNode = xl6CgenSubstituteGenericType(ctx, typeNode);
     typeNode = xl6CgenResolveAliasType(ctx, typeNode);
+    if ( xl6CgenNullableUsesXValue(typeNode) ) {
+        typeNode = xl6CgenNullableInnerType(typeNode);
+        typeNode = xl6CgenResolveAliasType(ctx, typeNode);
+    }
     if ( typeNode == NULL || !xl6CTextEquals(typeNode->text, "__class_handle") ) {
         return NULL;
     }
@@ -119,6 +155,11 @@ static const XL6_AstNode* xl6CgenTypedContainerConcreteType(XL6_CgenContext* ctx
 
     concreteType = xl6CgenSubstituteGenericType(ctx, typeNode);
     concreteType = xl6CgenResolveAliasType(ctx, concreteType);
+    if ( xl6CgenIsNullableType(concreteType) ) {
+        concreteType = xl6CgenNullableInnerType(concreteType);
+        concreteType = xl6CgenSubstituteGenericType(ctx, concreteType);
+        concreteType = xl6CgenResolveAliasType(ctx, concreteType);
+    }
     if ( concreteType == NULL || !xl6CgenIsContainerTypeName(concreteType->text) ) {
         return NULL;
     }
@@ -209,7 +250,8 @@ static int xl6CgenExprUsesTypedContainerStorage(XL6_CgenContext* ctx, const XL6_
         return 0;
     }
 
-    inferredType = xl6CgenCloneExprTypeForInference(ctx, expr);
+    /* 这里判断的是后端表示，不是流分析后的可见类型。 */
+    inferredType = xl6CgenCloneExprStorageType(ctx, expr);
     result = xl6CgenIsTypedContainerType(ctx, inferredType);
     xl6AstFree(inferredType);
     return result;
@@ -217,13 +259,22 @@ static int xl6CgenExprUsesTypedContainerStorage(XL6_CgenContext* ctx, const XL6_
 
 static int xl6CgenHasRuntimeTypeDesc(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
+    unsigned long long typeId;
     size_t i;
 
     if ( ctx == NULL || typeNode == NULL ) {
         return 0;
     }
+    typeId = xl6CgenTypeIdForTypeNode(ctx, typeNode);
     for ( i = 0; i < ctx->runtimeTypeDescCount; ++i ) {
-        if ( xl6CgenTypeNodeEqual(ctx->runtimeTypeDescs[i].typeNode, typeNode) ) {
+        /*
+            运行时描述符的 C 符号和跨模块身份都以稳定类型 ID 为准。
+            class 源码类型和内部 __class_handle 可能具有不同 AST 外形，却必须
+            归并到同一描述符；按 AST 结构去重会生成同名的重复 C 定义。
+        */
+        if ( xl6CgenTypeIdForTypeNode(
+                 ctx,
+                 ctx->runtimeTypeDescs[i].typeNode) == typeId ) {
             return 1;
         }
     }
@@ -490,8 +541,8 @@ static int xl6CgenVirtualClassPropertyCall(XL6_CgenContext* ctx, const XL6_AstNo
 static XL6_AstNode* xl6CgenCloneClassPropertyMemberType(XL6_CgenContext* ctx, const XL6_AstNode* member, const XL6_AstNode* indexNode);
 static int xl6CgenClassPropertyMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode* member);
 static int xl6CgenClassPropertyIndexExpr(XL6_CgenContext* ctx, const XL6_AstNode* node);
-static int xl6CgenClassPropertyMemberSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* left, const XL6_AstNode* right);
-static int xl6CgenClassPropertyIndexSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* left, const XL6_AstNode* right);
+static int xl6CgenClassPropertyMemberSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* operation, const XL6_AstNode* left, const XL6_AstNode* right);
+static int xl6CgenClassPropertyIndexSetStmt(XL6_CgenContext* ctx, const XL6_AstNode* operation, const XL6_AstNode* left, const XL6_AstNode* right);
 static int xl6CgenClassPropertyMemberHasGetter(XL6_CgenContext* ctx, const XL6_AstNode* member);
 static int xl6CgenClassPropertyIndexHasGetter(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static XL6_AstNode* xl6CgenCloneClassProtocolReturnTypeForCall(XL6_CgenContext* ctx, const XL6_AstNode* receiverType, const char* protocolName, const XL6_AstNode* call);

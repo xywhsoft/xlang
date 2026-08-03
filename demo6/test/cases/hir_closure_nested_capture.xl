@@ -1,0 +1,12 @@
+func makeNestedAdder(int base) as func(int) as int
+    return func(int middle) as int
+        func(int) as int inner = func(int value) as int
+            return base + middle + value
+        end
+        return inner(3)
+    end
+end
+
+func(int) as int nestedAdder = makeNestedAdder(10)
+assert nestedAdder(29) == 42, "nested closure captures every lexical level"
+println("hir_closure_nested_capture ok")

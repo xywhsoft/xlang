@@ -17,6 +17,9 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_TYPE_ALIAS: return "type_alias";
     case XL6_AST_EXTERN_TYPE_ALIAS: return "extern_type_alias";
     case XL6_AST_CLASS: return "class";
+    case XL6_AST_PROTOCOL: return "protocol";
+    case XL6_AST_ENUM: return "enum";
+    case XL6_AST_ENUM_VARIANT: return "enum_variant";
     case XL6_AST_UNION: return "union";
     case XL6_AST_DERIVE: return "derive";
     case XL6_AST_FIELD: return "field";
@@ -75,6 +78,11 @@ const char* xl6AstKindName(XL6_AstKind kind)
     case XL6_AST_DO_WHILE: return "do_while";
     case XL6_AST_FOR: return "for";
     case XL6_AST_FOR_TARGETS: return "for_targets";
+    case XL6_AST_MATCH: return "match";
+    case XL6_AST_MATCH_CASE: return "match_case";
+    case XL6_AST_PATTERN_VARIANT: return "pattern_variant";
+    case XL6_AST_PATTERN_LITERAL: return "pattern_literal";
+    case XL6_AST_PATTERN_ELSE: return "pattern_else";
     case XL6_AST_TRY: return "try";
     case XL6_AST_CATCH: return "catch";
     case XL6_AST_THROW: return "throw";

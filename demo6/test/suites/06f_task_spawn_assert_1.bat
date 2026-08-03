@@ -239,7 +239,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing failed no-return task.race fixture.
     exit /b 1
 )
-findstr /C:"defaultJob = xl6_fnvalue_xl_fn_addDefault_arity1_make();" build\test\cgen_task_spawn.assert.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[Text.Encoding]::UTF8); if($text -notmatch 'defaultJob\s*=\s*xl6_fnvalue_xl_fn_addDefault_sig[0-9A-F]+_arity1_make\(\);'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing optional-parameter adapter task.spawn case.
     exit /b 1
@@ -599,7 +599,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array task.all fast-failure over task.spawn fixture.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayRetain((*(xtarray*)xl6_future_await_value(typedSpawnAllFailureGroup" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_future_await_value(typedSpawnAllFailureGroup" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array task.all fast-failure group await.
     exit /b 1

@@ -1,5 +1,6 @@
 #include "src/abi/xl6_abi_dump.h"
 #include "src/abi/xl6_abi_json.h"
+#include "src/cgen/xl6_cgen.h"
 #include "src/common/xl6_output.h"
 
 static void xl6AbiText(XL6_Output* out, const char* text)
@@ -437,57 +438,6 @@ static int xl6AbiFuncOverloadCount(const XL6_AstNode* root, const char* name)
     return count;
 }
 
-static int xl6AbiExportFuncOverloadCount(const XL6_AstNode* root, const char* name)
-{
-    size_t i;
-    int count;
-
-    count = 0;
-    if ( root == NULL || name == NULL ) {
-        return 0;
-    }
-    for ( i = 0; i < root->childCount; ++i ) {
-        const XL6_AstNode* node = root->children[i];
-        const XL6_AstNode* nameNode;
-
-        if ( node == NULL || node->kind != XL6_AST_EXPORT_FUNC || node->childCount == 0 ) {
-            continue;
-        }
-        nameNode = node->children[0];
-        if ( nameNode != NULL && xl6AbiTextEquals(nameNode->text, name) ) {
-            count += 1;
-        }
-    }
-    return count;
-}
-
-static void xl6AbiDumpParamSignatureSuffix(XL6_Output* out, const XL6_AstNode* node)
-{
-    const XL6_AstNode* params;
-    size_t i;
-
-    params = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
-    if ( params == NULL || params->childCount == 0 ) {
-        xl6OutputPuts("__void", out);
-        return;
-    }
-    for ( i = 0; i < params->childCount; ++i ) {
-        const XL6_AstNode* param = params->children[i];
-        const char* mode = xl6AbiParamModeName(param);
-
-        xl6OutputPuts("__", out);
-        if ( mode != NULL ) {
-            xl6OutputPuts(mode, out);
-            xl6OutputPutc('_', out);
-        }
-        if ( param != NULL && param->childCount > 0 && param->children[0] != NULL ) {
-            xl6AbiEncodedText(out, param->children[0]->text);
-        } else {
-            xl6OutputPutc('_', out);
-        }
-    }
-}
-
 static void xl6AbiDumpInternalSymbol(XL6_Output* out, const XL6_AstNode* root, const XL6_AstNode* node)
 {
     const XL6_AstNode* nameNode;
@@ -496,11 +446,7 @@ static void xl6AbiDumpInternalSymbol(XL6_Output* out, const XL6_AstNode* root, c
 
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
     if ( node->kind == XL6_AST_EXPORT_FUNC ) {
-        xl6OutputPuts("xl6_export_", out);
-        xl6AbiEncodedText(out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "_");
-        if ( nameNode != NULL && xl6AbiExportFuncOverloadCount(root, nameNode->text) > 1 ) {
-            xl6AbiDumpParamSignatureSuffix(out, node);
-        }
+        xl6CgenEmitAutoExportSymbol(out, root, node);
         return;
     }
 
@@ -542,11 +488,7 @@ static void xl6AbiDumpInternalSymbolJsonString(XL6_Output* out, const XL6_AstNod
     xl6OutputPutc('"', out);
     nameNode = node->childCount > 0 ? node->children[0] : NULL;
     if ( node->kind == XL6_AST_EXPORT_FUNC ) {
-        xl6OutputPuts("xl6_export_", out);
-        xl6AbiEncodedText(out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "_");
-        if ( nameNode != NULL && xl6AbiExportFuncOverloadCount(root, nameNode->text) > 1 ) {
-            xl6AbiDumpParamSignatureSuffix(out, node);
-        }
+        xl6CgenEmitAutoExportSymbol(out, root, node);
         xl6OutputPutc('"', out);
         return;
     }
@@ -923,6 +865,342 @@ static void xl6AbiDumpVarLikeJson(XL6_Output* out, const XL6_AstNode* root, cons
     xl6OutputPutc('}', out);
 }
 
+static const char* xl6AbiProtocolRequirementKind(const XL6_AstNode* node)
+{
+    if ( node == NULL ) {
+        return "unknown";
+    }
+    switch ( node->kind ) {
+    case XL6_AST_ASYNC_FUNC:
+        return "async_func";
+    case XL6_AST_FUNC:
+        return "func";
+    case XL6_AST_GET:
+        return "get";
+    case XL6_AST_LET:
+        return "let";
+    default:
+        return "unknown";
+    }
+}
+
+static void xl6AbiDumpProtocolTypeParamsText(
+    XL6_Output* out,
+    const XL6_AstNode* root,
+    const XL6_AstNode* params)
+{
+    size_t i;
+
+    if ( params == NULL || params->childCount == 0 ) {
+        xl6OutputPuts("()", out);
+        return;
+    }
+    xl6OutputPutc('<', out);
+    for ( i = 0; i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+
+        if ( i > 0 ) {
+            xl6OutputPutc(',', out);
+        }
+        xl6AbiText(out, param != NULL ? param->text : NULL);
+        if ( param != NULL && param->childCount > 0 && param->children[0] != NULL ) {
+            xl6OutputPuts(" is ", out);
+            xl6AbiDumpType(out, root, param->children[0]);
+        }
+    }
+    xl6OutputPutc('>', out);
+}
+
+static void xl6AbiDumpProtocolText(
+    XL6_Output* out,
+    const XL6_AstNode* root,
+    const XL6_AstNode* node)
+{
+    const XL6_AstNode* body;
+    const XL6_AstNode* params;
+    size_t i;
+
+    body = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+    params = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
+    xl6OutputPuts("protocol ", out);
+    xl6AbiText(out, node != NULL ? node->text : NULL);
+    xl6OutputPuts("\n  exported: ", out);
+    xl6OutputPuts(node != NULL && (node->flags & XL6_AST_FLAG_PUBLIC) != 0 ? "true" : "false", out);
+    xl6OutputPuts("\n  type_params: ", out);
+    xl6AbiDumpProtocolTypeParamsText(out, root, params);
+    xl6OutputPutc('\n', out);
+
+    for ( i = 0; body != NULL && i < body->childCount; ++i ) {
+        const XL6_AstNode* requirement = body->children[i];
+
+        xl6OutputPuts("  requirement ", out);
+        xl6AbiText(out, xl6AbiProtocolRequirementKind(requirement));
+        xl6OutputPutc(' ', out);
+        xl6AbiText(out, xl6AbiCallableName(requirement));
+        xl6OutputPuts("\n    signature: ", out);
+        xl6AbiDumpSignature(out, root, requirement);
+        xl6OutputPutc('\n', out);
+    }
+}
+
+static void xl6AbiDumpProtocolJson(
+    XL6_Output* out,
+    const XL6_AstNode* root,
+    const XL6_AstNode* node,
+    int comma)
+{
+    const XL6_AstNode* body;
+    const XL6_AstNode* params;
+    size_t i;
+
+    body = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
+    params = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
+    if ( comma ) {
+        xl6OutputPuts(",\n", out);
+    }
+    xl6OutputPuts("    {\"kind\":\"protocol\",\"name\":", out);
+    xl6AbiJsonString(out, node != NULL && node->text != NULL ? node->text : "");
+    xl6OutputPuts(",\"exported\":", out);
+    xl6OutputPuts(node != NULL && (node->flags & XL6_AST_FLAG_PUBLIC) != 0 ? "true" : "false", out);
+    xl6OutputPuts(",\"typeParameters\":[", out);
+    for ( i = 0; params != NULL && i < params->childCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+
+        if ( i > 0 ) {
+            xl6OutputPutc(',', out);
+        }
+        xl6OutputPuts("{\"name\":", out);
+        xl6AbiJsonString(out, param != NULL && param->text != NULL ? param->text : "");
+        if ( param != NULL && param->childCount > 0 && param->children[0] != NULL ) {
+            xl6OutputPuts(",\"constraint\":", out);
+            xl6AbiDumpTypeJsonString(out, root, param->children[0]);
+        }
+        xl6OutputPutc('}', out);
+    }
+    xl6OutputPuts("],\"requirements\":[", out);
+    for ( i = 0; body != NULL && i < body->childCount; ++i ) {
+        const XL6_AstNode* requirement = body->children[i];
+
+        if ( i > 0 ) {
+            xl6OutputPutc(',', out);
+        }
+        xl6OutputPuts("{\"kind\":", out);
+        xl6AbiJsonString(out, xl6AbiProtocolRequirementKind(requirement));
+        xl6OutputPuts(",\"name\":", out);
+        xl6AbiJsonString(
+            out,
+            xl6AbiCallableName(requirement) != NULL ?
+                xl6AbiCallableName(requirement) :
+                "");
+        xl6OutputPuts(",\"signature\":", out);
+        xl6AbiDumpSignatureJsonString(out, root, requirement);
+        xl6OutputPutc('}', out);
+    }
+    xl6OutputPuts("]}", out);
+}
+
+static void xl6AbiDumpEnumValue(
+    XL6_Output* out,
+    const XL6_AstNode* value)
+{
+    if ( value == NULL ) {
+        xl6OutputPuts("0", out);
+        return;
+    }
+    if ( value->kind == XL6_AST_UNARY && value->text != NULL &&
+         value->childCount == 1 ) {
+        xl6AbiText(out, value->text);
+        xl6AbiDumpEnumValue(out, value->children[0]);
+        return;
+    }
+    xl6AbiText(out, value->text);
+}
+
+static void xl6AbiDumpEnumText(
+    XL6_Output* out,
+    const XL6_AstNode* root,
+    const XL6_AstNode* node)
+{
+    const XL6_AstNode* backing;
+    const XL6_AstNode* variants;
+    const XL6_AstNode* typeParams;
+    int numeric;
+    size_t i;
+
+    numeric = node != NULL &&
+              (node->flags & XL6_AST_FLAG_NUMERIC_ENUM) != 0;
+    backing = node != NULL && node->childCount > 0 ?
+        node->children[0] :
+        NULL;
+    variants = node != NULL && node->childCount > 1 ?
+        node->children[1] :
+        NULL;
+    typeParams = node != NULL && node->childCount > 2 ?
+        node->children[2] :
+        NULL;
+
+    xl6OutputPuts(numeric ? "numeric_enum " : "tagged_enum ", out);
+    xl6AbiText(out, node != NULL ? node->text : NULL);
+    xl6OutputPuts("\n  exported: ", out);
+    xl6OutputPuts(node != NULL && (node->flags & XL6_AST_FLAG_PUBLIC) != 0 ? "true" : "false", out);
+    xl6OutputPuts("\n  type_params: ", out);
+    xl6AbiDumpProtocolTypeParamsText(out, root, typeParams);
+    if ( numeric ) {
+        xl6OutputPuts("\n  backing: ", out);
+        xl6AbiDumpType(out, root, backing);
+    }
+    xl6OutputPutc('\n', out);
+
+    for ( i = 0; variants != NULL && i < variants->childCount; ++i ) {
+        const XL6_AstNode* variant = variants->children[i];
+        const XL6_AstNode* params =
+            variant != NULL && variant->childCount > 0 ?
+                variant->children[0] :
+                NULL;
+        size_t p;
+
+        xl6OutputPuts("  variant ", out);
+        xl6AbiText(out, variant != NULL ? variant->text : NULL);
+        if ( numeric ) {
+            xl6OutputPuts(" = ", out);
+            xl6AbiDumpEnumValue(
+                out,
+                variant != NULL && variant->childCount > 0 ?
+                    variant->children[0] :
+                    NULL);
+        } else if ( params != NULL && params->childCount > 0 ) {
+            xl6OutputPutc('(', out);
+            for ( p = 0; p < params->childCount; ++p ) {
+                const XL6_AstNode* param = params->children[p];
+
+                if ( p > 0 ) {
+                    xl6OutputPutc(',', out);
+                }
+                xl6AbiText(out, param != NULL ? param->text : NULL);
+                xl6OutputPutc(':', out);
+                xl6AbiDumpType(
+                    out,
+                    root,
+                    param != NULL && param->childCount > 0 ?
+                        param->children[0] :
+                        NULL);
+            }
+            xl6OutputPutc(')', out);
+        }
+        xl6OutputPutc('\n', out);
+    }
+}
+
+static void xl6AbiDumpEnumJson(
+    XL6_Output* out,
+    const XL6_AstNode* root,
+    const XL6_AstNode* node,
+    int comma)
+{
+    const XL6_AstNode* backing;
+    const XL6_AstNode* variants;
+    const XL6_AstNode* typeParams;
+    int numeric;
+    size_t i;
+
+    numeric = node != NULL &&
+              (node->flags & XL6_AST_FLAG_NUMERIC_ENUM) != 0;
+    backing = node != NULL && node->childCount > 0 ?
+        node->children[0] :
+        NULL;
+    variants = node != NULL && node->childCount > 1 ?
+        node->children[1] :
+        NULL;
+    typeParams = node != NULL && node->childCount > 2 ?
+        node->children[2] :
+        NULL;
+    if ( comma ) {
+        xl6OutputPuts(",\n", out);
+    }
+    xl6OutputPuts("    {\"kind\":", out);
+    xl6AbiJsonString(out, numeric ? "numeric_enum" : "tagged_enum");
+    xl6OutputPuts(",\"name\":", out);
+    xl6AbiJsonString(out, node != NULL && node->text != NULL ? node->text : "");
+    xl6OutputPuts(",\"exported\":", out);
+    xl6OutputPuts(node != NULL && (node->flags & XL6_AST_FLAG_PUBLIC) != 0 ? "true" : "false", out);
+    xl6OutputPuts(",\"typeParameters\":[", out);
+    for ( i = 0; typeParams != NULL && i < typeParams->childCount; ++i ) {
+        const XL6_AstNode* param = typeParams->children[i];
+
+        if ( i > 0 ) {
+            xl6OutputPutc(',', out);
+        }
+        xl6OutputPuts("{\"name\":", out);
+        xl6AbiJsonString(out, param != NULL && param->text != NULL ? param->text : "");
+        if ( param != NULL && param->childCount > 0 && param->children[0] != NULL ) {
+            xl6OutputPuts(",\"constraint\":", out);
+            xl6AbiDumpTypeJsonString(out, root, param->children[0]);
+        }
+        xl6OutputPutc('}', out);
+    }
+    xl6OutputPuts("],\"backing\":", out);
+    if ( numeric ) {
+        xl6AbiDumpTypeJsonString(out, root, backing);
+    } else {
+        xl6OutputPuts("null", out);
+    }
+    xl6OutputPuts(",\"variants\":[", out);
+    for ( i = 0; variants != NULL && i < variants->childCount; ++i ) {
+        const XL6_AstNode* variant = variants->children[i];
+        const XL6_AstNode* params =
+            !numeric && variant != NULL && variant->childCount > 0 ?
+                variant->children[0] :
+                NULL;
+        size_t p;
+
+        if ( i > 0 ) {
+            xl6OutputPutc(',', out);
+        }
+        xl6OutputPuts("{\"name\":", out);
+        xl6AbiJsonString(out, variant != NULL && variant->text != NULL ? variant->text : "");
+        if ( numeric ) {
+            XL6_Output valueOut;
+            char* valueText;
+
+            valueText = NULL;
+            if ( xl6OutputOpenMemory(&valueOut) ) {
+                xl6AbiDumpEnumValue(
+                    &valueOut,
+                    variant != NULL && variant->childCount > 0 ?
+                        variant->children[0] :
+                        NULL);
+                valueText = xl6OutputTakeMemoryText(&valueOut, NULL);
+            }
+            xl6OutputPuts(",\"value\":", out);
+            xl6AbiJsonString(out, valueText != NULL ? valueText : "0");
+            xrtFree(valueText);
+            xl6OutputClose(&valueOut);
+        } else {
+            xl6OutputPuts(",\"fields\":[", out);
+            for ( p = 0; params != NULL && p < params->childCount; ++p ) {
+                const XL6_AstNode* param = params->children[p];
+
+                if ( p > 0 ) {
+                    xl6OutputPutc(',', out);
+                }
+                xl6OutputPuts("{\"name\":", out);
+                xl6AbiJsonString(out, param != NULL && param->text != NULL ? param->text : "");
+                xl6OutputPuts(",\"type\":", out);
+                xl6AbiDumpTypeJsonString(
+                    out,
+                    root,
+                    param != NULL && param->childCount > 0 ?
+                        param->children[0] :
+                        NULL);
+                xl6OutputPutc('}', out);
+            }
+            xl6OutputPutc(']', out);
+        }
+        xl6OutputPutc('}', out);
+    }
+    xl6OutputPuts("]}", out);
+}
+
 void xl6AbiDumpText(XL6_Output* out, const XL6_AstNode* root)
 {
     size_t i;
@@ -947,6 +1225,10 @@ void xl6AbiDumpText(XL6_Output* out, const XL6_AstNode* root)
                     child->kind == XL6_AST_EXPORT_VAR ||
                     child->kind == XL6_AST_EXPORT_CONST ) {
             xl6AbiDumpVarLike(out, root, child);
+        } else if ( child->kind == XL6_AST_PROTOCOL ) {
+            xl6AbiDumpProtocolText(out, root, child);
+        } else if ( child->kind == XL6_AST_ENUM ) {
+            xl6AbiDumpEnumText(out, root, child);
         } else if ( child->kind == XL6_AST_CLASS && child->childCount > 1 ) {
             const XL6_AstNode* body = child->children[1];
             for ( j = 0; body != NULL && j < body->childCount; ++j ) {
@@ -985,6 +1267,12 @@ void xl6AbiDumpJson(XL6_Output* out, const XL6_AstNode* root)
                         child->kind == XL6_AST_EXPORT_VAR ||
                         child->kind == XL6_AST_EXPORT_CONST ) {
                 xl6AbiDumpVarLikeJson(out, root, child, emitted);
+                emitted = 1;
+            } else if ( child->kind == XL6_AST_PROTOCOL ) {
+                xl6AbiDumpProtocolJson(out, root, child, emitted);
+                emitted = 1;
+            } else if ( child->kind == XL6_AST_ENUM ) {
+                xl6AbiDumpEnumJson(out, root, child, emitted);
                 emitted = 1;
             } else if ( child->kind == XL6_AST_CLASS && child->childCount > 1 ) {
                 const XL6_AstNode* body = child->children[1];

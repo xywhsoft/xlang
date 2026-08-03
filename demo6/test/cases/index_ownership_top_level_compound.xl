@@ -1,0 +1,10 @@
+// 模块初始化阶段的类型化容器复合赋值必须平衡所有临时值。
+auto values = [10, 20, 30]
+auto sparse = [0: 11, 2: 22]
+auto table = {"count": 6}
+
+values[1] += 2
+sparse[2] *= 2
+table["count"] -= 1
+
+int result = int(values[1]) + int(sparse[2]) + int(table["count"])

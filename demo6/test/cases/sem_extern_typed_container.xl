@@ -1,0 +1,2 @@
+extern "native_values_count" func valuesCount(array<int> values) as int
+

@@ -1,0 +1,7 @@
+enum Left
+    right(Right value)
+end
+
+enum Right
+    left(Left value)
+end

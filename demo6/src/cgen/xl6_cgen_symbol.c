@@ -52,66 +52,18 @@ static void xl6CgenMangledType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode
     }
 }
 
-static int xl6CgenExportFuncOverloadCount(XL6_CgenContext* ctx, const char* name)
+static int xl6CgenExportFuncOverloadCount(
+    XL6_CgenContext* ctx,
+    const char* name)
 {
-    size_t i;
-    int count;
-
-    count = 0;
-    if ( ctx == NULL || ctx->root == NULL || name == NULL ) {
-        return 0;
-    }
-    for ( i = 0; i < ctx->root->childCount; ++i ) {
-        XL6_AstNode* node = ctx->root->children[i];
-        XL6_AstNode* nameNode;
-
-        if ( node == NULL ||
-             node->kind != XL6_AST_EXPORT_FUNC ||
-             xl6CgenFuncIsGeneric(node) ||
-             node->childCount == 0 ) {
-            continue;
-        }
-        nameNode = node->children[0];
-        if ( nameNode != NULL && xl6CTextEquals(nameNode->text, name) ) {
-            count += 1;
-        }
-    }
-    return count;
-}
-
-static void xl6CgenCallableParamSignatureSuffix(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* params;
-    size_t i;
-
-    params = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
-    if ( params == NULL || params->childCount == 0 ) {
-        xl6OutputPuts("__void", ctx->out);
-        return;
-    }
-    for ( i = 0; i < params->childCount; ++i ) {
-        const XL6_AstNode* param = params->children[i];
-
-        xl6OutputPuts("__", ctx->out);
-        if ( param != NULL && param->childCount > 0 && param->children[0] != NULL ) {
-            xl6CgenMangledType(ctx, param->children[0]);
-        } else {
-            xl6OutputPutc('_', ctx->out);
-        }
-    }
+    return ctx != NULL ?
+        xl6CgenAutoExportOverloadCount(ctx->root, name) :
+        0;
 }
 
 static void xl6CgenExportInternalSymbol(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
-    const XL6_AstNode* nameNode;
-
-    nameNode = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
-    xl6OutputPuts("xl6_export_", ctx->out);
-    xl6CgenMangledPart(ctx->out, (nameNode != NULL && nameNode->text != NULL) ? nameNode->text : "_");
-    if ( nameNode != NULL &&
-         xl6CgenExportFuncOverloadCount(ctx, nameNode->text) > 1 ) {
-        xl6CgenCallableParamSignatureSuffix(ctx, node);
-    }
+    xl6CgenEmitAutoExportSymbol(ctx->out, ctx->root, node);
 }
 
 static int xl6CgenGenericFuncNeedsSignatureSuffix(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
@@ -254,6 +206,7 @@ static void xl6CgenClassCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* 
 
     if ( memberNode == NULL ||
          (memberNode->kind != XL6_AST_FUNC && memberNode->kind != XL6_AST_EXPORT_FUNC && memberNode->kind != XL6_AST_CREATE &&
+          memberNode->kind != XL6_AST_ASYNC_FUNC &&
           memberNode->kind != XL6_AST_GET && memberNode->kind != XL6_AST_LET &&
           memberNode->kind != XL6_AST_NATIVE_EXTERN_FUNC &&
           memberNode->kind != XL6_AST_NATIVE_EXTERN_SPECIAL) ||
@@ -319,7 +272,8 @@ static void xl6CgenNativeCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode*
     xl6CgenNativeMemberSymbol(ctx->out, nativeClassNode != NULL ? nativeClassNode->text : "_", name != NULL ? name : "_");
 
     if ( memberNode == NULL ||
-         memberNode->kind != XL6_AST_FUNC ||
+         (memberNode->kind != XL6_AST_FUNC &&
+          memberNode->kind != XL6_AST_ASYNC_FUNC) ||
          xl6CgenNativeCallableOverloadCount(nativeClassNode, memberNode) <= 1 ) {
         return;
     }
@@ -415,19 +369,18 @@ static void xl6CgenFuncSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode)
 
 static void xl6CgenFunctionValueSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode, const char* suffix)
 {
-    const XL6_AstNode* nameNode;
     const XL6_AstNode* params;
     const XL6_AstNode* returns;
 
     xl6OutputPuts("xl6_fnvalue_", ctx->out);
     xl6CgenFuncSymbol(ctx, funcNode);
-    nameNode = funcNode != NULL && funcNode->childCount > 0 ? funcNode->children[0] : NULL;
-    if ( nameNode != NULL && nameNode->text != NULL && strncmp(nameNode->text, "__xl_std_", 9) == 0 ) {
-        /* 标准库函数可重载；签名后缀保证其 function adapter 不共享 C 符号。 */
-        params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
-        returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
-        xl6OutputPrintf(ctx->out, "_sig%016llX", xl6CgenFunctionSignatureId(ctx, params, returns));
-    }
+    params = funcNode != NULL && funcNode->childCount > 1 ? funcNode->children[1] : NULL;
+    returns = funcNode != NULL && funcNode->childCount > 2 ? funcNode->children[2] : NULL;
+    /*
+     * 函数值适配器必须始终具有完整签名身份。导入合并、泛型实例化和
+     * 标准库注入都可能稍后加入同名函数，不能依赖当前模块的重载计数。
+     */
+    xl6OutputPrintf(ctx->out, "_sig%016llX", xl6CgenFunctionSignatureId(ctx, params, returns));
     xl6OutputPuts(suffix != NULL ? suffix : "", ctx->out);
 }
 
@@ -448,21 +401,17 @@ static void xl6CgenCallableTargetSymbol(XL6_CgenContext* ctx, const XL6_AstNode*
 
 static void xl6CgenFunctionValueAdapterSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode, int paramCount, int includeVararg, const char* suffix)
 {
-    const XL6_AstNode* nameNode;
     const XL6_AstNode* params;
     const XL6_AstNode* returns;
 
     xl6OutputPuts("xl6_fnvalue_", ctx->out);
     xl6CgenFuncSymbol(ctx, funcNode);
-    nameNode = funcNode != NULL && funcNode->childCount > 0 ? funcNode->children[0] : NULL;
-    if ( nameNode != NULL && nameNode->text != NULL && strncmp(nameNode->text, "__xl_std_", 9) == 0 ) {
-        params = funcNode->childCount > 1 ? funcNode->children[1] : NULL;
-        returns = funcNode->childCount > 2 ? funcNode->children[2] : NULL;
-        xl6OutputPrintf(
-            ctx->out,
-            "_sig%016llX",
-            xl6CgenFunctionSignatureIdForPrefix(ctx, params, returns, (size_t)paramCount, includeVararg));
-    }
+    params = funcNode != NULL && funcNode->childCount > 1 ? funcNode->children[1] : NULL;
+    returns = funcNode != NULL && funcNode->childCount > 2 ? funcNode->children[2] : NULL;
+    xl6OutputPrintf(
+        ctx->out,
+        "_sig%016llX",
+        xl6CgenFunctionSignatureIdForPrefix(ctx, params, returns, (size_t)paramCount, includeVararg));
     xl6OutputPrintf(ctx->out, "_arity%d", paramCount);
     if ( includeVararg ) {
         xl6OutputPuts("_vararg", ctx->out);

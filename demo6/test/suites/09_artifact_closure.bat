@@ -19,6 +19,9 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_dev_projects.ps1 -Mode check -KeepGoing
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_generated_c_warnings.ps1
+if errorlevel 1 exit /b 1
+
 release\xl.exe build release\examples\hello.xl -o build\test\trim_hello.exe
 if errorlevel 1 exit /b 1
 build\test\trim_hello.exe

@@ -1460,7 +1460,7 @@ int indexDynamicSpawnRead = indexDynamicSpawnValues[await task.spawn(varArgJob, 
 assert indexDynamicSpawnRead == 30, "task.spawn dynamic var argument should lower inside index read"
 indexDynamicSpawnValues[await task.spawn(varArgJob, true ? makeSpawnValue(0) : makeSpawnValue(9))] = 77
 assert indexDynamicSpawnValues[1] == 77, "task.spawn dynamic var argument should lower inside index write target"
-int safeIndexDynamicSpawnRead = int(indexDynamicSpawnValues?[await task.spawn(varArgJob, true ? makeSpawnValue(1) : makeSpawnValue(0))])
+int safeIndexDynamicSpawnRead = int(indexDynamicSpawnValues?[await task.spawn(varArgJob, true ? makeSpawnValue(1) : makeSpawnValue(0))] ?? -1)
 assert safeIndexDynamicSpawnRead == 30, "task.spawn dynamic var argument should lower inside safe index read"
 int safeIndexDynamicSpawnFallback = int(indexDynamicSpawnValues?[await task.spawn(varArgJob, true ? makeSpawnValue(8) : makeSpawnValue(0))] ?? 88)
 assert safeIndexDynamicSpawnFallback == 88, "task.spawn dynamic var argument should lower inside missing safe index read"

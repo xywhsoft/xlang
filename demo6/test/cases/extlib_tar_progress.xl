@@ -1,0 +1,56 @@
+import tar
+
+array<int> g_counter = [0]
+array<int> g_bytes = [0]
+
+func progressCount(string name, int idx, int bytes) as bool
+    g_counter[0] = g_counter[0] + 1
+    g_bytes[0] = bytes
+    return true
+end
+
+func progressCancel(string name, int idx, int bytes) as bool
+    g_counter[0] = g_counter[0] + 1
+    return false
+end
+
+func main(...) as int
+    string outputDir = "build/test/extlib_tar_progress_out"
+    string cancelDir = "build/test/extlib_tar_progress_cancel"
+    dir.delete(outputDir)
+    dir.delete(cancelDir)
+
+    // Build a test archive with multiple entries
+    auto writer = tar.create()
+    writer.add("file1.txt", "hello world")
+    writer.add("dir/file2.txt", "second file content")
+    writer.add("dir/sub/file3.txt", "third file")
+    Buffer packed = writer.finish()
+
+    // Test 1: extractWithProgress - count callbacks
+    g_counter[0] = 0
+    g_bytes[0] = 0
+    auto reader = tar.open(packed)
+    reader.extractWithProgress(outputDir, progressCount)
+    if g_counter[0] != 3 then
+        return 1
+    end
+
+    // Test 2: cancel after first entry
+    g_counter[0] = 0
+    auto reader2 = tar.open(packed)
+    reader2.extractWithProgress(cancelDir, progressCancel)
+    if g_counter[0] != 1 then
+        return 2
+    end
+
+    // Test 3: verify bytes accumulate (11 + 19 + 10 = 40)
+    if g_bytes[0] != 40 then
+        return 3
+    end
+
+    dir.delete(outputDir)
+    dir.delete(cancelDir)
+    print("progress callback tests passed!")
+    return 0
+end

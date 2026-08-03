@@ -1,0 +1,7 @@
+func convert(var value) as array
+    return array(value)
+end
+
+func main(...) as int
+    return 0
+end

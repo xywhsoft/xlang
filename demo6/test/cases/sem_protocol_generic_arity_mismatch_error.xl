@@ -1,0 +1,16 @@
+protocol Mapper
+    func map<T>(T value) as T
+end
+
+class WrongMapper
+    func map<T, U>(T value) as T
+        return value
+    end
+end
+
+func accept<T is Mapper>(T value) as int
+    return 1
+end
+
+WrongMapper mapper = WrongMapper()
+int result = accept::<WrongMapper>(mapper)

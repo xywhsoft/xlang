@@ -1,0 +1,9 @@
+// 动态字典键读取必须正确处理键和值的所有权。
+var values = {"count": 6}
+var key = "count"
+
+func main(...) as int
+    int first = int(values[key])
+    int second = int(values?[key])
+    return first + second == 12 ? 0 : 1
+end

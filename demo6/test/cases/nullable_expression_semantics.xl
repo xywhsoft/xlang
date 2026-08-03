@@ -1,0 +1,69 @@
+class NullableNode
+    int value = 0
+end
+
+int fallbackCount = 0
+
+func fallbackInt() as int
+    fallbackCount += 1
+    return 41
+end
+
+func fallbackNode() as NullableNode
+    fallbackCount += 1
+    return NullableNode()
+end
+
+func main(...) as int
+    int? someInt = 7
+    int? noInt = null
+    int a = someInt ?? fallbackInt()
+    int b = noInt ?? fallbackInt()
+    assert(a == 7)
+    assert(b == 41)
+    assert(fallbackCount == 1)
+    assert(someInt != null)
+    assert(noInt == null)
+
+    NullableNode strong = NullableNode()
+    strong.value = 9
+    NullableNode? someNode = strong
+    NullableNode? noNode = null
+    NullableNode first = someNode ?? fallbackNode()
+    NullableNode second = noNode ?? fallbackNode()
+    assert(first.value == 9)
+    assert(second != null)
+    assert(fallbackCount == 2)
+
+    weak<NullableNode> observer = strong
+    NullableNode? locked = observer.lock()
+    assert(locked != null)
+    if locked != null then
+        assert(locked.value == 9)
+    else
+        assert(false)
+    end
+
+    int beforeNested = fallbackCount
+    assert((someInt ?? fallbackInt()) == 7)
+    assert(fallbackCount == beforeNested)
+    assert((noInt ?? fallbackInt()) == 41)
+    assert(fallbackCount == beforeNested + 1)
+
+    int nestedMath = 1 + (someInt ?? 0) * 2
+    assert(nestedMath == 15)
+    assert((someNode ?? fallbackNode()).value == 9)
+    assert(fallbackCount == beforeNested + 1)
+
+    int nestedChain = noInt ?? someInt ?? fallbackInt()
+    assert(nestedChain == 7)
+    assert(fallbackCount == beforeNested + 1)
+
+    // is/as 后的问号必须分别保持三元表达式和可空类型后缀语义。
+    var dynamicValue = 7
+    int typeChoice = dynamicValue is int ? 11 : 12
+    int castValue = (dynamicValue as int?) ?? 0
+    assert(typeChoice == 11)
+    assert(castValue == 7)
+    return 0
+end

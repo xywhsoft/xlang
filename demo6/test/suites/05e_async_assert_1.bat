@@ -81,12 +81,12 @@ if errorlevel 1 (
     echo cgen_async.c missing await function retain.
     exit /b 1
 )
-findstr /C:"secondBox = xl6_xrt_move_to_shared(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(sharedBoxFuture" build\test\cgen_async.assert.c >nul
+findstr /C:"secondBox = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(sharedBoxFuture" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing repeated await class-handle retain.
     exit /b 1
 )
-findstr /C:"autoBox = xl6_xrt_move_to_shared(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(autoBoxFuture" build\test\cgen_async.assert.c >nul
+findstr /C:"autoBox = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(autoBoxFuture" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing auto await class-handle retain.
     exit /b 1
@@ -116,7 +116,7 @@ if errorlevel 1 (
     echo cgen_async.c missing temporary await xvalue release helper.
     exit /b 1
 )
-findstr /C:"awaitedVar = xl6_xrt_move_to_shared(xl6_xrt_retain((*(xvalue*)xl6_future_await_value(varFuture" build\test\cgen_async.assert.c >nul
+findstr /C:"awaitedVar = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(varFuture" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing borrowed await xvalue retain.
     exit /b 1

@@ -1,0 +1,80 @@
+protocol Named
+    func name() as string
+end
+
+class Person
+    string stored = ""
+
+    create(string value)
+        self.stored = value
+    end
+
+    func name() as string
+        return self.stored
+    end
+end
+
+class Holder<T>
+    T value
+
+    create(T input)
+        self.value = input
+    end
+end
+
+enum Outcome<T>
+    value(T item)
+    error(string message)
+end
+
+func accepted<T is Named>(T value) as Outcome<Named>
+    Named named = value
+    return Outcome::<Named>.value(named)
+end
+
+func outcomeText(Outcome<Named> value) as string
+    return match value
+    case value(item) then item.name()
+    case error(message) then message
+    end
+end
+
+func main(...) as int
+    Person person = Person("matrix")
+    Holder<Person> holder = Holder::<Person>(person)
+    var dynamic = holder.value
+
+    assert dynamic is Named
+    Named named = dynamic as Named
+    assert holder.value.name() == "matrix"
+    assert named.name() == "matrix"
+    Outcome<Named> direct = Outcome::<Named>.value(named)
+    assert outcomeText(direct) == "matrix"
+    Outcome<Named> result = accepted::<Person>(holder.value)
+    assert outcomeText(result) == "matrix"
+    Outcome<Named>? maybe = result
+    Named? maybeNamed = named
+    Named? copiedNamed = maybeNamed
+    array<Named> values = array[named, holder.value]
+    weak<Named> observer = named
+
+    assert maybe != null
+    if maybe != null
+        assert outcomeText(maybe) == "matrix"
+    end
+    assert copiedNamed != null
+    if copiedNamed != null
+        assert copiedNamed.name() == "matrix"
+    end
+
+    Named? locked = observer.lock()
+    assert locked != null
+    if locked != null
+        assert locked.name() == "matrix"
+    end
+
+    assert values[0].name() == "matrix"
+    assert values[1].name() == "matrix"
+    println("HIR modern ownership matrix ok")
+    return 0
+end

@@ -1,0 +1,25 @@
+protocol AsyncReadable
+    async func value() as int
+end
+
+class AsyncCounter
+    int stored = 0
+
+    create(int value)
+        self.stored = value
+    end
+
+    async func value() as int
+        return self.stored
+    end
+end
+
+func read(AsyncReadable value) as future<int>
+    return value.value()
+end
+
+AsyncCounter counter = AsyncCounter(64)
+future<int> pending = read(counter)
+int actual = await pending
+assert actual == 64
+println("async protocol dispatch ok")

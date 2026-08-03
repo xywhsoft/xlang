@@ -1,0 +1,16 @@
+protocol AsyncReadable
+    async func read() as int
+end
+
+class SyncReader
+    func read() as int
+        return 1
+    end
+end
+
+func accept<T is AsyncReadable>(T value) as int
+    return 1
+end
+
+SyncReader reader = SyncReader()
+int result = accept::<SyncReader>(reader)

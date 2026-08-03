@@ -12,7 +12,7 @@ assert int(untypedValues[0]) == 41, "array negative write should use sequence se
 
 array<int> typedValues = array[70, 80, 90]
 assert typedValues[-1] == 90, "typed array negative read should use sequence semantics"
-assert int(typedValues?[-3]) == 70, "typed array safe negative read should use sequence semantics"
+assert int(typedValues?[-3] ?? 0) == 70, "typed array safe negative read should use sequence semantics"
 assert typedValues?[-4] == null, "typed array safe out-of-range read should return null"
 typedValues[-2] = 88
 assert typedValues[1] == 88, "typed array negative write should update the matching item"

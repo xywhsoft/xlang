@@ -136,6 +136,26 @@ static XL6_AstNode* xl6CgenCloneCanonicalTypeNode(XL6_CgenContext* ctx, const XL
     }
     copy->line = concrete->line;
     copy->column = concrete->column;
+    /*
+        规范类型克隆必须完整保留语义身份。
+        nullable、protocol、enum 等规范类型都可能通过 flags 或稳定类型 ID
+        区分于同名的普通注册类型；只复制文本会让后端重新猜测类型。
+    */
+    copy->flags = concrete->flags;
+    copy->semanticTypeId = concrete->semanticTypeId;
+    copy->semanticTypeAbiId = concrete->semanticTypeAbiId;
+    /*
+        变量表中仍可能保存语法阶段创建的类型节点。协议身份来自当前模块的
+        规范类型注册表；克隆时补写一次，后续所有 xvalue 路径便无需按名称猜测。
+    */
+    if ( copy->text != NULL &&
+         xl6CgenFindProtocol(ctx, copy->text) != NULL ) {
+        copy->flags |= XL6_AST_FLAG_PROTOCOL_HANDLE;
+    }
+    if ( copy->text != NULL &&
+         xl6CgenIsTaggedEnumType(ctx, copy) ) {
+        copy->flags |= XL6_AST_FLAG_TAGGED_ENUM;
+    }
 
     for ( i = 0; i < concrete->childCount; ++i ) {
         XL6_AstNode* childCopy = xl6CgenCloneCanonicalTypeNode(ctx, concrete->children[i]);

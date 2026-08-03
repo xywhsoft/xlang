@@ -5,6 +5,7 @@ static XL6_AstNode* xl6CgenResolveCallFuncInternal(
     XL6_AstNode** outTypeArgs,
     int report)
 {
+    const XL6_AstNode* hirTarget;
     XL6_AstNode* fixedMatch;
     XL6_AstNode* varargMatch;
     XL6_AstNode* fixedArgs;
@@ -26,6 +27,48 @@ static XL6_AstNode* xl6CgenResolveCallFuncInternal(
     }
 
     args = call != NULL && call->childCount > 1 ? call->children[1] : NULL;
+    hirTarget = xl6CgenHirTarget(ctx, call);
+    if ( hirTarget != NULL ) {
+        XL6_AstNode* candidateArgs;
+        int cost;
+
+        if ( hirTarget->kind != XL6_AST_FUNC &&
+             hirTarget->kind != XL6_AST_ASYNC_FUNC &&
+             hirTarget->kind != XL6_AST_EXTERN_FUNC &&
+             hirTarget->kind != XL6_AST_EXPORT_FUNC ) {
+            if ( report ) {
+                xl6CgenError(ctx, call, "typed HIR 调用目标不是函数声明");
+            }
+            return NULL;
+        }
+        if ( !xl6CTextEquals(xl6CgenCallableName(hirTarget), name) ) {
+            if ( report ) {
+                xl6CgenError(ctx, call, "typed HIR 调用目标与源调用名称不一致");
+            }
+            return NULL;
+        }
+        candidateArgs = NULL;
+        if ( xl6CgenFuncIsGeneric(hirTarget) &&
+             !xl6CgenFuncMatchesCallEx(
+                 ctx,
+                 hirTarget,
+                 args,
+                 &cost,
+                 &candidateArgs
+             ) ) {
+            xl6AstFree(candidateArgs);
+            if ( report ) {
+                xl6CgenError(ctx, call, "typed HIR 泛型调用目标无法实例化");
+            }
+            return NULL;
+        }
+        if ( outTypeArgs != NULL ) {
+            *outTypeArgs = candidateArgs;
+        } else {
+            xl6AstFree(candidateArgs);
+        }
+        return (XL6_AstNode*)hirTarget;
+    }
     fixedMatch = NULL;
     varargMatch = NULL;
     fixedArgs = NULL;
@@ -124,6 +167,7 @@ static XL6_AstNode* xl6CgenResolveExplicitGenericCallFunc(
     const XL6_AstNode* typeArgs,
     int report)
 {
+    const XL6_AstNode* hirTarget;
     XL6_AstNode* fixedMatch;
     XL6_AstNode* varargMatch;
     const XL6_AstNode* args;
@@ -134,6 +178,20 @@ static XL6_AstNode* xl6CgenResolveExplicitGenericCallFunc(
     int varargBestCost;
 
     if ( ctx == NULL || ctx->root == NULL || name == NULL || typeArgs == NULL ) {
+        return NULL;
+    }
+
+    hirTarget = xl6CgenHirTarget(ctx, call);
+    if ( hirTarget != NULL ) {
+        if ( (hirTarget->kind == XL6_AST_FUNC ||
+              hirTarget->kind == XL6_AST_ASYNC_FUNC) &&
+             xl6CgenFuncIsGeneric(hirTarget) &&
+             xl6CTextEquals(xl6CgenCallableName(hirTarget), name) ) {
+            return (XL6_AstNode*)hirTarget;
+        }
+        if ( report ) {
+            xl6CgenError(ctx, call, "typed HIR 显式泛型调用目标无效");
+        }
         return NULL;
     }
 
@@ -206,14 +264,6 @@ static XL6_AstNode* xl6CgenResolveCallFunc(XL6_CgenContext* ctx, const XL6_AstNo
 {
     XL6_AstNode* typeArgs;
     XL6_AstNode* func;
-    XL6_AstNode* fixedMatch;
-    XL6_AstNode* varargMatch;
-    const XL6_AstNode* args;
-    size_t i;
-    int fixedBestCount;
-    int varargBestCount;
-    int fixedBestCost;
-    int varargBestCost;
 
     typeArgs = NULL;
     func = xl6CgenResolveCallFuncInternal(ctx, call, name, &typeArgs, 1);
@@ -222,72 +272,6 @@ static XL6_AstNode* xl6CgenResolveCallFunc(XL6_CgenContext* ctx, const XL6_AstNo
         return NULL;
     }
     return func;
-
-    if ( ctx == NULL || ctx->root == NULL || name == NULL ) {
-        return NULL;
-    }
-    if ( xl6CgenFuncOverloadCount(ctx, name) <= 1 ) {
-        return xl6CgenFindFunc(ctx, name);
-    }
-
-    args = call != NULL && call->childCount > 1 ? call->children[1] : NULL;
-    fixedMatch = NULL;
-    varargMatch = NULL;
-    fixedBestCount = 0;
-    varargBestCount = 0;
-    fixedBestCost = 0;
-    varargBestCost = 0;
-    for ( i = 0; i < ctx->root->childCount; ++i ) {
-        XL6_AstNode* node = ctx->root->children[i];
-        XL6_AstNode* nameNode;
-        if ( node == NULL || (node->kind != XL6_AST_FUNC && node->kind != XL6_AST_ASYNC_FUNC) || xl6CgenFuncIsGeneric(node) || node->childCount == 0 ) {
-            continue;
-        }
-        nameNode = node->children[0];
-        if ( nameNode != NULL && xl6CTextEquals(nameNode->text, name) ) {
-            int cost;
-
-            if ( !xl6CgenFuncMatchesCall(ctx, node, args, &cost) ) {
-                continue;
-            }
-            if ( xl6CgenFuncHasVararg(node) ) {
-                if ( varargBestCount == 0 || cost < varargBestCost ) {
-                    varargMatch = node;
-                    varargBestCost = cost;
-                    varargBestCount = 1;
-                } else if ( cost == varargBestCost ) {
-                    varargBestCount += 1;
-                }
-            } else {
-                if ( fixedBestCount == 0 || cost < fixedBestCost ) {
-                    fixedMatch = node;
-                    fixedBestCost = cost;
-                    fixedBestCount = 1;
-                } else if ( cost == fixedBestCost ) {
-                    fixedBestCount += 1;
-                }
-            }
-        }
-    }
-    if ( fixedBestCount == 1 ) {
-        return fixedMatch;
-    }
-    if ( fixedBestCount > 1 ) {
-        xl6CgenError(ctx, call, "重载调用存在歧义，C 生成无法选择唯一函数");
-        return NULL;
-    }
-    if ( varargBestCount == 1 ) {
-        return varargMatch;
-    }
-    if ( varargBestCount > 1 ) {
-        xl6CgenError(ctx, call, "重载调用存在歧义，C 生成无法选择唯一函数");
-    } else {
-        char message[256];
-
-        snprintf(message, sizeof(message), "找不到匹配的重载函数: %s", name);
-        xl6CgenError(ctx, call, message);
-    }
-    return NULL;
 }
 
 static const XL6_AstNode* xl6CgenResolveCallableInBodyMode(
@@ -418,12 +402,55 @@ static const XL6_AstNode* xl6CgenResolveCallableInBodyExact(
     return xl6CgenResolveCallableInBodyMode(ctx, body, call, kind, name, -1, 0, reportNoMatch);
 }
 
+static const XL6_AstNode* xl6CgenFindCallableOwnerClass(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* classNode,
+    const XL6_AstNode* callable
+)
+{
+    const XL6_AstNode* body;
+    XL6_AstNode* baseClass;
+    size_t i;
+
+    if ( classNode == NULL || callable == NULL ) {
+        return NULL;
+    }
+    body = xl6CgenClassBody(classNode);
+    for ( i = 0; body != NULL && i < body->childCount; ++i ) {
+        if ( body->children[i] == callable ) {
+            return classNode;
+        }
+    }
+    baseClass = xl6CgenBaseClass(ctx, classNode);
+    return baseClass != NULL
+        ? xl6CgenFindCallableOwnerClass(ctx, baseClass, callable)
+        : NULL;
+}
+
 static const XL6_AstNode* xl6CgenResolveClassCreateMode(
     XL6_CgenContext* ctx,
     const XL6_AstNode* classNode,
     const XL6_AstNode* call,
     int reportNoMatch)
 {
+    const XL6_AstNode* hirTarget;
+
+    hirTarget = xl6CgenHirTarget(ctx, call);
+    if ( hirTarget != NULL ) {
+        /* class 本身作为目标表示语义阶段已经选择了无显式 create 的默认构造。 */
+        if ( hirTarget == classNode ) {
+            return NULL;
+        }
+        if ( (hirTarget->kind == XL6_AST_CREATE ||
+              hirTarget->kind == XL6_AST_NATIVE_EXTERN_SPECIAL) &&
+             xl6CgenFindCallableOwnerClass(ctx, classNode, hirTarget) != NULL ) {
+            return hirTarget;
+        }
+        if ( reportNoMatch ) {
+            xl6CgenError(ctx, call, "typed HIR 构造调用目标不属于目标 class");
+        }
+        return NULL;
+    }
     return xl6CgenResolveCallableInBody(ctx, xl6CgenClassBody(classNode), call, XL6_AST_CREATE, "create", reportNoMatch);
 }
 
@@ -440,7 +467,9 @@ static const XL6_AstNode* xl6CgenResolveClassFuncMode(
     int requiredStatic,
     const XL6_AstNode** outOwnerClass)
 {
+    const XL6_AstNode* hirTarget;
     const XL6_AstNode* method;
+    const XL6_AstNode* ownerClass;
     XL6_AstNode* baseClass;
 
     if ( outOwnerClass != NULL ) {
@@ -450,7 +479,37 @@ static const XL6_AstNode* xl6CgenResolveClassFuncMode(
         return NULL;
     }
 
+    hirTarget = xl6CgenHirTarget(ctx, call);
+    if ( hirTarget != NULL ) {
+        ownerClass = xl6CgenFindCallableOwnerClass(ctx, classNode, hirTarget);
+        if ( ownerClass != NULL &&
+             (hirTarget->kind == XL6_AST_FUNC ||
+              hirTarget->kind == XL6_AST_ASYNC_FUNC ||
+              hirTarget->kind == XL6_AST_EXPORT_FUNC ||
+              hirTarget->kind == XL6_AST_NATIVE_EXTERN_FUNC) &&
+             xl6CTextEquals(xl6CgenCallableName(hirTarget), name) &&
+             (requiredStatic < 0 ||
+              xl6CgenIsStaticMember(hirTarget) == requiredStatic) ) {
+            if ( outOwnerClass != NULL ) {
+                *outOwnerClass = ownerClass;
+            }
+            return hirTarget;
+        }
+        xl6CgenError(ctx, call, "typed HIR 成员调用目标不属于接收者 class");
+        return NULL;
+    }
+
     method = xl6CgenResolveCallableInBodyMode(ctx, xl6CgenClassBody(classNode), call, XL6_AST_FUNC, name, requiredStatic, 1, 0);
+    if ( method == NULL ) {
+        method = xl6CgenResolveCallableInBodyMode(ctx,
+                                                  xl6CgenClassBody(classNode),
+                                                  call,
+                                                  XL6_AST_ASYNC_FUNC,
+                                                  name,
+                                                  requiredStatic,
+                                                  0,
+                                                  0);
+    }
     if ( method == NULL ) {
         method = xl6CgenResolveCallableInBodyMode(ctx,
                                                   xl6CgenClassBody(classNode),
@@ -694,6 +753,21 @@ static void xl6CgenDefaultValue(XL6_CgenContext* ctx, const XL6_AstNode* typeNod
     typeNode = xl6CgenSubstituteGenericType(ctx, typeNode);
     if ( typeNode == NULL || typeNode->text == NULL ) {
         xl6OutputPuts("0", ctx->out);
+        return;
+    }
+    if ( xl6CgenNullableUsesTaggedValue(typeNode) ) {
+        char cTypeName[64];
+
+        xl6CgenNullableCTypeName(cTypeName, sizeof(cTypeName), typeNode);
+        xl6OutputPrintf(ctx->out, "(%s){0}", cTypeName);
+        return;
+    }
+    if ( xl6CgenIsNullableType(typeNode) ) {
+        xl6OutputPuts("0", ctx->out);
+        return;
+    }
+    if ( xl6CgenIsWeakType(typeNode) ) {
+        xl6OutputPuts("(xrt_value_weak){0}", ctx->out);
         return;
     }
     if ( xl6CTextEquals(typeNode->text, "float") || xl6CTextEquals(typeNode->text, "float32") ||

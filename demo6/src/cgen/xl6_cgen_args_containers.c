@@ -786,8 +786,6 @@ static void xl6CgenDictVarargExpr(XL6_CgenContext* ctx, const XL6_AstNode* param
 
 static int xl6CgenFixedParamXValueConvertArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr)
 {
-    XL6_AstNode* exprType;
-    const XL6_AstNode* sourceType;
     const XL6_AstNode* concreteTarget;
     const char* target;
 
@@ -795,15 +793,13 @@ static int xl6CgenFixedParamXValueConvertArgExpr(XL6_CgenContext* ctx, const XL6
         return 0;
     }
 
-    exprType = xl6CgenCloneExprTypeForInference(ctx, expr);
-    sourceType = xl6CgenResolveAliasType(ctx, exprType);
-    concreteTarget = xl6CgenResolveAliasType(ctx, targetType);
+    concreteTarget = xl6CgenResolveAliasType(
+        ctx,
+        xl6CgenSubstituteGenericType(ctx, targetType));
     target = concreteTarget != NULL ? concreteTarget->text : NULL;
 
-    if ( sourceType == NULL ||
-         (!xl6CgenIsXValueType(sourceType) && !xl6CgenBinaryArithmeticIsXValue(ctx, expr)) ||
-         target == NULL ) {
-        xl6AstFree(exprType);
+    if ( target == NULL ||
+         !xl6CgenExprNeedsXValueScalarBridge(ctx, concreteTarget, expr) ) {
         return 0;
     }
 
@@ -826,11 +822,9 @@ static int xl6CgenFixedParamXValueConvertArgExpr(XL6_CgenContext* ctx, const XL6
     } else if ( xl6CTextEquals(target, "point") ) {
         xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetPoint", expr);
     } else {
-        xl6AstFree(exprType);
         return 0;
     }
 
-    xl6AstFree(exprType);
     return 1;
 }
 
@@ -858,6 +852,22 @@ static void xl6CgenFixedTypeArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* tar
     classNode = NULL;
 
     if ( canonicalType != NULL &&
+         xl6CgenIsTaggedEnumType(ctx, canonicalType) ) {
+        xl6CgenTaggedEnumValueExpr(ctx, canonicalType, expr);
+        xl6AstFree(canonicalType);
+        return;
+    }
+    if ( canonicalType != NULL && xl6CgenNullableUsesTaggedValue(canonicalType) ) {
+        xl6CgenNullableTaggedValueExpr(ctx, canonicalType, expr);
+        xl6AstFree(canonicalType);
+        return;
+    }
+    if ( canonicalType != NULL && xl6CgenIsWeakType(canonicalType) ) {
+        xl6CgenWeakValueExpr(ctx, expr);
+        xl6AstFree(canonicalType);
+        return;
+    }
+    if ( canonicalType != NULL &&
          xl6CgenIsTypedContainerType(ctx, canonicalType) &&
          xl6CgenExprUsesTypedContainerStorage(ctx, expr) ) {
         xl6CgenExpr(ctx, expr);
@@ -869,7 +879,7 @@ static void xl6CgenFixedTypeArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* tar
             命名函数、匿名函数和已有函数值必须统一生成 XL6_Function。
             直接走普通表达式会把命名函数原文写进 C，既没有符号改写，也没有签名适配。
         */
-        xl6CgenFunctionValueExpr(ctx, expr, canonicalType);
+        xl6CgenFunctionOwnedValueExpr(ctx, expr, canonicalType);
         xl6AstFree(canonicalType);
         return;
     }
@@ -902,9 +912,20 @@ static void xl6CgenFixedTypeArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* tar
 static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* param, const XL6_AstNode* expr)
 {
     const XL6_AstNode* targetType;
+    const XL6_HirNode* hirExpr;
+    XL6_HirOwnership ownership;
 
+    hirExpr = xl6CgenHirNode(ctx, expr);
+    ownership = hirExpr != NULL ?
+        hirExpr->ownership :
+        XL6_HIR_OWNERSHIP_NONE;
     if ( param != NULL &&
          (param->flags & (XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT)) != 0 ) {
+        if ( hirExpr != NULL && ownership != XL6_HIR_OWNERSHIP_BORROW ) {
+            xl6CgenError(ctx, expr, "typed HIR byref/out argument is not a borrow");
+            xl6OutputPuts("0", ctx->out);
+            return;
+        }
         xl6OutputPuts("&(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPutc(')', ctx->out);
@@ -912,8 +933,8 @@ static void xl6CgenFixedParamArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* pa
     }
     targetType = param != NULL && param->childCount > 0 ? param->children[0] : NULL;
     /*
-        byval 传递变量中保存的值。class、容器和 var 的值都是受管理句柄，
-        因而与默认模式一样保留对象身份；需要新对象时必须显式调用 copy/clone。
+        普通形参可以接收 borrowed 实参，但必须由类型专用 lowering 创建
+        独立的 owned 参数值。只有 byref/out 才直接传递原存储地址。
     */
     xl6CgenFixedTypeArgExpr(ctx, targetType, expr);
 }
@@ -972,9 +993,9 @@ static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, 
             xl6OutputPuts(", ", ctx->out);
         }
         if ( expr != NULL ) {
-            xl6CgenFixedParamArgExpr(ctx, param, expr);
+            xl6CgenKnownFixedParamArgExpr(ctx, func, param, expr);
         } else if ( param->childCount > 1 ) {
-            xl6CgenFixedParamArgExpr(ctx, param, param->children[1]);
+            xl6CgenKnownFixedParamArgExpr(ctx, func, param, param->children[1]);
         } else {
             xl6CgenError(ctx, param, "missing required argument for parameter");
             xl6OutputPuts("0", ctx->out);

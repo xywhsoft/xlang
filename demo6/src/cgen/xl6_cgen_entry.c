@@ -23,6 +23,8 @@ int xl6CgenIsTopLevelRuntimeStmt(const XL6_AstNode* node)
            node->kind != XL6_AST_TYPE_ALIAS &&
            node->kind != XL6_AST_EXTERN_TYPE_ALIAS &&
            node->kind != XL6_AST_UNION &&
+           node->kind != XL6_AST_ENUM &&
+           node->kind != XL6_AST_PROTOCOL &&
            node->kind != XL6_AST_CLASS;
 }
 
