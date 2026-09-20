@@ -37,6 +37,8 @@ $reviewedGuards = @(
     'check_xlir_code_finalizer.ps1',
     'check_xlir_code_publication.ps1',
     'check_xlir_continuation_scopes.ps1',
+    'check_xlir_default_admission.ps1',
+    'check_xlir_default_backend_boundary.ps1',
     'check_xlir_executor_ownership.ps1',
     'check_xlir_foreign_prepare_result.ps1',
     'check_xlir_frame_ownership.ps1',

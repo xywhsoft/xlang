@@ -29,6 +29,7 @@ int xl6OutputOpenStdFileBuffer(XL6_Output* out, FILE* file);
 int xl6OutputOpenFile(XL6_Output* out, const char* path);
 int xl6OutputOpenMemory(XL6_Output* out);
 char* xl6OutputTakeMemoryText(XL6_Output* out, size_t* outSize);
+void xl6OutputDiscard(XL6_Output* out);
 void xl6OutputClose(XL6_Output* out);
 int xl6OutputHasFailed(const XL6_Output* out);
 const char* xl6OutputError(const XL6_Output* out);

@@ -49,8 +49,8 @@ static int xl6OutputFlushBufferFile(XL6_Output* out)
         return 0;
     }
 
-    if ( !xrtFileWriteAll(out->path, xrtBufferView(&out->buffer)) ) {
-        xl6OutputMarkFailedXrt(out, "cannot write output file");
+    if ( !xrtFileWriteAtomic(out->path, xrtBufferView(&out->buffer)) ) {
+        xl6OutputMarkFailedXrt(out, "cannot atomically write output file");
         return 0;
     }
     return 1;
@@ -223,6 +223,22 @@ char* xl6OutputTakeMemoryText(XL6_Output* out, size_t* outSize)
         *outSize = len;
     }
     return text;
+}
+
+void xl6OutputDiscard(XL6_Output* out)
+{
+    if ( out == NULL ) {
+        return;
+    }
+    if ( out->kind == XL6_OUTPUT_BUFFER_FILE ) {
+        xrtFree(out->path);
+        out->path = NULL;
+    }
+    if ( out->bufferActive ) {
+        xrtBufferUnit(&out->buffer);
+        out->bufferActive = 0;
+    }
+    out->stdFile = NULL;
 }
 
 void xl6OutputClose(XL6_Output* out)
