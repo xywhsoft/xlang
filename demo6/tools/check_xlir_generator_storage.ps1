@@ -3,6 +3,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [switch]$ResidentOnly,[string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -65,8 +66,7 @@ try {
             elseif($case.Contract -eq 'xlir_generator_payload_contract'){$arguments=@("test/cases/$($case.Fixture).xl")+$arguments}
             elseif($case.SourceArgument){$arguments+=@("test/cases/$($case.Fixture).xl")}
             elseif($case.Baseline){$arguments+=@('--baseline')}
-            & $driver @arguments *> "$prefix.emit.log"
-            $code=$LASTEXITCODE
+            $code=Invoke-XlirNativeToLog $driver $arguments "$prefix.emit.log"
             $emission += [pscustomobject]@{Name=$case.Name;Pass=$repeat;Exit=$code;Complete=($code -eq 0);Log="$prefix.emit.log"}
         }
         $suffixes=if($case.Kind -in @('resident','managed')){@('c','bind.h','json')}else{@('c','h','json')}
@@ -119,27 +119,27 @@ try {
         if($compiler -ne 'tcc'){
             foreach($source in $residentSources){
                 $object="$outputPath/$compiler-$([IO.Path]::GetFileNameWithoutExtension($source)).o"
-                & gcc @strict $level @includes -c $source -o $object *> "$object.log"
-                $runtimeBuilds+=[pscustomobject]@{Compiler=$compiler;Source=$source;Exit=$LASTEXITCODE;Object=$object}
+                $objectExit=Invoke-XlirNativeToLog gcc ($strict+@($level)+$includes+@('-c',$source,'-o',$object)) "$object.log"
+                $runtimeBuilds+=[pscustomobject]@{Compiler=$compiler;Source=$source;Exit=$objectExit;Object=$object}
                 $objects+=@($object)
             }
         }
         $dll="$outputPath/$compiler-callback.dll"
-        & gcc @strict $level @includes -shared test/cases/xlir_generator_storage_drop.c -o $dll *> "$dll.log"
-        $dllBuild=$LASTEXITCODE
+        $dllBuild=Invoke-XlirNativeToLog gcc ($strict+@($level)+$includes+@('-shared','test/cases/xlir_generator_storage_drop.c','-o',$dll)) "$dll.log"
         foreach($case in $cases){
             $name="$($case.Name)-$compiler";$binary="$outputPath/$name.exe";$timer=[Diagnostics.Stopwatch]::StartNew()
             if($compiler -eq 'tcc'){
-                & $Tcc -std=c11 @includes @($case.Sources) @residentSources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$name.build.log"
+                $buildExit=Invoke-XlirNativeToLog $Tcc (@('-std=c11')+$includes+@($case.Sources)+$residentSources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
             }else{
-                & gcc @strict $level @includes @($case.Sources) @objects $runtime[0].Path @libs -o $binary *> "$outputPath/$name.build.log"
+                $buildExit=Invoke-XlirNativeToLog gcc ($strict+@($level)+$includes+@($case.Sources)+$objects+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
             }
-            $buildExit=$LASTEXITCODE;$runExit=$null;$complete=$false;$marker=''
+            $runExit=$null;$complete=$false;$marker=''
             if($buildExit -eq 0 -and ($case.Kind -notin @('resident','managed-lifetime') -or $dllBuild -eq 0)){
                 $options=@{FilePath=$binary;WindowStyle='Hidden';PassThru=$true;WorkingDirectory=$rootPath;
                     RedirectStandardOutput="$outputPath/$name.out.log";RedirectStandardError="$outputPath/$name.err.log"}
                 if($case.Kind -in @('resident','managed-lifetime')){$options.ArgumentList=@('"'+$dll+'"')}
-                $process=Start-Process @options
+$process=Start-Process @options
+                $null = $process.Handle
                 if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$runExit=-999}
                 else{$process.Refresh();$runExit=$process.ExitCode}
                 $process.Dispose();$output=[IO.File]::ReadAllText("$outputPath/$name.out.log")

@@ -43,8 +43,9 @@ try {
                     }
                     foreach ($round in 1..$Rounds) {
                         $log = "$prefix.round$round.log"; $errorLog = "$prefix.round$round.err.log"
-                        $process = Start-Process -FilePath (Join-Path (Get-Location) "$prefix.exe") -WindowStyle Hidden -PassThru `
+$process = Start-Process -FilePath (Join-Path (Get-Location) "$prefix.exe") -WindowStyle Hidden -PassThru `
                             -RedirectStandardOutput $log -RedirectStandardError $errorLog
+                        $null = $process.Handle
                         if ($process.WaitForExit(45000)) { $exitCode = $process.ExitCode }
                         else { $process.Kill(); $process.WaitForExit(); $exitCode = 'timeout-45s' }
                         $process.Dispose()

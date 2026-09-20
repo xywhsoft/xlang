@@ -18,8 +18,9 @@ foreach ($case in $cases) {
     foreach ($phase in @('emit','repeat','run','module')) {
         $mode=if ($phase -eq 'repeat') {'emit'} else {$phase}
         $target=if ($phase -eq 'repeat') {"$prefix.repeat"} else {$prefix}
-        $process=Start-Process -FilePath $manifest.Driver -ArgumentList @("test/cases/$case.xl",$mode,$target) -WindowStyle Hidden -PassThru `
+$process=Start-Process -FilePath $manifest.Driver -ArgumentList @("test/cases/$case.xl",$mode,$target) -WindowStyle Hidden -PassThru `
             -RedirectStandardOutput "$prefix.$phase.log" -RedirectStandardError "$prefix.$phase.err.log"
+        $null = $process.Handle
         if ($process.WaitForExit(45000)) { $code=$process.ExitCode } else { $process.Kill(); $process.WaitForExit(); $code=-999 }
         $complete=[bool](Select-String -LiteralPath "$prefix.$phase.log" -SimpleMatch "public source $mode complete" -Quiet)
         $phases+=[pscustomobject]@{Name=$phase;Exit=$code;Complete=$complete}

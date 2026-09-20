@@ -76,7 +76,7 @@ try {
     # closure was constructed. Dependency discovery must follow that opcode.
     & $xl cgen test\cases\cgen_function_default.xl --backend xlir --emit build\test\xlir_module_empty_callable.c
     if ($LASTEXITCODE -ne 0) { throw "Default callable module emission failed" }
-    & gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-function -Wno-unused-label -Wno-unused-variable -Wno-unused-parameter -Wno-unused-const-variable -Wno-missing-field-initializers -fsyntax-only build\test\xlir_module_empty_callable.c
+    & gcc -std=c11 -Wall -Wextra -Werror -Wno-unused-function -Wno-unused-label -Wno-unused-variable -Wno-unused-parameter -Wno-unused-const-variable -Wno-missing-field-initializers -Ibuild/test -fsyntax-only build\test\xlir_module_empty_callable.c
     if ($LASTEXITCODE -ne 0) { throw "Default callable RELEASE lost its runtime helper dependency" }
     $command = 'call test\suites\common.bat'
     foreach ($name in $fixtures) {

@@ -3,6 +3,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -76,18 +77,19 @@ try {
         @{Name='future-only';Sources=@('test/cases/xlir_callback_boundary_future_only_runtime.c','test/cases/xlir_callback_boundary_future_only_host.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c');Pattern='callback cleanup raising=1 state=[0-9]+ code=77 drops=1 thread_error=0'})
     foreach($compiler in @('gcc-O0','gcc-O2','tcc')){
         $dll="$outputPath/task-$compiler.dll"
-        if($compiler -eq 'tcc'){& $Tcc -std=c11 -shared @includes test/cases/xlir_task_storage_drop.c -o $dll *> "$dll.build.log"}
-        else{& gcc @strict "-$($compiler.Substring(4))" -shared @includes test/cases/xlir_task_storage_drop.c -o $dll *> "$dll.build.log"}
-        $dlls += [pscustomobject]@{Name=$compiler;Build=$LASTEXITCODE;Path=$dll}
+        if($compiler -eq 'tcc'){$dllBuild=Invoke-XlirNativeToLog $Tcc (@('-std=c11','-shared')+$includes+@('test/cases/xlir_task_storage_drop.c','-o',$dll)) "$dll.build.log"}
+        else{$dllBuild=Invoke-XlirNativeToLog gcc ($strict+@("-$($compiler.Substring(4))",'-shared')+$includes+@('test/cases/xlir_task_storage_drop.c','-o',$dll)) "$dll.build.log"}
+        $dlls += [pscustomobject]@{Name=$compiler;Build=$dllBuild;Path=$dll}
         foreach($program in $programs){
             $name="$($program.Name)-$compiler";$binary="$outputPath/$name.exe";$sources=@($program.Sources)+$residentSources
-            if($compiler -eq 'tcc'){& $Tcc -std=c11 @includes @sources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$name.build.log"}
-            else{& gcc @strict "-$($compiler.Substring(4))" @includes @sources $runtime[0].Path @libs -o $binary *> "$outputPath/$name.build.log"}
-            $buildExit=$LASTEXITCODE;$runExit=$null;$complete=$false
+            if($compiler -eq 'tcc'){$buildExit=Invoke-XlirNativeToLog $Tcc (@('-std=c11')+$includes+$sources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"}
+            else{$buildExit=Invoke-XlirNativeToLog gcc ($strict+@("-$($compiler.Substring(4))")+$includes+$sources+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"}
+            $runExit=$null;$complete=$false
             if($buildExit -eq 0){
                 $options=@{FilePath=$binary;WindowStyle='Hidden';PassThru=$true;WorkingDirectory=$rootPath;RedirectStandardOutput="$outputPath/$name.out.log";RedirectStandardError="$outputPath/$name.err.log"}
                 if($program.Name -eq 'resident'){$options.ArgumentList=@('"'+$dll+'"')}
-                $process=Start-Process @options
+$process=Start-Process @options
+                $null = $process.Handle
                 if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$runExit=-999}
                 else{$process.Refresh();$runExit=$process.ExitCode}
                 $process.Dispose();$complete=$runExit -eq 0 -and [regex]::Matches([IO.File]::ReadAllText("$outputPath/$name.out.log"),$program.Pattern).Count -eq 1

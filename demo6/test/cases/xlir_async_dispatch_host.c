@@ -1,7 +1,7 @@
 /* Generated C and target binding are preincluded in this TU only. */
 #include <assert.h>
 #include <stdio.h>
-extern int xrtFutureWaitFor(xfuture*, uint64_t);
+extern xwaitresult xrtFutureWaitFor(xfuture*, uint64_t);
 extern uint64_t xrtDeadlineAfter(uint64_t);
 extern bool xrtDeadlineExpired(uint64_t);
 extern void xrtThreadYield(void);
@@ -18,7 +18,7 @@ xfuture* dispatch_ready_input(void) { assert(0); return NULL; }
 static void resolved(xfuture* output, int64_t expected)
 {
     xfutureresult result = {0};
-    assert(xrtFutureWaitFor(output, 5000000) == 0 && xrtFutureResult(output, &result));
+    assert(xrtFutureWaitFor(output, 5000000) == XWAIT_OK && xrtFutureResult(output, &result));
     assert(result.State == XFUTURE_RESOLVED && result.Value && *(int64_t*)result.Value == expected);
 }
 static void shutdown(void)

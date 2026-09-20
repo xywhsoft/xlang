@@ -58,7 +58,8 @@ foreach ($lane in @('gcc-O0','gcc-O2','tcc')) {
     Write-Output "$lane aggregate graphs build=$build run=$run complete=$complete"
 }
 function Invoke-Public([string]$source,[string]$mode,[string]$prefix,[string]$log) {
-    $process=Start-Process -FilePath $manifest.Driver -ArgumentList @($source,$mode,$prefix) -WindowStyle Hidden -PassThru -RedirectStandardOutput "$log.log" -RedirectStandardError "$log.err.log"
+$process=Start-Process -FilePath $manifest.Driver -ArgumentList @($source,$mode,$prefix) -WindowStyle Hidden -PassThru -RedirectStandardOutput "$log.log" -RedirectStandardError "$log.err.log"
+    $null = $process.Handle
     if ($process.WaitForExit(45000)) { $code=$process.ExitCode }
     else { $process.Kill(); $process.WaitForExit(); $code='timeout-45s' }
     $process.Dispose()

@@ -2,6 +2,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$NetworkReport,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -28,13 +29,14 @@ try {
         New-Item -ItemType Directory -Path $caseDir,"$caseDir/build/test","$caseDir/release/examples/fixtures"|Out-Null
         Copy-Item -LiteralPath release/xl.dll -Destination "$caseDir/xl.dll"
         Copy-Item -LiteralPath 'release/examples/fixtures/tls_cert.pem','release/examples/fixtures/tls_key.pem' -Destination "$caseDir/release/examples/fixtures"
-        $define='-DXLIR_NETWORK_GENERATED_C="'+$case.Generated.Replace('\','/')+'"';$binary="$caseDir/steps.exe"
+        $define=New-XlirCStringDefine 'XLIR_NETWORK_GENERATED_C' $case.Generated.Replace('\','/');$binary="$caseDir/steps.exe"
         & $compiler @flags $define $hostPath @objects release/xl.dll -lws2_32 -liphlpapi -lshell32 -lole32 -ladvapi32 -o $binary *> "$caseDir/build.log"
         $build=$LASTEXITCODE
         foreach($mode in @('idle','pinned-engine','resolver-worker')){
             $exit=$null;$observed=$null
             if(!$build){
-                $process=Start-Process -FilePath $binary -ArgumentList $mode -WindowStyle Hidden -PassThru -WorkingDirectory $caseDir -RedirectStandardOutput "$caseDir/$mode.out.log" -RedirectStandardError "$caseDir/$mode.err.log"
+$process=Start-Process -FilePath $binary -ArgumentList $mode -WindowStyle Hidden -PassThru -WorkingDirectory $caseDir -RedirectStandardOutput "$caseDir/$mode.out.log" -RedirectStandardError "$caseDir/$mode.err.log"
+                $null = $process.Handle
                 if(!$process.WaitForExit(45000)){$process.Kill();$process.WaitForExit();$exit=-999}else{$process.Refresh();$exit=$process.ExitCode};$process.Dispose()
                 $line=@(Get-Content "$caseDir/$mode.out.log"|Where-Object {$_-like'{"Mode":*'})|Select-Object -Last 1
                 if($line){$observed=$line|ConvertFrom-Json}

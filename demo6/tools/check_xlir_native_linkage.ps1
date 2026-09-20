@@ -2,6 +2,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$NativeRoot,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -18,10 +19,9 @@ try {
             $file=Get-Item -LiteralPath $_;[pscustomobject]@{Path=$file.FullName;Sha256=(Get-FileHash -LiteralPath $file.FullName).Hash}
         })
     foreach($row in $inputs){if((Get-FileHash -LiteralPath $row.Path).Hash-ne$row.Sha256){throw "Stale native linkage input: $($row.Path)"}}
-    & python tools/gen_xrt_linkage_catalog.py --native-root $NativeRoot --cache build/cache/xrt_linkage_v2 --check --report "$outputPath/catalog.json" *> "$outputPath/catalog.log"
-    $catalogExit=$LASTEXITCODE
-    & python test/cases/xrt_linkage_catalog_parser.py *> "$outputPath/parser.log"
-    $parserExit=$LASTEXITCODE
+    $catalogExit=Invoke-XlirNativeToLog python @('tools/gen_xrt_linkage_catalog.py','--native-root',$NativeRoot,
+        '--cache','build/cache/xrt_linkage_v2','--check','--report',"$outputPath/catalog.json") "$outputPath/catalog.log"
+    $parserExit=Invoke-XlirNativeToLog python @('test/cases/xrt_linkage_catalog_parser.py') "$outputPath/parser.log"
     & nm -g --defined-only $nativeObject[0].Path 1> "$outputPath/native-exports.txt" 2> "$outputPath/nm.log"
     $nmExit=$LASTEXITCODE
     $actual=@(Get-Content -LiteralPath "$outputPath/native-exports.txt" | ForEach-Object {if($_-match '\b[TRD] (xrt\w+)$'){$Matches[1]}} | Sort-Object -Unique)

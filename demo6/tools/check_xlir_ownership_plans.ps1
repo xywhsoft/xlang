@@ -37,7 +37,8 @@ try {
             else{& gcc @flags "-$($compiler.Substring(4))" $program.Source $program.Runtime $runtime[0].Path @libs -o $binary *> "$outputPath/$name.build.log"}
             $buildExit=$LASTEXITCODE;$run=$null;$complete=$false
             if(!$buildExit){
-                $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
+$process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
+                $null = $process.Handle
                 if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$run=-999}else{$process.Refresh();$run=$process.ExitCode}
                 $process.Dispose();$complete=$run -eq 0 -and [regex]::Matches([IO.File]::ReadAllText("$outputPath/$name.out.log"),[regex]::Escape($program.Marker)).Count -eq 1
                 if($program.Name -eq 'preparation'){

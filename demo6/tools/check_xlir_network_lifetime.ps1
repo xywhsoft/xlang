@@ -1,6 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 $environmentBefore=@{}
@@ -10,7 +11,8 @@ try {
     $publicPath=Join-Path $PublicDirectory 'build.json'
     $public=Get-Content -LiteralPath $publicPath -Raw|ConvertFrom-Json
     if(!$public.SourceXrt-or$public.RuntimeOnly){throw 'Current-source compiler and runtime required'}
-    $cases=@(Get-Content -LiteralPath 'test/cases/xlir_network_lifetime_cases.json' -Raw|ConvertFrom-Json)
+    $parsedCases=Get-Content -LiteralPath 'test/cases/xlir_network_lifetime_cases.json' -Raw|ConvertFrom-Json
+    $cases=@(foreach($case in $parsedCases){$case})
     if(!$cases.Count-or@($cases|ForEach-Object Fixture|Sort-Object -Unique).Count-ne$cases.Count){throw 'Cases must be explicit and unique'}
     $compiler=(Get-Command gcc).Source
     $hostPath=[IO.Path]::GetFullPath('test/cases/xlir_network_lifetime_host.c')
@@ -56,13 +58,13 @@ try {
             $start.FileName=$Binary;$start.WorkingDirectory=$Working
             $start.UseShellExecute=$false;$start.CreateNoWindow=$true
             $start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
-            foreach($argument in $Arguments){$start.ArgumentList.Add($argument)}
+            $start.Arguments=Join-XlirWindowsCommandLine $Arguments
             $process=[Diagnostics.Process]::new();$process.StartInfo=$start
             try {
                 [void]$process.Start()
                 $stdout=$process.StandardOutput.ReadToEndAsync();$stderr=$process.StandardError.ReadToEndAsync()
                 if($process.WaitForExit(45000)){$exitCode=$process.ExitCode}
-                else{$process.Kill($true);$process.WaitForExit();$exitCode='timeout-45s'}
+                else{Stop-XlirProcessTree $process;$exitCode='timeout-45s'}
                 $stdoutText=$stdout.GetAwaiter().GetResult();$stderrText=$stderr.GetAwaiter().GetResult()
                 [IO.File]::WriteAllText("$Prefix.log",$stdoutText,[Text.UTF8Encoding]::new($false))
                 [IO.File]::WriteAllText("$Prefix.err.log",$stderrText,[Text.UTF8Encoding]::new($false))
@@ -99,7 +101,7 @@ try {
                 $generated=Join-Path $Matches[1] 'module.c'
                 if(Test-Path -LiteralPath $generated){
                     $inputs+=[pscustomobject]@{Path=$generated;Sha256=(Get-FileHash -LiteralPath $generated).Hash}
-                    $define='-DXLIR_NETWORK_GENERATED_C="'+$generated.Replace('\','/')+'"'
+                    $define=New-XlirCStringDefine 'XLIR_NETWORK_GENERATED_C' $generated.Replace('\','/')
                     $hostFlags=$flags
                     if($case.BufferCommands){$hostFlags+='-DXLIR_NETWORK_BUFFER_COMMAND_PROBE'}
                     & $compiler @hostFlags $define $hostPath @objects @libs -o "$caseDirectory/lifetime.exe" *> "$caseDirectory/host-build.log"

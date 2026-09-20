@@ -46,7 +46,8 @@ try {
                 $arguments=if ($name -eq 'scope') {@('"'+$dll+'"')} else {@()}
                 $options=@{FilePath="$lane.exe";WindowStyle='Hidden';PassThru=$true;RedirectStandardOutput="$lane.out.log";RedirectStandardError="$lane.err.log"}
                 if ($arguments.Count) { $options.ArgumentList=$arguments }
-                $process=Start-Process @options
+$process=Start-Process @options
+                $null = $process.Handle
                 if (!$process.WaitForExit(60000)) { $process.Kill(); $process.WaitForExit(); $runExit=-999 }
                 else { $process.Refresh(); $runExit=$process.ExitCode }
                 $process.Dispose()

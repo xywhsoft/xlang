@@ -24,6 +24,7 @@ param(
     [ValidateRange(1,8)][int]$MaxParallel = 3
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath = Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -32,9 +33,9 @@ try {
     # these exact scripts, not arbitrary checks with similar names.
     $outputPath = [IO.Path]::GetFullPath($Directory)
     if (Test-Path -LiteralPath $outputPath) { throw 'Use a fresh ownership batch directory' }
-    $PublicDirectory = [IO.Path]::GetRelativePath($rootPath, [IO.Path]::GetFullPath($PublicDirectory))
-    $ContractDirectory = [IO.Path]::GetRelativePath($rootPath, [IO.Path]::GetFullPath($ContractDirectory))
-    $Directory = [IO.Path]::GetRelativePath($rootPath, $outputPath)
+    $PublicDirectory = Get-XlirContainedRelativePath $rootPath ([IO.Path]::GetFullPath($PublicDirectory))
+    $ContractDirectory = Get-XlirContainedRelativePath $rootPath ([IO.Path]::GetFullPath($ContractDirectory))
+    $Directory = Get-XlirContainedRelativePath $rootPath $outputPath
     foreach ($relative in @($PublicDirectory, $ContractDirectory, $Directory)) {
         if ($relative.StartsWith('..') -or [IO.Path]::IsPathRooted($relative)) { throw 'Ownership batch paths must remain within the project' }
     }

@@ -3,6 +3,7 @@
 # included .c files, headers, include shadowing and predefined macros therefore
 # participate in the key without an incomplete hand-maintained dependency list.
 $script:XlirCObjectCacheImplementation = $PSCommandPath
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 
 function Get-XlirTextHash([string]$Text) {
     $algorithm = [Security.Cryptography.SHA256]::Create()
@@ -43,7 +44,8 @@ function New-XlirCBuildContext {
     # These overrides may select compiler/assembler binaries other than the
     # ones above. Preserve the environment but conservatively bypass reuse.
     $overrides = @('GCC_EXEC_PREFIX', 'COMPILER_PATH' | Where-Object { [Environment]::GetEnvironmentVariable($_) })
-    $implementation = (Get-FileHash -LiteralPath $script:XlirCObjectCacheImplementation).Hash
+    $implementation = Get-XlirTextHash ((Get-FileHash -LiteralPath $script:XlirCObjectCacheImplementation).Hash +
+        (Get-FileHash -LiteralPath $script:XlirNativeProcessImplementation).Hash)
     $toolchainKey = Get-XlirTextHash (($tools | ConvertTo-Json -Compress) + $specs + $search + $implementation)
     [IO.Directory]::CreateDirectory($directoryPath) | Out-Null
     if (!$NoCache -and !$overrides.Count) { [IO.Directory]::CreateDirectory($cachePath) | Out-Null }
@@ -84,8 +86,9 @@ function Invoke-XlirCObject {
         # Comments carry GCC fallthrough annotations. Preserve macro comments
         # as well so splitting preprocessing from compilation cannot silently
         # change the strict warning contract.
-        & $Context.Compiler @Flags -E -CC $sourcePath -o $preprocessed *> $preprocessLog
-        if ($LASTEXITCODE -ne 0) {
+        $preprocessExit = Invoke-XlirNativeToLog $Context.Compiler `
+            (@($Flags) + @('-E', '-CC', $sourcePath, '-o', $preprocessed)) $preprocessLog
+        if ($preprocessExit -ne 0) {
             Get-Content -LiteralPath $preprocessLog -Tail 30 | Write-Host
             throw "C preprocessing failed: $sourcePath"
         }
@@ -122,9 +125,10 @@ function Invoke-XlirCObject {
         }
         if (!$hit) {
             $compileTimer = [Diagnostics.Stopwatch]::StartNew()
-            & $Context.Compiler @Flags -x cpp-output -c $preprocessed -o $objectPath *> $compileLog
+            $compileExit = Invoke-XlirNativeToLog $Context.Compiler `
+                (@($Flags) + @('-x', 'cpp-output', '-c', $preprocessed, '-o', $objectPath)) $compileLog
             $compileSeconds = $compileTimer.Elapsed.TotalSeconds
-            if ($LASTEXITCODE -ne 0) {
+            if ($compileExit -ne 0) {
                 Get-Content -LiteralPath $compileLog -Tail 30 | Write-Host
                 throw "C compilation failed: $sourcePath"
             }

@@ -3,6 +3,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [int[]]$Modes=@(0..17),[string[]]$Levels=@('O0','O2'))
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -31,7 +32,7 @@ try {
     foreach($ext in @('c','h','json')){if((Get-FileHash "$prefix.generated.$ext").Hash -ne (Get-FileHash "$prefix.repeat.$ext").Hash){throw 'Nondeterministic module preparation emission'}}
     $flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',"-I$outputPath",'-I.','-Irelease','-Ilib/tcc',
-        '-DJOINT_SOURCE_XRT','-DXL_ENABLE_EXE_COMPILER=1',('-DJOINT_TCC_INCLUDE_DIRECTORY="'+$outputPath.Replace('\','/')+'"'))
+        '-DJOINT_SOURCE_XRT','-DXL_ENABLE_EXE_COMPILER=1',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/')))
     $excluded=@('xl_api.o','xl_api_path.o','xl6_console.o','xlir_public_source_driver.o')
     $dependencies=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -notin $excluded} | ForEach-Object Path)
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$rows=@()
@@ -47,7 +48,8 @@ try {
             if($mode -lt 0 -or $mode -gt 17){throw 'Unknown preparation mode'}
             $run=$null;$complete=$false;$log="$outputPath/$laneName-mode$mode"
             if(!$buildExit){
-                $process=Start-Process -FilePath $binary -ArgumentList $mode -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$log.out.log" -RedirectStandardError "$log.err.log"
+$process=Start-Process -FilePath $binary -ArgumentList $mode -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$log.out.log" -RedirectStandardError "$log.err.log"
+                $null = $process.Handle
                 if(!$process.WaitForExit(30000)){$process.Kill();$process.WaitForExit();$run=-999}else{$process.Refresh();$run=$process.ExitCode}
                 $process.Dispose()
                 $marker=if($version-eq2){"^Module prepare mode=${mode}: 25 real TCC lifetimes, 75 internal finalizers, [0-9]+ unlocked/unfrozen probes; automatic resource drain, aliases and zero live delta$"}

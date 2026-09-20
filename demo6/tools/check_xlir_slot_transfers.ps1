@@ -49,7 +49,8 @@ try {
         }
         $buildExit=$LASTEXITCODE;$runExit=$null;$complete=$false;$probes=0
         if($buildExit -eq 0){
-            $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
+$process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
+            $null = $process.Handle
             if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$runExit=-999}
             else{$process.Refresh();$runExit=$process.ExitCode}
             $process.Dispose()

@@ -16,8 +16,9 @@ $outDir = 'build/test/xlir_public_runtime_cases'
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 function Invoke-Phase([string]$source, [string]$mode, [string]$symbol = '') {
     $prefix = "$outDir/$source.$mode"
-    $process = Start-Process -FilePath $manifest.Driver -ArgumentList @("test/cases/$source.xl",$mode) -WindowStyle Hidden -PassThru `
+$process = Start-Process -FilePath $manifest.Driver -ArgumentList @("test/cases/$source.xl",$mode) -WindowStyle Hidden -PassThru `
         -RedirectStandardOutput "$prefix.log" -RedirectStandardError "$prefix.err.log"
+    $null = $process.Handle
     if ($process.WaitForExit(45000)) { $code = $process.ExitCode }
     else { $process.Kill(); $process.WaitForExit(); $code = 'timeout-45s' }
     $process.Dispose()

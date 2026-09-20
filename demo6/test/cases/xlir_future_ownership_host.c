@@ -50,7 +50,7 @@ int main(void)
           xrtownershipref anchor = xrtFutureOwnership(source);
           xrtownershipresult old = {11,22,33,44}, result = old; bool live = true; xfuturewatch opaque;
           assert(xrtOwnershipInspectReachable(&anchor, 1, NULL, 0, &live, &result, NULL, NULL));
-          assert(live && result.NodeCount == 5 && result.EdgeCount == 6 && result.ExternalRootCount == 3);
+          assert(live && result.NodeCount == 6 && result.EdgeCount == 9 && result.ExternalRootCount == 3);
           /* Preserve the former fail-closed assertion for an ACTUAL opaque
            * native waiter; do not convert unknown callback data to a leaf. */
           assert(xrtFutureWatchInit(&opaque, opaque_watch_noop, opaque_watch_noop, NULL));

@@ -2,6 +2,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$ContractDriver,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -51,10 +52,10 @@ try {
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         foreach($kind in @('tcc','dll')){foreach($level in @(0,2)){
             $name="$kind-O$level";$binary="$outputPath/$name.exe";$dllExit=$null
-            $extra=@('-DJOINT_SOURCE_XRT',('-DJOINT_TCC_INCLUDE_DIRECTORY="'+$outputPath.Replace('\','/')+'"'))
+            $extra=@('-DJOINT_SOURCE_XRT',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/')))
             if($kind-eq'dll'){$extra=@('-DMODULE_EXECUTOR_DLL','-DXL_BUILD_DLL',
-                ('-DJOINT_DLL_PATH="'+$outputPath.Replace('\','/')+"/executor-O$level.dll"+'"'),
-                ('-DJOINT_DLL_NAME="'+"executor-O$level.dll"+'"'),"-Wl,--out-implib,$outputPath/$name.a",'-Wl,--export-all-symbols')}
+                (New-XlirCStringDefine 'JOINT_DLL_PATH' ($outputPath.Replace('\','/')+"/executor-O$level.dll")),
+                (New-XlirCStringDefine 'JOINT_DLL_NAME' "executor-O$level.dll"),"-Wl,--out-implib,$outputPath/$name.a",'-Wl,--export-all-symbols')}
             & gcc @flags "-O$level" @extra test/cases/xlir_module_executor_host.c @dependencies release/xl.dll @libs -o $binary *> "$outputPath/$name.build.log"
             $buildExit=$LASTEXITCODE;$run=$null;$complete=$false;$actualOom=0
             if(!$buildExit -and $kind-eq'dll'){
@@ -62,7 +63,8 @@ try {
                 $dllExit=$LASTEXITCODE
             }
             if(!$buildExit -and ($kind-ne'dll' -or $dllExit-eq0)){
-                $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
+$process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
+                $null = $process.Handle
                 if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$run=-999}else{$process.Refresh();$run=$process.ExitCode}
                 $process.Dispose()
                 $text=Get-Content "$outputPath/$name.out.log" -Raw
@@ -100,10 +102,10 @@ try {
             $mixedFlags=@("-I$mixed")+$flags
             foreach($kind in @('tcc','dll')){foreach($level in @(0,2)){
                 $name="mixed-$kind-O$level";$binary="$outputPath/$name.exe";$dllExit=$null
-                $extra=@('-DJOINT_SOURCE_XRT',('-DJOINT_TCC_INCLUDE_DIRECTORY="'+$mixed.Replace('\','/')+'"'))
+                $extra=@('-DJOINT_SOURCE_XRT',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $mixed.Replace('\','/')))
                 if($kind-eq'dll'){$extra=@('-DMODULE_EXECUTOR_DLL','-DXL_BUILD_DLL',
-                    ('-DJOINT_DLL_PATH="'+$mixed.Replace('\','/')+"/mixed-executor-O$level.dll"+'"'),
-                    ('-DJOINT_DLL_NAME="'+"mixed-executor-O$level.dll"+'"'),"-Wl,--out-implib,$outputPath/$name.a",'-Wl,--export-all-symbols')}
+                    (New-XlirCStringDefine 'JOINT_DLL_PATH' ($mixed.Replace('\','/')+"/mixed-executor-O$level.dll")),
+                    (New-XlirCStringDefine 'JOINT_DLL_NAME' "mixed-executor-O$level.dll"),"-Wl,--out-implib,$outputPath/$name.a",'-Wl,--export-all-symbols')}
                 & gcc @mixedFlags "-O$level" @extra test/cases/xlir_module_executor_mixed_host.c @dependencies release/xl.dll @libs -o $binary *> "$outputPath/$name.build.log"
                 $buildExit=$LASTEXITCODE;$run=$null;$complete=$false
                 if(!$buildExit -and $kind-eq'dll'){
@@ -111,7 +113,8 @@ try {
                     $dllExit=$LASTEXITCODE
                 }
                 if(!$buildExit -and ($kind-ne'dll' -or $dllExit-eq0)){
-                    $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
+$process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
+                    $null = $process.Handle
                     if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$run=-999}else{$process.Refresh();$run=$process.ExitCode}
                     $process.Dispose()
                     $complete=$run-eq0 -and [bool](Select-String -LiteralPath "$outputPath/$name.out.log" -SimpleMatch -Pattern 'Mixed module services: 50 real unloads, 25 open-owner await-to-task completions, 25 closed-owner fresh-task refusals, READY preflight without pool mutation, normal finally/globals, MEM_FREE and exact memory balance' -Quiet)

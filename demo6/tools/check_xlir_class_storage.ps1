@@ -2,6 +2,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$ContractDriver,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -49,7 +50,7 @@ try {
     $hostFlags=@('-Irelease','-Ilib/tcc','-DJOINT_SOURCE_XRT','-ffunction-sections','-fdata-sections',
         '-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-pointer-sign',
         '-Wno-format-truncation','-Wno-missing-field-initializers',
-        ('-DJOINT_TCC_INCLUDE_DIRECTORY="'+$outputPath.Replace('\','/')+'"'))
+        (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/')))
     $embedded=@('xl_api.o','xl_api_path.o','xl6_console.o','xlir_public_source_driver.o')
     $dependencies=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -notin $embedded} | ForEach-Object Path)
     $lanes=@()
@@ -69,7 +70,8 @@ try {
                 $options=@{FilePath="$lane.exe";WindowStyle='Hidden';PassThru=$true;WorkingDirectory=$rootPath;
                     RedirectStandardOutput="$lane.out.log";RedirectStandardError="$lane.err.log"}
                 if ($kind -eq 'native') { $options.ArgumentList=@('"'+$dll+'"') }
-                $process=Start-Process @options
+$process=Start-Process @options
+                $null = $process.Handle
                 if (!$process.WaitForExit(60000)) { $process.Kill(); $process.WaitForExit(); $runExit=-999 }
                 else { $process.Refresh(); $runExit=$process.ExitCode }
                 $process.Dispose()

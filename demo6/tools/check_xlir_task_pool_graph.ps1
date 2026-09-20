@@ -32,7 +32,8 @@ foreach($compiler in @('gcc-O0','gcc-O2','tcc')){
     else{& gcc @strict "-$($compiler.Substring(4))" @sources $runtime[0].Path @libs -o $binary *> "$outputPath/$compiler.build.log"}
     $build=$LASTEXITCODE;$run=$null;$complete=$false
     if($build-eq0){
-        $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$compiler.out.log" -RedirectStandardError "$outputPath/$compiler.err.log"
+$process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$compiler.out.log" -RedirectStandardError "$outputPath/$compiler.err.log"
+        $null = $process.Handle
         if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$run=-999}else{$process.Refresh();$run=$process.ExitCode}
         $process.Dispose()
         $complete=$run-eq0-and[bool](Select-String -LiteralPath "$outputPath/$compiler.out.log" -SimpleMatch 'Task pool wrapper: 280 balanced lifetimes, 240 exact queued raw/language graphs, 520 real preparations, accepted execution, joined native owner and both Finish orders' -Quiet)

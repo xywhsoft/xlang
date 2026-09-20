@@ -46,8 +46,9 @@ foreach ($compiler in @('gcc-O0','gcc-O2','tcc')) {
     }
     $build=$LASTEXITCODE; $run=$null; $complete=$false
     if ($build -eq 0) {
-        $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath `
+$process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath `
             -RedirectStandardOutput "$outputPath/$compiler.run.log" -RedirectStandardError "$outputPath/$compiler.err.log"
+        $null = $process.Handle
         if (!$process.WaitForExit(60000)) { $process.Kill(); $process.WaitForExit(); $run=-999 }
         else { $run=$process.ExitCode }
         $complete=[bool](Select-String -LiteralPath "$outputPath/$compiler.run.log" -SimpleMatch 'Generated generator ownership: 2400 lifecycles, 1000 async transactions, 2000 real suspensions, 1800 running inspection refusals, 16000 inspection probes, 6600 actual failures,' -Quiet)

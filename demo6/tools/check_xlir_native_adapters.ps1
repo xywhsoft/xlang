@@ -1,13 +1,15 @@
 param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
     $outputPath=[IO.Path]::GetFullPath($Directory)
     if(Test-Path -LiteralPath $outputPath){throw 'Preserve native adapter evidence'}
     $public=Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw|ConvertFrom-Json
-    $cases=@(Get-Content -LiteralPath 'test/cases/xlir_native_adapter_cases.json' -Raw|ConvertFrom-Json)
+    $parsedCases=Get-Content -LiteralPath 'test/cases/xlir_native_adapter_cases.json' -Raw|ConvertFrom-Json
+    $cases=@(foreach($case in $parsedCases){$case})
     if(!$cases.Count-or@($cases|Sort-Object -Unique).Count-ne$cases.Count){throw 'Adapter cases must be explicit and unique'}
     $files=Get-Item -LiteralPath (@($PSCommandPath,'test/cases/xlir_native_adapter_cases.json','src/driver/xl6_xlc_shell.c',
         'test/cases/xlir_artifact_runtime_contract.c','test/cases/xlir_dynamic_operand_transaction_host.c',(Get-Command gcc).Source,(Get-Command nm).Source)+
@@ -84,7 +86,7 @@ try {
     $boxingBuild=$null;$boxingRun=$null
     $boxingC="$outputPath/xlir_dynamic_operand_transaction.c"
     if(Test-Path -LiteralPath $boxingC){
-        $generatedDefine='-DXLIR_BOXING_GENERATED_C="'+$boxingC.Replace('\','/')+'"'
+        $generatedDefine=New-XlirCStringDefine 'XLIR_BOXING_GENERATED_C' $boxingC.Replace('\','/')
         & gcc @flags "-I$includes" $generatedDefine test/cases/xlir_dynamic_operand_transaction_host.c @objects @libs -o "$outputPath/boxing-runtime.exe" *> "$outputPath/boxing-runtime-build.log"
         $boxingBuild=$LASTEXITCODE
         if($boxingBuild-eq0){

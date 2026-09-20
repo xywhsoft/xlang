@@ -2,6 +2,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$ContractDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,[switch]$Aggregate)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -66,10 +67,10 @@ try {
         }
         foreach($kind in @('tcc','dll')){foreach($level in @(0,2)){
             $name="$kind-O$level";$binary="$out/$name.exe";$dllExit=$null
-            $extra=@('-DJOINT_SOURCE_XRT',('-DJOINT_TCC_INCLUDE_DIRECTORY="'+$out.Replace('\','/')+'"'))
+            $extra=@('-DJOINT_SOURCE_XRT',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $out.Replace('\','/')))
             if($kind-eq'dll'){$extra=@('-DMODULE_EXECUTOR_DLL','-DXL_BUILD_DLL',
-                ('-DJOINT_DLL_PATH="'+$out.Replace('\','/')+"/mixed-dependency-O$level.dll"+'"'),
-                ('-DJOINT_DLL_NAME="'+"mixed-dependency-O$level.dll"+'"'),"-Wl,--out-implib,$out/$name.a",'-Wl,--export-all-symbols')}
+                (New-XlirCStringDefine 'JOINT_DLL_PATH' ($out.Replace('\','/')+"/mixed-dependency-O$level.dll")),
+                (New-XlirCStringDefine 'JOINT_DLL_NAME' "mixed-dependency-O$level.dll"),"-Wl,--out-implib,$out/$name.a",'-Wl,--export-all-symbols')}
             $buildExit=1
             if($waitObjects[$level].Count-eq3){
                 $linked=@($commonDependencies)+@($waitObjects[$level])
@@ -82,7 +83,8 @@ try {
                 $dllExit=$LASTEXITCODE
             }
             if(!$buildExit-and($kind-ne'dll'-or$dllExit-eq0)){
-                $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$out/$name.out.log" -RedirectStandardError "$out/$name.err.log"
+$process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$out/$name.out.log" -RedirectStandardError "$out/$name.err.log"
+                $null = $process.Handle
                 if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$run=-999}else{$process.Refresh();$run=$process.ExitCode}
                 $process.Dispose();$log=[IO.File]::ReadAllText("$out/$name.out.log")
                 $match=[regex]::Match($log,'Mixed producer modules: 132 real unloads, 60 rings, 20 feeders, 20 acyclic controls, 112 external-root checks, 40 cleanup-await roots, 548 callback finally executions, 32 snapshot budgets, ([1-9][0-9]*) actual OOM; real task pool, four callback frames per await, original async catch/finally, globals, MEM_FREE and exact memory balance')

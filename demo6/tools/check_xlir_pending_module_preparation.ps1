@@ -3,6 +3,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [ValidateRange(0,7)][int[]]$Modes=@(0..7),[ValidateSet('O0','O2')][string[]]$Levels=@('O0','O2'))
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -34,7 +35,7 @@ try {
     }}
     $flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',"-I$outputPath",'-I.','-Irelease','-Ilib/tcc',
-        '-DJOINT_SOURCE_XRT','-DXL_ENABLE_EXE_COMPILER=1',('-DJOINT_TCC_INCLUDE_DIRECTORY="'+$outputPath.Replace('\','/')+'"'))
+        '-DJOINT_SOURCE_XRT','-DXL_ENABLE_EXE_COMPILER=1',(New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/')))
     $excluded=@('xl_api.o','xl_api_path.o','xl6_console.o','xlir_public_source_driver.o')
     $dependencies=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -notin $excluded} | ForEach-Object Path)
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$rows=@()
@@ -47,7 +48,8 @@ try {
         foreach($mode in $Modes){
             $run=$null;$complete=$false;$log="$outputPath/tcc-host-$level-mode$mode"
             if($null -ne $buildExit -and $buildExit -eq 0){
-                $process=Start-Process -FilePath $binary -ArgumentList $mode -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$log.out.log" -RedirectStandardError "$log.err.log"
+$process=Start-Process -FilePath $binary -ArgumentList $mode -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$log.out.log" -RedirectStandardError "$log.err.log"
+                $null = $process.Handle
                 if(!$process.WaitForExit(30000)){$process.Kill();$process.WaitForExit();$run=-999}else{$process.Refresh();$run=$process.ExitCode}
                 $process.Dispose()
                 $deferred=if($mode){25}else{0}

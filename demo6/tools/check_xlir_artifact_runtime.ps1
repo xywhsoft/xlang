@@ -98,7 +98,8 @@ try {
                     $start=@{FilePath=$binary;WindowStyle='Hidden';PassThru=$true;WorkingDirectory=$rootPath;
                         RedirectStandardOutput="$prefix.$phase.out.log";RedirectStandardError="$prefix.$phase.err.log"}
                     if($arguments.Count){$start.ArgumentList=$arguments}
-                    $process=Start-Process @start
+$process=Start-Process @start
+                    $null = $process.Handle
                     if($process.WaitForExit(45000)){$process.Refresh();$code=$process.ExitCode}else{$process.Kill();$process.WaitForExit();$code='timeout-45s'}
                     $process.Dispose()
                 }

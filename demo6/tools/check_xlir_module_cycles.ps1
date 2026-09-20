@@ -3,6 +3,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -48,13 +49,14 @@ try {
     $dependencies=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -notin $excluded} | ForEach-Object Path)
     $hostFlags=$flags+@('-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-pointer-sign',
         '-Wno-format-truncation','-Wno-missing-field-initializers','-Irelease','-Ilib/tcc',"-I$outputPath",'-DJOINT_SOURCE_XRT',
-        ('-DJOINT_TCC_INCLUDE_DIRECTORY="'+$outputPath.Replace('\','/')+'"'))
+        (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/')))
     foreach($level in @(0,2)){
         $name="module-O$level";$binary="$outputPath/$name.exe"
         & gcc @hostFlags "-O$level" test/cases/xlir_module_cycle_transactions.c @dependencies release/xl.dll @libs -o $binary *> "$outputPath/$name.build.log"
         $buildExit=$LASTEXITCODE;$run=$null;$complete=$false
         if(!$buildExit){
-            $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
+$process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
+            $null = $process.Handle
             if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$run=-999}else{$process.Refresh();$run=$process.ExitCode}
             $process.Dispose()
             $complete=$run -eq 0 -and [bool](Select-String -LiteralPath "$outputPath/$name.out.log" -Pattern '^Module cycle transactions: 221 actual TCC lifetimes, .* 96 creation/commit allocation probes, [1-9][0-9]* real failures; MEM_FREE and zero live delta$' -Quiet)

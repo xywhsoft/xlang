@@ -48,8 +48,9 @@ try{
         }
         $build=$LASTEXITCODE;$run=$null;$complete=$false;$oom=0
         if($build-eq0){
-            $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath `
+$process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath `
                 -RedirectStandardOutput "$out/$configuration.out.log" -RedirectStandardError "$out/$configuration.err.log"
+            $null = $process.Handle
             if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$run=-999}else{$process.Refresh();$run=$process.ExitCode}
             $process.Dispose();$log=[IO.File]::ReadAllText("$out/$configuration.out.log")
             $match=[regex]::Matches($log,'Async dependency cycles: 120 generated one/two/three-producer rings, 40 runnable acyclic chains, 40 cycle feeders, 800 exact queue/storage/frame/Watch refusals, 160 authorized cyclic interruptions, ([1-9][0-9]*) real snapshot OOM failures; external roots preserved, ready work and feeders not cancelled, normal catch/finally and cleanup-await resurrection, exact queue/frame/owner retirement and memory balance')

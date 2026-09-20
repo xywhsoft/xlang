@@ -3,6 +3,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [string]$IrContractDriver = '')
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Push-Location $rootPath
 try {
@@ -49,7 +50,7 @@ try {
     $flags = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable',
         '-Wno-unused-parameter','-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',
         "-I$includePath",'-I.','-Irelease','-Ilib/tcc','-DJOINT_SOURCE_XRT','-ffunction-sections','-fdata-sections',
-        ('-DJOINT_TCC_INCLUDE_DIRECTORY="' + $includePath.Replace('\','/') + '"'))
+        (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $includePath.Replace('\','/')))
     $results = @()
     # O0 keeps unused public API bodies in this white-box host. Supply their
     # complete current-source dependencies rather than relying on optimization
@@ -68,7 +69,8 @@ try {
             $code = $LASTEXITCODE
         }
         if (!$code) {
-            $process = Start-Process -FilePath ([IO.Path]::GetFullPath("$prefix.exe")) -WorkingDirectory $rootPath -WindowStyle Hidden -PassThru -RedirectStandardOutput "$prefix.stdout.log" -RedirectStandardError "$prefix.stderr.log"
+$process = Start-Process -FilePath ([IO.Path]::GetFullPath("$prefix.exe")) -WorkingDirectory $rootPath -WindowStyle Hidden -PassThru -RedirectStandardOutput "$prefix.stdout.log" -RedirectStandardError "$prefix.stderr.log"
+            $null = $process.Handle
             if (!$process.WaitForExit(60000)) { $process.Kill(); $process.WaitForExit(); $code = -999 }
             else { $process.Refresh(); $code = $process.ExitCode }
         }
