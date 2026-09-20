@@ -2813,6 +2813,7 @@ static const XL6_OwnershipAdapterV1* xlModuleResolveOwnership(xrtownershipref re
     if ((adapter = xl6FutureAggregateOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xrtCancelOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xrtErrorOwnershipAdapterV1(ref)) != NULL) return adapter;
+    if ((adapter = xrtNetAddrListOwnershipAdapterV1(ref)) != NULL) return adapter;
     /* Unknown class/native policies and Future nodes still REFUSE before
      * Count/Trace. Known Handle bridges do not authorize opaque children. */
     return xrtValueOwnershipAdapterV1(ref);
@@ -2821,14 +2822,15 @@ static bool xlModuleResolveOwnershipV2(xrtownershipref ref, void* context,
     const XL6_OwnershipAdapterV1** lifecycle, const xrtownershippreparationv1** preparation)
 {
     const XL6_OwnershipAdapterV1* adapter;
-    const xfuturepayloadownershipv1* payloads[8];
-    const xfutureproducerownershipv1* producers[]={xl6FutureCallbackProducerPolicyV1Get(),xl6TaskProducerPolicyV1Get(),xrtTaskProducerPolicyV1Get(),xl6ContinuationProducerPolicyV1Get(),xrtFutureCombineProducerPolicyV1Get()};
+    const xfuturepayloadownershipv1* payloads[9];
+    const xfutureproducerownershipv1* producers[]={xl6FutureCallbackProducerPolicyV1Get(),xl6TaskProducerPolicyV1Get(),xrtTaskProducerPolicyV1Get(),xl6ContinuationProducerPolicyV1Get(),xrtFutureCombineProducerPolicyV1Get(),xrtNetResolverFutureProducerPolicyV1Get()};
     const xfuturewatchownershipv1* watches[]={xl6FutureCallbackWatchPolicyV1Get(),xl6TaskWatchPolicyV1Get(),xl6ContinuationWatchPolicyV1Get()};
     const xfuturewatchownershipv2* projectedWatches[]={xrtFutureCombineWatchPolicyV2Get()};
-    const xcancelwatchownershipv1* cancelWatches[]={xrtFutureCombineCancelPolicyV1Get(),xl6FutureCallbackCancelPolicyV1Get()};
+    const xcancelwatchownershipv1* cancelWatches[]={xrtFutureCombineCancelPolicyV1Get(),xl6FutureCallbackCancelPolicyV1Get(),xrtNetResolverFutureCancelPolicyV1Get()};
     const xfuturecombineownershipv1* aggregateMaps[]={xl6FutureAggregatePolicyV1Get()};
     const xtaskdataownershipv1* tasks[]={xl6TaskNativeDataPolicyV1Get()};
     const XL6_ContinuationStorageV2* queuedStorage[]={xl6ContinuationProducedStorageV2Get()};
+    const xnetresolveownershipv1* resolverRequests[]={xrtNetResolverFutureRequestPolicyV1Get()};
     if((adapter=xl6ContinuationExecutorOwnershipAdapterV1(ref,preparation))!=NULL){*lifecycle=adapter;return true;}
     if((adapter=xl6TaskPoolOwnershipAdapterV1(ref,preparation))!=NULL){*lifecycle=adapter;return true;}
     if((adapter=xrtTaskPoolOwnershipAdapterV1(ref,preparation))!=NULL){*lifecycle=adapter;return true;}
@@ -2843,10 +2845,15 @@ static bool xlModuleResolveOwnershipV2(xrtownershipref ref, void* context,
     if((adapter=xrtCancelOwnershipAdapterV2(ref,cancelWatches,sizeof(cancelWatches)/sizeof(*cancelWatches),preparation))!=NULL){*lifecycle=adapter;return true;}
     for(unsigned i=0;i<6;++i)payloads[i]=xl6PayloadPolicyGet((XL6_FuturePayloadKind)(XL6_FUTURE_PAYLOAD_VALUE+i));
     payloads[6]=xrtFutureCombineAllPayloadPolicyV1Get();payloads[7]=xrtFutureCombinePickPayloadPolicyV1Get();
-    const xfutureownershipadmissionv1 admission={sizeof(admission),payloads,8,
+    payloads[8]=xrtNetResolverFuturePayloadPolicyV1Get();
+    const xfutureownershipadmissionv1 admission={sizeof(admission),payloads,9,
         producers,sizeof(producers)/sizeof(*producers),watches,sizeof(watches)/sizeof(*watches),
         projectedWatches,1,cancelWatches,sizeof(cancelWatches)/sizeof(*cancelWatches)};
     if((adapter=xrtFutureOwnershipAdapterV4(ref,&admission,preparation))!=NULL){*lifecycle=adapter;return true;}
+    if((adapter=xrtNetResolverFutureOwnershipAdapterV1(ref,preparation))!=NULL){*lifecycle=adapter;return true;}
+    if((adapter=xrtNetResolveOpOwnershipAdapterV1(ref,resolverRequests,1,preparation))!=NULL){*lifecycle=adapter;return true;}
+    if((adapter=xrtNetResolverOwnershipAdapterV1(ref,NULL,0,preparation))!=NULL){*lifecycle=adapter;return true;}
+    if((adapter=xrtNetEngineOwnershipAdapterV1(ref,NULL,0,NULL,0,preparation))!=NULL){*lifecycle=adapter;return true;}
     adapter=xlModuleResolveOwnership(ref,context);
     if(!adapter)return false;
     *lifecycle=adapter;*preparation=NULL;return true;

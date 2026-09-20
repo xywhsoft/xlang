@@ -17,6 +17,8 @@ typedef struct XL6_NetworkServices {
     struct xnetresolver* resolver;
     XL6_NetworkServicePhase phase;
 } XL6_NetworkServices;
+typedef bool (*XL6_NetworkServiceOwnershipTrace)(const XL6_NetworkServices*,
+    XL6_ModuleOwnershipVisit, void*);
 typedef struct XL6_NetworkServiceRuntimeV1 {
     bool (*Initialize)(XL6_NetworkServices*);
     /* wait=false is a single nonwaiting step. wait=true retains the legacy
@@ -25,4 +27,16 @@ typedef struct XL6_NetworkServiceRuntimeV1 {
     bool (*IsEmpty)(const XL6_NetworkServices*);
 } XL6_NetworkServiceRuntimeV1;
 XL6_CODE_LEASE_API const XL6_NetworkServiceRuntimeV1* xl6NetworkServiceRuntimeV1Get(void);
+
+/* V1 remains an immutable compatibility ABI for already-generated artifacts.
+ * V2 adds the missing physical ownership view. Trace runs only under the host's
+ * whole-domain freeze and reports each installed creator slot exactly once;
+ * child admission/Count/Trace is still the ownership planner's responsibility. */
+typedef struct XL6_NetworkServiceRuntimeV2 {
+    bool (*Initialize)(XL6_NetworkServices*);
+    XL6_ModuleRetireResult (*Retire)(XL6_NetworkServices*, bool wait);
+    bool (*IsEmpty)(const XL6_NetworkServices*);
+    XL6_NetworkServiceOwnershipTrace Trace;
+} XL6_NetworkServiceRuntimeV2;
+XL6_CODE_LEASE_API const XL6_NetworkServiceRuntimeV2* xl6NetworkServiceRuntimeV2Get(void);
 #endif

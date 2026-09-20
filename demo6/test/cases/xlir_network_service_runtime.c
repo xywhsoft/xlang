@@ -2,7 +2,32 @@
 #include "src/runtime/xl6_network_service.h"
 #include <assert.h>
 #include <stdio.h>
-static const XL6_NetworkServiceRuntimeV1* api;
+static const XL6_NetworkServiceRuntimeV2* api;
+typedef struct TraceProbe { size_t edges; bool inspect; } TraceProbe;
+static bool trace_edge(xrtownershipref reference,void* data)
+{
+    TraceProbe* probe=data;size_t count;
+    if(reference.Data)++probe->edges;
+    return !probe->inspect || (reference.Data && reference.Ops && reference.Ops->Count &&
+        reference.Ops->Trace && reference.Ops->Count(reference.Data,&count));
+}
+static bool trace_services(const XL6_NetworkServices* services,bool inspect,size_t* edges)
+{
+    TraceProbe probe={0};probe.inspect=inspect;xrtownershipscope freeze={0};
+    if(!xrtOwnershipFreezeTryBegin(&freeze))return false;
+    bool result=api->Trace(services,trace_edge,&probe);
+    assert(xrtOwnershipScopeEnd(&freeze));if(edges)*edges=probe.edges;return result;
+}
+static bool wait_readable(const XL6_NetworkServices* services,size_t expectedEdges)
+{
+    xdeadline end=xrtDeadlineAfter(5000000);
+    for(;;){
+        size_t edges=0;
+        if(trace_services(services,true,&edges)&&edges==expectedEdges)return true;
+        if(xrtDeadlineExpired(end))return false;
+        xrtThreadYield();
+    }
+}
 typedef struct State {
     XL6_NetworkServices services;
     xatomic32 entered,release,done,tailEntered,tailRelease,tailDone,posts;
@@ -35,10 +60,12 @@ static void rejected_init(XL6_NetworkServices* s)
 static void pinned(void)
 {
     XL6_NetworkServices s={0};assert(api->Initialize(&s));
+    assert(wait_readable(&s,2));
     xnetengine* engine=s.engine;assert(xrtNetEnginePin(engine));
     xdeadline end=xrtDeadlineAfter(5000000);
     while(s.resolver){assert(api->Retire(&s,false)==XL6_MODULE_RETIRE_BUSY);assert(!xrtDeadlineExpired(end));xrtThreadYield();}
     assert(s.engine==engine);rejected_init(&s);
+    assert(wait_readable(&s,1));
     xrtSetErrorKind(XERR_STATE);const xerror* error=xrtGetError();assert(error);
     assert(xrtMemDebugFailAfter(0));
     for(unsigned i=0;i<64;++i){
@@ -69,6 +96,7 @@ static void worker(void)
     State s={0};assert(api->Initialize(&s.services));s.key=xrtThreadKeyCreate(tail);assert(s.key);
     xnetresolveop* op=xrtNetResolverResolve(s.services.resolver,"127.0.0.1",XNET_FAMILY_IPV4,resolved,&s);assert(op);
     wait_for(&s.entered);xnetresolver* resolver=s.services.resolver;rejected_init(&s.services);
+    size_t edges=0;assert(!trace_services(&s.services,true,&edges)&&edges>=1);
     for(unsigned i=0;i<64;++i)assert(api->Retire(&s.services,false)==XL6_MODULE_RETIRE_BUSY && s.services.resolver==resolver);
     xrtAtomic32Store(&s.release,1,XMEMORY_RELEASE);wait_for(&s.tailEntered);
     for(unsigned i=0;i<64;++i)assert(api->Retire(&s.services,false)==XL6_MODULE_RETIRE_BUSY && s.services.resolver==resolver);
@@ -122,7 +150,11 @@ static unsigned partial_failures(void)
 int main(void)
 {
     xmemdebugsnapshot before,after;assert(xrtMemDebugEnable(true));
-    api=xl6NetworkServiceRuntimeV1Get();assert(api);
+    const XL6_NetworkServiceRuntimeV1* v1=xl6NetworkServiceRuntimeV1Get();
+    api=xl6NetworkServiceRuntimeV2Get();assert(v1&&api&&v1->Initialize==api->Initialize&&
+        v1->Retire==api->Retire&&v1->IsEmpty==api->IsEmpty&&api->Trace);
+    XL6_NetworkServices invalid={0};invalid.phase=XL6_NETWORK_SERVICE_STARTING;
+    assert(!trace_services(&invalid,false,NULL));
     xrtSetErrorKind(XERR_STATE);xrtClearError();xrtMemDebugSnapshot(&before);
     for(unsigned i=0;i<12;++i){pinned();worker();failed_retirement();}
     unsigned partial=partial_failures();xrtClearError();xrtMemDebugSnapshot(&after);
