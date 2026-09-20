@@ -4,11 +4,11 @@
 
 ## 契约结论
 
-- XRT 核心公共函数：3035。
-- xruntime 产品公共函数：3486，其中扩展自有 451。
-- 低层能力：3486 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
+- XRT 核心公共函数：3082。
+- xruntime 产品公共函数：3533，其中扩展自有 451。
+- 低层能力：3533 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：1418 个函数。其余 2068 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：1429 个函数。其余 2104 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -28,7 +28,7 @@
 | xrt | `include/xrt/codec.h` | 20 | 6 | 14 |
 | xrt | `include/xrt/compress.h` | 18 | 0 | 18 |
 | xrt | `include/xrt/console.h` | 4 | 2 | 2 |
-| xrt | `include/xrt/core.h` | 14 | 10 | 4 |
+| xrt | `include/xrt/core.h` | 16 | 10 | 6 |
 | xrt | `include/xrt/coroutine.h` | 51 | 7 | 44 |
 | xrt | `include/xrt/crypto.h` | 122 | 46 | 76 |
 | xrt | `include/xrt/environment.h` | 4 | 1 | 3 |
@@ -38,7 +38,7 @@
 | xrt | `include/xrt/file.h` | 97 | 27 | 70 |
 | xrt | `include/xrt/file_async.h` | 34 | 18 | 16 |
 | xrt | `include/xrt/future.h` | 70 | 54 | 16 |
-| xrt | `include/xrt/future_bridge.h` | 8 | 0 | 8 |
+| xrt | `include/xrt/future_bridge.h` | 10 | 0 | 10 |
 | xrt | `include/xrt/hash.h` | 9 | 1 | 8 |
 | xrt | `include/xrt/html.h` | 3 | 0 | 3 |
 | xrt | `include/xrt/http.h` | 59 | 0 | 59 |
@@ -54,6 +54,7 @@
 | xrt | `include/xrt/http_upgrade.h` | 10 | 0 | 10 |
 | xrt | `include/xrt/io.h` | 42 | 0 | 42 |
 | xrt | `include/xrt/json.h` | 30 | 22 | 8 |
+| xrt | `include/xrt/jsonl.h` | 12 | 0 | 12 |
 | xrt | `include/xrt/list.h` | 28 | 0 | 28 |
 | xrt | `include/xrt/logger.h` | 76 | 23 | 53 |
 | xrt | `include/xrt/map.h` | 62 | 0 | 62 |
@@ -61,7 +62,7 @@
 | xrt | `include/xrt/memory.h` | 13 | 4 | 9 |
 | xrt | `include/xrt/memory_debug.h` | 11 | 0 | 11 |
 | xrt | `include/xrt/memory_stats.h` | 4 | 0 | 4 |
-| xrt | `include/xrt/net.h` | 174 | 32 | 142 |
+| xrt | `include/xrt/net.h` | 191 | 43 | 148 |
 | xrt | `include/xrt/net_file.h` | 4 | 0 | 4 |
 | xrt | `include/xrt/net_frame.h` | 9 | 0 | 9 |
 | xrt | `include/xrt/net_interface.h` | 12 | 4 | 8 |
@@ -88,7 +89,7 @@
 | xrt | `include/xrt/tcp_server.h` | 15 | 0 | 15 |
 | xrt | `include/xrt/temp.h` | 17 | 5 | 12 |
 | xrt | `include/xrt/template.h` | 32 | 18 | 14 |
-| xrt | `include/xrt/thread.h` | 22 | 16 | 6 |
+| xrt | `include/xrt/thread.h` | 23 | 16 | 7 |
 | xrt | `include/xrt/time.h` | 58 | 24 | 34 |
 | xrt | `include/xrt/tls.h` | 140 | 4 | 136 |
 | xrt | `include/xrt/tls_client.h` | 10 | 7 | 3 |
@@ -96,7 +97,7 @@
 | xrt | `include/xrt/tls_resume.h` | 7 | 2 | 5 |
 | xrt | `include/xrt/tls_server.h` | 9 | 6 | 3 |
 | xrt | `include/xrt/tls_session.h` | 29 | 15 | 14 |
-| xrt | `include/xrt/tls_stream.h` | 52 | 27 | 25 |
+| xrt | `include/xrt/tls_stream.h` | 53 | 27 | 26 |
 | xrt | `include/xrt/tls_verify.h` | 8 | 4 | 4 |
 | xrt | `include/xrt/udp.h` | 73 | 29 | 44 |
 | xrt | `include/xrt/value.h` | 140 | 111 | 29 |
@@ -107,6 +108,7 @@
 | xrt | `include/xrt/x509.h` | 89 | 6 | 83 |
 | xrt | `include/xrt/xid.h` | 11 | 3 | 8 |
 | xrt | `include/xrt/xson.h` | 35 | 29 | 6 |
+| xrt | `include/xrt/xsonl.h` | 12 | 0 | 12 |
 | xruntime | `extlibs/xruntime/include/xrt/runtime_call.h` | 25 | 25 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/runtime_convert.h` | 6 | 6 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/runtime_field.h` | 40 | 40 | 0 |

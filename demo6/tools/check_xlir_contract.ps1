@@ -4479,9 +4479,9 @@ if (!$header.Contains('XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1') -or
     !$source.Contains('XLIR module network service ABI is unresolved') -or
     !$cEmitter.Contains('xl_script_module_retirement_v4(void)') -or
     !$cEmitter.Contains('xl_script_module_retire_step(void)') -or
-    !$cEmitter.Contains('xl6NetworkServiceRuntimeV1Get()->Retire') -or
-    !$moduleTrace.Contains('IsEmpty(&xlir_network_services)') -or
-    $moduleTrace.IndexOf('IsEmpty(&xlir_network_services)') -gt $moduleTrace.IndexOf('xlir_module_initialized == 0') -or
+    !$cEmitter.Contains('xl6NetworkServiceRuntimeV2Get()->Retire') -or
+    !$moduleTrace.Contains('xl6NetworkServiceRuntimeV2Get()->Trace') -or
+    $moduleTrace.IndexOf('xl6NetworkServiceRuntimeV2Get()->Trace') -gt $moduleTrace.IndexOf('xlir_module_initialized == 0') -or
     !$api.Contains('invalid module retirement V4 contract') -or
     !$api.Contains('xl6OwnershipPlanTryCreateV3') -or !$api.Contains('xl6OwnershipPlanFinishV2') -or
     !$api.Contains('retired == XL6_MODULE_RETIRE_BUSY') -or
@@ -6247,8 +6247,9 @@ if (!$header.Contains('moduleTraceAbi') -or !$source.Contains('xl6IrModuleStorag
 $moduleTrace = Read-Utf8 'src/cgen/xl6_ir_cgen_module_trace.c'
 if (!$moduleTrace.Contains('moduleTraceAbi') -or !$moduleTrace.Contains('xl6IrCgenOwnershipView') -or
     !$moduleTrace.Contains('explicit opaque global storage') -or
-    !$moduleTrace.Contains('opaque live service ownership, including partial retirement') -or
-    !$moduleTrace.Contains('IsEmpty(&xlir_network_services)')) {
+    !$moduleTrace.Contains('xl6NetworkServiceRuntimeV2Get()->Trace') -or
+    !(Read-Utf8 'src/api/xl_api.c').Contains('xrtNetEngineOwnershipAdapterV1') -or
+    !(Read-Utf8 'src/api/xl_api.c').Contains('xrtNetResolverOwnershipAdapterV1')) {
     throw 'Module tracing must consume explicit physical slots and refuse unknown owners'
 }
 foreach ($file in @('src/runtime/xl6_code_lease.c','src/runtime/xl6_continuation_queue.c','src/cgen/xl6_ir_cgen_code_owner.c')) {

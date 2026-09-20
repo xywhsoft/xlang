@@ -165,7 +165,8 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ContinuationExecutorIsIdle", (const void*)xl6ContinuationExecutorIsIdle)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FrameStorageRuntimeV1Get", (const void*)xl6FrameStorageRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskRuntimeV1Get", (const void*)xl6TaskRuntimeV1Get)) return 0;
-    if (!xlApiAddTccSymbol(s, "xl6NetworkServiceRuntimeV1Get", (const void*)xl6NetworkServiceRuntimeV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6NetworkServiceRuntimeV1Get", (const void*)xl6NetworkServiceRuntimeV1Get) ||
+        !xlApiAddTccSymbol(s, "xl6NetworkServiceRuntimeV2Get", (const void*)xl6NetworkServiceRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskRuntimeV2Get", (const void*)xl6TaskRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskProducerPolicyV1Get", (const void*)xl6TaskProducerPolicyV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskNativeDataPolicyV1Get", (const void*)xl6TaskNativeDataPolicyV1Get)) return 0;

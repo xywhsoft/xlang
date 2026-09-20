@@ -47,7 +47,7 @@ $process=Start-Process -FilePath $binary -ArgumentList $mode -WindowStyle Hidden
     }
     $unchanged=@($inputs|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash-ne$_.Sha256}).Count-eq0
     $report=[pscustomobject]@{Complete=$unchanged-and$rows.Count-eq18-and@($rows|Where-Object {!$_.Complete}).Count-eq0;Inputs=$inputs;InputsUnchanged=$unchanged;Results=$rows;
-        Scope='18 typed lifecycle cases from 6 unmodified current-source generated programs, including phase-zero retained owners, retry, reinit exclusion and exact memory balance. Live network graphs deliberately refuse; not whole-goal acceptance.'}
+        Scope='18 typed lifecycle cases from 6 unmodified current-source generated programs, including phase-zero retained owners, retry, reinit exclusion and exact memory balance. Stable engine/resolver service edges are accepted; resolver callback and native transient states refuse child inspection. This proves retryable service-root lifecycle, not arbitrary open transport-object collection or DLL unload.'}
     [IO.File]::WriteAllText("$out/results.json",($report|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
     if(!$report.Complete){throw 'Typed service-step failures collected'}
 } finally {Pop-Location}

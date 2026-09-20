@@ -80,10 +80,47 @@ static XL6_ModuleRetireResult services_retire(XL6_NetworkServices* services, boo
     return XL6_MODULE_RETIRE_READY;
 }
 
+static bool services_trace(const XL6_NetworkServices* services,
+    XL6_ModuleOwnershipVisit visit, void* context)
+{
+    if (!services || !visit) return false;
+    switch (services->phase) {
+    case XL6_NETWORK_SERVICE_EMPTY:
+        return services->engine == NULL && services->resolver == NULL;
+    case XL6_NETWORK_SERVICE_STARTING:
+        return false;
+    case XL6_NETWORK_SERVICE_OPEN:
+        if (!services->engine || !services->resolver) return false;
+        break;
+    case XL6_NETWORK_SERVICE_RETIRING:
+        /* Initialization can fail before installing an engine. A resolver can
+         * never outlive its engine slot, while an engine-only tail is normal. */
+        if (services->resolver && !services->engine) return false;
+        break;
+    default:
+        return false;
+    }
+    /* Preserve service retirement order. These are the actual creator slots,
+     * not inferred worker/object counts or borrowed native handles. */
+    if (services->resolver &&
+        !visit(xrtNetResolverOwnership(services->resolver), context)) return false;
+    if (services->engine &&
+        !visit(xrtNetEngineOwnership(services->engine), context)) return false;
+    return true;
+}
+
 const XL6_NetworkServiceRuntimeV1* xl6NetworkServiceRuntimeV1Get(void)
 {
     static const XL6_NetworkServiceRuntimeV1 api = {
         services_initialize, services_retire, services_empty
+    };
+    return &api;
+}
+
+const XL6_NetworkServiceRuntimeV2* xl6NetworkServiceRuntimeV2Get(void)
+{
+    static const XL6_NetworkServiceRuntimeV2 api = {
+        services_initialize, services_retire, services_empty, services_trace
     };
     return &api;
 }

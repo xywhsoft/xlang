@@ -35,7 +35,8 @@ int main(void)
         assert(xl6OutputOpenMemory(&out) && xl6IrCgenEmitCEx(&out,&ir,&parse.diags,&options));
         text=xl6OutputTakeMemoryText(&out,NULL);
         assert(text && strstr(text,"xl_script_module_retirement_v4(void)") && strstr(text,"xl_script_module_retire_step(void)") &&
-            strstr(text,"xl6NetworkServiceRuntimeV1Get()->IsEmpty(&xlir_network_services)") &&
+            strstr(text,"xl6NetworkServiceRuntimeV2Get()->Trace(") &&
+            strstr(text,"&xlir_network_services, visit, context") &&
             !strstr(text,"xl_script_module_retirement_v3(void)") && !strstr(text,"xl6_net_runtime_unit("));xrtFree(text);
         assert(xl6OutputOpenMemory(&out));xl6IrDumpModuleText(&out,&ir);text=xl6OutputTakeMemoryText(&out,NULL);
         assert(text && strstr(text,"module-network-service: 1\n"));xrtFree(text);

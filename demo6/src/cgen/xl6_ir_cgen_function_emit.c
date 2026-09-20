@@ -63,7 +63,7 @@ static int xl6IrCgenEmitFunction(
                            "    if (xlir_module_initialized != 0) return 0;\n", out);
         else xl6OutputPuts("    if (xlir_module_initialized) return 1;\n", out);
         if (initializeNet)
-            xl6OutputPuts("    if (!xl6NetworkServiceRuntimeV1Get()->IsEmpty(&xlir_network_services)) {\n"
+            xl6OutputPuts("    if (!xl6NetworkServiceRuntimeV2Get()->IsEmpty(&xlir_network_services)) {\n"
                 "        xrtSetErrorKind(XERR_STATE); return 0; }\n", out);
         if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
             xl6OutputPuts("    xlir_continuation_executor = xl6ContinuationExecutorCreateGuaranteed(XLIR_CONTINUATION_CAPACITY, 1);\n"

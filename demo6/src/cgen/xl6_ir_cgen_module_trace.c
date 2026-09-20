@@ -11,8 +11,8 @@ static int xl6IrCgenEmitModuleOwnershipTrace(XL6_Output* out,
     if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
         xl6OutputPuts("    if (xlir_module_initializing) return false;\n", out);
     if (module->abi.networkServiceAbi == XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1)
-        xl6OutputPuts("    if (!xl6NetworkServiceRuntimeV1Get()->IsEmpty(&xlir_network_services))\n"
-            "        return false; /* opaque live service ownership, including partial retirement */\n", out);
+        xl6OutputPuts("    if (!xl6NetworkServiceRuntimeV2Get()->Trace(\n"
+            "        &xlir_network_services, visit, context)) return false;\n", out);
     xl6OutputPuts("    if (xlir_module_initialized == 0) return true;\n", out);
     if (module->abi.finalizerFunction != 0)
         /* After the initializer callback returns, phase 1 is a stable partial
