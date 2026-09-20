@@ -5911,9 +5911,9 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueCount(
 }
 
 /* Safe collection length has two frontend-fixed result carriers.  Both
- * RuntimeOps borrow the receiver; an rvalue receiver is anchored and released
- * explicitly after the count so Cgen never reconstructs temporary ownership
- * from source syntax. */
+ * RuntimeOps borrow the receiver; an owned receiver participates in the shared
+ * evaluation-owner transaction so every success and failure edge closes the
+ * same storage lifetime before Cgen sees it. */
 static XL6_IrValueId xl6IrLowerRuntimeXValueSafeCount(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* node)
 {
@@ -5923,7 +5923,7 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueSafeCount(
     XL6_IrRuntimeOp operation;
     XL6_IrValueId receiverValue;
     XL6_IrValueId result;
-    XL6_SymbolId receiverTemporary = 0;
+    size_t evaluationFirst;
     if ( ctx == NULL || node == NULL || node->kind != XL6_IR_NODE_MEMBER ||
          node->sourceKind != XL6_AST_SAFE_MEMBER || node->childCount != 1 ||
          node->text == NULL || strcmp(node->text, "length") != 0 )
@@ -5952,17 +5952,17 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueSafeCount(
         operation = XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL;
     else
         return XL6_IR_VALUE_INVALID;
+    evaluationFirst = ctx->evaluationOwnerCount;
     receiverValue = xl6IrLowerNode(
         ctx, ctx->module->children[node->firstChild]);
-    receiverValue = xl6IrLowerBorrowRuntimeXValueOperand(
-        ctx, origin, receiver, receiverValue, &receiverTemporary);
+    receiverValue = xl6IrLowerProtectOwnedBorrow(
+        ctx, origin, receiverValue);
     if ( receiverValue == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
     result = xl6IrLowerEmitRuntimeCall(
         ctx, origin, node->storageType, operation, &receiverValue, 1);
     if ( result == XL6_IR_VALUE_INVALID ||
-         (receiverTemporary != 0 && !xl6IrLowerEmit(
-              ctx, XL6_IR_INSTR_RELEASE, origin, receiver->storageType,
-              receiverTemporary, NULL, 0, NULL)) )
+         !xl6IrLowerCompleteEvaluationBorrows(
+             ctx, origin, evaluationFirst, &result) )
         return XL6_IR_VALUE_INVALID;
     return result;
 }
@@ -5982,7 +5982,7 @@ static XL6_IrValueId xl6IrLowerSafeClassFieldProject(
     XL6_IrValueId borrowed;
     XL6_IrValueId result;
     XL6_IrInstruction* lookup;
-    XL6_SymbolId receiverTemporary = 0;
+    size_t evaluationFirst;
     char* keyLiteral;
     if ( ctx == NULL || node == NULL || node->kind != XL6_IR_NODE_MEMBER ||
          node->sourceKind != XL6_AST_SAFE_MEMBER || node->childCount != 1 ||
@@ -6007,10 +6007,11 @@ static XL6_IrValueId xl6IrLowerSafeClassFieldProject(
          classType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
          classType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED )
         return XL6_IR_VALUE_INVALID;
+    evaluationFirst = ctx->evaluationOwnerCount;
     receiverValue = xl6IrLowerNode(
         ctx, ctx->module->children[node->firstChild]);
-    receiverValue = xl6IrLowerBorrowRuntimeXValueOperand(
-        ctx, origin, receiver, receiverValue, &receiverTemporary);
+    receiverValue = xl6IrLowerProtectOwnedBorrow(
+        ctx, origin, receiverValue);
     if ( receiverValue == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
     keyLiteral = xl6IrLowerCanonicalCStringBytes(node->text);
     if ( keyLiteral == NULL ) return XL6_IR_VALUE_INVALID;
@@ -6026,9 +6027,8 @@ static XL6_IrValueId xl6IrLowerSafeClassFieldProject(
     result = xl6IrLowerProjectBorrowedXValueAsNullable(
         ctx, origin, borrowed, node->storageType);
     if ( result == XL6_IR_VALUE_INVALID ||
-         (receiverTemporary != 0 && !xl6IrLowerEmit(
-              ctx, XL6_IR_INSTR_RELEASE, origin, receiver->storageType,
-              receiverTemporary, NULL, 0, NULL)) )
+         !xl6IrLowerCompleteEvaluationBorrows(
+             ctx, origin, evaluationFirst, &result) )
         return XL6_IR_VALUE_INVALID;
     return result;
 }
@@ -11264,6 +11264,7 @@ static XL6_IrAsyncResultAbi xl6IrLowerAsyncResultAbi(
     case XL6_IR_C_ABI_TAGGED_NULLABLE: return XL6_IR_ASYNC_RESULT_COPY_TAGGED;
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_ERROR;
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_FUTURE;
+    case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR;
     default: return XL6_IR_ASYNC_RESULT_INVALID;
     }
 }
@@ -14578,6 +14579,8 @@ static XL6_IrNodeId xl6IrLowerSpecializationCloneNode(
     target->storageType = xl6IrLowerSpecializationSubstituteType(build, source.storageType);
     target->declarationOwnerType =
         xl6IrLowerSpecializationSubstituteType(build, source.declarationOwnerType);
+    target->implicitReceiverType =
+        xl6IrLowerSpecializationSubstituteType(build, source.implicitReceiverType);
     target->typeValueTarget =
         xl6IrLowerSpecializationSubstituteType(build, source.typeValueTarget);
     target->namedCallableSignatureType =
@@ -14585,6 +14588,8 @@ static XL6_IrNodeId xl6IrLowerSpecializationCloneNode(
             build, source.namedCallableSignatureType);
     if ( (source.declarationOwnerType != XL6_IR_TYPE_INVALID &&
           target->declarationOwnerType == XL6_IR_TYPE_INVALID) ||
+         (source.implicitReceiverType != XL6_IR_TYPE_INVALID &&
+          target->implicitReceiverType == XL6_IR_TYPE_INVALID) ||
          (source.type != XL6_IR_TYPE_INVALID && target->type == XL6_IR_TYPE_INVALID) ||
          (source.storageType != XL6_IR_TYPE_INVALID && target->storageType == XL6_IR_TYPE_INVALID) ||
          (source.typeValueTarget != XL6_IR_TYPE_INVALID &&
@@ -23639,7 +23644,6 @@ static int xl6IrLowerIntrinsicRuntimeResource(
         XL6_IR_VALUE_INVALID, XL6_IR_VALUE_INVALID,
         XL6_IR_VALUE_INVALID, XL6_IR_VALUE_INVALID
     };
-    XL6_IrValueId loaded;
     XL6_IrRuntimeOp runtimeOp;
     XL6_IrInstruction* runtimeInstruction;
     size_t runtimeInstructionIndex;
@@ -23747,25 +23751,17 @@ static int xl6IrLowerIntrinsicRuntimeResource(
             ok = 0;
             break;
         }
-        if ( bindings[i].abi == XL6_IR_INTRINSIC_OPERAND_BORROW &&
-             (source->valueCategory == XL6_IR_VALUE_RVALUE ||
-              bindings[i].type != source->storageType) ) {
-            XL6_SymbolId temporary = xl6IrLowerNewTempStorage(
-                ctx, bindings[i].type, id);
-            if ( temporary == 0 ||
-                 !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE,
-                     bindings[i].expression, bindings[i].type,
-                     temporary, &operands[i], 1, NULL) ||
-                 !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD,
-                     bindings[i].expression, bindings[i].type,
-                     temporary, NULL, 0, &loaded) ||
-                 !xl6IrLowerProtectEvaluationStorage(
-                     ctx, bindings[i].expression, temporary,
-                     loaded, 0, 0) ) {
+        if ( bindings[i].abi == XL6_IR_INTRINSIC_OPERAND_BORROW ) {
+            /* Borrow lifetime follows the lowered value's owner, not the AST
+             * rvalue category.  In particular, a may-raise call result has
+             * already crossed an outcome CFG before it reaches this operand;
+             * reusing the pre-outcome SSA token would be a second transfer. */
+            operands[i] = xl6IrLowerProtectOwnedBorrow(
+                ctx, bindings[i].expression, operands[i]);
+            if ( operands[i] == XL6_IR_VALUE_INVALID ) {
                 ok = 0;
                 break;
             }
-            operands[i] = loaded;
         }
     }
     if ( !ok ) goto done;
@@ -26211,6 +26207,7 @@ static XL6_IrClosureTarget* xl6IrLowerRegisterNamedAdapter(
           (signature->parameterModes == NULL || signature->parameterAbis == NULL)) ||
          target == NULL ||
          (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
+          target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR &&
           target->kind != XL6_IR_CALL_TARGET_EXTERN_C) ||
          (target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
           target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
@@ -30556,6 +30553,7 @@ static int xl6IrLowerBeginNamedAdapterFunction(
          signature == NULL || signature->kind != XL6_IR_TYPE_FUNCTION ||
          target == NULL ||
          (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
+          target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR &&
           target->kind != XL6_IR_CALL_TARGET_EXTERN_C) ||
          (target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
           target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
@@ -30752,7 +30750,11 @@ static int xl6IrLowerNamedAdapterBody(
      * consuming call. A LOAD alone is a borrow, not permission to consume.
      * Default temporaries use the same commit as incoming parameter slots. */
     if (!xl6IrLowerCommitEvaluationOwners(ctx, closure->declaration, first)) goto done;
-    if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CALL, closure->declaration,
+    if ( !xl6IrLowerEmit(ctx,
+                          target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR
+                              ? XL6_IR_INSTR_GENERATOR_START
+                              : XL6_IR_INSTR_CALL,
+                          closure->declaration,
                           target->returnType, target->symbol,
                           operands, target->parameterCount,
                           target->returnType == XL6_IR_TYPE_INVALID &&

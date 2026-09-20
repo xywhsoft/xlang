@@ -3,4 +3,10 @@ func nums() as generator<int>
 end
 
 func() as generator<int> job = nums
-task.spawn(job)
+future<generator<int>> pending = task.spawn(job)
+generator<int> values = await pending
+int total = 0
+for value in values
+    total = total + value
+end
+assert total == 1, "task.spawn must preserve generator payload ownership through Future await"

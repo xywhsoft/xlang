@@ -25,7 +25,9 @@ typedef enum XL6_FuturePayloadKind {
     XL6_FUTURE_PAYLOAD_XVALUE,
     XL6_FUTURE_PAYLOAD_ERROR,
     XL6_FUTURE_PAYLOAD_FUTURE,
-    XL6_FUTURE_PAYLOAD_CLOSURE
+    XL6_FUTURE_PAYLOAD_CLOSURE,
+    XL6_FUTURE_PAYLOAD_GENERATOR,
+    XL6_FUTURE_PAYLOAD_COUNT
 } XL6_FuturePayloadKind;
 typedef void (*XL6_FuturePayloadDrop)(void*, void*);
 /* Obtain the actual resident address, not a function address which the linker

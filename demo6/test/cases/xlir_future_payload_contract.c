@@ -64,11 +64,13 @@ int main(int argc, char** argv)
     assert(!xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_INVALID));
     assert(!xl6PayloadDropGet((XL6_FuturePayloadKind)-1));
     assert(xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_CLOSURE));
-    assert(!xl6PayloadDropGet((XL6_FuturePayloadKind)7));
+    assert(xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_GENERATOR));
+    assert(!xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_COUNT));
     assert(!xl6PayloadTraceGet(XL6_FUTURE_PAYLOAD_INVALID));
     assert(!xl6PayloadTraceGet((XL6_FuturePayloadKind)-1));
     assert(xl6PayloadTraceGet(XL6_FUTURE_PAYLOAD_CLOSURE));
-    assert(!xl6PayloadTraceGet((XL6_FuturePayloadKind)7));
+    assert(xl6PayloadTraceGet(XL6_FUTURE_PAYLOAD_GENERATOR));
+    assert(!xl6PayloadTraceGet(XL6_FUTURE_PAYLOAD_COUNT));
     if (!smoke) assert(xrtMemDebugEnable(true));
     observe_outcomes(smoke);
     for (round = 0; round < 100; ++round) for (kind = 0; kind < 5; ++kind) for (lane = 0; lane < 3; ++lane) {

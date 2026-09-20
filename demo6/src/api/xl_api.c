@@ -2821,8 +2821,12 @@ static const XL6_OwnershipAdapterV1* xlModuleResolveOwnership(xrtownershipref re
 static bool xlModuleResolveOwnershipV2(xrtownershipref ref, void* context,
     const XL6_OwnershipAdapterV1** lifecycle, const xrtownershippreparationv1** preparation)
 {
+    enum {
+        XL6_RESIDENT_PAYLOAD_COUNT =
+            XL6_FUTURE_PAYLOAD_COUNT - XL6_FUTURE_PAYLOAD_VALUE
+    };
     const XL6_OwnershipAdapterV1* adapter;
-    const xfuturepayloadownershipv1* payloads[9];
+    const xfuturepayloadownershipv1* payloads[XL6_RESIDENT_PAYLOAD_COUNT + 3];
     const xfutureproducerownershipv1* producers[]={xl6FutureCallbackProducerPolicyV1Get(),xl6TaskProducerPolicyV1Get(),xrtTaskProducerPolicyV1Get(),xl6ContinuationProducerPolicyV1Get(),xrtFutureCombineProducerPolicyV1Get(),xrtNetResolverFutureProducerPolicyV1Get()};
     const xfuturewatchownershipv1* watches[]={xl6FutureCallbackWatchPolicyV1Get(),xl6TaskWatchPolicyV1Get(),xl6ContinuationWatchPolicyV1Get()};
     const xfuturewatchownershipv2* projectedWatches[]={xrtFutureCombineWatchPolicyV2Get()};
@@ -2843,10 +2847,13 @@ static bool xlModuleResolveOwnershipV2(xrtownershipref ref, void* context,
     if((adapter=xrtFutureCombineOwnershipAdapterV1(ref,aggregateMaps,1,preparation))!=NULL){*lifecycle=adapter;return true;}
     if((adapter=xrtCancelWatchOwnershipAdapterV1(ref,cancelWatches,sizeof(cancelWatches)/sizeof(*cancelWatches),preparation))!=NULL){*lifecycle=adapter;return true;}
     if((adapter=xrtCancelOwnershipAdapterV2(ref,cancelWatches,sizeof(cancelWatches)/sizeof(*cancelWatches),preparation))!=NULL){*lifecycle=adapter;return true;}
-    for(unsigned i=0;i<6;++i)payloads[i]=xl6PayloadPolicyGet((XL6_FuturePayloadKind)(XL6_FUTURE_PAYLOAD_VALUE+i));
-    payloads[6]=xrtFutureCombineAllPayloadPolicyV1Get();payloads[7]=xrtFutureCombinePickPayloadPolicyV1Get();
-    payloads[8]=xrtNetResolverFuturePayloadPolicyV1Get();
-    const xfutureownershipadmissionv1 admission={sizeof(admission),payloads,9,
+    for(unsigned i=0;i<XL6_RESIDENT_PAYLOAD_COUNT;++i)
+        payloads[i]=xl6PayloadPolicyGet((XL6_FuturePayloadKind)(XL6_FUTURE_PAYLOAD_VALUE+i));
+    payloads[XL6_RESIDENT_PAYLOAD_COUNT]=xrtFutureCombineAllPayloadPolicyV1Get();
+    payloads[XL6_RESIDENT_PAYLOAD_COUNT+1]=xrtFutureCombinePickPayloadPolicyV1Get();
+    payloads[XL6_RESIDENT_PAYLOAD_COUNT+2]=xrtNetResolverFuturePayloadPolicyV1Get();
+    const xfutureownershipadmissionv1 admission={sizeof(admission),payloads,
+        sizeof(payloads)/sizeof(*payloads),
         producers,sizeof(producers)/sizeof(*producers),watches,sizeof(watches)/sizeof(*watches),
         projectedWatches,1,cancelWatches,sizeof(cancelWatches)/sizeof(*cancelWatches)};
     if((adapter=xrtFutureOwnershipAdapterV4(ref,&admission,preparation))!=NULL){*lifecycle=adapter;return true;}

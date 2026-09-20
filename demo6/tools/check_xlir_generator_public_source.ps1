@@ -4,7 +4,7 @@ $ErrorActionPreference='Stop'
 $manifest=Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw | ConvertFrom-Json
 $outputPath=[IO.Path]::GetFullPath((Join-Path (Get-Location) $Directory))
 if (Test-Path -LiteralPath $outputPath) { throw 'Preserve prior public generator evidence' }
-$cases=@('cgen_generator','xlir_generator_ownership_public')
+$cases=@('cgen_generator','xlir_generator_ownership_public','sem_task_spawn_return_generator')
 $filePaths=@($PSCommandPath)+@($cases | ForEach-Object {"test/cases/$_.xl"})
 $inputs=@($manifest.Inputs)+@($manifest.Headers)+@([pscustomobject]@{Path=$manifest.Driver;Sha256=$manifest.DriverSha256})+
     @(Get-Item -LiteralPath $filePaths | ForEach-Object {
@@ -35,7 +35,7 @@ $process=Start-Process -FilePath $manifest.Driver -ArgumentList @("test/cases/$c
 }
 $unchanged=@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count -eq 0
 $report=[pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Inputs=$inputs;InputsUnchanged=$unchanged;Results=$results;
-    Scope='Current-source public default Cgen, deterministic C/header/IR, xlcRun and relocated-module execution of original generator assertions and nested/yielded-error/async consumer paths. Does not replace packaged CLI/DLL/AOT or automatic module-lifetime gates.'}
+    Scope='Current-source public default Cgen, deterministic C/header/IR, xlcRun and relocated-module execution of original generator assertions, nested/yielded-error/async consumer paths, and retained generator payload transfer through task.spawn/Future/AWAIT. Does not replace packaged CLI/DLL/AOT or automatic module-lifetime gates.'}
 [IO.File]::WriteAllText("$outputPath/results.json",($report | ConvertTo-Json -Depth 7),[Text.UTF8Encoding]::new($false))
 if (!$unchanged -or @($results | Where-Object {!$_.Deterministic}).Count -or
     @($results.Phases | Where-Object {$_.Exit -ne 0 -or !$_.Complete}).Count) { throw 'Public generator source batch failed; inspect all phases' }

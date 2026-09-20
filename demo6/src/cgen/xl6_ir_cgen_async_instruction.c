@@ -65,6 +65,7 @@ static int xl6IrCgenAsyncResultDrop(XL6_IrAsyncResultAbi abi, const char** relea
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE: *release = "xlir_closure_release"; return 1;
     case XL6_IR_ASYNC_RESULT_RETAINED_ERROR: *release = "xrtErrorFree"; return 1;
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE: *release = "xrtFutureDestroy"; return 1;
+    case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR: *release = "xlir_generator_destroy"; return 1;
     default: return 0;
     }
 }
