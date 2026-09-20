@@ -19046,7 +19046,8 @@ static int xl6IrForeignResultOwnershipMatches(
         module, factory->resultPhysicalDestroySymbol) : NULL;
     if (field == NULL || factory->resultPhysicalAbi !=
             XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE ||
-        factory->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ||
+        (factory->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE &&
+         factory->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR) ||
         factory->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
         call->type != field->type || destroy == NULL ||
         destroy->returnType != XL6_IR_TYPE_INVALID || destroy->parameterCount != 1 ||
@@ -25668,6 +25669,7 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
 
 #include "src/ir/xl6_ir_direct_bridge.c"
 #include "src/ir/xl6_ir_net_datagram_bridge.c"
+#include "src/ir/xl6_ir_xlang_bridge.c"
 
 int xl6IrDynamicFieldsRuntimeBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target)
@@ -25797,7 +25799,10 @@ static int xl6IrRuntimeBridgeTargetMatches(
     if ( xl6IrRuntimeDirectBridgeKind(target->cName) !=
              XL6_IR_RUNTIME_BRIDGE_NONE ) reserved = 1;
     if (xl6IrRuntimeNetDatagramBridgeKind(target->cName) != XL6_IR_RUNTIME_BRIDGE_NONE) reserved = 1;
+    if (xl6IrRuntimeXlangBridgeName(target->cName)) reserved = 1;
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ) return !reserved;
+    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLANG )
+        return xl6IrRuntimeXlangBridgeTargetMatches(module, target);
     if (module->stage == XL6_IR_STAGE_LOWERED && target->reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
         target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NET_TCP_STREAM && target->parameterTypes != NULL) {
         size_t p;
@@ -41019,6 +41024,7 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_NET_ENGINE_STATS: return "net-engine-stats";
     case XL6_IR_RUNTIME_BRIDGE_NET_RESOLVER_STATS: return "net-resolver-stats";
     case XL6_IR_RUNTIME_BRIDGE_NET_UDP_STATS: return "net-udp-stats";
+    case XL6_IR_RUNTIME_BRIDGE_XLANG: return "xlang";
     case XL6_IR_RUNTIME_BRIDGE_STRING_STARTS_WITH: return "string-starts-with";
     case XL6_IR_RUNTIME_BRIDGE_STRING_ENDS_WITH: return "string-ends-with";
     case XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT: return "string-split";

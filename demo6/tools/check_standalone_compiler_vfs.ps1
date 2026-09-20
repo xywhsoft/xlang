@@ -74,6 +74,19 @@ end
     $embeddedXlangSource,
     [System.Text.UTF8Encoding]::new($false))
 
+$embeddedCompilerSource = @'
+import xlang.compiler
+
+func main(...) as int
+    println("standalone_xlang_compiler=ok")
+    return 0
+end
+'@
+[System.IO.File]::WriteAllText(
+    (Join-Path $testDir "embedded_xlang_compiler.xl"),
+    $embeddedCompilerSource,
+    [System.Text.UTF8Encoding]::new($false))
+
 $savedLocation = Get-Location
 try {
     Set-Location -LiteralPath $testDir
@@ -109,6 +122,20 @@ try {
     if ( [string]::Join([Environment]::NewLine, @($embedRunOutput)).IndexOf("standalone_xlang_embed=ok") -lt 0 ) {
         throw "standalone embedded xlang output mismatch: $([string]::Join([Environment]::NewLine, @($embedRunOutput)))"
     }
+    $compilerBuildOutput = & ".\xl.exe" build "embedded_xlang_compiler.xl" 2>&1
+    if ( $LASTEXITCODE -ne 0 ) {
+        throw "standalone embedded xlang compiler build failed: $([string]::Join([Environment]::NewLine, @($compilerBuildOutput)))"
+    }
+    if ( Test-Path -LiteralPath ".\embedded_xlang_compiler.def" ) {
+        throw "standalone embedded xlang compiler EXE unexpectedly emitted embedded_xlang_compiler.def"
+    }
+    $compilerRunOutput = & ".\embedded_xlang_compiler.exe" 2>&1
+    if ( $LASTEXITCODE -ne 0 ) {
+        throw "standalone embedded xlang compiler exe failed: $([string]::Join([Environment]::NewLine, @($compilerRunOutput)))"
+    }
+    if ( [string]::Join([Environment]::NewLine, @($compilerRunOutput)).IndexOf("standalone_xlang_compiler=ok") -lt 0 ) {
+        throw "standalone embedded xlang compiler output mismatch: $([string]::Join([Environment]::NewLine, @($compilerRunOutput)))"
+    }
     $completed = $true
 } finally {
     Set-Location -LiteralPath $savedLocation
@@ -118,4 +145,4 @@ if ( $completed ) {
     Remove-Item -LiteralPath $testDir -Recurse -Force
 }
 
-Write-Host "Standalone compiler VFS ok: public headers and embedded xlang runtime work without repository files."
+Write-Host "Standalone compiler VFS ok: public headers and embedded xlang runtime/compiler work without repository files."

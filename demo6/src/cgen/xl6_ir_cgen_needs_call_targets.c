@@ -86,6 +86,8 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsXValueCountRuntime = 1;
             needs->needsStringRuntime = 1;
             needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XLANG ) {
+            needs->needsXlangRuntime = 1;
         } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_WRITE ) {
             needs->textOutputBridgeOperations |= XL6_CGEN_TEXT_OUTPUT_WRITE;
         } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_WRITELN ) {

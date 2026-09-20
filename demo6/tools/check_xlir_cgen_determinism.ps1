@@ -70,6 +70,10 @@ $expectedLoweringFailures = [ordered]@{
         "XLIR direct runtime bridge has no exact declared ABI"
     "bad_xlir_direct_bridge_width.xl" =
         "XLIR direct runtime bridge has no exact declared ABI"
+    "bad_xlir_xlang_bridge_input.xl" =
+        "XLIR xlang compiler-embedding bridge has no exact class-handle/string/value ABI"
+    "bad_xlir_xlang_bridge_result.xl" =
+        "XLIR xlang compiler-embedding bridge has no exact class-handle/string/value ABI"
     "bad_xlir_json_stream_wrong_callback.xl" =
         "XLIR JSON stream runtime bridge has no exact callback/handle ABI"
     "bad_xlir_json_stream_wrong_callback_result.xl" =

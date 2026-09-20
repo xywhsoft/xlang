@@ -14,6 +14,7 @@ $runtimeHeaderPath = Join-Path $Root "release\include\xl_runtime.h"
 $extlibAbiHeaderPath = Join-Path $Root "release\include\xl_extlib_abi.h"
 $apiPath = Join-Path $Root "src\api\xl_api.c"
 $apiSymbolsPath = Join-Path $Root "src\api\xl_api_symbols.c"
+$futureBridgePath = Join-Path $Root "src\api\xl_future_bridge.c"
 $xrtSymbolsPath = Join-Path $Root "src\api\xl_xrt_symbols.inc"
 $cgenRuntimePath = Join-Path $Root "src\cgen\xl6_cgen_runtime.c"
 $cgenModulePath = Join-Path $Root "src\cgen\xl6_cgen_module.c"
@@ -275,6 +276,7 @@ if ( $failures.Count -eq 0 ) {
     $publicHeaders = $header + "`n" + $xlcHeader
     $api = Read-Utf8Text $apiPath
     $apiSymbols = Read-Utf8Text $apiSymbolsPath
+    $futureBridge = Read-Utf8Text $futureBridgePath
     $xrtSymbols = Read-Utf8Text $xrtSymbolsPath
     $cgenRuntime = Read-Utf8Text $cgenRuntimePath
     $cgenModule = Read-Utf8Text $cgenModulePath
@@ -661,6 +663,35 @@ foreach ( $required in @("include", "include/xl.h", "include/xlc.h", "include/__
     }
     if ( Test-ManifestVirtual $compilerManifestEntries "lib/xrt/xrt.o" ) {
         Add-Failure "compiler VFS manifest must use xrt.h and must not embed xrt.o"
+    }
+    if ( $futureBridge -notmatch '#include\s+"include/xruntime_decl[.]h"' -or
+         $futureBridge -match '#include\s+"release/include/xruntime_decl[.]h"' ) {
+        Add-Failure "embedded compiler sources must use the private compiler include root for xruntime declarations"
+    }
+    $embeddedRuntimeSources = [regex]::Match(
+        $api, '(?s)static const char\* runtimeSources\[\]\s*=\s*\{(?<body>.*?)\};\s*static const char\* compilerSources')
+    $embeddedCompilerSources = [regex]::Match(
+        $api, '(?s)static const char\* compilerSources\[\]\s*=\s*\{(?<body>.*?)\};')
+    if ( !$embeddedRuntimeSources.Success -or
+         !$embeddedRuntimeSources.Groups['body'].Value.Contains('"src/cgen/xl6_cgen_shared_runtime.c"') -or
+         !$embeddedRuntimeSources.Groups['body'].Value.Contains('"src/api/xl_foreign_error.c"') ) {
+        Add-Failure "embedded xlang runtime must carry shared XLIR Cgen and foreign-error implementations"
+    }
+    if ( !$embeddedCompilerSources.Success -or
+         !$embeddedCompilerSources.Groups['body'].Value.Contains('"src/resource/xl6_win_resource.c"') ) {
+        Add-Failure "embedded xlang compiler must carry the platform resource implementation"
+    }
+    $compilerVfsDefine = '-DXL6_COMPILER_SOURCE_VFS'
+    $xlangRuntimeStart = $api.IndexOf('static int xlAddEmbeddedXlangRuntimeSources')
+    $xlangRuntimeEnd = if ( $xlangRuntimeStart -ge 0 ) {
+        $api.IndexOf("`nstatic ", $xlangRuntimeStart + 1)
+    } else { -1 }
+    $compilerVfsDefineIndex = $api.IndexOf($compilerVfsDefine)
+    if ( ([regex]::Matches($api, [regex]::Escape($compilerVfsDefine))).Count -ne 1 -or
+         $xlangRuntimeStart -lt 0 -or $xlangRuntimeEnd -le $xlangRuntimeStart -or
+         $compilerVfsDefineIndex -le $xlangRuntimeStart -or
+         $compilerVfsDefineIndex -ge $xlangRuntimeEnd ) {
+        Add-Failure "compiler-source VFS mode must be scoped exactly to embedded xlang runtime compilation"
     }
     if ( $runtimeManifest -notmatch 'XRT/xruntime functions are provided by tcc_add_symbol' ) {
         Add-Failure "runtime VFS manifest must document that XRT/xruntime is provided by symbols"

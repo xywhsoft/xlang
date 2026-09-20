@@ -12,6 +12,7 @@
 #include "src/cgen/xl6_cgen_text_output.h"
 #include "src/cgen/xl6_cgen_tls.h"
 #include "src/cgen/xl6_cgen_websocket.h"
+#include "src/cgen/xl6_cgen_xlang.h"
 
 /* Generated-program runtime components shared by the legacy and XLIR C
  * backends.  Keep these emitters in an ordinary translation unit so either
@@ -36,3 +37,4 @@
 #include "src/cgen/xl6_cgen_net_datagram.c"
 #include "src/cgen/xl6_cgen_tls.c"
 #include "src/cgen/xl6_cgen_websocket.c"
+#include "src/cgen/xl6_cgen_xlang_runtime.c"

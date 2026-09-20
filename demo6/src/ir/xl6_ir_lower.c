@@ -11577,6 +11577,14 @@ static int xl6IrLowerResolveRuntimeBridge(
     target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NONE;
     target->runtimeBridgeOperation = XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
     if ( target->cName == NULL ) return 1;
+    if ( xl6IrRuntimeXlangBridgeName(target->cName) ) {
+        target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_XLANG;
+        target->errorAbi = xl6IrRuntimeXlangBridgeErrorAbi(target->cName);
+        if ( !xl6IrRuntimeXlangBridgeTargetMatches(ctx->module, target) )
+            return xl6IrLowerDiag(ctx, target->declaration,
+                "XLIR xlang compiler-embedding bridge has no exact class-handle/string/value ABI");
+        return 1;
+    }
     if ( strcmp(target->cName, "xl6_xrt_dynamic_fields_create") == 0 ||
          strcmp(target->cName, "xl6_xrt_dynamic_fields_destroy") == 0 ||
          strcmp(target->cName, "xl6_xrt_dynamic_fields_get") == 0 ||

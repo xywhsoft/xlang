@@ -1982,6 +1982,7 @@ static int xlAddEmbeddedXlangRuntimeSources(
         "src/api/xl_api.c",
         "src/api/xl_api_symbols.c",
         "src/api/xl_api_path.c",
+        "src/api/xl_foreign_error.c",
         "src/api/xl_protocol_registry.c",
         "src/api/xl_future_bridge.c",
         "src/api/xl_task_group_bridge.c",
@@ -2019,6 +2020,7 @@ static int xlAddEmbeddedXlangRuntimeSources(
         "src/cgen/xl6_cgen_runtime.c",
         "src/cgen/xl6_cgen_header.c",
         "src/cgen/xl6_cgen_needs_basic.c",
+        "src/cgen/xl6_cgen_shared_runtime.c",
         "src/cgen/xl6_cgen.c",
         "src/cgen/xl6_ir_cgen.c",
         "src/lexer/xl6_token.c",
@@ -2041,6 +2043,7 @@ static int xlAddEmbeddedXlangRuntimeSources(
         "src/sem/xl6_sem.c"
     };
     static const char* compilerSources[] = {
+        "src/resource/xl6_win_resource.c",
         "src/abi/xl6_abi_dump.c",
         "src/ast/xl6_ast_dump.c",
         "src/ir/xl6_ir_dump.c"
@@ -2062,7 +2065,8 @@ static int xlAddEmbeddedXlangRuntimeSources(
      * 普通运行能力只开启 runtime-only 口径；只有 import xlang.compiler 才携带
      * 外部 exe/dll/obj 输出和调试 dump 相关源码。
      */
-    (void)xl__tcc.tcc_set_options(s, "-DXL_STATIC_TCC -DCONFIG_TCC_STATIC");
+    (void)xl__tcc.tcc_set_options(s,
+        "-DXL_STATIC_TCC -DCONFIG_TCC_STATIC -DXL6_COMPILER_SOURCE_VFS");
     if ( outputType == TCC_OUTPUT_DLL ) {
         (void)xl__tcc.tcc_set_options(s, "-DXL_BUILD_DLL -DLIBTCC_AS_DLL");
     } else {

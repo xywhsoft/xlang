@@ -13,6 +13,7 @@
 #include "src/cgen/xl6_cgen_text_output.h"
 #include "src/cgen/xl6_cgen_tls.h"
 #include "src/cgen/xl6_cgen_websocket.h"
+#include "src/cgen/xl6_cgen_xlang.h"
 #include "src/runtime/xl6_code_owner.h"
 
 #include <string.h>

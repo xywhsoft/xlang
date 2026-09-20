@@ -52,6 +52,7 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
     if ( !xl6IrCgenEmitStructuralErrorResultTypes(out, module, diags) ) return 0;
     if ( !xl6IrCgenEmitRuntimePrelude(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitRuntimeSupport(out, module, &needs, diags) ) return 0;
+    if ( needs.needsXlangRuntime ) xl6EmitXlangRuntimeComponent(out, 1);
     if ( !xl6IrCgenEmitXValueCoreRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitXValueContainerRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitXValueOperationRuntime(out, module, &needs, diags) ) return 0;

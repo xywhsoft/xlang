@@ -16,6 +16,7 @@
 #include "src/cgen/xl6_cgen_text_codec.h"
 #include "src/cgen/xl6_cgen_tls.h"
 #include "src/cgen/xl6_cgen_websocket.h"
+#include "src/cgen/xl6_cgen_xlang.h"
 #include "src/ir/xl6_hir.h"
 #include "src/type/xl6_type_model.h"
 
