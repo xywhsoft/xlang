@@ -527,6 +527,7 @@ static int xl6IrCgenEmitClosureInvoke(
             ? closure->adaptedTargetSymbol : closure->targetSymbol);
     if ( target == NULL ||
          (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
+          target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR &&
           target->kind != XL6_IR_CALL_TARGET_EXTERN_C) ||
          (closure->kind == XL6_IR_CLOSURE_TARGET_ANONYMOUS && function->errorAbi != target->errorAbi) ||
          (closure->kind == XL6_IR_CLOSURE_TARGET_ANONYMOUS &&

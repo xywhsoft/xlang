@@ -67,9 +67,9 @@ static bool resolve(xrtownershipref ref,void* context,const xrtownershipadapterv
     if((*adapter=xl6FutureCallbackOwnershipAdapterV1(ref,prep)))return true;
     const xfutureproducerownershipv1* producers[]={xl6FutureCallbackProducerPolicyV1Get()};
     const xfuturewatchownershipv1* watches[]={xl6FutureCallbackWatchPolicyV1Get()};
-    const xfuturepayloadownershipv1* payloads[6];
-    for(unsigned i=0;i<6;++i)payloads[i]=xl6PayloadPolicyGet((XL6_FuturePayloadKind)(XL6_FUTURE_PAYLOAD_VALUE+i));
-    if((*adapter=xrtFutureOwnershipAdapterV3(ref,payloads,6,producers,1,watches,1,prep)))return true;
+    const xfuturepayloadownershipv1* payloads[XL6_FUTURE_PAYLOAD_COUNT-XL6_FUTURE_PAYLOAD_VALUE];
+    for(unsigned i=0;i<sizeof(payloads)/sizeof(*payloads);++i)payloads[i]=xl6PayloadPolicyGet((XL6_FuturePayloadKind)(XL6_FUTURE_PAYLOAD_VALUE+i));
+    if((*adapter=xrtFutureOwnershipAdapterV3(ref,payloads,sizeof(payloads)/sizeof(*payloads),producers,1,watches,1,prep)))return true;
     if((*adapter=xl6ClosureOwnershipAdapterV1(ref)))return true;
     if((*adapter=xl6CellOwnershipAdapterV1(ref)))return true;
     if((*adapter=xl6CodeLeaseOwnershipAdapterV1(ref)))return true;

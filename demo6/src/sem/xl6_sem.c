@@ -14071,15 +14071,18 @@ static int xl6SemExprIsFreshTypeValue(XL6_SemContext* ctx, const XL6_AstNode* ex
         return 1;
     }
 
-    /* Await materializes its result from the Future payload.  A nested
-     * Future is returned with an independent strong reference, so it is a
-     * fresh linear handle rather than a copy of the awaited expression. */
+    /* Await materializes its result from the Future payload.  Retained
+     * Future and generator payload ABIs return an independent strong
+     * reference, so either is a fresh linear handle rather than a copy of
+     * the awaited expression. */
     if ( expr->kind == XL6_AST_AWAIT ) {
         XL6_AstNode* awaitType = xl6SemCloneAwaitResultType(
             ctx, (XL6_AstNode*)expr);
-        int freshFuture = xl6SemTypeIsFutureLikeResource(ctx, awaitType);
+        int freshOwner = xl6SemTypeIsFutureLikeResource(ctx, awaitType) ||
+            xl6SemIsGeneratorTypeName(
+                xl6SemResolveAliasTypeName(ctx, awaitType));
         xl6AstFree(awaitType);
-        return freshFuture;
+        return freshOwner;
     }
 
     if ( expr->kind != XL6_AST_CALL || expr->childCount == 0 ) {

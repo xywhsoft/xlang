@@ -2134,7 +2134,10 @@ typedef enum XL6_IrAsyncResultAbi {
     /* Future owns one strong reference to a nested Future.  Reading the
      * payload always creates an independent strong reference, so flattening
      * is never implicit in the storage or C ABI. */
-    XL6_IR_ASYNC_RESULT_RETAINED_FUTURE
+    XL6_IR_ASYNC_RESULT_RETAINED_FUTURE,
+    /* Future owns one real generator reference.  AWAIT acquires another V2
+     * reference; closing one alias does not invalidate the other owner. */
+    XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR
 } XL6_IrAsyncResultAbi;
 
 /* Open dynamic invocation uses the runtime's multi-value call protocol, but a

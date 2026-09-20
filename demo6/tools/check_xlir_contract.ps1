@@ -217,6 +217,7 @@ $payloadRuntime=Read-Utf8 'src/runtime/xl6_future_payload.c'
 $payloadEmitter=Read-Utf8 'src/cgen/xl6_ir_cgen_task_helpers.c'
 if (!$taskResident.Contains('xrtTaskSubmitOwnedJobV1(native,frame,args.Cancel,&native_data_policy,policy)') -or !$payloadRuntime.Contains('xrtPromiseResolveOwnedPolicyV1') -or
     !$payloadRuntime.Contains('xrtFutureOwnershipAdapterV1') -or !$payloadEmitter.Contains('XL6_FUTURE_PAYLOAD_CLOSURE') -or
+    !$payloadRuntime.Contains('xl6PayloadTraceGenerator') -or !$payloadEmitter.Contains('XL6_FUTURE_PAYLOAD_GENERATOR') -or
     $payloadEmitter.Contains('xrtPromiseResolveOwnedTraced') -or $poolPrelude.Contains('xlir_async_closure_trace')) {
     throw 'Verified result ABIs must select one closed resident lifecycle before publication or executor admission'
 }
@@ -5478,7 +5479,8 @@ foreach ( $required in @(
 foreach ( $required in @(
     "XL6_IR_RUNTIME_TASK_SPAWN_CLOSURE",
     "XL6_IR_INTRINSIC_TASK_SPAWN",
-    "XL6_IR_ASYNC_RESULT_RETAINED_FUTURE"
+    "XL6_IR_ASYNC_RESULT_RETAINED_FUTURE",
+    "XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR"
 ) ) {
     if ( ! $header.Contains($required) ) {
         throw "XLIR task.spawn header contract is incomplete: $required"
@@ -5507,7 +5509,9 @@ foreach ( $required in @(
     "xl6IrCgenRuntimeTaskSpawnAbi", "xl6IrCgenEmitTaskSpawnHelper",
     "xlir_task_spawn_frame_", "xlir_task_spawn_task_",
     "xlir_task_spawn_start_", "xl6TaskSubmitPayloadV1",
-    "XL6_FUTURE_PAYLOAD_FUTURE", "XL6_IR_ASYNC_RESULT_RETAINED_FUTURE"
+    "XL6_FUTURE_PAYLOAD_FUTURE", "XL6_IR_ASYNC_RESULT_RETAINED_FUTURE",
+    "XL6_FUTURE_PAYLOAD_GENERATOR", "XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR",
+    "xlir_generator_retain"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR task.spawn C boundary is incomplete: $required"

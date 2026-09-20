@@ -263,6 +263,7 @@ static int xl6IrCgenEmitRuntimePrelude(
             "#define xlir_generator_item_get (xl6GeneratorRuntimeV1Get()->ItemGet)\n"
             "#define xlir_generator_close (xl6GeneratorRuntimeV1Get()->Close)\n"
             "#define xlir_generator_destroy (xl6GeneratorRuntimeV1Get()->Destroy)\n"
+            "#define xlir_generator_retain (xl6GeneratorRuntimeV2Get()->Retain)\n"
             "#define xlir_generator_put (xl6GeneratorRuntimeV1Get()->Put)\n"
             "#define xlir_generator_set_state (xl6GeneratorRuntimeV1Get()->SetState)\n"
             "#define xlir_generator_finish (xl6GeneratorRuntimeV1Get()->Finish)\n"

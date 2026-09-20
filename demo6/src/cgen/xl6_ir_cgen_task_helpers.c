@@ -82,6 +82,7 @@ static const XL6_IrCgenAsyncPayloadContract* xl6IrCgenAsyncPayloadContract(
     static const XL6_IrCgenAsyncPayloadContract closure = {"xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_CLOSURE)", "XL6_FUTURE_PAYLOAD_CLOSURE"};
     static const XL6_IrCgenAsyncPayloadContract error = {"xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_ERROR)", "XL6_FUTURE_PAYLOAD_ERROR"};
     static const XL6_IrCgenAsyncPayloadContract future = {"xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_FUTURE)", "XL6_FUTURE_PAYLOAD_FUTURE"};
+    static const XL6_IrCgenAsyncPayloadContract generator = {"xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_GENERATOR)", "XL6_FUTURE_PAYLOAD_GENERATOR"};
     switch ( abi ) {
     case XL6_IR_ASYNC_RESULT_OWNED_STRING:
         return &string;
@@ -93,6 +94,8 @@ static const XL6_IrCgenAsyncPayloadContract* xl6IrCgenAsyncPayloadContract(
         return &error;
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:
         return &future;
+    case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:
+        return &generator;
     case XL6_IR_ASYNC_RESULT_COPY_BOOL:
     case XL6_IR_ASYNC_RESULT_COPY_I64:
     case XL6_IR_ASYNC_RESULT_COPY_U64:

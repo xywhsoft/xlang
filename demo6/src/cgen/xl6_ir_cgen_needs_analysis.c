@@ -34,6 +34,11 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         const XL6_IrType* instructionType;
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
         instructionType = xl6IrTypeGet(&module->types, module->instructions[i].type);
+        if ( module->instructions[i].asyncResultAbi ==
+                 XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR ||
+             module->instructions[i].sourceAsyncResultAbi ==
+                 XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR )
+            needs->needsGeneratorRuntime = 1;
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_I64_POW )
             needs->needsI64PowRuntime = 1;
@@ -961,6 +966,8 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                 needs->needsAsyncFutureResult = 1;
                 needs->needsFutureRuntime = 1;
             }
+            if ( worker != NULL && worker->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR )
+                needs->needsGeneratorRuntime = 1;
             for ( parameter = 0; parameter < module->callTargets[i].parameterCount; ++parameter ) {
                 if ( module->callTargets[i].asyncCaptureAbis[parameter] == XL6_IR_ASYNC_CAPTURE_COPY_STRING ) {
                     needs->needsStringRuntime = 1;

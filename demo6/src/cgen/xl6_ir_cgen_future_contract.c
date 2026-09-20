@@ -137,6 +137,8 @@ static int xl6IrCgenAsyncPayloadAbiMatches(
         return payload->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR;
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:
         return payload->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR;
+    case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:
+        return payload->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR;
     default:
         return 0;
     }
@@ -186,6 +188,7 @@ static int xl6IrCgenEmitAwaitPayload(
         abi == XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE ? "xlir_closure_retain" :
         abi == XL6_IR_ASYNC_RESULT_RETAINED_ERROR ? "xrtErrorRef" :
         abi == XL6_IR_ASYNC_RESULT_RETAINED_FUTURE ? "xrtFutureRef" :
+        abi == XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR ? "xlir_generator_retain" :
         abi == XL6_IR_ASYNC_RESULT_OWNED_STRING ? "xrtStrDup" : NULL;
     unsigned int result = (unsigned int)instruction->result;
     if (instruction->awaitOutcomeAbi != XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC) return 0;

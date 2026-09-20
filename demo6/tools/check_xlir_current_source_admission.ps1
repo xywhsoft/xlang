@@ -34,7 +34,7 @@ function Get-XlirAdmissionMandatoryParameters([string]$RelativePath) {
 }
 
 $driver = Read-XlirAdmissionText 'test\cases\xlir_public_source_driver.c'
-foreach ($required in @('cgen-default', 'cgen-xlir', 'cgen-legacy',
+foreach ($required in @('cgen-default', 'cgen-xlir', 'cgen-legacy', 'ir-typed', 'ir-lowered',
     'xlcSetBackend(compiler, XLC_BACKEND_XLIR)',
     'xlcSetBackend(compiler, XLC_BACKEND_LEGACY)',
     'xlcEmitC(compiler, argv[3])',

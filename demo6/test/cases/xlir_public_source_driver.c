@@ -51,11 +51,12 @@ int main(int argc, char** argv)
     DWORD rootLength, moduleLength;
     int exactCgen = 0, ok = 0, code = 1, index, pathLength;
     if (argc < 4) {
-        fprintf(stderr, "usage: source-driver source.xl emit|run|module|exe|dll|recovery|cgen-default|cgen-xlir|cgen-legacy output [sidecar.c ...]\n");
+        fprintf(stderr, "usage: source-driver source.xl emit|ir-typed|ir-lowered|run|module|exe|dll|recovery|cgen-default|cgen-xlir|cgen-legacy output [sidecar.c ...]\n");
         return 2;
     }
     requestedMode = argv[2];
-    if (strcmp(requestedMode, "emit") && strcmp(requestedMode, "run") &&
+    if (strcmp(requestedMode, "emit") && strcmp(requestedMode, "ir-typed") &&
+        strcmp(requestedMode, "ir-lowered") && strcmp(requestedMode, "run") &&
         strcmp(requestedMode, "module") && strcmp(requestedMode, "exe") &&
         strcmp(requestedMode, "dll") && strcmp(requestedMode, "recovery") &&
         strcmp(requestedMode, "cgen-default") && strcmp(requestedMode, "cgen-xlir") &&
@@ -106,6 +107,12 @@ int main(int argc, char** argv)
     if (exactCgen) {
         phase = "emit exact C";
         ok = xlcEmitC(compiler, argv[3]);
+    } else if (!strcmp(requestedMode, "ir-typed")) {
+        phase = "emit typed IR";
+        ok = xlcEmitIr(compiler, argv[3], 1);
+    } else if (!strcmp(requestedMode, "ir-lowered")) {
+        phase = "emit lowered IR";
+        ok = xlcEmitLoweredIr(compiler, argv[3], 1);
     } else if (!strcmp(requestedMode, "emit")) {
         phase = "emit C"; pathLength = snprintf(path, sizeof(path), "%s.c", argv[3]);
         if (pathLength < 0 || (size_t)pathLength >= sizeof(path)) goto done;

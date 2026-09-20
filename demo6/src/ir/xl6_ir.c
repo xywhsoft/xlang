@@ -3249,6 +3249,18 @@ static XL6_IrNodeId xl6IrBuildAstNode(
              xl6IrEnsureSymbolSlot(module, binding->symbol) )
             module->symbolNodes[binding->symbol] = id;
     }
+    /* A forward reference can be visited before an imported function's NAME
+     * declaration.  The first-use cache must not remain the canonical binding:
+     * closure capture analysis and every later symbol query need the structural
+     * declaration NAME, independent of import traversal order. */
+    if ( node->kind == XL6_IR_NODE_FUNC_DECL &&
+         source->childCount > 0 && children != NULL ) {
+        const XL6_IrNode* binding = xl6IrNodeGet(module, children[0]);
+        if ( binding != NULL && binding->kind == XL6_IR_NODE_NAME &&
+             binding->symbol != 0 &&
+             xl6IrEnsureSymbolSlot(module, binding->symbol) )
+            module->symbolNodes[binding->symbol] = children[0];
+    }
     node->firstChild = module->childCount; node->childCount = source->childCount;
     if ( source->childCount > 0 && children != NULL ) {
         /* xl6IrGrow guarantees room for the index passed as `count`; passing
@@ -6771,8 +6783,13 @@ static const XL6_IrClassField* xl6IrBuildImplicitClassField(
     for ( i = layout->firstField;
           i < layout->firstField + layout->fieldCount; ++i ) {
         const XL6_IrClassField* field = &module->classFields[i];
+        const XL6_IrNode* declaration = xl6IrNodeGet(
+            module, field->declaration);
         if ( field->ownerType != layout->type ||
-             field->type != name->storageType || field->name == NULL ||
+             (field->type != name->storageType &&
+              (declaration == NULL ||
+               declaration->storageType != name->storageType)) ||
+             field->name == NULL ||
              strcmp(field->name, name->text) != 0 ) continue;
         if ( found != NULL ) return NULL;
         found = field;
@@ -6819,7 +6836,10 @@ static XL6_IrImplicitNameAbi xl6IrClassifyImplicitNameAbi(
     for ( i = 0; i < module->classLayoutCount; ++i ) {
         const XL6_IrClassLayout* layout = &module->classLayouts[i];
         const XL6_IrClassField* field = NULL;
+        const XL6_IrType* layoutType;
+        const XL6_IrType* declaredOwner;
         XL6_IrImplicitNameAbi candidate = XL6_IR_IMPLICIT_NAME_NONE;
+        XL6_IrTypeId candidateReceiver = layout->type;
         XL6_IrNodeId fieldDeclaration = XL6_IR_NODE_INVALID;
         if ( layout->declaration != classId ) continue;
         if ( strcmp(name->text, "base") == 0 &&
@@ -6830,14 +6850,29 @@ static XL6_IrImplicitNameAbi xl6IrClassifyImplicitNameAbi(
                          module, layout, name)) != NULL ) {
             candidate = XL6_IR_IMPLICIT_NAME_CLASS_FIELD;
             fieldDeclaration = field->declaration;
+            /* A generic method is typed against its declaration family
+             * (Box<T>) while ClassField layouts exist only for concrete
+             * instances (Box<int>, Box<string>, ...).  The declaration node
+             * above proves the source field TypeId; retain the family receiver
+             * so monomorphization can substitute it exactly.  Every matching
+             * concrete layout must still agree on the field declaration. */
+            layoutType = xl6IrTypeGet(&module->types, layout->type);
+            declaredOwner = xl6IrTypeGet(
+                &module->types, callable->declarationOwnerType);
+            if ( layoutType != NULL && declaredOwner != NULL &&
+                 layoutType->kind == XL6_IR_TYPE_CLASS &&
+                 declaredOwner->kind == XL6_IR_TYPE_CLASS &&
+                 layoutType->nominalSymbol != 0 &&
+                 layoutType->nominalSymbol == declaredOwner->nominalSymbol )
+                candidateReceiver = callable->declarationOwnerType;
         }
         if ( candidate == XL6_IR_IMPLICIT_NAME_NONE ) continue;
         if ( foundAbi != XL6_IR_IMPLICIT_NAME_NONE &&
-             (foundAbi != candidate || foundReceiver != layout->type ||
+             (foundAbi != candidate || foundReceiver != candidateReceiver ||
               foundField != fieldDeclaration) )
             return XL6_IR_IMPLICIT_NAME_NONE;
         foundAbi = candidate;
-        foundReceiver = layout->type;
+        foundReceiver = candidateReceiver;
         foundField = fieldDeclaration;
     }
     if ( foundAbi != XL6_IR_IMPLICIT_NAME_NONE ) {
@@ -7949,6 +7984,7 @@ static XL6_IrAsyncResultAbi xl6IrBuildAsyncResultAbi(
     case XL6_IR_C_ABI_TAGGED_NULLABLE: return XL6_IR_ASYNC_RESULT_COPY_TAGGED;
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_ERROR;
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_FUTURE;
+    case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR;
     default: return XL6_IR_ASYNC_RESULT_INVALID;
     }
 }
@@ -21120,7 +21156,8 @@ static XL6_IrOwnership xl6IrValueOwnershipDepth(
              definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_RETAINED_XVALUE &&
              definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE &&
              definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_RETAINED_ERROR &&
-             definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_RETAINED_FUTURE ) return XL6_IR_OWNERSHIP_NONE;
+             definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_RETAINED_FUTURE &&
+             definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR ) return XL6_IR_OWNERSHIP_NONE;
         return XL6_IR_OWNERSHIP_MOVE;
     case XL6_IR_INSTR_VALUE:
     case XL6_IR_INSTR_NULLABLE_WRAP:
@@ -31664,6 +31701,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:
                 resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR;
                 break;
+            case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:
+                resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR;
+                break;
             case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
                 resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE;
                 break;
@@ -32839,8 +32879,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                  declaration->symbol != closure->targetSymbol ||
                  closure->adaptedTargetSymbol != 0 ||
                  target == NULL ||
-                 (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
-                  target->kind != XL6_IR_CALL_TARGET_EXTERN_C) ||
+                  (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
+                   target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR &&
+                   target->kind != XL6_IR_CALL_TARGET_EXTERN_C) ||
                  target->parameterCount != signature->paramCount ||
                  (target->returnType != signature->callableResultType &&
                   !(signature->returnCount == 1 &&
@@ -32862,6 +32903,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                  closure->captureCount != 0 ||
                  target == NULL ||
                  (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
+                  target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR &&
                   target->kind != XL6_IR_CALL_TARGET_EXTERN_C) ||
                  (target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
                   target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
@@ -38739,6 +38781,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:
                         resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR;
                         break;
+                    case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:
+                        resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR;
+                        break;
                     case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
                         resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE;
                         break;
@@ -40835,6 +40880,7 @@ static const char* xl6IrAsyncResultAbiName(XL6_IrAsyncResultAbi abi)
     case XL6_IR_ASYNC_RESULT_COPY_TAGGED: return "copy-tagged";
     case XL6_IR_ASYNC_RESULT_RETAINED_ERROR: return "retained-error";
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE: return "retained-future";
+    case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR: return "retained-generator";
     default: return "invalid";
     }
 }

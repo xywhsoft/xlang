@@ -95,6 +95,9 @@ static int xl6IrCgenAsyncResultAbiMatches(
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:
         return worker != NULL && worker->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
                future->params[0] == target->workerReturnType;
+    case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:
+        return worker != NULL && worker->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR &&
+               future->params[0] == target->workerReturnType;
     case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
         return worker != NULL && worker->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
                future->params[0] == target->workerReturnType;
@@ -581,6 +584,7 @@ static int xl6IrCgenAsyncMachineProgramSupported(
            result->cAbi != XL6_IR_C_ABI_CLOSURE_PTR &&
            result->cAbi != XL6_IR_C_ABI_RUNTIME_ERROR_PTR &&
            result->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
+           result->cAbi != XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR &&
            result->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE) ||
          machine->prologueActionCount > machine->frameSlotCount ||
          machine->destroyActionCount > machine->frameSlotCount )
@@ -615,6 +619,8 @@ static int xl6IrCgenAsyncMachineProgramSupported(
                   suspension->resultAbi == XL6_IR_ASYNC_RESULT_RETAINED_ERROR) ||
                  (suspensionType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
                   suspension->resultAbi == XL6_IR_ASYNC_RESULT_RETAINED_FUTURE) ||
+                 (suspensionType->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR &&
+                  suspension->resultAbi == XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR) ||
                  (suspensionType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
                  suspension->resultAbi == XL6_IR_ASYNC_RESULT_COPY_TAGGED)) )
             return xl6IrCgenAsyncProgramUnsupported(unsupportedReason,
