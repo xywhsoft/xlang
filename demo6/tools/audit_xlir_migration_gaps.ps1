@@ -43,6 +43,8 @@ $expectedXlirRejections = @(
     'bad_xlir_direct_bridge_boolean',
     'bad_xlir_direct_bridge_collection',
     'bad_xlir_direct_bridge_arity',
+    'bad_xlir_xlang_bridge_input',
+    'bad_xlir_xlang_bridge_result',
     'bad_xlir_text_output_wrong_input',
     'bad_xlir_text_output_wrong_result',
     'bad_xlir_text_output_missing_input',

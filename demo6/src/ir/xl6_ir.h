@@ -3416,7 +3416,10 @@ typedef enum XL6_IrRuntimeBridgeKind {
     XL6_IR_RUNTIME_BRIDGE_NET_UDP_RECV_ASYNC,
     XL6_IR_RUNTIME_BRIDGE_NET_ENGINE_STATS,
     XL6_IR_RUNTIME_BRIDGE_NET_RESOLVER_STATS,
-    XL6_IR_RUNTIME_BRIDGE_NET_UDP_STATS
+    XL6_IR_RUNTIME_BRIDGE_NET_UDP_STATS,
+    /* Compiler-embedding helpers emitted by the selected backend component.
+     * Their exact class-handle/string/xvalue ABI is fixed during lowering. */
+    XL6_IR_RUNTIME_BRIDGE_XLANG
 } XL6_IrRuntimeBridgeKind;
 
 /* Some runtime components contain several operations with different emitted
@@ -5368,6 +5371,10 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeSerializationBridgeKind(const char* name);
 /* Direct no-raise bridges share one signature/ownership registry. */
 XL6_IrRuntimeBridgeKind xl6IrRuntimeDirectBridgeKind(const char* name);
 int xl6IrRuntimeDirectBridgeTargetMatches(
+    const XL6_IrModule* module, const XL6_IrCallTarget* target);
+int xl6IrRuntimeXlangBridgeName(const char* name);
+XL6_IrErrorAbi xl6IrRuntimeXlangBridgeErrorAbi(const char* name);
+int xl6IrRuntimeXlangBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 /* Visitor status codes and callback exceptions are independent outcomes. */
 int xl6IrRuntimeSerializationBridgeHasCallbackResult(XL6_IrRuntimeBridgeKind kind);

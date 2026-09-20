@@ -21,6 +21,7 @@ $header = Read-Utf8 "src\ir\xl6_ir.h"
 $source = Read-Utf8 "src\ir\xl6_ir.c"
 $lower = Read-Utf8 "src\ir\xl6_ir_lower.c"
 $directBridge = Read-Utf8 "src\ir\xl6_ir_direct_bridge.c"
+$xlangBridge = Read-Utf8 "src\ir\xl6_ir_xlang_bridge.c"
 $directBridgeUnit = Read-Utf8 "test\cases\xlir_direct_bridge_unit.c"
 $cgenUnit = Read-Utf8 "test\cases\xlir_cgen.c"
 $ownership = Read-Utf8 "src\ir\xl6_ir_ownership.c"
@@ -994,6 +995,71 @@ foreach ($required in @("xl6IrDirectBridgeContracts", "parameterPhysicalFieldDec
 foreach ($component in @("dir", "process_run")) {
     if (!$sharedRuntime.Contains('#include "src/cgen/xl6_cgen_' + $component + '.c"')) {
         throw "Directory/process emitter must be a shared runtime component: $component"
+    }
+}
+$xlangRuntime = Read-Utf8 "src\cgen\xl6_cgen_xlang_runtime.c"
+$xlangStdlib = Read-Utf8 "src\stdlib\xl6_stdlib_data.c"
+$xlangNeeds = Read-Utf8 "src\cgen\xl6_ir_cgen_needs_call_targets.c"
+$xlangModuleEmit = Read-Utf8 "src\cgen\xl6_ir_cgen_module_emit.c"
+$xlangLegacyEmit = Read-Utf8 "src\cgen\xl6_cgen_module.c"
+if (!$header.Contains("XL6_IR_RUNTIME_BRIDGE_XLANG") -or
+    !$source.Contains('#include "src/ir/xl6_ir_xlang_bridge.c"') -or
+    !$lower.Contains("xl6IrRuntimeXlangBridgeTargetMatches") -or
+    !$xlangNeeds.Contains("needsXlangRuntime = 1") -or
+    !$xlangModuleEmit.Contains("xl6EmitXlangRuntimeComponent(out, 1)") -or
+    !$xlangLegacyEmit.Contains("xl6EmitXlangRuntimeComponent(out, 0)") -or
+    !$sharedRuntime.Contains('#include "src/cgen/xl6_cgen_xlang_runtime.c"')) {
+    throw "Xlang compiler embedding must be selected from one verified XLIR bridge component"
+}
+foreach ($required in @(
+    "XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE",
+    "XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR",
+    "XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT",
+    "XL6_IR_C_ABI_BOOL", "XL6_IR_C_ABI_C_INT",
+    "XL6_IR_C_ABI_MANAGED_STRING", "XL6_IR_C_ABI_RUNTIME_XVALUE_PTR")) {
+    if (!$xlangBridge.Contains($required)) {
+        throw "Xlang compiler bridge lost exact physical ABI evidence: $required"
+    }
+}
+foreach ($symbol in @(
+    "xl6_xlang_context_create", "xl6_xlang_context_destroy",
+    "xl6_xlang_context_last_error_copy", "xl6_xlang_context_set_work_dir",
+    "xl6_xlang_context_set_temp_dir", "xl6_xlang_context_set_save_temps",
+    "xl6_xlang_context_run_source", "xl6_xlang_context_run_file",
+    "xl6_xlang_context_run_source_args", "xl6_xlang_context_run_file_args",
+    "xl6_xlang_context_clear_last_error", "xl6_xlang_handler_wrap",
+    "xl6_xlang_handler_create", "xl6_xlang_handler_destroy",
+    "xl6_xlang_handler_run_args", "xl6_xlang_handler_last_error_copy",
+    "xl6_xlang_run_source", "xl6_xlang_run_file")) {
+    if (!$xlangBridge.Contains('"' + $symbol + '"') -or
+        !$xlangRuntime.Contains($symbol)) {
+        throw "Xlang compiler bridge registry/emitter is incomplete: $symbol"
+    }
+}
+if (!$xlangRuntime.Contains("#include <__xl_compiler/include/xl.h>") -or
+    !$xlangRuntime.Contains("#include <xl.h>") -or
+    !$xlangRuntime.Contains("XL_Context*") -or
+    !$xlangRuntime.Contains("XL_Module*") -or
+    !$xlangRuntime.Contains("int xlirAbi") -or
+    !$xlangRuntime.Contains("bool xl6_xlang_handler_run_args") -or
+    !$xlangRuntime.Contains("long long xl6_xlang_handler_destroy") -or
+    $xlangRuntime.Contains("typedef struct xvalue xvalue;") -or
+    $xlangRuntime.Contains("void* xlCreateContext")) {
+    throw "Generated xlang embedding must consume the canonical public API types without handwritten prototypes"
+}
+foreach ($legacySymbol in @(
+    'extern \"xlSetWorkDir\"', 'extern \"xlSetTempDir\"',
+    'extern \"xlSetSaveTemps\"', 'extern \"xlRunScriptString\"',
+    'extern \"xlRunScriptFile\"', 'extern \"xlRunScriptStringArg\"',
+    'extern \"xlRunScriptFileArg\"', 'extern \"xlClearLastError\"')) {
+    if ($xlangStdlib.Contains($legacySymbol)) {
+        throw "Xlang standard-library surface bypasses its exact compiler-private ABI: $legacySymbol"
+    }
+}
+$xlangDeterminism = Read-Utf8 "tools\check_xlir_cgen_determinism.ps1"
+foreach ($fixture in @("bad_xlir_xlang_bridge_input.xl", "bad_xlir_xlang_bridge_result.xl")) {
+    if (!$xlangDeterminism.Contains($fixture)) {
+        throw "Malformed xlang compiler bridge is not fail-closed in regression coverage: $fixture"
     }
 }
 $sharedCollection = Read-Utf8 "src\cgen\xl6_ir_cgen_shared_collection.c"

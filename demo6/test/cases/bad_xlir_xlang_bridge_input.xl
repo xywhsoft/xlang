@@ -1,0 +1,2 @@
+extern "xl6_xlang_run_source" func malformed(int source) as c_int
+int result = malformed(1)

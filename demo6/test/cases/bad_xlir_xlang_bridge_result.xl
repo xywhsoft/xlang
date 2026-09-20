@@ -1,0 +1,2 @@
+extern "xl6_xlang_run_source" func malformed(string source) as bool
+bool result = malformed("println(1)\n")

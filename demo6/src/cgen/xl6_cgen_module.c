@@ -683,7 +683,7 @@ int xl6CgenEmitCEx(
         xl6CgenEmitTccRuntime(out);
     }
     if ( hasXlangRuntime ) {
-        xl6CgenEmitXlangRuntime(out);
+        xl6EmitXlangRuntimeComponent(out, 0);
     }
     if ( xl6CgenNodeNeedsIntPow(root) ) {
         xl6CgenEmitIntPowHelper(out);

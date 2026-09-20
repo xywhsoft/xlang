@@ -3,7 +3,7 @@
 #include <string.h>
 
 /* The resident array bridge also consumes xruntime's typed Future carrier. */
-#include "release/include/xruntime_decl.h"
+#include "include/xruntime_decl.h"
 
 #include "xl_future_bridge.h"
 #include "src/runtime/xl6_future_payload.h"
