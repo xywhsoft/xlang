@@ -49,7 +49,8 @@ int main(int argc, char** argv)
     phase = "configure private runtime headers";
     if (!GetModuleFileNameA(NULL, headers, sizeof(headers))) goto done;
     slash = strrchr(headers, '\\'); if (!slash) goto done;
-    strcpy(slash, "\\include");
+    if ((size_t)(slash - headers) + sizeof("\\include") > sizeof(headers)) goto done;
+    memcpy(slash, "\\include", sizeof("\\include"));
     if (!xlcAddIncludePath(compiler, headers)) goto done;
     if (!strcmp(argv[2], "recovery")) { phase = "recovery"; ok = recovery(compiler, argv[3]); code = ok ? 0 : 1; goto done; }
     /* Deliberately exercise the actual default backend, not an override. */

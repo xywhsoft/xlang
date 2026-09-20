@@ -10,11 +10,8 @@
 
 dir|include|%XL6_EMBED_TCC_DIST_X64%\include
 
-# Sokol/XGE is a normal source package. Keep this small Win32 compatibility
-# header in the runtime VFS so an external SDK is not required for its build.
-file|include/windowsx.h|%XL6_ROOT%\release\windowsx.h
-file|include/strings.h|%XL6_ROOT%\release\strings.h
-file|include/imm.h|%XL6_ROOT%\release\imm.h
+# The tracked TCC include directory owns the Win32/POSIX compatibility shims;
+# the directory entry above embeds them without depending on release outputs.
 
 file|include/xl.h|%XL6_ROOT%\release\include\xl.h
 file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h

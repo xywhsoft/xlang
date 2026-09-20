@@ -8,7 +8,8 @@ const char* native_text(void) { return "native text"; }
 const char* native_shared_text(int64_t which)
 {
     static char text[32];
-    strcpy(text, which == 1 ? "first" : "second");
+    const char* value = which == 1 ? "first" : "second";
+    memcpy(text, value, strlen(value) + 1);
     return text;
 }
 void* native_text_open(void) { return malloc(1); }
@@ -16,8 +17,9 @@ void native_text_close(void* self) { free(self); }
 const char* native_text_shared(void* self, int64_t which)
 {
     static char text[32];
+    const char* value = which == 1 ? "member first" : "member second";
     if (!self) exit(2);
-    strcpy(text, which == 1 ? "member first" : "member second");
+    memcpy(text, value, strlen(value) + 1);
     return text;
 }
 void expect_i64(int64_t actual, int64_t expected)

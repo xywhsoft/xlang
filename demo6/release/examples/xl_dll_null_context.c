@@ -439,8 +439,8 @@ int main(void)
     nullCPaths[0] = "missing.c";
     if ( !expect_false("xlCompileCSourceFilesToModule(NULL)", xlCompileCSourceFilesToModule(NULL, nullCPaths, 1) != NULL) ||
          !expect_false("xlRunCSourceFiles(NULL)", xlRunCSourceFiles(NULL, nullCPaths, 1, 0, NULL)) ||
-         !expect_false("xlTccRegisterXrtEnvironment(NULL)", xlTccRegisterXrtEnvironment(NULL)) ||
-         !expect_false("xlTccRegisterContextEnvironment(NULL)", xlTccRegisterContextEnvironment(NULL, NULL)) ||
+         !expect_false("xlTccRegisterXrtEnvironment(NULL)", xlTccRegisterXrtEnvironment(NULL, 1)) ||
+         !expect_false("xlTccRegisterContextEnvironment(NULL)", xlTccRegisterContextEnvironment(NULL, NULL, 1)) ||
          !expect_false("xlTccImpdef(NULL)", xlTccImpdef(NULL, "build\\test\\null.def")) ) {
         return 1;
     }

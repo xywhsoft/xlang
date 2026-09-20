@@ -15,8 +15,11 @@ static void semantic(const char* body, int expected)
         "func pair(out int value, int other) as int\n value = other\n return other\nend\n"
         "func clear(out Item? value) as int\n value = null\n return 0\nend\n";
     char source[4096]; XL6_ParseResult parse; int result; size_t i;
-    assert(strlen(prefix) + strlen(body) < sizeof(source));
-    strcpy(source, prefix); strcat(source, body); xl6ParseResultInit(&parse);
+    size_t prefixSize = strlen(prefix), bodySize = strlen(body);
+    assert(prefixSize + bodySize < sizeof(source));
+    memcpy(source, prefix, prefixSize);
+    memcpy(source + prefixSize, body, bodySize + 1);
+    xl6ParseResultInit(&parse);
     assert(xl6ParseSource(source, "nullable-join-semantic.xl", &parse));
     result = xl6SemCheckModule(parse.root, &parse.diags, "nullable_join");
     if (result != expected) {

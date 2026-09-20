@@ -40,7 +40,31 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Conditional index storage snapshot/runtime semantics failed' }
     & release/xl.exe run test/cases/xlir_index_conditional_assign_runtime.c test/cases/xlir_index_conditional_assign_host.c --inc-path . --inc-path build/test -- --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Conditional index generated C-host JIT failed' }
-    & release/xl.exe build test/cases/xlir_index_conditional_assign_runtime.c test/cases/xlir_index_conditional_assign_host.c src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
+    # This C-host lane textually includes generated C, so it has no .xl unit
+    # whose verified artifact plan could supply resident runtime components.
+    # Embed that unit's closed component set instead of linking xl.dll and
+    # accidentally turning the standalone AOT check into a runtime-DLL test.
+    $artifactRuntimeSources = @(
+        'src/runtime/xl6_ownership_plan.c',
+        'src/runtime/xl6_code_lease.c',
+        'src/runtime/xl6_closure.c',
+        'src/runtime/xl6_cell.c',
+        'src/runtime/xl6_slot.c',
+        'src/runtime/xl6_frame_storage.c',
+        'src/runtime/xl6_continuation_frame.c',
+        'src/runtime/xl6_future_wait.c',
+        'src/runtime/xl6_task.c',
+        'src/runtime/xl6_capture.c',
+        'src/runtime/xl6_value_iterator.c',
+        'src/runtime/xl6_future_callback.c',
+        'src/runtime/xl6_generator.c',
+        'src/runtime/xl6_code_finalizer.c',
+        'src/runtime/xl6_continuation_queue.c',
+        'src/runtime/xl6_continuation_executor.c',
+        'src/runtime/xl6_continuation_future.c',
+        'src/runtime/xl6_future_payload.c'
+    )
+    & release/xl.exe build test/cases/xlir_index_conditional_assign_runtime.c test/cases/xlir_index_conditional_assign_host.c @artifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Conditional index generated C-host AOT build failed' }
     & "$prefix.aot.exe" --smoke
     if ($LASTEXITCODE -ne 0) { throw 'Conditional index generated C-host AOT runtime failed' }

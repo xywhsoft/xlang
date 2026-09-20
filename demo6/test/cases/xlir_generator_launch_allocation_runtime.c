@@ -2,12 +2,24 @@
 #define XRT_MODULE_ERROR
 #include "lib/xrt/xrt.h"
 #include <assert.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "test/cases/xlir_owner_fault_runtime.h"
 extern void payload_fault_prepare(void), payload_fault_finish(void);
 extern void payload_fault_ambient(void);
 extern int payload_fault_run(int, int);
+static int parse_int_arg(const char* text)
+{
+    char* end = NULL;
+    long value;
+    errno = 0;
+    value = strtol(text, &end, 10);
+    assert(errno == 0 && end != text && *end == '\0' &&
+        value >= INT_MIN && value <= INT_MAX);
+    return (int)value;
+}
 static unsigned run(int caught, int fault)
 {
     xmemdebugsnapshot before; unsigned count;
@@ -21,7 +33,7 @@ int main(int argc, char** argv)
     assert(xrtMemDebugEnable(true)); xrtMemDebugSnapshot(&initial); payload_fault_prepare();
     payload_fault_ambient();
     if (argc == 3) {
-        unsigned allocations = run(atoi(argv[1]), atoi(argv[2]));
+        unsigned allocations = run(parse_int_arg(argv[1]), parse_int_arg(argv[2]));
         payload_fault_finish(); continuation_owner_fault_balanced(&initial);
         printf("directed payload boxing: allocations=%u\n", allocations); return 0;
     }

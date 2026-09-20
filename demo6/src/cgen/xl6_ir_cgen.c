@@ -61,6 +61,7 @@
 #include "src/cgen/xl6_ir_cgen_verify_instructions.c"
 #include "src/cgen/xl6_ir_cgen_verify.c"
 #include "src/cgen/xl6_ir_cgen_needs_model.c"
+#include "src/cgen/xl6_ir_cgen_needs_call_targets.c"
 #include "src/cgen/xl6_ir_cgen_needs_analysis.c"
 #include "src/cgen/xl6_ir_cgen_emit_prelude.c"
 #include "src/cgen/xl6_ir_cgen_needs_runtime_analysis.c"

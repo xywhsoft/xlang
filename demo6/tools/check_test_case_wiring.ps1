@@ -22,6 +22,18 @@ $wiringFiles = @(
 )
 
 $failures = New-Object System.Collections.Generic.List[string]
+$trackedFiles = @()
+$gitCommand = Get-Command git.exe -ErrorAction SilentlyContinue
+if ( $null -ne $gitCommand ) {
+    $trackedFiles = @(& $gitCommand.Source -c "core.quotepath=false" -C $Root ls-files 2>$null)
+}
+$gitInventoryAvailable = ($null -ne $gitCommand -and $LASTEXITCODE -eq 0 -and
+    $trackedFiles.Count -gt 0)
+$trackedFileSet = [System.Collections.Generic.HashSet[string]]::new(
+    [System.StringComparer]::OrdinalIgnoreCase)
+foreach ( $relative in $trackedFiles ) {
+    $trackedFileSet.Add($relative.Replace("\", "/")) | Out-Null
+}
 
 function Add-Failure($message)
 {
@@ -33,18 +45,58 @@ function Read-Utf8Text($path)
     return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
 }
 
+function Get-VersionedFilesUnder(
+    [string]$relativePrefix,
+    [string[]]$extensions,
+    [string]$namePattern = "*",
+    [switch]$Recurse)
+{
+    if ( ! $gitInventoryAvailable ) {
+        $parameters = @{
+            LiteralPath = (Join-Path $script:Root $relativePrefix)
+            File = $true
+            ErrorAction = "Stop"
+        }
+        if ( $Recurse ) { $parameters["Recurse"] = $true }
+        $items = @(Get-ChildItem @parameters | Where-Object {
+            $_.Name -like $namePattern -and $_.Extension -in $extensions
+        })
+        return @($items | Sort-Object FullName)
+    }
+
+    $prefix = $relativePrefix.Replace("\", "/").TrimEnd("/") + "/"
+    $files = New-Object System.Collections.Generic.List[object]
+    foreach ( $relative in $trackedFiles ) {
+        $normalized = $relative.Replace("\", "/")
+        if ( ! $normalized.StartsWith(
+                $prefix, [System.StringComparison]::OrdinalIgnoreCase) ) {
+            continue
+        }
+        $tail = $normalized.Substring($prefix.Length)
+        if ( ! $Recurse -and $tail.Contains("/") ) { continue }
+        $name = [System.IO.Path]::GetFileName($tail)
+        $extension = [System.IO.Path]::GetExtension($name)
+        if ( $name -notlike $namePattern -or $extension -notin $extensions ) {
+            continue
+        }
+        $path = Join-Path $script:Root $relative
+        if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
+            Add-Failure "versioned test asset is missing: $relative"
+            continue
+        }
+        $files.Add((Get-Item -LiteralPath $path)) | Out-Null
+    }
+    return @($files | Sort-Object FullName)
+}
+
 function Get-TestSuiteWiringFiles()
 {
     $files = New-Object System.Collections.Generic.List[string]
 
-    if ( Test-Path -LiteralPath $script:testSuiteDir -PathType Container ) {
-        $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
-        $suiteFiles = @(Get-ChildItem -LiteralPath $script:testSuiteDir -File |
-            Where-Object { $_.Extension -eq ".bat" -or $_.Extension -eq ".ps1" } |
-            Sort-Object Name)
-        foreach ( $suite in $suiteFiles ) {
-            $files.Add($suite.FullName.Substring($rootPath.Length + 1)) | Out-Null
-        }
+    $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
+    $suiteFiles = @(Get-VersionedFilesUnder "test\suites" @(".bat", ".ps1"))
+    foreach ( $suite in $suiteFiles ) {
+        $files.Add($suite.FullName.Substring($rootPath.Length + 1)) | Out-Null
     }
 
     return @($files)
@@ -53,14 +105,10 @@ function Get-TestSuiteWiringFiles()
 function Get-CheckScriptWiringFiles()
 {
     $files = New-Object System.Collections.Generic.List[string]
-    $toolDir = Join-Path $script:Root "tools"
 
-    if ( Test-Path -LiteralPath $toolDir -PathType Container ) {
-        $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
-        foreach ( $scriptFile in @(Get-ChildItem -LiteralPath $toolDir -File -Filter "check_*.ps1" |
-            Sort-Object Name) ) {
-            $files.Add($scriptFile.FullName.Substring($rootPath.Length + 1)) | Out-Null
-        }
+    $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
+    foreach ( $scriptFile in @(Get-VersionedFilesUnder "tools" @(".ps1") "check_*.ps1") ) {
+        $files.Add($scriptFile.FullName.Substring($rootPath.Length + 1)) | Out-Null
     }
 
     return @($files)
@@ -101,7 +149,6 @@ function Get-ManualProbePaths($manifestPath, $rootPath, $caseRootPath)
     $paths = New-Object System.Collections.Generic.HashSet[string]
 
     if ( ! (Test-Path -LiteralPath $manifestPath -PathType Leaf) ) {
-        Add-Failure "manual probe manifest missing: test/manual_probes.txt"
         return $paths
     }
 
@@ -151,7 +198,7 @@ function Expand-BatchCaseMatrices($text)
         $variablePattern = [regex]::Escape("%%${varName}")
         $caseTemplates = [regex]::Matches(
             $body,
-            "test[\\/]+cases[\\/]+(?<path>[^`"'\s>]*${variablePattern}[^`"'\s>]*\.xl)")
+            "test[\\/]+cases[\\/]+(?<path>[^,`"'\s>]*${variablePattern}[^,`"'\s>]*\.xl)")
 
         if ( $caseTemplates.Count -eq 0 ) {
             continue
@@ -172,7 +219,7 @@ function Expand-CaseGlobs($text, $cases, $rootPath)
     $expanded = New-Object System.Collections.Generic.List[string]
     $patterns = [regex]::Matches(
         $text,
-        'test[\\/]+cases[\\/]+([^"''\s>]*[*?][^"''\s>]*\.xl)')
+        'test[\\/]+cases[\\/]+([^,"''\s>]*[*?][^,"''\s>]*\.xl)')
 
     foreach ( $patternMatch in $patterns ) {
         $pattern = Normalize-PathText $patternMatch.Groups[1].Value
@@ -210,6 +257,54 @@ function Expand-PowerShellCaseFilters($text, $cases, $rootPath)
             if ( $case.Name -like $pattern ) {
                 $expanded.Add((Normalize-PathText (
                     $case.FullName.Substring($rootPath.Length + 1)))) | Out-Null
+            }
+        }
+    }
+    return @($expanded)
+}
+
+function Expand-ReferencedCaseManifests($text, $cases, $rootPath)
+{
+    $expanded = New-Object System.Collections.Generic.List[string]
+    $casePaths = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::OrdinalIgnoreCase)
+    foreach ( $case in $cases ) {
+        $relative = Normalize-PathText ($case.FullName.Substring($rootPath.Length + 1))
+        $casePaths.Add($relative) | Out-Null
+    }
+    $seenManifests = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::OrdinalIgnoreCase)
+    foreach ( $match in [regex]::Matches(
+        $text, 'test[\\/]+cases[\\/]+(?<path>[^,"''\s>]+\.json)') ) {
+        $manifestRelative = "test/cases/" +
+            (Normalize-PathText $match.Groups['path'].Value)
+        if ( ! $seenManifests.Add($manifestRelative) ) { continue }
+        if ( $gitInventoryAvailable -and
+             ! $trackedFileSet.Contains($manifestRelative) ) {
+            Add-Failure "referenced test case manifest is not versioned: $manifestRelative"
+            continue
+        }
+        $manifestPath = Join-Path $script:Root $manifestRelative
+        if ( ! (Test-Path -LiteralPath $manifestPath -PathType Leaf) ) {
+            Add-Failure "referenced test case manifest is missing: $manifestRelative"
+            continue
+        }
+        $manifestText = Read-Utf8Text $manifestPath
+        try { $null = $manifestText | ConvertFrom-Json -ErrorAction Stop }
+        catch {
+            Add-Failure "referenced test case manifest is invalid JSON: $manifestRelative"
+            continue
+        }
+        foreach ( $nameMatch in [regex]::Matches(
+            $manifestText, '"(?<name>[A-Za-z0-9_.\/-]+)"') ) {
+            $name = Normalize-PathText $nameMatch.Groups['name'].Value
+            if ( $name.Contains("..") ) { continue }
+            if ( ! $name.EndsWith(".xl", [System.StringComparison]::OrdinalIgnoreCase) ) {
+                $name += ".xl"
+            }
+            $candidate = "test/cases/$name"
+            if ( $casePaths.Contains($candidate) ) {
+                $expanded.Add($candidate) | Out-Null
             }
         }
     }
@@ -270,8 +365,14 @@ foreach ( $relative in $wiringFiles ) {
 
 $wiringText = [string]::Join("`n", $textParts)
 $rootPath = (Resolve-Path -LiteralPath $Root).Path
-$cases = @(Get-ChildItem -LiteralPath $caseDir -Filter "*.xl" -File -Recurse | Sort-Object FullName)
-$manualProbePaths = Get-ManualProbePaths $manualProbeManifestPath $rootPath $caseDir
+$cases = @(Get-VersionedFilesUnder "test\cases" @(".xl") "*" -Recurse)
+$manifestIsVersioned = !$gitInventoryAvailable -or
+    $trackedFileSet.Contains("test/manual_probes.txt")
+$manualProbePaths = if ( $manifestIsVersioned ) {
+    Get-ManualProbePaths $manualProbeManifestPath $rootPath $caseDir
+} else {
+    New-Object System.Collections.Generic.HashSet[string]
+}
 $automatedCases = @($cases | Where-Object {
     $relative = Normalize-PathText ($_.FullName.Substring($rootPath.Length + 1))
     ! $manualProbePaths.Contains($relative)
@@ -282,6 +383,8 @@ $wiringText += "`n" + [string]::Join("`n", @(Expand-CaseGlobs $wiringText $autom
 $wiringText += "`n" + [string]::Join("`n", @(Expand-PowerShellCaseNames $wiringText))
 $wiringText += "`n" + [string]::Join("`n", @(
     Expand-PowerShellCaseFilters $wiringText $automatedCases $rootPath))
+$wiringText += "`n" + [string]::Join("`n", @(
+    Expand-ReferencedCaseManifests $wiringText $automatedCases $rootPath))
 $wiringText += "`n" + [string]::Join("`n", @(Get-ImportedCaseReferences $automatedCases $caseDir))
 
 foreach ( $case in $cases ) {
@@ -351,7 +454,7 @@ if ( Test-Path -LiteralPath $readmePath -PathType Leaf ) {
 }
 
 $referenced = New-Object System.Collections.Generic.HashSet[string]
-$matches = [regex]::Matches($wiringText, 'test[\\/]+cases[\\/]+([^"''\s>]+\.xl)')
+$matches = [regex]::Matches($wiringText, 'test[\\/]+cases[\\/]+([^,"''\s>]+\.xl)')
 foreach ( $match in $matches ) {
     $relative = Normalize-PathText $match.Groups[1].Value
     if ( $relative.Length -gt 0 -and ! $relative.Contains("%") -and

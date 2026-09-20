@@ -2,7 +2,7 @@
 // 1. func 是一等公民类型。
 // 2. 匿名函数可以写成块体或 => 表达式。
 // 3. 闭包可以捕获外部变量。
-// 4. 函数值可以进入容器和 var。
+// 4. 函数值可以进入容器，并通过 xcall 显式装箱进入 var。
 
 func inc(int value) as int
     return value + 1
@@ -39,7 +39,7 @@ func main(...) as int
     array<func(int) as int> ops = array[plusOne, timesTwo]
     func(int) as int firstOp = ops[0]
     func(int) as int secondOp = ops[1]
-    var dynamicFunction = plusOne
+    var dynamicFunction = xcall(plusOne)
 
     if plusOne(41) != 42 then
         return 1

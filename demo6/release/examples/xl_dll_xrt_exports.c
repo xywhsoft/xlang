@@ -1,42 +1,25 @@
-#include "lib/xrt/xrt.h"
+#include "xrt_decl.h"
 
 #include <stdio.h>
 
 int main(void)
 {
-    xvalue value;
-    long long got;
+    xvalue* value;
+    int64 got;
 
-    if ( xrtInit() == NULL ) {
-        fprintf(stderr, "xrtInit failed\n");
-        return 1;
-    }
-    if ( xrtTypeValue() == NULL || xrtTypeValue()->Size != sizeof(xvalue) ) {
-        fprintf(stderr, "xrtTypeValue export failed\n");
-        xrtUnit();
-        return 1;
-    }
-    if ( (void*)xvoCreateRecordMove == NULL ) {
-        fprintf(stderr, "xvoCreateRecordMove export failed\n");
-        xrtUnit();
-        return 1;
-    }
-    if ( (void*)xvoIsShared == NULL ) {
-        fprintf(stderr, "xvoIsShared export failed\n");
-        xrtUnit();
-        return 1;
-    }
-    value = xvoCreateInt(42);
+    value = xrtValueInt(42);
     if ( value == NULL ) {
-        fprintf(stderr, "xvoCreateInt failed\n");
-        xrtUnit();
+        fprintf(stderr, "xrtValueInt failed\n");
         return 1;
     }
-    got = (long long)xvoGetInt(value);
-    xvoUnref(value);
-    xrtUnit();
+    if ( !xrtValueGetInt(value, &got) ) {
+        fprintf(stderr, "xrtValueGetInt failed\n");
+        xrtValueRelease(value);
+        return 1;
+    }
+    xrtValueRelease(value);
     if ( got != 42 ) {
-        fprintf(stderr, "xvoGetInt returned %lld\n", got);
+        fprintf(stderr, "xrtValueGetInt returned %lld\n", (long long)got);
         return 1;
     }
     printf("xl.dll XRT exports ok\n");

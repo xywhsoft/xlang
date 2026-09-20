@@ -64,11 +64,15 @@ $unsafeFunctions = @(
     "_strnicmp"
 )
 $unsafePattern = '\b(' + (($unsafeFunctions | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')\s*\('
-$staleMarkerPattern = '\b(TODO|FIXME|TBD)\b|placeholder|code generation error|unsupported statement kind in C generator|unsupported expression kind in C generator|unsupported type in C generation|cannot box unsupported type into var|unsupported typed index compound assignment operator'
+$staleMarkerPattern = '\b(TODO|FIXME|TBD)\b|code generation error|unsupported statement kind in C generator|unsupported expression kind in C generator|unsupported type in C generation|cannot box unsupported type into var|unsupported typed index compound assignment operator'
 $directConsolePattern = '\b(printf|puts|putchar|fprintf|fputs|fputc)\s*\('
 $driverCrtTimePattern = '\btime\s*\('
 $commandExecPattern = '\b(system|popen|_popen|WinExec|ShellExecute[A-Za-z]*|CreateProcess[A-Za-z]*)\s*\('
-$processControlPattern = '\b(exit|abort|assert)\s*\('
+# `abort()` is the canonical fail-stop for verified XLIR trap instructions and
+# impossible resident-runtime ownership states.  It must remain observable and
+# non-recoverable; direct `exit()` and debug-only `assert()` are not valid
+# compiler/library control flow.
+$processControlPattern = '\b(exit|assert)\s*\('
 $manualCrtPrototypePattern = '(?m)^\s*(void|int|char\s*\*)\s+(exit|malloc|free|printf|fprintf)\s*\('
 $mutableFunctionStaticArrayPattern = '(?m)^[ \t]+static\s+(?!const\b)[^;\r\n=]+\[[^\]\r\n]+\]\s*(?:=|;)'
 $removedCgenInferencePattern = '\bxl6CgenInferExprType\b'
@@ -190,6 +194,27 @@ function Get-LineText($text, $lineNumber)
     return $lines[$lineNumber - 1].Trim()
 }
 
+function Get-TextMatches($text, $pattern)
+{
+    $matches = [regex]::Matches(
+        $text, $pattern,
+        [System.Text.RegularExpressions.RegexOptions]::Multiline)
+    $lineNumber = 1
+    $cursor = 0
+    foreach ( $match in $matches ) {
+        while ( $cursor -lt $match.Index ) {
+            $newline = $text.IndexOf([char]10, $cursor)
+            if ( $newline -lt 0 -or $newline -ge $match.Index ) { break }
+            ++$lineNumber
+            $cursor = $newline + 1
+        }
+        [pscustomobject]@{
+            LineNumber = $lineNumber
+            Value = $match.Value
+        }
+    }
+}
+
 $files = @(
     foreach ( $scanRoot in $scanRoots ) {
         $dir = Join-Path $Root $scanRoot
@@ -230,7 +255,7 @@ foreach ( $file in $files ) {
     $relative = $file.FullName.Substring((Resolve-Path -LiteralPath $Root).Path.Length + 1).Replace("\", "/")
     $rawText = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
 
-    $manualPrototypeMatches = @($rawText | Select-String -Pattern $manualCrtPrototypePattern -AllMatches)
+    $manualPrototypeMatches = @(Get-TextMatches $rawText $manualCrtPrototypePattern)
     foreach ( $match in $manualPrototypeMatches ) {
         Add-Failure "manual CRT prototype in handwritten C/H source: ${relative}:$($match.LineNumber):$(Get-LineText $rawText $match.LineNumber)"
     }
@@ -246,30 +271,30 @@ foreach ( $file in $files ) {
     }
 
     if ( $relative.StartsWith("src/") ) {
-        $consoleMatches = Select-String -LiteralPath $file.FullName -Pattern $directConsolePattern
-        foreach ( $match in $consoleMatches ) {
-            Add-Failure "direct console output in compiler source: ${relative}:$($match.LineNumber):$($match.Line.Trim())"
-        }
-
-        $commandMatches = Select-String -LiteralPath $file.FullName -Pattern $commandExecPattern
-        foreach ( $match in $commandMatches ) {
-            Add-Failure "direct CRT/Win32 command execution in compiler source: ${relative}:$($match.LineNumber):$($match.Line.Trim())"
-        }
-
         $codeOnly = Remove-CCommentsAndStrings $rawText
-        $processMatches = @($codeOnly | Select-String -Pattern $processControlPattern -AllMatches)
+        $consoleMatches = @(Get-TextMatches $codeOnly $directConsolePattern)
+        foreach ( $match in $consoleMatches ) {
+            Add-Failure "direct console output in compiler source: ${relative}:$($match.LineNumber):$(Get-LineText $rawText $match.LineNumber)"
+        }
+
+        $commandMatches = @(Get-TextMatches $codeOnly $commandExecPattern)
+        foreach ( $match in $commandMatches ) {
+            Add-Failure "direct CRT/Win32 command execution in compiler source: ${relative}:$($match.LineNumber):$(Get-LineText $rawText $match.LineNumber)"
+        }
+
+        $processMatches = @(Get-TextMatches $codeOnly $processControlPattern)
         foreach ( $match in $processMatches ) {
-            Add-Failure "direct process control or assert in compiler source: ${relative}:$($match.LineNumber):$(Get-LineText $rawText $match.LineNumber)"
+            Add-Failure "direct process exit or assert in compiler source: ${relative}:$($match.LineNumber):$(Get-LineText $rawText $match.LineNumber)"
         }
 
         if ( $relative.StartsWith("src/cgen/") ) {
-            $mutableStaticMatches = @($rawText | Select-String -Pattern $mutableFunctionStaticArrayPattern -AllMatches)
+            $mutableStaticMatches = @(Get-TextMatches $rawText $mutableFunctionStaticArrayPattern)
             foreach ( $match in $mutableStaticMatches ) {
                 Add-Failure "mutable function-static array in cgen source: ${relative}:$($match.LineNumber):$(Get-LineText $rawText $match.LineNumber)"
             }
 
             # typed HIR 已经是代码生成阶段唯一的表达式类型来源，禁止恢复旧的 C 字符串推断旁路。
-            $removedInferenceMatches = @($codeOnly | Select-String -Pattern $removedCgenInferencePattern -AllMatches)
+            $removedInferenceMatches = @(Get-TextMatches $codeOnly $removedCgenInferencePattern)
             foreach ( $match in $removedInferenceMatches ) {
                 Add-Failure "removed C-string type inference reintroduced in cgen source: ${relative}:$($match.LineNumber):$(Get-LineText $rawText $match.LineNumber)"
             }

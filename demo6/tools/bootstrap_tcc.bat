@@ -13,10 +13,13 @@ if exist "%XL6_TCC%" (
     exit /b 0
 )
 
-if not "%XL6_TCC%"=="build\tmp\tcc_bootstrap.exe" (
+for %%I in ("%XL6_TCC%") do set "XL6_TCC_ABSOLUTE=%%~fI"
+for %%I in ("%XL6_ROOT%\build\tmp\tcc_bootstrap.exe") do set "XL6_TCC_DEFAULT=%%~fI"
+if /I not "%XL6_TCC_ABSOLUTE%"=="%XL6_TCC_DEFAULT%" (
     echo DEMO6 TCC bootstrap failed: custom XL6_TCC does not exist: "%XL6_TCC%".
     exit /b 1
 )
+set "XL6_TCC=%XL6_TCC_ABSOLUTE%"
 
 if exist "%XL6_BOOTSTRAP_CC%" goto XL6_BOOTSTRAP_CC_OK
 where %XL6_BOOTSTRAP_CC% >nul 2>nul
