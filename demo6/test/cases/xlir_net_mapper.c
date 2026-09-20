@@ -51,7 +51,8 @@ int main(void)
     sender = xl6_xrt_udp_bind("127.0.0.1", 0); receiver = xl6_xrt_udp_bind("127.0.0.1", 0); assert(sender && receiver);
     assert(xl6_xrt_udp_send_text(sender, "127.0.0.1", xl6_xrt_udp_local_port(receiver), "x"));
     packet = xl6_xrt_udp_recv(receiver, 8000); assert(packet);
-    xl6_xrt_udp_destroy(sender); xl6_xrt_udp_destroy(receiver); xl6_net_runtime_unit(); assert(!xrtGetError());
+    xl6_xrt_udp_destroy(sender); xl6_xrt_udp_destroy(receiver);
+    assert(xlir_net_runtime_retire(true) == XL6_MODULE_RETIRE_READY); assert(!xrtGetError());
     list = xrtNetResolve("127.0.0.1", 8123, XNET_FAMILY_IPV4); assert(list && xrtNetAddrListCount(list));
     xrtMemDebugSnapshot(&initial);
     for (mode = 0; mode < 3; ++mode) {

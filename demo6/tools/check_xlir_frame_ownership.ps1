@@ -63,8 +63,9 @@ foreach ($case in $cases) {
         }
         $build=$LASTEXITCODE; $run=$null; $complete=$false
         if ($build -eq 0) {
-            $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath `
+$process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath `
                 -RedirectStandardOutput "$outputPath/$name.run.log" -RedirectStandardError "$outputPath/$name.err.log"
+            $null = $process.Handle
             if (!$process.WaitForExit(60000)) { $process.Kill(); $process.WaitForExit(); $run=-999 }
             else { $run=$process.ExitCode }
             $complete=[bool](Select-String -LiteralPath "$outputPath/$name.run.log" -SimpleMatch $case.Marker -Quiet)

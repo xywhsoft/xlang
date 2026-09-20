@@ -31,7 +31,8 @@ try {
     foreach($key in $profile.Keys){$saved[$key]=[Environment]::GetEnvironmentVariable($key,'Process');[Environment]::SetEnvironmentVariable($key,[IO.Path]::GetFullPath($profile[$key]),'Process')}
     if(!$buildExit){
         $headers=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
-        $process=Start-Process -FilePath "$out/host.exe" -ArgumentList ('"'+$headers+'"') -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$out/run.out.log" -RedirectStandardError "$out/run.err.log"
+$process=Start-Process -FilePath "$out/host.exe" -ArgumentList ('"'+$headers+'"') -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$out/run.out.log" -RedirectStandardError "$out/run.err.log"
+        $null = $process.Handle
         if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$run=-999}else{$process.Refresh();$run=$process.ExitCode}
         $process.Dispose()
     }

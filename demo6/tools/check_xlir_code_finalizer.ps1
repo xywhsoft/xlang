@@ -27,7 +27,8 @@ try {
         & gcc @flags "-O$level" test/cases/xlir_code_finalizer_contract.c src/runtime/xl6_code_finalizer.c src/runtime/xl6_code_lease.c `
             $runtime[0].Path -lWs2_32 -lIPHLPAPI -lShell32 -lOle32 -lAdvapi32 -o "$prefix.exe" *> "$prefix.build.log"
         if ($LASTEXITCODE -ne 0) { Get-Content "$prefix.build.log" -Tail 20; throw 'Resident finalizer host build failed' }
-        $process=Start-Process -FilePath "$prefix.exe" -ArgumentList @('"'+$dll+'"') -WindowStyle Hidden -PassThru -RedirectStandardOutput "$prefix.out.log" -RedirectStandardError "$prefix.err.log"
+$process=Start-Process -FilePath "$prefix.exe" -ArgumentList @('"'+$dll+'"') -WindowStyle Hidden -PassThru -RedirectStandardOutput "$prefix.out.log" -RedirectStandardError "$prefix.err.log"
+        $null = $process.Handle
         if (!$process.WaitForExit(60000)) { $process.Kill(); throw 'Finalizer host timeout' }
         $process.Refresh(); $code=$process.ExitCode
         $complete=[bool](Select-String -LiteralPath "$prefix.out.log" -SimpleMatch 'Resident object finalizer: 250 real DLL lifetimes, 500 finalizers/contexts, 250 field drops, 25 allocation failures, 25 publication refusals, 4900 graph probes,' -Quiet)
@@ -41,7 +42,8 @@ try {
         $mode=if ($phase -eq 'repeat') {'emit'} else {$phase}
         $prefix=Join-Path $outputPath "language-$phase"
         $arguments=@('test/cases/xlir_class_finalizer_cursor.xl',$mode,$prefix,'test/cases/xlir_class_finalizer_cursor_native.c')
-        $process=Start-Process -FilePath $build.Driver -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput "$prefix.log" -RedirectStandardError "$prefix.err.log"
+$process=Start-Process -FilePath $build.Driver -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput "$prefix.log" -RedirectStandardError "$prefix.err.log"
+        $null = $process.Handle
         if (!$process.WaitForExit(60000)) { $process.Kill(); throw 'Language cursor finalizer timeout' }
         $process.Refresh(); $code=$process.ExitCode
         $complete=[bool](Select-String -LiteralPath "$prefix.log" -SimpleMatch "public source $mode complete" -Quiet)

@@ -143,9 +143,9 @@ else { $outputPath = [IO.Path]::GetFullPath((Join-Path $Root $OutputRoot)) }
 if (Test-Path -LiteralPath $outputPath) { throw "Refusing to reuse XLIR scenario evidence: $outputPath" }
 [IO.Directory]::CreateDirectory($outputPath) | Out-Null
 
-$publicDirectory = "build/test/xlir_parameterized_${runId}_public"
-$runtimeDirectory = "build/test/xlir_parameterized_${runId}_runtime"
-$contractDirectory = "build/test/xlir_parameterized_${runId}_contracts"
+$publicDirectory = [IO.Path]::GetFullPath((Join-Path $Root "build/test/xlir_parameterized_${runId}_public"))
+$runtimeDirectory = [IO.Path]::GetFullPath((Join-Path $Root "build/test/xlir_parameterized_${runId}_runtime"))
+$contractDirectory = [IO.Path]::GetFullPath((Join-Path $Root "build/test/xlir_parameterized_${runId}_contracts"))
 $phaseOneDirectory = Join-Path $OutputRoot 'phase1'
 $phaseTwoDirectory = Join-Path $OutputRoot 'phase2'
 $contractSources = @(
@@ -156,16 +156,35 @@ $contractSources = @(
     'test/cases/xlir_callable_contextual_contract.c',
     'test/cases/xlir_capture_ownership_contract.c',
     'test/cases/xlir_cell_cancel_race_contract.c',
+    'test/cases/xlir_cell_storage_contract.c',
+    'test/cases/xlir_cell_allocation_outcome_contract.c',
+    'test/cases/xlir_cell_thread_lifetime_contract.c',
     'test/cases/xlir_class_publication_outcome_contract.c',
     'test/cases/xlir_class_storage_ir_contract.c',
     'test/cases/xlir_closure_storage_contract.c',
     'test/cases/xlir_code_owner_binding_contract.c',
     'test/cases/xlir_frame_ownership_contract.c',
     'test/cases/xlir_future_aggregate_ownership_contract.c',
+    'test/cases/xlir_future_callback_storage_contract.c',
+    'test/cases/xlir_callback_boundary_contract.c',
     'test/cases/xlir_generator_ownership_contract.c',
+    'test/cases/xlir_generator_storage_contract.c',
+    'test/cases/xlir_generator_close_routes_contract.c',
+    'test/cases/xlir_generator_close_abrupt_finally_contract.c',
+    'test/cases/xlir_generator_close_catch_dispatch_contract.c',
+    'test/cases/xlir_generator_close_first_outcome_contract.c',
+    'test/cases/xlir_generator_payload_contract.c',
+    'test/cases/xlir_generator_frame_loan_contract.c',
+    'test/cases/xlir_generator_managed_contract.c',
     'test/cases/xlir_module_executor_contract.c',
     'test/cases/xlir_module_ownership_contract.c',
-    'test/cases/xlir_slot_transfer_contract.c'
+    'test/cases/xlir_slot_transfer_contract.c',
+    'test/cases/xlir_task_pool_graph_contract.c',
+    'test/cases/xlir_task_storage_contract.c',
+    'test/cases/xlir_task_closed_capture_contract.c',
+    'test/cases/xlir_dynamic_iteration_allocation_contract.c',
+    'test/cases/xlir_module_task_pool_contract.c',
+    'test/cases/xlir_async_pool_outcome_contract.c'
 )
 
 $fixtureInputs = @(
@@ -198,7 +217,7 @@ $contractDrivers = @{
     'check_xlir_slot_transfers.ps1' = 'xlir_slot_transfer_contract.exe'
     'check_xlir_terminal_source_runtime.ps1' = 'xlir_async_terminal_outcome_contract.exe'
 }
-$sourceDriver = Join-Path $contractDirectory 'xlir_code_owner_binding_contract.exe'
+$sourceDriver = [IO.Path]::GetFullPath((Join-Path $contractDirectory 'xlir_code_owner_binding_contract.exe'))
 $networkReport = Join-Path (Join-Path $phaseOneDirectory 'network-lifetime') 'results.json'
 $aggregateDirectory = Join-Path $phaseOneDirectory 'aggregate-dependencies'
 $dependentGuards = @(
@@ -231,6 +250,9 @@ function New-ScenarioGate([string]$Name, [string]$PhaseDirectory) {
             default { throw "No reviewed argument source for $Name -$required" }
         }
     }
+    if ($parameters.ContainsKey('Directory') -and !$arguments.Contains('Directory')) {
+        $arguments.Directory = Join-Path $PhaseDirectory $slug
+    }
     switch ($Name) {
         'check_xlir_object_escape.ps1' {
             $arguments.Directory = Join-Path $PhaseDirectory $slug
@@ -248,9 +270,14 @@ function New-ScenarioGate([string]$Name, [string]$PhaseDirectory) {
         }
     }
     if ($parameters.ContainsKey('Tcc')) { $arguments.Tcc = $Tcc }
+    $resources = @("scenario-$slug")
+    # Legacy focused probes without a private evidence directory still emit
+    # fixed build/test paths. Serialize those probes until each owns an
+    # explicit output root; other comprehensive scenarios remain parallel.
+    if (!$arguments.Contains('Directory')) { $resources += 'legacy-build-test-output' }
     return [ordered]@{
         Script = $Name
-        Resources = @("scenario-$slug")
+        Resources = $resources
         Arguments = $arguments
     }
 }
@@ -291,10 +318,19 @@ try {
         Directory = $runtimeDirectory
         RuntimeOnly = $true
     }
+    Invoke-CheckedScript (Join-Path $toolsDirectory 'stage_xlir_artifact_runtime_sources.ps1') @{
+        Directory = $publicDirectory
+    }
     Invoke-CheckedScript (Join-Path $toolsDirectory 'build_xlir_validation_driver.ps1') @{
         BatchDrivers = $contractSources
         BatchDirectory = $contractDirectory
     }
+    $sharedRuntimeDirectory = Join-Path $Root 'build/test/__xl_runtime'
+    [IO.Directory]::CreateDirectory($sharedRuntimeDirectory) | Out-Null
+    Get-ChildItem -LiteralPath (Join-Path $publicDirectory 'include/__xl_runtime') -File | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $sharedRuntimeDirectory $_.Name) -Force
+    }
+    Copy-Item -LiteralPath (Join-Path $Root 'release/xl.dll') -Destination (Join-Path $Root 'build/test/xl.dll') -Force
 
     $phaseOneGates = @($reviewedGuards | Where-Object { $_ -notin $dependentGuards } |
         ForEach-Object { New-ScenarioGate $_ $phaseOneDirectory })
@@ -303,12 +339,28 @@ try {
         ([ordered]@{SchemaVersion=2;Name='xlir-parameterized-phase1';Gates=$phaseOneGates} | ConvertTo-Json -Depth 8),
         [Text.UTF8Encoding]::new($false))
     $phaseOneReport = Join-Path $outputPath 'phase1.results.json'
-    Invoke-CheckedScript (Join-Path $toolsDirectory 'run_xlir_batch.ps1') @{
+    $phaseOneArguments = @{
         Root = $Root; ManifestPath = $phaseOneManifest; ReportPath = $phaseOneReport; MaxParallel = $MaxParallel
+    }
+    & (Join-Path $toolsDirectory 'run_xlir_batch.ps1') @phaseOneArguments
+    $phaseOneExit = $LASTEXITCODE
+    if (!(Test-Path -LiteralPath $phaseOneReport -PathType Leaf)) {
+        throw 'XLIR phase-one batch produced no report'
+    }
+    $phaseOneResult = Get-Content -LiteralPath $phaseOneReport -Raw | ConvertFrom-Json
+    if ($phaseOneResult.Status -in @('infrastructure_failed','invalidated')) {
+        throw "XLIR phase-one evidence is unusable: $($phaseOneResult.Status) / $($phaseOneResult.Error)"
     }
     $report.PhaseReports += $phaseOneReport
     Save-Report
 
+    $blockedDependencies = @($phaseOneResult.Results | Where-Object {
+        $_.Gate -in @('check_xlir_aggregate_dependencies.ps1','check_xlir_network_lifetime.ps1') -and
+        $_.Status -ne 'passed'
+    })
+    if ($blockedDependencies.Count) {
+        throw "XLIR phase two blocked by failed producers: $($blockedDependencies.Gate -join ', ')"
+    }
     foreach ($dependency in @($networkReport, (Join-Path $aggregateDirectory 'results.json'))) {
         if (!(Test-Path -LiteralPath $dependency -PathType Leaf)) { throw "XLIR scenario dependency missing: $dependency" }
     }
@@ -324,10 +376,22 @@ try {
         ([ordered]@{SchemaVersion=2;Name='xlir-parameterized-phase2';Gates=$phaseTwoGates} | ConvertTo-Json -Depth 8),
         [Text.UTF8Encoding]::new($false))
     $phaseTwoReport = Join-Path $outputPath 'phase2.results.json'
-    Invoke-CheckedScript (Join-Path $toolsDirectory 'run_xlir_batch.ps1') @{
+    $phaseTwoArguments = @{
         Root = $Root; ManifestPath = $phaseTwoManifest; ReportPath = $phaseTwoReport; MaxParallel = $MaxParallel
     }
+    & (Join-Path $toolsDirectory 'run_xlir_batch.ps1') @phaseTwoArguments
+    $phaseTwoExit = $LASTEXITCODE
+    if (!(Test-Path -LiteralPath $phaseTwoReport -PathType Leaf)) {
+        throw 'XLIR phase-two batch produced no report'
+    }
+    $phaseTwoResult = Get-Content -LiteralPath $phaseTwoReport -Raw | ConvertFrom-Json
+    if ($phaseTwoResult.Status -in @('infrastructure_failed','invalidated')) {
+        throw "XLIR phase-two evidence is unusable: $($phaseTwoResult.Status) / $($phaseTwoResult.Error)"
+    }
     $report.PhaseReports += $phaseTwoReport
+    if ($phaseOneExit -ne 0 -or $phaseTwoExit -ne 0) {
+        throw "XLIR scenario failures collected: phase1=$phaseOneExit phase2=$phaseTwoExit"
+    }
     $report.Status = 'passed'
 } catch {
     $report.Status = 'failed'

@@ -8,16 +8,13 @@ extern void xrtFree(void* pointer);
 struct xstrview;
 extern char* xrtStrDup(const char* text);
 extern char* xrtStrConcat(struct xstrview left, struct xstrview right);
-static void* tracked_malloc(size_t size);
 static void tracked_free(void* pointer);
 static char* tracked_dup(const char* text);
 static char* tracked_concat(struct xstrview left, struct xstrview right);
-#define xrtMalloc tracked_malloc
 #define xrtFree tracked_free
 #define xrtStrDup tracked_dup
 #define xrtStrConcat tracked_concat
 #include "../../build/test/xlir_module_finalization.c"
-#undef xrtMalloc
 #undef xrtFree
 #undef xrtStrDup
 #undef xrtStrConcat
@@ -36,7 +33,6 @@ static void* track(void* pointer)
     }
     abort();
 }
-static void* tracked_malloc(size_t size) { return track(xrtMalloc(size)); }
 static char* tracked_dup(const char* text) { return (char*)track(xrtStrDup(text)); }
 static char* tracked_concat(struct xstrview left, struct xstrview right)
 { return (char*)track(xrtStrConcat(left, right)); }
@@ -125,6 +121,8 @@ static int finish_cycle(int expected_created, bool with_error)
 int main(void)
 {
     int i;
+    xmemdebugsnapshot before, after;
+    if (!xrtMemDebugEnable(true)) return 7;
     /* Unload before initialization is a no-op. */
     xl_script_module_unit();
     if (!xl_script_module_init(NULL) || created_count != 6 || destroyed_count != 0 ||
@@ -135,6 +133,10 @@ int main(void)
             xrtGetError() ? xrtErrorMessage(xrtGetError()) : "none");
         return 1;
     }
+    /* The first cycle warms any process-wide runtime caches. From this point,
+     * resident-owned closure environments and generated-owned strings must
+     * both return to the same allocator baseline. */
+    xrtMemDebugSnapshot(&before);
     /* A completed unload permits a fresh initialization of module storage. */
     destroy_order = 0;
     if (!xl_script_module_init(NULL) || run_main() != 0 || !finish_cycle(12, false)) {
@@ -160,6 +162,18 @@ int main(void)
         destroy_order = 0;
         if (!xl_script_module_init(NULL) || run_main() != 0 ||
             !finish_cycle(27 + i * 6, (i & 1) != 0)) return 6;
+    }
+    xrtMemDebugSnapshot(&after);
+    if (before.LiveCount != after.LiveCount || before.LiveBytes != after.LiveBytes ||
+        after.AllocCount - before.AllocCount != after.FreeCount - before.FreeCount ||
+        before.InvalidFreeCount != after.InvalidFreeCount ||
+        before.DoubleFreeCount != after.DoubleFreeCount) {
+        fprintf(stderr, "module allocator imbalance: live=%llu->%llu bytes=%llu->%llu alloc=%llu free=%llu\n",
+            (unsigned long long)before.LiveCount, (unsigned long long)after.LiveCount,
+            (unsigned long long)before.LiveBytes, (unsigned long long)after.LiveBytes,
+            (unsigned long long)(after.AllocCount - before.AllocCount),
+            (unsigned long long)(after.FreeCount - before.FreeCount));
+        return 7;
     }
     printf("module allocations balanced: %llu; language objects balanced: %d\n",
         (unsigned long long)allocations, destroyed_count);

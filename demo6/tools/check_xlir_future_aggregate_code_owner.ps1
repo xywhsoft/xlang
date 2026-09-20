@@ -30,7 +30,8 @@ try {
         else{& gcc @strict "-$($compiler.Substring(4))" @includes $case @resident $runtime[0].Path @libs -o $binary *> "$binary.build.log"}
         $build=$LASTEXITCODE;$run=$null;$complete=$false
         if($dllExit-eq0-and$build-eq0){
-            $process=Start-Process -FilePath $binary -ArgumentList @('"'+$dll+'"') -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$binary.out.log" -RedirectStandardError "$binary.err.log"
+$process=Start-Process -FilePath $binary -ArgumentList @('"'+$dll+'"') -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$binary.out.log" -RedirectStandardError "$binary.err.log"
+            $null = $process.Handle
             if($process.WaitForExit(45000)){$process.Refresh();$run=$process.ExitCode}else{$process.Kill();$process.WaitForExit();$run='timeout-45s'}
             $process.Dispose()
             $complete=$run-eq0-and[bool](Select-String -LiteralPath "$binary.out.log" -SimpleMatch $marker -Quiet)-and

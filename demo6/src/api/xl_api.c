@@ -2604,7 +2604,8 @@ static bool xlModuleOwnershipCount(const void* data, size_t* count)
         module->activeCalls != 0 || module->retirementRunning || module->ownershipCleared ||
         xl6CodeOwnerScopeActive(&module->codeOwnerGraph.base) ||
         module->activation == XL_MODULE_DEACTIVATING ||
-        module->activation == XL_MODULE_DEACTIVATION_PENDING) return false;
+        (module->activation == XL_MODULE_DEACTIVATION_PENDING &&
+            !module->retirementPrepared)) return false;
     handle = module->destroyRequested ? 0u : 1u;
     if (module->codeLeases > SIZE_MAX - handle) return false;
     handle += module->codeLeases;

@@ -28,6 +28,10 @@ static void provider_init(void);
 #endif
 
 static void* relocated_entry;
+typedef void (*joint_memdebug_snapshot_fn)(xmemdebugsnapshot*);
+typedef size_t (*joint_memdebug_visit_live_fn)(xmemdebugallocationvisitor, ptr);
+static joint_memdebug_snapshot_fn provider_snapshot;
+static joint_memdebug_visit_live_fn provider_visit_live;
 static void compiler_error(void* unused, const char* message)
 { (void)unused; fprintf(stderr, "TCC: %s\n", message); }
 static void add_runtime_symbol(TCCState* state, const char* name, const void* address)
@@ -165,32 +169,48 @@ static bool identify_environment_allocation(const xmemdebugallocation* allocatio
 }
 static void provider_init(void)
 {
+    HMODULE runtime = GetModuleHandleA("xl.dll");
     unsigned round;
+    assert(runtime != NULL);
+    if (provider_snapshot == NULL || provider_visit_live == NULL) {
+        FARPROC snapshot_symbol = GetProcAddress(runtime, "xrtMemDebugSnapshot");
+        FARPROC visit_symbol = GetProcAddress(runtime, "xrtMemDebugVisitLive");
+        assert(snapshot_symbol != NULL && visit_symbol != NULL);
+        memcpy(&provider_snapshot, &snapshot_symbol, sizeof(provider_snapshot));
+        memcpy(&provider_visit_live, &visit_symbol, sizeof(provider_visit_live));
+    }
     for (round = 0; round < 2; ++round) {
-        xmemdebugsnapshot before, after;
+        xmemdebugsnapshot before, after, provider_before, provider_after;
         MEMORY_BASIC_INFORMATION memory;
         xrtMemDebugSnapshot(&before);
+        provider_snapshot(&provider_before);
         load_artifact(); tcc_delete(compiled_state);
         assert(VirtualQuery(relocated_entry, &memory, sizeof(memory)) == sizeof(memory) && memory.State == MEM_FREE);
         compiled_state = NULL; relocated_entry = NULL;
         xrtMemDebugSnapshot(&after);
+        provider_snapshot(&provider_after);
         printf("TCC environment setup %u: live %llu -> %llu, bytes %llu -> %llu\n", round,
             (unsigned long long)before.LiveCount, (unsigned long long)after.LiveCount,
             (unsigned long long)before.LiveBytes, (unsigned long long)after.LiveBytes);
+        printf("TCC provider setup %u: live %llu -> %llu, bytes %llu -> %llu\n", round,
+            (unsigned long long)provider_before.LiveCount, (unsigned long long)provider_after.LiveCount,
+            (unsigned long long)provider_before.LiveBytes, (unsigned long long)provider_after.LiveBytes);
         /* First-use environment caches are not module-owned. The next full
          * compile/delete must be balanced, as must every executed transaction. */
         if (round != 0) {
             unsigned found = 0;
             assert(before.LiveCount == after.LiveCount && before.LiveBytes == after.LiveBytes);
             assert(after.AllocCount-before.AllocCount == after.FreeCount-before.FreeCount);
-            (void)xrtMemDebugVisitLive(identify_environment_allocation, &found);
-#ifdef JOINT_SOURCE_XRT
-            /* Released TCC has a separate allocator; its cache is not part
-             * of the source XRT ledger. Code pages are still checked above. */
-            assert(found == 0 && after.LiveCount == 0 && after.LiveBytes == 0);
-#else
-            assert(found == 1 && after.LiveCount == 1 && after.LiveBytes == sizeof("<static libtcc>"));
-#endif
+            assert(provider_before.LiveCount == provider_after.LiveCount &&
+                provider_before.LiveBytes == provider_after.LiveBytes);
+            assert(provider_after.AllocCount-provider_before.AllocCount ==
+                provider_after.FreeCount-provider_before.FreeCount);
+            (void)provider_visit_live(identify_environment_allocation, &found);
+            /* The provider DLL owns one process-lifetime environment cache.
+             * Query that allocator explicitly: current-source test hosts may
+             * also contain an independent XRT implementation. */
+            assert(found == 1 && provider_after.LiveCount == 1 &&
+                provider_after.LiveBytes == sizeof("<static libtcc>"));
         }
     }
 }

@@ -2,7 +2,11 @@ param([string]$Directory = 'build/test/xlir_public_source', [switch]$RuntimeOnly
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'xlir_c_object_cache.ps1')
 $rootPath = (Get-Location).Path
-$batchPath = [IO.Path]::GetFullPath((Join-Path $rootPath $Directory))
+$batchPath = if ([IO.Path]::IsPathRooted($Directory)) {
+    [IO.Path]::GetFullPath($Directory)
+} else {
+    [IO.Path]::GetFullPath((Join-Path $rootPath $Directory))
+}
 if (Test-Path -LiteralPath $batchPath) { throw 'Choose a fresh public build directory; prior evidence must not be overwritten' }
 $buildTimer = [Diagnostics.Stopwatch]::StartNew()
 $buildContext = New-XlirCBuildContext -Root $rootPath -Directory $batchPath -NoCache:$NoCache

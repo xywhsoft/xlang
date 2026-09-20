@@ -22,7 +22,11 @@ $strict = @('-std=c11','-Wall','-Wextra','-Werror','-O0','-Wno-unused-function',
 if ($BatchDrivers.Count) {
     if (!$BatchDirectory) { throw 'BatchDirectory is required for a shared-source contract build' }
     $rootPath = (Get-Location).Path
-    $batchPath = [IO.Path]::GetFullPath((Join-Path $rootPath $BatchDirectory))
+    $batchPath = if ([IO.Path]::IsPathRooted($BatchDirectory)) {
+        [IO.Path]::GetFullPath($BatchDirectory)
+    } else {
+        [IO.Path]::GetFullPath((Join-Path $rootPath $BatchDirectory))
+    }
     if (Test-Path -LiteralPath $batchPath) { throw 'Choose a fresh contract build directory; prior evidence must not be overwritten' }
     $buildTimer = [Diagnostics.Stopwatch]::StartNew()
     $buildContext = New-XlirCBuildContext -Root $rootPath -Directory $batchPath -NoCache:$NoCache

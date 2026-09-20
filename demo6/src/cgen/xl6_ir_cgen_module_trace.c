@@ -15,7 +15,10 @@ static int xl6IrCgenEmitModuleOwnershipTrace(XL6_Output* out,
             "        return false; /* opaque live service ownership, including partial retirement */\n", out);
     xl6OutputPuts("    if (xlir_module_initialized == 0) return true;\n", out);
     if (module->abi.finalizerFunction != 0)
-        xl6OutputPuts("    if (xlir_module_initialized != 2) return false;\n", out);
+        /* After the initializer callback returns, phase 1 is a stable partial
+         * module. Async cleanup may keep it alive, so committed nullable slots
+         * must participate in the same ownership graph as phase 2. */
+        xl6OutputPuts("    if (xlir_module_initialized != 1 && xlir_module_initialized != 2) return false;\n", out);
     if (module->abi.executorOwnershipAbi == XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1)
         xl6OutputPuts("    if (xlir_continuation_executor != NULL &&\n"
             "        !visit(xl6ContinuationExecutorOwnership(xlir_continuation_executor), context)) return false;\n", out);

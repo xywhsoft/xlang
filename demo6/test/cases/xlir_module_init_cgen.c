@@ -151,11 +151,19 @@ int main(void)
     ok = xl6HirBuildModule(&hir, root, &diags) && xl6IrBuildModuleFromAst(&ir, root, &diags) &&
          xl6IrLowerModule(&ir, &diags) && xl6IrCgenEmitC(&out, &ir, &diags);
     text = xl6OutputTakeMemoryText(&out, NULL);
+    if ( text != NULL ) {
+        FILE* generated = fopen("build/test/xlir_module_init_generated.c", "wb");
+        if ( generated == NULL || fputs(text, generated) < 0 || fclose(generated) != 0 ) ok = 0;
+    }
     ok = ok && ir.storageCount == 1 && ir.storages[0].kind == XL6_IR_STORAGE_GLOBAL &&
          text != NULL && strstr(text, "static int64_t s7;\n") != NULL &&
          strstr(text, "static int xlir_module_init(void)\n") != NULL &&
          strstr(text, "if (xlir_module_initialized == 2) return 1;") != NULL &&
-         strstr(text, "v1 = 42LL;") != NULL && strstr(text, "s7 = v1;") != NULL &&
+         strstr(text, "if (xlir_module_initialized != 1 && xlir_module_initialized != 2) return false;") != NULL &&
+         strstr(text, "v1 = 42LL;") != NULL &&
+         strstr(text, "{ int64_t xlir_committed = v1;") != NULL &&
+         strstr(text, "{ &(s7), &(xlir_committed), sizeof(s7) },") != NULL &&
+         strstr(text, "(xl6SlotRuntimeV1Get()->Apply)(xlir_writes, sizeof(xlir_writes)/sizeof(*xlir_writes));") != NULL &&
          strstr(text, "xlir_module_initialized = 2;") != NULL &&
          ir.abi.finalizerFunction != 0 && ir.abi.finalizerCleanupCount == 0;
     repeat = NULL;
@@ -165,10 +173,6 @@ int main(void)
         ok = ok && repeat != NULL && strcmp(text, repeat) == 0;
     } else {
         ok = 0;
-    }
-    if ( ok ) {
-        FILE* generated = fopen("build/test/xlir_module_init_generated.c", "wb");
-        if ( generated == NULL || fputs(text, generated) < 0 || fclose(generated) != 0 ) ok = 0;
     }
     if ( !ok ) fprintf(stderr, "XLIR module init C emitter test failed: %s\n", diags.count > 0 ? diags.items[0].message : "<none>");
     xrtFree(repeat);

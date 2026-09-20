@@ -56,8 +56,9 @@ try{
         }
         $build=$LASTEXITCODE;$run=$null;$complete=$false;$oom=$null
         if($build-eq0){
-            $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath `
+$process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath `
                 -RedirectStandardOutput "$out/$name.out.log" -RedirectStandardError "$out/$name.err.log"
+            $null = $process.Handle
             if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$run=-999}else{$process.Refresh();$run=$process.ExitCode}
             $process.Dispose();$log=[IO.File]::ReadAllText("$out/$name.out.log")
             $complete=$run-eq0-and[regex]::Matches($log,[regex]::Escape($program.Marker)).Count-eq1

@@ -3,6 +3,7 @@ param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -53,24 +54,24 @@ try {
         $caseSources=if($variant -eq 'original'){$sources}elseif($variant -eq 'managed'){$managedSources}else{$producerSources}
         $binary="$outputPath/$name.exe"
         if($configuration -eq 'tcc'){
-            & $Tcc -std=c11 @includes @caseSources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/$name.build.log"
+            $buildExit=Invoke-XlirNativeToLog $Tcc (@('-std=c11')+$includes+$caseSources+@('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         }else{
-            & gcc @strict "-$($configuration.Substring(4))" @includes @caseSources $runtime[0].Path @libs -o $binary *> "$outputPath/$name.build.log"
+            $buildExit=Invoke-XlirNativeToLog gcc ($strict+@("-$($configuration.Substring(4))")+$includes+$caseSources+@($runtime[0].Path)+$libs+@('-o',$binary)) "$outputPath/$name.build.log"
         }
-        $buildExit=$LASTEXITCODE;$runExit=$null;$complete=$false;$allocations=0;$dllExit=$null;$trueOom=0
+        $runExit=$null;$complete=$false;$allocations=0;$dllExit=$null;$trueOom=0
         if($variant -eq 'managed'){
             $library="$outputPath/$name.dll"
             if($configuration -eq 'tcc'){
-                & $Tcc -std=c11 -I. -shared test/cases/xlir_async_managed_dll.c -o $library *> "$outputPath/$name.dll.build.log"
+                $dllExit=Invoke-XlirNativeToLog $Tcc @('-std=c11','-I.','-shared','test/cases/xlir_async_managed_dll.c','-o',$library) "$outputPath/$name.dll.build.log"
             }else{
-                & gcc @strict "-$($configuration.Substring(4))" -I. -shared test/cases/xlir_async_managed_dll.c -o $library *> "$outputPath/$name.dll.build.log"
+                $dllExit=Invoke-XlirNativeToLog gcc ($strict+@("-$($configuration.Substring(4))",'-I.','-shared','test/cases/xlir_async_managed_dll.c','-o',$library)) "$outputPath/$name.dll.build.log"
             }
-            $dllExit=$LASTEXITCODE
         }
         if($buildExit -eq 0){
             $launch=@{FilePath=$binary;WindowStyle='Hidden';PassThru=$true;WorkingDirectory=$rootPath;RedirectStandardOutput="$outputPath/$name.out.log";RedirectStandardError="$outputPath/$name.err.log"}
             if($variant -eq 'managed'){$launch.ArgumentList=@($library)}
-            $process=Start-Process @launch
+$process=Start-Process @launch
+            $null = $process.Handle
             if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$runExit=-999}
             else{$process.Refresh();$runExit=$process.ExitCode}
             $process.Dispose()

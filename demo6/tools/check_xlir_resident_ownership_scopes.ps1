@@ -35,7 +35,8 @@ try {
         }
         $buildExit=$LASTEXITCODE; $runExit=$null; $complete=$false
         if ($buildExit -eq 0) {
-            $process=Start-Process -FilePath "$lane.exe" -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$lane.out.log" -RedirectStandardError "$lane.err.log"
+$process=Start-Process -FilePath "$lane.exe" -WindowStyle Hidden -PassThru -WorkingDirectory $rootPath -RedirectStandardOutput "$lane.out.log" -RedirectStandardError "$lane.err.log"
+            $null = $process.Handle
             if (!$process.WaitForExit(60000)) { $process.Kill(); $process.WaitForExit(); $runExit=-999 }
             else { $process.Refresh(); $runExit=$process.ExitCode }
             $process.Dispose()

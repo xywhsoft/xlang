@@ -1,5 +1,6 @@
 param([Parameter(Mandatory=$true)][string]$Directory)
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath = (Get-Location).Path
 $destination = (Resolve-Path $Directory).Path
 $manifestPath = Join-Path $destination 'build.json'
@@ -24,7 +25,7 @@ foreach ($entry in Get-Content tools/tcc_vfs_manifest_win64_xlc.txt) {
         $patterns = $parts[3].Split(';')
         foreach ($file in Get-ChildItem -LiteralPath $sourceRoot -Recurse -File) {
             if (!@($patterns | Where-Object { $file.Name -like $_ }).Count) { continue }
-            $records += Stage-File $file.FullName (Join-Path 'src' ([IO.Path]::GetRelativePath($sourceRoot,$file.FullName)))
+            $records += Stage-File $file.FullName (Join-Path 'src' (Get-XlirContainedRelativePath $sourceRoot $file.FullName))
         }
     } elseif ($entry.StartsWith('file|__xl_compiler/include/') -or
               $entry.StartsWith('file|lib/xrt/xrt.h|') -or $entry.StartsWith('file|lib/xruntime/xruntime.h|')) {

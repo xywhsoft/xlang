@@ -23,7 +23,8 @@ $inputs = @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=
 function Invoke-Process([string]$file, [string[]]$arguments, [string]$log) {
     $options = @{FilePath=$file;WindowStyle='Hidden';PassThru=$true;RedirectStandardOutput="$log.log";RedirectStandardError="$log.err.log"}
     if ($arguments.Count) { $options.ArgumentList = $arguments }
-    $process = Start-Process @options
+$process = Start-Process @options
+    $null = $process.Handle
     if ($process.WaitForExit(45000)) { $code = $process.ExitCode }
     else { $process.Kill(); $process.WaitForExit(); $code = 'timeout-45s' }
     $process.Dispose()

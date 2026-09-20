@@ -22,6 +22,6 @@ int main(void)
         assert(before.DoubleFreeCount == after.DoubleFreeCount && before.InvalidFreeCount == after.InvalidFreeCount);
         assert(before.UseAfterFreeCount == after.UseAfterFreeCount);
     }
-    puts("xcall expression: 25 forms x 100 rounds + 100 real callable allocation failures; exact evaluation, borrowed source survival, temporary/error cleanup, balanced memory");
+    puts("xcall expression: 25 forms x 100 rounds + resident callable allocation-failure budget sweeps; exact evaluation, borrowed source survival, temporary/error cleanup, balanced memory");
     return 0;
 }

@@ -1,6 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,[string]$Tcc='E:/software/tcc/tcc.exe')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
 try {
@@ -32,7 +33,7 @@ try {
         $options=@{FilePath=$Binary;WindowStyle='Hidden';PassThru=$true;WorkingDirectory=$rootPath;
             RedirectStandardOutput="$Binary.out.log";RedirectStandardError="$Binary.err.log"}
         if($Arguments.Count){$options.ArgumentList=@($Arguments|ForEach-Object {'"'+$_+'"'})}
-        $timer=[Diagnostics.Stopwatch]::StartNew();$process=Start-Process @options;$exitCode=$null
+        $timer=[Diagnostics.Stopwatch]::StartNew();$process=Start-Process @options;$null=$process.Handle;$exitCode=$null
         try{
             while(!$process.WaitForExit(1000)){if($timer.ElapsedMilliseconds-ge$Timeout){$process.Kill();$process.WaitForExit();$exitCode=-999;break}}
             if($null-eq$exitCode){$process.Refresh();$exitCode=$process.ExitCode}
@@ -77,7 +78,7 @@ try {
         $emit=$LASTEXITCODE;$generated+=[pscustomobject]@{Kind=$case.Kind;Fixture=$case.Fixture;Emit=$emit;C="$prefix.c"}
         if($emit){continue}
         foreach($suffix in @('c','h','json')){$inputs+=[pscustomobject]@{Path="$prefix.$suffix";Sha256=(Get-FileHash -LiteralPath "$prefix.$suffix").Hash}}
-        $defines=@($case.Defines)+@('-DXLIR_NETWORK_GENERATED_C="'+($prefix+'.c').Replace('\','/')+'"')
+        $defines=@($case.Defines)+@((New-XlirCStringDefine 'XLIR_NETWORK_GENERATED_C' ($prefix+'.c').Replace('\','/')))
         if($case.Kind-ne'tls-context'){
             $exe="$prefix-owner.exe"
             & gcc @flags -O0 @defines test/cases/xlir_network_callback_code_owner.c @objects @libs -o $exe *> "$exe.build.log"

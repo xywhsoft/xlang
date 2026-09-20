@@ -11,8 +11,9 @@ $outDir = if ($PackageBatch) { 'build/test/xlir_public_package_cases' } else { '
 New-Item -ItemType Directory -Force -Path $outDir,build/test/xlir_public_temps | Out-Null
 function Invoke-Phase($case, [string]$mode, [string]$prefix) {
     $arguments = @("test/cases/$($case.Source).xl",$mode,$prefix) + @($case.Hosts | ForEach-Object { "test/cases/$_.c" })
-    $process = Start-Process -FilePath $manifest.Driver -ArgumentList $arguments -WindowStyle Hidden -PassThru `
+$process = Start-Process -FilePath $manifest.Driver -ArgumentList $arguments -WindowStyle Hidden -PassThru `
         -RedirectStandardOutput "$prefix.$mode.log" -RedirectStandardError "$prefix.$mode.err.log"
+    $null = $process.Handle
     if ($process.WaitForExit(45000)) { $code = $process.ExitCode }
     else { $process.Kill(); $process.WaitForExit(); $code = 'timeout-45s' }
     $process.Dispose()

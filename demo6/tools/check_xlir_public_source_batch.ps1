@@ -16,8 +16,9 @@ if ($OutputDirectory) {
 New-Item -ItemType Directory -Force -Path $caseDirectory | Out-Null
 $results = @()
 function Invoke-Phase([string]$source, [string]$mode, [string]$prefix, [string]$logPrefix) {
-    $process = Start-Process -FilePath $manifest.Driver -ArgumentList @($source,$mode,$prefix) -WindowStyle Hidden -PassThru `
+$process = Start-Process -FilePath $manifest.Driver -ArgumentList @($source,$mode,$prefix) -WindowStyle Hidden -PassThru `
         -RedirectStandardOutput "$logPrefix.log" -RedirectStandardError "$logPrefix.err.log"
+    $null = $process.Handle
     if ($process.WaitForExit(45000)) { $code = $process.ExitCode }
     else { $process.Kill(); $process.WaitForExit(); $code = 'timeout-45s' }
     $process.Dispose()

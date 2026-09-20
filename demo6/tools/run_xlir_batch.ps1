@@ -10,6 +10,7 @@ param(
 # Legacy gates remain exclusive. Version 2 permits reviewed resource declarations
 # and named arguments; only gates with disjoint resources may overlap.
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 if ($Root -eq '') { $Root = Split-Path -Parent $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 if (![IO.Path]::IsPathRooted($ManifestPath)) { $ManifestPath = Join-Path $Root $ManifestPath }
@@ -122,7 +123,7 @@ $invokeScript = Join-Path $logDirectory 'invoke.ps1'
 [IO.File]::WriteAllText($invokeScript, @'
 param([string]$Payload)
 $ErrorActionPreference = 'Stop'
-$job = Get-Content -LiteralPath $Payload -Raw | ConvertFrom-Json
+$job = [IO.File]::ReadAllText($Payload, [Text.Encoding]::UTF8) | ConvertFrom-Json
 $parameters = @{}
 foreach ($item in $job.Arguments.PSObject.Properties) { $parameters[$item.Name] = $item.Value }
 $global:LASTEXITCODE = 0
@@ -155,6 +156,7 @@ try {
                 $process = Start-Process -FilePath $runReport.ProcessHost -WindowStyle Hidden -PassThru `
                     -WorkingDirectory $Root -ArgumentList @('-NoProfile','-NonInteractive','-File',('"' + $invokeScript + '"'),'-Payload',('"' + $payloadPath + '"')) `
                     -RedirectStandardOutput $result.Stdout -RedirectStandardError $result.Stderr
+                $null = $process.Handle
                 $result.ProcessId = $process.Id
                 $running.Add([pscustomobject]@{ Process=$process; Gate=$gate; Result=$result; Timer=[Diagnostics.Stopwatch]::StartNew() })
                 $runReport.PeakRunning = [Math]::Max($runReport.PeakRunning, $running.Count)
@@ -188,7 +190,7 @@ try {
     $runReport.Error = $_.Exception.Message
 } finally {
     foreach ($active in $running) {
-        if (!$active.Process.HasExited) { $active.Process.Kill($true); $active.Process.WaitForExit() }
+        if (!$active.Process.HasExited) { Stop-XlirProcessTree $active.Process }
         $active.Result.Status = 'interrupted'; $active.Result.CompletedUtc = [DateTime]::UtcNow.ToString('o')
         $active.Process.Dispose()
     }

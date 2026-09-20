@@ -1,6 +1,7 @@
 param([string]$Root = '', [Parameter(Mandatory=$true)][string]$SourceDriver,
     [string]$SourceRuntimeBuildManifest = '', [string]$Directory = '')
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'xlir_native_process.ps1')
 if ($Root -eq '') { $Root = Split-Path -Parent $PSScriptRoot }
 Push-Location $Root
 try {
@@ -42,7 +43,7 @@ try {
     }
     $flags = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
         '-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',"-I$outputPath",'-I.','-Irelease','-Ilib/tcc',
-        ('-DJOINT_TCC_INCLUDE_DIRECTORY="' + $outputPath.Replace('\','/') + '"'))
+        (New-XlirCStringDefine 'JOINT_TCC_INCLUDE_DIRECTORY' $outputPath.Replace('\','/')))
     if (!$SourceRuntimeObject) {
         $SourceRuntimeObject = "$prefix.xrt.o"
         & gcc @flags -O0 -c tools/xrt_single_header_impl.c -o $SourceRuntimeObject

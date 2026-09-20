@@ -82,7 +82,8 @@ try {
                 $options=@{FilePath=$binary;WindowStyle='Hidden';PassThru=$true;WorkingDirectory=$rootPath;RedirectStandardOutput="$outputPath/$name.out.log";RedirectStandardError="$outputPath/$name.err.log"}
                 if($program.Name -eq 'resident'){$options.ArgumentList=@('"'+$dll+'"')}
                 elseif($program.Arguments){$options.ArgumentList=$program.Arguments}
-                $process=Start-Process @options
+$process=Start-Process @options
+                $null = $process.Handle
                 if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$runExit=-999}
                 else{$process.Refresh();$runExit=$process.ExitCode}
                 $process.Dispose();$complete=$runExit -eq 0 -and [regex]::Matches([IO.File]::ReadAllText("$outputPath/$name.out.log"),$program.Pattern).Count -eq 1

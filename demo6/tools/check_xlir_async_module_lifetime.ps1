@@ -16,7 +16,7 @@ try {
     # the producer while keeping its payload alive.
     $generated = [IO.File]::ReadAllText("$prefix.generated.c")
     if ($generated.Contains('xlir_async_value_free') -or
-        !$generated.Contains('xrtPromiseResolveOwned(destination, value, xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_VALUE), NULL)')) {
+        !$generated.Contains('xl6PayloadResolveOwned(destination, value, XL6_FUTURE_PAYLOAD_VALUE)')) {
         throw 'Future payload destructor is not resident; unsafe unload test not executed'
     }
     if ($ir.asyncMachines.Count -ne 1) { throw 'Joint fixture must have one verified machine' }
