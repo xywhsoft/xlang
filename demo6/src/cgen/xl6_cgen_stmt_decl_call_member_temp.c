@@ -190,11 +190,14 @@ static int xl6CgenDeclTryMemberFunctionTempReceiverCallTemp(
     if ( xl6CgenFindClassFieldNode(ctx, classNode, callee->text) == NULL ) {
         xl6CgenError(ctx, callee, "class function field not found");
         xl6OutputPuts("(XL6_Function){0}", ctx->out);
-    } else {
-        xl6OutputPuts(receiverTempName, ctx->out);
-        if ( !xl6CgenEmitClassFieldSuffix(ctx, classNode, callee->text) ) {
-            xl6CgenError(ctx, callee, "class function field suffix could not be emitted");
-        }
+    } else if ( !xl6CgenEmitClassFieldFromNamedReceiver(
+                    ctx,
+                    receiverType,
+                    classNode,
+                    receiverTempName,
+                    callee->text,
+                    callee) ) {
+        xl6CgenError(ctx, callee, "class function field suffix could not be emitted");
     }
     xl6OutputPuts(";\n", ctx->out);
 

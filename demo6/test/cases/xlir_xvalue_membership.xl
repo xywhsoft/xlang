@@ -1,0 +1,38 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+array<int> typedArray = [1, 2, 3]
+list<string> typedList = list[0: "alpha", 2: "beta"]
+set<int> typedSet = set{3, 5, 7}
+dict<int> typedDict = dict{"answer": 42, "other": 9}
+
+var dynamicArray = typedArray
+var dynamicList = typedList
+var dynamicSet = typedSet
+var dynamicObject = typedDict
+var dynamicText = "alphabet"
+
+expect(2 in typedArray, 1)
+expect(8 in typedArray, 0)
+expect(2 in [1, 2, 3], 1)
+
+expect("beta" in typedList, 1)
+expect("missing" in typedList, 0)
+
+expect(5 in typedSet, 1)
+expect(8 in typedSet, 0)
+
+expect("answer" in typedDict, 1)
+expect("missing" in typedDict, 0)
+expect("answer" in dict{"answer": 42}, 1)
+
+expect(3 in dynamicArray, 1)
+expect(8 in dynamicArray, 0)
+expect("alpha" in dynamicList, 1)
+expect("missing" in dynamicList, 0)
+expect(7 in dynamicSet, 1)
+expect(8 in dynamicSet, 0)
+expect("other" in dynamicObject, 1)
+expect("missing" in dynamicObject, 0)
+expect("bet" in dynamicText, 1)
+expect("missing" in dynamicText, 0)
+expect(true in dynamicArray, 0)

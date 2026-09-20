@@ -1,0 +1,3 @@
+string output = process.exec("echo bridge")
+assert output == "bridge\r\n" or output == "bridge\n"
+assert process.exec("exit 7") == ""

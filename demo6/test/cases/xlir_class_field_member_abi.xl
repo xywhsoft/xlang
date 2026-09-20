@@ -1,0 +1,59 @@
+class BorrowedBox
+    native point handle
+    extern "native_box_open" create(int value)
+    extern "native_box_value" func value() as int
+    extern "native_box_borrowed_close" func close()
+end
+
+class OwnedBox
+    native point handle
+    extern "native_box_open" create(int value)
+    extern "native_box_owned_close" destroy()
+    extern "native_box_value" func value() as int
+end
+
+class FieldProbe
+    bool flag
+    int count
+    uint64 serial
+    float ratio
+    time occurred = #00:00:00#
+    string name
+    point raw
+    BorrowedBox borrowed
+    OwnedBox owned
+
+    create()
+        self.flag = true
+        self.count = 7
+        self.serial = uint64(9)
+        self.ratio = 1.5
+        self.occurred = #2026-08-31 12:34:56#
+        self.name = "field-probe"
+        self.raw = null
+        self.borrowed = BorrowedBox(41)
+        self.owned = OwnedBox(42)
+    end
+
+    func validate() as int
+        if self.flag and self.count == 7 and self.serial == uint64(9) and self.ratio == 1.5 and self.occurred == #2026-08-31 12:34:56# and self.name == "field-probe" and self.raw == null and self.borrowed.value() == 41 and self.owned.value() == 42
+            self.borrowed.close()
+            return 1
+        end
+        return 0
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "borrowed_close_count" func borrowedCloseCount() as int
+extern "owned_close_count" func ownedCloseCount() as int
+
+func exercise()
+    FieldProbe probe = FieldProbe()
+    expect(probe.validate(), 1)
+    expect(borrowedCloseCount(), 1)
+    expect(ownedCloseCount(), 0)
+end
+
+exercise()
+expect(ownedCloseCount(), 1)

@@ -34,10 +34,10 @@ static void xl6CgenReleaseClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAno
         xl6OutputPuts(";\n", ctx->out);
     } else if ( xl6CgenIsWeakType(typeNode) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvoWeakUnit(&%s);\n", path);
+        xl6OutputPrintf(ctx->out, "xl6WeakUnit(&%s);\n", path);
     } else if ( xl6CgenIsXValueType(typeNode) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", path, path, path);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtValueRelease(%s); %s = 0; }\n", path, path, path);
     } else if ( xl6CgenIsFunctionType(typeNode) ) {
         xl6CgenReleaseFunctionPath(ctx, path);
     } else if ( xl6CgenNullableHasManagedInner(ctx, typeNode) ) {
@@ -47,7 +47,7 @@ static void xl6CgenReleaseClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAno
         xl6OutputPrintf(ctx->out, "%s(&%s);\n", dropName, path);
     } else if ( xl6CgenIsTaggedEnumType(ctx, typeNode) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPuts("xrtTypeDropValue(", ctx->out);
+        xl6OutputPuts("xl6TypeDropValue(", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, typeNode);
         xl6OutputPrintf(ctx->out, ", &%s);\n", path);
     } else {
@@ -65,7 +65,6 @@ static void xl6CgenCopyClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAnonCa
     char path[1024];
     char sourceName[512];
     char sourceValue[1024];
-    char sharedName[1024];
 
     if ( typeNode == NULL ) {
         return;
@@ -75,7 +74,7 @@ static void xl6CgenCopyClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAnonCa
     xl6CgenCIdentText(sourceName, sizeof(sourceName), capture->name);
     if ( xl6CgenIsTaggedEnumType(ctx, typeNode) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPuts("if (!xrtTypeCopyValue(", ctx->out);
+        xl6OutputPuts("if (!xl6TypeCopyValue(", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, typeNode);
         xl6OutputPrintf(
             ctx->out,
@@ -85,25 +84,10 @@ static void xl6CgenCopyClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAnonCa
         return;
     }
     if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
-        /*
-         * 类型化容器需要保持引用身份，同时可能随闭包跨线程。
-         * 工厂接收外层变量的槽位，先将 local 对象原位提升为 shared，
-         * 再为闭包环境保留同一个句柄，不能创建容器副本。
-         */
-        snprintf(sharedName, sizeof(sharedName), "__xl6_shared_%s", sourceName);
         snprintf(sourceValue, sizeof(sourceValue), "(*%s)", sourceName);
         xl6CgenIndent(ctx);
-        xl6OutputPuts(xl6CgenParamCType(ctx, typeNode), ctx->out);
-        xl6OutputPrintf(ctx->out, " %s = ", sharedName);
-        xl6CgenTypedContainerMoveToSharedCExpr(ctx, typeNode, sourceValue);
-        xl6OutputPuts(";\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_function_fatal(2); }\n", sharedName);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "*%s = %s;\n", sourceName, sharedName);
-        xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = ", path);
-        xl6CgenTypedContainerRetainCExpr(ctx, typeNode, sharedName);
+        xl6CgenTypedContainerRetainCExpr(ctx, typeNode, sourceValue);
         xl6OutputPuts(";\n", ctx->out);
         return;
     }
@@ -115,12 +99,12 @@ static void xl6CgenCopyClosureCapture(XL6_CgenContext* ctx, const XL6_CgenAnonCa
             ctx->out,
             xl6CgenIsNullableStringTypeNode(ctx, typeNode) ?
                 "xl6_nullable_string_copy(%s)" :
-                "xrtCopyStr(%s, 0u)",
+                "xl6_xrt_string_dup(%s, 0u)",
             sourceName);
     } else if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
         xl6CgenSpecialCollectionRetainCExpr(ctx, typeNode, sourceName);
     } else if ( xl6CgenIsWeakType(typeNode) ) {
-        xl6OutputPrintf(ctx->out, "xvoWeakClone(&%s)", sourceName);
+        xl6OutputPrintf(ctx->out, "xl6WeakClone(&%s)", sourceName);
     } else if ( xl6CgenIsXValueType(typeNode) ) {
         xl6OutputPrintf(ctx->out, "xl6_xrt_retain(%s)", sourceName);
     } else if ( xl6CgenIsFunctionType(typeNode) ) {
@@ -197,8 +181,8 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
     if ( info->captureCount > 0 ) {
         xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", ctx->out);
         xl6OutputPuts("void xrtFree(void* pMem);\n\n", ctx->out);
-        xl6OutputPuts("int32_t xrtAtomicRefRetain(volatile int32_t* pCount);\n", ctx->out);
-        xl6OutputPuts("int32_t xrtAtomicRefRelease(volatile int32_t* pCount);\n\n", ctx->out);
+        xl6OutputPuts("int32_t xrtRefRetain(volatile int32_t* pCount);\n", ctx->out);
+        xl6OutputPuts("int32_t xrtRefRelease(volatile int32_t* pCount);\n\n", ctx->out);
         xl6OutputPrintf(ctx->out, "typedef struct XL6_Closure_%d {\n", info->id);
         xl6OutputPuts("    volatile int32_t ref_count;\n", ctx->out);
         for ( i = 0; i < info->captureCount; ++i ) {
@@ -257,7 +241,7 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
         xl6OutputPrintf(ctx->out, "static void xl6_anon_%d_retain(void* env)\n{\n", info->id);
         xl6OutputPrintf(ctx->out, "    XL6_Closure_%d* __env = (XL6_Closure_%d*)env;\n", info->id, info->id);
         xl6OutputPuts("    if (__env != 0) {\n", ctx->out);
-        xl6OutputPuts("        if (xrtAtomicRefRetain(&__env->ref_count) < 0) {\n", ctx->out);
+        xl6OutputPuts("        if (xrtRefRetain(&__env->ref_count) < 0) {\n", ctx->out);
         xl6OutputPuts("            xl6_function_fatal(3);\n", ctx->out);
         xl6OutputPuts("        }\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
@@ -268,7 +252,7 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
         xl6OutputPuts("    if (__env == 0) {\n", ctx->out);
         xl6OutputPuts("        return;\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
-        xl6OutputPuts("    int32_t __remaining = xrtAtomicRefRelease(&__env->ref_count);\n", ctx->out);
+        xl6OutputPuts("    int32_t __remaining = xrtRefRelease(&__env->ref_count);\n", ctx->out);
         xl6OutputPuts("    if (__remaining < 0) {\n", ctx->out);
         xl6OutputPuts("        xl6_function_fatal(3);\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
@@ -307,7 +291,15 @@ static void xl6CgenEmitAnonFunction(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
     xl6OutputPrintf(ctx->out, "    __fn.signature = 0x%016llXULL;\n", signatureId);
     xl6OutputPuts("    __fn.sig = &__xl6_sig;\n", ctx->out);
     xl6OutputPrintf(ctx->out, "    __fn.env = %s;\n", info->captureCount > 0 ? "__env" : "0");
-    xl6OutputPrintf(ctx->out, "    __fn.invoke = (void*)xl6_anon_%d_invoke;\n", info->id);
+    xl6OutputPrintf(ctx->out, "    __fn.invoke_env = %s;\n", info->captureCount > 0 ? "__env" : "0");
+    xl6OutputPrintf(ctx->out, "    __fn.invoke = (XL6_NativeFunction)xl6_anon_%d_invoke;\n", info->id);
+    if ( info->captureCount == 0 && xl6CgenAnonCanUseCAbiCallback(ctx, info) ) {
+        xl6OutputPuts("    __fn.c_entry = (XL6_NativeFunction)", ctx->out);
+        xl6CgenAnonCAbiCallbackSymbol(ctx, info);
+        xl6OutputPuts(";\n", ctx->out);
+    } else {
+        xl6OutputPuts("    __fn.c_entry = 0;\n", ctx->out);
+    }
     if ( ctx->needsFunctionVarRuntime && xl6CgenAnonSupportsVarInvoke(ctx, info) ) {
         xl6OutputPrintf(ctx->out, "    __fn.invoke_var = xl6_anon_%d_invoke_var;\n", info->id);
     } else {
@@ -400,6 +392,28 @@ static void xl6CgenEmitFunctionValueInvokeProto(XL6_CgenContext* ctx, const XL6_
     xl6OutputPutc(')', ctx->out);
 }
 
+/* typed func 包装 extern C 函数时，函数参数必须在真正的 C 边界还原为裸指针。 */
+static void xl6CgenEmitFunctionValueTargetArg(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* func,
+    const XL6_AstNode* param)
+{
+    if ( func != NULL && func->kind == XL6_AST_EXTERN_FUNC &&
+         !xl6CgenIsInternalStdRuntimeExtern(func) &&
+         param != NULL && param->childCount > 0 &&
+         xl6CgenIsFunctionType(param->children[0]) ) {
+        unsigned long long typeId = xl6CgenTypeIdForTypeNode(ctx, param->children[0]);
+
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenCAbiCallbackTypeName(ctx, param->children[0]);
+        xl6OutputPuts(")xl6_function_take_c_entry(", ctx->out);
+        xl6CgenFputsCIdent(ctx->out, param->text);
+        xl6OutputPrintf(ctx->out, ", 0x%016llXULL)", typeId);
+        return;
+    }
+    xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : "_");
+}
+
 static void xl6CgenEmitFunctionValueInvoke(XL6_CgenContext* ctx, const XL6_AstNode* func)
 {
     const XL6_AstNode* params;
@@ -423,7 +437,7 @@ static void xl6CgenEmitFunctionValueInvoke(XL6_CgenContext* ctx, const XL6_AstNo
         xl6OutputPrintf(ctx->out, ", %d);\n", xl6CgenPrintIntrinsicNewline(func->children[0]->text));
         xl6OutputPuts("    if (", ctx->out);
         xl6CgenFputsCIdent(ctx->out, firstParamName);
-        xl6OutputPuts(" != 0) { xvoUnref(", ctx->out);
+        xl6OutputPuts(" != 0) { xrtValueRelease(", ctx->out);
         xl6CgenFputsCIdent(ctx->out, firstParamName);
         xl6OutputPuts("); ", ctx->out);
         xl6CgenFputsCIdent(ctx->out, firstParamName);
@@ -442,7 +456,7 @@ static void xl6CgenEmitFunctionValueInvoke(XL6_CgenContext* ctx, const XL6_AstNo
                 if ( i > 0 ) {
                     xl6OutputPuts(", ", ctx->out);
                 }
-                xl6CgenFputsCIdent(ctx->out, params->children[i] != NULL ? params->children[i]->text : "_");
+                xl6CgenEmitFunctionValueTargetArg(ctx, func, params->children[i]);
             }
         }
         xl6OutputPuts(");\n", ctx->out);
@@ -467,7 +481,7 @@ static void xl6CgenEmitFunctionValueInvoke(XL6_CgenContext* ctx, const XL6_AstNo
             if ( i > 0 ) {
                 xl6OutputPuts(", ", ctx->out);
             }
-            xl6CgenFputsCIdent(ctx->out, params->children[i] != NULL ? params->children[i]->text : "_");
+            xl6CgenEmitFunctionValueTargetArg(ctx, func, params->children[i]);
         }
     }
     xl6OutputPuts(");\n", ctx->out);
@@ -490,9 +504,9 @@ static void xl6CgenEmitFunctionValueVarInvoke(XL6_CgenContext* ctx, const XL6_As
     fixedCount = xl6CgenFixedParamCount(params);
     hasArrayVararg = xl6CgenParamListHasArrayVararg(params, fixedCount);
 
-    xl6OutputPuts("static xvalue ", ctx->out);
+    xl6OutputPuts("static xvalue* ", ctx->out);
     xl6CgenFunctionValueSymbol(ctx, func, "_invoke_var");
-    xl6OutputPuts("(void* __xl6_env, int __xl6_argc, xvalue* __xl6_argv)\n{\n", ctx->out);
+    xl6OutputPuts("(void* __xl6_env, int __xl6_argc, xvalue** __xl6_argv)\n{\n", ctx->out);
     xl6CgenEmitVarInvokeLocals(ctx, hasArrayVararg);
     xl6CgenEmitVarInvokeArityCheck(ctx, params, fixedCount, hasArrayVararg);
     xl6CgenEmitVarInvokeTypeChecks(ctx, params, fixedCount, hasArrayVararg);
@@ -513,7 +527,7 @@ static void xl6CgenEmitFunctionValueVarInvoke(XL6_CgenContext* ctx, const XL6_As
 
     if ( returns != NULL && returns->childCount == 1 ) {
         if ( xl6CgenIsSpecialCollectionType(ctx, returns->children[0]) ) {
-            xl6OutputPuts("    xvalue __xl6_boxed = ", ctx->out);
+            xl6OutputPuts("    xvalue* __xl6_boxed = ", ctx->out);
             xl6CgenXValueFromTypedCExpr(ctx, returns->children[0], "__xl6_result");
             xl6OutputPuts(";\n    ", ctx->out);
             xl6CgenSpecialCollectionReleaseCExpr(ctx, returns->children[0], "__xl6_result");
@@ -524,7 +538,7 @@ static void xl6CgenEmitFunctionValueVarInvoke(XL6_CgenContext* ctx, const XL6_As
             xl6OutputPuts(";\n", ctx->out);
         }
     } else {
-        xl6OutputPuts("    return xvoCreateNull();\n", ctx->out);
+        xl6OutputPuts("    return xrtValueNull();\n", ctx->out);
     }
     xl6OutputPuts("}\n\n", ctx->out);
 }
@@ -550,7 +564,7 @@ static void xl6CgenEmitFunctionValueXCall(XL6_CgenContext* ctx, const XL6_AstNod
 
     xl6OutputPuts("static bool ", ctx->out);
     xl6CgenFunctionValueSymbol(ctx, func, "_xcall");
-    xl6OutputPuts("(void* __xl6_env, xrt_call_frame* __xl6_frame, xrt_call_result* __xl6_result)\n{\n", ctx->out);
+    xl6OutputPuts("(void* __xl6_env, xl6_call_frame* __xl6_frame, xl6_call_result* __xl6_result)\n{\n", ctx->out);
     xl6OutputPuts("    (void)__xl6_env;\n", ctx->out);
     xl6CgenEmitXCallLocals(ctx, params, fixedCount, hasArrayVararg, hasDictVararg);
     xl6CgenEmitXCallSetup(ctx);
@@ -561,7 +575,7 @@ static void xl6CgenEmitFunctionValueXCall(XL6_CgenContext* ctx, const XL6_AstNod
 
     if ( xl6CgenIsPrintIntrinsicFunc(func) ) {
         xl6OutputPrintf(ctx->out, "    xl6_xrt_print(__xl6_vararg, %d);\n", xl6CgenPrintIntrinsicNewline(func->children[0]->text));
-        xl6OutputPuts("    if (__xl6_vararg != 0) { xvoUnref(__xl6_vararg); __xl6_vararg = 0; }\n", ctx->out);
+        xl6OutputPuts("    if (__xl6_vararg != 0) { xrtValueRelease(__xl6_vararg); __xl6_vararg = 0; }\n", ctx->out);
         xl6OutputPuts("    return true;\n", ctx->out);
         xl6OutputPuts("}\n\n", ctx->out);
         return;
@@ -657,9 +671,21 @@ static void xl6CgenEmitFunctionValueMake(XL6_CgenContext* ctx, const XL6_AstNode
     xl6OutputPrintf(ctx->out, "    __fn.signature = 0x%016llXULL;\n", signatureId);
     xl6OutputPuts("    __fn.sig = &__xl6_sig;\n", ctx->out);
     xl6OutputPuts("    __fn.env = 0;\n", ctx->out);
-    xl6OutputPuts("    __fn.invoke = (void*)", ctx->out);
+    xl6OutputPuts("    __fn.invoke_env = 0;\n", ctx->out);
+    xl6OutputPuts("    __fn.invoke = (XL6_NativeFunction)", ctx->out);
     xl6CgenFunctionValueSymbol(ctx, func, "_invoke");
     xl6OutputPuts(";\n", ctx->out);
+    if ( xl6CgenCallableDeclCanUseCAbiCallback(ctx, func) ) {
+        xl6OutputPuts("    __fn.c_entry = (XL6_NativeFunction)", ctx->out);
+        if ( func->kind == XL6_AST_EXTERN_FUNC ) {
+            xl6CgenCStringSymbol(ctx->out, func->text);
+        } else {
+            xl6CgenCallableCAbiCallbackSymbol(ctx, func);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+    } else {
+        xl6OutputPuts("    __fn.c_entry = 0;\n", ctx->out);
+    }
     if ( ctx->needsFunctionVarRuntime && xl6CgenFuncSupportsVarInvoke(ctx, func) ) {
         xl6OutputPuts("    __fn.invoke_var = ", ctx->out);
         xl6CgenFunctionValueSymbol(ctx, func, "_invoke_var");
@@ -716,7 +742,7 @@ static void xl6CgenEmitFunctionValueAdapterInvokeProto(XL6_CgenContext* ctx, con
     if ( includeVararg && params != NULL && params->childCount > (size_t)fixedCount ) {
         vararg = params->children[fixedCount];
         xl6OutputPuts(", ", ctx->out);
-        xl6OutputPuts(vararg != NULL && vararg->childCount > 0 ? xl6CgenTypeName(ctx, vararg->children[0]) : "xvalue", ctx->out);
+        xl6OutputPuts(vararg != NULL && vararg->childCount > 0 ? xl6CgenTypeName(ctx, vararg->children[0]) : "xvalue*", ctx->out);
         xl6OutputPuts(" __xl6_vararg", ctx->out);
     }
     xl6OutputPutc(')', ctx->out);
@@ -760,8 +786,8 @@ static void xl6CgenEmitFunctionValueAdapterInvoke(XL6_CgenContext* ctx, const XL
         if ( i < paramCount ) {
             xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : "_");
         } else if ( param != NULL && param->childCount > 1 ) {
-            /* Fill omitted optional parameter with its default expression. */
-            xl6CgenExpr(ctx, param->children[1]);
+            /* 默认值也必须经过形参类型 lowering，例如 null 要构造 nullable 存储。 */
+            xl6CgenFixedTypeArgExpr(ctx, param->children[0], param->children[1]);
         } else {
             xl6CgenError(ctx, param, "optional adapter parameter is missing a default expression");
             xl6OutputPuts("0", ctx->out);
@@ -775,7 +801,7 @@ static void xl6CgenEmitFunctionValueAdapterInvoke(XL6_CgenContext* ctx, const XL
             xl6OutputPuts("__xl6_vararg", ctx->out);
         } else {
             xl6CgenError(ctx, func, "callable adapter requires a vararg parameter");
-            xl6OutputPuts("xvoCreateNull()", ctx->out);
+            xl6OutputPuts("xrtValueNull()", ctx->out);
         }
     }
     xl6OutputPuts(");\n", ctx->out);
@@ -814,7 +840,7 @@ static void xl6CgenEmitFunctionValueAdapterXCall(XL6_CgenContext* ctx, const XL6
 
     xl6OutputPuts("static bool ", ctx->out);
     xl6CgenFunctionValueAdapterSymbol(ctx, func, paramCount, includeVararg, "_xcall");
-    xl6OutputPuts("(void* __xl6_env, xrt_call_frame* __xl6_frame, xrt_call_result* __xl6_result)\n{\n", ctx->out);
+    xl6OutputPuts("(void* __xl6_env, xl6_call_frame* __xl6_frame, xl6_call_result* __xl6_result)\n{\n", ctx->out);
     xl6OutputPuts("    (void)__xl6_env;\n", ctx->out);
     xl6CgenEmitXCallLocals(ctx, params, paramCount, hasArrayVararg, hasDictVararg);
     xl6CgenEmitXCallSetup(ctx);
@@ -905,9 +931,11 @@ static void xl6CgenEmitFunctionValueAdapterMake(XL6_CgenContext* ctx, const XL6_
     xl6OutputPrintf(ctx->out, "    __fn.signature = 0x%016llXULL;\n", signatureId);
     xl6OutputPuts("    __fn.sig = &__xl6_sig;\n", ctx->out);
     xl6OutputPuts("    __fn.env = 0;\n", ctx->out);
-    xl6OutputPuts("    __fn.invoke = (void*)", ctx->out);
+    xl6OutputPuts("    __fn.invoke_env = 0;\n", ctx->out);
+    xl6OutputPuts("    __fn.invoke = (XL6_NativeFunction)", ctx->out);
     xl6CgenFunctionValueAdapterSymbol(ctx, func, paramCount, includeVararg, "_invoke");
     xl6OutputPuts(";\n", ctx->out);
+    xl6OutputPuts("    __fn.c_entry = 0;\n", ctx->out);
     xl6OutputPuts("    __fn.invoke_var = 0;\n", ctx->out);
     if ( ctx->needsFunctionVarRuntime && xl6CgenFuncSupportsXCall(ctx, func) ) {
         xl6OutputPuts("    __fn.invoke_xcall = ", ctx->out);

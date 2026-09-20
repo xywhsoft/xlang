@@ -1,8 +1,8 @@
 /*
     用户 protocol 的 C 后端。
 
-    protocol 值本身仍由 xvalue 承载。具体 class 的数据布局没有第二份包装；
-    witness thunk 只负责把 xvalue 中的 record 数据恢复为 class self 指针。
+    protocol 值本身仍由 xvalue* 承载。具体 class 的数据布局没有第二份包装；
+    witness thunk 只负责把 xvalue* 中的 record 数据恢复为 class self 指针。
 */
 
 static void xl6CgenEmitXrtTypeDescRef(
@@ -181,6 +181,8 @@ static XL6_AstNode* xl6CgenCloneProtocolCallableNode(
     copy->semanticTypeAbiId = node->semanticTypeAbiId;
     copy->semanticSymbolId = node->semanticSymbolId;
     copy->semanticTargetSymbolId = node->semanticTargetSymbolId;
+    copy->semanticCompoundOperatorSymbolId =
+        node->semanticCompoundOperatorSymbolId;
     copy->semanticCallKind = node->semanticCallKind;
     copy->semanticLvalueKind = node->semanticLvalueKind;
     copy->semanticOwnership = node->semanticOwnership;
@@ -784,7 +786,7 @@ static void xl6CgenProtocolParamDecls(
     int wrote = 0;
 
     if ( includeSelf ) {
-        xl6OutputPuts("xvalue self", ctx->out);
+        xl6OutputPuts("xvalue* self", ctx->out);
         wrote = 1;
     }
     for ( i = 0; params != NULL && i < params->childCount; ++i ) {

@@ -1,0 +1,9 @@
+func countList<T>(list<T> values) as int
+    return values.length
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+int literalCount = countList([0: "a", 2: "b"])
+
+expect(literalCount, 2)

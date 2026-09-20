@@ -1,0 +1,62 @@
+extern "publication_snapshot" func snapshotBeforeBinding(var value, bool keep)
+extern "publication_snapshot_end" func endSnapshot()
+
+int childrenDestroyed = 0
+int parentsDestroyed = 0
+int localsDestroyed = 0
+
+class PublicationChild
+    destroy()
+        childrenDestroyed += 1
+    end
+end
+
+class PublicationLocal
+    destroy()
+        localsDestroyed += 1
+    end
+end
+
+class PublicationParent
+    PublicationChild child = PublicationChild()
+    create(bool keep, bool fail)
+        snapshotBeforeBinding(self, keep)
+        assert !fail, "constructor failure after native self publication"
+    end
+    destroy()
+        parentsDestroyed += 1
+    end
+end
+
+export func publicationAttempt(bool keep, bool fail) as int
+    try
+        PublicationLocal local = PublicationLocal()
+        PublicationParent parent = PublicationParent(keep, fail)
+        return 42
+    catch error
+        return 77
+    end
+end
+
+func main(...) as int
+    int round = 0
+    while round < 100
+        assert publicationAttempt(false, false) == 42, "successful publication"
+        assert parentsDestroyed == round * 2 + 1, "successful finalizer installed once"
+        assert childrenDestroyed == round * 3 + 1, "successful child cleanup"
+        assert publicationAttempt(true, false) == 42, "prepared lifecycle commits despite native snapshot"
+        assert parentsDestroyed == round * 2 + 1, "snapshot keeps armed finalizer alive"
+        assert childrenDestroyed == round * 3 + 1, "snapshot keeps initialized fields alive"
+        endSnapshot()
+        assert parentsDestroyed == (round + 1) * 2, "last snapshot finalizes committed construction"
+        assert childrenDestroyed == round * 3 + 2, "committed fields released once"
+        assert publicationAttempt(true, true) == 77, "constructor failure must reach catch"
+        assert parentsDestroyed == (round + 1) * 2, "failed construction never arms user finalizer"
+        assert childrenDestroyed == round * 3 + 2, "native snapshot retains failed construction fields"
+        assert localsDestroyed == (round + 1) * 3, "all routes clean preceding local"
+        endSnapshot()
+        assert childrenDestroyed == (round + 1) * 3, "last snapshot releases failed construction fields once"
+        round += 1
+    end
+    return 0
+end

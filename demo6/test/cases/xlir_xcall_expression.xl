@@ -1,0 +1,215 @@
+int created = 0
+int destroyed = 0
+int evaluated = 0
+
+class Owner
+    int value = 42
+    create()
+        created += 1
+    end
+    destroy()
+        destroyed += 1
+    end
+end
+
+func makeCallback() as func() as int
+    evaluated += 1
+    Owner owner = Owner()
+    return func() as int
+        return owner.value
+    end
+end
+
+func makeNullable() as (func() as int)?
+    return makeCallback()
+end
+
+func makeEmpty() as (func() as int)?
+    return null
+end
+
+func failProducer() as func() as int
+    Owner owner = Owner()
+    evaluated += 1
+    throw ValueError "producer failed"
+end
+
+class Holder
+    func() as int callback = makeCallback()
+end
+
+func makePair() as (var, var)
+    evaluated += 1
+    return Owner(), Owner()
+end
+
+func check(var callback)
+    assert int(callback()) == 42, "xcall expression lost its captured owner"
+end
+
+func exercise(int mode)
+    if mode == 0 then
+        check(xcall(makeCallback()))
+    elseif mode == 1 then
+        func() as int named = makeCallback()
+        check(xcall(named))
+        assert named() == 42, "boxing consumed the borrowed source"
+    elseif mode == 2 then
+        (func() as int)? present = makeNullable()
+        if present != null then
+            check(xcall(present))
+        end
+    elseif mode == 3 then
+        Holder holder = Holder()
+        check(xcall(holder.callback))
+        assert holder.callback() == 42, "boxing consumed the borrowed field"
+    elseif mode == 4 then
+        array<func() as int> callbacks = [makeCallback()]
+        check(xcall(callbacks[0]))
+        assert callbacks[0]() == 42, "boxing consumed the borrowed element"
+    elseif mode == 5 then
+        check(xcall(true ? makeCallback() : makeCallback()))
+    elseif mode == 6 then
+        Owner owner = Owner()
+        evaluated += 1
+        var literal = xcall(func(int ignored) as int
+            return owner.value
+        end)
+        assert int(literal(0)) == 42, "direct lambda lost its capture"
+    elseif mode == 7 then
+        bool caught = false
+        try
+            check(xcall(failProducer()))
+        catch e
+            caught = true
+        end
+        assert caught, "producer failure did not leave through the error edge"
+    elseif mode == 8 then
+        check(xcall(makeNullable() ?? makeCallback()))
+    elseif mode == 9 then
+        check(xcall(makeEmpty() ?? makeCallback()))
+    elseif mode == 10 then
+        (func() as int)? present = makeNullable()
+        check(xcall(present ?? failProducer()))
+        if present != null then
+            assert present() == 42, "coalescing consumed the borrowed present owner"
+        end
+    elseif mode == 11 then
+        func() as int fallback = makeCallback()
+        check(xcall(makeEmpty() ?? fallback))
+        assert fallback() == 42, "coalescing consumed the borrowed fallback"
+    elseif mode == 12 then
+        check(xcall(makeNullable() ?? failProducer()))
+    elseif mode == 13 then
+        bool caught = false
+        try
+            check(xcall(makeEmpty() ?? failProducer()))
+        catch e
+            caught = true
+        end
+        assert caught, "coalescing lost fallback failure"
+    elseif mode == 14 then
+        check(xcall(null ?? makeCallback()))
+    elseif mode == 15 then
+        (func() as int)? result = makeNullable() ?? makeEmpty()
+        if result != null then
+            check(xcall(result))
+        else
+            assert false, "nullable coalescing lost the present result"
+        end
+    elseif mode == 16 then
+        (func() as int)? result = makeEmpty() ?? makeEmpty()
+        assert result == null, "nullable fallback changed its null result"
+        evaluated += 1
+    elseif mode == 17 then
+        var literal = xcall(func() as int
+            return 42
+        end)
+        check(literal)
+        evaluated += 1
+    elseif mode == 18 then
+        string? present = "owned" + " string"
+        string selected = present ?? "unselected"
+        assert selected == "owned string"
+        if present != null then
+            assert present == "owned string", "coalescing consumed the borrowed string"
+        end
+        evaluated += 1
+    elseif mode == 19 then
+        string? missing = null
+        string fallback = "owned" + " fallback"
+        string selected = missing ?? fallback
+        assert selected == fallback and fallback == "owned fallback"
+        evaluated += 1
+    elseif mode == 20 then
+        Owner owner = Owner()
+        int value = 0
+        var callback = xcall(func()
+            value = owner.value
+        end)
+        callback()
+        assert value == 42, "assignment-first closure lost its captured cell"
+        evaluated += 1
+    elseif mode == 21 then
+        Owner owner = Owner()
+        int value = 0
+        var callback = xcall(func() as int
+            value = owner.value
+            return value
+        end)
+        check(callback)
+        assert value == 42, "assignment-first closure lost its result or capture"
+        evaluated += 1
+    elseif mode == 22 then
+        Owner owner = Owner()
+        int value = 0
+        var callback = xcall(func()
+            value = owner.value
+        end)
+        bool caught = false
+        try
+            var required = callback()
+        catch e
+            caught = true
+        end
+        assert caught and value == 42, "value context accepted a zero-result invocation"
+        evaluated += 1
+    elseif mode == 23 then
+        var callback = xcall(makePair)
+        callback()
+    else
+        Owner owner = Owner()
+        var callback = xcall(func()
+            evaluated += 1
+            throw ValueError "discard must not hide invocation failure"
+        end)
+        bool caught = false
+        try
+            callback()
+        catch e
+            caught = true
+        end
+        assert caught, "discard swallowed a callback error"
+    end
+end
+
+export "expression_run" func runExpressions() as int
+    int mode = 0
+    while mode < 25
+        int before = evaluated
+        exercise(mode)
+        assert evaluated == before + 1, "callable expression was evaluated more than once"
+        assert created == destroyed, "callable expression leaked its temporary owner"
+        mode += 1
+    end
+    return 42
+end
+
+export "expression_box" func boxExpression() as int
+    check(xcall(makeCallback()))
+    return 42
+end
+
+export "expression_balanced" func expressionBalanced() as bool
+    return created == destroyed
+end

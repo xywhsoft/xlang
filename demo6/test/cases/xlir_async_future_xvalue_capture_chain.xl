@@ -1,0 +1,8 @@
+extern "xlir_make_xvalue_future" func makeValueFuture() as future<var>
+
+async func addValuesAfter(future<var> source, var first, var second) as var
+    return await source + first + second
+end
+
+future<var> chainSource = makeValueFuture()
+future<var> chainPending = addValuesAfter(chainSource, 5, 6)

@@ -1,0 +1,385 @@
+extern "loop_open" func opened(int id)
+extern "loop_drop" func dropped(int id)
+extern "loop_checked" func checked(int code, int inner)
+extern "loop_primary" func primary()
+extern "loop_next_fault" func nextFault()
+extern "loop_iter_fault" func iterFault()
+
+class LoopGuard
+    int id
+    create(int id)
+        self.id = id
+        opened(id)
+    end
+    destroy()
+        dropped(self.id)
+    end
+end
+
+class LoopIterator
+    int id
+    int itemId
+    int index = 0
+    create(int id, int itemId)
+        self.id = id
+        self.itemId = itemId
+        opened(id)
+    end
+    destroy()
+        dropped(self.id)
+    end
+    func __next__() as (bool, var)
+        nextFault()
+        self.index = self.index + 1
+        if self.index == 1
+            return true, LoopGuard(self.itemId)
+        end
+        return false, LoopGuard(self.itemId + 1)
+    end
+end
+
+class LoopSequence
+    int id
+    int itemId
+    create(int id, int itemId)
+        self.id = id
+        self.itemId = itemId
+    end
+    func __iter__() as LoopIterator
+        iterFault()
+        return LoopIterator(self.id, self.itemId)
+    end
+end
+
+func ownedLoop() as LoopGuard
+    LoopGuard middle = LoopGuard(2)
+    for item in LoopSequence(3, 4)
+        assert item.id == 4
+        return LoopGuard(6)
+    end
+    return LoopGuard(6)
+end
+
+func nestedLoop() as LoopGuard
+    LoopGuard middle = LoopGuard(2)
+    for first in LoopSequence(3, 4)
+        LoopGuard between = LoopGuard(5)
+        for last in LoopSequence(6, 7)
+            assert first.id == 4 and last.id == 7 and between.id == 5
+            return LoopGuard(9)
+        end
+    end
+    return LoopGuard(9)
+end
+
+// The admitted managed yield ABI is string, not var/class. These two class
+// owners live across yield in the frame; they are not class-valued items.
+func generated() as generator<string>
+    LoopGuard frame = LoopGuard(3)
+    LoopGuard child = LoopGuard(4)
+    yield "word"
+    assert frame.id == 3 and child.id == 4
+end
+
+func ownedGenerator() as LoopGuard
+    LoopGuard middle = LoopGuard(2)
+    for item in generated()
+        assert item == "word"
+        return LoopGuard(6)
+    end
+    return LoopGuard(6)
+end
+
+export "loop_cleanup_normal" func probe_normal() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in LoopSequence(3, 4)
+            assert item.id == 4
+
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_break" func probe_break() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in LoopSequence(3, 4)
+            assert item.id == 4
+            break
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_continue" func probe_continue() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in LoopSequence(3, 4)
+            assert item.id == 4
+            continue
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_owned" func probe_owned() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard result = ownedLoop()
+        assert result.id == 6
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_item_normal" func probe_item_normal() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in LoopSequence(3, 4)
+            assert item.id == 4
+
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_item_break" func probe_item_break() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in LoopSequence(3, 4)
+            assert item.id == 4
+            break
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_item_continue" func probe_item_continue() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in LoopSequence(3, 4)
+            assert item.id == 4
+            continue
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_item_owned" func probe_item_owned() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard result = ownedLoop()
+        assert result.id == 6
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_false_item" func probe_false_item() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in LoopSequence(3, 4)
+            assert item.id == 4
+
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_outer_owned" func probe_outer_owned() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard result = ownedLoop()
+        assert result.id == 6
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_nested_owned" func probe_nested_owned() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard result = nestedLoop()
+        assert result.id == 9
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_primary" func probe_primary() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in LoopSequence(3, 4)
+            assert item.id == 4
+            LoopGuard local = LoopGuard(5)
+            primary()
+            break
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_inner_handler" func probe_inner_handler() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in LoopSequence(3, 4)
+            assert item.id == 4
+            try
+                LoopGuard local = LoopGuard(5)
+            catch error
+                assert item.id == 4 and middle.id == 2 and outer.id == 1
+                checked(error.code, 1)
+            end
+            break
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_next" func probe_next() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in LoopSequence(3, 4)
+            assert item.id == 4
+            break
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_iter" func probe_iter() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in LoopSequence(3, 4)
+            assert item.id == 4
+            break
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_nested_resource" func probe_nested_resource() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard result = nestedLoop()
+        assert result.id == 9
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_generator_normal" func probe_generator_normal() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in generated()
+            assert item == "word"
+
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_generator_break" func probe_generator_break() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in generated()
+            assert item == "word"
+            break
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_generator_owned" func probe_generator_owned() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard result = ownedGenerator()
+        assert result.id == 6
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+export "loop_cleanup_generator_continue" func probe_generator_continue() as int
+    LoopGuard outer = LoopGuard(1)
+    try
+        LoopGuard middle = LoopGuard(2)
+        for item in generated()
+            assert item == "word"
+            continue
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 0)
+    end
+    return outer.id
+end
+
+func main(...) as int
+    return 0
+end

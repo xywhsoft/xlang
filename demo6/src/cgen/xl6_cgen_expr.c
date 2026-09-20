@@ -1,9 +1,9 @@
 static const char* xl6CgenTypedContainerEqualsFunc(const char* kind)
 {
-    if ( xl6CTextEquals(kind, "array") ) { return "xrtTypedArrayEquals"; }
-    if ( xl6CTextEquals(kind, "list") ) { return "xrtTypedListEquals"; }
-    if ( xl6CTextEquals(kind, "set") ) { return "xrtTypedSetEquals"; }
-    if ( xl6CTextEquals(kind, "dict") ) { return "xrtTypedDictEquals"; }
+    if ( xl6CTextEquals(kind, "array") ) { return "xl6TypedArrayEquals"; }
+    if ( xl6CTextEquals(kind, "list") ) { return "xl6TypedListEquals"; }
+    if ( xl6CTextEquals(kind, "set") ) { return "xl6TypedSetEquals"; }
+    if ( xl6CTextEquals(kind, "dict") ) { return "xl6TypedDictEquals"; }
     return NULL;
 }
 
@@ -55,7 +55,7 @@ static int xl6CgenTypedContainerBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNo
     }
 
     if ( xl6CTextEquals(kind, "array") && xl6CTextEquals(op, "+") ) {
-        xl6OutputPuts("xrtTypedArrayConcat(", ctx->out);
+        xl6OutputPuts("xl6TypedArrayConcat(", ctx->out);
         xl6CgenExpr(ctx, left);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenExpr(ctx, right);
@@ -109,10 +109,10 @@ static int xl6CgenTypedContainerBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNo
     if ( xl6CTextEquals(kind, "set") ) {
         if ( xl6CTextEquals(op, "|") || xl6CTextEquals(op, "&") ||
              xl6CTextEquals(op, "-") || xl6CTextEquals(op, "^") ) {
-            if ( xl6CTextEquals(op, "|") ) { xl6OutputPuts("xrtTypedSetUnion(", ctx->out); }
-            else if ( xl6CTextEquals(op, "&") ) { xl6OutputPuts("xrtTypedSetIntersection(", ctx->out); }
-            else if ( xl6CTextEquals(op, "-") ) { xl6OutputPuts("xrtTypedSetDifference(", ctx->out); }
-            else { xl6OutputPuts("xrtTypedSetSymmetricDifference(", ctx->out); }
+            if ( xl6CTextEquals(op, "|") ) { xl6OutputPuts("xl6TypedSetUnion(", ctx->out); }
+            else if ( xl6CTextEquals(op, "&") ) { xl6OutputPuts("xl6TypedSetIntersection(", ctx->out); }
+            else if ( xl6CTextEquals(op, "-") ) { xl6OutputPuts("xl6TypedSetDifference(", ctx->out); }
+            else { xl6OutputPuts("xl6TypedSetSymmetricDifference(", ctx->out); }
             xl6CgenExpr(ctx, left);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, right);
@@ -328,6 +328,9 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         break;
     case XL6_AST_BINARY:
         if ( xl6CgenNullableNullComparison(ctx, node) ) {
+            break;
+        }
+        if ( xl6CgenFunctionNullComparison(ctx, node) ) {
             break;
         }
         if ( xl6CgenBinaryPlusIsString(ctx, node) ) {
@@ -572,14 +575,40 @@ static void xl6CgenExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 break;
             }
             if ( callee->kind == XL6_AST_NAME ) {
-                XL6_AstNode* externFunc = xl6CgenFindExternFunc(ctx, callee->text);
-                XL6_AstNode* exportFunc = xl6CgenFindExportFunc(ctx, callee->text);
-                const XL6_HirNode* callPlan = xl6CgenHirNode(ctx, node);
-                int isResolvedDirectCall = callPlan != NULL &&
-                    (callPlan->callKind == XL6_SEM_CALL_DIRECT ||
-                     callPlan->callKind == XL6_SEM_CALL_GENERIC_DIRECT);
-                const XL6_AstNode* functionVarType = isResolvedDirectCall ?
-                    NULL : xl6CgenFindVarType(ctx, callee->text);
+                if ( xl6CTextEquals(callee->text, "xcall") ) {
+                    const XL6_AstNode* args = node->childCount > 1 ? node->children[1] : NULL;
+                    const XL6_AstNode* arg = args != NULL && args->childCount == 1 ? args->children[0] : NULL;
+
+                    /* 语义阶段已经验证签名；这里仅生成唯一的显式装箱路径。 */
+                    xl6CgenXValueFromExpr(
+                        ctx,
+                        arg != NULL && arg->kind == XL6_AST_ARG && arg->childCount > 0 ?
+                            arg->children[0] : NULL);
+                    break;
+                }
+				const XL6_HirNode* callPlan = xl6CgenHirNode(ctx, node);
+				const XL6_AstNode* resolvedTarget;
+				XL6_AstNode* externFunc;
+				XL6_AstNode* exportFunc;
+				int isResolvedDirectCall = callPlan != NULL &&
+					(callPlan->callKind == XL6_SEM_CALL_DIRECT ||
+					 callPlan->callKind == XL6_SEM_CALL_GENERIC_DIRECT);
+				const XL6_AstNode* functionVarType = isResolvedDirectCall ?
+					NULL : xl6CgenFindVarType(ctx, callee->text);
+
+				/*
+					typed HIR 已完成重载选择。extern/export 直调必须使用
+					该目标，不能再按名称取第一个声明。
+				*/
+				resolvedTarget = isResolvedDirectCall ? xl6CgenHirTarget(ctx, node) : NULL;
+				externFunc = resolvedTarget != NULL &&
+					resolvedTarget->kind == XL6_AST_EXTERN_FUNC ?
+					(XL6_AstNode*)resolvedTarget :
+					(!isResolvedDirectCall ? xl6CgenFindExternFunc(ctx, callee->text) : NULL);
+				exportFunc = resolvedTarget != NULL &&
+					resolvedTarget->kind == XL6_AST_EXPORT_FUNC ?
+					(XL6_AstNode*)resolvedTarget :
+					(!isResolvedDirectCall ? xl6CgenFindExportFunc(ctx, callee->text) : NULL);
                 if ( xl6CTextEquals(callee->text, "type") ) {
                     const XL6_AstNode* args = node->childCount > 1 ? node->children[1] : NULL;
                     const XL6_AstNode* arg = args != NULL && args->childCount == 1 ? args->children[0] : NULL;
@@ -923,11 +952,11 @@ static void xl6CgenStringCompareExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
     right = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
     op = node != NULL && node->text != NULL ? node->text : "==";
 
-    xl6OutputPuts("(xrtStrComp(", ctx->out);
+    xl6OutputPuts("(xrtStrCompare(xrtStrView(", ctx->out);
     xl6CgenExpr(ctx, left);
-    xl6OutputPuts(", ", ctx->out);
+    xl6OutputPuts("), xrtStrView(", ctx->out);
     xl6CgenExpr(ctx, right);
-    xl6OutputPuts(", 0, false) ", ctx->out);
+    xl6OutputPuts(")) ", ctx->out);
     xl6OutputPuts(op, ctx->out);
     xl6OutputPuts(" 0)", ctx->out);
 }
@@ -945,16 +974,16 @@ static void xl6CgenApproxExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
     rightKind = xl6CgenExprApproxKind(ctx, right);
 
     if ( leftKind == 3 && rightKind == 3 ) {
-        xl6OutputPuts("xrtStrApprox(", ctx->out);
+        xl6OutputPuts("(xrtUtf8Similarity(xrtStrView(", ctx->out);
         xl6CgenExpr(ctx, left);
-        xl6OutputPuts(", 0, ", ctx->out);
+        xl6OutputPuts("), xrtStrView(", ctx->out);
         xl6CgenExpr(ctx, right);
-        xl6OutputPuts(", 0)", ctx->out);
+        xl6OutputPuts(")) >= 0.95)", ctx->out);
         return;
     }
 
     if ( leftKind == 4 && rightKind == 4 ) {
-        xl6OutputPuts("xrtTimeApprox(", ctx->out);
+        xl6OutputPuts("xl6_xrt_time_approx(", ctx->out);
         xl6CgenExpr(ctx, left);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenExpr(ctx, right);
@@ -969,7 +998,9 @@ static void xl6CgenApproxExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         return;
     }
 
-    xl6OutputPuts((leftKind == 2 || rightKind == 2) ? "xrtNumApprox(" : "xrtIntApprox(", ctx->out);
+    xl6OutputPuts((leftKind == 2 || rightKind == 2)
+        ? "xl6_xrt_num_approx("
+        : "xl6_xrt_int_approx(", ctx->out);
     xl6CgenExpr(ctx, left);
     xl6OutputPuts(", ", ctx->out);
     xl6CgenExpr(ctx, right);

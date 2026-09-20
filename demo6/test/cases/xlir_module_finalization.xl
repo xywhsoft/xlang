@@ -1,0 +1,43 @@
+extern "module_created" func created(int id)
+extern "module_destroyed" func destroyed(int id)
+extern "module_should_fail" func shouldFail() as bool
+
+class Marker
+    int id = 0
+    create(int id)
+        self.id = id
+        created(id)
+    end
+    destroy()
+        destroyed(self.id)
+    end
+end
+
+class Globals
+    static Marker cached = Marker(3)
+end
+
+func captureOwner() as func() as int
+    Marker captured = Marker(5)
+    return func() as int
+        return captured.id
+    end
+end
+
+Marker first = Marker(1)
+string text = "module" + " text"
+var dynamic = Marker(2)
+if shouldFail() then
+    throw "expected module initialization failure"
+end
+Marker last = Marker(4)
+array<Marker> values = [Marker(6)]
+func() as int callback = captureOwner()
+
+func main(...) as int
+    assert first.id == 1 and int(dynamic.id) == 2, "module owners did not survive initialization"
+    assert Globals.cached.id == 3 and last.id == 4, "module class/static ownership changed"
+    assert values[0].id == 6 and callback() == 5, "module collection/closure ownership changed"
+    assert text == "module text", "module string was released before unload"
+    return 0
+end

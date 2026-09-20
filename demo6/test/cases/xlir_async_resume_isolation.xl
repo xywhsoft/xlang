@@ -1,0 +1,17 @@
+extern "resume_isolation_ready" func readyInput() as future<int>
+extern "resume_isolation_probe" func resumeProbe(int value) as int
+extern "resume_isolation_finally" func resumeFinally()
+
+async func isolatedResume(future<int> input) as int
+    int value = 0
+    try
+        value = await input
+    catch error
+        value = -1
+    finally
+        resumeFinally()
+    end
+    return resumeProbe(value)
+end
+
+assert await isolatedResume(readyInput()) == 42

@@ -128,10 +128,9 @@ int xl6LexerDumpFileTo(XL6_Output* out, const char* path, int jsonOutput)
         return 1;
     }
 
-    xrtClearError();
-    source = xrtFileReadAll((char*)path, XRT_CP_UTF8, &sourceLen);
+    source = xrtFileReadText(path, XENCODING_UTF8, XUTF_STRICT, &sourceLen);
     (void)sourceLen;
-    if ( xrtGetError()[0] != '\0' || source == NULL ) {
+    if ( source == NULL ) {
         xrtFree(source);
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot read file: %s\n", path);
         return 1;

@@ -1,0 +1,64 @@
+func increment(int value) as int
+    return value + 1
+end
+
+func choose() as func(int) as int
+    return increment
+end
+
+func identity(func(int) as int value) as func(int) as int
+    return value
+end
+
+func invoke(func(int) as int value) as int
+    return value(4)
+end
+
+class OwnerBox
+    func(int) as int callback
+    get same() as func(int) as int
+        return callback
+    end
+end
+
+func holder() as OwnerBox
+    OwnerBox box = OwnerBox()
+    box.callback = increment
+    return box
+end
+
+func scope(int mode)
+    func(int) as int direct = increment
+    auto copy = direct
+    direct = increment
+    direct = direct
+    auto returned = choose()
+    assert direct(1) == 2 and copy(2) == 3 and returned(3) == 4, "named closure copy/assignment/return"
+    auto passed = identity(increment)
+    assert passed(4) == 5 and invoke(increment) == 5, "named closure owned argument transfer"
+    increment
+    (func(int) as int)? optional = increment
+    if optional != null then
+        assert optional(5) == 6, "named closure nullable lift"
+    end
+    var erased = xcall(increment)
+    assert erased(7) == 8, "named closure erasure"
+    auto projected = holder().callback
+    auto implicit = holder().same
+    assert projected(8) == 9 and implicit(9) == 10, "temporary receiver and implicit field ownership"
+    if mode == 1 then
+        return
+    end
+    if mode == 2 then
+        throw "expected named closure failure"
+    end
+end
+
+for iteration in range(200)
+    scope(0)
+    scope(1)
+    try
+        scope(2)
+    catch ignored
+    end
+end

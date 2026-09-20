@@ -1,0 +1,9 @@
+export "xlir_test_signed_from_dynamic" func signed_from_dynamic() as int8
+    var value = "-128"
+    return int8(value)
+end
+
+export "xlir_test_unsigned_from_dynamic" func unsigned_from_dynamic() as uint8
+    var value = "255"
+    return uint8(value)
+end

@@ -1,0 +1,27 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+export "xlir_dynamic_key_set_object" func dynamicKeySetObject() as int
+    var values = {"answer": 42}
+    var key = "answer"
+    values[key] = 81
+    return int(values[key])
+end
+
+export "xlir_dynamic_key_set_array" func dynamicKeySetArray() as int
+    var values = [10, 20]
+    var key = 1
+    values[key] = 82
+    return int(values[key])
+end
+
+export "xlir_dynamic_key_set_list" func dynamicKeySetList() as int
+    var values = [0: 11, 2: 33]
+    var key = 2
+    values[key] = 83
+    return int(values[key])
+end
+
+
+expect(dynamicKeySetObject(), 81)
+expect(dynamicKeySetArray(), 82)
+expect(dynamicKeySetList(), 83)

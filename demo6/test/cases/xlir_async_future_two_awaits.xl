@@ -1,0 +1,11 @@
+extern "xlir_make_i64_future" func makeFuture() as future<int>
+
+async func addBoth(future<int> left, future<int> right) as int
+    return await left + await right
+end
+
+future<int> left = makeFuture()
+future<int> right = makeFuture()
+future<int> pending = addBoth(left, right)
+int completed = await pending
+assert completed == 82

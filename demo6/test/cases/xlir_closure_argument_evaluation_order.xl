@@ -1,0 +1,16 @@
+// XLIR fixes source order before C emission. Legacy C function arguments may
+// run in the opposite order, so this is a language contract, not a parity test.
+int events = 0
+func nextValue(int tag) as c_int
+    events = events * 10 + tag
+    return c_int(tag)
+end
+
+func pair(c_int first, c_int second) as c_int
+    return c_int(first + second)
+end
+
+func(c_int, c_int) as c_int callback = pair
+assert callback(nextValue(1), nextValue(2)) == 3
+assert events == 12
+println("xlir_closure_argument_evaluation_order ok")

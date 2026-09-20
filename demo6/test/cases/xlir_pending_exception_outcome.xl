@@ -1,0 +1,289 @@
+extern "pending_open" func opened(int id)
+extern "pending_drop" func dropped(int id)
+extern "pending_primary" func primary()
+extern "pending_raise_override" func overrideError()
+extern "pending_observe_finally" func finalCheck(int stage)
+extern "pending_checked" func checked(int code)
+
+// Scalar-only finally isolates post-try routing from the separate pending-error
+// ownership contract exercised by the managed-finally probes below.
+export "pending_route_finally" func probe_route_finally() as int
+    PendingGuard outer = PendingGuard(1)
+    int final = 0
+    try
+        PendingGuard middle = PendingGuard(2)
+        try
+            PendingGuard inner = PendingGuard(3)
+            primary()
+        finally
+            final += 1
+        end
+    catch error
+        assert outer.id == 1 and final == 1
+        checked(error.code)
+    end
+    assert final == 1
+    return outer.id
+end
+
+export "pending_route_typed_finally" func probe_route_typed_finally() as int
+    PendingGuard outer = PendingGuard(1)
+    int final = 0
+    try
+        PendingGuard middle = PendingGuard(2)
+        try
+            PendingGuard inner = PendingGuard(3)
+            primary()
+        catch TypeError ignored
+            assert false
+        finally
+            final += 1
+        end
+    catch error
+        assert outer.id == 1 and final == 1
+        checked(error.code)
+    end
+    assert final == 1
+    return outer.id
+end
+
+export "pending_route_multi_finally" func probe_route_multi_finally() as int
+    PendingGuard outer = PendingGuard(1)
+    int final = 0
+    try
+        PendingGuard middle = PendingGuard(2)
+        try
+            PendingGuard inner = PendingGuard(3)
+            primary()
+        catch TypeError ignored
+            assert false
+        catch RangeError other
+            assert false
+        finally
+            final += 1
+        end
+    catch error
+        assert outer.id == 1 and final == 1
+        checked(error.code)
+    end
+    assert final == 1
+    return outer.id
+end
+
+class PendingGuard
+    int id
+    create(int id)
+        self.id = id
+        opened(id)
+    end
+    destroy()
+        dropped(self.id)
+    end
+end
+class PendingIterator
+    int index = 0
+    create()
+        opened(3)
+    end
+    destroy()
+        dropped(3)
+    end
+    func __next__() as (bool, var)
+        self.index += 1
+        if self.index == 1
+            return true, PendingGuard(4)
+        end
+        return false, null
+    end
+end
+class PendingSequence
+    func __iter__() as PendingIterator
+        return PendingIterator()
+    end
+end
+
+export "pending_finally" func probe_finally() as int
+    PendingGuard outer = PendingGuard(1)
+    try
+        PendingGuard middle = PendingGuard(2)
+        try
+            PendingGuard inner = PendingGuard(3)
+            primary()
+        finally
+            PendingGuard last = PendingGuard(4)
+            finalCheck(1)
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code)
+    end
+    return outer.id
+end
+
+export "pending_typed" func probe_typed() as int
+    PendingGuard outer = PendingGuard(1)
+    try
+        PendingGuard middle = PendingGuard(2)
+        try
+            PendingGuard inner = PendingGuard(3)
+            primary()
+        catch TypeError ignored
+            assert false
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code)
+    end
+    return outer.id
+end
+
+export "pending_multi" func probe_multi() as int
+    PendingGuard outer = PendingGuard(1)
+    try
+        PendingGuard middle = PendingGuard(2)
+        try
+            PendingGuard inner = PendingGuard(3)
+            primary()
+        catch TypeError ignored
+            assert false
+        catch RangeError other
+            assert false
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code)
+    end
+    return outer.id
+end
+
+export "pending_typed_finally" func probe_typed_finally() as int
+    PendingGuard outer = PendingGuard(1)
+    try
+        PendingGuard middle = PendingGuard(2)
+        try
+            PendingGuard inner = PendingGuard(3)
+            primary()
+        catch TypeError ignored
+            assert false
+        finally
+            PendingGuard last = PendingGuard(4)
+            finalCheck(1)
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code)
+    end
+    return outer.id
+end
+
+export "pending_multi_finally" func probe_multi_finally() as int
+    PendingGuard outer = PendingGuard(1)
+    try
+        PendingGuard middle = PendingGuard(2)
+        try
+            PendingGuard inner = PendingGuard(3)
+            primary()
+        catch TypeError ignored
+            assert false
+        catch RangeError other
+            assert false
+        finally
+            PendingGuard last = PendingGuard(4)
+            finalCheck(1)
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code)
+    end
+    return outer.id
+end
+
+export "pending_loop_finally" func probe_loop_finally() as int
+    PendingGuard outer = PendingGuard(1)
+    try
+        PendingGuard middle = PendingGuard(2)
+        for item in PendingSequence()
+            assert item.id == 4
+            try
+                PendingGuard inner = PendingGuard(5)
+                primary()
+            finally
+                PendingGuard last = PendingGuard(6)
+                finalCheck(1)
+            end
+            break
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code)
+    end
+    return outer.id
+end
+
+export "pending_loop_typed" func probe_loop_typed() as int
+    PendingGuard outer = PendingGuard(1)
+    try
+        PendingGuard middle = PendingGuard(2)
+        for item in PendingSequence()
+            assert item.id == 4
+            try
+                PendingGuard inner = PendingGuard(5)
+                primary()
+            catch TypeError ignored
+                assert false
+            end
+            break
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code)
+    end
+    return outer.id
+end
+
+export "pending_nested_finally" func probe_nested_finally() as int
+    PendingGuard outer = PendingGuard(1)
+    try
+        PendingGuard middle = PendingGuard(2)
+        try
+            PendingGuard inner = PendingGuard(3)
+            try
+                PendingGuard deepest = PendingGuard(4)
+                primary()
+            finally
+                PendingGuard innerFinal = PendingGuard(5)
+                finalCheck(1)
+            end
+        finally
+            PendingGuard outerFinal = PendingGuard(6)
+            finalCheck(2)
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code)
+    end
+    return outer.id
+end
+
+export "pending_override" func probe_override() as int
+    PendingGuard outer = PendingGuard(1)
+    try
+        PendingGuard middle = PendingGuard(2)
+        try
+            PendingGuard inner = PendingGuard(3)
+            primary()
+        finally
+            PendingGuard last = PendingGuard(4)
+            finalCheck(1)
+            overrideError()
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code)
+    end
+    return outer.id
+end
+
+func main(...) as int
+    return 0
+end

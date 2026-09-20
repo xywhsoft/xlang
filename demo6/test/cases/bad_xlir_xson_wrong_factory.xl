@@ -1,0 +1,2 @@
+extern "xl6_xrt_xson_writer_create_default" func malformed() as point
+point v = malformed()

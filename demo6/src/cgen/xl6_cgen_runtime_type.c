@@ -4,7 +4,7 @@ static unsigned long long xl6CgenTypeIdForTypeNode(XL6_CgenContext* ctx, const X
 
 /*
     xlang 的 bool 在普通 C 表达式中使用 int 承载，因此静态 ABI 描述符是 bool32。
-    xvalue 则保存 XRT 原生 bool；运行时 is/as 必须使用原生描述符进行比较。
+    xvalue* 则保存 XRT 原生 bool；运行时 is/as 必须使用原生描述符进行比较。
 */
 static void xl6CgenEmitRuntimeValueTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
@@ -12,7 +12,7 @@ static void xl6CgenEmitRuntimeValueTypeDescRef(XL6_CgenContext* ctx, const XL6_A
 
     concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
     if ( concreteType != NULL && xl6CTextEquals(concreteType->text, "bool") ) {
-        xl6OutputPuts("xrtTypeBool()", ctx->out);
+        xl6OutputPuts("xl6TypeBool()", ctx->out);
         return;
     }
     xl6CgenEmitXrtTypeDescRef(ctx, typeNode);
@@ -119,7 +119,7 @@ static void xl6CgenEmitRuntimeTypeClassBaseChecks(XL6_CgenContext* ctx, const XL
 
     baseClass = xl6CgenBaseClass(ctx, classNode);
     while ( baseClass != NULL && !xl6CgenClassHasTypeParams(baseClass) ) {
-        xl6OutputPuts("        if (xrtTypeSame(target, ", ctx->out);
+        xl6OutputPuts("        if (xl6TypeSame(target, ", ctx->out);
         xl6CgenEmitRuntimeTypeClassDescRef(ctx, baseClass);
         xl6OutputPuts(")) { return true; }\n", ctx->out);
         baseClass = xl6CgenBaseClass(ctx, baseClass);
@@ -145,7 +145,7 @@ static void xl6CgenEmitRuntimeTypeClassRelations(XL6_CgenContext* ctx)
             continue;
         }
 
-        xl6OutputPuts("    if (xrtTypeSame(actual, ", ctx->out);
+        xl6OutputPuts("    if (xl6TypeSame(actual, ", ctx->out);
         xl6CgenEmitRuntimeTypeClassDescRef(ctx, node);
         xl6OutputPuts(")) {\n", ctx->out);
         xl6CgenEmitRuntimeTypeClassBaseChecks(ctx, node);
@@ -162,129 +162,141 @@ static void xl6CgenEmitRuntimeTypeHelpers(XL6_CgenContext* ctx)
     }
     out = ctx->out;
 
-    xl6OutputPuts("static bool xl6_runtime_type_is(const xrt_type_desc* actual, const xrt_type_desc* target)\n", out);
+    xl6OutputPuts("static bool xl6_runtime_type_is(const xl6_type_desc* actual, const xl6_type_desc* target)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    if (xrtTypeSame(actual, target)) { return true; }\n", out);
+    xl6OutputPuts("    if (xl6TypeSame(actual, target)) { return true; }\n", out);
     xl6OutputPuts("    if (actual == 0 || target == 0) { return false; }\n", out);
-    xl6OutputPuts(
-        "    if (target->Kind == XL6_XRT_TYPE_KIND_PROTOCOL) {\n"
-        "        return xrtProtocolLookup(target->TypeId, actual->TypeId) != 0;\n"
-        "    }\n",
-        out);
+    if ( xl6CgenHasUserProtocols(ctx) ) {
+        xl6OutputPuts(
+            "    if (target->Kind == XL6_XRT_TYPE_KIND_PROTOCOL) {\n"
+            "        return xl6ProtocolLookup(target->TypeId, actual->TypeId) != 0;\n"
+            "    }\n",
+            out);
+    }
     xl6CgenEmitRuntimeTypeClassRelations(ctx);
     xl6OutputPuts("    return false;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static const xrt_type_desc* xl6_runtime_value_type_desc(xvalue value)\n", out);
+    xl6OutputPuts("static const xl6_type_desc* xl6_runtime_value_type_desc(xvalue* value)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    const xrt_type_desc* desc;\n", out);
-    xl6OutputPuts("    if (value == 0) { return xrtTypeNull(); }\n", out);
-    xl6OutputPuts("    desc = xvoTypeDesc(value);\n", out);
+    xl6OutputPuts("    const xl6_type_desc* desc;\n", out);
+    xl6OutputPuts("    if (value == 0) { return xl6TypeNull(); }\n", out);
+    xl6OutputPuts("    desc = xl6ValueType(value);\n", out);
     xl6OutputPuts("    if (desc != 0) { return desc; }\n", out);
-    xl6OutputPuts("    switch (xvoType(value)) {\n", out);
-    xl6OutputPuts("    case XL6_XVO_DT_NULL: return xrtTypeNull();\n", out);
-    xl6OutputPuts("    case XL6_XVO_DT_BOOL: return xrtTypeBool();\n", out);
-    xl6OutputPuts("    case XL6_XVO_DT_INT: return xrtTypeInt();\n", out);
-    xl6OutputPuts("    case XL6_XVO_DT_FLOAT: return xrtTypeFloat();\n", out);
-    xl6OutputPuts("    case XL6_XVO_DT_TEXT: return xrtTypeString();\n", out);
-    xl6OutputPuts("    case XL6_XVO_DT_TIME: return xrtTypeTime();\n", out);
-    xl6OutputPuts("    case XL6_XVO_DT_POINT: return xrtTypePoint();\n", out);
-    xl6OutputPuts("    case XL6_XVO_DT_FUNC: return xrtTypeFunction();\n", out);
-    xl6OutputPuts("    case XL6_XVO_DT_ARRAY: return xrtTypeArray();\n", out);
-    xl6OutputPuts("    case XL6_XVO_DT_LIST: return xrtTypeList();\n", out);
-    xl6OutputPuts("    case XL6_XVO_DT_COLL: return xrtTypeSet();\n", out);
-    xl6OutputPuts("    case XL6_XVO_DT_TABLE: return xrtTypeDict();\n", out);
+    xl6OutputPuts("    switch (xl6_xrt_value_kind(value)) {\n", out);
+    xl6OutputPuts("    case XL6_XVO_DT_NULL: return xl6TypeNull();\n", out);
+    xl6OutputPuts("    case XL6_XVO_DT_BOOL: return xl6TypeBool();\n", out);
+    xl6OutputPuts("    case XL6_XVO_DT_INT: return xl6TypeInt64();\n", out);
+    xl6OutputPuts("    case XL6_XVO_DT_FLOAT: return xl6TypeFloat64();\n", out);
+    xl6OutputPuts("    case XL6_XVO_DT_TEXT: return xl6TypeString();\n", out);
+    xl6OutputPuts("    case XL6_XVO_DT_TIME: return xl6TypeTime();\n", out);
+    xl6OutputPuts("    case XL6_XVO_DT_POINT: return xl6TypePointer();\n", out);
+    xl6OutputPuts("    case XL6_XVO_DT_FUNC: return xl6TypeValue();\n", out);
+    xl6OutputPuts("    case XL6_XVO_DT_ARRAY: return xl6TypeValue();\n", out);
+    xl6OutputPuts("    case XL6_XVO_DT_LIST: return xl6TypeValue();\n", out);
+    xl6OutputPuts("    case XL6_XVO_DT_COLL: return xl6TypeValue();\n", out);
+    xl6OutputPuts("    case XL6_XVO_DT_TABLE: return xl6TypeValue();\n", out);
     xl6OutputPuts("    default: return 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static bool xl6_runtime_value_is(xvalue value, const xrt_type_desc* target, bool release)\n", out);
+    xl6OutputPuts("static bool xl6_runtime_value_is(xvalue* value, const xl6_type_desc* target, bool release)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    const xrt_type_desc* actual = xl6_runtime_value_type_desc(value);\n", out);
+    xl6OutputPuts("    const xl6_type_desc* actual = xl6_runtime_value_type_desc(value);\n", out);
     xl6OutputPuts("    bool result = xl6_runtime_type_is(actual, target);\n", out);
-    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", out);
+    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static xvalue xl6_runtime_value_as_class(xvalue value, const xrt_type_desc* target, bool release)\n", out);
+    xl6OutputPuts("static xvalue* xl6_runtime_value_as_class(xvalue* value, const xl6_type_desc* target, bool release)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if (!xl6_runtime_type_is(xl6_runtime_value_type_desc(value), target)) {\n", out);
-    xl6OutputPuts("        if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", out);
+    xl6OutputPuts("        if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", out);
     xl6OutputPuts("        xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0);\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if (release && value != 0) { (void)xl6_temp_managed_disown((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", out);
-    xl6OutputPuts("    if (!release && value != 0) { xvoAddRef(value); }\n", out);
+    xl6OutputPuts("    if (release && value != 0) { (void)xl6_temp_managed_disown((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", out);
+    xl6OutputPuts("    if (!release && value != 0) { xrtValueRetain(value); }\n", out);
     xl6OutputPuts("    return value;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static xvalue xl6_runtime_value_try_as_class(xvalue value, const xrt_type_desc* target, bool release)\n", out);
+    xl6OutputPuts("static xvalue* xl6_runtime_value_try_as_class(xvalue* value, const xl6_type_desc* target, bool release)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if (!xl6_runtime_type_is(xl6_runtime_value_type_desc(value), target)) {\n", out);
-    xl6OutputPuts("        if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", out);
-    xl6OutputPuts("        return xvoCreateNull();\n", out);
+    xl6OutputPuts("        if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", out);
+    xl6OutputPuts("        return xrtValueNull();\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if (release && value != 0) { (void)xl6_temp_managed_disown((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", out);
-    xl6OutputPuts("    if (!release && value != 0) { xvoAddRef(value); }\n", out);
+    xl6OutputPuts("    if (release && value != 0) { (void)xl6_temp_managed_disown((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", out);
+    xl6OutputPuts("    if (!release && value != 0) { xrtValueRetain(value); }\n", out);
     xl6OutputPuts("    return value;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static bool xl6_runtime_value_as_record(xvalue value, const xrt_type_desc* target, void* outValue, bool release)\n", out);
+    xl6OutputPuts("static bool xl6_runtime_value_as_record(xvalue* value, const xl6_type_desc* target, void* outValue, bool release)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    const xrt_type_desc* actual = xl6_runtime_value_type_desc(value);\n", out);
+    xl6OutputPuts("    const xl6_type_desc* actual = xl6_runtime_value_type_desc(value);\n", out);
     xl6OutputPuts("    const void* data = 0;\n", out);
     xl6OutputPuts("    bool ok = false;\n", out);
     xl6OutputPuts("    if (outValue != 0 && target != 0 && xl6_runtime_type_is(actual, target)) {\n", out);
-    xl6OutputPuts("        data = xvoGetRecordData(value);\n", out);
+    xl6OutputPuts("        data = xl6ValueRecordData(value);\n", out);
     xl6OutputPuts("        if (data != 0) {\n", out);
     xl6OutputPuts("            if (target->Ops != 0 && target->Ops->copy != 0) { target->Ops->copy(outValue, data); }\n", out);
     xl6OutputPuts("            else { memcpy(outValue, data, target->Size); }\n", out);
     xl6OutputPuts("            ok = true;\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", out);
+    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", out);
     xl6OutputPuts("    return ok;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static bool xl6_runtime_value_as_handle(xvalue value, const xrt_type_desc* target, void* outValue, bool release)\n", out);
+    xl6OutputPuts("static bool xl6_runtime_value_as_handle(xvalue* value, const xl6_type_desc* target, void* outValue, bool release)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    const xrt_type_desc* actual = xl6_runtime_value_type_desc(value);\n", out);
+    xl6OutputPuts("    const xl6_type_desc* actual = xl6_runtime_value_type_desc(value);\n", out);
     xl6OutputPuts("    bool ok = false;\n", out);
-    xl6OutputPuts("    if (outValue != 0 && target != 0 && xrtTypeSame(actual, target)) {\n", out);
+    xl6OutputPuts("    if (outValue != 0 && target != 0 && xl6TypeSame(actual, target)) {\n", out);
     xl6OutputPuts("        memset(outValue, 0, target->Size);\n", out);
-    xl6OutputPuts("        *((void**)outValue) = xvoGetHandleData(value);\n", out);
+    xl6OutputPuts("        *((void**)outValue) = xl6ValueHandleData(value);\n", out);
     xl6OutputPuts("        ok = true;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", out);
+    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", out);
     xl6OutputPuts("    return ok;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static long long xl6_runtime_value_as_i64(xvalue value, const xrt_type_desc* target, bool release)\n", out);
+    /* error 解箱必须复制引用，不得借用 xvalue 句柄内部的指针。 */
+    xl6OutputPuts("static XL6_Error* xl6_runtime_value_as_error(xvalue* value, bool release)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_Error* result = 0;\n", out);
+    xl6OutputPuts("    bool ok = xl6TypeUnboxValue(xl6TypeError(), value, &result);\n", out);
+    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", out);
+    xl6OutputPuts("    if (!ok) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", out);
+    xl6OutputPuts("    return result;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static long long xl6_runtime_value_as_i64(xvalue* value, const xl6_type_desc* target, bool release)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    long long result = 0;\n", out);
     xl6OutputPuts("    bool ok = xl6_runtime_value_is(value, target, false);\n", out);
-    xl6OutputPuts("    if (ok) { result = xvoGetInt(value); }\n", out);
-    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", out);
+    xl6OutputPuts("    if (ok) { result = xl6_xrt_value_int(value); }\n", out);
+    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", out);
     xl6OutputPuts("    if (!ok) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static double xl6_runtime_value_as_f64(xvalue value, const xrt_type_desc* target, bool release)\n", out);
+    xl6OutputPuts("static double xl6_runtime_value_as_f64(xvalue* value, const xl6_type_desc* target, bool release)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    double result = 0.0;\n", out);
     xl6OutputPuts("    bool ok = xl6_runtime_value_is(value, target, false);\n", out);
-    xl6OutputPuts("    if (ok) { result = xvoGetFloat(value); }\n", out);
-    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", out);
+    xl6OutputPuts("    if (ok) { result = xl6_xrt_value_float(value); }\n", out);
+    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", out);
     xl6OutputPuts("    if (!ok) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static int xl6_runtime_value_as_bool(xvalue value, const xrt_type_desc* target, bool release)\n", out);
+    xl6OutputPuts("static int xl6_runtime_value_as_bool(xvalue* value, const xl6_type_desc* target, bool release)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    int result = 0;\n", out);
     xl6OutputPuts("    bool ok = xl6_runtime_value_is(value, target, false);\n", out);
-    xl6OutputPuts("    if (ok) { result = xvoGetBool(value) ? 1 : 0; }\n", out);
-    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", out);
+    xl6OutputPuts("    if (ok) { result = xl6_xrt_value_bool(value) ? 1 : 0; }\n", out);
+    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", out);
     xl6OutputPuts("    if (!ok) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -295,28 +307,28 @@ static void xl6CgenEmitRuntimeTypeHelpers(XL6_CgenContext* ctx)
     xl6OutputPuts("    char* text;\n", out);
     xl6OutputPuts("    if (value == 0) { return \"\"; }\n", out);
     xl6OutputPuts("    len = strlen(value);\n", out);
-    xl6OutputPuts("    text = (char*)xrtTempMemory(len + 1u);\n", out);
+    xl6OutputPuts("    text = (char*)xrtTemp(len + 1u);\n", out);
     xl6OutputPuts("    if (text == 0) { return \"\"; }\n", out);
     xl6OutputPuts("    memcpy(text, value, len + 1u);\n", out);
     xl6OutputPuts("    return text;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static const char* xl6_runtime_value_as_string(xvalue value, const xrt_type_desc* target, bool release)\n", out);
+    xl6OutputPuts("static const char* xl6_runtime_value_as_string(xvalue* value, const xl6_type_desc* target, bool release)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    const char* result = \"\";\n", out);
     xl6OutputPuts("    bool ok = xl6_runtime_value_is(value, target, false);\n", out);
-    xl6OutputPuts("    if (ok) { result = xl6_runtime_temp_cstr(xvoGetText(value)); }\n", out);
-    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", out);
+    xl6OutputPuts("    if (ok) { result = xl6_runtime_temp_cstr(xl6_xrt_value_text(value)); }\n", out);
+    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", out);
     xl6OutputPuts("    if (!ok) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static void* xl6_runtime_value_as_point(xvalue value, const xrt_type_desc* target, bool release)\n", out);
+    xl6OutputPuts("static void* xl6_runtime_value_as_point(xvalue* value, const xl6_type_desc* target, bool release)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    void* result = 0;\n", out);
     xl6OutputPuts("    bool ok = xl6_runtime_value_is(value, target, false);\n", out);
-    xl6OutputPuts("    if (ok) { result = xvoGetPoint(value); }\n", out);
-    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", out);
+    xl6OutputPuts("    if (ok) { result = xl6_xrt_value_pointer(value); }\n", out);
+    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", out);
     xl6OutputPuts("    if (!ok) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -343,13 +355,13 @@ static void xl6CgenEmitRuntimeTypeRecordCastHelper(XL6_CgenContext* ctx, const X
         cType = xl6CgenTypeName(ctx, concreteTarget);
         xl6OutputPrintf(ctx->out, "#ifndef XL6_RUNTIME_AS_HELPER_%s\n", cType);
         xl6OutputPrintf(ctx->out, "#define XL6_RUNTIME_AS_HELPER_%s\n", cType);
-        xl6OutputPrintf(ctx->out, "static %s xl6_runtime_value_as_%s(xvalue value, bool release)\n", cType, cType);
+        xl6OutputPrintf(ctx->out, "static %s xl6_runtime_value_as_%s(xvalue* value, bool release)\n", cType, cType);
         xl6OutputPuts("{\n", ctx->out);
         xl6OutputPrintf(ctx->out, "    %s result = (%s)0;\n", cType, cType);
-        xl6OutputPuts("    bool ok = xrtTypeUnboxValue(", ctx->out);
+        xl6OutputPuts("    bool ok = xl6TypeUnboxValue(", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, concreteTarget);
         xl6OutputPuts(", value, &result);\n", ctx->out);
-        xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", ctx->out);
+        xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", ctx->out);
         xl6OutputPuts("    if (!ok) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", ctx->out);
         xl6OutputPuts("    return result;\n}\n", ctx->out);
         xl6OutputPuts("#endif\n\n", ctx->out);
@@ -369,7 +381,7 @@ static void xl6CgenEmitRuntimeTypeRecordCastHelper(XL6_CgenContext* ctx, const X
     cType = xl6CgenTypeName(ctx, concreteTarget);
     xl6OutputPrintf(ctx->out, "#ifndef XL6_RUNTIME_AS_HELPER_%s\n", cType);
     xl6OutputPrintf(ctx->out, "#define XL6_RUNTIME_AS_HELPER_%s\n", cType);
-    xl6OutputPrintf(ctx->out, "static %s xl6_runtime_value_as_%s(xvalue value, bool release)\n", cType, cType);
+    xl6OutputPrintf(ctx->out, "static %s xl6_runtime_value_as_%s(xvalue* value, bool release)\n", cType, cType);
     xl6OutputPuts("{\n", ctx->out);
     xl6OutputPrintf(ctx->out, "    %s result = {0};\n", cType);
     if ( xl6CgenIsNativeBackedClassType(ctx, concreteTarget) ) {
@@ -439,7 +451,7 @@ static void xl6CgenEmitRuntimeTypeNullableCastHelper(
     xl6OutputPrintf(ctx->out, "#define %s\n", guardName);
     xl6OutputPrintf(
         ctx->out,
-        "static %s %s(xvalue value, bool release)\n",
+        "static %s %s(xvalue* value, bool release)\n",
         resultType,
         helperName);
     xl6OutputPuts("{\n", ctx->out);
@@ -453,15 +465,15 @@ static void xl6CgenEmitRuntimeTypeNullableCastHelper(
         xl6OutputPuts(", false);\n", ctx->out);
         if ( xl6CTextEquals(name, "string") ) {
             xl6OutputPuts(
-                "    if (ok) { result = xl6_runtime_temp_cstr(xvoGetText(value)); }\n",
+                "    if (ok) { result = xl6_runtime_temp_cstr(xl6_xrt_value_text(value)); }\n",
                 ctx->out);
         } else if ( xl6CTextEquals(name, "point") ) {
             xl6OutputPuts(
-                "    if (ok) { result = xvoGetPoint(value); }\n",
+                "    if (ok) { result = xl6_xrt_value_pointer(value); }\n",
                 ctx->out);
         }
         xl6OutputPuts(
-            "    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n",
+            "    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n",
             ctx->out);
         xl6OutputPuts("    return result;\n", ctx->out);
         xl6OutputPuts("}\n", ctx->out);
@@ -471,10 +483,10 @@ static void xl6CgenEmitRuntimeTypeNullableCastHelper(
 
     xl6OutputPrintf(ctx->out, "    %s result = {0};\n", resultType);
     if ( xl6CgenIsNumericEnumType(ctx, concreteInner) ) {
-        xl6OutputPuts("    result.hasValue = xrtTypeUnboxValue(", ctx->out);
+        xl6OutputPuts("    result.hasValue = xl6TypeUnboxValue(", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, concreteInner);
         xl6OutputPuts(", value, &result.value);\n", ctx->out);
-        xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", ctx->out);
+        xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", ctx->out);
         xl6OutputPuts("    return result;\n", ctx->out);
         xl6OutputPuts("}\n", ctx->out);
         xl6OutputPuts("#endif\n\n", ctx->out);
@@ -502,11 +514,11 @@ static void xl6CgenEmitRuntimeTypeNullableCastHelper(
     if ( xl6CgenIsIntegerTypeName(name) ||
          xl6CTextEquals(name, "type") ||
          xl6CTextEquals(name, "time") ) {
-        getter = "xvoGetInt";
+        getter = "xl6_xrt_value_int";
     } else if ( xl6CgenIsFloatTypeName(name) ) {
-        getter = "xvoGetFloat";
+        getter = "xl6_xrt_value_float";
     } else if ( xl6CgenIsBoolTypeName(name) ) {
-        getter = "xvoGetBool";
+        getter = "xl6_xrt_value_bool";
     }
 
     xl6OutputPuts(
@@ -522,7 +534,7 @@ static void xl6CgenEmitRuntimeTypeNullableCastHelper(
         xl6OutputPuts("(value); }\n", ctx->out);
     }
     xl6OutputPuts(
-        "    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n",
+        "    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n",
         ctx->out);
     xl6OutputPuts("    return result;\n", ctx->out);
     xl6OutputPuts("}\n", ctx->out);
@@ -580,7 +592,7 @@ static void xl6CgenEmitRuntimeTypeClassUpcastCase(
     }
 
     xl6CgenClassTypeRefName(actualCType, sizeof(actualCType), actualClass);
-    xl6OutputPuts("    if (xrtTypeSame(actual, ", ctx->out);
+    xl6OutputPuts("    if (xl6TypeSame(actual, ", ctx->out);
     xl6CgenEmitRuntimeTypeClassDescRef(ctx, actualClass);
     xl6OutputPuts(")) {\n", ctx->out);
     xl6OutputPuts("        const ", ctx->out);
@@ -622,13 +634,13 @@ static void xl6CgenEmitRuntimeTypeClassRecordCastHelper(XL6_CgenContext* ctx, co
     }
 
     xl6CgenClassTypeRefName(targetCType, sizeof(targetCType), targetType);
-    xl6OutputPrintf(ctx->out, "static bool xl6_runtime_value_as_class_%s(xvalue value, %s* outValue, bool release)\n", targetCType, targetCType);
+    xl6OutputPrintf(ctx->out, "static bool xl6_runtime_value_as_class_%s(xvalue* value, %s* outValue, bool release)\n", targetCType, targetCType);
     xl6OutputPuts("{\n", ctx->out);
-    xl6OutputPuts("    const xrt_type_desc* actual = xl6_runtime_value_type_desc(value);\n", ctx->out);
-    xl6OutputPuts("    const void* data = xvoGetRecordData(value);\n", ctx->out);
+    xl6OutputPuts("    const xl6_type_desc* actual = xl6_runtime_value_type_desc(value);\n", ctx->out);
+    xl6OutputPuts("    const void* data = xl6ValueRecordData(value);\n", ctx->out);
     xl6OutputPuts("    bool ok = false;\n", ctx->out);
     xl6OutputPuts("    if (outValue != 0 && data != 0) {\n", ctx->out);
-    xl6OutputPuts("        if (xrtTypeSame(actual, ", ctx->out);
+    xl6OutputPuts("        if (xl6TypeSame(actual, ", ctx->out);
     xl6CgenEmitRuntimeTypeClassDescRef(ctx, targetClass);
     xl6OutputPuts(")) {\n", ctx->out);
     xl6OutputPrintf(ctx->out, "            xl6_type_copy_%s(outValue, data);\n", targetCType);
@@ -653,11 +665,11 @@ static void xl6CgenEmitRuntimeTypeClassRecordCastHelper(XL6_CgenContext* ctx, co
         xl6CgenEmitRuntimeTypeClassUpcastCase(ctx, targetClass, node, targetCType, basePath);
     }
     xl6OutputPuts("    }\n", ctx->out);
-    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref); }\n", ctx->out);
+    xl6OutputPuts("    if (release && value != 0) { xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xrtValueRelease); }\n", ctx->out);
     xl6OutputPuts("    return ok;\n", ctx->out);
     xl6OutputPuts("}\n\n", ctx->out);
 
-    xl6OutputPrintf(ctx->out, "static %s xl6_runtime_value_as_%s(xvalue value, bool release)\n", targetCType, targetCType);
+    xl6OutputPrintf(ctx->out, "static %s xl6_runtime_value_as_%s(xvalue* value, bool release)\n", targetCType, targetCType);
     xl6OutputPuts("{\n", ctx->out);
     xl6OutputPrintf(ctx->out, "    %s result = {0};\n", targetCType);
     xl6OutputPrintf(ctx->out, "    if (!xl6_runtime_value_as_class_%s(value, &result, release)) { xl6_error_raise(\"TypeError\", \"runtime type cast failed\", \"\", 0, 0); }\n", targetCType);
@@ -726,6 +738,23 @@ static void xl6CgenRuntimeTypeFunctionIsExpr(XL6_CgenContext* ctx, const XL6_Ast
     xl6CgenExpr(ctx, value);
     xl6OutputPuts(xl6CgenExprIsXValueBorrow(ctx, value) ? ", false) == " : ", true) == ", ctx->out);
     xl6OutputPrintf(ctx->out, "0x%016llXULL)", typeId);
+}
+
+static void xl6CgenRuntimeTypeFunctionAsExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* value,
+    const XL6_AstNode* target)
+{
+    unsigned long long typeId;
+
+    typeId = xl6CgenFunctionSignatureId(ctx, target->children[0], target->children[1]);
+    xl6OutputPuts("xl6_function_from_xvalue_checked(", ctx->out);
+    xl6CgenExpr(ctx, value);
+    xl6OutputPrintf(
+        ctx->out,
+        ", 0x%016llXULL, %s)",
+        typeId,
+        xl6CgenExprIsXValueBorrow(ctx, value) ? "false" : "true");
 }
 
 static void xl6CgenRuntimeTypeIsExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
@@ -826,8 +855,8 @@ static int xl6CgenRuntimeTypeAsScalarExpr(XL6_CgenContext* ctx, const XL6_AstNod
 
 /*
  * 流类型收窄只改变表达式类型，不改变变量的真实 C 存储。
- * var 仍然是 xvalue；当 HIR 把当前名称收窄为基础值类型时，读取点必须解箱。
- * class、protocol 和容器本身也由 xvalue 承载，不需要进入这里。
+ * var 仍然是 xvalue*；当 HIR 把当前名称收窄为基础值类型时，读取点必须解箱。
+ * class、protocol 和容器本身也由 xvalue* 承载，不需要进入这里。
  */
 static int xl6CgenRuntimeNarrowedNameExpr(
     XL6_CgenContext* ctx,
@@ -994,6 +1023,7 @@ static void xl6CgenRuntimeTypeAsExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
     XL6_AstNode* valueType;
     const XL6_AstNode* concreteValueType;
     const XL6_AstNode* nullableValueInner;
+    const XL6_AstNode* functionTarget;
     const char* cType;
 
     value = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
@@ -1002,6 +1032,13 @@ static void xl6CgenRuntimeTypeAsExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
     concreteValueType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, valueType));
     concreteTarget = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, target));
     nullableValueInner = xl6CgenNullableInnerType(concreteValueType);
+
+    functionTarget = xl6CgenRuntimeTypeFunctionTarget(ctx, concreteTarget);
+    if ( functionTarget != NULL ) {
+        xl6CgenRuntimeTypeFunctionAsExpr(ctx, value, functionTarget);
+        xl6AstFree(valueType);
+        return;
+    }
 
     if ( xl6CgenNullableInnerType(concreteTarget) != NULL ) {
         xl6CgenRuntimeTypeAsNullableExpr(
@@ -1059,6 +1096,22 @@ static void xl6CgenRuntimeTypeAsExpr(XL6_CgenContext* ctx, const XL6_AstNode* no
         xl6OutputPuts(", ", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, xl6CgenClassHandleTargetType(ctx, concreteTarget));
         xl6OutputPuts(xl6CgenExprIsXValueBorrow(ctx, value) ? ", false)" : ", true)", ctx->out);
+        xl6AstFree(valueType);
+        return;
+    }
+
+    if ( xl6CgenIsErrorType(ctx, concreteTarget) ) {
+        if ( xl6CgenIsErrorType(ctx, concreteValueType) ) {
+            xl6OutputPuts("xl6_error_retain(", ctx->out);
+            xl6CgenExpr(ctx, value);
+            xl6OutputPutc(')', ctx->out);
+        } else {
+            xl6OutputPuts("xl6_runtime_value_as_error(", ctx->out);
+            xl6CgenExpr(ctx, value);
+            xl6OutputPuts(
+                xl6CgenExprIsXValueBorrow(ctx, value) ? ", false)" : ", true)",
+                ctx->out);
+        }
         xl6AstFree(valueType);
         return;
     }

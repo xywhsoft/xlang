@@ -1,0 +1,17 @@
+class RuntimeConfigWrite
+    static string name = "first"
+
+    static func setName(string value)
+        RuntimeConfigWrite.name = value
+    end
+
+    static func getName() as string
+        return RuntimeConfigWrite.name
+    end
+end
+
+func main(...) as int
+    RuntimeConfigWrite.setName("second")
+    if RuntimeConfigWrite.getName() != "second" then return 1 end
+    return 0
+end

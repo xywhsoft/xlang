@@ -1,0 +1,59 @@
+export "xlir_u64_maximum" uint64 maximum = 18446744073709551615
+export "xlir_u64_zero" uint64 zero = 0
+
+extern "xlir_u64_external" uint64 externalValue
+
+export "xlir_u64_high_bit" func highBit() as uint64
+    return 9223372036854775808
+end
+
+export "xlir_u64_increment" func increment(uint64 value) as uint64
+    value += 1
+    return value
+end
+
+export "xlir_u64_half" func half(uint64 value) as uint64
+    return value / 2
+end
+
+export "xlir_u64_is_high" func isHigh(uint64 value) as bool
+    return value >= 9223372036854775808
+end
+
+export "xlir_u64_default" func defaultValue() as uint64
+    uint64 value = 0
+    return value
+end
+
+export "xlir_u64_mask" func mask(uint64 value) as uint64
+    return (value >> 60) & 15
+end
+
+export "xlir_u64_not" func invert(uint64 value) as uint64
+    return ~value
+end
+
+export "xlir_u64_literal_convert" func literalConvert() as uint64
+    return uint64(2026)
+end
+
+export "xlir_u64_bool_convert" func boolConvert(bool value) as uint64
+    return uint64(value)
+end
+
+func text(uint64 value) as string
+    return string(value)
+end
+
+export "xlir_u64_text_ok" func textOk(uint64 value) as bool
+    return text(value) == "18446744073709551615"
+end
+
+export "xlir_u64_read_external" func readExternal() as uint64
+    return externalValue
+end
+
+export "xlir_u64_fail" func failValue() as uint64
+    assert false
+    return 1
+end

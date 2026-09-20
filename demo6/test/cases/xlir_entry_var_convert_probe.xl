@@ -1,0 +1,6 @@
+func main(...) as int
+    var textValue = "18088"
+    var intValue = 42
+    assert int(textValue) == 18088, "var string to int conversion failed"
+    return 0
+end

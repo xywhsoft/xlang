@@ -26,17 +26,17 @@ if errorlevel 1 (
     echo cgen_generic_class.c missing string field substitution.
     exit /b 1
 )
-findstr /C:"static xvalue __xl6_user_global_intBox;" build\test\cgen_generic_class.c >nul
+findstr /C:"static xvalue* __xl6_user_global_intBox;" build\test\cgen_generic_class.c >nul
 if errorlevel 1 (
     echo cgen_generic_class.c missing int variable declaration.
     exit /b 1
 )
-findstr /C:"static xvalue __xl6_user_global_stringBox;" build\test\cgen_generic_class.c >nul
+findstr /C:"static xvalue* __xl6_user_global_stringBox;" build\test\cgen_generic_class.c >nul
 if errorlevel 1 (
     echo cgen_generic_class.c missing string variable declaration.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class.exe
 if errorlevel 1 exit /b 1
@@ -58,7 +58,7 @@ if errorlevel 1 (
     echo cgen_generic_class_fields.c missing generic class field read.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_fields.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_fields.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class_fields.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class_fields.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_fields.exe
 if errorlevel 1 exit /b 1
@@ -70,12 +70,12 @@ if not errorlevel 1 (
     echo cgen_generic_class_function_fields.c should not synthesize implicit object copy support.
     exit /b 1
 )
-findstr /C:"static const xrt_type_desc* xl6_type_desc_XL_Class_Mapper__int" build\test\cgen_generic_class_function_fields.c >nul
+findstr /C:"static const xl6_type_desc* xl6_type_desc_XL_Class_Mapper__int" build\test\cgen_generic_class_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic class type desc helper.
     exit /b 1
 )
-findstr /C:"static xvalue xl6_box_XL_Class_Mapper__int" build\test\cgen_generic_class_function_fields.c >nul
+findstr /C:"static xvalue* xl6_box_XL_Class_Mapper__int" build\test\cgen_generic_class_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic class box helper.
     exit /b 1
@@ -95,17 +95,17 @@ if not errorlevel 1 (
     echo cgen_generic_class_function_fields.c should not use GNU statement expressions for generic member function calls.
     exit /b 1
 )
-findstr /C:"xl6_xrt_retain(*((xvalue*)xl6_xrt_typed_require_item" build\test\cgen_generic_class_function_fields.c >nul
+findstr /C:"xl6_xrt_retain(*((xvalue**)xl6_xrt_typed_require_item" build\test\cgen_generic_class_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic typed index retain.
     exit /b 1
 )
-findstr /C:"if (item != 0) { xvoAddRef(item); }" build\test\cgen_generic_class_function_fields.c >nul
+findstr /C:"if (item != 0) { xrtValueRetain(item); }" build\test\cgen_generic_class_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_function_fields.c missing generic typed iteration retain.
     exit /b 1
 )
-"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_function_fields.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_function_fields.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class_function_fields.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class_function_fields.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_function_fields.exe
 if errorlevel 1 exit /b 1
@@ -127,27 +127,27 @@ if errorlevel 1 (
     echo cgen_generic_class_nested_function_fields.c missing nested Mapper int instance.
     exit /b 1
 )
-findstr /C:"xvalue inner;" build\test\cgen_generic_class_nested_function_fields.c >nul
+findstr /C:"xvalue* inner;" build\test\cgen_generic_class_nested_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_nested_function_fields.c missing substituted nested class field.
     exit /b 1
 )
-findstr /C:"if (self->inner != 0) { xvoUnref(self->inner); self->inner = 0; }" build\test\cgen_generic_class_nested_function_fields.c >nul
+findstr /C:"if (self->inner != 0) { xrtValueRelease(self->inner); self->inner = 0; }" build\test\cgen_generic_class_nested_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_nested_function_fields.c missing generic nested destroy call.
     exit /b 1
 )
-findstr /C:"xl6_xrt_retain(*((xvalue*)xl6_xrt_typed_require_item" build\test\cgen_generic_class_nested_function_fields.c >nul
+findstr /C:"xl6_xrt_retain(*((xvalue**)xl6_xrt_typed_require_item" build\test\cgen_generic_class_nested_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_nested_function_fields.c missing nested typed index retain.
     exit /b 1
 )
-findstr /C:"if (item != 0) { xvoAddRef(item); }" build\test\cgen_generic_class_nested_function_fields.c >nul
+findstr /C:"if (item != 0) { xrtValueRetain(item); }" build\test\cgen_generic_class_nested_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_nested_function_fields.c missing nested typed iteration retain.
     exit /b 1
 )
-"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_nested_function_fields.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_nested_function_fields.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class_nested_function_fields.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class_nested_function_fields.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_nested_function_fields.exe
 if errorlevel 1 exit /b 1
@@ -174,37 +174,37 @@ if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing nested Middle int instance.
     exit /b 1
 )
-findstr /C:"xvalue mapper;" build\test\cgen_generic_class_deep_function_fields.c >nul
+findstr /C:"xvalue* mapper;" build\test\cgen_generic_class_deep_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing substituted Mapper field.
     exit /b 1
 )
-findstr /C:"xvalue middle;" build\test\cgen_generic_class_deep_function_fields.c >nul
+findstr /C:"xvalue* middle;" build\test\cgen_generic_class_deep_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing substituted Middle field.
     exit /b 1
 )
-findstr /C:"if (self->middle != 0) { xvoUnref(self->middle); self->middle = 0; }" build\test\cgen_generic_class_deep_function_fields.c >nul
+findstr /C:"if (self->middle != 0) { xrtValueRelease(self->middle); self->middle = 0; }" build\test\cgen_generic_class_deep_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing generic Middle destroy call.
     exit /b 1
 )
-findstr /C:"if (self->mapper != 0) { xvoUnref(self->mapper); self->mapper = 0; }" build\test\cgen_generic_class_deep_function_fields.c >nul
+findstr /C:"if (self->mapper != 0) { xrtValueRelease(self->mapper); self->mapper = 0; }" build\test\cgen_generic_class_deep_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing generic Mapper destroy call.
     exit /b 1
 )
-findstr /C:"xl6_xrt_retain(*((xvalue*)xl6_xrt_typed_require_item" build\test\cgen_generic_class_deep_function_fields.c >nul
+findstr /C:"xl6_xrt_retain(*((xvalue**)xl6_xrt_typed_require_item" build\test\cgen_generic_class_deep_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing deep typed index retain.
     exit /b 1
 )
-findstr /C:"if (item != 0) { xvoAddRef(item); }" build\test\cgen_generic_class_deep_function_fields.c >nul
+findstr /C:"if (item != 0) { xrtValueRetain(item); }" build\test\cgen_generic_class_deep_function_fields.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_deep_function_fields.c missing deep typed iteration retain.
     exit /b 1
 )
-"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_deep_function_fields.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_deep_function_fields.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class_deep_function_fields.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class_deep_function_fields.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_deep_function_fields.exe
 if errorlevel 1 exit /b 1
@@ -226,7 +226,7 @@ if errorlevel 1 (
     echo cgen_generic_class_methods.c missing generic class method call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_methods.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_methods.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class_methods.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class_methods.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_methods.exe
 if errorlevel 1 exit /b 1
@@ -243,7 +243,7 @@ if errorlevel 1 (
     echo cgen_generic_class_auto.c missing generic method return auto inference.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_auto.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_auto.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class_auto.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class_auto.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_auto.exe
 if errorlevel 1 exit /b 1
@@ -270,7 +270,7 @@ if errorlevel 1 (
     echo cgen_generic_class_overloads.c missing string generic class overload call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_overloads.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_overloads.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class_overloads.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class_overloads.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_overloads.exe
 if errorlevel 1 exit /b 1
@@ -297,7 +297,7 @@ if errorlevel 1 (
     echo cgen_generic_class_ctor.c missing generic class method call after create.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_ctor.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_ctor.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class_ctor.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class_ctor.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_ctor.exe
 if errorlevel 1 exit /b 1
@@ -314,7 +314,7 @@ if not errorlevel 1 (
     echo cgen_generic_class_iter_protocol.c leaked unresolved iterator generic type.
     exit /b 1
 )
-findstr /C:"xvalue xl_class_PairBox__int______iter____" build\test\cgen_generic_class_iter_protocol.c >nul
+findstr /C:"xvalue* xl_class_PairBox__int______iter____" build\test\cgen_generic_class_iter_protocol.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_iter_protocol.c missing generic __iter__ return type.
     exit /b 1
@@ -324,14 +324,14 @@ if errorlevel 1 (
     echo cgen_generic_class_iter_protocol.c missing generic __next__ call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_iter_protocol.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_iter_protocol.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class_iter_protocol.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class_iter_protocol.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_iter_protocol.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_class_explicit_ctor.xl --emit build\test\cgen_generic_class_explicit_ctor.c
 if errorlevel 1 exit /b 1
-findstr /C:"static xvalue __xl6_user_global_intBox;" build\test\cgen_generic_class_explicit_ctor.c >nul
+findstr /C:"static xvalue* __xl6_user_global_intBox;" build\test\cgen_generic_class_explicit_ctor.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing explicit generic class variable declaration.
     exit /b 1
@@ -346,7 +346,7 @@ if errorlevel 1 (
     echo cgen_generic_class_explicit_ctor.c missing method call after explicit create.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_explicit_ctor.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_explicit_ctor.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class_explicit_ctor.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class_explicit_ctor.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_explicit_ctor.exe
 if errorlevel 1 exit /b 1
@@ -368,7 +368,7 @@ if errorlevel 1 (
     echo cgen_generic_class_type_values.c missing distinct generic class type comparison.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_type_values.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_type_values.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class_type_values.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class_type_values.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_type_values.exe
 if errorlevel 1 exit /b 1
@@ -408,7 +408,7 @@ if errorlevel 1 (
     echo cgen_main_entry.c missing argv runtime need macro.
     exit /b 1
 )
-findstr /C:"static xvalue xl6_argv_to_arg(int argc, char** argv)" release\include\xl_runtime.h >nul
+findstr /C:"static inline xvalue* xl6_argv_to_arg(int argc, char** argv)" release\include\xl_runtime.h >nul
 if errorlevel 1 (
     echo xl_runtime.h missing argv-to-arg helper.
     exit /b 1
@@ -428,12 +428,12 @@ if errorlevel 1 (
     echo cgen_main_entry.c missing xlang main dispatch.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_main_entry.c' -Raw; $s=$t.IndexOf('int xlang_main(xvalue arg)'); $e=$t.IndexOf('int main(int argc, char** argv)', $s); if($s -lt 0 -or $e -lt 0){exit 1}; $body=$t.Substring($s, $e - $s); if($body -match 'xvoUnref\(arg\)'){exit 2}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_main_entry.c' -Raw; $s=$t.IndexOf('int xlang_main(xvalue* arg)'); $e=$t.IndexOf('int main(int argc, char** argv)', $s); if($s -lt 0 -or $e -lt 0){exit 1}; $body=$t.Substring($s, $e - $s); if($body -match 'xrtValueRelease\(arg\)'){exit 2}"
 if errorlevel 1 (
     echo cgen_main_entry.c should borrow xlang_main arg.
     exit /b 1
 )
-findstr /C:"xvoUnref(__xl6_arg);" build\test\cgen_main_entry.c >nul
+findstr /C:"xrtValueRelease(__xl6_arg);" build\test\cgen_main_entry.c >nul
 if errorlevel 1 (
     echo cgen_main_entry.c missing argv arg release.
     exit /b 1
@@ -463,7 +463,7 @@ if errorlevel 1 (
 
 release\xl.exe cgen test\cases\cgen_main_case_sensitive.xl --emit build\test\cgen_main_case_sensitive.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_main_case_sensitive.c' -Raw; if($t -match 'xlang_main'){exit 1}; if($t -match 'int main\('){exit 2}; if($t -notmatch 'long long xl_fn_Main\(xvalue arg\)'){exit 3}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_main_case_sensitive.c' -Raw; if($t -match 'xlang_main'){exit 1}; if($t -match 'int main\('){exit 2}; if($t -notmatch 'long long xl_fn_Main\(xvalue\* arg\)'){exit 3}"
 if errorlevel 1 (
     echo cgen_main_case_sensitive.c should treat Main as a normal function.
     exit /b 1
@@ -472,7 +472,7 @@ release\xl.exe check test\cases\cgen_main_case_sensitive_script.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_main_case_sensitive_script.xl --emit build\test\cgen_main_case_sensitive_script.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_main_case_sensitive_script.c' -Raw; if($t -notmatch 'int xlang_main\(xvalue arg\)'){exit 1}; if($t -notmatch 'int main\('){exit 2}; if($t -notmatch 'long long xl_fn_Main\(xvalue arg\)'){exit 3}; if($t -notmatch 'expect_i64\(1LL, 1LL\);'){exit 4}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_main_case_sensitive_script.c' -Raw; if($t -notmatch 'int xlang_main\(xvalue\* arg\)'){exit 1}; if($t -notmatch 'int main\('){exit 2}; if($t -notmatch 'long long xl_fn_Main\(xvalue\* arg\)'){exit 3}; if($t -notmatch 'expect_i64\(1LL, 1LL\);'){exit 4}"
 if errorlevel 1 (
     echo cgen_main_case_sensitive_script.c should treat Main as normal function and top-level code as script main.
     exit /b 1

@@ -1,0 +1,21 @@
+export "xlir_nullable_cell_probe" func nullableCellProbe(bool present) as int
+    int? state = null
+    if present then state = 5 end
+    auto flip = func() as int
+        if state == null then
+            state = 9
+        else
+            state = null
+        end
+        return state ?? 4
+    end
+    int first = flip()
+    int second = flip()
+    return first * 10 + second
+end
+
+func main(...) as int
+    assert(nullableCellProbe(false) == 94)
+    assert(nullableCellProbe(true) == 49)
+    return 0
+end

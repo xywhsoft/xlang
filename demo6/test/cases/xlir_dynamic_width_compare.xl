@@ -1,0 +1,9 @@
+export "xlir_test_signed_width_compare" func signed_width_compare() as bool
+    var value = "-128"
+    return int8(value) == -128
+end
+
+export "xlir_test_unsigned_width_compare" func unsigned_width_compare() as bool
+    var value = "255"
+    return uint8(value) == 255
+end

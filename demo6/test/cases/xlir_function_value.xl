@@ -1,0 +1,10 @@
+func apply<T>(func(T) as T operation, T value) as T
+    return operation(value)
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+func(int) as int increment = func(int value) as int => value + 1
+int applied = apply(increment, 9)
+
+expect(applied, 10)

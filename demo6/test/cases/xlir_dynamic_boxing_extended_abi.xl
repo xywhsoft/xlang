@@ -1,0 +1,24 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "inspect_error_value" func inspectError(var value)
+
+class InlinePacket
+    union
+        int code
+        c_double ratio
+    end
+end
+
+InlinePacket packet = InlinePacket()
+packet.code = 11
+expect(packet.code, 11)
+packet.ratio = 4.0
+expect(int(packet.ratio), 4)
+
+try
+    int value = int("not-an-integer")
+    expect(value, 0)
+catch e
+    var boxedError = e
+    expect(type(boxedError) == error, 1)
+    inspectError(boxedError)
+end

@@ -1,0 +1,12 @@
+extern "xlir_make_string_future" func makeFuture() as future<string>
+
+async func combineThreeText(future<string> first, future<string> second, future<string> third) as string
+    return await first + await second + await third
+end
+
+future<string> first = makeFuture()
+future<string> second = makeFuture()
+future<string> third = makeFuture()
+future<string> pending = combineThreeText(first, second, third)
+string completed = await pending
+assert completed == "hellohellohello"

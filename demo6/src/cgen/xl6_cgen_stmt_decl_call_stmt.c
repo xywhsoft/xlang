@@ -54,11 +54,9 @@ static int xl6CgenTryKnownCallStatementWithScalarArgTemps(XL6_CgenContext* ctx, 
 {
     const XL6_AstNode* callee;
     const XL6_AstNode* args;
-    const XL6_AstNode* params;
-    XL6_AstNode* inferredArgs;
-    XL6_AstNode* func;
-    XL6_AstNode* externFunc;
-    XL6_AstNode* exportFunc;
+	const XL6_AstNode* params;
+	XL6_AstNode* inferredArgs;
+	XL6_AstNode* func;
     XL6_CgenDeclCallArgTemp* temps;
     XL6_CgenExprReplacement* replacements;
     const XL6_CgenExprReplacement* prevExprReplacements;
@@ -76,20 +74,12 @@ static int xl6CgenTryKnownCallStatementWithScalarArgTemps(XL6_CgenContext* ctx, 
         return 0;
     }
 
-    inferredArgs = NULL;
-    externFunc = xl6CgenFindExternFunc(ctx, callee->text);
-    exportFunc = xl6CgenFindExportFunc(ctx, callee->text);
-    if ( externFunc != NULL ) {
-        func = externFunc;
-    } else if ( exportFunc != NULL && xl6CgenExportFuncOverloadCount(ctx, callee->text) <= 1 ) {
-        func = exportFunc;
-    } else {
-        func = xl6CgenResolveCallFuncInternal(ctx, expr, callee->text, &inferredArgs, 0);
-        if ( inferredArgs != NULL ) {
-            xl6AstFree(inferredArgs);
-            return 0;
-        }
-    }
+	inferredArgs = NULL;
+	func = xl6CgenResolveCallFuncInternal(ctx, expr, callee->text, &inferredArgs, 0);
+	if ( inferredArgs != NULL ) {
+		xl6AstFree(inferredArgs);
+		return 0;
+	}
     if ( func == NULL ) {
         return 0;
     }
@@ -190,11 +180,9 @@ static int xl6CgenTryKnownCallStatementWithClassArgTemps(XL6_CgenContext* ctx, c
 {
     const XL6_AstNode* callee;
     const XL6_AstNode* args;
-    const XL6_AstNode* params;
-    XL6_AstNode* inferredArgs;
-    XL6_AstNode* func;
-    XL6_AstNode* externFunc;
-    XL6_AstNode* exportFunc;
+	const XL6_AstNode* params;
+	XL6_AstNode* inferredArgs;
+	XL6_AstNode* func;
     XL6_CgenDeclClassArgTemp* temps;
     int fixedCount;
     int i;
@@ -209,20 +197,12 @@ static int xl6CgenTryKnownCallStatementWithClassArgTemps(XL6_CgenContext* ctx, c
         return 0;
     }
 
-    inferredArgs = NULL;
-    externFunc = xl6CgenFindExternFunc(ctx, callee->text);
-    exportFunc = xl6CgenFindExportFunc(ctx, callee->text);
-    if ( externFunc != NULL ) {
-        func = externFunc;
-    } else if ( exportFunc != NULL && xl6CgenExportFuncOverloadCount(ctx, callee->text) <= 1 ) {
-        func = exportFunc;
-    } else {
-        func = xl6CgenResolveCallFuncInternal(ctx, expr, callee->text, &inferredArgs, 0);
-        if ( inferredArgs != NULL ) {
-            xl6AstFree(inferredArgs);
-            return 0;
-        }
-    }
+	inferredArgs = NULL;
+	func = xl6CgenResolveCallFuncInternal(ctx, expr, callee->text, &inferredArgs, 0);
+	if ( inferredArgs != NULL ) {
+		xl6AstFree(inferredArgs);
+		return 0;
+	}
     if ( func == NULL ) {
         return 0;
     }
@@ -272,22 +252,8 @@ static int xl6CgenTryKnownCallStatementWithClassArgTemps(XL6_CgenContext* ctx, c
             continue;
         }
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", temps[i].valueName);
-        if ( temps[i].isConstructor ) {
-            if ( !xl6CgenTryClassCtorBoxXValueStmt(ctx, temps[i].valueType, argExpr, temps[i].valueName) ) {
-                xl6CgenError(ctx, argExpr, "class argument constructor boxing failed");
-            }
-        } else if ( temps[i].isUpcast ) {
-            if ( !xl6CgenClassUpcastStmt(ctx, temps[i].valueType, argExpr, temps[i].valueName) ) {
-                xl6CgenError(ctx, argExpr, "class argument upcast lowering failed");
-            }
-        } else {
-            xl6CgenEmitMemberFunctionStatementTemp(ctx, argExpr, temps[i].functionName);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = ", temps[i].valueName);
-            xl6CgenMemberFunctionStatementInvokeExpr(ctx, argExpr, temps[i].functionType, temps[i].functionName);
-            xl6OutputPuts(";\n", ctx->out);
-        }
+        xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", temps[i].valueName);
+		xl6CgenDeclEmitClassArgTempValue(ctx, &temps[i], argExpr);
     }
 
     xl6CgenIndent(ctx);

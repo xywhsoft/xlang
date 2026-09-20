@@ -1,0 +1,10 @@
+func releaseNativeHandleAtScopeExit()
+    DynamicFields fields = DynamicFields()
+    fields.clear()
+end
+
+func main(...) as int
+    releaseNativeHandleAtScopeExit()
+    println("xlir native dynamic-fields automatic destroy ok")
+    return 0
+end

@@ -1,0 +1,5 @@
+{
+  "SchemaVersion": 1,
+  "Name": "fast-contract",
+  "Gates": ["check_xlir_contract.ps1"]
+}

@@ -1,0 +1,3 @@
+func makeIncrement() as func(int) as int
+    return func(int value) as int => value + 1
+end

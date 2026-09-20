@@ -4,69 +4,62 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: async task and async-generator part 3/3...
 
-release\xl.exe check test\cases\sem_task_spawn_return_array.xl >nul 2> build\test\sem_task_spawn_return_array.err.txt
+release\xl.exe check test\cases\sem_task_spawn_arg_byref.xl >nul 2> build\test\sem_task_spawn_arg_byref.err.txt
 if not errorlevel 1 (
-    echo sem_task_spawn_return_array.xl should fail.
+    echo sem_task_spawn_arg_byref.xl should fail.
     exit /b 1
 )
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_array.err.txt >nul
+findstr /C:"task.spawn cannot capture byref or out caller storage" build\test\sem_task_spawn_arg_byref.err.txt >nul
 if errorlevel 1 (
-    echo sem_task_spawn_return_array.xl missing task.spawn array return diagnostic.
+    echo sem_task_spawn_arg_byref.xl missing task capture mode diagnostic.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_list.xl >nul 2> build\test\sem_task_spawn_return_list.err.txt
+release\xl.exe check test\cases\sem_task_spawn_arg_out.xl >nul 2> build\test\sem_task_spawn_arg_out.err.txt
 if not errorlevel 1 (
-    echo sem_task_spawn_return_list.xl should fail.
+    echo sem_task_spawn_arg_out.xl should fail.
     exit /b 1
 )
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_list.err.txt >nul
+findstr /C:"task.spawn cannot capture byref or out caller storage" build\test\sem_task_spawn_arg_out.err.txt >nul
 if errorlevel 1 (
-    echo sem_task_spawn_return_list.xl missing task.spawn list return diagnostic.
+    echo sem_task_spawn_arg_out.xl missing task capture mode diagnostic.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_set.xl >nul 2> build\test\sem_task_spawn_return_set.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_return_set.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_set.err.txt >nul
+
+release\xl.exe check test\cases\sem_task_spawn_return_array.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_return_set.xl missing task.spawn set return diagnostic.
+    echo sem_task_spawn_return_array.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_dict.xl >nul 2> build\test\sem_task_spawn_return_dict.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_return_dict.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_dict.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_return_list.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_return_dict.xl missing task.spawn dict return diagnostic.
+    echo sem_task_spawn_return_list.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_function.xl >nul 2> build\test\sem_task_spawn_return_function.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_return_function.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_function.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_return_set.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_return_function.xl missing task.spawn function return diagnostic.
+    echo sem_task_spawn_return_set.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_class.xl >nul 2> build\test\sem_task_spawn_return_class.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_return_class.xl should fail.
+release\xl.exe check test\cases\sem_task_spawn_return_dict.xl >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_dict.xl should pass language checking.
     exit /b 1
 )
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_class.err.txt >nul
+
+release\xl.exe check test\cases\sem_task_spawn_return_function.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_return_class.xl missing task.spawn class return diagnostic.
+    echo sem_task_spawn_return_function.xl should pass language checking.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\sem_task_spawn_return_class.xl >nul
+if errorlevel 1 (
+    echo sem_task_spawn_return_class.xl should pass language checking.
     exit /b 1
 )
 
@@ -75,31 +68,22 @@ if not errorlevel 1 (
     echo sem_task_spawn_return_channel.xl should fail.
     exit /b 1
 )
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_channel.err.txt >nul
+powershell -NoProfile -Command "$t=[IO.File]::ReadAllText('build\test\sem_task_spawn_return_channel.err.txt',[Text.Encoding]::UTF8); $e=-join @(0x4E0D,0x53EF,0x590D,0x5236,0x7C7B,0x578B,0x4E0D,0x80FD,0x4F5C,0x4E3A,0x8FD4,0x56DE,0x503C,0x7C7B,0x578B | ForEach-Object {[char]$_}); if(-not $t.Contains($e)){exit 1}"
 if errorlevel 1 (
-    echo sem_task_spawn_return_channel.xl missing task.spawn channel return diagnostic.
+    echo sem_task_spawn_return_channel.xl missing shared non-copyable return diagnostic.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_future.xl >nul 2> build\test\sem_task_spawn_return_future.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_return_future.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_future.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_return_future.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_return_future.xl missing task.spawn future return diagnostic.
+    echo sem_task_spawn_return_future.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_generator.xl >nul 2> build\test\sem_task_spawn_return_generator.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_return_generator.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_generator.err.txt >nul
+rem Language-valid signature; task generator lowering remains incomplete.
+release\xl.exe check test\cases\sem_task_spawn_return_generator.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_return_generator.xl missing task.spawn generator return diagnostic.
+    echo sem_task_spawn_return_generator.xl should pass language checking.
     exit /b 1
 )
 
@@ -108,9 +92,9 @@ if not errorlevel 1 (
     echo sem_task_spawn_return_sync.xl should fail.
     exit /b 1
 )
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_sync.err.txt >nul
+powershell -NoProfile -Command "$t=[IO.File]::ReadAllText('build\test\sem_task_spawn_return_sync.err.txt',[Text.Encoding]::UTF8); $e=-join @(0x4E0D,0x53EF,0x590D,0x5236,0x7C7B,0x578B,0x4E0D,0x80FD,0x4F5C,0x4E3A,0x8FD4,0x56DE,0x503C,0x7C7B,0x578B | ForEach-Object {[char]$_}); if(-not $t.Contains($e)){exit 1}"
 if errorlevel 1 (
-    echo sem_task_spawn_return_sync.xl missing task.spawn sync return diagnostic.
+    echo sem_task_spawn_return_sync.xl missing shared non-copyable return diagnostic.
     exit /b 1
 )
 
@@ -119,174 +103,100 @@ if not errorlevel 1 (
     echo sem_task_spawn_return_thread.xl should fail.
     exit /b 1
 )
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_thread.err.txt >nul
+powershell -NoProfile -Command "$t=[IO.File]::ReadAllText('build\test\sem_task_spawn_return_thread.err.txt',[Text.Encoding]::UTF8); $e=-join @(0x4E0D,0x53EF,0x590D,0x5236,0x7C7B,0x578B,0x4E0D,0x80FD,0x4F5C,0x4E3A,0x8FD4,0x56DE,0x503C,0x7C7B,0x578B | ForEach-Object {[char]$_}); if(-not $t.Contains($e)){exit 1}"
 if errorlevel 1 (
-    echo sem_task_spawn_return_thread.xl missing task.spawn thread return diagnostic.
+    echo sem_task_spawn_return_thread.xl missing shared non-copyable return diagnostic.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_typed_array.xl >nul 2> build\test\sem_task_spawn_arg_typed_array.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_typed_array.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_typed_array.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_typed_array.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_typed_array.xl missing task.spawn typed array argument diagnostic.
+    echo sem_task_spawn_arg_typed_array.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_typed_list.xl >nul 2> build\test\sem_task_spawn_arg_typed_list.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_typed_list.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_typed_list.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_typed_list.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_typed_list.xl missing task.spawn typed list argument diagnostic.
+    echo sem_task_spawn_arg_typed_list.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_typed_set.xl >nul 2> build\test\sem_task_spawn_arg_typed_set.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_typed_set.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_typed_set.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_typed_set.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_typed_set.xl missing task.spawn typed set argument diagnostic.
+    echo sem_task_spawn_arg_typed_set.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_typed_dict.xl >nul 2> build\test\sem_task_spawn_arg_typed_dict.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_typed_dict.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_typed_dict.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_typed_dict.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_typed_dict.xl missing task.spawn typed dict argument diagnostic.
+    echo sem_task_spawn_arg_typed_dict.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_array.xl >nul 2> build\test\sem_task_spawn_arg_array.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_array.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_array.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_array.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_array.xl missing task.spawn array argument diagnostic.
+    echo sem_task_spawn_arg_array.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_list.xl >nul 2> build\test\sem_task_spawn_arg_list.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_list.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_list.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_list.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_list.xl missing task.spawn list argument diagnostic.
+    echo sem_task_spawn_arg_list.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_set.xl >nul 2> build\test\sem_task_spawn_arg_set.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_set.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_set.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_set.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_set.xl missing task.spawn set argument diagnostic.
+    echo sem_task_spawn_arg_set.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_dict.xl >nul 2> build\test\sem_task_spawn_arg_dict.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_dict.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_dict.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_dict.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_dict.xl missing task.spawn dict argument diagnostic.
+    echo sem_task_spawn_arg_dict.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_function.xl >nul 2> build\test\sem_task_spawn_arg_function.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_function.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_function.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_function.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_function.xl missing task.spawn function argument diagnostic.
+    echo sem_task_spawn_arg_function.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_class.xl >nul 2> build\test\sem_task_spawn_arg_class.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_class.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_class.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_class.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_class.xl missing task.spawn class argument diagnostic.
+    echo sem_task_spawn_arg_class.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_channel.xl >nul 2> build\test\sem_task_spawn_arg_channel.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_channel.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_channel.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_channel.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_channel.xl missing task.spawn channel argument diagnostic.
+    echo sem_task_spawn_arg_channel.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_future.xl >nul 2> build\test\sem_task_spawn_arg_future.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_future.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_future.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_future.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_future.xl missing task.spawn future argument diagnostic.
+    echo sem_task_spawn_arg_future.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_generator.xl >nul 2> build\test\sem_task_spawn_arg_generator.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_generator.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_generator.err.txt >nul
+rem Language-valid signature; task generator lowering remains incomplete.
+release\xl.exe check test\cases\sem_task_spawn_arg_generator.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_generator.xl missing task.spawn generator argument diagnostic.
+    echo sem_task_spawn_arg_generator.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_sync.xl >nul 2> build\test\sem_task_spawn_arg_sync.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_sync.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_sync.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_sync.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_sync.xl missing task.spawn sync argument diagnostic.
+    echo sem_task_spawn_arg_sync.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_arg_thread.xl >nul 2> build\test\sem_task_spawn_arg_thread.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_arg_thread.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn parameter type must be supported" build\test\sem_task_spawn_arg_thread.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_arg_thread.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_arg_thread.xl missing task.spawn thread argument diagnostic.
+    echo sem_task_spawn_arg_thread.xl should pass language checking.
     exit /b 1
 )
 
@@ -299,7 +209,10 @@ if errorlevel 1 (
 release\xl.exe run test\cases\cgen_async_generator.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe build test\cases\cgen_async_generator.xl -o build\test\cgen_async_generator.exe
+release\xl.exe cgen test\cases\cgen_async_generator.xl --emit build\test\cgen_async_generator.c
+if errorlevel 1 exit /b 1
+
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_async_generator.c %XL6_CGEN_XLANG_LINKS% -o build\test\cgen_async_generator.exe
 if errorlevel 1 exit /b 1
 
 build\test\cgen_async_generator.exe
@@ -313,8 +226,6 @@ for /L %%I in (1,1,5) do (
     )
 )
 
-release\xl.exe cgen test\cases\cgen_async_generator.xl --emit build\test\cgen_async_generator.c
-if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_async_generator.c',[Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); [IO.File]::WriteAllText('build\test\cgen_async_generator.assert.c',$text,(New-Object Text.UTF8Encoding($false)))"
 if errorlevel 1 exit /b 1
 
@@ -363,7 +274,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator error source.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBroken;\s*savedBroken = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""async generator boom""'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBroken;\s*savedBroken = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrCompare\(xrtStrView\(xl6_error_message\(e, 0\)\), xrtStrView\(\x22async generator boom\x22\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator error propagation lowering.
     exit /b 1
@@ -373,7 +284,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator early-error source.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBrokenEarly;\s*savedBrokenEarly = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""async generator boom before yield""'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = savedBrokenEarly;\s*savedBrokenEarly = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrCompare\(xrtStrView\(xl6_error_message\(e, 0\)\), xrtStrView\(\x22async generator boom before yield\x22\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing saved async generator early-error propagation lowering.
     exit /b 1
@@ -518,7 +429,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing consumed async generator first-pass move lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = consumedAsync;\s*consumedAsync = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""iterate null generator""[\s\S]*?consumedAsyncAgainState = 42LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = consumedAsync;\s*consumedAsync = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrCompare\(xrtStrView\(xl6_error_message\(e, 0\)\), xrtStrView\(\x22iterate null generator\x22\)\)[\s\S]*?consumedAsyncAgainState = 42LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing consumed async generator second-pass null rejection.
     exit /b 1
@@ -528,7 +439,7 @@ if errorlevel 1 (
     echo cgen_async_generator.c missing null async generator initialization.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = missingAsync;\s*missingAsync = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""iterate null generator""[\s\S]*?missingAsyncState = 42LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = missingAsync;\s*missingAsync = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrCompare\(xrtStrView\(xl6_error_message\(e, 0\)\), xrtStrView\(\x22iterate null generator\x22\)\)[\s\S]*?missingAsyncState = 42LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_async_generator.c missing null async generator rejection.
     exit /b 1

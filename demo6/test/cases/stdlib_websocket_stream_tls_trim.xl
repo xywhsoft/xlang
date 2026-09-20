@@ -1,0 +1,16 @@
+func secureWebSocketHandler(int event, int opcode, int flags, uint64 value, point data, c_size size)
+end
+
+
+
+func attachSecureWebSocket(TlsStream transport, WsUpgrade upgrade) as WebSocket
+    WebSocketConfig config = WebSocketConfig()
+    Buffer pending = transport.peek(4096)
+    assert pending.len() >= 0
+    assert transport.consume(0)
+    return WebSocket.attachTlsWithConfig(transport, upgrade, config, secureWebSocketHandler)
+end
+
+
+
+println("websocket-stream-tls-trim-ok")

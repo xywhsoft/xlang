@@ -24,14 +24,24 @@ if errorlevel 1 (
     echo cgen_task_api.c missing task.all runtime helper.
     exit /b 1
 )
-findstr /C:"status = xl6_async_result_error(pOut, error != 0 ? error :" build\test\cgen_task_api.assert.c >nul
+findstr /C:"static int xl6_task_all_continue" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
-    echo cgen_task_api.c should copy task.all wait error before releasing group future.
+    echo cgen_task_api.c missing task.all continuation mapper.
     exit /b 1
 )
-findstr /C:"status = xl6_async_result_error(pOut, error);" build\test\cgen_task_api.assert.c >nul
+findstr /C:"pOut->iStatus = XL6_FUTURE_STATUS_CANCELLED;" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
-    echo cgen_task_api.c should copy task.all completed error before releasing group future.
+    echo cgen_task_api.c should preserve task.all source cancellation.
+    exit /b 1
+)
+findstr /C:"pOut->iStatus = XL6_FUTURE_STATUS_CLOSED;" build\test\cgen_task_api.assert.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should preserve task.all source closure.
+    exit /b 1
+)
+findstr /C:"return error != 0 ? xl6_async_result_native_error(pOut, error) : xl6_async_result_error(pOut, \"task.all source failed\");" build\test\cgen_task_api.assert.c >nul
+if errorlevel 1 (
+    echo cgen_task_api.c should preserve structured task.all source failures.
     exit /b 1
 )
 findstr /C:"unsigned char* owned;" build\test\cgen_task_api.assert.c >nul
@@ -44,7 +54,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing task literal future ownership varargs.
     exit /b 1
 )
-findstr /C:"if ( owned[i] && futures[i] != 0 ) { xFutureRelease(futures[i]); }" build\test\cgen_task_api.assert.c >nul
+findstr /C:"if ( owned[i] && futures[i] != 0 ) { xl6FutureDestroy(futures[i]); }" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing owned task literal future release.
     exit /b 1
@@ -124,7 +134,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing nested task.race loser late await fixture.
     exit /b 1
 )
-findstr /C:"sourceCanceledAllGroup = xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"sourceCanceledAllGroup = xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing source-canceled task.all fixture.
     exit /b 1
@@ -179,7 +189,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep directly canceled task.all source cancel idempotent.
     exit /b 1
 )
-findstr /C:"expect_i64(sourceCanceledAllLeftAgain, 1LL)" build\test\cgen_task_api.assert.c >nul
+findstr /C:"expect_i64(sourceCanceledAllLeftAgain, 0LL)" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing directly canceled task.all source repeated cancel assertion.
     exit /b 1
@@ -224,7 +234,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep directly canceled typed-array task.all source cancel idempotent.
     exit /b 1
 )
-findstr /C:"expect_i64(sourceCanceledTypedAllLeftAgain, 1LL)" build\test\cgen_task_api.assert.c >nul
+findstr /C:"expect_i64(sourceCanceledTypedAllLeftAgain, 0LL)" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing directly canceled typed-array task.all source repeated cancel assertion.
     exit /b 1
@@ -269,12 +279,12 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep typed-array source-canceled task.race winner cancel idempotent.
     exit /b 1
 )
-findstr /C:"expect_i64(sourceCanceledTypedRaceWinnerAgain, 1LL)" build\test\cgen_task_api.assert.c >nul
+findstr /C:"expect_i64(sourceCanceledTypedRaceWinnerAgain, 0LL)" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array source-canceled task.race winner repeated cancel assertion.
     exit /b 1
 )
-findstr /C:"completedCanceledAllGroup = xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"completedCanceledAllGroup = xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing completed-canceled task.all source fixture.
     exit /b 1
@@ -339,7 +349,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep completed-canceled task.all source cancel idempotent.
     exit /b 1
 )
-findstr /C:"expect_i64(completedCanceledAllLeftAgain, 1LL)" build\test\cgen_task_api.assert.c >nul
+findstr /C:"expect_i64(completedCanceledAllLeftAgain, 0LL)" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing completed-canceled task.all source repeated cancel assertion.
     exit /b 1
@@ -359,12 +369,12 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep completed-canceled typed-array task.all source cancel idempotent.
     exit /b 1
 )
-findstr /C:"expect_i64(completedCanceledTypedAllLeftAgain, 1LL)" build\test\cgen_task_api.assert.c >nul
+findstr /C:"expect_i64(completedCanceledTypedAllLeftAgain, 0LL)" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing completed-canceled typed-array task.all source repeated cancel assertion.
     exit /b 1
 )
-findstr /C:"allFailedBeforeCancelGroup = xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"allFailedBeforeCancelGroup = xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all failure-before-cancel fixture.
     exit /b 1
@@ -379,7 +389,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel second source in failure-before-cancel task.all fixture.
     exit /b 1
 )
-findstr /C:"allCanceledBeforeFailGroup = xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"allCanceledBeforeFailGroup = xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all cancel-before-failure fixture.
     exit /b 1
@@ -429,7 +439,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep completed-canceled task.race winner cancel idempotent.
     exit /b 1
 )
-findstr /C:"expect_i64(completedCanceledRaceWinnerAgain, 1LL)" build\test\cgen_task_api.assert.c >nul
+findstr /C:"expect_i64(completedCanceledRaceWinnerAgain, 0LL)" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing completed-canceled task.race winner repeated cancel assertion.
     exit /b 1
@@ -469,7 +479,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep completed-canceled typed-array task.race winner cancel idempotent.
     exit /b 1
 )
-findstr /C:"expect_i64(completedCanceledTypedRaceWinnerAgain, 1LL)" build\test\cgen_task_api.assert.c >nul
+findstr /C:"expect_i64(completedCanceledTypedRaceWinnerAgain, 0LL)" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing completed-canceled typed-array task.race winner repeated cancel assertion.
     exit /b 1
@@ -479,7 +489,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep task.all literal input order with slow first.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(typedAllInputOrderJobs), xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(typedAllInputOrderJobs), xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array task.all input order fixture.
     exit /b 1
@@ -529,7 +539,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep duplicate pending task.race source completed after race.
     exit /b 1
 )
-findstr /C:"duplicateCanceledAllGroup = xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"duplicateCanceledAllGroup = xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing duplicate canceled task.all source fixture.
     exit /b 1
@@ -569,7 +579,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep duplicate canceled task.race source cancel idempotent.
     exit /b 1
 )
-findstr /C:"duplicateTypedCanceledAllGroup = xl6_task_all_from_array((xtarray)(duplicateTypedCanceledAllJobs), xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"duplicateTypedCanceledAllGroup = xl6_task_all_from_array((xtarray)(duplicateTypedCanceledAllJobs), xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array duplicate canceled task.all source fixture.
     exit /b 1
@@ -599,7 +609,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep typed-array duplicate canceled task.race source cancel idempotent.
     exit /b 1
 )
-findstr /C:"duplicateFailedAllGroup = xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"duplicateFailedAllGroup = xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing duplicate failed task.all source fixture.
     exit /b 1
@@ -629,7 +639,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep duplicate failed task.race source failed after race.
     exit /b 1
 )
-findstr /C:"duplicateTypedFailedAllGroup = xl6_task_all_from_array((xtarray)(duplicateTypedFailedAllJobs), xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"duplicateTypedFailedAllGroup = xl6_task_all_from_array((xtarray)(duplicateTypedFailedAllJobs), xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array duplicate failed task.all source fixture.
     exit /b 1
@@ -649,12 +659,12 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep typed-array duplicate failed task.race source failed after race.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(duplicateTypedAllJobs), xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(duplicateTypedAllJobs), xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array duplicate task.all source fixture.
     exit /b 1
 )
-findstr /C:"= xrtTypedArrayRetain(duplicateTypedRaceJobs);" build\test\cgen_task_api.assert.c >nul
+findstr /C:"= xl6TypedArrayRetain(duplicateTypedRaceJobs);" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array duplicate task.race source fixture.
     exit /b 1
@@ -664,7 +674,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep typed-array duplicate task.race source completed after race.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(duplicateTypedPendingAllJobs), xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(duplicateTypedPendingAllJobs), xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array duplicate pending task.all source fixture.
     exit /b 1
@@ -674,7 +684,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep typed-array duplicate pending task.all source completed after all.
     exit /b 1
 )
-findstr /C:"= xrtTypedArrayRetain(duplicateTypedPendingRaceJobs);" build\test\cgen_task_api.assert.c >nul
+findstr /C:"= xl6TypedArrayRetain(duplicateTypedPendingRaceJobs);" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array duplicate pending task.race source fixture.
     exit /b 1
@@ -684,22 +694,22 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep typed-array duplicate pending task.race source completed after race.
     exit /b 1
 )
-findstr /C:"groupFuture = xFutureAddRef(arg->groupFuture)" build\test\cgen_task_api.assert.c >nul
+findstr /C:"groupFuture = xl6FutureRef(arg->groupFuture)" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all cancel forwarding target addref.
     exit /b 1
 )
-findstr /C:"xFutureForwardCancelTo(future, groupFuture)" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6FutureLinkCancel(future, groupFuture)" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all cancel forwarding hook.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.assert.c',[System.Text.Encoding]::UTF8); $start=$text.IndexOf('static xfuture* xl6_task_all_start('); if($start -lt 0){exit 1}; $end=$text.IndexOf('static xfuture* xl6_task_race_start(', $start); if($end -lt 0){exit 1}; $slice=$text.Substring($start,$end-$start); $checks=@('xfuture* groupFuture;','groupFuture = xFutureAddRef(arg->groupFuture);','if ( future == 0 ) {','xFutureRelease(groupFuture);','else if ( !xFutureForwardCancelTo(future, groupFuture) )','xFutureRequestCancel(future)','xFutureRelease(future)','} else {'); foreach($c in $checks){ if($slice.IndexOf($c) -lt 0){ exit 1 } }; if($slice -notmatch 'if \( arg->groupFuture == 0 \) \{[\s\S]*?xl6_task_all_arg_release\(arg\);[\s\S]*?task\.all start failed'){ exit 1 }; $idx=$slice.IndexOf('else if ( !xFutureForwardCancelTo(future, groupFuture) )'); $ret=$slice.IndexOf('return 0;', $idx); if($idx -lt 0 -or $ret -lt 0){exit 1}; $fail=$slice.Substring($idx,$ret-$idx); if($fail.IndexOf('xl6_task_all_arg_release(arg)') -ge 0){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.assert.c',[System.Text.Encoding]::UTF8); $start=$text.IndexOf('static xfuture* xl6_task_all_start('); if($start -lt 0){exit 1}; $end=$text.IndexOf('static xfuture* xl6_task_race_start(', $start); if($end -lt 0){exit 1}; $slice=$text.Substring($start,$end-$start); $checks=@('xfuture* groupFuture;','groupFuture = xl6FutureRef(arg->groupFuture);','if ( future == 0 ) {','xl6FutureDestroy(groupFuture);','else if ( !xl6FutureLinkCancel(future, groupFuture) )','xl6FutureCancel(future)','xl6FutureDestroy(future)','} else {'); foreach($c in $checks){ if($slice.IndexOf($c) -lt 0){ exit 1 } }; if($slice -notmatch 'if \( arg->groupFuture == 0 \) \{[\s\S]*?xl6_task_all_arg_release\(arg\);[\s\S]*?task\.all start failed'){ exit 1 }; $idx=$slice.IndexOf('else if ( !xl6FutureLinkCancel(future, groupFuture) )'); $ret=$slice.IndexOf('return 0;', $idx); if($idx -lt 0 -or $ret -lt 0){exit 1}; $fail=$slice.Substring($idx,$ret-$idx); if($fail.IndexOf('xl6_task_all_arg_release(arg)') -ge 0){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all start/cancel-forwarding lifecycle guard.
     exit /b 1
 )
-findstr /C:"cancelAllGroup = xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"cancelAllGroup = xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing cancelable task.all group fixture.
     exit /b 1
@@ -759,7 +769,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing canceled task.all right source await.
     exit /b 1
 )
-findstr /C:"cancelDuplicateAllGroup = xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"cancelDuplicateAllGroup = xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing cancelable duplicate task.all group fixture.
     exit /b 1
@@ -779,7 +789,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing late duplicate task.all source await after group cancel.
     exit /b 1
 )
-findstr /C:"= xl6_task_cancel_value(xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"= xl6_task_cancel_value(xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing temporary duplicate task.all cancel fixture.
     exit /b 1

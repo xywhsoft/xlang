@@ -5,6 +5,16 @@ assert dynamicValues?[-4] == null, "dynamic array index before -length should be
 dynamicValues[-2] = 99
 assert int(dynamicValues[1]) == 99, "dynamic array negative write should update the matching item"
 
+int dynamicIndexCalls = 0
+func nextDynamicIndex() as int
+    dynamicIndexCalls += 1
+    return -1
+end
+
+dynamicValues[nextDynamicIndex()] = 31
+assert dynamicIndexCalls == 1, "dynamic array write index must be evaluated once"
+assert int(dynamicValues[-1]) == 31, "side-effecting dynamic array write should update the last item"
+
 array untypedValues = [40, 50, 60]
 assert int(untypedValues[-1]) == 60, "array negative read should use sequence semantics"
 untypedValues[-3] = 41

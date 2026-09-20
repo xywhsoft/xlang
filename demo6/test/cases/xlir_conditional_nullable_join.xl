@@ -1,0 +1,96 @@
+extern "nullable_join_open" func opened(int id)
+extern "nullable_join_drop" func dropped(int id)
+extern "nullable_join_pick" func pick(int id) as int
+
+class JoinItem
+    int id
+    create(int id)
+        self.id = id
+        opened(id)
+    end
+    destroy()
+        dropped(self.id)
+    end
+end
+
+func fill(out int value, int number) as int
+    value = number
+    return number
+end
+
+func fillEither(out int value, bool choose) as int
+    return choose ? fill(out value, 11) : fill(out value, 22)
+end
+
+export "nullable_join_probe" func probe(bool choose) as int
+    auto joinInt = choose ? pick(1) : null
+    auto reverseInt = choose ? null : pick(2)
+    assert (joinInt != null) == choose
+    assert (reverseInt == null) == choose
+    assert (joinInt ?? 0) == (choose ? 1 : 0)
+    assert (reverseInt ?? 0) == (choose ? 0 : 2)
+
+    auto joinBool = choose ? true : null
+    auto joinFloat = choose ? 3.5 : null
+    uint64 wide = uint64(42)
+    auto joinU64 = choose ? wide : null
+    assert (joinBool ?? false) == choose
+    assert (joinFloat ?? 0.0) == (choose ? 3.5 : 0.0)
+    assert (joinU64 ?? uint64(0)) == (choose ? wide : uint64(0))
+
+    string text = "joined"
+    auto joinString = choose ? text : null
+    assert (joinString ?? "absent") == (choose ? "joined" : "absent")
+    int? existing = 31
+    auto joinExisting = choose ? existing : 32
+    auto joinAgain = choose ? null : joinExisting
+    assert (joinAgain ?? 0) == (choose ? 0 : 32)
+
+    JoinItem item = JoinItem(1)
+    auto joinClass = choose ? item : null
+    auto freshClass = choose ? JoinItem(2) : null
+    assert (joinClass?.id ?? 0) == (choose ? 1 : 0)
+    assert (freshClass?.id ?? 0) == (choose ? 2 : 0)
+    var erased = choose ? item : null
+    auto guardedClass = joinClass != null ? joinClass.id : 0
+    auto guardedErased = erased == null ? 0 : erased.id
+    assert guardedClass == (choose ? 1 : 0)
+    assert guardedErased == (choose ? 1 : 0)
+    var fallback = erased ?? item
+    assert fallback.id == 1
+
+    array<int> values = array[17]
+    auto joinArray = choose ? values : null
+    assert (joinArray?[0] ?? 0) == (choose ? 17 : 0)
+    list<int> entries = list[2: 19]
+    auto joinList = choose ? entries : null
+    assert (joinList?[2] ?? 0) == (choose ? 19 : 0)
+    dict<int> fields = dict{"value": 23}
+    auto joinDict = choose ? fields : null
+    assert (joinDict?["value"] ?? 0) == (choose ? 23 : 0)
+    auto callback = func(int value) as int
+        return value + 1
+    end
+    auto joinClosure = choose ? callback : null
+    if joinClosure != null
+        assert joinClosure(8) == 9
+    else
+        assert not choose
+    end
+
+    point raw = null
+    error errorValue = null
+    var dynamic = null
+    auto joinPoint = choose ? raw : null
+    auto joinError = choose ? errorValue : null
+    auto joinVar = choose ? dynamic : null
+    assert joinPoint == null and joinError == null and joinVar == null
+
+    int written
+    assert fillEither(out written, choose) == (choose ? 11 : 22)
+    assert written == (choose ? 11 : 22)
+    var erasedScalar = choose ? 37 : 38
+    auto checkedScalar = erasedScalar is int ? int(erasedScalar) : 0
+    assert checkedScalar == (choose ? 37 : 38)
+    return 41
+end

@@ -1,0 +1,6 @@
+async func echoBoxedAsync(var value) as var
+    return value
+end
+
+var source = 41
+future<var> pending = echoBoxedAsync(source)

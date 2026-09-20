@@ -99,7 +99,7 @@ static void xl6CgenPropertyArgTempInit(
     cType = xl6CgenValueStorageCType(ctx, temp->typeNode);
     if ( xl6CgenIsStringTypeNode(ctx, temp->typeNode) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s %s = xrtCopyStr(", cType, temp->name);
+        xl6OutputPrintf(ctx->out, "%s %s = xl6_xrt_string_dup(", cType, temp->name);
         xl6CgenFixedParamArgExpr(ctx, temp->param, temp->expr);
         xl6OutputPuts(", 0u);\n", ctx->out);
         xl6CgenIndent(ctx);
@@ -339,7 +339,7 @@ static int xl6CgenClassPropertyCompoundAssignStmt(
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenValueStorageCType(ctx, propertyType), currentName);
     if ( xl6CgenIsStringTypeNode(ctx, propertyType) ) {
-        xl6OutputPuts("xrtCopyStr(", ctx->out);
+        xl6OutputPuts("xl6_xrt_string_dup(", ctx->out);
         xl6CgenClassPropertyEmitCall(ctx, member, indexNode, NULL, XL6_AST_GET, indexNode != NULL ? indexNode : member);
         xl6OutputPuts(", 0u)", ctx->out);
     } else {

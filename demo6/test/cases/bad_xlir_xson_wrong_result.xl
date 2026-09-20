@@ -1,0 +1,2 @@
+extern "xl6_xrt_xson_valid_options" func malformed(string text, bool a, bool b, bool c) as c_bool
+assert malformed("null", false, false, false)

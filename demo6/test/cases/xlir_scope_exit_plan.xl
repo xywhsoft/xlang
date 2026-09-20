@@ -1,0 +1,50 @@
+export "xlir_scope_observed" int observed = 0
+
+class First
+    destroy()
+        observed = 1
+    end
+end
+
+class Second
+    destroy()
+        observed = 2
+    end
+end
+
+func pair() as (string, string)
+    return "left" + " value", "right" + " value"
+end
+
+func consume<T>(T value)
+end
+
+func visit<T>(T value)
+    T local = value
+    consume(local)
+end
+
+export "xlir_scope_probe" func probe() as int
+    observed = 0
+    if true then
+        First first = First()
+        Second second = Second()
+    end
+    assert observed == 1, "normal scope did not release owners in reverse order"
+    int result = 0
+    if true then
+        int counter = 40
+        func() as int next = func() as int
+            counter += 1
+            return counter
+        end
+        auto left, right = pair()
+        assert left == "left value" and right == "right value"
+        result = next()
+    end
+    visit("managed generic")
+    visit(7)
+    return result
+end
+
+assert probe() == 41

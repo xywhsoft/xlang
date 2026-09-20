@@ -1,0 +1,14 @@
+// Native tests call the exact lowered function to isolate slot publication
+// from API entry leases. Normal public module paths remain in the batch.
+int sharedNumber = 0
+export "slot_write" func writeSlot(int value)
+    sharedNumber = value
+end
+export "slot_read" func readSlot() as int
+    return sharedNumber
+end
+func main(...) as int
+    writeSlot(170)
+    assert(readSlot() == 170)
+    return 0
+end

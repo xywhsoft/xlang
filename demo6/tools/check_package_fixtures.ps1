@@ -14,13 +14,14 @@ $readmePath = Join-Path $releasePackageDir "README.md"
 $testBatPath = Join-Path $Root "test.bat"
 $testSuiteDir = Join-Path $Root "test\suites"
 $minReleasePackages = 31
-$minPackages = 14
+$minPackages = 15
 $fixturePackageNames = @(
     "class_api",
     "class_inherit_api",
     "counter",
     "dep_value",
     "dep_value@2.0.0",
+    "include_dir_pkg",
     "libprobe",
     "metadata_combo",
     "native_one",
@@ -153,6 +154,38 @@ function Validate-RelativeFileList($pkg, $manifestPath, $items, $label, $extensi
     }
 }
 
+function Validate-RelativeDirectoryList($pkg, $manifestPath, $items, $label)
+{
+    foreach ( $item in $items ) {
+        if ( [string]::IsNullOrWhiteSpace($item) ) {
+            Add-Failure "package $label contains empty path: $manifestPath"
+            continue
+        }
+        if ( [System.IO.Path]::IsPathRooted($item) ) {
+            Add-Failure "package $label must be relative: $manifestPath -> $item"
+            continue
+        }
+        if ( $item -match '(^|[\\/])[.][.]([\\/]|$)' ) {
+            Add-Failure "package $label must not use parent traversal: $manifestPath -> $item"
+            continue
+        }
+
+        $fullPath = Join-Path $pkg.FullName $item
+        if ( ! (Test-Path -LiteralPath $fullPath -PathType Container) ) {
+            Add-Failure "package $label missing directory: $manifestPath -> $item"
+        }
+    }
+}
+
+function Validate-XrtModules($manifestPath, $modules)
+{
+    foreach ( $module in $modules ) {
+        if ( $module -notmatch '^(XRT_MODULE_|XRUNTIME_MODULE_)[A-Z0-9_]+$' ) {
+            Add-Failure "package xrtModules contains invalid root module: $manifestPath -> $module"
+        }
+    }
+}
+
 if ( ! (Test-Path -LiteralPath $releasePackageDir -PathType Container) ) {
     Write-Host "release extlibs directory missing: $releasePackageDir"
     exit 1
@@ -278,11 +311,15 @@ foreach ( $pkg in $packages ) {
 
     $xlSources = String-Array $manifest.artifact.xlSources
     $cSources = String-Array $manifest.artifact.cSources
+    $includeDirs = String-Array $manifest.artifact.includeDirs
+    $xrtModules = String-Array $manifest.artifact.xrtModules
     if ( $xlSources.Count -eq 0 ) {
         Add-Failure "package artifact.xlSources must not be empty: $manifestRel"
     }
     Validate-RelativeFileList $pkg $manifestRel $xlSources "xlSources" ".xl"
     Validate-RelativeFileList $pkg $manifestRel $cSources "cSources" ".c"
+    Validate-RelativeDirectoryList $pkg $manifestRel $includeDirs "includeDirs"
+    Validate-XrtModules $manifestRel $xrtModules
 
     $expectedPackageId = "{0}@{1}#abi{2}" -f $manifest.name, $manifest.version, $manifest.abiVersion
     if ( ! $packageIndex.Add($expectedPackageId) ) {

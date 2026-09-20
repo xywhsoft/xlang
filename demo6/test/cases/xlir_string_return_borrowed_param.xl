@@ -1,0 +1,14 @@
+func copy_param(string input) as string
+    return input
+end
+
+export "xlir_test_string_return_borrowed_param" func string_return_borrowed_param() as int
+    string source = "alpha"
+    string expected = "alpha"
+    string value = copy_param(source)
+    source = "changed"
+    if value == expected then
+        return 37
+    end
+    return 0
+end

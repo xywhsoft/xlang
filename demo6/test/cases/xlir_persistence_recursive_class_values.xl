@@ -1,0 +1,38 @@
+class Item
+    derive value
+    derive json
+
+    int id = 0
+    string text = ""
+end
+
+class Envelope
+    derive value
+    derive json
+
+    Item? selected = null
+    array<Item> items = array[]
+end
+
+Item first = Item()
+first.id = 1
+first.text = "x"
+
+Item second = Item()
+second.id = 2
+second.text = "y"
+
+Envelope source = Envelope()
+source.selected = second
+source.items = array[first, second]
+
+string packed = json.stringify(source)
+assert packed == "{\"selected\":{\"id\":2,\"text\":\"y\"},\"items\":[{\"id\":1,\"text\":\"x\"},{\"id\":2,\"text\":\"y\"}]}", "recursive class values should project without runtime class metadata"
+
+Envelope restored = json.parse::<Envelope>(packed)
+assert json.stringify(restored) == packed, "nullable class and class-array values should reconstruct through verified defaults"
+
+Item selected = restored.selected as Item
+assert selected.id == 2, "nullable class payload should preserve fields"
+assert restored.items[0].id == 1, "class-array element zero should preserve fields"
+assert restored.items[1].text == "y", "class-array element one should preserve fields"

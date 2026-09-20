@@ -1,0 +1,9 @@
+int observed = 0
+try
+    throw "payload message"
+catch e
+    string message = e.message
+    assert message == "payload message"
+    observed = 1
+end
+assert observed == 1

@@ -1,0 +1,24 @@
+extern "close_outcome_mark" func outcomeMark(int id)
+extern "close_outcome_fail" func outcomeFail(int mode, int code)
+
+func outcomeValues(int cleanupMode) as generator<int>
+    try
+        yield 1
+        outcomeMark(90)
+    finally
+        outcomeMark(10)
+        yield 2
+        outcomeMark(11)
+        outcomeFail(cleanupMode, 42)
+    end
+    outcomeMark(91)
+    yield 9
+end
+
+export "close_outcome_consume" func consumeOutcome(int consumerMode, int cleanupMode) as int
+    for value in outcomeValues(cleanupMode)
+        outcomeFail(consumerMode, 31)
+        break
+    end
+    return 7
+end

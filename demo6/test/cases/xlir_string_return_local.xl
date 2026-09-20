@@ -1,0 +1,9 @@
+func make_text() as string
+    string text = "returned"
+    return text
+end
+
+export "xlir_test_make_text_root" func make_text_root() as int
+    string rootedText = make_text()
+    return 0
+end

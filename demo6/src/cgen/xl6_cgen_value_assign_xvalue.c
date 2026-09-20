@@ -60,15 +60,15 @@ static int xl6CgenStaticScalarFromXValueExpr(
     concreteTarget = xl6CgenResolveAliasType(ctx, targetType);
     targetName = concreteTarget != NULL ? concreteTarget->text : NULL;
     if ( xl6CgenIsIntegerTypeName(targetName) ) {
-        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xvoGetInt", expr);
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xl6_xrt_value_int", expr);
     } else if ( xl6CgenIsFloatTypeName(targetName) ) {
-        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xvoGetFloat", expr);
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xl6_xrt_value_float", expr);
     } else if ( xl6CgenIsBoolTypeName(targetName) ) {
-        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xvoGetBool", expr);
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xl6_xrt_value_bool", expr);
     } else if ( xl6CTextEquals(targetName, "time") ) {
-        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xvoGetTime", expr);
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xl6_xrt_value_time", expr);
     } else if ( xl6CTextEquals(targetName, "point") ) {
-        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xvoGetPoint", expr);
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(targetName), "xl6_xrt_value_pointer", expr);
     } else {
         return 0;
     }
@@ -89,7 +89,7 @@ static int xl6CgenAssignTryStaticXValueScalarStmt(
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s = ", cName);
     if ( !xl6CgenStaticScalarFromXValueExpr(ctx, targetType, right) ) {
-        xl6CgenError(ctx, right, "xvalue scalar assignment lowering failed");
+        xl6CgenError(ctx, right, "xvalue* scalar assignment lowering failed");
         xl6CgenDefaultValue(ctx, targetType);
     }
     xl6OutputPuts(";\n", ctx->out);
@@ -102,7 +102,7 @@ static void xl6CgenAssignEmitXValueTempCleanup(XL6_CgenContext* ctx, const char*
     xl6OutputPrintf(ctx->out, "if (__xl6_%s_left_%d != 0) {\n", prefix, id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_%s_left_%d);\n", prefix, id);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_%s_left_%d);\n", prefix, id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -110,7 +110,7 @@ static void xl6CgenAssignEmitXValueTempCleanup(XL6_CgenContext* ctx, const char*
     xl6OutputPrintf(ctx->out, "if (__xl6_%s_right_%d != 0) {\n", prefix, id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_%s_right_%d);\n", prefix, id);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_%s_right_%d);\n", prefix, id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -135,7 +135,7 @@ static int xl6CgenAssignTryXValueBinaryStmt(
     rightExpr = right->children[1];
 
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_assign_%d = 0;\n", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_assign_%d = 0;\n", id);
     xl6CgenIndent(ctx);
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
@@ -188,7 +188,7 @@ static int xl6CgenAssignTryXValueConditionalStmt(
     elseExpr = right->children[2];
 
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_assign_%d = 0;\n", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_assign_%d = 0;\n", id);
     xl6CgenIndent(ctx);
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
@@ -251,11 +251,11 @@ static int xl6CgenAssignTryStaticXValueCompareStmt(
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_cmp_left_%d = ", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_cmp_left_%d = ", id);
     xl6CgenXValueFromExpr(ctx, leftExpr);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_cmp_right_%d = ", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_cmp_right_%d = ", id);
     xl6CgenXValueFromExpr(ctx, rightExpr);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -263,10 +263,10 @@ static int xl6CgenAssignTryStaticXValueCompareStmt(
         if ( xl6CgenBinaryCompareHasClassHandle(ctx, right) ) {
             xl6OutputPrintf(ctx->out,
                             "int __xl6_cmp_result_%d = "
-                            "(((__xl6_cmp_left_%d == 0 || xvoIsNull(__xl6_cmp_left_%d)) && "
-                            "(__xl6_cmp_right_%d == 0 || xvoIsNull(__xl6_cmp_right_%d))) || "
+                            "(((__xl6_cmp_left_%d == 0 || xl6_xrt_value_is_null(__xl6_cmp_left_%d)) && "
+                            "(__xl6_cmp_right_%d == 0 || xl6_xrt_value_is_null(__xl6_cmp_right_%d))) || "
                             "(__xl6_cmp_left_%d != 0 && __xl6_cmp_right_%d != 0 && "
-                            "!xvoIsNull(__xl6_cmp_left_%d) && !xvoIsNull(__xl6_cmp_right_%d) && "
+                            "!xl6_xrt_value_is_null(__xl6_cmp_left_%d) && !xl6_xrt_value_is_null(__xl6_cmp_right_%d) && "
                             "__xl6_cmp_left_%d == __xl6_cmp_right_%d));\n",
                             id, id, id, id, id, id, id, id, id, id, id);
         } else {
@@ -323,11 +323,11 @@ static int xl6CgenAssignTryStaticXValueApproxStmt(
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_approx_left_%d = ", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_approx_left_%d = ", id);
     xl6CgenXValueFromExpr(ctx, leftExpr);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_approx_right_%d = ", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_approx_right_%d = ", id);
     xl6CgenXValueFromExpr(ctx, rightExpr);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -361,7 +361,7 @@ static int xl6CgenXValueMemberAssignStmt(
     id = ctx->tempId++;
     snprintf(slotName, sizeof(slotName), "__xl6_xvalue_field_slot_%d", id);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue* %s = &(", slotName);
+    xl6OutputPrintf(ctx->out, "xvalue** %s = &(", slotName);
     xl6CgenExpr(ctx, left);
     xl6OutputPuts(");\n", ctx->out);
     if ( !xl6CgenAssignTryXValueConditionalStmt(ctx, targetType, right, id) &&
@@ -371,19 +371,12 @@ static int xl6CgenXValueMemberAssignStmt(
         xl6CgenXValueLocalInitStmt(ctx, targetType, assignName, right);
     }
 
-    /* class 拥有的动态值和嵌套 class 句柄必须在写入时完成跨线程发布。 */
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out,
-                    "__xl6_assign_%d = xl6_xrt_move_to_shared(__xl6_assign_%d);\n",
-                    id,
-                    id);
-
-    /* var 字段拥有 xvalue 引用，替换前必须释放旧值。 */
+    /* var 字段拥有 xvalue* 引用，替换前必须释放旧值。 */
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (*%s != 0) {\n", slotName);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(*%s);\n", slotName);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(*%s);\n", slotName);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);

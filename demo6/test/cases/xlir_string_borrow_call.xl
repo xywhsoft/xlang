@@ -1,0 +1,8 @@
+func inspect(string text) as int
+    return 7
+end
+
+export "xlir_test_string_borrow_call" func string_borrow_call() as int
+    string owned = "borrowed"
+    return inspect(owned)
+end

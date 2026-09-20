@@ -1,0 +1,5 @@
+extern "xlir_native_add" func nativeAdd(int left, int right) as int
+
+export "xlir_test_call_native" func call_native(int value) as int
+    return nativeAdd(value, 2)
+end

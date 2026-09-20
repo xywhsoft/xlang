@@ -1,0 +1,143 @@
+int created = 0
+int destroyed = 0
+int trace = 0
+
+class TrackedValue
+    destroy()
+        destroyed += 1
+    end
+end
+
+func make(int digit) as var
+    trace = trace * 10 + digit
+    created += 1
+    return TrackedValue()
+end
+
+func first(var left, var right) as var
+    return left
+end
+
+func pair() as (var, var)
+    return make(5), make(6)
+end
+
+func directScope()
+    var result = first(make(1), make(2))
+    assert trace == 12, "direct arguments must evaluate left to right exactly once"
+    assert created - destroyed == 1, "callee must release right but return an owned left"
+end
+
+func dynamicScope()
+    func(var, var) as var target = first
+    var callable = xcall(target)
+    var result = callable(right = make(3), left = make(4))
+    assert trace == 34, "keywords preserve source evaluation order before parameter binding"
+    assert created - destroyed == 1, "dynamic argument/result handoff must have one surviving value"
+end
+
+func productScope()
+    auto left, right = pair()
+    assert trace == 56, "product fields must evaluate left to right once"
+    assert created - destroyed == 2, "both product fields must remain alive in receiving storage"
+end
+
+func fail() as var
+    throw "expected argument failure"
+end
+
+func partialProduct() as (var, var)
+    return make(7), fail()
+end
+
+func failedDestructure()
+    auto left, right = partialProduct()
+end
+
+func failedClosure()
+    func(var, var) as var target = first
+    target(make(3), fail())
+end
+
+func failedDynamic()
+    func(var, var) as var target = first
+    var callable = xcall(target)
+    callable(right = make(4), left = fail())
+end
+
+func productExit(int mode)
+    auto left, right = pair()
+    if mode == 1 then
+        return
+    end
+    if mode == 2 then
+        throw "expected product scope failure"
+    end
+    try
+        throw "caught inside product scope"
+    catch ignored
+        assert created - destroyed == 2, "catch prematurely released outer product bindings"
+    finally
+        assert created - destroyed == 2, "finally prematurely released outer product bindings"
+    end
+end
+
+for iteration in range(20)
+    trace = 0
+    directScope()
+    assert created == destroyed, "direct call leaked a parameter or return value"
+    trace = 0
+    dynamicScope()
+    assert created == destroyed, "dynamic call leaked a frame argument or return value"
+    trace = 0
+    productScope()
+    assert created == destroyed, "product return field cleanup failed"
+    trace = 0
+    make(7)
+    assert trace == 7 and created == destroyed, "discarded owned call result survived"
+    trace = 0
+    [make(8), make(9)]
+    assert trace == 89 and created == destroyed, "discarded array or its consumed elements survived"
+    trace = 0
+    false ? make(9) : make(1)
+    assert trace == 1 and created == destroyed, "conditional evaluated or retained an unselected branch"
+    trace = 0
+    make(2) ?? make(9)
+    assert trace == 2 and created == destroyed, "coalesce evaluated fallback or leaked its selected value"
+    productExit(1)
+    assert created == destroyed, "early return leaked product bindings"
+    try
+        productExit(2)
+    catch ignored
+        assert created == destroyed, "throw leaked product bindings"
+    end
+    productExit(3)
+    assert created == destroyed, "catch/finally scope leaked product bindings"
+    try
+        failedDestructure()
+    catch ignored
+        assert created == destroyed, "failed product initializer leaked a producer value"
+    end
+    try
+        first(make(8), fail())
+    catch ignored
+        assert created == destroyed, "later argument failure leaked an earlier argument"
+    end
+    try
+        failedClosure()
+    catch ignored
+        assert created == destroyed, "closure argument failure leaked an earlier argument"
+    end
+    try
+        failedDynamic()
+    catch ignored
+        assert created == destroyed, "dynamic keyword evaluation failure leaked an earlier argument"
+    end
+    trace = 0
+    try
+        first(make(1), first(make(2), fail()))
+    catch ignored
+        assert trace == 12 and created == destroyed, "nested evaluation must unwind inner then outer owners"
+    end
+end
+assert created == 460 and destroyed == 460, "exact destructor accounting"

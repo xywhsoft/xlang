@@ -116,8 +116,10 @@ function Check-TutorialBatch($text)
         'release\\xl\.exe\s+run\s+"release\\examples\\tutorial\\%%f"',
         'release\\xl\.exe\s+run\s+"release\\examples\\tutorial\\%%f"\s+--link\s+release\\examples\\tutorial\\host\.c',
         'release\\xl\.exe\s+cgen\s+release\\examples\\tutorial\\11_export_to_c\.xl\s+--emit\s+build\\test\\tutorial\\11_export_to_c\.c\s+--emit-header\s+build\\test\\tutorial\\11_export_to_c\.h',
-        '"%XL6_TCC%"\s+-DXL6_EXAMPLE_LINK_EXPORTS\s+-Ibuild\\test\\tutorial\s+%XL6_TCC_INCLUDES%\s+%XL6_TCC_LIB_FLAGS%\s+build\\test\\tutorial\\11_export_to_c\.c\s+release\\examples\\tutorial\\host_export\.c\s+%XL6_DEFAULT_LINKS%\s+-o\s+build\\test\\tutorial\\host_export\.exe',
-        'build\\test\\tutorial\\host_export\.exe'
+        '"%XL6_BOOTSTRAP_CC%"\s+-std=c11\s+-Wall\s+-Wextra\s+-Werror\s+-Wno-unused-function\s+-DXL6_EXAMPLE_LINK_EXPORTS\s+-Ibuild\\test\\tutorial\s+-Ibuild\\test\s+-Irelease\\include\s+-I\.\s+build\\test\\tutorial\\11_export_to_c\.c\s+release\\examples\\tutorial\\host_export\.c\s+tools\\xrt_single_header_impl\.c\s+-lWs2_32\s+-lIPHLPAPI\s+-lShell32\s+-o\s+build\\test\\tutorial\\host_export\.exe',
+        'build\\test\\tutorial\\host_export\.exe',
+        'copy\s+/Y\s+release\\include\\xrt_decl\.h\s+build\\test\\__xl_runtime\\xrt_decl\.h',
+        'copy\s+/Y\s+release\\include\\xruntime_decl\.h\s+build\\test\\__xl_runtime\\xruntime_decl\.h'
     )
     $requiredTutorialFiles = @(
         "01_entry_and_layout.xl",
@@ -179,10 +181,14 @@ function Check-MainRegressionBatch($text)
         "temporary files kept:\s*(.+)",
         "Remove-Item -LiteralPath `$dir -Recurse -Force"
     )
+    $requiredSnippets += @(
+        "copy /Y release\include\xrt_decl.h build\test\__xl_runtime\xrt_decl.h",
+        "copy /Y release\include\xruntime_decl.h build\test\__xl_runtime\xruntime_decl.h"
+    )
 
     foreach ( $snippet in $requiredSnippets ) {
         if ( ! $text.Contains($snippet) ) {
-            Add-Failure "test.bat must keep save-temps wrapper verification deterministic and cleaned: $snippet"
+            Add-Failure "test.bat is missing required deterministic setup or cleanup: $snippet"
         }
     }
 }
@@ -252,15 +258,19 @@ if ( ! (Test-Path -LiteralPath $docsDir -PathType Container) ) {
 }
 
 $baselineDocs = @(Get-ChildItem -LiteralPath $docsDir -Filter "*.md" -File | Where-Object {
-    (Read-Utf8Text $_.FullName).Contains("rc0_guard.bat -SkipFullTests")
+    (Read-Utf8Text $_.FullName).Contains("<!-- xl6-canonical-rc0-baseline -->")
 })
-
 if ( $baselineDocs.Count -ne 1 ) {
-    Write-Host "RC0 baseline doc lookup failed: expected 1 match, actual $($baselineDocs.Count)"
+    Write-Host "RC0 baseline doc marker count mismatch: expected 1, actual $($baselineDocs.Count)"
     exit 1
 }
 
-$baselineText = Read-Utf8Text $baselineDocs[0].FullName
+$baselinePath = $baselineDocs[0].FullName
+$baselineText = Read-Utf8Text $baselinePath
+if ( ! $baselineText.Contains("rc0_guard.bat -SkipFullTests") ) {
+    Write-Host "RC0 baseline doc missing guard command: $baselinePath"
+    exit 1
+}
 $batchFiles = @(Get-ChildItem -LiteralPath $Root -File -Filter "*.bat" | Sort-Object Name)
 $toolBatchFiles = @(Get-ChildItem -LiteralPath (Join-Path $Root "tools") -File -Filter "*.bat" | Sort-Object Name)
 $suiteBatchFiles = @()

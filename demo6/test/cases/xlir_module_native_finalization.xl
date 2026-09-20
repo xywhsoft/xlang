@@ -1,0 +1,18 @@
+extern "module_native_open" func nativeOpen(int id) as point
+extern "module_native_should_fail" func shouldFail() as bool
+
+class Handle
+    native point handle
+    extern "module_native_close" destroy()
+end
+
+Handle first = Handle(nativeOpen(1))
+Handle empty
+if shouldFail() then
+    throw "native module initialization failed"
+end
+Handle second = Handle(nativeOpen(2))
+
+func main(...) as int
+    return 0
+end

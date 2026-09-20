@@ -19,17 +19,17 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array completed string task.race over task.spawn futures as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelSpawnStringRaceCompleted = xrtCopyStr(xl6_future_await_cstr_copy(spawnStringRaceCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"postCancelSpawnStringRaceCompleted = xl6_xrt_string_dup(xl6_future_await_cstr_copy(spawnStringRaceCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep typed-array completed string task.race over task.spawn futures awaitable after cancel.
     exit /b 1
 )
-findstr /C:"spawnBoolAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnBoolAllCompletedJobs), xrtTypeBool32()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"spawnBoolAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnBoolAllCompletedJobs), xl6TypeBool32()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array completed bool task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeBool32(), (*(xtarray*)xl6_future_await_value(spawnBoolAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6TypeBool32(), (*(xtarray*)xl6_future_await_value(spawnBoolAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing repeated await for typed-array completed bool task.all over task.spawn futures.
     exit /b 1
@@ -39,7 +39,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array completed bool task.all over task.spawn futures as borrowed.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeBool32(), (*(xtarray*)xl6_future_await_value(spawnBoolAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6TypeBool32(), (*(xtarray*)xl6_future_await_value(spawnBoolAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep typed-array completed bool task.all over task.spawn futures awaitable after cancel.
     exit /b 1
@@ -64,12 +64,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep typed-array completed bool task.race over task.spawn futures awaitable after cancel.
     exit /b 1
 )
-findstr /C:"spawnFloatAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnFloatAllCompletedJobs), xrtTypeFloat()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"spawnFloatAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnFloatAllCompletedJobs), xl6TypeFloat64()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array completed float task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeFloat(), (*(xtarray*)xl6_future_await_value(spawnFloatAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6TypeFloat64(), (*(xtarray*)xl6_future_await_value(spawnFloatAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing repeated await for typed-array completed float task.all over task.spawn futures.
     exit /b 1
@@ -79,7 +79,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array completed float task.all over task.spawn futures as borrowed.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeFloat(), (*(xtarray*)xl6_future_await_value(spawnFloatAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6TypeFloat64(), (*(xtarray*)xl6_future_await_value(spawnFloatAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep typed-array completed float task.all over task.spawn futures awaitable after cancel.
     exit /b 1
@@ -104,17 +104,17 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep typed-array completed float task.race over task.spawn futures awaitable after cancel.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(failedStringSpawnAllJobs), xrtTypeString()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(failedStringSpawnAllJobs), xl6TypeString()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array string task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"failedStringSpawnTypedRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(__xl6_call_arg_" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"failedStringSpawnTypedRace = xl6_xrt_string_dup(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(__xl6_call_arg_" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array string task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"spawnStringAllFailureGroup = xl6_task_all_values(xrtTypeString()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"spawnStringAllFailureGroup = xl6_task_all_values(xl6TypeString()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing string task.all fast-failure over task.spawn fixture.
     exit /b 1
@@ -124,12 +124,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should pass slow string task.spawn source as borrowed to task.all fast-failure fixture.
     exit /b 1
 )
-findstr /C:"spawnStringAllFailureSlowValue = xrtCopyStr(xl6_future_await_cstr_copy(spawnStringAllFailureSlowSource" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"spawnStringAllFailureSlowValue = xl6_xrt_string_dup(xl6_future_await_cstr_copy(spawnStringAllFailureSlowSource" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep slow string task.spawn source awaitable after task.all failure.
     exit /b 1
 )
-findstr /C:"typedSpawnStringAllFailureGroup = xl6_task_all_from_array((xtarray)(typedSpawnStringAllFailureJobs), xrtTypeString()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedSpawnStringAllFailureGroup = xl6_task_all_from_array((xtarray)(typedSpawnStringAllFailureJobs), xl6TypeString()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.all fast-failure over task.spawn fixture.
     exit /b 1
@@ -139,7 +139,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.all fast-failure group await.
     exit /b 1
 )
-findstr /C:"typedSpawnStringAllFailureSlowValue = xrtCopyStr(xl6_future_await_cstr_copy(typedSpawnStringAllFailureSlowSource" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedSpawnStringAllFailureSlowValue = xl6_xrt_string_dup(xl6_future_await_cstr_copy(typedSpawnStringAllFailureSlowSource" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep typed-array slow string task.spawn source awaitable after task.all failure.
     exit /b 1
@@ -159,7 +159,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should pass slow string task.spawn loser as borrowed to task.race fast-failure fixture.
     exit /b 1
 )
-findstr /C:"spawnStringRaceFailureLoserValueB = xrtCopyStr(xl6_future_await_cstr_copy(spawnStringRaceFailureSlowLoser" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"spawnStringRaceFailureLoserValueB = xl6_xrt_string_dup(xl6_future_await_cstr_copy(spawnStringRaceFailureSlowLoser" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing repeated await for canceled string task.spawn race loser.
     exit /b 1
@@ -174,17 +174,17 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.race fast-failure over task.spawn fixture.
     exit /b 1
 )
-findstr /C:"typedSpawnStringRaceFailureValue = xrtCopyStr(xl6_future_await_cstr_copy(typedSpawnStringRaceFailureGroup" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedSpawnStringRaceFailureValue = xl6_xrt_string_dup(xl6_future_await_cstr_copy(typedSpawnStringRaceFailureGroup" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.race fast-failure group await.
     exit /b 1
 )
-findstr /C:"typedSpawnStringRaceFailureLoserValueA = xrtCopyStr(xl6_future_await_cstr_copy(typedSpawnStringRaceFailureSlowLoser" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedSpawnStringRaceFailureLoserValueA = xl6_xrt_string_dup(xl6_future_await_cstr_copy(typedSpawnStringRaceFailureSlowLoser" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing first await for canceled typed-array string task.spawn race loser.
     exit /b 1
 )
-findstr /C:"typedSpawnStringRaceFailureLoserValueB = xrtCopyStr(xl6_future_await_cstr_copy(typedSpawnStringRaceFailureSlowLoser" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedSpawnStringRaceFailureLoserValueB = xl6_xrt_string_dup(xl6_future_await_cstr_copy(typedSpawnStringRaceFailureSlowLoser" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing repeated await for canceled typed-array string task.spawn race loser.
     exit /b 1
@@ -194,7 +194,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should preserve canceled typed-array string task.spawn race loser after worker completes.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(failedBoolSpawnAllJobs), xrtTypeBool32()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(failedBoolSpawnAllJobs), xl6TypeBool32()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array bool task.all over task.spawn futures.
     exit /b 1
@@ -204,7 +204,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array bool task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(failedFloatSpawnAllJobs), xrtTypeFloat()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(failedFloatSpawnAllJobs), xl6TypeFloat64()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array float task.all over task.spawn futures.
     exit /b 1
@@ -214,7 +214,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array float task.race over task.spawn futures.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolAllFailureGroup = xl6_task_all_from_array((xtarray)(typedSpawnBoolAllFailureJobs), xrtTypeBool32()')){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnBoolAllFailureGroup = xl6_task_all_from_array((xtarray)(typedSpawnBoolAllFailureJobs), xl6TypeBool32()')){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array bool task.all fast-failure over task.spawn fixture.
     exit /b 1
@@ -259,7 +259,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should preserve canceled typed-array bool task.spawn race loser after worker completes.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnFloatAllFailureGroup = xl6_task_all_from_array((xtarray)(typedSpawnFloatAllFailureJobs), xrtTypeFloat()')){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if(-not $text.Contains('typedSpawnFloatAllFailureGroup = xl6_task_all_from_array((xtarray)(typedSpawnFloatAllFailureJobs), xl6TypeFloat64()')){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array float task.all fast-failure over task.spawn fixture.
     exit /b 1
@@ -304,32 +304,32 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should preserve canceled typed-array float task.spawn race loser after worker completes.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xrtTypedArrayRetain\(cancelSpawnStringAllJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(\1\),\s*xrtTypeString\(\),.*?\),\s*1\);\s*xrtTypedArrayDestroy\(\1\);\s*cancelSpawnStringTypedAll\s*=\s*\2;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xl6TypedArrayRetain\(cancelSpawnStringAllJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(\1\),\s*xl6TypeString\(\),.*?\),\s*1\);\s*xl6TypedArrayRelease\(\1\);\s*cancelSpawnStringTypedAll\s*=\s*\2;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array string task.all over task.spawn futures as owned.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xrtTypedArrayRetain\(cancelSpawnStringRaceJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_race_from_array\(\(xtarray\)\(\1\),.*?\),\s*1\);\s*xrtTypedArrayDestroy\(\1\);\s*cancelSpawnStringTypedRace\s*=\s*\2;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xl6TypedArrayRetain\(cancelSpawnStringRaceJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_race_from_array\(\(xtarray\)\(\1\),.*?\),\s*1\);\s*xl6TypedArrayRelease\(\1\);\s*cancelSpawnStringTypedRace\s*=\s*\2;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array string task.race over task.spawn futures as owned.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xrtTypedArrayRetain\(cancelSpawnBoolAllJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(\1\),\s*xrtTypeBool32\(\),.*?\),\s*1\);\s*xrtTypedArrayDestroy\(\1\);\s*cancelSpawnBoolTypedAll\s*=\s*\2;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xl6TypedArrayRetain\(cancelSpawnBoolAllJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(\1\),\s*xl6TypeBool32\(\),.*?\),\s*1\);\s*xl6TypedArrayRelease\(\1\);\s*cancelSpawnBoolTypedAll\s*=\s*\2;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array bool task.all over task.spawn futures as owned.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xrtTypedArrayRetain\(cancelSpawnBoolRaceJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_race_from_array\(\(xtarray\)\(\1\),.*?\),\s*1\);\s*xrtTypedArrayDestroy\(\1\);\s*cancelSpawnBoolTypedRace\s*=\s*\2;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xl6TypedArrayRetain\(cancelSpawnBoolRaceJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_race_from_array\(\(xtarray\)\(\1\),.*?\),\s*1\);\s*xl6TypedArrayRelease\(\1\);\s*cancelSpawnBoolTypedRace\s*=\s*\2;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array bool task.race over task.spawn futures as owned.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xrtTypedArrayRetain\(cancelSpawnFloatAllJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(\1\),\s*xrtTypeFloat\(\),.*?\),\s*1\);\s*xrtTypedArrayDestroy\(\1\);\s*cancelSpawnFloatTypedAll\s*=\s*\2;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xl6TypedArrayRetain\(cancelSpawnFloatAllJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(\1\),\s*xl6TypeFloat64\(\),.*?\),\s*1\);\s*xl6TypedArrayRelease\(\1\);\s*cancelSpawnFloatTypedAll\s*=\s*\2;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array float task.all over task.spawn futures as owned.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xrtTypedArrayRetain\(cancelSpawnFloatRaceJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_race_from_array\(\(xtarray\)\(\1\),.*?\),\s*1\);\s*xrtTypedArrayDestroy\(\1\);\s*cancelSpawnFloatTypedRace\s*=\s*\2;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xl6TypedArrayRetain\(cancelSpawnFloatRaceJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_race_from_array\(\(xtarray\)\(\1\),.*?\),\s*1\);\s*xl6TypedArrayRelease\(\1\);\s*cancelSpawnFloatTypedRace\s*=\s*\2;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array float task.race over task.spawn futures as owned.
     exit /b 1
@@ -359,17 +359,17 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered named call-argument task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('conditionDynamicSpawnCount = 0LL;'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(6000,$text.Length-$idx)); if($slice -notmatch 'xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?__xl6_if_cond_\d+ = \(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?\1\)[\s\S]*?if \(__xl6_if_cond_\d+\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('conditionDynamicSpawnCount = 0LL;'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(6000,$text.Length-$idx)); if($slice -notmatch 'xvalue\* (__xl6_task_arg_\d+) = 0;[\s\S]*?__xl6_if_cond_\d+ = \(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?\1\)[\s\S]*?if \(__xl6_if_cond_\d+\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered if-condition task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('whileDynamicSpawnCount = 0LL;'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(6000,$text.Length-$idx)); if($slice -notmatch 'while \(1\)[\s\S]*?xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?__xl6_while_cond_\d+ = \(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?\1\)[\s\S]*?if \(!__xl6_while_cond_\d+\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('whileDynamicSpawnCount = 0LL;'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(6000,$text.Length-$idx)); if($slice -notmatch 'while \(1\)[\s\S]*?xvalue\* (__xl6_task_arg_\d+) = 0;[\s\S]*?__xl6_while_cond_\d+ = \(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?\1\)[\s\S]*?if \(!__xl6_while_cond_\d+\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered while-condition task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('doDynamicSpawnCount = 0LL;'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(250000,$text.Length-$idx)); if($slice -notmatch 'while \(1\)[\s\S]*?xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?__xl6_do_cond_\d+ = \(\(doDynamicSpawnCount < 2LL\) && \(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?\1\)[\s\S]*?if \(!__xl6_do_cond_\d+\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('doDynamicSpawnCount = 0LL;'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(250000,$text.Length-$idx)); if($slice -notmatch 'while \(1\)[\s\S]*?xvalue\* (__xl6_task_arg_\d+) = 0;[\s\S]*?__xl6_do_cond_\d+ = \(\(doDynamicSpawnCount < 2LL\) && \(xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,[\s\S]*?\1\)[\s\S]*?if \(!__xl6_do_cond_\d+\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered do-while-condition task.spawn argument.
     exit /b 1
@@ -404,22 +404,22 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered expression-statement task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_fn_makeSpawnValue(221LL)'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-1000); $slice=$text.Substring($start,[Math]::Min(8000,$text.Length-$start)); if($slice -notmatch 'xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?xl_fn_makeSpawnValue\(221LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?\1[\s\S]*?task\.spawn dynamic var argument should lower inside assert conditions'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_fn_makeSpawnValue(221LL)'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-1000); $slice=$text.Substring($start,[Math]::Min(8000,$text.Length-$start)); if($slice -notmatch 'xvalue\* (__xl6_task_arg_\d+) = 0;[\s\S]*?xl_fn_makeSpawnValue\(221LL\)[\s\S]*?xl6_task_spawn_values\(varArgJob,[\s\S]*?\1[\s\S]*?task\.spawn dynamic var argument should lower inside assert conditions'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered assert-condition task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_fn_makeSpawnValue(401LL)'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-1000); $slice=$text.Substring($start,[Math]::Min(8000,$text.Length-$start)); if($slice -notmatch 'xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?xl_fn_makeSpawnValue\(401LL\)[\s\S]*?xl6_error_raise\(\x22AssertionError\x22,[\s\S]*?xl6_task_spawn_values\(varMessageJob,[\s\S]*?\1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_fn_makeSpawnValue(401LL)'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-1000); $slice=$text.Substring($start,[Math]::Min(8000,$text.Length-$start)); if($slice -notmatch 'xvalue\* (__xl6_task_arg_\d+) = 0;[\s\S]*?xl_fn_makeSpawnValue\(401LL\)[\s\S]*?xl6_error_raise\(\x22AssertionError\x22,[\s\S]*?xl6_task_spawn_values\(varMessageJob,[\s\S]*?\1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered assert-message task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_fn_makeSpawnValue(301LL)'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-1000); $slice=$text.Substring($start,[Math]::Min(8000,$text.Length-$start)); if($slice -notmatch 'xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?xl_fn_makeSpawnValue\(301LL\)[\s\S]*?xl6_error_raise\(\x22Error\x22,[\s\S]*?xl6_task_spawn_values\(varMessageJob,[\s\S]*?\1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_fn_makeSpawnValue(301LL)'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-1000); $slice=$text.Substring($start,[Math]::Min(8000,$text.Length-$start)); if($slice -notmatch 'xvalue\* (__xl6_task_arg_\d+) = 0;[\s\S]*?xl_fn_makeSpawnValue\(301LL\)[\s\S]*?xl6_error_raise\(\x22Error\x22,[\s\S]*?xl6_task_spawn_values\(varMessageJob,[\s\S]*?\1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered throw-expression task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('static void xl_gen_worker_xl_fn_dynamicSpawnStream('); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(20000,$text.Length-$idx)); if($slice -notmatch 'xvalue (__xl6_task_arg_\d+) = 0;[\s\S]*?xl6_generator_yield_copy\([^;]*xl6_task_spawn_values\(job,[\s\S]*?\1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('static void xl_gen_worker_xl_fn_dynamicSpawnStream('); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(20000,$text.Length-$idx)); if($slice -notmatch 'xvalue\* (__xl6_task_arg_\d+) = 0;[\s\S]*?xl6_generator_yield_copy\([^;]*xl6_task_spawn_values\(job,[\s\S]*?\1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered yield-expression task.spawn argument.
     exit /b 1
@@ -454,87 +454,87 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered generator iterable task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl6_xrt_typed_array_set_at(indexDynamicSpawnValues'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-2000); $slice=$text.Substring($start,[Math]::Min(6000,$text.Length-$start)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xvoCreateInt\(\(long long\)\(77LL\)\)' -or $slice -notmatch 'xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $slice -notmatch '__xl6_index_assign_'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl6_xrt_typed_array_set_at(indexDynamicSpawnValues'); if($idx -lt 0){exit 1}; $start=[Math]::Max(0,$idx-2000); $slice=$text.Substring($start,[Math]::Min(6000,$text.Length-$start)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xrtValueInt\(\(long long\)\(77LL\)\)' -or $slice -notmatch 'xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $slice -notmatch '__xl6_index_assign_'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered index-write-target task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $checks=@('__xl6_task_arg_','xrtTypedArrayAppend(__xl6_global_init_','typedDynamicSpawnAllJobs = __xl6_global_init_','xl6_task_all_from_array((xtarray)(typedDynamicSpawnAllJobs)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $checks=@('__xl6_task_arg_','xl6TypedArrayAppend(__xl6_global_init_','typedDynamicSpawnAllJobs = __xl6_global_init_','xl6_task_all_from_array((xtarray)(typedDynamicSpawnAllJobs)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ exit 1 } }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered typed-array task.all task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $checks=@('__xl6_task_arg_','xrtTypedArrayAppend(__xl6_global_init_','typedDynamicSpawnRaceJobs = __xl6_global_init_','xrtTypedArrayRetain(typedDynamicSpawnRaceJobs)','xl6_task_race_from_array((xtarray)(__xl6_call_arg_'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $checks=@('__xl6_task_arg_','xl6TypedArrayAppend(__xl6_global_init_','typedDynamicSpawnRaceJobs = __xl6_global_init_','xl6TypedArrayRetain(typedDynamicSpawnRaceJobs)','xl6_task_race_from_array((xtarray)(__xl6_call_arg_'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ exit 1 } }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered typed-array task.race task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_async_worker_xl_fn_makeTypedDynamicSpawnAllValues'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(6000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xrtTypedArrayAppendValue\(__xl6_async_return_'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_async_worker_xl_fn_makeTypedDynamicSpawnAllValues'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(6000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xl6TypedArrayAppendValue\(__xl6_async_return_'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered async typed-array return task.spawn arguments.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_async_worker_xl_fn_makeTypedDynamicSpawnAwaitValues'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(5000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xrtTypedArrayAppendValue\(__xl6_async_return_'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); $idx=$text.IndexOf('xl_async_worker_xl_fn_makeTypedDynamicSpawnAwaitValues'); if($idx -lt 0){exit 1}; $slice=$text.Substring($idx,[Math]::Min(5000,$text.Length-$idx)); if($slice -notmatch '__xl6_task_arg_' -or $slice -notmatch 'xl6TypedArrayAppendValue\(__xl6_async_return_'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing lowered async typed-array return awaited task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'mixedTailBorrowedFuture\s*=\s*xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : xl_fn_makeAdder\(520LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'mixedTailOwnedFuture\s*=\s*xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : xl_fn_makeAdder\(530LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : xl_fn_makeAdder\(540LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_spawn_values\(\(0 \? xl6_function_copy_value\(mixedTailClosureSource\) : xl_fn_makeAdder\(550LL\)\)[\s\S]*?, 0, 1'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'mixedTailBorrowedFuture\s*=\s*xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : xl_fn_makeAdder\(520LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'mixedTailOwnedFuture\s*=\s*xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : xl_fn_makeAdder\(530LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'xl6TypedArrayCreate\(xl6TypeFuture\(\)\)' -or $text -notmatch 'xl6_task_spawn_values\(\(chooseMixedTailClosure \? xl6_function_copy_value\(mixedTailClosureSource\) : xl_fn_makeAdder\(540LL\)\)[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_spawn_values\(\(0 \? xl6_function_copy_value\(mixedTailClosureSource\) : xl_fn_makeAdder\(550LL\)\)[\s\S]*?, 0, 1'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing mixed conditional future/all callable normalization.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingClosureFuture\s*=\s*xl6_task_spawn_values\(pendingClosureSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'xl6_task_cancel_value\(pendingClosureFuture, 0\)' -or $text -notmatch 'pendingClosureStateA = 42LL' -or $text -notmatch 'pendingClosureStateB = 42LL' -or $text -notmatch 'pendingClosureSource\.signature[\s\S]*?== 600LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingClosureFuture\s*=\s*xl6_task_spawn_values\(pendingClosureSource, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xrtValueInt' -or $text -notmatch 'xl6_task_cancel_value\(pendingClosureFuture, 0\)' -or $text -notmatch 'pendingClosureStateA = 42LL' -or $text -notmatch 'pendingClosureStateB = 42LL' -or $text -notmatch 'pendingClosureSource\.signature[\s\S]*?== 600LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing pending closure task.spawn cancel/source-callable lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingClosureAllLeft\s*=\s*xl6_task_spawn_values\(pendingClosureAllSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'pendingClosureAllGroup\s*=\s*xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?pendingClosureAllLeft, 0, xl6_task_spawn_values\(xl_fn_makeSleepyAdder\(620LL\), xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_cancel_value\(pendingClosureAllGroup, 0\)' -or $text -notmatch 'pendingClosureAllGroupState = 42LL' -or $text -notmatch 'pendingClosureAllLeftStateA = 42LL' -or $text -notmatch 'pendingClosureAllLeftStateB = 42LL' -or $text -notmatch 'pendingClosureAllSource\.signature[\s\S]*?== 610LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingClosureAllLeft\s*=\s*xl6_task_spawn_values\(pendingClosureAllSource, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xrtValueInt' -or $text -notmatch 'pendingClosureAllGroup\s*=\s*xl6_task_all_values\(xl6TypeInt64\(\),[\s\S]*?pendingClosureAllLeft, 0, xl6_task_spawn_values\(xl_fn_makeSleepyAdder\(620LL\), xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_cancel_value\(pendingClosureAllGroup, 0\)' -or $text -notmatch 'pendingClosureAllGroupState = 42LL' -or $text -notmatch 'pendingClosureAllLeftStateA = 42LL' -or $text -notmatch 'pendingClosureAllLeftStateB = 42LL' -or $text -notmatch 'pendingClosureAllSource\.signature[\s\S]*?== 610LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing pending closure task.all cancel/source-callable lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'failureClosureAllSlow\s*=\s*xl6_task_spawn_values\(failureClosureAllSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'failureClosureAllGroup\s*=\s*xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?xl6_task_spawn_values\(throwingJob, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 0\), 1, failureClosureAllSlow, 0' -or $text -notmatch 'failureClosureAllGroupState = 42LL' -or $text -notmatch 'failureClosureAllGroupStateAgain = 42LL' -or $text -notmatch '!xl6_task_cancel_value\(failureClosureAllGroup, 0\)' -or $text -notmatch 'failureClosureAllGroupStateAfterCancel = 42LL' -or $text -notmatch 'failureClosureAllSlowValue == 890LL' -or $text -notmatch 'failureClosureAllSource\.signature[\s\S]*?== 670LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'failureClosureAllSlow\s*=\s*xl6_task_spawn_values\(failureClosureAllSource, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xrtValueInt' -or $text -notmatch 'failureClosureAllGroup\s*=\s*xl6_task_all_values\(xl6TypeInt64\(\),[\s\S]*?xl6_task_spawn_values\(throwingJob, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 0\), 1, failureClosureAllSlow, 0' -or $text -notmatch 'failureClosureAllGroupState = 42LL' -or $text -notmatch 'failureClosureAllGroupStateAgain = 42LL' -or $text -notmatch '!xl6_task_cancel_value\(failureClosureAllGroup, 0\)' -or $text -notmatch 'failureClosureAllGroupStateAfterCancel = 42LL' -or $text -notmatch 'failureClosureAllSlowValue == 890LL' -or $text -notmatch 'failureClosureAllSource\.signature[\s\S]*?== 670LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed task.all closure group repeated/cancel/post-cancel lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedFailureClosureAllSlow\s*=\s*xl6_task_spawn_values\(typedFailureClosureAllSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'typedFailureClosureAllGroup\s*=\s*xl6_task_all_from_array\(\(xtarray\)\(typedFailureClosureAllJobs\), xrtTypeInt\(\)' -or $text -notmatch 'typedFailureClosureAllGroupState = 42LL' -or $text -notmatch 'typedFailureClosureAllGroupStateAgain = 42LL' -or $text -notmatch '!xl6_task_cancel_value\(typedFailureClosureAllGroup, 0\)' -or $text -notmatch 'typedFailureClosureAllGroupStateAfterCancel = 42LL' -or $text -notmatch 'typedFailureClosureAllSlowValue == 900LL' -or $text -notmatch 'typedFailureClosureAllSource\.signature[\s\S]*?== 680LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedFailureClosureAllSlow\s*=\s*xl6_task_spawn_values\(typedFailureClosureAllSource, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xrtValueInt' -or $text -notmatch 'xl6TypedArrayCreate\(xl6TypeFuture\(\)\)' -or $text -notmatch 'typedFailureClosureAllGroup\s*=\s*xl6_task_all_from_array\(\(xtarray\)\(typedFailureClosureAllJobs\), xl6TypeInt64\(\)' -or $text -notmatch 'typedFailureClosureAllGroupState = 42LL' -or $text -notmatch 'typedFailureClosureAllGroupStateAgain = 42LL' -or $text -notmatch '!xl6_task_cancel_value\(typedFailureClosureAllGroup, 0\)' -or $text -notmatch 'typedFailureClosureAllGroupStateAfterCancel = 42LL' -or $text -notmatch 'typedFailureClosureAllSlowValue == 900LL' -or $text -notmatch 'typedFailureClosureAllSource\.signature[\s\S]*?== 680LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array task.all closure group repeated/cancel/post-cancel lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'successClosureAllSlow\s*=\s*xl6_task_spawn_values\(successClosureAllSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'successClosureAllGroup\s*=\s*xl6_task_all_values\(xrtTypeInt\(\),[\s\S]*?xl6_task_spawn_values\(addJob, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?\), 1, successClosureAllSlow, 0' -or $text -notmatch 'xl6_xrt_typed_array_copy_mode\(xrtTypeInt\(\), \(\*\(xtarray\*\)xl6_future_await_value\(successClosureAllGroup' -or $text -notmatch '!xl6_task_cancel_value\(successClosureAllGroup, 0\)' -or $text -notmatch 'xl6_xrt_typed_array_copy_mode\(xrtTypeInt\(\), \(\*\(xtarray\*\)xl6_future_await_value\(successClosureAllGroup' -or $text -notmatch 'successClosureAllSlowAgain == 915LL' -or $text -notmatch 'successClosureAllSource\.signature[\s\S]*?== 695LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'successClosureAllSlow\s*=\s*xl6_task_spawn_values\(successClosureAllSource, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xrtValueInt' -or $text -notmatch 'successClosureAllGroup\s*=\s*xl6_task_all_values\(xl6TypeInt64\(\),[\s\S]*?xl6_task_spawn_values\(addJob, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?\), 1, successClosureAllSlow, 0' -or $text -notmatch 'xl6_xrt_typed_array_copy\(xl6TypeInt64\(\), \(\*\(xtarray\*\)xl6_future_await_value\(successClosureAllGroup' -or $text -notmatch '!xl6_task_cancel_value\(successClosureAllGroup, 0\)' -or $text -notmatch 'xl6_xrt_typed_array_copy\(xl6TypeInt64\(\), \(\*\(xtarray\*\)xl6_future_await_value\(successClosureAllGroup' -or $text -notmatch 'successClosureAllSlowAgain == 915LL' -or $text -notmatch 'successClosureAllSource\.signature[\s\S]*?== 695LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing successful task.all closure group repeated/cancel/post-cancel lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedSuccessClosureAllSlow\s*=\s*xl6_task_spawn_values\(typedSuccessClosureAllSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'typedSuccessClosureAllGroup\s*=\s*xl6_task_all_from_array\(\(xtarray\)\(typedSuccessClosureAllJobs\), xrtTypeInt\(\)' -or $text -notmatch 'xl6_xrt_typed_array_copy_mode\(xrtTypeInt\(\), \(\*\(xtarray\*\)xl6_future_await_value\(typedSuccessClosureAllGroup' -or $text -notmatch '!xl6_task_cancel_value\(typedSuccessClosureAllGroup, 0\)' -or $text -notmatch 'xl6_xrt_typed_array_copy_mode\(xrtTypeInt\(\), \(\*\(xtarray\*\)xl6_future_await_value\(typedSuccessClosureAllGroup' -or $text -notmatch 'typedSuccessClosureAllSlowAgain == 920LL' -or $text -notmatch 'typedSuccessClosureAllSource\.signature[\s\S]*?== 700LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedSuccessClosureAllSlow\s*=\s*xl6_task_spawn_values\(typedSuccessClosureAllSource, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xrtValueInt' -or $text -notmatch 'xl6TypedArrayCreate\(xl6TypeFuture\(\)\)' -or $text -notmatch 'typedSuccessClosureAllGroup\s*=\s*xl6_task_all_from_array\(\(xtarray\)\(typedSuccessClosureAllJobs\), xl6TypeInt64\(\)' -or $text -notmatch 'xl6_xrt_typed_array_copy\(xl6TypeInt64\(\), \(\*\(xtarray\*\)xl6_future_await_value\(typedSuccessClosureAllGroup' -or $text -notmatch '!xl6_task_cancel_value\(typedSuccessClosureAllGroup, 0\)' -or $text -notmatch 'xl6_xrt_typed_array_copy\(xl6TypeInt64\(\), \(\*\(xtarray\*\)xl6_future_await_value\(typedSuccessClosureAllGroup' -or $text -notmatch 'typedSuccessClosureAllSlowAgain == 920LL' -or $text -notmatch 'typedSuccessClosureAllSource\.signature[\s\S]*?== 700LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing successful typed-array task.all closure group repeated/cancel/post-cancel lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingClosureRaceLeft\s*=\s*xl6_task_spawn_values\(pendingClosureRaceSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'pendingClosureRaceGroup\s*=\s*xl6_task_race_values\([\s\S]*?pendingClosureRaceLeft, 0, xl6_task_spawn_values\(xl_fn_makeSleepyAdder\(640LL\), xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_cancel_value\(pendingClosureRaceGroup, 0\)' -or $text -notmatch 'pendingClosureRaceGroupState = 42LL' -or $text -notmatch 'pendingClosureRaceLeftStateA = 42LL' -or $text -notmatch 'pendingClosureRaceLeftStateB = 42LL' -or $text -notmatch 'pendingClosureRaceSource\.signature[\s\S]*?== 630LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'pendingClosureRaceLeft\s*=\s*xl6_task_spawn_values\(pendingClosureRaceSource, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xrtValueInt' -or $text -notmatch 'pendingClosureRaceGroup\s*=\s*xl6_task_race_values\([\s\S]*?pendingClosureRaceLeft, 0, xl6_task_spawn_values\(xl_fn_makeSleepyAdder\(640LL\), xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 0, 1' -or $text -notmatch 'xl6_task_cancel_value\(pendingClosureRaceGroup, 0\)' -or $text -notmatch 'pendingClosureRaceGroupState = 42LL' -or $text -notmatch 'pendingClosureRaceLeftStateA = 42LL' -or $text -notmatch 'pendingClosureRaceLeftStateB = 42LL' -or $text -notmatch 'pendingClosureRaceSource\.signature[\s\S]*?== 630LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing pending closure task.race cancel/source-callable lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'successClosureRaceLoser\s*=\s*xl6_task_spawn_values\(successClosureRaceLoserSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'successClosureRaceGroup\s*=\s*xl6_task_race_values\([\s\S]*?xl6_task_spawn_values\(addJob, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 2,[\s\S]*?\), 1, successClosureRaceLoser, 0' -or $text -notmatch 'successClosureRaceValue = \(\*\(long long\*\)xl6_future_await_value\(successClosureRaceGroup' -or $text -notmatch 'successClosureRaceValueAgain = \(\*\(long long\*\)xl6_future_await_value\(successClosureRaceGroup' -or $text -notmatch 'successClosureRaceValueAgain == 651LL' -or $text -notmatch '!xl6_task_cancel_value\(successClosureRaceGroup, 0\)' -or $text -notmatch 'successClosureRaceValueAfterCancel = \(\*\(long long\*\)xl6_future_await_value\(successClosureRaceGroup' -or $text -notmatch 'successClosureRaceValueAfterCancel == 651LL' -or $text -notmatch 'successClosureRaceLoserStateA = 42LL' -or $text -notmatch 'successClosureRaceLoserStateB = 42LL' -or $text -notmatch 'successClosureRaceLoserSource\.signature[\s\S]*?== 650LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'successClosureRaceLoser\s*=\s*xl6_task_spawn_values\(successClosureRaceLoserSource, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xrtValueInt' -or $text -notmatch 'successClosureRaceGroup\s*=\s*xl6_task_race_values\([\s\S]*?xl6_task_spawn_values\(addJob, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 2,[\s\S]*?\), 1, successClosureRaceLoser, 0' -or $text -notmatch 'successClosureRaceValue = \(\*\(long long\*\)xl6_future_await_value\(successClosureRaceGroup' -or $text -notmatch 'successClosureRaceValueAgain = \(\*\(long long\*\)xl6_future_await_value\(successClosureRaceGroup' -or $text -notmatch 'successClosureRaceValueAgain == 651LL' -or $text -notmatch '!xl6_task_cancel_value\(successClosureRaceGroup, 0\)' -or $text -notmatch 'successClosureRaceValueAfterCancel = \(\*\(long long\*\)xl6_future_await_value\(successClosureRaceGroup' -or $text -notmatch 'successClosureRaceValueAfterCancel == 651LL' -or $text -notmatch 'successClosureRaceLoserStateA = 42LL' -or $text -notmatch 'successClosureRaceLoserStateB = 42LL' -or $text -notmatch 'successClosureRaceLoserSource\.signature[\s\S]*?== 650LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing successful task.race closure group repeated/cancel/post-cancel lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedSuccessClosureRaceLoser\s*=\s*xl6_task_spawn_values\(typedSuccessClosureRaceLoserSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'typedSuccessClosureRaceGroup\s*=\s*xl6_task_race_from_array\(\(xtarray\)\(typedSuccessClosureRaceJobs\)' -or $text -notmatch 'typedSuccessClosureRaceValue == 711LL' -or $text -notmatch 'typedSuccessClosureRaceValueAgain = \(\*\(long long\*\)xl6_future_await_value\(typedSuccessClosureRaceGroup' -or $text -notmatch 'typedSuccessClosureRaceValueAgain == 711LL' -or $text -notmatch '!xl6_task_cancel_value\(typedSuccessClosureRaceGroup, 0\)' -or $text -notmatch 'typedSuccessClosureRaceValueAfterCancel = \(\*\(long long\*\)xl6_future_await_value\(typedSuccessClosureRaceGroup' -or $text -notmatch 'typedSuccessClosureRaceValueAfterCancel == 711LL' -or $text -notmatch 'typedSuccessClosureRaceLoserStateA = 42LL' -or $text -notmatch 'typedSuccessClosureRaceLoserStateB = 42LL' -or $text -notmatch 'typedSuccessClosureRaceLoserSource\.signature[\s\S]*?== 710LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedSuccessClosureRaceLoser\s*=\s*xl6_task_spawn_values\(typedSuccessClosureRaceLoserSource, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xrtValueInt' -or $text -notmatch 'xl6TypedArrayCreate\(xl6TypeFuture\(\)\)' -or $text -notmatch 'typedSuccessClosureRaceGroup\s*=\s*xl6_task_race_from_array\(\(xtarray\)\(typedSuccessClosureRaceJobs\)' -or $text -notmatch 'typedSuccessClosureRaceValue == 711LL' -or $text -notmatch 'typedSuccessClosureRaceValueAgain = \(\*\(long long\*\)xl6_future_await_value\(typedSuccessClosureRaceGroup' -or $text -notmatch 'typedSuccessClosureRaceValueAgain == 711LL' -or $text -notmatch '!xl6_task_cancel_value\(typedSuccessClosureRaceGroup, 0\)' -or $text -notmatch 'typedSuccessClosureRaceValueAfterCancel = \(\*\(long long\*\)xl6_future_await_value\(typedSuccessClosureRaceGroup' -or $text -notmatch 'typedSuccessClosureRaceValueAfterCancel == 711LL' -or $text -notmatch 'typedSuccessClosureRaceLoserStateA = 42LL' -or $text -notmatch 'typedSuccessClosureRaceLoserStateB = 42LL' -or $text -notmatch 'typedSuccessClosureRaceLoserSource\.signature[\s\S]*?== 710LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing successful typed-array task.race closure group repeated/cancel/post-cancel lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'failureClosureRaceLoser\s*=\s*xl6_task_spawn_values\(failureClosureRaceLoserSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'failureClosureRaceGroup\s*=\s*xl6_task_race_values\([\s\S]*?xl6_task_spawn_values\(throwingJob, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 0\), 1, failureClosureRaceLoser, 0' -or $text -notmatch 'failureClosureRaceGroupState = 42LL' -or $text -notmatch 'failureClosureRaceGroupStateAgain = 42LL' -or $text -notmatch '!xl6_task_cancel_value\(failureClosureRaceGroup, 0\)' -or $text -notmatch 'failureClosureRaceGroupStateAfterCancel = 42LL' -or $text -notmatch 'failureClosureRaceLoserStateA = 42LL' -or $text -notmatch 'failureClosureRaceLoserStateB = 42LL' -or $text -notmatch 'failureClosureRaceLoserSource\.signature[\s\S]*?== 660LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'failureClosureRaceLoser\s*=\s*xl6_task_spawn_values\(failureClosureRaceLoserSource, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xrtValueInt' -or $text -notmatch 'failureClosureRaceGroup\s*=\s*xl6_task_race_values\([\s\S]*?xl6_task_spawn_values\(throwingJob, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 0\), 1, failureClosureRaceLoser, 0' -or $text -notmatch 'failureClosureRaceGroupState = 42LL' -or $text -notmatch 'failureClosureRaceGroupStateAgain = 42LL' -or $text -notmatch '!xl6_task_cancel_value\(failureClosureRaceGroup, 0\)' -or $text -notmatch 'failureClosureRaceGroupStateAfterCancel = 42LL' -or $text -notmatch 'failureClosureRaceLoserStateA = 42LL' -or $text -notmatch 'failureClosureRaceLoserStateB = 42LL' -or $text -notmatch 'failureClosureRaceLoserSource\.signature[\s\S]*?== 660LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed task.race closure group repeated/cancel/post-cancel lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedFailureClosureRaceLoser\s*=\s*xl6_task_spawn_values\(typedFailureClosureRaceLoserSource, xrtTypeInt\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xvoCreateInt' -or $text -notmatch 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_SHARED\)' -or $text -notmatch 'typedFailureClosureRaceGroup\s*=\s*xl6_task_race_from_array\(\(xtarray\)\(typedFailureClosureRaceJobs\)' -or $text -notmatch 'typedFailureClosureRaceGroupState = 42LL' -or $text -notmatch 'typedFailureClosureRaceGroupStateAgain = 42LL' -or $text -notmatch '!xl6_task_cancel_value\(typedFailureClosureRaceGroup, 0\)' -or $text -notmatch 'typedFailureClosureRaceGroupStateAfterCancel = 42LL' -or $text -notmatch 'typedFailureClosureRaceLoserStateA = 42LL' -or $text -notmatch 'typedFailureClosureRaceLoserStateB = 42LL' -or $text -notmatch 'typedFailureClosureRaceLoserSource\.signature[\s\S]*?== 690LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'typedFailureClosureRaceLoser\s*=\s*xl6_task_spawn_values\(typedFailureClosureRaceLoserSource, xl6TypeInt64\(\), sizeof\(long long\),[\s\S]*?, 1, 1, xrtValueInt' -or $text -notmatch 'xl6TypedArrayCreate\(xl6TypeFuture\(\)\)' -or $text -notmatch 'typedFailureClosureRaceGroup\s*=\s*xl6_task_race_from_array\(\(xtarray\)\(typedFailureClosureRaceJobs\)' -or $text -notmatch 'typedFailureClosureRaceGroupState = 42LL' -or $text -notmatch 'typedFailureClosureRaceGroupStateAgain = 42LL' -or $text -notmatch '!xl6_task_cancel_value\(typedFailureClosureRaceGroup, 0\)' -or $text -notmatch 'typedFailureClosureRaceGroupStateAfterCancel = 42LL' -or $text -notmatch 'typedFailureClosureRaceLoserStateA = 42LL' -or $text -notmatch 'typedFailureClosureRaceLoserStateB = 42LL' -or $text -notmatch 'typedFailureClosureRaceLoserSource\.signature[\s\S]*?== 690LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed typed-array task.race closure group repeated/cancel/post-cancel lowering.
     exit /b 1
@@ -549,14 +549,24 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn active error transfer.
     exit /b 1
 )
-findstr /C:"xl6_async_result_error(pOut, message);" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_async_result_language_error(pOut, error);" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
-    echo cgen_task_spawn.c missing task.spawn future error propagation.
+    echo cgen_task_spawn.c missing structured task.spawn future error propagation.
     exit /b 1
 )
-findstr /C:"static DWORD xl6__active_error_tls_index = TLS_OUT_OF_INDEXES;" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xerror* cause = xl6_error_to_xrt(languageError, \"async\");" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
-    echo cgen_task_spawn.c should allocate Windows TLS for active error state.
+    echo cgen_task_spawn.c missing task.spawn language-to-native error bridge.
+    exit /b 1
+)
+findstr /C:"static xonce xl6__active_error_once = XRT_ONCE_INIT;" build\test\cgen_task_spawn.assert.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing race-free active error TLS initialization.
+    exit /b 1
+)
+findstr /C:"xrtThreadKeyCreate(xl6_error_key_destroy)" build\test\cgen_task_spawn.assert.c >nul
+if errorlevel 1 (
+    echo cgen_task_spawn.c missing active error thread key.
     exit /b 1
 )
 findstr /C:"return xl6_error_active_get() != 0;" build\test\cgen_task_spawn.assert.c >nul

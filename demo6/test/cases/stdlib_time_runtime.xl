@@ -1,0 +1,53 @@
+func main(...) as int
+    time moment = time.fromDateTime(2026, 6, 18, 12, 30, 59)
+    time nextDay = time.addDays(moment, 1)
+    time nextMonth = time.addMonths(moment, 1)
+    time nextYear = time.addYears(moment, 1)
+    auto parsedOk, parsed = time.tryParse("2026-06-18 12:30:59")
+    auto zeroOk, zero = time.tryParse("00:00:00")
+    auto invalidOk, _ = time.tryParse("invalid")
+
+    assert 10 ~= 10, "integer approximate equality failed"
+    assert not (10 ~= 11), "integer approximate inequality failed"
+    assert 1.0 ~= 1.005, "float approximate equality failed"
+    assert not (1.0 ~= 1.02), "float approximate inequality failed"
+
+    assert moment == #2026-06-18 12:30:59#, "datetime constructor failed"
+    assert time.fromDate(2026, 6, 18) == #2026-06-18#, "date constructor failed"
+    assert time.fromTime(12, 30, 59) == #12:30:59#, "clock constructor failed"
+    assert parsedOk and parsed == moment, "tryParse datetime failed"
+    assert zeroOk and zero == #00:00:00#, "tryParse zero time failed"
+    assert not invalidOk, "tryParse accepted invalid text"
+
+    assert time.diffDays(moment, nextDay) == 1, "day arithmetic failed"
+    assert time.diffMonths(moment, nextMonth) == 1, "month arithmetic failed"
+    assert time.diffYears(moment, nextYear) == 1, "year arithmetic failed"
+    assert time.diffSeconds(moment, time.addSeconds(moment, 11)) == 11, "second arithmetic failed"
+    assert time.approx(moment, time.addSeconds(moment, 10)), "time tolerance lower boundary failed"
+    assert not time.approx(moment, time.addSeconds(moment, 11)), "time tolerance upper boundary failed"
+
+    assert time.fromUnix(time.toUnix(moment)) == moment, "Unix roundtrip failed"
+    assert time.utcToLocal(time.localToUTC(moment)) == moment, "local time roundtrip failed"
+    assert time.datePart(moment) == #2026-06-18#, "datePart failed"
+    assert time.timePart(moment) == #12:30:59#, "timePart failed"
+
+    assert time.firstDayOfMonth(moment) == #2026-06-01#, "month start failed"
+    assert time.lastDayOfMonth(moment) == #2026-06-30#, "month end failed"
+    assert time.firstDayOfYear(moment) == #2026-01-01#, "year start failed"
+    assert time.lastDayOfYear(moment) == #2026-12-31#, "year end failed"
+    assert time.diffDays(time.firstDayOfWeek(moment), time.lastDayOfWeek(moment)) == 6, "week boundary failed"
+    assert time.weekOfYear(#2021-01-01#) == 53, "ISO week failed"
+    assert time.weekOfMonth(#2026-06-18#) == 3, "month week failed"
+
+    assert time.isSameDay(moment, time.addSeconds(moment, 1)), "same day failed"
+    assert time.inRange(moment, #2026-06-18#, #2026-06-19#), "closed range failed"
+    assert time.rangeOverlap(#2026-06-01#, #2026-06-10#, #2026-06-10#, #2026-06-20#), "closed overlap failed"
+    assert time.relative(time.addSeconds(moment, 90), moment) == "1分钟后", "relative time failed"
+
+    assert time.year(time.now()) >= 1970, "local now failed"
+    assert time.year(time.nowUTC()) >= 1970, "UTC now failed"
+    assert time.year(time.today()) >= 1970, "today failed"
+    assert time.hour(time.clock()) >= 0 and time.hour(time.clock()) <= 23, "clock failed"
+    assert time.timezoneOffset() >= -86399 and time.timezoneOffset() <= 86399, "timezone offset failed"
+    return 0
+end

@@ -1,0 +1,118 @@
+class VirtualPayload
+    int number
+    create(int number)
+        self.number = number
+    end
+end
+class VirtualBase
+    virtual func text(string key) as string
+        return "base:" + key
+    end
+    virtual func accept(byval VirtualPayload value) as int
+        return value.number
+    end
+    virtual func change(byref int value, out int copy)
+        value += 1
+        copy = value
+    end
+end
+class VirtualDerived extends VirtualBase
+    override func text(string key) as string
+        assert key != "fail", "virtual failure"
+        return "derived:" + key
+    end
+    override func accept(byval VirtualPayload value) as int
+        assert value.number >= 0, "owned virtual failure"
+        return value.number + 10
+    end
+    override func change(byref int value, out int copy)
+        assert value >= 0, "mutable virtual failure"
+        value += 2
+        copy = value
+    end
+    func baseText(string key) as string
+        return base.text(key)
+    end
+end
+// Effect analysis must follow the slot even though its declaration cannot fail.
+func virtualForward(VirtualBase receiver, string key) as string
+    return receiver.text(key)
+end
+func virtualWords(VirtualBase receiver) as generator<string>
+    yield receiver.text("one")
+    yield receiver.text("two")
+    yield receiver.text("fail")
+end
+func virtualNumbers(VirtualBase receiver) as generator<int>
+    yield receiver.accept(VirtualPayload(1))
+    yield receiver.accept(VirtualPayload(-1))
+end
+VirtualBase plain = VirtualBase()
+VirtualDerived derived = VirtualDerived()
+VirtualBase erased = derived
+assert virtualForward(plain, "fail") == "base:fail"
+assert virtualForward(erased, "ok") == "derived:ok"
+assert derived.baseText("fail") == "base:fail"
+bool caught = false
+try
+    virtualForward(erased, "fail")
+catch failure
+    caught = true
+end
+assert caught
+assert plain.accept(VirtualPayload(3)) == 3
+assert erased.accept(VirtualPayload(3)) == 13
+caught = false
+try
+    erased.accept(VirtualPayload(-1))
+catch failure
+    caught = true
+end
+assert caught
+int value = 1
+int copy = 0
+plain.change(byref value, out copy)
+assert value == 2 and copy == 2
+erased.change(byref value, out copy)
+assert value == 4 and copy == 4
+value = -1
+caught = false
+try
+    erased.change(byref value, out copy)
+catch failure
+    caught = true
+end
+assert caught and value == -1
+int count = 0
+for word in virtualWords(plain)
+    count += 1
+    assert word == (count == 1 ? "base:one" : count == 2 ? "base:two" : "base:fail")
+end
+assert count == 3
+count = 0
+caught = false
+try
+    for word in virtualWords(erased)
+        count += 1
+        assert word == (count == 1 ? "derived:one" : "derived:two")
+    end
+catch failure
+    caught = true
+end
+assert caught and count == 2
+count = 0
+caught = false
+try
+    for number in virtualNumbers(erased)
+        count += 1
+        assert number == 11
+    end
+catch failure
+    caught = true
+end
+assert caught and count == 1
+// Close before reaching the raising call: frame owners must still be released.
+for word in virtualWords(VirtualDerived())
+    assert word == "derived:one"
+    break
+end

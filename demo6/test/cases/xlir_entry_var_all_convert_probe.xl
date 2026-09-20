@@ -1,0 +1,13 @@
+func main(...) as int
+    var textValue = "18088"
+    var intValue = 42
+    var boolValue = true
+    var signedLimit = "-128"
+    var unsignedLimit = "255"
+    assert int(textValue) == 18088, "var string to int conversion failed"
+    assert int(intValue) == 42, "var int conversion failed"
+    assert int(boolValue) == 1, "var bool to int conversion failed"
+    assert int8(signedLimit) == -128, "var string to int8 conversion failed"
+    assert uint8(unsignedLimit) == 255, "var string to uint8 conversion failed"
+    return 0
+end

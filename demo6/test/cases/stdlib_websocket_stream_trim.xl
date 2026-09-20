@@ -1,0 +1,50 @@
+func websocketHandler(int event, int opcode, int flags, uint64 value, point data, c_size size)
+end
+
+
+
+func attachWebSocket(TcpStream transport, WsUpgrade upgrade) as WebSocket
+    WebSocketConfig config = WebSocketConfig()
+    Buffer pending = transport.peek(4096)
+    assert pending.len() >= 0
+    assert transport.consume(0)
+    assert config.limits(1048576, 65536, 262144)
+    return WebSocket.attachTcpWithConfig(transport, upgrade, config, websocketHandler)
+end
+
+
+
+func exerciseWebSocket(WebSocket stream, Buffer data)
+    int state = stream.state
+    int role = stream.role
+    int pending = stream.pending
+    int writable = stream.writable
+    bool paused = stream.paused
+    bool deflate = stream.deflateEnabled
+    string protocol = stream.protocol()
+
+    int textResult = stream.sendTextResult("hello", false)
+    int dataResult = stream.sendResult(data, true)
+    bool textSent = stream.send("world")
+    bool dataSent = stream.send(data)
+    bool pingSent = stream.ping(data)
+    bool pongSent = stream.pong(data)
+    int closeResult = stream.closeResult(1000, "done")
+    stream.pause()
+    bool resumed = stream.resume()
+    bool aborted = stream.abort()
+
+    int closeFlags = stream.closeFlags
+    int localCode = stream.localCloseCode
+    int remoteCode = stream.remoteCloseCode
+    string closeReason = stream.closeReason()
+    int errorKind = stream.errorKind
+    int errorCode = stream.errorCode
+    string errorDomain = stream.errorDomain()
+    string errorOperation = stream.errorOperation()
+    string errorMessage = stream.errorMessage()
+end
+
+
+
+println("websocket-stream-trim-ok")

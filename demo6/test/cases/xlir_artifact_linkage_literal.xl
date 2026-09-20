@@ -1,0 +1,6 @@
+string text = "xl6FutureThen xl6TaskGroupCreate xl6ChannelCreate"
+assert text == "xl6FutureThen xl6TaskGroupCreate xl6ChannelCreate"
+func xl6FutureLooksLikeRuntime() as int
+    return 42
+end
+assert xl6FutureLooksLikeRuntime() == 42

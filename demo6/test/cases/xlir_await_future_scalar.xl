@@ -1,0 +1,10 @@
+extern "xlir_make_bool_future" func makeBoolFuture() as future<bool>
+extern "xlir_make_f64_future" func makeF64Future() as future<float>
+
+future<bool> boolFuture = makeBoolFuture()
+future<float> f64Future = makeF64Future()
+bool flag = await boolFuture
+float number = await f64Future
+
+assert flag
+assert number == 2.5

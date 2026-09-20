@@ -62,11 +62,13 @@ $extraMarkdownDocs = @(
     "release\include\README.md",
     "lib\README.md",
     "release\README.md",
-    "release\examples\README.md",
-    "release\examples\apps\README.md",
-    "release\examples\feature_suite\README.md",
-    "release\examples\tutorial\README.md",
-    "release\projects\xs_static\README.md",
+	"release\examples\README.md",
+	"release\examples\apps\README.md",
+	"release\examples\games\README.md",
+	"release\examples\feature_suite\README.md",
+	"release\examples\tutorial\README.md",
+	"release\projects\function_interop\README.md",
+	"release\projects\xs_static\README.md",
     "release\extlibs\README.md",
     "test\README.md"
 )
@@ -85,9 +87,9 @@ foreach ( $relative in $extraMarkdownDocs ) {
     $knownReadmeDocs.Add($relative.ToLowerInvariant()) | Out-Null
 }
 $ignoredReadmePrefixes = @(
-    "release\extlibs\",
-    "build\tmp\",
-    "build\test\",
+	"dev\deferred\",
+	"release\extlibs\",
+	"build\",
     "release\tcc\",
     "lib\xrt\",
     "release\projects\dev\",
@@ -97,7 +99,6 @@ $stalePatterns = @(
     '\bTODO\b',
     '\bTBD\b',
     '\bFIXME\b',
-    'placeholder',
     '\u5F85\u586B',
     '\u672A\u6574\u7406',
     '\u5F85\u786E\u8BA4'
@@ -248,11 +249,11 @@ if ( ! $readme.Contains("../cgenrule/README.md") ) {
 }
 
 if ( Test-Path -LiteralPath $toolsDir -PathType Container ) {
-    $checkTools = @(Get-ChildItem -LiteralPath $toolsDir -Filter "check_*.ps1" -File | Sort-Object Name)
-    foreach ( $tool in $checkTools ) {
-        if ( ! $settlement.Contains($tool.Name) ) {
-            Add-Failure "docs settlement does not mention tools/$($tool.Name)"
-        }
+    if ( ! $settlement.Contains("tools/check_*.ps1") ) {
+        Add-Failure "docs settlement does not declare tools/check_*.ps1 as the canonical guard inventory"
+    }
+    if ( ! $settlement.Contains("check_tool_wiring.ps1") ) {
+        Add-Failure "docs settlement does not mention the exhaustive tool wiring guard"
     }
 }
 

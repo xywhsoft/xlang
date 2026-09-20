@@ -1,0 +1,102 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+protocol Named
+    func name() as string
+end
+
+class Base
+    int seed = 1
+end
+
+class Child extends Base
+    int extra = 2
+end
+
+class User
+    func name() as string
+        return "xlang"
+    end
+end
+
+Base base = Base()
+Child child = Child()
+base.seed = 7
+child.seed = 11
+child.extra = 23
+
+var boxedBase = base
+var boxedChild = child
+
+expect(base is Base, 1)
+expect(base is Child, 0)
+expect(child is Base, 1)
+expect(child is Child, 1)
+expect(boxedBase is Base, 1)
+expect(boxedBase is Child, 0)
+expect(boxedChild is Base, 1)
+expect(boxedChild is Child, 1)
+
+Base checkedBase = boxedChild as Base
+Child checkedChild = boxedChild as Child
+expect(checkedBase.seed, 11)
+expect(checkedChild.extra, 23)
+
+Base? maybeBase = boxedChild as Base?
+Child? noChild = boxedBase as Child?
+expect(maybeBase != null, 1)
+expect(noChild == null, 1)
+Base unwrappedBase = maybeBase as Base
+expect(unwrappedBase.seed, 11)
+
+int classMismatchCaught = 0
+try
+    Child ignoredChild = boxedBase as Child
+catch TypeError error
+    expectStr(error.kind, "TypeError")
+    classMismatchCaught = 1
+end
+expect(classMismatchCaught, 1)
+
+Child? missingChild = null
+int classNullCaught = 0
+try
+    Child ignoredMissing = missingChild as Child
+catch TypeError error
+    expectStr(error.kind, "TypeError")
+    classNullCaught = 1
+end
+expect(classNullCaught, 1)
+
+var boxedUser = User()
+var boxedInt = 42
+expect(boxedUser is Named, 1)
+expect(boxedInt is Named, 0)
+
+Named named = boxedUser as Named
+expectStr(named.name(), "xlang")
+Named? maybeNamed = boxedUser as Named?
+Named? noNamed = boxedInt as Named?
+expect(maybeNamed != null, 1)
+expect(noNamed == null, 1)
+Named unwrappedNamed = maybeNamed as Named
+expectStr(unwrappedNamed.name(), "xlang")
+
+int protocolMismatchCaught = 0
+try
+    Named ignoredNamed = boxedInt as Named
+catch TypeError error
+    expectStr(error.kind, "TypeError")
+    protocolMismatchCaught = 1
+end
+expect(protocolMismatchCaught, 1)
+
+Named? missingNamed = null
+int protocolNullCaught = 0
+try
+    Named ignoredMissingNamed = missingNamed as Named
+catch TypeError error
+    expectStr(error.kind, "TypeError")
+    protocolNullCaught = 1
+end
+expect(protocolNullCaught, 1)

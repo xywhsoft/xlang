@@ -767,7 +767,7 @@ static void xl6CgenDefaultValue(XL6_CgenContext* ctx, const XL6_AstNode* typeNod
         return;
     }
     if ( xl6CgenIsWeakType(typeNode) ) {
-        xl6OutputPuts("(xrt_value_weak){0}", ctx->out);
+        xl6OutputPuts("(xl6_weak){0}", ctx->out);
         return;
     }
     if ( xl6CTextEquals(typeNode->text, "float") || xl6CTextEquals(typeNode->text, "float32") ||
@@ -793,23 +793,23 @@ static void xl6CgenDefaultValue(XL6_CgenContext* ctx, const XL6_AstNode* typeNod
         return;
     }
     if ( xl6CTextEquals(typeNode->text, "array") ) {
-        xl6OutputPuts("xvoCreateArray()", ctx->out);
+        xl6OutputPuts("xrtValueArray()", ctx->out);
         return;
     }
     if ( xl6CTextEquals(typeNode->text, "list") ) {
-        xl6OutputPuts("xvoCreateList()", ctx->out);
+        xl6OutputPuts("xrtValueIntMap()", ctx->out);
         return;
     }
     if ( xl6CTextEquals(typeNode->text, "set") ) {
-        xl6OutputPuts("xvoCreateSet()", ctx->out);
+        xl6OutputPuts("xrtValueSet()", ctx->out);
         return;
     }
     if ( xl6CTextEquals(typeNode->text, "dict") ) {
-        xl6OutputPuts("xvoCreateTable()", ctx->out);
+        xl6OutputPuts("xrtValueObject()", ctx->out);
         return;
     }
     if ( xl6CgenIsXValueType(typeNode) ) {
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         return;
     }
     xl6OutputPuts("0", ctx->out);

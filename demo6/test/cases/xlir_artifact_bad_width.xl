@@ -1,0 +1,5 @@
+import xlir_pkg_bad_width
+export "xlir_artifact_check" func check() as int
+    assert xlir_pkg_bad_width.verify()
+    return 42
+end

@@ -1,0 +1,11 @@
+extern "xlir_make_xvalue_future" func makeValueFuture() as future<var>
+extern "xlir_check_xvalue_46" func checkValue(var value) as bool
+
+async func addValueAfter(future<var> source, var offset) as var
+    return await source + offset
+end
+
+future<var> source = makeValueFuture()
+future<var> pending = addValueAfter(source, 5)
+var completed = await pending
+assert checkValue(completed)

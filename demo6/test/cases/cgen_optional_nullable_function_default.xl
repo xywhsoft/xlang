@@ -1,0 +1,15 @@
+func run(int value = 7, (func(int) as int)? callback = null) as int
+    if callback != null then
+        return callback(value)
+    end
+    return value
+end
+
+func main(...) as int
+    assert run() == 7
+    assert run(3) == 3
+    assert run(4, func(int value) as int
+        return value * 2
+    end) == 8
+    return 0
+end

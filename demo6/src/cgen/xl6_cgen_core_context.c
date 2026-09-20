@@ -237,6 +237,12 @@ typedef struct XL6_CgenContext {
     unsigned long long* emittedFunctionReturns;
     size_t emittedFunctionReturnCount;
     size_t emittedFunctionReturnCapacity;
+    unsigned long long* emittedCAbiCallbackTypes;
+    size_t emittedCAbiCallbackTypeCount;
+    size_t emittedCAbiCallbackTypeCapacity;
+    unsigned long long* emittedCAbiCallbackBridges;
+    size_t emittedCAbiCallbackBridgeCount;
+    size_t emittedCAbiCallbackBridgeCapacity;
     const XL6_AstNode* currentGenericParams;
     const XL6_AstNode* currentGenericArgs;
     const XL6_AstNode* currentReturnType;
@@ -290,8 +296,17 @@ static int xl6CgenIsThreadType(const XL6_AstNode* typeNode);
 static int xl6CgenIsGeneratorType(const XL6_AstNode* typeNode);
 static int xl6CgenIsSyncHandleType(const XL6_AstNode* typeNode);
 static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node);
+static int xl6CgenNodeNeedsGeneratorRuntime(const XL6_AstNode* node);
 static int xl6CgenNodeNeedsTaskSpawn(const XL6_AstNode* node);
-static void xl6CgenEmitAsyncRuntime(XL6_Output* out, int hasTaskSpawn, int hasSpecialCollections);
+static int xl6CgenNodeNeedsTaskCollectionRuntime(const XL6_AstNode* node);
+static void xl6CgenEmitAsyncRuntime(
+	XL6_Output* out,
+	int hasTaskSpawn,
+	int hasTypedContainers,
+	int hasSpecialCollections,
+	int hasWeakRuntime,
+	int hasStringRuntime,
+	int hasFunctionVarRuntime);
 static void xl6CgenEmitGeneratorRuntime(XL6_Output* out);
 static void xl6CgenEmitDebugRuntime(XL6_Output* out);
 static void xl6CgenDebugProbe(XL6_CgenContext* ctx, const XL6_AstNode* node);
@@ -306,6 +321,7 @@ static void xl6CgenBeginTempScope(XL6_CgenContext* ctx, const XL6_AstNode* atNod
 static int xl6CgenParamTypeUsesTypedContainerStorage(XL6_CgenContext* ctx, const XL6_AstNode* typeNode);
 static int xl6CgenClassHasLocalVirtualSlots(const XL6_AstNode* classNode);
 static int xl6CgenClassBasePath(XL6_CgenContext* ctx, const XL6_AstNode* fromClass, const XL6_AstNode* targetClass, char* buffer, size_t capacity);
+static int xl6CgenHasUserProtocols(const XL6_CgenContext* ctx);
 static void xl6CgenEmitRecordFieldHelpers(XL6_CgenContext* ctx);
 static void xl6CgenAsyncFuncProto(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenAsyncFunc(XL6_CgenContext* ctx, const XL6_AstNode* node);
@@ -368,11 +384,10 @@ static int xl6CgenSyncMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, 
 static void xl6CgenTypedParamOwnerName(char* buffer, size_t capacity, const char* name);
 static void xl6CgenAddTypedContainerParamCleanup(XL6_CgenContext* ctx, const char* name, const XL6_AstNode* typeNode);
 static void xl6CgenTypedContainerDestroyValue(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* cName);
-static void xl6CgenTypedContainerCopyExprMode(
+static void xl6CgenTypedContainerCopyExpr(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode,
-    const XL6_AstNode* expr,
-    const char* mode);
+    const XL6_AstNode* expr);
 
 static int xl6CTextEquals(const char* a, const char* b)
 {

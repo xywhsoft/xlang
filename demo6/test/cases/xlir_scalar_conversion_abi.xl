@@ -1,0 +1,19 @@
+c_bool boolToBool = c_bool(true)
+c_int boolToInteger = c_int(true)
+c_double boolToFloat = c_double(true)
+c_bool integerToBool = c_bool(2)
+c_uint integerToInteger = c_uint(7)
+c_double integerToFloat = c_double(9)
+c_int floatToInteger = c_int(c_double(8.75))
+c_float floatToFloat = c_float(3.5)
+
+assert boolToBool
+assert boolToInteger == 1
+assert boolToFloat == 1.0
+assert integerToBool
+assert integerToInteger == 7
+assert integerToFloat == 9.0
+assert floatToInteger == 8
+assert floatToFloat == 3.5
+
+println("xlir_scalar_conversion_abi ok")

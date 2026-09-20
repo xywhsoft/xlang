@@ -1,0 +1,5 @@
+extern "xlir_c_vararg_sum" func nativeSum(string tag, c_vararg) as c_int
+
+export "xlir_callsite_c_vararg_probe" func probe() as c_int
+    return nativeSum("sum", c_int(40), c_int(2), "ok")
+end

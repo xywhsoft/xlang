@@ -1,0 +1,16 @@
+class XlirAsyncCounter
+    int value = 0
+
+    create(int initial)
+        self.value = initial
+    end
+
+    async func read() as int
+        return self.value
+    end
+end
+
+XlirAsyncCounter counter = XlirAsyncCounter(37)
+future<int> pending = counter.read()
+assert await pending == 37
+println("xlir async class method ok")

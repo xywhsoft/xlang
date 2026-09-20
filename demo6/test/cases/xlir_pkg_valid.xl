@@ -1,0 +1,2 @@
+import xlir_pkg_valid
+assert xlir_pkg_valid.verify()

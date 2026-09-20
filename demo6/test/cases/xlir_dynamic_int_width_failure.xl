@@ -1,0 +1,19 @@
+export "xlir_test_signed_overflow_recovered" func signed_overflow_recovered() as int8
+    var value = 128
+    var fallback = 17
+    try
+        return int8(value)
+    catch RangeError ignored
+        return int8(fallback)
+    end
+end
+
+export "xlir_test_unsigned_negative_recovered" func unsigned_negative_recovered() as uint8
+    var value = -1
+    var fallback = 19
+    try
+        return uint8(value)
+    catch RangeError ignored
+        return uint8(fallback)
+    end
+end

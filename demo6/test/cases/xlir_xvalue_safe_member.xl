@@ -1,0 +1,9 @@
+func dynamic_safe_member() as var
+  var value = null
+  return value?.answer
+end
+
+export "xlir_test_xvalue_safe_member_root" func xlir_test_root() as int
+  var rootedValue = dynamic_safe_member()
+  return 0
+end

@@ -1,0 +1,14 @@
+export "xlir_test_from_dynamic_string" func from_dynamic_string() as int64
+    var value = "  18088\t"
+    return int(value)
+end
+
+export "xlir_test_from_dynamic_bool" func from_dynamic_bool() as int64
+    var value = true
+    return int(value)
+end
+
+export "xlir_test_from_dynamic_float" func from_dynamic_float() as int64
+    var value = 12.75
+    return int(value)
+end

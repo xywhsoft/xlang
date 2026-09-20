@@ -2,6 +2,8 @@
 #include "src/lexer/xl6_lexer_api.h"
 #include "src/parser/xl6_parser.h"
 
+#include <stdlib.h>
+
 void* xl6ParseAlloc(void* (*mallocProc)(size_t));
 void xl6Parse(void* parser, int tokenKind, XL6_Token token, XL6_ParseContext* ctx);
 void xl6ParseFree(void* parser, void (*freeProc)(void*));
@@ -77,6 +79,7 @@ static int xl6ParserTokenKind(const XL6_Token* token)
     case XL6_KW_VIRTUAL: return XL6PG_KW_VIRTUAL;
     case XL6_KW_NATIVE: return XL6PG_KW_NATIVE;
     case XL6_KW_C_VARARG: return XL6PG_KW_C_VARARG;
+    case XL6_KW_C_CALLBACK: return XL6PG_KW_C_CALLBACK;
     case XL6_KW_BYVAL: return XL6PG_KW_BYVAL;
     case XL6_KW_BYREF: return XL6PG_KW_BYREF;
     case XL6_KW_OUT: return XL6PG_KW_OUT;
@@ -327,14 +330,17 @@ static int xl6ParserMatchTypeList(const XL6_ParseTokenStream* stream, size_t ind
     return 1;
 }
 
+static int xl6ParserIsParameterModeKind(int kind)
+{
+    return kind == XL6_KW_BYVAL || kind == XL6_KW_BYREF || kind == XL6_KW_OUT;
+}
+
 static int xl6ParserMatchFuncTypeParam(const XL6_ParseTokenStream* stream, size_t index, size_t* outNext)
 {
     if ( stream == NULL || index >= stream->count ) {
         return 0;
     }
-    if ( stream->tokens[index].kind == XL6_KW_BYVAL ||
-         stream->tokens[index].kind == XL6_KW_BYREF ||
-         stream->tokens[index].kind == XL6_KW_OUT ) {
+    if ( xl6ParserIsParameterModeKind(stream->tokens[index].kind) ) {
         index += 1;
         if ( index >= stream->count ) {
             return 0;
@@ -534,6 +540,10 @@ static int xl6ParserVMatchFuncTypeParam(const XL6_ParseTokenStream* stream, XL6_
     int kind;
 
     kind = xl6ParserVKindAt(stream, pos);
+    if (xl6ParserIsParameterModeKind(kind)) {
+        pos = xl6ParserVNext(stream, pos);
+        kind = xl6ParserVKindAt(stream, pos);
+    }
     if ( kind == XL6_TK_ELLIPSIS || kind == XL6_TK_TRIPLE_STAR ) {
         *outNext = xl6ParserVNext(stream, pos);
         return 1;
@@ -753,7 +763,10 @@ static int xl6ParserFunctionTypeFollowerKind(int kind)
     }
 }
 
-static int xl6ParserFunctionTypePrevKind(const XL6_ParseTokenStream* stream, size_t index, int kind)
+static int xl6ParserFunctionTypePrevKind(
+	const XL6_ParseTokenStream* stream,
+	size_t index,
+	XL6_TokenKind kind)
 {
     if ( stream == NULL || index == 0 || index > stream->count ) {
         return 0;
@@ -814,6 +827,51 @@ static int xl6ParserIsFuncDeclHead(const XL6_ParseTokenStream* stream, size_t in
     return xl6ParserVKindAt(stream, next) == XL6_TK_LPAREN;
 }
 
+static int xl6ParserMatchAnonSignatureEnd(const XL6_ParseTokenStream*, size_t, size_t*);
+static int xl6ParserWhileLineEndsBlock(const XL6_ParseTokenStream*, size_t);
+
+/* Inside delimiters the lexer suppresses newlines, so a signature followed
+ * by `name = ...` can be either a parameter declaration or a block lambda's
+ * first assignment. Only a matching body END before the containing delimiter
+ * resolves that ambiguity. Nested blocks/functions own their own END tokens;
+ * in particular, a lambda default in a function-typed parameter is not the
+ * body of that parameter's type. No symbol spelling participates in this test. */
+static int xl6ParserSignatureOwnsFollowingBlock(
+    const XL6_ParseTokenStream* stream, size_t next)
+{
+    size_t i;
+    int paren = 0, bracket = 0, brace = 0, blocks = 1;
+    for (i = next; i < stream->count; ++i) {
+        XL6_TokenKind kind = stream->tokens[i].kind;
+        if (kind == XL6_TK_EOF) return 0;
+        if (kind == XL6_TK_LPAREN) ++paren;
+        else if (kind == XL6_TK_RPAREN) { if (paren == 0) return 0; --paren; }
+        else if (kind == XL6_TK_LBRACKET || kind == XL6_TK_SAFE_LBRACKET) ++bracket;
+        else if (kind == XL6_TK_RBRACKET) { if (bracket == 0) return 0; --bracket; }
+        else if (kind == XL6_TK_LBRACE) ++brace;
+        else if (kind == XL6_TK_RBRACE) { if (brace == 0) return 0; --brace; }
+        else if (kind == XL6_KW_END) { if (--blocks == 0) return 1; }
+        else if (kind == XL6_KW_IF || kind == XL6_KW_FOR || kind == XL6_KW_TRY ||
+                 kind == XL6_KW_DO || kind == XL6_KW_MATCH ||
+                 (kind == XL6_KW_WHILE && !xl6ParserWhileLineEndsBlock(stream, i))) ++blocks;
+        else if (kind == XL6_KW_FUNC) {
+            size_t body;
+            if (xl6ParserIsFuncDeclHead(stream, i)) ++blocks;
+            else if (!xl6ParserFunctionTypePrevKind(stream, i, XL6_KW_AS) &&
+                     xl6ParserMatchAnonSignatureEnd(stream, i, &body) &&
+                     body > i && body < stream->count &&
+                     stream->tokens[body].kind != XL6_TK_FAT_ARROW &&
+                     (stream->tokens[body].kind == XL6_TK_SEP ||
+                      stream->tokens[body - 1].endLine < stream->tokens[body].startLine)) {
+                ++blocks;
+                /* Nested return signatures can themselves contain func types. */
+                i = body - 1;
+            }
+        }
+    }
+    return 0;
+}
+
 static int xl6ParserCanUseFunctionType(const XL6_ParseTokenStream* stream, size_t index, size_t next)
 {
     int nextKind;
@@ -827,8 +885,17 @@ static int xl6ParserCanUseFunctionType(const XL6_ParseTokenStream* stream, size_
         return 0;
     }
 
-    /* 函数类型后接声明名，例如：func(int) as int proc */
-    if ( next < stream->count && xl6ParserIsNameToken(&stream->tokens[next]) ) {
+    /* A declaration name must actually terminate a declaration/parameter
+     * prefix. With suppressed newlines, the first statement of a block
+     * lambda may start with a call or a generic type; that identifier alone
+     * is not evidence that the preceding function signature was a type. */
+    if ( next + 1 < stream->count && xl6ParserIsNameToken(&stream->tokens[next]) &&
+         (xl6ParserFunctionTypeFollowerKind(stream->tokens[next + 1].kind) ||
+          stream->tokens[next + 1].kind == XL6_TK_ASSIGN) ) {
+        if (next > index + 1 && stream->tokens[next - 1].endLine < stream->tokens[next].startLine &&
+            !xl6ParserFunctionTypePrevKind(stream, index, XL6_KW_AS) &&
+            !xl6ParserFunctionTypePrevKind(stream, index, XL6_KW_IS) &&
+            xl6ParserSignatureOwnsFollowingBlock(stream, next)) return 0;
         return 1;
     }
 
@@ -847,6 +914,12 @@ static int xl6ParserCanUseFunctionType(const XL6_ParseTokenStream* stream, size_
     /* 裸 func 类型字面量初始化，例如：type t = func */
     if ( next == index + 1 &&
          xl6ParserFunctionTypePrevKind(stream, index, XL6_TK_ASSIGN) ) {
+        return xl6ParserFunctionTypeFollowerKind(nextKind);
+    }
+
+    /* A parameter mode prefixes a type even when the nested function type is
+     * followed by ')' or ',' rather than a declaration name. */
+    if (index > 0 && xl6ParserIsParameterModeKind(stream->tokens[index - 1].kind)) {
         return xl6ParserFunctionTypeFollowerKind(nextKind);
     }
 
@@ -939,6 +1012,17 @@ static int xl6ParserNullableNamedDeclContext(
      * 这里检查当前语句头，避免把普通调用里的三元表达式改写成类型后缀。
      */
     stmtStart = xl6ParserStmtStartIndex(stream, typeStart);
+    /* A field's type can follow a complete modifier prefix. Do not classify
+     * by the preceding token alone: contextual modifier names also occur in
+     * ordinary expressions, whose question mark must remain ternary syntax. */
+    for (i = stmtStart; i < typeStart; ++i) {
+        int kind = stream->tokens[i].kind;
+        if (kind != XL6_KW_PUBLIC && kind != XL6_KW_PRIVATE &&
+            kind != XL6_KW_PROTECTED && kind != XL6_KW_STATIC &&
+            kind != XL6_KW_OVERRIDE && kind != XL6_KW_FINAL &&
+            kind != XL6_KW_VIRTUAL && kind != XL6_KW_NATIVE) break;
+    }
+    if (i == typeStart && i > stmtStart) return 1;
     for ( i = stmtStart; i < typeStart; ++i ) {
         if ( stream->tokens[i].kind == XL6_KW_FUNC ||
              stream->tokens[i].kind == XL6_KW_GET ||
@@ -1260,6 +1344,10 @@ static int xl6ParserInsertAnonBlockSeparators(XL6_ParseTokenStream* stream)
             xrtFree(insertBefore);
             return 0;
         }
+        /* Classification precedes synthetic body separators. Preserve it:
+         * reclassifying `func() as T` after insertion mistakes the new SEP
+         * for a function-type follower and turns a block lambda into a type. */
+        rewritten.parserKinds[rewritten.count - 1] = stream->parserKinds[i];
     }
     xrtFree(insertBefore);
     xl6ParseTokenStreamFree(stream);
@@ -1628,7 +1716,6 @@ static int xl6ParserReadTokens(XL6_Lexer* lexer, XL6_ParseTokenStream* stream, X
         xl6DiagAdd(diags, token.startLine, token.startColumn, "内存不足，无法补齐匿名函数块分隔符");
         return 0;
     }
-    xl6ParserMarkFunctionTypeTokens(stream);
     xl6ParserMarkNullableTypeQuestions(stream);
     xl6ParserMarkPostWhileTokens(stream);
     xl6ParserMarkStatementMatchTokens(stream);
@@ -1707,10 +1794,9 @@ int xl6ParseFile(const char* path, XL6_ParseResult* result)
     size_t len;
     int ok;
 
-    xrtClearError();
-    source = xrtFileReadAll((char*)path, XRT_CP_UTF8, &len);
+    source = xrtFileReadText(path, XENCODING_UTF8, XUTF_STRICT, &len);
     (void)len;
-    if ( xrtGetError()[0] != '\0' || source == NULL ) {
+    if ( source == NULL ) {
         xrtFree(source);
         xl6DiagAdd(&result->diags, 1, 1, "无法读取源文件");
         return 0;

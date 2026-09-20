@@ -1,0 +1,9 @@
+export "xlir_test_loop_answer" func loop_answer() as int64
+    int total = 0
+    int i = 0
+    while i < 5
+        total = total + i
+        i = i + 1
+    end
+    return total
+end

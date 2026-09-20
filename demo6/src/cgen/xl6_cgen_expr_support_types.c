@@ -69,7 +69,7 @@ static int xl6CgenContainerIsDynamicXValueType(const XL6_AstNode* typeNode, cons
     }
 
     /*
-        array/list/set/dict 不带泛型参数时才是动态 xvalue 容器。
+        array/list/set/dict 不带泛型参数时才是动态 xvalue* 容器。
         一旦写成 array<int> 这类静态泛型容器，就必须走 XRT typed-container 存储。
     */
     args = xl6CgenTypeNodeGenericArgs(typeNode);

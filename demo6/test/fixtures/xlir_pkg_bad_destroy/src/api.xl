@@ -1,0 +1,9 @@
+class NativeBox
+    native point handle
+    extern "xlir_pkg_box_open" create()
+    extern "xlir_pkg_box_close" destroy()
+end
+export func verify() as bool
+    auto box = NativeBox()
+    return box != null
+end

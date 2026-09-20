@@ -1,0 +1,21 @@
+class InitializerLeaf
+    int value = 7
+end
+class InitializerBox
+    InitializerLeaf leaf = InitializerLeaf()
+end
+func initializedNestedItems() as generator<int>
+    try
+        yield 1
+    finally
+        InitializerBox item = InitializerBox()
+        yield item.leaf.value
+    end
+end
+export "generator_initializer_nested" func nestedInitializationTotal() as int
+    int total = 0
+    for item in initializedNestedItems()
+        total += item
+    end
+    return total
+end

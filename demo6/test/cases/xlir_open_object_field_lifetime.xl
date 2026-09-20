@@ -1,0 +1,83 @@
+int created = 0
+int destroyed = 0
+
+class Marker
+    destroy()
+        destroyed += 1
+    end
+end
+
+class OpenRecord extends object
+    int id = 17
+end
+
+func make() as var
+    created += 1
+    return Marker()
+end
+
+class ReadSource
+    get item() as var
+        return make()
+    end
+
+    func __item__(int index) as var
+        return make()
+    end
+end
+
+func readScope(int mode)
+    ReadSource source = ReadSource()
+    var propertyOwner = source.item
+    var indexOwner = source[0]
+    assert created - destroyed == 2, "getter result lost its owner"
+    assert type(source.item) == Marker and type(source[1]) == Marker, "getter result lost nominal identity"
+    source.item
+    source[2]
+    assert created - destroyed == 2, "temporary getter result leaked"
+    if mode == 1 then
+        return
+    end
+    if mode == 2 then
+        throw "expected getter failure"
+    end
+end
+
+func scope(int mode)
+    OpenRecord record = OpenRecord()
+    record.payload = make()
+    assert created - destroyed == 1, "dynamic field did not retain its owned value"
+    var saved = record.payload
+    record["payload"] = make()
+    assert created - destroyed == 2, "field projection or replacement lost a live owner"
+    assert type(record) == OpenRecord and record.id == 17, "open object lost nominal identity or declared fields"
+    assert type(saved) == Marker and type(record.payload) == Marker, "dynamic field lost nominal payload identity"
+    if mode == 1 then
+        return
+    end
+    if mode == 2 then
+        throw "expected open field failure"
+    end
+end
+
+for iteration in range(100)
+    scope(0)
+    assert created == destroyed, "normal scope leaked dynamic field storage"
+    scope(1)
+    assert created == destroyed, "return leaked dynamic field storage"
+    try
+        scope(2)
+    catch ignored
+        assert created == destroyed, "exception leaked dynamic field storage"
+    end
+    readScope(0)
+    assert created == destroyed, "normal scope leaked getter result"
+    readScope(1)
+    assert created == destroyed, "return leaked getter result"
+    try
+        readScope(2)
+    catch ignored
+        assert created == destroyed, "exception leaked getter result"
+    end
+end
+assert created == 2400 and destroyed == 2400, "open field and getter destructor accounting"

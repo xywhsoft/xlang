@@ -1,0 +1,29 @@
+extern "pending_callback_observe" func observe(int event, string text)
+extern "pending_callback_input" func pendingInput() as future<int>
+extern "pending_callback_capture" func capture(var value)
+class PendingOwner
+    string text = "pending owner"
+    destroy()
+        observe(3, self.text)
+    end
+end
+func callbackThen(future<int> input) as future<int>
+    PendingOwner owner = PendingOwner()
+    func() firstCleanup = func()
+        observe(1, owner.text)
+    end
+    func() secondCleanup = func()
+        observe(2, owner.text)
+    end
+    future<int> first = input.finally(firstCleanup)
+    return first.finally(secondCleanup)
+end
+export "pending_callback_keep" func keep(int observed)
+    future<int> result = callbackThen(pendingInput())
+    if observed != 0 then
+        capture(result)
+    end
+end
+func main(...) as int
+    return 0
+end

@@ -1,5 +1,6 @@
 #include "src/common/xl6_output.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #define XL6_OUTPUT_BUFFER_STEP (64u * 1024u)
@@ -7,8 +8,8 @@
 static void xl6OutputMarkFailed(XL6_Output* out)
 {
     if ( out != NULL ) {
-        if ( out->error == NULL ) {
-            out->error = "output failed";
+        if ( out->error[0] == '\0' ) {
+            snprintf(out->error, sizeof(out->error), "%s", "output failed");
         }
         out->failed = 1;
     }
@@ -17,16 +18,25 @@ static void xl6OutputMarkFailed(XL6_Output* out)
 static void xl6OutputMarkFailedText(XL6_Output* out, const char* error)
 {
     if ( out != NULL ) {
-        out->error = error != NULL && error[0] != '\0' ? error : "output failed";
+        if ( out->error[0] == '\0' ) {
+            snprintf(
+                out->error,
+                sizeof(out->error),
+                "%s",
+                error != NULL && error[0] != '\0' ? error : "output failed"
+            );
+        }
         out->failed = 1;
     }
 }
 
 static void xl6OutputMarkFailedXrt(XL6_Output* out, const char* fallback)
 {
+    const xerror* lastError;
     const char* error;
 
-    error = (const char*)xrtGetError();
+    lastError = xrtGetError();
+    error = lastError != NULL ? xrtErrorMessage(lastError) : NULL;
     if ( error == NULL || error[0] == '\0' ) {
         error = fallback;
     }
@@ -35,35 +45,14 @@ static void xl6OutputMarkFailedXrt(XL6_Output* out, const char* fallback)
 
 static int xl6OutputFlushBufferFile(XL6_Output* out)
 {
-    xfile file;
-    size_t written;
-
     if ( out == NULL || out->path == NULL ) {
         return 0;
     }
 
-    xrtClearError();
-    file = xrtOpen((char*)out->path, FALSE, XRT_CP_BINARY);
-    if ( file == NULL ) {
-        xl6OutputMarkFailedXrt(out, "cannot open output file");
+    if ( !xrtFileWriteAll(out->path, xrtBufferView(&out->buffer)) ) {
+        xl6OutputMarkFailedXrt(out, "cannot write output file");
         return 0;
     }
-
-    xrtSeek(file, 0, XRT_SEEK_SET);
-    if ( out->buffer != NULL && out->buffer->Length > 0 ) {
-        written = xrtPut(file, out->buffer->Buffer, out->buffer->Length);
-        if ( written != out->buffer->Length ) {
-            xl6OutputMarkFailedXrt(out, "cannot write output file");
-            xrtClose(file);
-            return 0;
-        }
-    }
-    if ( !xrtSetEOF(file) ) {
-        xl6OutputMarkFailedXrt(out, "cannot truncate output file");
-        xrtClose(file);
-        return 0;
-    }
-    xrtClose(file);
     return 1;
 }
 
@@ -75,9 +64,9 @@ static int xl6OutputFlushBufferStdFile(XL6_Output* out)
         return 0;
     }
 
-    if ( out->buffer != NULL && out->buffer->Length > 0 ) {
-        written = fwrite(out->buffer->Buffer, 1, out->buffer->Length, out->stdFile);
-        if ( written != out->buffer->Length ) {
+    if ( out->buffer.Size > 0 ) {
+        written = fwrite(out->buffer.Data, 1, out->buffer.Size, out->stdFile);
+        if ( written != out->buffer.Size ) {
             xl6OutputMarkFailedText(out, "cannot write output stream");
             return 0;
         }
@@ -98,9 +87,13 @@ void xl6OutputInitStdFile(XL6_Output* out, FILE* file)
     out->kind = XL6_OUTPUT_STD_FILE;
     out->stdFile = file;
     out->path = NULL;
-    out->buffer = NULL;
-    out->error = file == NULL ? "invalid output stream" : NULL;
-    out->failed = file == NULL;
+    memset(&out->buffer, 0, sizeof(out->buffer));
+    out->error[0] = '\0';
+    out->bufferActive = 0;
+    out->failed = 0;
+    if ( file == NULL ) {
+        xl6OutputMarkFailedText(out, "invalid output stream");
+    }
 }
 
 int xl6OutputOpenStdFileBuffer(XL6_Output* out, FILE* file)
@@ -112,8 +105,9 @@ int xl6OutputOpenStdFileBuffer(XL6_Output* out, FILE* file)
     out->kind = XL6_OUTPUT_BUFFER_STD_FILE;
     out->stdFile = file;
     out->path = NULL;
-    out->buffer = NULL;
-    out->error = NULL;
+    memset(&out->buffer, 0, sizeof(out->buffer));
+    out->error[0] = '\0';
+    out->bufferActive = 0;
     out->failed = 0;
 
     if ( file == NULL ) {
@@ -121,9 +115,15 @@ int xl6OutputOpenStdFileBuffer(XL6_Output* out, FILE* file)
         return 0;
     }
 
-    out->buffer = xrtBufferCreate(XL6_OUTPUT_BUFFER_STEP);
-    if ( out->buffer == NULL ) {
+    if ( !xrtBufferInit(&out->buffer) ) {
         xl6OutputMarkFailedXrt(out, "cannot create output buffer");
+        return 0;
+    }
+    out->bufferActive = 1;
+    if ( !xrtBufferReserve(&out->buffer, XL6_OUTPUT_BUFFER_STEP) ) {
+        xl6OutputMarkFailedXrt(out, "cannot reserve output buffer");
+        xrtBufferUnit(&out->buffer);
+        out->bufferActive = 0;
         return 0;
     }
     return 1;
@@ -137,27 +137,35 @@ int xl6OutputOpenFile(XL6_Output* out, const char* path)
     out->kind = XL6_OUTPUT_BUFFER_FILE;
     out->stdFile = NULL;
     out->path = NULL;
-    out->buffer = xrtBufferCreate(XL6_OUTPUT_BUFFER_STEP);
-    out->error = NULL;
+    memset(&out->buffer, 0, sizeof(out->buffer));
+    out->error[0] = '\0';
+    out->bufferActive = 0;
     out->failed = 0;
 
-    if ( out->buffer == NULL ) {
+    if ( !xrtBufferInit(&out->buffer) ) {
         xl6OutputMarkFailedXrt(out, "cannot create output buffer");
+        return 0;
+    }
+    out->bufferActive = 1;
+    if ( !xrtBufferReserve(&out->buffer, XL6_OUTPUT_BUFFER_STEP) ) {
+        xl6OutputMarkFailedXrt(out, "cannot reserve output buffer");
+        xrtBufferUnit(&out->buffer);
+        out->bufferActive = 0;
         return 0;
     }
 
     if ( path == NULL ) {
         xl6OutputMarkFailedText(out, "output path is empty");
-        xrtBufferDestroy(out->buffer);
-        out->buffer = NULL;
+        xrtBufferUnit(&out->buffer);
+        out->bufferActive = 0;
         return 0;
     }
 
-    out->path = xrtCopyStr((char*)path, strlen(path));
+    out->path = xrtStrDupN(path, strlen(path));
     if ( out->path == NULL ) {
         xl6OutputMarkFailedXrt(out, "cannot copy output path");
-        xrtBufferDestroy(out->buffer);
-        out->buffer = NULL;
+        xrtBufferUnit(&out->buffer);
+        out->bufferActive = 0;
         return 0;
     }
     return 1;
@@ -171,12 +179,20 @@ int xl6OutputOpenMemory(XL6_Output* out)
     out->kind = XL6_OUTPUT_BUFFER_MEMORY;
     out->stdFile = NULL;
     out->path = NULL;
-    out->buffer = xrtBufferCreate(XL6_OUTPUT_BUFFER_STEP);
-    out->error = NULL;
+    memset(&out->buffer, 0, sizeof(out->buffer));
+    out->error[0] = '\0';
+    out->bufferActive = 0;
     out->failed = 0;
 
-    if ( out->buffer == NULL ) {
+    if ( !xrtBufferInit(&out->buffer) ) {
         xl6OutputMarkFailedXrt(out, "cannot create output buffer");
+        return 0;
+    }
+    out->bufferActive = 1;
+    if ( !xrtBufferReserve(&out->buffer, XL6_OUTPUT_BUFFER_STEP) ) {
+        xl6OutputMarkFailedXrt(out, "cannot reserve output buffer");
+        xrtBufferUnit(&out->buffer);
+        out->bufferActive = 0;
         return 0;
     }
     return 1;
@@ -190,17 +206,17 @@ char* xl6OutputTakeMemoryText(XL6_Output* out, size_t* outSize)
     if ( outSize != NULL ) {
         *outSize = 0;
     }
-    if ( out == NULL || out->kind != XL6_OUTPUT_BUFFER_MEMORY || out->failed || out->buffer == NULL ) {
+    if ( out == NULL || out->kind != XL6_OUTPUT_BUFFER_MEMORY || out->failed || !out->bufferActive ) {
         return NULL;
     }
-    len = out->buffer->Length;
+    len = out->buffer.Size;
     text = (char*)xrtMalloc(len + 1);
     if ( text == NULL ) {
         xl6OutputMarkFailedXrt(out, "cannot copy output buffer");
         return NULL;
     }
     if ( len > 0 ) {
-        memcpy(text, out->buffer->Buffer, len);
+        memcpy(text, out->buffer.Data, len);
     }
     text[len] = '\0';
     if ( outSize != NULL ) {
@@ -220,17 +236,17 @@ void xl6OutputClose(XL6_Output* out)
         }
         xrtFree(out->path);
         out->path = NULL;
-        xrtBufferDestroy(out->buffer);
-        out->buffer = NULL;
+        xrtBufferUnit(&out->buffer);
+        out->bufferActive = 0;
     } else if ( out->kind == XL6_OUTPUT_BUFFER_STD_FILE ) {
         if ( !out->failed && !xl6OutputFlushBufferStdFile(out) ) {
             out->failed = 1;
         }
-        xrtBufferDestroy(out->buffer);
-        out->buffer = NULL;
+        xrtBufferUnit(&out->buffer);
+        out->bufferActive = 0;
     } else if ( out->kind == XL6_OUTPUT_BUFFER_MEMORY ) {
-        xrtBufferDestroy(out->buffer);
-        out->buffer = NULL;
+        xrtBufferUnit(&out->buffer);
+        out->bufferActive = 0;
     } else if ( out->kind == XL6_OUTPUT_STD_FILE && out->stdFile != NULL ) {
         fflush(out->stdFile);
     }
@@ -244,7 +260,7 @@ int xl6OutputHasFailed(const XL6_Output* out)
 
 const char* xl6OutputError(const XL6_Output* out)
 {
-    if ( out == NULL || out->error == NULL || out->error[0] == '\0' ) {
+    if ( out == NULL || out->error[0] == '\0' ) {
         return "output failed";
     }
     return out->error;
@@ -252,6 +268,7 @@ const char* xl6OutputError(const XL6_Output* out)
 
 int xl6OutputPuts(const char* text, XL6_Output* out)
 {
+    xbytesview data;
     size_t len;
 
     if ( out == NULL || out->failed ) {
@@ -265,7 +282,9 @@ int xl6OutputPuts(const char* text, XL6_Output* out)
     }
 
     if ( out->kind == XL6_OUTPUT_BUFFER_FILE || out->kind == XL6_OUTPUT_BUFFER_STD_FILE || out->kind == XL6_OUTPUT_BUFFER_MEMORY ) {
-        if ( out->buffer == NULL || len > 0xFFFFFFFFu || !xrtBufferAppend(out->buffer, (char*)text, (uint32)len, XBUF_BINARY) ) {
+        data.Data = (const unsigned char*)text;
+        data.Size = len;
+        if ( !out->bufferActive || !xrtBufferAppend(&out->buffer, data) ) {
             xl6OutputMarkFailedXrt(out, "cannot append output buffer");
             return EOF;
         }
@@ -281,22 +300,22 @@ int xl6OutputPuts(const char* text, XL6_Output* out)
 
 int xl6OutputPutc(int ch, XL6_Output* out)
 {
-    char text[1];
+    unsigned char byte;
 
     if ( out == NULL || out->failed ) {
         return EOF;
     }
 
-    text[0] = (char)ch;
     if ( out->kind == XL6_OUTPUT_BUFFER_FILE || out->kind == XL6_OUTPUT_BUFFER_STD_FILE || out->kind == XL6_OUTPUT_BUFFER_MEMORY ) {
-        if ( out->buffer == NULL || !xrtBufferAppend(out->buffer, text, 1, XBUF_BINARY) ) {
+        if ( !out->bufferActive || !xrtBufferAppendByte(&out->buffer, (uint8)ch) ) {
             xl6OutputMarkFailedXrt(out, "cannot append output buffer");
             return EOF;
         }
         return ch;
     }
 
-    if ( out->stdFile == NULL || fwrite(text, 1, 1, out->stdFile) != 1 ) {
+    byte = (unsigned char)ch;
+    if ( out->stdFile == NULL || fwrite(&byte, 1, 1, out->stdFile) != 1 ) {
         xl6OutputMarkFailed(out);
         return EOF;
     }

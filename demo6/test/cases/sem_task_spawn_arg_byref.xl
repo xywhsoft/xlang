@@ -1,0 +1,3 @@
+func(byref int) job
+int value = 1
+task.spawn(job, value)

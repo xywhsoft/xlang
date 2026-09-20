@@ -143,7 +143,7 @@ static char* xl6TypeStringBuilderTake(XL6_TypeStringBuilder* builder)
         return NULL;
     }
     if ( builder->data == NULL ) {
-        builder->data = xrtCopyStr("", 0);
+        builder->data = xrtStrDup("");
         builder->capacity = builder->data != NULL ? 1 : 0;
         builder->ok = builder->data != NULL;
     }
@@ -174,6 +174,16 @@ static void xl6TypeAppendCanonicalBody(XL6_TypeStringBuilder* builder, const XL6
             for ( i = 0; i < args->childCount; ++i ) {
                 if ( i > 0 ) {
                     xl6TypeStringBuilderAppendChar(builder, ',');
+                }
+                if ( args->children[i] != NULL &&
+                     (args->children[i]->flags & XL6_AST_FLAG_BYVAL) != 0 ) {
+                    xl6TypeStringBuilderAppend(builder, "byval ");
+                } else if ( args->children[i] != NULL &&
+                            (args->children[i]->flags & XL6_AST_FLAG_BYREF) != 0 ) {
+                    xl6TypeStringBuilderAppend(builder, "byref ");
+                } else if ( args->children[i] != NULL &&
+                            (args->children[i]->flags & XL6_AST_FLAG_OUT) != 0 ) {
+                    xl6TypeStringBuilderAppend(builder, "out ");
                 }
                 xl6TypeAppendCanonicalBody(builder, root, args->children[i]);
             }

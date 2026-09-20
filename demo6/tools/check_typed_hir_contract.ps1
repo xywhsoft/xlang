@@ -35,7 +35,11 @@ if ( $directAstTypeReads.Count -ne 0 ) {
 }
 
 $rawTypeCalls = @($cgenFiles | Select-String -SimpleMatch "xl6CgenCloneExprTypeForInferenceRaw(")
-$rawCallers = @($rawTypeCalls | Where-Object { $_.Path -notlike "*\xl6_cgen_type_hir.c" -and $_.Path -notlike "*\xl6_cgen_type_infer.c" })
+$rawTypeFiles = @(
+    (Join-Path $cgenDir "xl6_cgen_type_hir.c"),
+    (Join-Path $cgenDir "xl6_cgen_type_infer_expr.c")
+)
+$rawCallers = @($rawTypeCalls | Where-Object { $rawTypeFiles -notcontains $_.Path })
 if ( $rawCallers.Count -ne 0 ) {
     foreach ( $match in $rawCallers ) {
         Add-Failure "raw cgen type inference escaped the typed HIR gateway: $($match.Path):$($match.LineNumber)"
@@ -82,8 +86,22 @@ foreach ( $required in @(
 }
 
 $compileUnit = Read-Utf8 "src\compile\xl6_compile_unit.c"
-if ( ([regex]::Matches($compileUnit, 'xl6HirBuildModule\(&unit->hir')).Count -lt 2 ) {
-    Add-Failure "check/cgen compile-unit paths do not both build verified typed HIR"
+if ( ([regex]::Matches($compileUnit, 'xl6IrBuildModuleFromAst\(&unit->ir')).Count -lt 2 ) {
+    Add-Failure "file/source compile-unit paths do not both build verified typed XLIR"
+}
+if ( $compileUnit.Contains('xl6HirBuildModule(&unit->hir') ) {
+    Add-Failure "compile-unit loading eagerly rebuilds the retired legacy HIR"
+}
+
+$api = Read-Utf8 "src\api\xl_api.c"
+foreach ( $required in @(
+    "HIR is no longer a compile-unit prerequisite",
+    "xlEnsureUnitLegacyHir", 'unit->phase = "legacy-hir"',
+    "xl6HirBuildModule(&unit->hir"
+) ) {
+    if ( ! $api.Contains($required) ) {
+        Add-Failure "legacy Cgen no longer isolates lazy typed HIR construction: $required"
+    }
 }
 
 $sem = Read-Utf8 "src\sem\xl6_sem.c"
@@ -103,5 +121,5 @@ if ( $failures.Count -ne 0 ) {
     exit 1
 }
 
-Write-Host "Typed HIR contract ok: semantic/storage types, nullable identity, verifier, flow merges and cgen gateway are guarded."
+Write-Host "Typed IR contract ok: compile units build XLIR eagerly; retired HIR is isolated behind the explicit legacy Cgen boundary."
 exit 0

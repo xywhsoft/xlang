@@ -1,3 +1,78 @@
+static int xl6CgenErrorAssignStmt(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* left,
+    const char* op,
+    const XL6_AstNode* right,
+    XL6_SemLvalueKind lvalueKind)
+{
+    const XL6_AstNode* targetType;
+    XL6_AstNode* ownedTargetType;
+    int id;
+    char slotName[64];
+    char valueName[64];
+
+    if ( ctx == NULL || left == NULL ||
+         (!xl6CTextEquals(op, "=") && !xl6CTextEquals(op, "?=")) ) {
+        return 0;
+    }
+
+    ownedTargetType = NULL;
+    if ( left->kind == XL6_AST_NAME ) {
+        targetType = xl6CgenNameAssignTargetType(ctx, left->text);
+    } else if ( left->kind == XL6_AST_MEMBER &&
+                lvalueKind == XL6_SEM_LVALUE_FIELD ) {
+        ownedTargetType = xl6CgenCloneMemberFieldTypeForInference(ctx, left);
+        targetType = ownedTargetType;
+    } else {
+        return 0;
+    }
+    if ( !xl6CgenIsErrorType(ctx, targetType) ) {
+        xl6AstFree(ownedTargetType);
+        return 0;
+    }
+
+    id = ctx->tempId++;
+    snprintf(slotName, sizeof(slotName), "__xl6_error_slot_%d", id);
+    snprintf(valueName, sizeof(valueName), "__xl6_error_value_%d", id);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "XL6_Error** %s = &(", slotName);
+    if ( left->kind == XL6_AST_NAME ) {
+        char targetName[512];
+
+        xl6CgenNameAssignTargetPath(ctx, left->text, targetName, sizeof(targetName));
+        xl6OutputPuts(targetName, ctx->out);
+    } else {
+        xl6CgenExpr(ctx, left);
+    }
+    xl6OutputPuts(");\n", ctx->out);
+
+    if ( xl6CTextEquals(op, "?=") ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (*%s == 0) {\n", slotName);
+        ctx->indent += 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "*%s = ", slotName);
+        xl6CgenErrorOwnedExpr(ctx, right);
+        xl6OutputPuts(";\n", ctx->out);
+        ctx->indent -= 1;
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("}\n", ctx->out);
+        xl6AstFree(ownedTargetType);
+        return 1;
+    }
+
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "XL6_Error* %s = ", valueName);
+    xl6CgenErrorOwnedExpr(ctx, right);
+    xl6OutputPuts(";\n", ctx->out);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "xl6_error_free(*%s);\n", slotName);
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "*%s = %s;\n", slotName, valueName);
+    xl6AstFree(ownedTargetType);
+    return 1;
+}
+
 static void xl6CgenAssignStmtPlanned(
     XL6_CgenContext* ctx,
     const XL6_AstNode* node,
@@ -61,6 +136,9 @@ static void xl6CgenAssignStmtPlanned(
         xl6CgenError(ctx, left, "typed HIR 属性赋值计划无法生成");
         return;
     }
+    if ( xl6CgenErrorAssignStmt(ctx, left, op, right, lvalueKind) ) {
+        return;
+    }
     if ( xl6CgenTypedContainerCompoundAssignStmt(ctx, left, op, right) ) {
         return;
     }
@@ -105,7 +183,7 @@ static void xl6CgenAssignStmtPlanned(
                 valueName,
                 xl6CgenIsNullableStringTypeNode(ctx, fieldType) ?
                     "xl6_nullable_string_copy" :
-                    "xrtCopyStr");
+                    "xl6_xrt_string_dup");
             xl6CgenStringSourceExpr(ctx, fieldType, right);
             xl6OutputPuts(
                 xl6CgenIsNullableStringTypeNode(ctx, fieldType) ?
@@ -126,20 +204,25 @@ static void xl6CgenAssignStmtPlanned(
 
             snprintf(slotName, sizeof(slotName), "__xl6_weak_field_slot_%d", id);
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xrt_value_weak* %s = &(", slotName);
+            xl6OutputPrintf(ctx->out, "xl6_weak* %s = &(", slotName);
             xl6CgenExpr(ctx, left);
             xl6OutputPuts(");\n", ctx->out);
 
             sourceType = xl6CgenCloneExprTypeForInference(ctx, right);
             xl6CgenIndent(ctx);
             if ( right == NULL || right->kind == XL6_AST_NULL ) {
-                xl6OutputPrintf(ctx->out, "xvoWeakSet(%s, 0);\n", slotName);
+                xl6OutputPrintf(ctx->out, "xl6WeakSet(%s, 0);\n", slotName);
+            } else if ( xl6CgenIsWeakType(sourceType) &&
+                        (right->kind == XL6_AST_CALL || right->kind == XL6_AST_AWAIT) ) {
+                xl6OutputPrintf(ctx->out, "xl6WeakTake(%s, ", slotName);
+                xl6CgenExpr(ctx, right);
+                xl6OutputPuts(");\n", ctx->out);
             } else if ( xl6CgenIsWeakType(sourceType) ) {
-                xl6OutputPrintf(ctx->out, "xvoWeakCopy(%s, &(", slotName);
+                xl6OutputPrintf(ctx->out, "xl6WeakCopy(%s, &(", slotName);
                 xl6CgenExpr(ctx, right);
                 xl6OutputPuts("));\n", ctx->out);
             } else {
-                xl6OutputPrintf(ctx->out, "xvoWeakSet(%s, ", slotName);
+                xl6OutputPrintf(ctx->out, "xl6WeakSet(%s, ", slotName);
                 xl6CgenExpr(ctx, right);
                 xl6OutputPuts(");\n", ctx->out);
             }
@@ -197,7 +280,7 @@ static void xl6CgenAssignStmtPlanned(
             xl6CgenTaggedEnumValueExpr(ctx, fieldType, right);
             xl6OutputPuts(";\n", ctx->out);
             xl6CgenIndent(ctx);
-            xl6OutputPuts("xrtTypeDropValue(", ctx->out);
+            xl6OutputPuts("xl6TypeDropValue(", ctx->out);
             xl6CgenEmitXrtTypeDescRef(ctx, fieldType);
             xl6OutputPrintf(ctx->out, ", %s);\n", slotName);
             xl6CgenIndent(ctx);
@@ -378,11 +461,9 @@ static void xl6CgenAssignStmtPlanned(
         unsigned int targetFlags = xl6CgenFindTrackedVarFlags(ctx, left->text);
         int targetBorrowed = (targetFlags & XL6_CGEN_VAR_BORROWED) != 0 &&
                              (targetFlags & (XL6_CGEN_VAR_BYREF | XL6_CGEN_VAR_OUT)) == 0;
-        int targetShared = (targetFlags & XL6_CGEN_VAR_MODULE_GLOBAL) != 0;
         int id = ctx->tempId++;
         char cName[512];
         char tempName[64];
-        char sourceName[64];
         char memberTempName[64];
         XL6_AstNode* memberFunctionType;
 
@@ -395,7 +476,6 @@ static void xl6CgenAssignStmtPlanned(
         }
         xl6CgenNameAssignTargetPath(ctx, left->text, cName, sizeof(cName));
         snprintf(tempName, sizeof(tempName), "__xl6_typed_container_assign_%d", id);
-        snprintf(sourceName, sizeof(sourceName), "__xl6_typed_container_source_%d", id);
         memberTempName[0] = '\0';
         memberFunctionType = NULL;
         if ( moveReturn ) {
@@ -405,25 +485,10 @@ static void xl6CgenAssignStmtPlanned(
                 xl6CgenEmitMemberFunctionStatementTemp(ctx, right, memberTempName);
             }
         }
-        if ( moveReturn && targetShared ) {
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, targetType), sourceName);
-            if ( memberFunctionType != NULL ) {
-                xl6CgenMemberFunctionStatementInvokeExpr(ctx, right, memberFunctionType, memberTempName);
-            } else {
-                xl6CgenExpr(ctx, right);
-            }
-            xl6OutputPuts(";\n", ctx->out);
-        }
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, targetType), tempName);
         if ( literal != NULL ) {
-            xl6CgenTypedContainerCreateExprMode(
-                ctx,
-                targetType,
-                targetShared ? "XRT_OBJMODE_SHARED" : "XRT_OBJMODE_LOCAL");
-        } else if ( moveReturn && targetShared ) {
-            xl6CgenTypedContainerCopyCExprMode(ctx, targetType, sourceName, "XRT_OBJMODE_SHARED");
+            xl6CgenTypedContainerCreateExpr(ctx, targetType);
         } else if ( moveReturn ) {
             if ( memberFunctionType != NULL ) {
                 xl6CgenMemberFunctionStatementInvokeExpr(ctx, right, memberFunctionType, memberTempName);
@@ -431,25 +496,13 @@ static void xl6CgenAssignStmtPlanned(
                 xl6CgenExpr(ctx, right);
             }
         } else if ( importDynamic ) {
-            xl6CgenTypedContainerImportDynamicExprMode(
-                ctx,
-                targetType,
-                right,
-                targetShared ? "XRT_OBJMODE_SHARED" : "XRT_OBJMODE_LOCAL");
+            xl6CgenTypedContainerImportDynamicExpr(ctx, targetType, right);
         } else {
-            if ( targetShared && !xl6CgenTypedContainerExprIsSharedStorage(ctx, right) ) {
-                xl6CgenTypedContainerCopyExprMode(ctx, targetType, right, "XRT_OBJMODE_SHARED");
-            } else {
             xl6CgenTypedContainerRetainExpr(ctx, targetType, right);
-            }
         }
         xl6OutputPuts(";\n", ctx->out);
         if ( importDynamic ) {
             xl6CgenTypedContainerImportCheckStmt(ctx, tempName, right);
-        }
-        if ( moveReturn && targetShared ) {
-            xl6CgenIndent(ctx);
-            xl6CgenTypedContainerDestroyValue(ctx, targetType, sourceName);
         }
         xl6AstFree(memberFunctionType);
         if ( literal != NULL ) {
@@ -503,7 +556,7 @@ static void xl6CgenAssignStmtPlanned(
             xl6CgenTaggedEnumValueExpr(ctx, targetType, right);
             xl6OutputPuts(";\n", ctx->out);
             xl6CgenIndent(ctx);
-            xl6OutputPuts("xrtTypeDropValue(", ctx->out);
+            xl6OutputPuts("xl6TypeDropValue(", ctx->out);
             xl6CgenEmitXrtTypeDescRef(ctx, targetType);
             xl6OutputPrintf(ctx->out, ", &%s);\n", targetName);
             xl6CgenIndent(ctx);
@@ -566,13 +619,18 @@ static void xl6CgenAssignStmtPlanned(
             sourceType = xl6CgenCloneExprTypeForInference(ctx, right);
             xl6CgenIndent(ctx);
             if ( right == NULL || right->kind == XL6_AST_NULL ) {
-                xl6OutputPrintf(ctx->out, "xvoWeakSet(&(%s), 0);\n", targetName);
+                xl6OutputPrintf(ctx->out, "xl6WeakSet(&(%s), 0);\n", targetName);
+            } else if ( xl6CgenIsWeakType(sourceType) &&
+                        (right->kind == XL6_AST_CALL || right->kind == XL6_AST_AWAIT) ) {
+                xl6OutputPrintf(ctx->out, "xl6WeakTake(&(%s), ", targetName);
+                xl6CgenExpr(ctx, right);
+                xl6OutputPuts(");\n", ctx->out);
             } else if ( xl6CgenIsWeakType(sourceType) ) {
-                xl6OutputPrintf(ctx->out, "xvoWeakCopy(&(%s), &(", targetName);
+                xl6OutputPrintf(ctx->out, "xl6WeakCopy(&(%s), &(", targetName);
                 xl6CgenExpr(ctx, right);
                 xl6OutputPuts("));\n", ctx->out);
             } else {
-                xl6OutputPrintf(ctx->out, "xvoWeakSet(&(%s), ", targetName);
+                xl6OutputPrintf(ctx->out, "xl6WeakSet(&(%s), ", targetName);
                 xl6CgenExpr(ctx, right);
                 xl6OutputPuts(");\n", ctx->out);
             }
@@ -624,9 +682,6 @@ static void xl6CgenAssignStmtPlanned(
             xl6CgenReleaseClassFunctionFieldsForType(ctx, targetType, cName);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s = %s;\n", cName, tempName);
-            if ( (xl6CgenFindTrackedVarFlags(ctx, left->text) & XL6_CGEN_VAR_MODULE_GLOBAL) != 0 ) {
-                xl6CgenClassValuePublishShared(ctx, targetType, cName);
-            }
             return;
         }
     }
@@ -657,7 +712,6 @@ static void xl6CgenAssignStmtPlanned(
         int id = ctx->tempId++;
         char cName[512];
         const XL6_AstNode* targetType = xl6CgenNameAssignTargetType(ctx, left->text);
-        int targetShared = (xl6CgenFindTrackedVarFlags(ctx, left->text) & XL6_CGEN_VAR_MODULE_GLOBAL) != 0;
 
         xl6CgenNameAssignTargetPath(ctx, left->text, cName, sizeof(cName));
 
@@ -667,18 +721,11 @@ static void xl6CgenAssignStmtPlanned(
             snprintf(assignName, sizeof(assignName), "__xl6_assign_%d", id);
             xl6CgenXValueLocalInitStmt(ctx, targetType, assignName, right);
         }
-        if ( targetShared ) {
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out,
-                            "__xl6_assign_%d = xl6_xrt_move_to_shared(__xl6_assign_%d);\n",
-                            id,
-                            id);
-        }
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", cName);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", cName);
+        xl6OutputPrintf(ctx->out, "xrtValueRelease(%s);\n", cName);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("}\n", ctx->out);
@@ -705,7 +752,7 @@ static void xl6CgenAssignStmtPlanned(
             id,
             nullableString ?
                 "xl6_nullable_string_copy" :
-                "xrtCopyStr");
+                "xl6_xrt_string_dup");
         xl6CgenStringSourceExpr(ctx, targetType, right);
         xl6OutputPuts(nullableString ? ");\n" : ", 0u);\n", ctx->out);
         if ( !nullableString ) {
@@ -745,28 +792,20 @@ static void xl6CgenAssignStmtPlanned(
             int id = ctx->tempId++;
             char cName[512];
             const XL6_AstNode* targetType = xl6CgenNameAssignTargetType(ctx, left->text);
-            int targetShared = (xl6CgenFindTrackedVarFlags(ctx, left->text) & XL6_CGEN_VAR_MODULE_GLOBAL) != 0;
 
             xl6CgenNameAssignTargetPath(ctx, left->text, cName, sizeof(cName));
-            xl6OutputPrintf(ctx->out, "if (xvoIsNull(%s)) {\n", cName);
+            xl6OutputPrintf(ctx->out, "if (xl6_xrt_value_is_null(%s)) {\n", cName);
             ctx->indent += 1;
             {
                 char assignName[64];
                 snprintf(assignName, sizeof(assignName), "__xl6_assign_%d", id);
                 xl6CgenXValueLocalInitStmt(ctx, targetType, assignName, right);
             }
-            if ( targetShared ) {
-                xl6CgenIndent(ctx);
-                xl6OutputPrintf(ctx->out,
-                                "__xl6_assign_%d = xl6_xrt_move_to_shared(__xl6_assign_%d);\n",
-                                id,
-                                id);
-            }
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", cName);
             ctx->indent += 1;
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", cName);
+            xl6OutputPrintf(ctx->out, "xrtValueRelease(%s);\n", cName);
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
@@ -797,7 +836,7 @@ static void xl6CgenAssignStmtPlanned(
         xl6OutputPuts(");\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out,
-                        "char* __xl6_string_value_%d = xrtCopyStr(xl6_xrt_str_concat(*__xl6_string_slot_%d, ",
+                        "char* __xl6_string_value_%d = xl6_xrt_string_dup(xl6_xrt_str_concat(*__xl6_string_slot_%d, ",
                         id,
                         id);
         xl6CgenExpr(ctx, right);
@@ -862,5 +901,9 @@ static void xl6CgenTimeLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
 
     body = text + 1;
     bodyLen = len - 2;
-    xl6OutputPrintf(ctx->out, "xrtStrToTime(\"%.*s\", %u)", (int)bodyLen, body, (unsigned int)bodyLen);
+    xl6OutputPrintf(ctx->out,
+        "xl6_xrt_time_parse_any_value(\"%.*s\", %u)",
+        (int)bodyLen,
+        body,
+        (unsigned int)bodyLen);
 }

@@ -1,0 +1,10 @@
+func xvalue_assign() as int
+    var first = 41
+    var second = 42
+    first = second
+    return 53
+end
+
+export "xlir_test_xvalue_assign_root" func xlir_test_root() as int
+    return xvalue_assign()
+end

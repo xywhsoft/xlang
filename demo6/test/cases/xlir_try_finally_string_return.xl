@@ -1,0 +1,23 @@
+int string_finally_trace = 0
+
+func string_return_through_finally() as string
+    string text = "managed"
+    try
+        return text
+    finally
+        string_finally_trace = string_finally_trace + 1
+    end
+end
+
+func string_return_through_finally_check() as int
+    string value = string_return_through_finally()
+    if value == "managed" then
+        return string_finally_trace
+    end
+    return 0
+end
+
+
+if false
+    string_return_through_finally_check()
+end

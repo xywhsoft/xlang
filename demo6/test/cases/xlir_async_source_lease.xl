@@ -1,0 +1,106 @@
+extern "source_lease_input" func sourceLeaseInput() as future<int>
+extern "source_lease_string" func sourceLeaseString() as future<string>
+extern "source_lease_object" func sourceLeaseObject() as future<SourceLeaseBox>
+extern "source_lease_nested" func sourceLeaseNested() as future<future<int>>
+extern "source_lease_body" func sourceLeaseBody()
+extern "source_lease_finally" func sourceLeaseFinally()
+extern "source_lease_box_drop" func sourceLeaseBoxDrop()
+class SourceLeaseBox
+    int id = 17
+    destroy()
+        sourceLeaseBoxDrop()
+    end
+end
+export "source_lease_new" func sourceLeaseNew() as SourceLeaseBox
+    return SourceLeaseBox()
+end
+async func sourceLeaseInt(byval future<int> input) as int
+    try
+        int value = await input
+        sourceLeaseBody()
+        return value + 7
+    finally
+        sourceLeaseFinally()
+    end
+end
+async func sourceLeaseTemporary() as int
+    try
+        int value = await sourceLeaseInput()
+        sourceLeaseBody()
+        return value + 7
+    finally
+        sourceLeaseFinally()
+    end
+end
+async func sourceLeaseText(byval future<string> input) as string
+    try
+        string value = await input
+        sourceLeaseBody()
+        return value
+    finally
+        sourceLeaseFinally()
+    end
+end
+async func sourceLeaseValue(byval future<SourceLeaseBox> input) as SourceLeaseBox
+    try
+        SourceLeaseBox value = await input
+        sourceLeaseBody()
+        return value
+    finally
+        sourceLeaseFinally()
+    end
+end
+async func sourceLeaseFuture(byval future<future<int>> input) as int
+    try
+        future<int> nested = await input
+        int value = await nested
+        sourceLeaseBody()
+        return value + 7
+    finally
+        sourceLeaseFinally()
+    end
+end
+async func sourceLeaseTemporaryText() as string
+    try
+        string value = await sourceLeaseString()
+        sourceLeaseBody()
+        return value
+    finally
+        sourceLeaseFinally()
+    end
+end
+async func sourceLeaseTemporaryValue() as SourceLeaseBox
+    try
+        SourceLeaseBox value = await sourceLeaseObject()
+        sourceLeaseBody()
+        return value
+    finally
+        sourceLeaseFinally()
+    end
+end
+async func sourceLeaseTemporaryFuture() as int
+    try
+        future<int> nested = await sourceLeaseNested()
+        int value = await nested
+        sourceLeaseBody()
+        return value + 7
+    finally
+        sourceLeaseFinally()
+    end
+end
+export "source_lease_keep" func sourceLeaseKeep()
+    auto a = sourceLeaseInt(sourceLeaseInput())
+    auto b = sourceLeaseTemporary()
+    auto c = sourceLeaseText(sourceLeaseString())
+    auto d = sourceLeaseValue(sourceLeaseObject())
+    auto e = sourceLeaseFuture(sourceLeaseNested())
+    auto f = sourceLeaseTemporaryText()
+    auto g = sourceLeaseTemporaryValue()
+    auto h = sourceLeaseTemporaryFuture()
+    auto entry = sourceLeaseEntry("first", null, SourceLeaseBox(), "last")
+end
+
+func sourceLeaseEntry(string first, string? second, byval SourceLeaseBox owned, string last) as int
+    sourceLeaseBody()
+    return 42
+end

@@ -1,0 +1,30 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+time parsed = time("2026-06-18")
+string rendered = string(parsed)
+var boxed = #2026-06-18 12:30:59#
+time projected = time(boxed)
+
+expect(parsed == #2026-06-18#, 1)
+expectStr(rendered, "2026-06-18 00:00:00")
+expect(projected == #2026-06-18 12:30:59#, 1)
+
+export "xlir_test_invalid_time_string_recovered" func invalidTimeStringRecovered() as int
+    try
+        time ignored = time("not-a-time")
+        return 0
+    catch ValueError ignored
+        return 73
+    end
+end
+
+export "xlir_test_invalid_dynamic_time_recovered" func invalidDynamicTimeRecovered() as int
+    var value = 19
+    try
+        time ignored = time(value)
+        return 0
+    catch TypeError ignored
+        return 91
+    end
+end

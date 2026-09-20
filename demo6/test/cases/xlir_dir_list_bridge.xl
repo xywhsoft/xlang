@@ -1,0 +1,1 @@
+assert dir.list("build/test/xlir_absent_directory_probe").length == 0

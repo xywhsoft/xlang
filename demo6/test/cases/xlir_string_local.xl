@@ -1,0 +1,4 @@
+export "xlir_test_string_local" func string_local() as int
+    string text = "managed"
+    return 42
+end

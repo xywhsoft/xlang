@@ -1,0 +1,30 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectString(string actual, string expected)
+
+dict<int> signedValues = dict{"answer": 42}
+dict<uint64> unsignedValues = dict{"small": uint64(17)}
+dict<bool> flags = dict{"off": false, "on": true}
+dict<float> weights = dict{"half": 1.5}
+dict<string> labels = dict{"name": "xlir"}
+
+expect(signedValues["answer"], 42)
+expect(int(unsignedValues["small"]), 17)
+expect(int(flags["off"]), 0)
+expect(int(flags["on"]), 1)
+if weights["half"] < 1.49 or weights["half"] > 1.51
+    expect(0, 1)
+end
+expectString(labels["name"], "xlir")
+
+expect(int(signedValues?["answer"] ?? 0), 42)
+expect(int(signedValues?["missing"] ?? 9), 9)
+expect(int(flags?["on"] ?? false), 1)
+expect(int(flags?["missing"] ?? false), 0)
+float safeWeight = weights?["half"] ?? 0.0
+float missingWeight = weights?["missing"] ?? 2.5
+if safeWeight < 1.49 or safeWeight > 1.51
+    expect(0, 1)
+end
+if missingWeight < 2.49 or missingWeight > 2.51
+    expect(0, 1)
+end

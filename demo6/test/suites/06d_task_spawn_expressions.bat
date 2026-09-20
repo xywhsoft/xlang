@@ -29,7 +29,7 @@ release\xl.exe run test\cases\cgen_task_literal_single_eval.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_task_literal_single_eval.xl --emit build\test\cgen_task_literal_single_eval.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_task_literal_single_eval.c',[Text.Encoding]::UTF8); foreach($value in 91001..91004){ $needle='xvoCreateInt\(\(long long\)\('+$value+'LL\)\)'; if(([regex]::Matches($text,$needle)).Count -ne 1){ exit 1 } }; if($text -match 'xrtTypedArrayCreate\(xrtTypeFuture\(\), XRT_OBJMODE_LOCAL\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[IO.File]::ReadAllText('build\test\cgen_task_literal_single_eval.c',[Text.Encoding]::UTF8); foreach($value in 91001..91004){ $needle='xrtValueInt\(\(long long\)\('+$value+'LL\)\)'; if(([regex]::Matches($text,$needle)).Count -ne 1){ exit 1 } }; if($text -match 'xl6TypedArrayCreate\(xl6TypeFuture\(\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_literal_single_eval.c should evaluate each task literal element exactly once without a dead temporary array.
     exit /b 1
@@ -53,7 +53,7 @@ if errorlevel 1 (
     echo cgen_task_spawn_fstring.c missing lowered f-string task.spawn argument.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn_fstring.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xtarray\s+(__xl6_call_arg_\d+)\s*=\s*0;[\s\S]*?sumSpawnItems\(\1\)[\s\S]*?xrtTypedArrayDestroy\(\1\)' -or $text -notmatch 'xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -match 'xvalue\s+__xl6_call_arg_'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn_fstring.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xtarray\s+(__xl6_call_arg_\d+)\s*=\s*0;[\s\S]*?sumSpawnItems\(\1\)[\s\S]*?xl6TypedArrayRelease\(\1\)' -or $text -notmatch 'xl6_task_spawn_values\(varArgJob,[\s\S]*?__xl6_task_arg_' -or $text -match 'xvalue\*\s+__xl6_call_arg_'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn_fstring.c missing nested ordinary/task.spawn replacement composition.
     exit /b 1

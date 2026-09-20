@@ -1,0 +1,4 @@
+var callable = xcall(func() as int
+    return 42
+end)
+assert int(callable()) == 42

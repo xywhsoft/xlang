@@ -1,0 +1,11 @@
+extern "xlir_make_i64_future" func makeFuture() as future<int>
+
+async func addOffset(future<int> source) as int
+    int offset = 1
+    return await source + offset
+end
+
+future<int> source = makeFuture()
+future<int> pending = addOffset(source)
+int completed = await pending
+assert completed == 42

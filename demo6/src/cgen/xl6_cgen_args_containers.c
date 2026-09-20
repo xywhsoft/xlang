@@ -56,7 +56,7 @@ static int xl6CgenContainsXValueCallStmt(XL6_CgenContext* ctx, const char* funcN
         xl6OutputPuts("{\n", ctx->out);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue __xl6_in_values_%d = ", id);
+        xl6OutputPrintf(ctx->out, "xvalue* __xl6_in_values_%d = ", id);
         xl6CgenXValueFromExpr(ctx, values);
         xl6OutputPuts(";\n", ctx->out);
         xl6CgenIndent(ctx);
@@ -67,7 +67,7 @@ static int xl6CgenContainsXValueCallStmt(XL6_CgenContext* ctx, const char* funcN
         xl6OutputPrintf(ctx->out, "if (__xl6_in_values_%d != 0) {\n", id);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_in_values_%d);\n", id);
+        xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_in_values_%d);\n", id);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("}\n", ctx->out);
@@ -92,7 +92,7 @@ static int xl6CgenContainsXValueCallStmt(XL6_CgenContext* ctx, const char* funcN
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_in_values_%d = ", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_in_values_%d = ", id);
     xl6CgenExpr(ctx, values);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -103,7 +103,7 @@ static int xl6CgenContainsXValueCallStmt(XL6_CgenContext* ctx, const char* funcN
     xl6OutputPrintf(ctx->out, "if (__xl6_in_values_%d != 0) {\n", id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_in_values_%d);\n", id);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_in_values_%d);\n", id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -125,7 +125,7 @@ static void xl6CgenDictContainsKeyExpr(XL6_CgenContext* ctx, const XL6_AstNode* 
     }
 
     if ( xl6CgenExprIsXValueBorrow(ctx, values) ) {
-        xl6OutputPuts("xvoTableExists(", ctx->out);
+        xl6OutputPuts("xl6_xrt_value_object_has(", ctx->out);
         xl6CgenExpr(ctx, values);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenExpr(ctx, key);
@@ -154,18 +154,18 @@ static int xl6CgenDictContainsKeyStmt(XL6_CgenContext* ctx, const XL6_AstNode* v
         xl6OutputPuts("{\n", ctx->out);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue __xl6_in_values_%d = ", id);
+        xl6OutputPrintf(ctx->out, "xvalue* __xl6_in_values_%d = ", id);
         xl6CgenXValueFromExpr(ctx, values);
         xl6OutputPuts(";\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xvoTableExists(__xl6_in_values_%d, ", targetName, id);
+        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_value_object_has(__xl6_in_values_%d, ", targetName, id);
         xl6CgenExpr(ctx, key);
         xl6OutputPuts(", 0);\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (__xl6_in_values_%d != 0) {\n", id);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_in_values_%d);\n", id);
+        xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_in_values_%d);\n", id);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("}\n", ctx->out);
@@ -177,7 +177,7 @@ static int xl6CgenDictContainsKeyStmt(XL6_CgenContext* ctx, const XL6_AstNode* v
 
     if ( xl6CgenExprIsXValueBorrow(ctx, values) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xvoTableExists(", targetName);
+        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_value_object_has(", targetName);
         xl6CgenExpr(ctx, values);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenExpr(ctx, key);
@@ -190,18 +190,18 @@ static int xl6CgenDictContainsKeyStmt(XL6_CgenContext* ctx, const XL6_AstNode* v
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_in_values_%d = ", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_in_values_%d = ", id);
     xl6CgenExpr(ctx, values);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = xvoTableExists(__xl6_in_values_%d, ", targetName, id);
+    xl6OutputPrintf(ctx->out, "%s = xl6_xrt_value_object_has(__xl6_in_values_%d, ", targetName, id);
     xl6CgenExpr(ctx, key);
     xl6OutputPuts(", 0);\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (__xl6_in_values_%d != 0) {\n", id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_in_values_%d);\n", id);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_in_values_%d);\n", id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -263,7 +263,7 @@ static int xl6CgenTypedContainerContainsExpr(
             xl6CgenError(ctx, item, "dict membership requires a string key");
             xl6OutputPuts("0", ctx->out);
         } else {
-            xl6OutputPuts("xrtTypedDictExists(", ctx->out);
+            xl6OutputPuts("xl6TypedDictExists(", ctx->out);
             xl6CgenExpr(ctx, values);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, item);
@@ -424,11 +424,11 @@ static int xl6CgenTryInExprStmt(XL6_CgenContext* ctx, const XL6_AstNode* node, c
             xl6OutputPrintf(ctx->out, "%s = 0;\n", targetName);
         } else {
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = (xrtFindStr(", targetName);
+            xl6OutputPrintf(ctx->out, "%s = xrtStrContains(xrtStrView(", targetName);
             xl6CgenExpr(ctx, right);
-            xl6OutputPuts(", 0, ", ctx->out);
+            xl6OutputPuts("), xrtStrView(", ctx->out);
             xl6CgenExpr(ctx, left);
-            xl6OutputPuts(", 0, false) != 0);\n", ctx->out);
+            xl6OutputPuts("));\n", ctx->out);
         }
         xl6AstFree(rightType);
         return 1;
@@ -519,11 +519,11 @@ static void xl6CgenInExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6CgenError(ctx, node, "字符串 in 判断左侧必须是 string");
             xl6OutputPuts("0", ctx->out);
         } else {
-            xl6OutputPuts("(xrtFindStr(", ctx->out);
+            xl6OutputPuts("xrtStrContains(xrtStrView(", ctx->out);
             xl6CgenExpr(ctx, right);
-            xl6OutputPuts(", 0, ", ctx->out);
+            xl6OutputPuts("), xrtStrView(", ctx->out);
             xl6CgenExpr(ctx, left);
-            xl6OutputPuts(", 0, false) != 0)", ctx->out);
+            xl6OutputPuts("))", ctx->out);
         }
         xl6AstFree(rightType);
         return;
@@ -664,7 +664,7 @@ static void xl6CgenTypedLiteralExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
         xl6CgenDictLiteralExpr(ctx, literal);
     } else {
         xl6CgenError(ctx, node, "unknown typed container literal prefix");
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
     }
 }
 
@@ -804,11 +804,11 @@ static int xl6CgenFixedParamXValueConvertArgExpr(XL6_CgenContext* ctx, const XL6
     }
 
     if ( xl6CgenIsIntegerTypeName(target) ) {
-        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetInt", expr);
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xl6_xrt_value_int", expr);
     } else if ( xl6CgenIsFloatTypeName(target) ) {
-        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetFloat", expr);
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xl6_xrt_value_float", expr);
     } else if ( xl6CgenIsBoolTypeName(target) ) {
-        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetBool", expr);
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xl6_xrt_value_bool", expr);
     } else if ( xl6CTextEquals(target, "string") ) {
         if ( xl6CgenExprIsXValueBorrow(ctx, expr) ) {
             xl6OutputPuts("xl6_xrt_value_to_string(", ctx->out);
@@ -818,9 +818,9 @@ static int xl6CgenFixedParamXValueConvertArgExpr(XL6_CgenContext* ctx, const XL6
         xl6CgenExpr(ctx, expr);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(target, "time") ) {
-        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetTime", expr);
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xl6_xrt_value_time", expr);
     } else if ( xl6CTextEquals(target, "point") ) {
-        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetPoint", expr);
+        xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xl6_xrt_value_pointer", expr);
     } else {
         return 0;
     }
@@ -830,7 +830,7 @@ static int xl6CgenFixedParamXValueConvertArgExpr(XL6_CgenContext* ctx, const XL6
 
 /*
     string 的所有入口都先把动态值解箱为文本，再由调用方复制或接管。
-    不能把 xvalue 句柄直接当作 const char* 交给 XRT。
+    不能把 xvalue* 句柄直接当作 const char* 交给 XRT。
 */
 static void xl6CgenStringSourceExpr(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr)
 {
@@ -841,7 +841,7 @@ static void xl6CgenStringSourceExpr(XL6_CgenContext* ctx, const XL6_AstNode* tar
 
 /*
     普通函数与函数值调用必须共用同一套参数所有权规则。
-    尤其是 var 实参，需要为被调函数移交一个 owned xvalue 引用。
+    尤其是 var 实参，需要为被调函数移交一个 owned xvalue* 引用。
 */
 static void xl6CgenFixedTypeArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr)
 {
@@ -880,6 +880,11 @@ static void xl6CgenFixedTypeArgExpr(XL6_CgenContext* ctx, const XL6_AstNode* tar
             直接走普通表达式会把命名函数原文写进 C，既没有符号改写，也没有签名适配。
         */
         xl6CgenFunctionOwnedValueExpr(ctx, expr, canonicalType);
+        xl6AstFree(canonicalType);
+        return;
+    }
+    if ( canonicalType != NULL && xl6CgenIsErrorType(ctx, canonicalType) ) {
+        xl6CgenErrorOwnedExpr(ctx, expr);
         xl6AstFree(canonicalType);
         return;
     }
@@ -1017,8 +1022,49 @@ static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, 
             xl6CgenDictVarargExpr(ctx, params, args, fixedCount);
         } else {
             xl6CgenError(ctx, vararg, "未知可变参数类型");
-            xl6OutputPuts("xvoCreateNull()", ctx->out);
+            xl6OutputPuts("xrtValueNull()", ctx->out);
         }
+    }
+}
+
+/*
+    native-backed create 等表达式会直接调用裸 C 符号，不能沿用内部
+    XL6_Function 参数布局。这里只处理已经通过语义检查的固定 C ABI 参数。
+*/
+static void xl6CgenKnownCAbiCallArgs(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* func,
+    const XL6_AstNode* args)
+{
+    const XL6_AstNode* params;
+    int fixedCount;
+    int i;
+
+    params = func != NULL && func->childCount > 1 ? func->children[1] : NULL;
+    fixedCount = xl6CgenFixedParamCount(params);
+    for ( i = 0; i < fixedCount; ++i ) {
+        const XL6_AstNode* param = params->children[i];
+        const XL6_AstNode* expr = xl6CgenFindArgForParam(args, param->text, i);
+
+        if ( i > 0 ) {
+            xl6OutputPuts(", ", ctx->out);
+        }
+        if ( expr == NULL && param->childCount > 1 ) {
+            expr = param->children[1];
+        }
+        if ( expr == NULL ) {
+            xl6CgenError(ctx, param, "missing required C ABI argument");
+            xl6OutputPuts("0", ctx->out);
+            continue;
+        }
+        if ( param->childCount > 0 && xl6CgenIsFunctionType(param->children[0]) &&
+             xl6CgenEmitCAbiCallbackArgument(ctx, param->children[0], expr) ) {
+            continue;
+        }
+        xl6CgenKnownFixedParamArgExpr(ctx, func, param, expr);
+    }
+    if ( params != NULL && params->childCount > (size_t)fixedCount ) {
+        xl6CgenError(ctx, params, "raw C ABI constructor does not support xlang varargs");
     }
 }
 

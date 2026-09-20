@@ -1,0 +1,123 @@
+export "xlir_u64_dynamic_roundtrip" func dynamicRoundtrip() as uint64
+    uint64 maximum = 18446744073709551615
+    var boxed = maximum
+    return uint64(boxed)
+end
+
+export "xlir_u64_dynamic_text" func dynamicText() as bool
+    uint64 maximum = 18446744073709551615
+    var boxed = maximum
+    return string(boxed) == "18446744073709551615"
+end
+
+export "xlir_u64_dynamic_add" func dynamicAdd() as uint64
+    uint64 maximum = 18446744073709551615
+    uint64 two = 2
+    var left = maximum
+    var right = two
+    var result = left + right
+    return uint64(result)
+end
+
+export "xlir_u64_dynamic_sub" func dynamicSub() as uint64
+    uint64 zero = 0
+    uint64 one = 1
+    var left = zero
+    var right = one
+    var result = left - right
+    return uint64(result)
+end
+
+export "xlir_u64_dynamic_mul" func dynamicMul() as uint64
+    uint64 maximum = 18446744073709551615
+    uint64 two = 2
+    var left = maximum
+    var right = two
+    var result = left * right
+    return uint64(result)
+end
+
+export "xlir_u64_dynamic_from_text" func dynamicFromText() as uint64
+    var text = "18446744073709551615"
+    return uint64(text)
+end
+
+export "xlir_u64_dynamic_from_i64" func dynamicFromI64(int value) as uint64
+    return uint64(value)
+end
+
+export "xlir_u64_dynamic_from_f64" func dynamicFromF64(float value) as uint64
+    return uint64(value)
+end
+
+export "xlir_u64_dynamic_to_i64_rejected" func dynamicToI64Rejected() as bool
+    uint64 maximum = 18446744073709551615
+    var boxed = maximum
+    bool caught = false
+    try
+        int ignored = int(boxed)
+    catch RangeError error
+        caught = true
+    end
+    return caught
+end
+
+export "xlir_u64_dynamic_array" func dynamicArray() as uint64
+    array<uint64> values = array[uint64(18446744073709551615)]
+    return values[0]
+end
+
+export "xlir_u64_dynamic_list" func dynamicList() as uint64
+    list<uint64> values = list[2: uint64(18446744073709551615)]
+    return values[2]
+end
+
+export "xlir_u64_dynamic_dict" func dynamicDict() as uint64
+    dict<uint64> values = dict{"maximum": uint64(18446744073709551615)}
+    return values["maximum"]
+end
+
+class U64Box
+    uint64 value
+end
+
+export "xlir_u64_dynamic_class" func dynamicClass() as uint64
+    U64Box value = U64Box()
+    value.value = 18446744073709551615
+    return value.value
+end
+
+export "xlir_u64_dynamic_negative_rejected" func dynamicNegativeRejected() as bool
+    var negative = -1
+    bool caught = false
+    try
+        uint64 ignored = uint64(negative)
+    catch RangeError error
+        caught = true
+    end
+    return caught
+end
+
+func identity(uint64 value) as uint64
+    return value
+end
+
+export "xlir_u64_dynamic_xcall" func dynamicXcall() as uint64
+    func(uint64) as uint64 typed = identity
+    var callable = xcall(typed)
+    uint64 maximum = 18446744073709551615
+    var result = callable(maximum)
+    return uint64(result)
+end
+
+export "xlir_u64_dynamic_task_all" uint64 taskAllValue = 0
+
+async func readyU64(uint64 value) as uint64
+    return value
+end
+
+array<uint64> aggregateValues = await task.all([
+    readyU64(18446744073709551615),
+    readyU64(9223372036854775808)
+])
+taskAllValue = aggregateValues[0]

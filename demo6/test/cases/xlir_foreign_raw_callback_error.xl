@@ -1,0 +1,95 @@
+extern "foreign_raw_int" func invokeInt(c_callback func() as c_int callback)
+extern "foreign_raw_bool" func invokeBool(c_callback func() as c_bool callback)
+extern "foreign_raw_double" func invokeDouble(c_callback func() as c_double callback)
+extern "foreign_raw_pointer" func invokePointer(c_callback func() as point callback)
+extern "foreign_raw_void" func invokeVoid(c_callback func() callback)
+extern "foreign_raw_save" func save(c_callback func() as c_int callback)
+extern "foreign_raw_saved" func invokeSaved()
+extern "foreign_raw_success" func invokeSuccess(c_callback func() as c_int callback)
+extern "foreign_raw_pair" func invokePair(c_callback func() as c_int first, c_callback func() as c_int second)
+extern "foreign_raw_count" func count() as int
+
+func failInt() as c_int
+    throw RuntimeError "raw callback original"
+    return 1
+end
+func failSecond() as c_int
+    throw RuntimeError "raw callback secondary"
+    return 2
+end
+func failBool() as c_bool
+    throw RuntimeError "raw callback original"
+    return true
+end
+func failDouble() as c_double
+    throw RuntimeError "raw callback original"
+    return 3.0
+end
+func failPointer() as point
+    throw RuntimeError "raw callback original"
+    return null
+end
+func failVoid()
+    throw RuntimeError "raw callback original"
+end
+func handled() as c_int
+    bool caught = false
+    try
+        invokeInt(failInt)
+    catch RuntimeError error
+        caught = error.message == "raw callback original"
+    end
+    assert caught
+    return 42
+end
+
+func main(...) as int
+    int caught = 0
+    try
+        invokeInt(failInt)
+    catch RuntimeError error
+        assert error.message == "raw callback original"
+        caught += 1
+    end
+    try
+        invokeBool(failBool)
+    catch RuntimeError error
+        assert error.message == "raw callback original"
+        caught += 1
+    end
+    try
+        invokeDouble(failDouble)
+    catch RuntimeError error
+        assert error.message == "raw callback original"
+        caught += 1
+    end
+    try
+        invokePointer(failPointer)
+    catch RuntimeError error
+        assert error.message == "raw callback original"
+        caught += 1
+    end
+    try
+        invokeVoid(failVoid)
+    catch RuntimeError error
+        assert error.message == "raw callback original"
+        caught += 1
+    end
+    save(failInt)
+    try
+        invokeSaved()
+    catch RuntimeError error
+        assert error.message == "raw callback original"
+        caught += 1
+    end
+    try
+        invokePair(failInt, failSecond)
+    catch RuntimeError error
+        assert error.message == "raw callback original"
+        caught += 1
+    end
+    invokeSuccess(handled)
+    assert caught == 7
+    assert count() == 9
+    return 0
+end

@@ -123,7 +123,7 @@ static int xl6CgenDeclTryXValueNullCoalesceInit(
     xl6AstFree(leftType);
 
     id = ctx->tempId++;
-    xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", cName);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", cName);
     xl6CgenIndent(ctx);
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
@@ -134,13 +134,13 @@ static int xl6CgenDeclTryXValueNullCoalesceInit(
         xl6CgenDeclEmitXValueExprInit(ctx, typeNode, leftName, left);
     }
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (xvoIsNull(__xl6_nc_%d)) {\n", id);
+    xl6OutputPrintf(ctx->out, "if (xl6_xrt_value_is_null(__xl6_nc_%d)) {\n", id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (__xl6_nc_%d != 0) {\n", id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_nc_%d);\n", id);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_nc_%d);\n", id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -180,7 +180,7 @@ static int xl6CgenDeclTryXValueBinaryInit(
     right = initExpr->children[1];
     id = ctx->tempId++;
 
-    xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", cName);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", cName);
     xl6CgenIndent(ctx);
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
@@ -210,7 +210,7 @@ static int xl6CgenDeclTryXValueBinaryInit(
     xl6OutputPrintf(ctx->out, "if (__xl6_bin_left_%d != 0) {\n", id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_bin_left_%d);\n", id);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_bin_left_%d);\n", id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -218,7 +218,7 @@ static int xl6CgenDeclTryXValueBinaryInit(
     xl6OutputPrintf(ctx->out, "if (__xl6_bin_right_%d != 0) {\n", id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_bin_right_%d);\n", id);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_bin_right_%d);\n", id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -248,7 +248,7 @@ static int xl6CgenDeclTryXValueConditionalInit(
     thenExpr = initExpr->children[1];
     elseExpr = initExpr->children[2];
 
-    xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", cName);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", cName);
     xl6CgenIndent(ctx);
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
@@ -307,7 +307,7 @@ static int xl6CgenDeclTryStaticXValueScalarInit(
 
     xl6OutputPrintf(ctx->out, "%s %s = ", cType, cName);
     if ( !xl6CgenStaticScalarFromXValueExpr(ctx, typeNode, initExpr) ) {
-        xl6CgenError(ctx, initExpr, "xvalue scalar initializer lowering failed");
+        xl6CgenError(ctx, initExpr, "xvalue* scalar initializer lowering failed");
         xl6CgenDefaultValue(ctx, typeNode);
     }
     xl6OutputPuts(";\n", ctx->out);
@@ -346,11 +346,11 @@ static int xl6CgenDeclTryStaticXValueCompareInit(
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_cmp_left_%d = ", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_cmp_left_%d = ", id);
     xl6CgenXValueFromExpr(ctx, left);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_cmp_right_%d = ", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_cmp_right_%d = ", id);
     xl6CgenXValueFromExpr(ctx, right);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -358,10 +358,10 @@ static int xl6CgenDeclTryStaticXValueCompareInit(
         if ( xl6CgenBinaryCompareHasClassHandle(ctx, initExpr) ) {
             xl6OutputPrintf(ctx->out,
                             "int __xl6_cmp_result_%d = "
-                            "(((__xl6_cmp_left_%d == 0 || xvoIsNull(__xl6_cmp_left_%d)) && "
-                            "(__xl6_cmp_right_%d == 0 || xvoIsNull(__xl6_cmp_right_%d))) || "
+                            "(((__xl6_cmp_left_%d == 0 || xl6_xrt_value_is_null(__xl6_cmp_left_%d)) && "
+                            "(__xl6_cmp_right_%d == 0 || xl6_xrt_value_is_null(__xl6_cmp_right_%d))) || "
                             "(__xl6_cmp_left_%d != 0 && __xl6_cmp_right_%d != 0 && "
-                            "!xvoIsNull(__xl6_cmp_left_%d) && !xvoIsNull(__xl6_cmp_right_%d) && "
+                            "!xl6_xrt_value_is_null(__xl6_cmp_left_%d) && !xl6_xrt_value_is_null(__xl6_cmp_right_%d) && "
                             "__xl6_cmp_left_%d == __xl6_cmp_right_%d));\n",
                             id, id, id, id, id, id, id, id, id, id, id);
         } else {
@@ -383,7 +383,7 @@ static int xl6CgenDeclTryStaticXValueCompareInit(
     xl6OutputPrintf(ctx->out, "if (__xl6_cmp_left_%d != 0) {\n", id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_cmp_left_%d);\n", id);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_cmp_left_%d);\n", id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -391,7 +391,7 @@ static int xl6CgenDeclTryStaticXValueCompareInit(
     xl6OutputPrintf(ctx->out, "if (__xl6_cmp_right_%d != 0) {\n", id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_cmp_right_%d);\n", id);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_cmp_right_%d);\n", id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -434,11 +434,11 @@ static int xl6CgenDeclTryStaticXValueApproxInit(
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_approx_left_%d = ", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_approx_left_%d = ", id);
     xl6CgenXValueFromExpr(ctx, left);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_approx_right_%d = ", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_approx_right_%d = ", id);
     xl6CgenXValueFromExpr(ctx, right);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -451,7 +451,7 @@ static int xl6CgenDeclTryStaticXValueApproxInit(
     xl6OutputPrintf(ctx->out, "if (__xl6_approx_left_%d != 0) {\n", id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_approx_left_%d);\n", id);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_approx_left_%d);\n", id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -459,7 +459,7 @@ static int xl6CgenDeclTryStaticXValueApproxInit(
     xl6OutputPrintf(ctx->out, "if (__xl6_approx_right_%d != 0) {\n", id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_approx_right_%d);\n", id);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_approx_right_%d);\n", id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -627,19 +627,25 @@ static void xl6CgenDiscardTemporaryResultByType(XL6_CgenContext* ctx, const XL6_
         return;
     }
 
+    if ( xl6CgenIsErrorType(ctx, concreteType) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xl6_error_free(%s); %s = 0; }\n", tempName, tempName, tempName);
+        return;
+    }
+
     if ( xl6CgenIsTypedContainerType(ctx, concreteType) ) {
         const XL6_AstNode* containerType = xl6CgenTypedContainerConcreteType(ctx, concreteType);
         const char* containerName = containerType != NULL ? containerType->text : NULL;
 
         xl6CgenIndent(ctx);
         if ( xl6CTextEquals(containerName, "array") ) {
-            xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtTypedArrayDestroy(%s); %s = 0; }\n", tempName, tempName, tempName);
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xl6TypedArrayRelease(%s); %s = 0; }\n", tempName, tempName, tempName);
         } else if ( xl6CTextEquals(containerName, "list") ) {
-            xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtTypedListDestroy(%s); %s = 0; }\n", tempName, tempName, tempName);
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xl6TypedListRelease(%s); %s = 0; }\n", tempName, tempName, tempName);
         } else if ( xl6CTextEquals(containerName, "set") ) {
-            xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtTypedSetDestroy(%s); %s = 0; }\n", tempName, tempName, tempName);
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xl6TypedSetRelease(%s); %s = 0; }\n", tempName, tempName, tempName);
         } else if ( xl6CTextEquals(containerName, "dict") ) {
-            xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtTypedDictDestroy(%s); %s = 0; }\n", tempName, tempName, tempName);
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xl6TypedDictRelease(%s); %s = 0; }\n", tempName, tempName, tempName);
         }
         return;
     }
@@ -654,7 +660,7 @@ static void xl6CgenDiscardTemporaryResultByType(XL6_CgenContext* ctx, const XL6_
 
     if ( xl6CgenIsXValueType(concreteType) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", tempName, tempName, tempName);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtValueRelease(%s); %s = 0; }\n", tempName, tempName, tempName);
         return;
     }
 
@@ -682,6 +688,10 @@ static void xl6CgenDiscardTemporaryResultByType(XL6_CgenContext* ctx, const XL6_
         xl6CgenDeclDestroyTemporaryClassValue(ctx, classNode, concreteType, tempName);
         return;
     }
+
+    /* 标量临时量承载语句级 lowering 的结果，显式标记其结果被有意丢弃。 */
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "(void)%s;\n", tempName);
 }
 
 static void xl6CgenDiscardTemporaryMultiResultByTypes(XL6_CgenContext* ctx, const XL6_AstNode* returns, const char* tempName)
@@ -834,8 +844,14 @@ static int xl6CgenDeclTryTemporaryClassFieldInit(
     }
 
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s %s = %s", cType, cName, receiverTempName);
-    if ( !xl6CgenEmitClassFieldSuffix(ctx, classNode, initExpr->text) ) {
+    xl6OutputPrintf(ctx->out, "%s %s = ", cType, cName);
+    if ( !xl6CgenEmitClassFieldFromNamedReceiver(
+             ctx,
+             receiverType,
+             classNode,
+             receiverTempName,
+             initExpr->text,
+             initExpr) ) {
         xl6CgenError(ctx, initExpr, "class field not found");
     }
     xl6OutputPuts(";\n", ctx->out);

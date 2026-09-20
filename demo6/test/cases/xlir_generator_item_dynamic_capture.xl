@@ -1,0 +1,10 @@
+func capturedItems(var value) as generator<int>
+    yield int(value)
+end
+export "generator_item_dynamic_capture" func capturedTotal() as int
+    int total = 0
+    for item in capturedItems(7)
+        total += item
+    end
+    return total
+end

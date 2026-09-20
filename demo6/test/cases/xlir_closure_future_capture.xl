@@ -1,0 +1,8 @@
+extern "xlir_make_i64_future" func makeI64Future() as future<int>
+
+async func closure_future_capture(future<int> source) as int
+    auto get = func() as future<int> => source
+    return await get()
+end
+
+future<int> capturedFuture = closure_future_capture(makeI64Future())

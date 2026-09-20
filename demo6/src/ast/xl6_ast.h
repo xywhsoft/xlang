@@ -112,6 +112,12 @@ typedef enum XL6_AstKind {
 #define XL6_AST_FLAG_NUMERIC_ENUM 0x00010000u
 #define XL6_AST_FLAG_MATCH_EXPR 0x00020000u
 #define XL6_AST_FLAG_TAGGED_ENUM 0x00040000u
+#define XL6_AST_FLAG_ENTRYPOINT 0x00080000u
+/* Source-level extern parameter contract: project one capture-free/no-raise
+ * language closure to an exact raw C function pointer.  This flag belongs to
+ * XL6_AST_PARAM only and is deliberately excluded from function TypeId
+ * identity. */
+#define XL6_AST_FLAG_C_CALLBACK 0x00100000u
 #define XL6_AST_FLAG_INTERNAL_NULLABLE 0x40000000u
 /* 仅供语义规范化使用，源码不能构造该标记。 */
 #define XL6_AST_FLAG_CLASS_HANDLE 0x80000000u
@@ -131,6 +137,11 @@ typedef struct XL6_AstNode {
     uint64 semanticTypeAbiId;
     uint32 semanticSymbolId;
     uint32 semanticTargetSymbolId;
+    /* A compound assignment can name two independent callable boundaries:
+     * semanticTargetSymbolId is the destination setter (when present), while
+     * this field is the exact overloaded operator selected for the
+     * read/modify/write value. */
+    uint32 semanticCompoundOperatorSymbolId;
     XL6_SemCallKind semanticCallKind;
     XL6_SemLvalueKind semanticLvalueKind;
     XL6_SemOwnershipAction semanticOwnership;

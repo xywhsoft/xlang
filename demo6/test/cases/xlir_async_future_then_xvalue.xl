@@ -1,0 +1,10 @@
+async func addValueAfter(future<var> source, var offset) as var
+    return await source + offset
+end
+
+extern "xlir_test_unreachable_xvalue_future" func rootFuture() as future<var>
+
+if false
+    future<var> source = rootFuture()
+    future<var> pending = addValueAfter(source, 1)
+end

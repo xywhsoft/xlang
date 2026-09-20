@@ -1,0 +1,7 @@
+async func makeGreetingAsync() as string
+    return "owned future"
+end
+
+future<string> pending = makeGreetingAsync()
+string completed = await pending
+assert completed == "owned future"

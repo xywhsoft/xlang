@@ -127,14 +127,9 @@ int main(int argc, char** argv)
         random.state = 0x584C3601u;
     }
 
-    if ( !xrtInit() ) {
-        fputs("xrtInit failed\n", stderr);
-        return 2;
-    }
-    source = (char*)xrtMalloc(XL6_FUZZ_SOURCE_CAPACITY);
-    if ( source == NULL ) {
-        xrtUnit();
-        return 3;
+	source = (char*)xrtMalloc(XL6_FUZZ_SOURCE_CAPACITY);
+	if ( source == NULL ) {
+		return 3;
     }
 
     for ( i = 0u; i < iterations; ++i ) {
@@ -142,15 +137,13 @@ int main(int argc, char** argv)
 
         length = xl6FuzzSeed(source, XL6_FUZZ_SOURCE_CAPACITY, &random);
         xl6FuzzMutate(source, XL6_FUZZ_SOURCE_CAPACITY, &length, &random);
-        if ( !xl6FuzzOne(source) ) {
-            xrtFree(source);
-            xrtUnit();
-            return 4;
+		if ( !xl6FuzzOne(source) ) {
+			xrtFree(source);
+			return 4;
         }
     }
 
-    xrtFree(source);
-    xrtUnit();
-    printf("frontend fuzz ok: %u iterations\n", iterations);
+	xrtFree(source);
+	printf("frontend fuzz ok: %u iterations\n", iterations);
     return 0;
 }

@@ -1,0 +1,2 @@
+// No namespace use or explicit XsonOptions declaration may be required.
+assert XsonWriter().writeInt(7)

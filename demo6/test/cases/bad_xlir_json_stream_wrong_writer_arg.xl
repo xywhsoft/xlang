@@ -1,0 +1,7 @@
+class MalformedWriter
+    native point handle
+    extern "xl6_xrt_json_writer_create_default" create()
+    extern "xl6_xrt_json_writer_destroy" destroy()
+    extern "xl6_xrt_json_writer_bool" func write(c_int value) as bool
+end
+assert MalformedWriter().write(c_int(1))

@@ -1,4 +1,5 @@
-#include "../../lib/xrt/xrt.h"
+#define XL_RUNTIME_NEED_TYPED_CONTAINER 1
+#include "../../release/include/xl_runtime.h"
 #include "export_enum_abi.h"
 
 #include <stddef.h>
@@ -18,10 +19,10 @@
 int main(void)
 {
     XL_InitOptions options = xlInitOptions(0, 0);
-    const xrt_type_desc* type;
-    const xrtenum* info;
-    const xrtenumvariant* variant;
-    const xrtenumfield* field;
+    const xl6_type_desc* type;
+    const xl6_enum_info* info;
+    const xl6_enum_variant* variant;
+    const xl6_enum_field* field;
     XL_Enum_Packet__int packet = {0};
     XL_Enum_Packet__int packetCopy = {0};
     XL_Enum_Packet__int packetMove = {0};
@@ -42,28 +43,28 @@ int main(void)
     CHECK(XL6_ENUM_XL_Enum_HttpStatus__created == 201, 3);
     CHECK(XL6_ENUM_XL_Enum_HttpStatus__notFound == 404, 4);
     type = xl6_enum_type_XL_Enum_HttpStatus();
-    info = xrtEnumInfo(type);
+    info = xl6EnumInfo(type);
     CHECK(type != NULL && info != NULL, 5);
-    CHECK((info->Flags & XRT_ENUM_FLAG_NUMERIC) != 0, 6);
+    CHECK((info->Flags & XL6_ENUM_FLAG_NUMERIC) != 0, 6);
     CHECK(info->VariantCount == 3, 7);
-    CHECK(xrtTypeSame(info->BackingType, xrtTypeUInt16()), 8);
-    variant = xrtEnumFindValue(info, 404);
+    CHECK(xl6TypeSame(info->BackingType, xl6TypeUInt16()), 8);
+    variant = xl6EnumFindValue(info, 404);
     CHECK(variant != NULL && variant->NameSize == 8, 9);
     CHECK(memcmp(variant->Name, "notFound", 8) == 0, 10);
 
     /* tagged enum 的字段偏移必须能直接定位公开 C 结构体中的 payload。 */
     type = xl6_enum_type_XL_Enum_Packet__int();
-    info = xrtEnumInfo(type);
+    info = xl6EnumInfo(type);
     CHECK(type != NULL && info != NULL, 11);
-    CHECK((info->Flags & XRT_ENUM_FLAG_TAGGED) != 0, 12);
+    CHECK((info->Flags & XL6_ENUM_FLAG_TAGGED) != 0, 12);
     CHECK(info->VariantCount == 3, 13);
-    variant = xrtEnumFindVariant(info, "failure", 0);
+    variant = xl6EnumFindVariant(info, "failure", 0);
     CHECK(variant != NULL && variant->FieldCount == 2, 14);
-    field = xrtEnumFindField(variant, "message", 0);
+    field = xl6EnumFindField(variant, "message", 0);
     CHECK(field != NULL, 15);
     CHECK(field->Offset ==
           offsetof(XL_Enum_Packet__int, payload.failure.message), 16);
-    CHECK(xrtTypeSame(field->Type, xrtTypeString()), 17);
+    CHECK(xl6TypeSame(field->Type, xl6TypeString()), 17);
 
     /* 公开构造、复制、移动和销毁 API 都遵守独立所有权。 */
     CHECK(xl6_enum_make_XL_Enum_Packet__int__value(&packet, 42), 18);
@@ -93,29 +94,29 @@ int main(void)
     CHECK(failure.tag == XL6_ENUM_TAG_XL_Enum_Packet__string__failure, 34);
 
     /* 容器参数由 C 调用方拥有，包装器复制后再交给 xlang。 */
-    values = xrtTypedArrayCreate(xrtTypeInt(), XRT_OBJMODE_LOCAL);
+    values = xl6TypedArrayCreate(xl6TypeInt64());
     CHECK(values != NULL, 35);
     item = 10;
-    CHECK(xrtTypedArrayAppend(values, &item) != NULL, 36);
+    CHECK(xl6TypedArrayAppend(values, &item), 36);
     item = 20;
-    CHECK(xrtTypedArrayAppend(values, &item) != NULL, 37);
+    CHECK(xl6TypedArrayAppend(values, &item), 37);
     item = 30;
-    CHECK(xrtTypedArrayAppend(values, &item) != NULL, 38);
+    CHECK(xl6TypedArrayAppend(values, &item), 38);
     batch = enum_make_batch(values);
-    CHECK(xrtTypedArrayCount(values) == 3, 39);
+    CHECK(xl6TypedArrayCount(values) == 3, 39);
     CHECK(enum_batch_count(batch) == 3, 40);
-    CHECK(xrtTypedArrayCount(batch.payload.items.values) == 3, 41);
+    CHECK(xl6TypedArrayCount(batch.payload.items.values) == 3, 41);
     CHECK(enum_inspector_packet_value(&inspector, packet) == 42, 42);
     CHECK(packet.tag == XL6_ENUM_TAG_XL_Enum_Packet__int__value, 43);
     CHECK(enum_inspector_batch_count(&inspector, values) == 3, 44);
-    CHECK(xrtTypedArrayCount(values) == 3, 45);
+    CHECK(xl6TypedArrayCount(values) == 3, 45);
 
     CHECK(enum_kind_int(9) == 10, 46);
     CHECK(enum_kind_string("你好") == 2, 47);
 
 cleanup:
     xl6_enum_drop_XL_Enum_Batch(&batch);
-    xrtTypedArrayDestroy(values);
+    xl6TypedArrayRelease(values);
     xl6_enum_drop_XL_Enum_Packet__string(&failureCopy);
     xl6_enum_drop_XL_Enum_Packet__string(&failure);
     xl6_enum_drop_XL_Enum_Packet__int(&packetMove);

@@ -1,0 +1,48 @@
+// Direct calls and first-class calls share one typed argument boundary.
+func identity(c_int value) as c_int
+    return value
+end
+
+func widen(int64 value) as int64
+    return value
+end
+
+func real(c_double value) as c_double
+    return value
+end
+
+func optional(int? value) as bool
+    return value != null
+end
+
+func boxed(var value) as bool
+    return value == 42
+end
+
+func pair(c_int first, c_int second) as c_int
+    return c_int(first + second)
+end
+
+func(c_int) as c_int callback = identity
+c_int source = 7
+assert callback(1) == identity(1)
+assert callback(source) == identity(source)
+
+func(int64) as int64 wideCallback = widen
+int32 narrow = 123
+assert wideCallback(narrow) == widen(narrow)
+
+func(c_double) as c_double realCallback = real
+assert realCallback(3) == real(3)
+assert realCallback(3.5) == real(3.5)
+
+auto optionalCallback = optional
+assert optionalCallback(11) == optional(11)
+assert optionalCallback(null) == optional(null)
+
+func(var) as bool boxedCallback = boxed
+assert boxedCallback(42) == boxed(42)
+
+func(c_int, c_int) as c_int pairCallback = pair
+assert pairCallback(1, 2) == 3
+println("xlir_closure_argument_conversion ok")

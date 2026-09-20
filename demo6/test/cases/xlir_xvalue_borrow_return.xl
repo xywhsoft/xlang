@@ -1,0 +1,13 @@
+func copy_value(var input) as var
+    return input
+end
+
+func xvalue_borrow_return() as int
+    var source = 41
+    var copy = copy_value(source)
+    return 43
+end
+
+export "xlir_test_xvalue_borrow_return_root" func xlir_test_root() as int
+    return xvalue_borrow_return()
+end

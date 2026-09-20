@@ -1,83 +1,809 @@
+/* 输出当前 XRT 异步文件 ABI 需要的最小公共类型和函数声明。 */
+static void xl6CgenEmitAsyncFileDecls(XL6_Output* out)
+{
+    xl6OutputPuts(
+        "typedef xbytesview XL6_XrtBytesView;\n"
+        "typedef int (*xl6_future_cont_fn)(\n"
+        "    const xl6_future_result* input,\n"
+        "    void* arg,\n"
+        "    xl6_future_result* output\n"
+        ");\n\n",
+        out
+    );
+
+    xl6OutputPuts(
+        "xfuture* xl6FutureThen(\n"
+        "    xfuture* future,\n"
+        "    xl6_future_cont_fn callback,\n"
+        "    void* arg\n"
+        ");\n"
+        "xfuture* xl6FutureCatchOwned(\n"
+        "    xfuture* future,\n"
+        "    xl6_future_cont_fn callback,\n"
+        "    void* arg,\n"
+        "    void (*freeArg)(void*)\n"
+        ");\n"
+        "bool xl6FutureLinkCancel(xfuture* future, xfuture* target);\n"
+        "bool xl6FutureWait(xfuture* future);\n"
+        "void xl6FutureDestroy(xfuture* future);\n\n",
+        out
+    );
+
+    xl6OutputPuts(
+        "static void* xl6_xrt_buffer_from_owned_bytes(\n"
+        "    void* data,\n"
+        "    size_t size\n"
+        ");\n"
+        "long long xl6_xrt_buffer_destroy(void* self);\n\n",
+        out
+    );
+}
+
+
+
+/* 输出生成模块独占的任务池生命周期。 */
+static void xl6CgenEmitAsyncFilePool(XL6_Output* out)
+{
+    xl6OutputPuts(
+        "static xtaskpool* xl6_async_file_pool = 0;\n\n"
+		"void* xl6ExtlibAsyncFileTaskPool(void)\n"
+		"{\n"
+		"    return xl6_async_file_pool;\n"
+		"}\n\n"
+        "static bool xl6_async_file_runtime_init(void)\n"
+        "{\n"
+        "    if ( xl6_async_file_pool != 0 ) { return true; }\n"
+        "    xl6_async_file_pool = xrtTaskPoolCreate(0);\n"
+        "    return xl6_async_file_pool != 0;\n"
+        "}\n\n"
+        "static void xl6_async_file_runtime_unit(void)\n"
+        "{\n"
+        "    xtaskpool* pool = xl6_async_file_pool;\n"
+        "    xl6_async_file_pool = 0;\n"
+        "    if ( (pool != 0) && !xrtTaskPoolDestroy(pool) ) {\n"
+        "        xl6_runtime_fatal_message(\n"
+        "            3,\n"
+        "            \"asynchronous file task pool shutdown failed\"\n"
+        "        );\n"
+        "    }\n"
+        "}\n\n",
+        out
+    );
+}
+
+
+
+/* 输出 xlang Future 值的分配和错误适配。 */
+static void xl6CgenEmitAsyncFileResults(XL6_Output* out)
+{
+    xl6OutputPuts(
+        "static int xl6_async_file_result_error(\n"
+        "    xl6_future_result* output,\n"
+        "    const char* message\n"
+        ")\n"
+        "{\n"
+        "    if ( output == 0 ) { return -1; }\n"
+        "    memset(output, 0, sizeof(*output));\n"
+        "    output->iStatus = -1;\n"
+        "    output->Error = xrtErrorCreate(\n"
+        "        XERR_IO,\n"
+        "        \"xrt.file.async\",\n"
+        "        1,\n"
+        "        message != 0 ? message : \"asynchronous file operation failed\"\n"
+        "    );\n"
+        "    return -1;\n"
+        "}\n\n"
+        "static int xl6_async_file_result_bool(\n"
+        "    xl6_future_result* output,\n"
+        "    int value\n"
+        ")\n"
+        "{\n"
+        "    int* box = (int*)xrtMalloc(sizeof(int));\n"
+        "    if ( box == 0 ) {\n"
+        "        return xl6_async_file_result_error(\n"
+        "            output,\n"
+        "            \"asynchronous file result allocation failed\"\n"
+        "        );\n"
+        "    }\n"
+        "    *box = value != 0;\n"
+        "    memset(output, 0, sizeof(*output));\n"
+        "    output->pValue = box;\n"
+        "    output->iFlags = XL6_FUTURE_OWN_VALUE;\n"
+        "    output->pfnFreeValue = xrtFree;\n"
+        "    return 0;\n"
+        "}\n\n"
+        "static int xl6_async_file_result_i64(\n"
+        "    xl6_future_result* output,\n"
+        "    long long value\n"
+        ")\n"
+        "{\n"
+        "    long long* box = (long long*)xrtMalloc(sizeof(long long));\n"
+        "    if ( box == 0 ) {\n"
+        "        return xl6_async_file_result_error(\n"
+        "            output,\n"
+        "            \"asynchronous file result allocation failed\"\n"
+        "        );\n"
+        "    }\n"
+        "    *box = value;\n"
+        "    memset(output, 0, sizeof(*output));\n"
+        "    output->pValue = box;\n"
+        "    output->iFlags = XL6_FUTURE_OWN_VALUE;\n"
+        "    output->pfnFreeValue = xrtFree;\n"
+        "    return 0;\n"
+        "}\n\n",
+        out
+    );
+
+    xl6OutputPuts(
+        "static int xl6_async_file_result_point(\n"
+        "    xl6_future_result* output,\n"
+        "    void* value\n"
+        ")\n"
+        "{\n"
+        "    void** box;\n"
+        "    if ( value == 0 ) {\n"
+        "        return xl6_async_file_result_error(\n"
+        "            output,\n"
+        "            \"asynchronous file buffer allocation failed\"\n"
+        "        );\n"
+        "    }\n"
+        "    box = (void**)xrtMalloc(sizeof(void*));\n"
+        "    if ( box == 0 ) {\n"
+        "        (void)xl6_xrt_buffer_destroy(value);\n"
+        "        return xl6_async_file_result_error(\n"
+        "            output,\n"
+        "            \"asynchronous file result allocation failed\"\n"
+        "        );\n"
+        "    }\n"
+        "    *box = value;\n"
+        "    memset(output, 0, sizeof(*output));\n"
+        "    output->pValue = box;\n"
+        "    output->iFlags = XL6_FUTURE_OWN_VALUE;\n"
+        "    output->pfnFreeValue = xrtFree;\n"
+        "    return 0;\n"
+        "}\n\n"
+        "static int xl6_async_file_result_string(\n"
+        "    xl6_future_result* output,\n"
+        "    char* text\n"
+        ")\n"
+        "{\n"
+        "    const char** box = (const char**)xrtMalloc(sizeof(const char*));\n"
+        "    if ( box == 0 ) {\n"
+        "        xrtFree(text);\n"
+        "        return xl6_async_file_result_error(\n"
+        "            output,\n"
+        "            \"asynchronous file result allocation failed\"\n"
+        "        );\n"
+        "    }\n"
+        "    *box = text != 0 ? text : xl6_xrt_string_dup(\"\", 0);\n"
+        "    if ( *box == 0 ) {\n"
+        "        xrtFree(box);\n"
+        "        return xl6_async_file_result_error(\n"
+        "            output,\n"
+        "            \"asynchronous file text allocation failed\"\n"
+        "        );\n"
+        "    }\n"
+        "    memset(output, 0, sizeof(*output));\n"
+        "    output->pValue = box;\n"
+        "    output->iFlags = XL6_FUTURE_OWN_VALUE;\n"
+        "    output->pfnFreeValue = xl6_async_free_string_value;\n"
+        "    return 0;\n"
+        "}\n\n",
+        out
+    );
+}
+
+
+
+/* 输出 XRT 借用结果到 xlang 拥有结果的映射过程。 */
+static void xl6CgenEmitAsyncFileMappers(XL6_Output* out)
+{
+    xl6OutputPuts(
+        "static int xl6_async_file_has_nul(const char* text, size_t size)\n"
+        "{\n"
+        "    size_t index;\n"
+        "    for ( index = 0; (text != 0) && (index < size); ++index ) {\n"
+        "        if ( text[index] == '\\0' ) { return 1; }\n"
+        "    }\n"
+        "    return 0;\n"
+        "}\n\n"
+        "static int xl6_async_file_map_success(\n"
+        "    const xl6_future_result* input,\n"
+        "    void* arg,\n"
+        "    xl6_future_result* output\n"
+        ")\n"
+        "{\n"
+        "    (void)input;\n"
+        "    (void)arg;\n"
+        "    return xl6_async_file_result_bool(output, 1);\n"
+        "}\n\n"
+        "static int xl6_async_file_map_change_size(\n"
+        "    const xl6_future_result* input,\n"
+        "    void* arg,\n"
+        "    xl6_future_result* output\n"
+        ")\n"
+        "{\n"
+        "    const xfilechange* change = input != 0 ?\n"
+        "        (const xfilechange*)input->pValue : 0;\n"
+        "    long long value;\n"
+        "    (void)arg;\n"
+        "    if ( change == 0 ) {\n"
+        "        return xl6_async_file_result_error(\n"
+        "            output,\n"
+        "            \"asynchronous file returned no change result\"\n"
+        "        );\n"
+        "    }\n"
+        "    value = change->Size > 0x7fffffffffffffffULL ?\n"
+        "        0x7fffffffffffffffLL : (long long)change->Size;\n"
+        "    return xl6_async_file_result_i64(output, value);\n"
+        "}\n\n"
+        "static int xl6_async_file_map_size(\n"
+        "    const xl6_future_result* input,\n"
+        "    void* arg,\n"
+        "    xl6_future_result* output\n"
+        ")\n"
+        "{\n"
+        "    const xfilesize* size = input != 0 ?\n"
+        "        (const xfilesize*)input->pValue : 0;\n"
+        "    long long value;\n"
+        "    (void)arg;\n"
+        "    if ( size == 0 ) {\n"
+        "        return xl6_async_file_result_error(\n"
+        "            output,\n"
+        "            \"asynchronous file returned no size result\"\n"
+        "        );\n"
+        "    }\n"
+        "    value = size->Size > 0x7fffffffffffffffULL ?\n"
+        "        0x7fffffffffffffffLL : (long long)size->Size;\n"
+        "    return xl6_async_file_result_i64(output, value);\n"
+        "}\n\n",
+        out
+    );
+
+    xl6OutputPuts(
+        "static int xl6_async_file_map_text(\n"
+        "    const xl6_future_result* input,\n"
+        "    void* arg,\n"
+        "    xl6_future_result* output\n"
+        ")\n"
+        "{\n"
+        "    const xfiledata* data = input != 0 ?\n"
+        "        (const xfiledata*)input->pValue : 0;\n"
+        "    char* text;\n"
+        "    (void)arg;\n"
+        "    if ( (data == 0) || ((data->Size != 0) && (data->Data == 0)) ) {\n"
+        "        return xl6_async_file_result_error(\n"
+        "            output,\n"
+        "            \"asynchronous file returned invalid text\"\n"
+        "        );\n"
+        "    }\n"
+        "    if ( xl6_async_file_has_nul((const char*)data->Data, data->Size) ) {\n"
+        "        return xl6_async_file_result_error(\n"
+        "            output,\n"
+        "            \"file text contains NUL byte; use readBytesAsync\"\n"
+        "        );\n"
+        "    }\n"
+        "    if ( (data->Size != 0) &&\n"
+        "         !xl6_xrt_utf8_valid(data->Data, data->Size) ) {\n"
+        "        return xl6_async_file_result_error(\n"
+        "            output,\n"
+        "            \"file text is not valid UTF-8\"\n"
+        "        );\n"
+        "    }\n"
+        "    text = xl6_xrt_string_dup(\n"
+        "        data->Data != 0 ? (const char*)data->Data : \"\",\n"
+        "        data->Size\n"
+        "    );\n"
+        "    return text != 0 ?\n"
+        "        xl6_async_file_result_string(output, text) :\n"
+        "        xl6_async_file_result_error(\n"
+        "            output,\n"
+        "            \"asynchronous file text allocation failed\"\n"
+        "        );\n"
+        "}\n\n"
+        "static int xl6_async_file_map_buffer(\n"
+        "    const xl6_future_result* input,\n"
+        "    void* arg,\n"
+        "    xl6_future_result* output\n"
+        ")\n"
+        "{\n"
+        "    const xfiledata* data = input != 0 ?\n"
+        "        (const xfiledata*)input->pValue : 0;\n"
+        "    void* copy = 0;\n"
+        "    void* buffer;\n"
+        "    (void)arg;\n"
+        "    if ( (data == 0) || ((data->Size != 0) && (data->Data == 0)) ) {\n"
+        "        return xl6_async_file_result_error(\n"
+        "            output,\n"
+        "            \"asynchronous file returned invalid bytes\"\n"
+        "        );\n"
+        "    }\n"
+        "    if ( data->Size != 0 ) {\n"
+        "        copy = xrtMalloc(data->Size);\n"
+        "        if ( copy == 0 ) {\n"
+        "            return xl6_async_file_result_error(\n"
+        "                output,\n"
+        "                \"asynchronous file buffer allocation failed\"\n"
+        "            );\n"
+        "        }\n"
+        "        memcpy(copy, data->Data, data->Size);\n"
+        "    }\n"
+        "    buffer = xl6_xrt_buffer_from_owned_bytes(copy, data->Size);\n"
+        "    return xl6_async_file_result_point(output, buffer);\n"
+        "}\n\n",
+        out
+    );
+
+    xl6OutputPuts(
+        "static int xl6_async_file_map_error(\n"
+        "    const xl6_future_result* input,\n"
+        "    void* arg,\n"
+        "    xl6_future_result* output\n"
+        ")\n"
+        "{\n"
+        "    const char* path = arg != 0 ? (const char*)arg : \"\";\n"
+        "    const xerror* cause = input != 0 ? input->Error : 0;\n"
+        "    const char* detail = cause != 0 ? xrtErrorMessage(cause) :\n"
+        "        \"asynchronous file operation failed\";\n"
+        "    if ( detail == 0 || detail[0] == '\\0' ) {\n"
+        "        detail = \"asynchronous file operation failed\";\n"
+        "    }\n"
+        "    size_t pathSize = strlen(path);\n"
+        "    size_t detailSize = strlen(detail);\n"
+        "    char* message;\n"
+        "    xerrordesc desc;\n"
+        "    xerror* error;\n"
+        "    if ( (pathSize == 0) ||\n"
+        "         (pathSize > (SIZE_MAX - detailSize - 3u)) ) {\n"
+        "        if ( cause != 0 ) {\n"
+        "            memset(output, 0, sizeof(*output));\n"
+        "            output->iStatus = -1;\n"
+        "            output->Error = xrtErrorRef(cause);\n"
+        "            return -1;\n"
+        "        }\n"
+        "        return xl6_async_file_result_error(output, detail);\n"
+        "    }\n"
+        "    message = (char*)xrtMalloc(pathSize + detailSize + 3u);\n"
+        "    if ( message == 0 ) {\n"
+        "        if ( cause != 0 ) {\n"
+        "            memset(output, 0, sizeof(*output));\n"
+        "            output->iStatus = -1;\n"
+        "            output->Error = xrtErrorRef(cause);\n"
+        "            return -1;\n"
+        "        }\n"
+        "        return xl6_async_file_result_error(output, detail);\n"
+        "    }\n"
+        "    memcpy(message, path, pathSize);\n"
+        "    message[pathSize] = ':';\n"
+        "    message[pathSize + 1u] = ' ';\n"
+        "    memcpy(message + pathSize + 2u, detail, detailSize + 1u);\n"
+        "    memset(output, 0, sizeof(*output));\n"
+        "    output->iStatus = -1;\n"
+        "    memset(&desc, 0, sizeof(desc));\n"
+        "    desc.Kind = cause != 0 ? xrtErrorKind(cause) : XERR_IO;\n"
+        "    desc.Code = cause != 0 ? xrtErrorCode(cause) : 1;\n"
+        "    desc.SystemCode = cause != 0 ? xrtErrorSystemCode(cause) : 0;\n"
+        "    desc.Domain = \"xrt.file.async\";\n"
+        "    desc.Operation = cause != 0 ? xrtErrorOperation(cause) : \"async\";\n"
+        "    desc.Message = message;\n"
+        "    desc.Data = path;\n"
+        "    desc.Cause = cause;\n"
+        "    error = xrtErrorBuild(&desc);\n"
+        "    xrtFree(message);\n"
+        "    output->Error = error != 0 ? error : xrtErrorRef(cause);\n"
+        "    return -1;\n"
+        "}\n\n"
+        "static xfuture* xl6_async_file_chain(\n"
+        "    xfuture* source,\n"
+        "    xl6_future_cont_fn mapper,\n"
+        "    const char* path\n"
+        ")\n"
+        "{\n"
+        "    xfuture* mapped;\n"
+        "    xfuture* result;\n"
+        "    char* errorPath;\n"
+        "    if ( (source == 0) || (mapper == 0) ) {\n"
+        "        xl6FutureDestroy(source);\n"
+        "        return 0;\n"
+        "    }\n"
+        "    mapped = xl6FutureThen(source, mapper, 0);\n"
+        "    if ( mapped != 0 ) {\n"
+        "        (void)xl6FutureLinkCancel(mapped, source);\n"
+        "    }\n"
+        "    xl6FutureDestroy(source);\n"
+        "    if ( mapped == 0 ) { return 0; }\n"
+        "    errorPath = xl6_xrt_string_dup(path != 0 ? path : \"\", 0);\n"
+        "    if ( errorPath == 0 ) { return mapped; }\n"
+        "    result = xl6FutureCatchOwned(\n"
+        "        mapped,\n"
+        "        xl6_async_file_map_error,\n"
+        "        errorPath,\n"
+        "        xrtFree\n"
+        "    );\n"
+        "    if ( result == 0 ) {\n"
+        "        xrtFree(errorPath);\n"
+        "        return mapped;\n"
+        "    }\n"
+        "    (void)xl6FutureLinkCancel(result, mapped);\n"
+        "    xl6FutureDestroy(mapped);\n"
+        "    return result;\n"
+        "}\n\n",
+        out
+    );
+}
+
+
+
+/* 输出整文件和目录便捷异步接口。 */
+static void xl6CgenEmitAsyncFileHelpers(XL6_Output* out)
+{
+    xl6OutputPuts(
+        "xfuture* xl6_xrt_file_read_text_async_utf8(const char* path)\n"
+        "{\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtFileReadAllAsync(xl6_async_file_pool, path),\n"
+        "        xl6_async_file_map_text,\n"
+        "        path\n"
+        "    );\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_file_read_bytes_async(const char* path)\n"
+        "{\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtFileReadAllAsync(xl6_async_file_pool, path),\n"
+        "        xl6_async_file_map_buffer,\n"
+        "        path\n"
+        "    );\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_file_write_text_async_utf8(\n"
+        "    const char* path,\n"
+        "    const char* text\n"
+        ")\n"
+        "{\n"
+        "    const char* value = text != 0 ? text : \"\";\n"
+        "    XL6_XrtBytesView data = {\n"
+        "        (const unsigned char*)value,\n"
+        "        strlen(value)\n"
+        "    };\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtFileWriteAllAsync(xl6_async_file_pool, path, data),\n"
+        "        xl6_async_file_map_success,\n"
+        "        path\n"
+        "    );\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_file_append_text_async_utf8(\n"
+        "    const char* path,\n"
+        "    const char* text\n"
+        ")\n"
+        "{\n"
+        "    const char* value = text != 0 ? text : \"\";\n"
+        "    XL6_XrtBytesView data = {\n"
+        "        (const unsigned char*)value,\n"
+        "        strlen(value)\n"
+        "    };\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtFileAppendAsync(xl6_async_file_pool, path, data),\n"
+        "        xl6_async_file_map_success,\n"
+        "        path\n"
+        "    );\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_file_write_bytes_async(\n"
+        "    const char* path,\n"
+        "    void* bytes,\n"
+        "    size_t size\n"
+        ")\n"
+        "{\n"
+        "    XL6_XrtBytesView data = {\n"
+        "        (const unsigned char*)bytes,\n"
+        "        size\n"
+        "    };\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtFileWriteAllAsync(xl6_async_file_pool, path, data),\n"
+        "        xl6_async_file_map_success,\n"
+        "        path\n"
+        "    );\n"
+        "}\n\n",
+        out
+    );
+
+    xl6OutputPuts(
+        "xfuture* xl6_xrt_file_copy_async(\n"
+        "    const char* source,\n"
+        "    const char* target,\n"
+        "    bool replace\n"
+        ")\n"
+        "{\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtFileCopyAsync(\n"
+        "            xl6_async_file_pool,\n"
+        "            source,\n"
+        "            target,\n"
+        "            replace\n"
+        "        ),\n"
+        "        xl6_async_file_map_success,\n"
+        "        source\n"
+        "    );\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_file_copy_async_overwrite(\n"
+        "    const char* source,\n"
+        "    const char* target\n"
+        ")\n"
+        "{\n"
+        "    return xl6_xrt_file_copy_async(source, target, true);\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_file_move_async(\n"
+        "    const char* source,\n"
+        "    const char* target,\n"
+        "    bool replace\n"
+        ")\n"
+        "{\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtFileMoveAsync(\n"
+        "            xl6_async_file_pool,\n"
+        "            source,\n"
+        "            target,\n"
+        "            replace\n"
+        "        ),\n"
+        "        xl6_async_file_map_success,\n"
+        "        source\n"
+        "    );\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_file_move_async_overwrite(\n"
+        "    const char* source,\n"
+        "    const char* target\n"
+        ")\n"
+        "{\n"
+        "    return xl6_xrt_file_move_async(source, target, true);\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_file_delete_async(const char* path)\n"
+        "{\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtFileDeleteAsync(xl6_async_file_pool, path),\n"
+        "        xl6_async_file_map_success,\n"
+        "        path\n"
+        "    );\n"
+        "}\n\n",
+        out
+    );
+
+    xl6OutputPuts(
+        "xfuture* xl6_xrt_dir_create_async(const char* path)\n"
+        "{\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtDirCreateAsync(xl6_async_file_pool, path),\n"
+        "        xl6_async_file_map_success,\n"
+        "        path\n"
+        "    );\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_dir_create_all_async(const char* path)\n"
+        "{\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtDirCreateAllAsync(xl6_async_file_pool, path),\n"
+        "        xl6_async_file_map_success,\n"
+        "        path\n"
+        "    );\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_dir_copy_async(\n"
+        "    const char* source,\n"
+        "    const char* target\n"
+        ")\n"
+        "{\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtDirCopyAsync(\n"
+        "            xl6_async_file_pool,\n"
+        "            source,\n"
+        "            target,\n"
+        "            true\n"
+        "        ),\n"
+        "        xl6_async_file_map_success,\n"
+        "        source\n"
+        "    );\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_dir_move_async(\n"
+        "    const char* source,\n"
+        "    const char* target\n"
+        ")\n"
+        "{\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtDirMoveAsync(\n"
+        "            xl6_async_file_pool,\n"
+        "            source,\n"
+        "            target,\n"
+        "            true\n"
+        "        ),\n"
+        "        xl6_async_file_map_success,\n"
+        "        source\n"
+        "    );\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_dir_delete_async(const char* path)\n"
+        "{\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtDirRemoveAllAsync(xl6_async_file_pool, path),\n"
+        "        xl6_async_file_map_success,\n"
+        "        path\n"
+        "    );\n"
+        "}\n\n",
+        out
+    );
+}
+
+
+
+/* 输出持久异步文件对象的同步生命周期和异步 IO 入口。 */
+static void xl6CgenEmitAsyncFileObject(XL6_Output* out)
+{
+    xl6OutputPuts(
+        "typedef struct XL6_AsyncFileHandle {\n"
+        "    xasyncfile* file;\n"
+        "    char* path;\n"
+        "} XL6_AsyncFileHandle;\n\n"
+        "static int xl6_async_file_close_handle(XL6_AsyncFileHandle* handle)\n"
+        "{\n"
+        "    xfuture* future;\n"
+        "    int result;\n"
+        "    if ( handle == 0 ) { return 0; }\n"
+        "    if ( handle->file == 0 ) { return 1; }\n"
+        "    future = xrtAsyncFileClose(handle->file);\n"
+        "    handle->file = 0;\n"
+        "    if ( future == 0 ) { return 0; }\n"
+        "    result = xl6FutureWait(future);\n"
+        "    xl6FutureDestroy(future);\n"
+        "    return result;\n"
+        "}\n\n"
+        "void* xl6_xrt_async_file_open(\n"
+        "    const char* path,\n"
+        "    long long flags,\n"
+        "    long long shareFlags\n"
+        ")\n"
+        "{\n"
+        "    xfileoptions options;\n"
+        "    XL6_AsyncFileHandle* handle;\n"
+        "    xrtFileOptionsInit(&options);\n"
+        "    options.Flags = flags < 0 ? 0u : (unsigned int)flags;\n"
+        "    options.Share = shareFlags < 0 ? 0u :\n"
+        "        (unsigned int)shareFlags;\n"
+        "    handle = (XL6_AsyncFileHandle*)xrtCalloc(\n"
+        "        1,\n"
+        "        sizeof(XL6_AsyncFileHandle)\n"
+        "    );\n"
+        "    if ( handle == 0 ) { return 0; }\n"
+        "    handle->path = xl6_xrt_string_dup(path != 0 ? path : \"\", 0);\n"
+        "    if ( handle->path == 0 ) {\n"
+        "        xrtFree(handle);\n"
+        "        return 0;\n"
+        "    }\n"
+        "    handle->file = xrtAsyncFileOpen(\n"
+        "        xl6_async_file_pool,\n"
+        "        path,\n"
+        "        &options\n"
+        "    );\n"
+        "    if ( handle->file == 0 ) {\n"
+        "        xrtFree(handle->path);\n"
+        "        xrtFree(handle);\n"
+        "        return 0;\n"
+        "    }\n"
+        "    return handle;\n"
+        "}\n\n"
+        "long long xl6_xrt_async_file_destroy(void* value)\n"
+        "{\n"
+        "    XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value;\n"
+        "    if ( handle != 0 ) {\n"
+        "        (void)xl6_async_file_close_handle(handle);\n"
+        "        xrtFree(handle->path);\n"
+        "        xrtFree(handle);\n"
+        "    }\n"
+        "    return 0;\n"
+        "}\n\n"
+		"void* xl6_xrt_async_file_native(void* value)\n"
+		"{\n"
+		"    XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value;\n"
+		"    return handle != 0 ? handle->file : 0;\n"
+		"}\n\n"
+		"void* xl6_xrt_async_file_take(void* value)\n"
+		"{\n"
+		"    XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value;\n"
+		"    xasyncfile* file;\n"
+		"    if ( handle == 0 ) { return 0; }\n"
+		"    file = handle->file;\n"
+		"    handle->file = 0;\n"
+		"    return file;\n"
+		"}\n\n"
+        "int xl6_xrt_async_file_close(void* value)\n"
+        "{\n"
+        "    return xl6_async_file_close_handle((XL6_AsyncFileHandle*)value);\n"
+        "}\n\n",
+        out
+    );
+
+    xl6OutputPuts(
+        "xfuture* xl6_xrt_async_file_read(\n"
+        "    void* value,\n"
+        "    long long offset,\n"
+        "    long long size\n"
+        ")\n"
+        "{\n"
+        "    XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value;\n"
+        "    if ( (handle == 0) || (handle->file == 0) ||\n"
+        "         (offset < 0) || (size < 0) ) {\n"
+        "        return 0;\n"
+        "    }\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtAsyncFileReadAt(\n"
+        "            handle->file,\n"
+        "            (uint64_t)offset,\n"
+        "            (size_t)size\n"
+        "        ),\n"
+        "        xl6_async_file_map_buffer,\n"
+        "        handle->path\n"
+        "    );\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_async_file_write(\n"
+        "    void* value,\n"
+        "    long long offset,\n"
+        "    void* bytes,\n"
+        "    size_t size\n"
+        ")\n"
+        "{\n"
+        "    XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value;\n"
+        "    XL6_XrtBytesView data = {\n"
+        "        (const unsigned char*)bytes,\n"
+        "        size\n"
+        "    };\n"
+        "    if ( (handle == 0) || (handle->file == 0) || (offset < 0) ) {\n"
+        "        return 0;\n"
+        "    }\n"
+        "    return xl6_async_file_chain(\n"
+        "        xrtAsyncFileWriteAt(\n"
+        "            handle->file,\n"
+        "            (uint64_t)offset,\n"
+        "            data\n"
+        "        ),\n"
+        "        xl6_async_file_map_change_size,\n"
+        "        handle->path\n"
+        "    );\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_async_file_flush(void* value)\n"
+        "{\n"
+        "    XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value;\n"
+        "    return (handle != 0) && (handle->file != 0) ?\n"
+        "        xl6_async_file_chain(\n"
+        "            xrtAsyncFileFlush(handle->file),\n"
+        "            xl6_async_file_map_success,\n"
+        "            handle->path\n"
+        "        ) : 0;\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_async_file_size(void* value)\n"
+        "{\n"
+        "    XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value;\n"
+        "    return (handle != 0) && (handle->file != 0) ?\n"
+        "        xl6_async_file_chain(\n"
+        "            xrtAsyncFileSize(handle->file),\n"
+        "            xl6_async_file_map_size,\n"
+        "            handle->path\n"
+        "        ) : 0;\n"
+        "}\n\n"
+        "xfuture* xl6_xrt_async_file_resize(void* value, long long size)\n"
+        "{\n"
+        "    XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value;\n"
+        "    return (handle != 0) && (handle->file != 0) && (size >= 0) ?\n"
+        "        xl6_async_file_chain(\n"
+        "            xrtAsyncFileResize(handle->file, (uint64_t)size),\n"
+        "            xl6_async_file_map_success,\n"
+        "            handle->path\n"
+        "        ) : 0;\n"
+        "}\n\n",
+        out
+    );
+}
+
+
+
+/* 输出完整的异步文件运行时桥接。 */
 static void xl6CgenEmitAsyncFileRuntime(XL6_Output* out)
 {
-    /* XRT Future 结果与 xlang future<T> 之间只做所有权和类型适配。 */
-    xl6OutputPuts("typedef struct xasyncfile_struct xasyncfile;\n", out);
-    xl6OutputPuts("typedef struct xasyncfileconfig { unsigned int iFlags; unsigned int iShareFlags; const char* sPath; } xasyncfileconfig;\n", out);
-    xl6OutputPuts("typedef struct xasyncfilebuf { void* pData; size_t iSize; uint64_t iOffset; bool bEOF; } xasyncfilebuf;\n", out);
-    xl6OutputPuts("typedef struct xasyncfileio { uint64_t iValue; uint64_t iOffset; } xasyncfileio;\n", out);
-    xl6OutputPuts("typedef int (*xl6_future_cont_fn)(const xfuture_result* pIn, void* pArg, xfuture_result* pOut);\n", out);
-    xl6OutputPuts("xfuture* xFutureThenSource(xfuture* pFuture, xl6_future_cont_fn pfnCont, void* pArg);\n", out);
-    xl6OutputPuts("void xrtAsyncFileConfigInit(xasyncfileconfig* pConfig);\n", out);
-    xl6OutputPuts("xasyncfile* xrtAsyncFileOpen(const xasyncfileconfig* pConfig);\nvoid xrtAsyncFileClose(xasyncfile* pFile);\n", out);
-    xl6OutputPuts("void xrtAsyncFileBufDestroy(xasyncfilebuf* pBuf);\nvoid* xrtAsyncFileBufDetach(xasyncfilebuf* pBuf, size_t* pSize, uint64_t* pOffset, bool* pEOF);\n", out);
-    xl6OutputPuts("void xrtAsyncFileIoDestroy(xasyncfileio* pInfo);\n", out);
-    xl6OutputPuts("xfuture* xrtAsyncFileReadAt(xasyncfile* pFile, uint64_t iOffset, size_t iSize);\n", out);
-    xl6OutputPuts("xfuture* xrtAsyncFileWriteAt(xasyncfile* pFile, uint64_t iOffset, const void* pData, size_t iSize);\n", out);
-    xl6OutputPuts("xfuture* xrtAsyncFileFlush(xasyncfile* pFile);\nxfuture* xrtAsyncFileGetSize(xasyncfile* pFile);\nxfuture* xrtAsyncFileSetSize(xasyncfile* pFile, uint64_t iSize);\n", out);
-    xl6OutputPuts("xfuture* xrtFileAppendAsync(const char* sPath, const char* sText, size_t iSize, int iCharset);\n", out);
-    xl6OutputPuts("xfuture* xrtFileReadAllAsync(const char* sPath, int iCharset);\nxfuture* xrtFileWriteAllAsync(const char* sPath, const char* sText, size_t iSize, int iCharset);\n", out);
-    xl6OutputPuts("xfuture* xrtFileGetAllAsync(const char* sPath);\nxfuture* xrtFilePutAllAsync(const char* sPath, const void* pData, size_t iSize);\n", out);
-    xl6OutputPuts("xfuture* xrtFileCopyAsync(const char* sSrc, const char* sDst, bool bReWrite);\nxfuture* xrtFileMoveAsync(const char* sSrc, const char* sDst, bool bReWrite);\nxfuture* xrtFileDeleteAsync(const char* sPath);\n", out);
-    xl6OutputPuts("xfuture* xrtDirCreateAsync(const char* sPath);\nxfuture* xrtDirCreateAllAsync(const char* sPath);\n", out);
-    xl6OutputPuts("xfuture* xrtDirCopyAsync(const char* sSrc, const char* sDst, bool bReWrite);\nxfuture* xrtDirMoveAsync(const char* sSrc, const char* sDst, bool bReWrite);\nxfuture* xrtDirDeleteAsync(const char* sPath);\n", out);
-    xl6OutputPuts("bool xrtIsUTF8(const char* sText, size_t iSize);\n", out);
-    xl6OutputPuts("void* xrtCalloc(size_t iCount, size_t iSize);\n", out);
-    xl6OutputPuts("static void* xl6_xrt_buffer_from_owned_bytes(void* data, size_t size);\n\n", out);
-    xl6OutputPuts("long long xl6_xrt_buffer_destroy(void* self);\n\n", out);
-
-    xl6OutputPuts("static int xl6_async_file_result_error(xfuture_result* pOut, const char* message)\n{\n", out);
-    xl6OutputPuts("    if ( pOut == 0 ) { return -1; } memset(pOut, 0, sizeof(*pOut)); pOut->iStatus = -1;\n", out);
-    xl6OutputPuts("    pOut->sError = xrtCopyStr(message != 0 ? message : \"async file failed\", 0); pOut->iFlags = pOut->sError != 0 ? XFUTURE_RESULT_F_OWN_ERROR : 0; pOut->pfnFreeError = pOut->sError != 0 ? xrtFree : 0; return -1;\n}\n\n", out);
-    xl6OutputPuts("static int xl6_async_file_result_bool(xfuture_result* pOut, int value)\n{\n", out);
-    xl6OutputPuts("    int* box = (int*)xrtMalloc(sizeof(int)); if ( box == 0 ) { return xl6_async_file_result_error(pOut, \"async file result allocation failed\"); } *box = value != 0; memset(pOut, 0, sizeof(*pOut)); pOut->pValue = box; pOut->iFlags = XFUTURE_RESULT_F_OWN_VALUE; pOut->pfnFreeValue = xrtFree; return 0;\n}\n\n", out);
-    xl6OutputPuts("static int xl6_async_file_result_i64(xfuture_result* pOut, long long value)\n{\n", out);
-    xl6OutputPuts("    long long* box = (long long*)xrtMalloc(sizeof(long long)); if ( box == 0 ) { return xl6_async_file_result_error(pOut, \"async file result allocation failed\"); } *box = value; memset(pOut, 0, sizeof(*pOut)); pOut->pValue = box; pOut->iFlags = XFUTURE_RESULT_F_OWN_VALUE; pOut->pfnFreeValue = xrtFree; return 0;\n}\n\n", out);
-    xl6OutputPuts("static int xl6_async_file_result_point(xfuture_result* pOut, void* value)\n{\n", out);
-    xl6OutputPuts("    void** box; if ( value == 0 ) { return xl6_async_file_result_error(pOut, \"async file buffer allocation failed\"); } box = (void**)xrtMalloc(sizeof(void*)); if ( box == 0 ) { (void)xl6_xrt_buffer_destroy(value); return xl6_async_file_result_error(pOut, \"async file result allocation failed\"); } *box = value; memset(pOut, 0, sizeof(*pOut)); pOut->pValue = box; pOut->iFlags = XFUTURE_RESULT_F_OWN_VALUE; pOut->pfnFreeValue = xrtFree; return 0;\n}\n\n", out);
-    xl6OutputPuts("static int xl6_async_file_result_string(xfuture_result* pOut, char* text)\n{\n", out);
-    xl6OutputPuts("    const char** box = (const char**)xrtMalloc(sizeof(const char*)); if ( box == 0 ) { xrtFree(text); return xl6_async_file_result_error(pOut, \"async file result allocation failed\"); } *box = text != 0 ? text : xrtCopyStr(\"\", 0); if ( *box == 0 ) { xrtFree(box); return xl6_async_file_result_error(pOut, \"async file text allocation failed\"); } memset(pOut, 0, sizeof(*pOut)); pOut->pValue = box; pOut->iFlags = XFUTURE_RESULT_F_OWN_VALUE; pOut->pfnFreeValue = xl6_async_free_string_value; return 0;\n}\n\n", out);
-    xl6OutputPuts("static int xl6_async_file_has_nul(const char* text, size_t size)\n{ size_t i; for ( i = 0u; text != 0 && i < size; ++i ) { if ( text[i] == '\\0' ) { return 1; } } return 0; }\n\n", out);
-
-    xl6OutputPuts("static int xl6_async_file_map_bool(const xfuture_result* input, void* arg, xfuture_result* output)\n{\n", out);
-    xl6OutputPuts("    xasyncfileio* info = input != 0 ? (xasyncfileio*)input->pValue : 0; (void)arg; if ( info == 0 ) { return xl6_async_file_result_error(output, \"async file returned no result\"); } xrtAsyncFileIoDestroy(info); return xl6_async_file_result_bool(output, 1);\n}\n", out);
-    xl6OutputPuts("static int xl6_async_file_map_success(const xfuture_result* input, void* arg, xfuture_result* output)\n{\n", out);
-    xl6OutputPuts("    (void)input; (void)arg; return xl6_async_file_result_bool(output, 1);\n}\n", out);
-    xl6OutputPuts("static int xl6_async_file_map_i64(const xfuture_result* input, void* arg, xfuture_result* output)\n{\n", out);
-    xl6OutputPuts("    xasyncfileio* info = input != 0 ? (xasyncfileio*)input->pValue : 0; long long value; (void)arg; if ( info == 0 ) { return xl6_async_file_result_error(output, \"async file returned no result\"); } value = info->iValue > 0x7fffffffffffffffULL ? 0x7fffffffffffffffLL : (long long)info->iValue; xrtAsyncFileIoDestroy(info); return xl6_async_file_result_i64(output, value);\n}\n", out);
-    xl6OutputPuts("static int xl6_async_file_map_text(const xfuture_result* input, void* arg, xfuture_result* output)\n{\n", out);
-    xl6OutputPuts("    xasyncfilebuf* info = input != 0 ? (xasyncfilebuf*)input->pValue : 0; void* data; size_t size = 0u; char* text; (void)arg; if ( info == 0 ) { return xl6_async_file_result_error(output, \"async file returned no text\"); } data = xrtAsyncFileBufDetach(info, &size, 0, 0); if ( size > 0u && data == 0 ) { return xl6_async_file_result_error(output, \"async file returned invalid text\"); } if ( xl6_async_file_has_nul((const char*)data, size) ) { xrtFree(data); return xl6_async_file_result_error(output, \"file text contains NUL byte; use readBytesAsync\"); } if ( size > 0u && !xrtIsUTF8((const char*)data, size) ) { xrtFree(data); return xl6_async_file_result_error(output, \"file text is not valid UTF-8 after charset conversion\"); } text = xrtCopyStr(data != 0 ? (const char*)data : \"\", size); xrtFree(data); return text != 0 ? xl6_async_file_result_string(output, text) : xl6_async_file_result_error(output, \"async file text allocation failed\");\n}\n", out);
-    xl6OutputPuts("static int xl6_async_file_map_buffer(const xfuture_result* input, void* arg, xfuture_result* output)\n{\n", out);
-    xl6OutputPuts("    xasyncfilebuf* info = input != 0 ? (xasyncfilebuf*)input->pValue : 0; void* data; void* buffer; size_t size = 0u; (void)arg; if ( info == 0 ) { return xl6_async_file_result_error(output, \"async file returned no buffer\"); } data = xrtAsyncFileBufDetach(info, &size, 0, 0); if ( size > 0u && data == 0 ) { return xl6_async_file_result_error(output, \"async file returned invalid buffer\"); } buffer = xl6_xrt_buffer_from_owned_bytes(data, size); return xl6_async_file_result_point(output, buffer);\n}\n", out);
-    xl6OutputPuts("static xfuture* xl6_async_file_chain(xfuture* source, xl6_future_cont_fn mapper)\n{\n", out);
-    xl6OutputPuts("    xfuture* result; if ( source == 0 ) { return 0; } result = xFutureThenSource(source, mapper, 0); if ( result != 0 ) { (void)xFutureForwardCancelTo(result, source); } xFutureRelease(source); return result;\n}\n\n", out);
-
-    xl6OutputPuts("xfuture* xl6_xrt_file_read_text_async(const char* path, int charset) { return xl6_async_file_chain(xrtFileReadAllAsync(path, charset), xl6_async_file_map_text); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_file_read_text_async_utf8(const char* path) { return xl6_xrt_file_read_text_async(path, -2); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_file_read_bytes_async(const char* path) { return xl6_async_file_chain(xrtFileGetAllAsync(path), xl6_async_file_map_buffer); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_file_write_text_async(const char* path, const char* text, int charset) { return xl6_async_file_chain(xrtFileWriteAllAsync(path, text != 0 ? text : \"\", 0u, charset), xl6_async_file_map_bool); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_file_write_text_async_utf8(const char* path, const char* text) { return xl6_xrt_file_write_text_async(path, text, 65001); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_file_append_text_async(const char* path, const char* text, int charset) { return xl6_async_file_chain(xrtFileAppendAsync(path, text != 0 ? text : \"\", 0u, charset), xl6_async_file_map_bool); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_file_append_text_async_utf8(const char* path, const char* text) { return xl6_xrt_file_append_text_async(path, text, 65001); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_file_write_bytes_async(const char* path, void* data, size_t size) { return xl6_async_file_chain(xrtFilePutAllAsync(path, data, size), xl6_async_file_map_bool); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_file_copy_async(const char* source, const char* target, bool overwrite) { return xl6_async_file_chain(xrtFileCopyAsync(source, target, overwrite), xl6_async_file_map_bool); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_file_copy_async_overwrite(const char* source, const char* target) { return xl6_xrt_file_copy_async(source, target, true); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_file_move_async(const char* source, const char* target, bool overwrite) { return xl6_async_file_chain(xrtFileMoveAsync(source, target, overwrite), xl6_async_file_map_bool); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_file_move_async_overwrite(const char* source, const char* target) { return xl6_xrt_file_move_async(source, target, true); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_file_delete_async(const char* path) { return xl6_async_file_chain(xrtFileDeleteAsync(path), xl6_async_file_map_bool); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_dir_create_async(const char* path) { return xl6_async_file_chain(xrtDirCreateAsync(path), xl6_async_file_map_bool); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_dir_create_all_async(const char* path) { return xl6_async_file_chain(xrtDirCreateAllAsync(path), xl6_async_file_map_bool); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_dir_copy_async(const char* source, const char* target) { return xl6_async_file_chain(xrtDirCopyAsync(source, target, true), xl6_async_file_map_bool); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_dir_move_async(const char* source, const char* target) { return xl6_async_file_chain(xrtDirMoveAsync(source, target, true), xl6_async_file_map_bool); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_dir_delete_async(const char* path) { return xl6_async_file_chain(xrtDirDeleteAsync(path), xl6_async_file_map_bool); }\n\n", out);
-
-    xl6OutputPuts("typedef struct XL6_AsyncFileHandle { xasyncfile* file; } XL6_AsyncFileHandle;\n", out);
-    xl6OutputPuts("void* xl6_xrt_async_file_open(const char* path, long long flags, long long shareFlags)\n{\n", out);
-    xl6OutputPuts("    xasyncfileconfig config; XL6_AsyncFileHandle* handle; xrtAsyncFileConfigInit(&config); config.sPath = path; config.iFlags = flags < 0 ? 0u : (unsigned int)flags; config.iShareFlags = shareFlags < 0 ? 0u : (unsigned int)shareFlags; handle = (XL6_AsyncFileHandle*)xrtCalloc(1u, sizeof(XL6_AsyncFileHandle)); if ( handle == 0 ) { return 0; } handle->file = xrtAsyncFileOpen(&config); if ( handle->file == 0 ) { xrtFree(handle); return 0; } return handle;\n}\n", out);
-    xl6OutputPuts("long long xl6_xrt_async_file_destroy(void* value) { XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value; if ( handle != 0 ) { if ( handle->file != 0 ) { xrtAsyncFileClose(handle->file); handle->file = 0; } xrtFree(handle); } return 0; }\n", out);
-    xl6OutputPuts("int xl6_xrt_async_file_close(void* value) { XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value; if ( handle == 0 ) { return 0; } if ( handle->file != 0 ) { xrtAsyncFileClose(handle->file); handle->file = 0; } return 1; }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_async_file_read(void* value, long long offset, long long size) { XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value; if ( handle == 0 || handle->file == 0 || offset < 0 || size < 0 ) { return 0; } return xl6_async_file_chain(xrtAsyncFileReadAt(handle->file, (uint64_t)offset, (size_t)size), xl6_async_file_map_buffer); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_async_file_write(void* value, long long offset, void* data, size_t size) { XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value; if ( handle == 0 || handle->file == 0 || offset < 0 ) { return 0; } return xl6_async_file_chain(xrtAsyncFileWriteAt(handle->file, (uint64_t)offset, data, size), xl6_async_file_map_i64); }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_async_file_flush(void* value) { XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value; return handle != 0 && handle->file != 0 ? xl6_async_file_chain(xrtAsyncFileFlush(handle->file), xl6_async_file_map_success) : 0; }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_async_file_size(void* value) { XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value; return handle != 0 && handle->file != 0 ? xl6_async_file_chain(xrtAsyncFileGetSize(handle->file), xl6_async_file_map_i64) : 0; }\n", out);
-    xl6OutputPuts("xfuture* xl6_xrt_async_file_resize(void* value, long long size) { XL6_AsyncFileHandle* handle = (XL6_AsyncFileHandle*)value; return handle != 0 && handle->file != 0 && size >= 0 ? xl6_async_file_chain(xrtAsyncFileSetSize(handle->file, (uint64_t)size), xl6_async_file_map_bool) : 0; }\n\n", out);
+    xl6CgenEmitAsyncFileDecls(out);
+    xl6CgenEmitAsyncFilePool(out);
+    xl6CgenEmitAsyncFileResults(out);
+    xl6CgenEmitAsyncFileMappers(out);
+    xl6CgenEmitAsyncFileHelpers(out);
+    xl6CgenEmitAsyncFileObject(out);
 }

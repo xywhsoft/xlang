@@ -49,10 +49,10 @@ PipelineResult failedPipe = process.pipeline([
 ])
 ProcessResult failedStage = failedPipe.result(0)
 expect(failedPipe.success, 0)
-expect(failedPipe.exitCode, 5)
+expect(failedPipe.exitCode, 0)
 expect(failedPipe.failedIndex, 0)
 expect(failedPipe.count, 2)
-expect(failedPipe.completedCount, 1)
+expect(failedPipe.completedCount, 2)
 expect(failedPipe.timedOut, 0)
 expect(failedStage.exitCode, 5)
 

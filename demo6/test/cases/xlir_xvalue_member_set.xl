@@ -1,0 +1,10 @@
+func dynamic_member_set() as var
+  var value = {"answer": 41}
+  value.answer = 42
+  return value.answer
+end
+
+export "xlir_test_xvalue_member_set_root" func xlir_test_root() as int
+  var rootedValue = dynamic_member_set()
+  return 0
+end

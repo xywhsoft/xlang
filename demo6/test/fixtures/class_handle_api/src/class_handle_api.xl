@@ -1,4 +1,4 @@
-class HandleApiBase
+export class HandleApiBase
     virtual func value() as int
         return 1
     end
@@ -16,12 +16,26 @@ class HandleApiDerived extends HandleApiBase
     end
 end
 
+export class HandleFactory
+    func make(int value) as HandleApiBase
+        return HandleApiDerived(value)
+    end
+
+    static func makeStatic(int value) as HandleApiBase
+        return HandleApiDerived(value)
+    end
+end
+
 export func make(int value) as HandleApiBase
     return HandleApiDerived(value)
 end
 
 export func read(HandleApiBase value) as int
     return value.value()
+end
+
+export func factory() as HandleFactory
+    return HandleFactory()
 end
 
 export func increment(byref int value)

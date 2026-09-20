@@ -1,0 +1,39 @@
+extern "future_escape_capture" func capture(var value)
+extern "future_escape_dropped" func dropped(int id)
+string moduleText = "future" + " alive"
+class Marker
+    int id = 0
+    create(int id)
+        self.id = id
+    end
+    destroy()
+        assert moduleText == "future alive", "Future result lost module globals"
+        dropped(self.id)
+    end
+end
+async func makeMarker(int id) as Marker
+    return Marker(id)
+end
+async func makeClosure(int id) as func() as int
+    Marker owner = Marker(id)
+    return func() as int => owner.id
+end
+extern "future_escape_nest" func nest(var inner) as future<future<Marker>>
+future<Marker> internalObject = makeMarker(7)
+future<func() as int> internalClosure = makeClosure(8)
+future<future<Marker>> internalNested = nest(makeMarker(9))
+export "future_escape_run" func runEscape(int mode) as int
+    if mode == 1 or mode == 4 then
+        capture(internalObject)
+    elseif mode == 2 then
+        capture(internalClosure)
+    elseif mode == 3 then
+        capture(internalNested)
+    elseif mode == 5 then
+        capture(makeMarker(42))
+    end
+    return 42
+end
+func main(...) as int
+    return 0
+end

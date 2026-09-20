@@ -1,0 +1,4 @@
+func assert_scalar() as int
+  assert 1 == 1, "assertion should not fail"
+  return 47
+end

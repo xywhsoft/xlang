@@ -1,0 +1,95 @@
+extern "terminal_input" func terminalInput() as future<int>
+extern "terminal_finally" func terminalFinally()
+extern "terminal_caught" func terminalCaught()
+extern "terminal_after" func terminalAfter()
+async func terminalCase(int kind, future<int> input, future<int> second) as int
+    int count = 0
+    if kind == 0
+        try
+            count = await input
+            terminalAfter()
+        finally
+            terminalFinally()
+        end
+    elseif kind == 1
+        try
+            count = await input
+            terminalAfter()
+        catch CancelledError error
+            terminalCaught()
+            count = 17
+        catch RuntimeError error
+            terminalCaught()
+            count = 19
+        finally
+            terminalFinally()
+        end
+    elseif kind == 2
+        try
+            count = await input
+            terminalAfter()
+        catch error
+            terminalCaught()
+            throw
+        finally
+            terminalFinally()
+        end
+    elseif kind == 3
+        try
+            count = await input
+            terminalAfter()
+        finally
+            int ignored = await second
+            terminalFinally()
+        end
+    elseif kind == 4
+        try
+            if kind == 4
+                return await input
+            else
+                return 0
+            end
+        finally
+            terminalFinally()
+        end
+    else
+        try
+            count = await input
+            terminalAfter()
+        finally
+            terminalFinally()
+            return 37
+        end
+    end
+    return count
+end
+async func terminalAllReturn(bool first, future<int> input) as int
+    try
+        if first
+            return await input
+        else
+            return (await input) + 1
+        end
+    finally
+        terminalFinally()
+    end
+end
+export "terminal_keep" func terminalKeep()
+    future<int> result = terminalCase(0, terminalInput(), terminalInput())
+    future<int> returned = terminalAllReturn(true, terminalInput())
+end
+int syncCount = 0
+try
+    syncCount = await terminalInput()
+catch CancelledError error
+    terminalCaught()
+    syncCount = 17
+catch RuntimeError error
+    terminalCaught()
+    syncCount = 19
+finally
+    terminalFinally()
+end
+export "terminal_sync" func terminalSync() as int
+    return syncCount
+end

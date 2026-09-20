@@ -1,0 +1,4 @@
+export "xlir_artifact_check" func check() as int
+    int value = 21
+    return value * 2
+end

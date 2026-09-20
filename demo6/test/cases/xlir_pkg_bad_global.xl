@@ -1,0 +1,2 @@
+import xlir_pkg_bad_global
+assert xlir_pkg_bad_global.verify()

@@ -358,7 +358,7 @@ static void xl6CgenRuntimeTypeDescSymbol(XL6_CgenContext* ctx, XL6_Output* out, 
 
 static void xl6CgenEmitRuntimeTypeDescProto(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
-    xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
+    xl6OutputPuts("static const xl6_type_desc* ", ctx->out);
     xl6CgenRuntimeTypeDescSymbol(ctx, ctx->out, typeNode);
     xl6OutputPuts("(void);\n", ctx->out);
 }
@@ -388,75 +388,75 @@ static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* t
         return;
     }
     if ( xl6CTextEquals(name, "var") ) {
-        xl6OutputPuts("xrtTypeValue()", ctx->out);
+        xl6OutputPuts("xl6TypeValue()", ctx->out);
     } else if ( xl6CTextEquals(name, "null") ) {
-        xl6OutputPuts("xrtTypeNull()", ctx->out);
+        xl6OutputPuts("xl6TypeNull()", ctx->out);
     } else if ( xl6CTextEquals(name, "bool") ) {
-        xl6OutputPuts("xrtTypeBool32()", ctx->out);
+        xl6OutputPuts("xl6TypeBool32()", ctx->out);
     } else if ( xl6CTextEquals(name, "int8") || xl6CTextEquals(name, "c_schar") ) {
-        xl6OutputPuts("xrtTypeInt8()", ctx->out);
+        xl6OutputPuts("xl6TypeInt8()", ctx->out);
     } else if ( xl6CTextEquals(name, "uint8") || xl6CTextEquals(name, "c_uchar") ) {
-        xl6OutputPuts("xrtTypeUInt8()", ctx->out);
+        xl6OutputPuts("xl6TypeUInt8()", ctx->out);
     } else if ( xl6CTextEquals(name, "int16") || xl6CTextEquals(name, "c_short") ) {
-        xl6OutputPuts("xrtTypeInt16()", ctx->out);
+        xl6OutputPuts("xl6TypeInt16()", ctx->out);
     } else if ( xl6CTextEquals(name, "uint16") || xl6CTextEquals(name, "c_ushort") ) {
-        xl6OutputPuts("xrtTypeUInt16()", ctx->out);
+        xl6OutputPuts("xl6TypeUInt16()", ctx->out);
     } else if ( xl6CTextEquals(name, "int32") || xl6CTextEquals(name, "c_int") ) {
-        xl6OutputPuts("xrtTypeInt32()", ctx->out);
+        xl6OutputPuts("xl6TypeInt32()", ctx->out);
     } else if ( xl6CTextEquals(name, "uint32") || xl6CTextEquals(name, "c_uint") ) {
-        xl6OutputPuts("xrtTypeUInt32()", ctx->out);
+        xl6OutputPuts("xl6TypeUInt32()", ctx->out);
     } else if ( xl6CTextEquals(name, "int64") || xl6CTextEquals(name, "c_longlong") ) {
-        xl6OutputPuts("xrtTypeInt64()", ctx->out);
+        xl6OutputPuts("xl6TypeInt64()", ctx->out);
     } else if ( xl6CTextEquals(name, "uint64") || xl6CTextEquals(name, "c_ulonglong") ) {
-        xl6OutputPuts("xrtTypeUInt64()", ctx->out);
+        xl6OutputPuts("xl6TypeUInt64()", ctx->out);
     } else if ( xl6CTextEquals(name, "c_char") ) {
-        xl6OutputPuts("(((char)-1 < 0) ? xrtTypeInt8() : xrtTypeUInt8())", ctx->out);
+        xl6OutputPuts("(((char)-1 < 0) ? xl6TypeInt8() : xl6TypeUInt8())", ctx->out);
     } else if ( xl6CTextEquals(name, "c_long") || xl6CTextEquals(name, "c_ssize") ||
                 xl6CTextEquals(name, "c_ptrdiff") || xl6CTextEquals(name, "c_intptr") ) {
         xl6OutputPuts("((sizeof(", ctx->out);
         xl6OutputPuts(xl6CgenTypeName(ctx, concreteType), ctx->out);
-        xl6OutputPuts(") == 8u) ? xrtTypeInt64() : xrtTypeInt32())", ctx->out);
+        xl6OutputPuts(") == 8u) ? xl6TypeInt64() : xl6TypeInt32())", ctx->out);
     } else if ( xl6CTextEquals(name, "c_ulong") || xl6CTextEquals(name, "c_size") ||
                 xl6CTextEquals(name, "c_uintptr") ) {
         xl6OutputPuts("((sizeof(", ctx->out);
         xl6OutputPuts(xl6CgenTypeName(ctx, concreteType), ctx->out);
-        xl6OutputPuts(") == 8u) ? xrtTypeUInt64() : xrtTypeUInt32())", ctx->out);
+        xl6OutputPuts(") == 8u) ? xl6TypeUInt64() : xl6TypeUInt32())", ctx->out);
     } else if ( xl6CTextEquals(name, "c_wchar") ) {
-        xl6OutputPuts("((sizeof(wchar_t) == 2u) ? (((wchar_t)-1 < 0) ? xrtTypeInt16() : xrtTypeUInt16()) : (((wchar_t)-1 < 0) ? xrtTypeInt32() : xrtTypeUInt32()))", ctx->out);
+        xl6OutputPuts("((sizeof(wchar_t) == 2u) ? (((wchar_t)-1 < 0) ? xl6TypeInt16() : xl6TypeUInt16()) : (((wchar_t)-1 < 0) ? xl6TypeInt32() : xl6TypeUInt32()))", ctx->out);
     } else if ( xl6CTextEquals(name, "c_bool") ) {
-        xl6OutputPuts("xrtTypeBool()", ctx->out);
+        xl6OutputPuts("xl6TypeBool()", ctx->out);
     } else if ( xl6CTextEquals(name, "int") ) {
-        xl6OutputPuts("xrtTypeInt()", ctx->out);
+        xl6OutputPuts("xl6TypeInt64()", ctx->out);
     } else if ( xl6CTextEquals(name, "float32") || xl6CTextEquals(name, "c_float") ) {
-        xl6OutputPuts("xrtTypeFloat32()", ctx->out);
+        xl6OutputPuts("xl6TypeFloat32()", ctx->out);
     } else if ( xl6CTextEquals(name, "float64") || xl6CTextEquals(name, "c_double") ) {
-        xl6OutputPuts("xrtTypeFloat64()", ctx->out);
+        xl6OutputPuts("xl6TypeFloat64()", ctx->out);
     } else if ( xl6CTextEquals(name, "float") ) {
-        xl6OutputPuts("xrtTypeFloat()", ctx->out);
+        xl6OutputPuts("xl6TypeFloat64()", ctx->out);
     } else if ( xl6CTextEquals(name, "string") ) {
-        xl6OutputPuts("xrtTypeString()", ctx->out);
+        xl6OutputPuts("xl6TypeString()", ctx->out);
     } else if ( xl6CTextEquals(name, "time") ) {
-        xl6OutputPuts("xrtTypeTime()", ctx->out);
+        xl6OutputPuts("xl6TypeTime()", ctx->out);
     } else if ( xl6CTextEquals(name, "point") ) {
-        xl6OutputPuts("xrtTypePoint()", ctx->out);
+        xl6OutputPuts("xl6TypePointer()", ctx->out);
     } else if ( xl6CgenIsFutureLikeType(concreteType) ) {
-        xl6OutputPuts("xrtTypeFuture()", ctx->out);
+        xl6OutputPuts("xl6TypeFuture()", ctx->out);
     } else if ( xl6CgenIsFunctionType(concreteType) ) {
-        xl6OutputPuts("xrtTypeFunction()", ctx->out);
+        xl6OutputPuts("xl6TypeFunction()", ctx->out);
     } else if ( xl6CTextEquals(name, "array") || xl6CTextEquals(name, "array<var>") ) {
-        xl6OutputPuts("xrtTypeArray()", ctx->out);
+        xl6OutputPuts("xl6TypeValue()", ctx->out);
     } else if ( xl6CTextEquals(name, "list") || xl6CTextEquals(name, "list<var>") ) {
-        xl6OutputPuts("xrtTypeList()", ctx->out);
+        xl6OutputPuts("xl6TypeValue()", ctx->out);
     } else if ( xl6CTextEquals(name, "set") || xl6CTextEquals(name, "set<var>") ) {
-        xl6OutputPuts("xrtTypeSet()", ctx->out);
+        xl6OutputPuts("xl6TypeValue()", ctx->out);
     } else if ( xl6CTextEquals(name, "dict") || xl6CTextEquals(name, "dict<var>") ) {
-        xl6OutputPuts("xrtTypeDict()", ctx->out);
+        xl6OutputPuts("xl6TypeValue()", ctx->out);
     } else if ( xl6CTextEquals(name, "error") ) {
-        xl6OutputPuts("xrtTypeHandle()", ctx->out);
+        xl6OutputPuts("xl6TypeError()", ctx->out);
     } else if ( xl6CTextEquals(name, "__class_handle") ) {
-        xl6OutputPuts("xrtTypeValue()", ctx->out);
+        xl6OutputPuts("xl6TypeValue()", ctx->out);
     } else if ( xl6CTextEquals(name, "type") ) {
-        xl6OutputPuts("xrtTypeType()", ctx->out);
+        xl6OutputPuts("xl6TypeType()", ctx->out);
     } else if ( xl6CgenIsNumericEnumType(ctx, concreteType) ||
                 xl6CgenIsTaggedEnumType(ctx, concreteType) ) {
         xl6CgenEnumTypeDescRef(ctx, concreteType);
@@ -486,41 +486,35 @@ static void xl6CgenEmitXrtTypeDescRef(XL6_CgenContext* ctx, const XL6_AstNode* t
     }
 }
 
-static const XL6_AstNode* xl6CgenFunctionSigParamAt(const XL6_AstNode* params, size_t paramCount, int includeVararg, size_t index)
+static const XL6_AstNode* xl6CgenFunctionSigParamAt(const XL6_AstNode* params, size_t paramCount, size_t index)
 {
     int fixedCount;
 
     if ( params == NULL ) {
         return NULL;
     }
-    if ( index < paramCount && index < params->childCount ) {
+    fixedCount = xl6CgenFixedParamCount(params);
+    if ( index < paramCount && index < (size_t)fixedCount && index < params->childCount ) {
         return params->children[index];
-    }
-    if ( includeVararg && index == paramCount ) {
-        fixedCount = xl6CgenFixedParamCount(params);
-        if ( params->childCount > (size_t)fixedCount ) {
-            return params->children[fixedCount];
-        }
     }
     return NULL;
 }
 
-static unsigned int xl6CgenFunctionSigParamCount(const XL6_AstNode* params, size_t paramCount, int includeVararg)
+static unsigned int xl6CgenFunctionSigParamCount(const XL6_AstNode* params, size_t paramCount)
 {
-    unsigned int count;
     int fixedCount;
 
     if ( params == NULL ) {
         return 0;
     }
-    count = (unsigned int)(paramCount < params->childCount ? paramCount : params->childCount);
-    if ( includeVararg ) {
-        fixedCount = xl6CgenFixedParamCount(params);
-        if ( params->childCount > (size_t)fixedCount ) {
-            count += 1u;
-        }
+    fixedCount = xl6CgenFixedParamCount(params);
+    if ( paramCount > (size_t)fixedCount ) {
+        paramCount = (size_t)fixedCount;
     }
-    return count;
+    if ( paramCount > params->childCount ) {
+        paramCount = params->childCount;
+    }
+    return (unsigned int)paramCount;
 }
 
 static const XL6_AstNode* xl6CgenFunctionSigVarargParam(const XL6_AstNode* params, size_t paramCount, int includeVararg)
@@ -626,7 +620,7 @@ static void xl6CgenEmitFunctionSigObjectForPrefix(XL6_CgenContext* ctx, const ch
     if ( name == NULL ) {
         name = "";
     }
-    actualParamCount = xl6CgenFunctionSigParamCount(params, paramCount, includeVararg);
+    actualParamCount = xl6CgenFunctionSigParamCount(params, paramCount);
     returnCount = (unsigned int)(returns != NULL ? returns->childCount : 0);
     nameSize = (unsigned int)strlen(name);
     flags = xl6CgenFunctionSigFlags(params, paramCount, includeVararg);
@@ -634,17 +628,17 @@ static void xl6CgenEmitFunctionSigObjectForPrefix(XL6_CgenContext* ctx, const ch
     /* 签名元数据包含运行时类型指针，需要在 make 函数内按需填充。 */
     if ( actualParamCount > 0 ) {
         xl6CgenFunctionSigIndent(ctx);
-        xl6OutputPrintf(ctx->out, "static xrt_func_param %s_params[%uu];\n", localName, actualParamCount);
+        xl6OutputPrintf(ctx->out, "static xl6_func_param %s_params[%uu];\n", localName, actualParamCount);
     }
     if ( returnCount > 0 ) {
         xl6CgenFunctionSigIndent(ctx);
-        xl6OutputPrintf(ctx->out, "static const struct xrt_type_desc* %s_returns[%uu];\n", localName, returnCount);
+        xl6OutputPrintf(ctx->out, "static const struct xl6_type_desc* %s_returns[%uu];\n", localName, returnCount);
     }
     xl6CgenFunctionSigIndent(ctx);
-    xl6OutputPrintf(ctx->out, "static xrt_func_sig %s;\n", localName);
+    xl6OutputPrintf(ctx->out, "static xl6_func_sig %s;\n", localName);
 
     for ( i = 0; i < actualParamCount; ++i ) {
-        xl6CgenEmitFunctionSigParamAssign(ctx, localName, i, xl6CgenFunctionSigParamAt(params, paramCount, includeVararg, i));
+        xl6CgenEmitFunctionSigParamAssign(ctx, localName, i, xl6CgenFunctionSigParamAt(params, paramCount, i));
     }
     for ( i = 0; returns != NULL && i < returns->childCount; ++i ) {
         xl6CgenFunctionSigIndent(ctx);

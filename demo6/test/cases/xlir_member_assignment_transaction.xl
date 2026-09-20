@@ -1,0 +1,235 @@
+// Every field mutation uses one evaluated address and an explicit value commit.
+extern "member_fail" func memberFail()
+extern "member_future" func memberFuture() as future<int>
+class MemberState
+    int? number
+    string? text
+    var value
+    int plain = 3
+    string word = "a"
+end
+class MemberStatic
+    public static int? number
+    static string? text
+end
+MemberState memberCurrent = MemberState()
+int memberReads = 0
+int memberCalls = 0
+int memberCaught = 0
+export "member_defaults" func memberDefaults() as int
+    string? localText
+    string localWord
+    assert localText == null
+    assert localWord == ""
+    assert MemberStatic.number == null
+    assert MemberStatic.text == null
+    int private = 7
+    int final = 9
+    bool static = true
+    assert (static ? private : final) == 7
+    return 0
+end
+func memberAddress(MemberState state, int stage) as MemberState
+    memberReads += 1
+    if stage == 3 then memberFail() end
+    return state
+end
+func memberStep(int stage)
+    memberCalls += 1
+    memberCurrent = MemberState()
+    if stage == 1 then memberFail() end
+end
+func memberNumber(int stage) as int?
+    memberStep(stage)
+    if stage == 2 then return null end
+    return 17
+end
+func memberText(int stage) as string?
+    memberStep(stage)
+    if stage == 2 then return null end
+    return string(17)
+end
+func memberValue(int stage) as var
+    memberStep(stage)
+    if stage == 2 then return null end
+    return 17
+end
+func memberReset(bool present)
+    memberCurrent = MemberState()
+    memberReads = 0
+    memberCalls = 0
+    memberCaught = 0
+    if present
+        memberCurrent.number = 8
+        memberCurrent.text = "8"
+        memberCurrent.value = 8
+    end
+end
+export "member_sync" func memberSync(int mode, bool present, int stage) as int
+    memberReset(present)
+    MemberState original = memberCurrent
+    try
+        if mode == 0
+            memberAddress(memberCurrent, stage).number ?= memberNumber(stage)
+            memberAddress(original, stage).number ?= memberNumber(stage)
+        elseif mode == 1
+            memberAddress(memberCurrent, stage).text ?= memberText(stage)
+            memberAddress(original, stage).text ?= memberText(stage)
+        else
+            memberAddress(memberCurrent, stage).value ?= memberValue(stage)
+            memberAddress(original, stage).value ?= memberValue(stage)
+        end
+    catch failure
+        assert failure.code == 73
+        memberCaught += 1
+    end
+    int result = original.number ?? -1
+    if mode == 1 then result = int(original.text ?? "-1") end
+    if mode == 2 then result = int(original.value ?? -1) end
+    if memberCalls > 0
+        assert memberCurrent.number == null
+        assert memberCurrent.text == null
+        assert memberCurrent.value == null
+    end
+    return result * 1000 + memberReads * 100 + memberCalls * 10 + memberCaught
+end
+
+// Receiver evaluation may replace the storage from which RHS was borrowed.
+string memberBorrowedText = "before"
+var memberBorrowedValue = 7
+func memberChangingAddress() as MemberState
+    memberReads += 1
+    memberBorrowedText = "after"
+    memberBorrowedValue = 9
+    return memberCurrent
+end
+func memberCompoundRhs(int stage) as int
+    memberStep(stage)
+    return 4
+end
+func memberWordRhs(int stage) as string
+    memberStep(stage)
+    return "b"
+end
+export "member_regular" func memberRegular(int stage) as int
+    memberReset(false)
+    memberBorrowedText = "before"
+    memberBorrowedValue = 7
+    var dictionary = {}
+    dictionary.value = memberBorrowedValue
+    dictionary.value = memberBorrowedValue
+    assert dictionary.value == 7 and memberBorrowedValue == 7
+    memberChangingAddress().text = memberBorrowedText
+    assert (memberCurrent.text ?? "") == "before"
+    memberBorrowedValue = 7
+    memberChangingAddress().value = memberBorrowedValue
+    assert memberCurrent.value == 7
+    MemberState original = memberCurrent
+    memberReads = 0
+    try
+        memberAddress(memberCurrent, stage).plain += memberCompoundRhs(stage)
+        memberAddress(original, stage).word += memberWordRhs(stage)
+    catch failure
+        assert failure.code == 73
+        memberCaught += 1
+    end
+    if stage == 0
+        assert original.plain == 7
+        assert original.word == "ab"
+        assert memberCurrent.plain == 3
+        assert memberCurrent.word == "a"
+        assert memberReads == 2 and memberCalls == 2
+    else
+        assert original.plain == 3 and original.word == "a"
+        assert memberCaught == 1 and memberReads == 1
+        assert memberCalls == (stage == 3 ? 0 : 1)
+    end
+    return 0
+end
+export "member_word" func memberWord(int stage) as int
+    memberReset(false)
+    MemberState original = memberCurrent
+    try
+        memberAddress(memberCurrent, stage).word += memberWordRhs(stage)
+    catch failure
+        assert failure.code == 73
+        memberCaught += 1
+    end
+    assert original.word == (stage == 0 ? "ab" : "a")
+    assert memberReads == 1
+    assert memberCalls == (stage == 3 ? 0 : 1)
+    assert memberCaught == (stage == 0 ? 0 : 1)
+    return 0
+end
+export "member_static" func memberStatic() as int
+    MemberStatic.number = null
+    MemberStatic.text = null
+    MemberStatic.number ?= 0
+    MemberStatic.number ?= 17
+    MemberStatic.text ?= string(8)
+    MemberStatic.text ?= memberText(1)
+    assert (MemberStatic.number ?? -1) == 0
+    assert (MemberStatic.text ?? "") == "8"
+    memberReset(false)
+    memberAddress(memberCurrent, 0).plain ?= memberCompoundRhs(1)
+    assert memberReads == 1 and memberCalls == 0
+    return 0
+end
+
+async func memberAwait(future<int> pending, bool present, int mode) as int
+    MemberState original = memberCurrent
+    if mode == 0
+        memberAddress(memberCurrent, 0).number ?= await pending
+        return original.number ?? -1
+    elseif mode == 1
+        memberAddress(memberCurrent, 0).text ?= string(await pending)
+        return int(original.text ?? "-1")
+    end
+    memberAddress(memberCurrent, 0).value ?= await pending
+    return int(original.value ?? -1)
+end
+async func memberReady() as int
+    return 0
+end
+future<int> memberPending = memberReady()
+export "member_start" func memberStart(bool present, int mode)
+    memberReset(present)
+    memberPending = memberAwait(memberFuture(), present, mode)
+end
+export "member_replace" func memberReplace()
+    memberCurrent = MemberState()
+    memberCurrent.number = 29
+    memberCurrent.text = "29"
+    memberCurrent.value = 29
+end
+func memberSequence(bool present, int mode, int stage) as generator<int>
+    MemberState original = memberCurrent
+    yield present ? 8 : -1
+    // Module storage is shared, not a generator frame slot. The original
+    // receiver remains alive independently across replacement after yield.
+    memberCurrent = MemberState()
+    if mode == 0
+        memberAddress(original, stage).number ?= memberNumber(stage)
+        yield original.number ?? -1
+    elseif mode == 1
+        memberAddress(original, stage).text ?= memberText(stage)
+        yield int(original.text ?? "-1")
+    else
+        memberAddress(original, stage).value ?= memberValue(stage)
+        yield int(original.value ?? -1)
+    end
+end
+export "member_generator" func memberGenerator(int mode, bool present, bool stop, int stage) as int
+    memberReset(present)
+    int result = 0
+    try
+        for item in memberSequence(present, mode, stage)
+            result = result * 100 + item + 1
+            if stop then break end
+        end
+    catch failure
+        assert failure.code == 73
+        memberCaught += 1
+    end
+    return result * 1000 + memberReads * 100 + memberCalls * 10 + memberCaught
+end

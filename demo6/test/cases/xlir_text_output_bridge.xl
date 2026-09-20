@@ -1,0 +1,21 @@
+func outputTwice(string text)
+    write(text)
+    write("|")
+    writeln(text)
+end
+
+func ownedText() as string
+    return "x" + "lang"
+end
+
+string text = ownedText()
+outputTwice(text)
+outputTwice(ownedText() + "-temporary")
+assert text == "xlang", "text output consumed its borrowed string"
+func(string) output = func(string suffix)
+    write(text)
+    writeln(suffix)
+end
+output("-closure")
+output("-again")
+assert text == "xlang"

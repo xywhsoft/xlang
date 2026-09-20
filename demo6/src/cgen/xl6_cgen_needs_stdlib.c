@@ -37,24 +37,6 @@ int xl6CgenNodeNeedsLogRuntime(const XL6_AstNode* node)
     return 0;
 }
 
-int xl6CgenNodeNeedsLogObjectRuntime(const XL6_AstNode* node)
-{
-    size_t i;
-
-    if ( node == NULL ) {
-        return 0;
-    }
-    if ( xl6CgenNeedsBasicIsLoggerClass(node) ) {
-        return 1;
-    }
-    for ( i = 0; i < node->childCount; ++i ) {
-        if ( xl6CgenNodeNeedsLogObjectRuntime(node->children[i]) ) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 int xl6CgenNodeNeedsSignalRuntime(const XL6_AstNode* node)
 {
     size_t i;

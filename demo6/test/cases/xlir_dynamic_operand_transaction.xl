@@ -1,0 +1,25 @@
+extern "xlir_boxing_arm" func arm()
+extern "xlir_boxing_pretty" func pretty() as bool
+
+func settings() as XsonOptions
+    XsonOptions value = XsonOptions()
+    value.pretty = pretty()
+    return value
+end
+
+// The literal string owns memory before dynamic boxing. Both boxing failure
+// and a later argument failure must release all already-acquired operands.
+export "xlir_dynamic_boxing_case" func probe(c_int format) as c_int
+    try
+        arm()
+        if format == 0 then
+            string rendered = json.stringify("payload", pretty())
+            return c_int(string.len(rendered) > 0 ? 0 : 99)
+        else
+            string rendered = xson.stringify("payload", settings())
+            return c_int(string.len(rendered) > 0 ? 0 : 99)
+        end
+    catch problem
+        return c_int(-1)
+    end
+end

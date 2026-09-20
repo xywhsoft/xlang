@@ -592,6 +592,7 @@ xlang compiler is not embedded. Add `import xlang.compiler`.
 
 - `import tcc` 会自动启用 `feature.tcc.runtime`，并在外部 exe 产物中嵌入 libtcc 源码、运行版 TCC VFS 资源和 LZMA 解压代码。
 - `TccContext` 创建时会默认配置动态 VFS 可见的 `include` / `include/winapi` / `lib` 路径，并注入 XRT 常用符号。
+- 仅导入 `tcc` 的独立产物会编入 `xl_tcc_standalone_env.c`，复用自动生成的完整 XRT 符号表；导入 `xlang` 时则复用完整运行时中的同名注册 API，不重复编入实现。
 - `tcc.run`、`TccContext.compileString + run`、`tcc.vfsMount + tcc.runFile` 已在宿主运行态和生成 exe 产物中验证通过。
 - `import xlang` 会自动启用 `feature.xlang.runtime`，并在外部 exe 产物中嵌入运行版 xlang API 源码集。
 - `xlang.run`、`XLangContext.run` 已在宿主运行态和生成 exe 产物中验证通过；普通 `import xlang` 不携带外部 exe/dll 输出能力。

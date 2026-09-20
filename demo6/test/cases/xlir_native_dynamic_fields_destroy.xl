@@ -1,0 +1,9 @@
+DynamicFields fields = DynamicFields()
+
+assert fields.set("answer", 42)
+fields.destroy()
+
+func main(...) as int
+    println("xlir native dynamic-fields destroy ok")
+    return 0
+end

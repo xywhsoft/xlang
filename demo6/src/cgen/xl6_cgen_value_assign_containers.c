@@ -8,13 +8,13 @@ static void xl6CgenTypedContainerDestroyValue(XL6_CgenContext* ctx, const XL6_As
     concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
     typeName = concreteType != NULL ? concreteType->text : NULL;
     if ( xl6CTextEquals(typeName, "array") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedArrayDestroy(%s);\n", cName);
+        xl6OutputPrintf(ctx->out, "xl6TypedArrayRelease(%s);\n", cName);
     } else if ( xl6CTextEquals(typeName, "list") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedListDestroy(%s);\n", cName);
+        xl6OutputPrintf(ctx->out, "xl6TypedListRelease(%s);\n", cName);
     } else if ( xl6CTextEquals(typeName, "set") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedSetDestroy(%s);\n", cName);
+        xl6OutputPrintf(ctx->out, "xl6TypedSetRelease(%s);\n", cName);
     } else if ( xl6CTextEquals(typeName, "dict") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedDictDestroy(%s);\n", cName);
+        xl6OutputPrintf(ctx->out, "xl6TypedDictRelease(%s);\n", cName);
     } else {
         xl6CgenError(ctx, typeNode, "typed container destroy requires array/list/set/dict");
     }
@@ -147,7 +147,7 @@ static int xl6CgenTypedContainerCompoundAssignStmt(
 
     if ( xl6CTextEquals(typeName, "array") && xl6CTextEquals(op, "+=") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (!xrtTypedArrayExtend(%s, ", targetPath);
+        xl6OutputPrintf(ctx->out, "if (!xl6TypedArrayExtend(%s, ", targetPath);
         xl6CgenTypedContainerExprOrTemp(ctx, right, rightTemp, hasRightTemp);
         xl6OutputPuts(")) {\n", ctx->out);
         ctx->indent += 1;
@@ -165,7 +165,7 @@ static int xl6CgenTypedContainerCompoundAssignStmt(
 
     if ( xl6CTextEquals(typeName, "list") && xl6CTextEquals(op, "+=") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (!xrtTypedListMerge(%s, ", targetPath);
+        xl6OutputPrintf(ctx->out, "if (!xl6TypedListMerge(%s, ", targetPath);
         xl6CgenTypedContainerExprOrTemp(ctx, right, rightTemp, hasRightTemp);
         xl6OutputPuts(")) {\n", ctx->out);
         ctx->indent += 1;
@@ -183,7 +183,7 @@ static int xl6CgenTypedContainerCompoundAssignStmt(
 
     if ( xl6CTextEquals(typeName, "dict") && xl6CTextEquals(op, "+=") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (!xrtTypedDictMerge(%s, ", targetPath);
+        xl6OutputPrintf(ctx->out, "if (!xl6TypedDictMerge(%s, ", targetPath);
         xl6CgenTypedContainerExprOrTemp(ctx, right, rightTemp, hasRightTemp);
         xl6OutputPuts(")) {\n", ctx->out);
         ctx->indent += 1;
@@ -201,7 +201,7 @@ static int xl6CgenTypedContainerCompoundAssignStmt(
 
     if ( xl6CTextEquals(typeName, "list") && xl6CTextEquals(op, "-=") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "(void)xrtTypedListRemove(%s, (long long)(", targetPath);
+        xl6OutputPrintf(ctx->out, "(void)xl6TypedListRemove(%s, (long long)(", targetPath);
         xl6CgenExpr(ctx, right);
         xl6OutputPuts("));\n", ctx->out);
         xl6AstFree(ownedType);
@@ -210,7 +210,7 @@ static int xl6CgenTypedContainerCompoundAssignStmt(
 
     if ( xl6CTextEquals(typeName, "dict") && xl6CTextEquals(op, "-=") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "(void)xrtTypedDictRemove(%s, ", targetPath);
+        xl6OutputPrintf(ctx->out, "(void)xl6TypedDictRemove(%s, ", targetPath);
         xl6CgenExpr(ctx, right);
         xl6OutputPuts(", 0);\n", ctx->out);
         xl6AstFree(ownedType);
@@ -219,7 +219,7 @@ static int xl6CgenTypedContainerCompoundAssignStmt(
 
     if ( xl6CTextEquals(typeName, "set") && xl6CTextEquals(op, "|=") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (!xrtTypedSetMerge(%s, ", targetPath);
+        xl6OutputPrintf(ctx->out, "if (!xl6TypedSetMerge(%s, ", targetPath);
         xl6CgenTypedContainerExprOrTemp(ctx, right, rightTemp, hasRightTemp);
         xl6OutputPuts(")) {\n", ctx->out);
         ctx->indent += 1;
@@ -237,11 +237,11 @@ static int xl6CgenTypedContainerCompoundAssignStmt(
 
     setFunc = NULL;
     if ( xl6CTextEquals(typeName, "set") && xl6CTextEquals(op, "&=") ) {
-        setFunc = "xrtTypedSetIntersection";
+        setFunc = "xl6TypedSetIntersection";
     } else if ( xl6CTextEquals(typeName, "set") && xl6CTextEquals(op, "-=") ) {
-        setFunc = "xrtTypedSetDifference";
+        setFunc = "xl6TypedSetDifference";
     } else if ( xl6CTextEquals(typeName, "set") && xl6CTextEquals(op, "^=") ) {
-        setFunc = "xrtTypedSetSymmetricDifference";
+        setFunc = "xl6TypedSetSymmetricDifference";
     }
     if ( setFunc != NULL ) {
         snprintf(resultTemp, sizeof(resultTemp), "__xl6_typed_set_result_%d", ctx->tempId++);
@@ -284,7 +284,6 @@ static int xl6CgenNullableTypedContainerMemberAssignStmt(
     const XL6_AstNode* sourceConcrete;
     XL6_AstNode* sourceCanonical;
     XL6_HirOwnership ownership;
-    int sourceShared;
     int id;
     char sourceName[64];
     char valueName[64];
@@ -327,7 +326,6 @@ static int xl6CgenNullableTypedContainerMemberAssignStmt(
     }
 
     ownership = xl6CgenHirOwnership(ctx, right);
-    sourceShared = xl6CgenTypedContainerExprIsSharedStorage(ctx, right);
     id = ctx->tempId++;
     snprintf(sourceName, sizeof(sourceName), "__xl6_nullable_member_source_%d", id);
     snprintf(valueName, sizeof(valueName), "__xl6_nullable_member_value_%d", id);
@@ -348,7 +346,7 @@ static int xl6CgenNullableTypedContainerMemberAssignStmt(
             "%s %s = ",
             xl6CgenTypedContainerCType(ctx, innerType),
             valueName);
-        xl6CgenTypedContainerCreateExprMode(ctx, innerType, "XRT_OBJMODE_SHARED");
+        xl6CgenTypedContainerCreateExpr(ctx, innerType);
         xl6OutputPuts(";\n", ctx->out);
         xl6CgenTypedContainerFillFromLiteral(ctx, valueName, innerType, right);
     } else {
@@ -369,23 +367,12 @@ static int xl6CgenNullableTypedContainerMemberAssignStmt(
             xl6CgenTypedContainerCType(ctx, innerType),
             valueName,
             sourceName);
-        if ( sourceShared && ownership == XL6_HIR_OWNERSHIP_MOVE ) {
+        if ( ownership == XL6_HIR_OWNERSHIP_MOVE ) {
             xl6OutputPuts(sourceName, ctx->out);
-        } else if ( sourceShared ) {
-            xl6CgenTypedContainerRetainCExpr(ctx, innerType, sourceName);
         } else {
-            xl6CgenTypedContainerCopyCExprMode(
-                ctx,
-                innerType,
-                sourceName,
-                "XRT_OBJMODE_SHARED");
+            xl6CgenTypedContainerRetainCExpr(ctx, innerType, sourceName);
         }
         xl6OutputPuts(" : 0;\n", ctx->out);
-
-        if ( !sourceShared && ownership == XL6_HIR_OWNERSHIP_MOVE ) {
-            xl6CgenIndent(ctx);
-            xl6CgenTypedContainerDestroyValue(ctx, innerType, sourceName);
-        }
     }
 
     /* 接收者只求值一次，先释放旧字段，再提交新值。 */
@@ -467,7 +454,7 @@ static int xl6CgenTypedContainerMemberAssignStmt(
     xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, fieldType), tempName);
     if ( literal != NULL ) {
         /* class 是可跨线程共享的引用对象，其拥有的容器字段从写入时起就必须是共享根。 */
-        xl6CgenTypedContainerCreateExprMode(ctx, fieldType, "XRT_OBJMODE_SHARED");
+        xl6CgenTypedContainerCreateExpr(ctx, fieldType);
     } else if ( moveReturn ) {
         if ( memberFunctionType != NULL ) {
             xl6CgenMemberFunctionStatementInvokeExpr(ctx, right, memberFunctionType, memberTempName);
@@ -475,7 +462,7 @@ static int xl6CgenTypedContainerMemberAssignStmt(
             xl6CgenExpr(ctx, right);
         }
     } else if ( importDynamic ) {
-        xl6CgenTypedContainerImportDynamicExprMode(ctx, fieldType, right, "XRT_OBJMODE_SHARED");
+        xl6CgenTypedContainerImportDynamicExpr(ctx, fieldType, right);
     } else {
         xl6CgenTypedContainerRetainExpr(ctx, fieldType, right);
     }
@@ -486,11 +473,6 @@ static int xl6CgenTypedContainerMemberAssignStmt(
     xl6AstFree(memberFunctionType);
     if ( literal != NULL ) {
         xl6CgenTypedContainerFillFromLiteral(ctx, tempName, fieldType, right);
-    } else if ( moveReturn ) {
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = ", tempName);
-        xl6CgenTypedContainerMoveToSharedCExpr(ctx, fieldType, tempName);
-        xl6OutputPuts(";\n", ctx->out);
     }
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s* %s = &(", xl6CgenTypedContainerCType(ctx, fieldType), slotName);

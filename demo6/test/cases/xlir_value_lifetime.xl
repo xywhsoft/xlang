@@ -1,0 +1,190 @@
+// Borrow protection is an IR contract, independent of source variable names.
+export "xlir_value_lifetime_probe" func lifetimeProbe() as int
+    string current = "old"
+    string before = current
+    current = "new"
+    string after = current
+    assert before == "old"
+    assert after == "new"
+    return 0
+end
+
+var lifetimeValues = [7]
+func replaceLifetimeValues() as int
+    lifetimeValues = [9]
+    return 0
+end
+
+// The receiver is evaluated before the key. The write must keep the old
+// receiver alive even when key evaluation replaces the global storage.
+var lifetimeOriginal = lifetimeValues
+lifetimeValues[replaceLifetimeValues()] = 13
+assert int(lifetimeOriginal[0]) == 13
+assert int(lifetimeValues[0]) == 9
+assert lifetimeProbe() == 0
+
+array<int> lifetimeTyped = array[17]
+array<int> lifetimeTypedOriginal = lifetimeTyped
+dict<int> lifetimeDict = dict{"0": 17}
+dict<int> lifetimeDictOriginal = lifetimeDict
+var lifetimeObject = {"0": 17}
+var lifetimeObjectOriginal = lifetimeObject
+dict<string> lifetimeStrings = dict{"0": "old"}
+dict<string> lifetimeStringsOriginal = lifetimeStrings
+dict<array<int>> lifetimeArrays = dict{"0": array[17]}
+dict<array<int>> lifetimeArraysOriginal = lifetimeArrays
+
+func lifetimeErasedKey(int key) as var
+    return string(key)
+end
+
+async func lifetimeIndexAwait(future<int> key, int mode) as int
+    if mode == 1
+        return lifetimeTyped[await key]
+    elseif mode == 2
+        lifetimeTyped[await key] = 23
+        return 0
+    end
+    if mode == 3
+        return int(lifetimeTyped?[await key] ?? -1)
+    elseif mode == 4
+        return lifetimeDict[string(await key)]
+    elseif mode == 5
+        lifetimeDict[string(await key)] = 23
+        return 0
+    elseif mode == 6
+        return int(lifetimeDict?[string(await key)] ?? -1)
+    elseif mode == 7
+        return int(lifetimeObject[lifetimeErasedKey(await key)])
+    elseif mode == 8
+        lifetimeObject[lifetimeErasedKey(await key)] = 23
+        return 0
+    elseif mode == 10
+        lifetimeStrings[string(await key)] = lifetimeStringValue()
+        return 0
+    elseif mode == 11
+        lifetimeArrays[string(await key)] = lifetimeArrayValue()
+        return 0
+    end
+    return int(lifetimeObject?[lifetimeErasedKey(await key)] ?? -1)
+end
+
+extern "xlir_lifetime_key" func lifetimeKey() as future<int>
+async func lifetimeReady() as int
+    return 0
+end
+future<int> lifetimePending = lifetimeReady()
+
+export "xlir_lifetime_index_start" func lifetimeIndexStart(int mode)
+    lifetimePending = lifetimeIndexAwait(lifetimeKey(), mode)
+end
+
+export "xlir_lifetime_index_reset" func lifetimeIndexReset()
+    lifetimeSequence = 0
+    lifetimeTyped = array[17]
+    lifetimeTypedOriginal = lifetimeTyped
+    lifetimeDict = dict{"0": 17}
+    lifetimeDictOriginal = lifetimeDict
+    lifetimeObject = {"0": 17}
+    lifetimeObjectOriginal = lifetimeObject
+    lifetimeStrings = dict{"0": "old"}
+    lifetimeStringsOriginal = lifetimeStrings
+    lifetimeArrays = dict{"0": array[17]}
+    lifetimeArraysOriginal = lifetimeArrays
+end
+
+export "xlir_lifetime_index_replace" func lifetimeIndexReplace()
+    lifetimeTyped = array[29]
+    lifetimeDict = dict{"0": 29}
+    lifetimeObject = {"0": 29}
+    lifetimeStrings = dict{"0": "new"}
+    lifetimeArrays = dict{"0": array[29]}
+end
+
+export "xlir_lifetime_index_check" func lifetimeIndexCheck(int mode, int expected, bool rejected)
+    assert lifetimeTypedOriginal[0] == (mode <= 3 ? expected : 17)
+    assert lifetimeTyped[0] == 29
+    assert lifetimeDictOriginal["0"] == (mode >= 4 and mode <= 6 ? expected : 17)
+    assert lifetimeDict["0"] == 29
+    assert int(lifetimeObjectOriginal["0"]) == (mode >= 7 and mode <= 9 ? expected : 17)
+    assert int(lifetimeObject["0"]) == 29
+    assert lifetimeStringsOriginal["0"] == (mode == 10 and not rejected ? "payload-41" : "old")
+    assert lifetimeStrings["0"] == "new"
+    assert lifetimeArraysOriginal["0"][0] == (mode == 11 and not rejected ? 41 : 17)
+    assert lifetimeArrays["0"][0] == 29
+end
+
+func lifetimeIndexedGenerator() as generator<int>
+    array<int> values = array[31]
+    yield values[0]
+    values[0] = 37
+    yield int(values?[0] ?? -1)
+end
+
+export "xlir_lifetime_generator_probe" func lifetimeGeneratorProbe() as int
+    int sum = 0
+    for item in lifetimeIndexedGenerator()
+        sum += item
+    end
+    return sum
+end
+
+// Assignment must evaluate RHS, receiver, then key. A later failure releases
+// every already acquired operand, including a separately owned RHS payload.
+extern "xlir_lifetime_fail" func lifetimeFail()
+int lifetimeSequence = 0
+
+func lifetimeStringValue() as string
+    lifetimeSequence = lifetimeSequence * 10 + 1
+    return "payload-" + string(41)
+end
+
+func lifetimeArrayValue() as array<int>
+    lifetimeSequence = lifetimeSequence * 10 + 1
+    return array[41]
+end
+
+func lifetimeStringReceiver(int stage) as dict<string>
+    lifetimeSequence = lifetimeSequence * 10 + 2
+    if stage == 1
+        lifetimeFail()
+    end
+    return lifetimeStrings
+end
+
+func lifetimeArrayReceiver(int stage) as dict<array<int>>
+    lifetimeSequence = lifetimeSequence * 10 + 2
+    if stage == 1
+        lifetimeFail()
+    end
+    return lifetimeArrays
+end
+
+func lifetimeWriteKey(int stage) as string
+    lifetimeSequence = lifetimeSequence * 10 + 3
+    if stage == 2
+        lifetimeFail()
+    end
+    return string(0)
+end
+
+export "xlir_lifetime_write_failure" func lifetimeWriteFailure(int stage, int kind) as int
+    lifetimeSequence = 0
+    lifetimeStrings = dict{"0": "old"}
+    lifetimeArrays = dict{"0": array[17]}
+    int code = 0
+    try
+        if kind == 0
+            lifetimeStringReceiver(stage)[lifetimeWriteKey(stage)] = lifetimeStringValue()
+        else
+            lifetimeArrayReceiver(stage)[lifetimeWriteKey(stage)] = lifetimeArrayValue()
+        end
+    catch failure
+        code = failure.code
+    end
+    assert lifetimeSequence == (stage == 1 ? 12 : 123)
+    assert code == (stage == 0 ? 0 : 73)
+    assert lifetimeStrings["0"] == (stage == 0 and kind == 0 ? "payload-41" : "old")
+    assert lifetimeArrays["0"][0] == (stage == 0 and kind == 1 ? 41 : 17)
+    return code
+end

@@ -1,0 +1,30 @@
+extern "pool_outcome_value" func poolOutcomeValue(int mode) as int
+extern "pool_outcome_drop" func poolOutcomeDrop()
+class PoolOutcomeObject
+    string text = "owned payload"
+    destroy()
+        poolOutcomeDrop()
+    end
+end
+async func poolScalar(int mode) as int
+    return poolOutcomeValue(mode)
+end
+async func poolText(int mode) as string
+    int value = poolOutcomeValue(mode)
+    return "owned payload"
+end
+async func poolOwner(int mode) as PoolOutcomeObject
+    PoolOutcomeObject value = PoolOutcomeObject()
+    int observed = poolOutcomeValue(mode)
+    return value
+end
+async func poolReady(int value) as int
+    assert value != 0
+    return value + 1
+end
+export "pool_outcome_keep" func poolOutcomeKeep()
+    future<int> scalar = poolScalar(0)
+    future<string> text = poolText(0)
+    future<PoolOutcomeObject> owner = poolOwner(0)
+    future<int> ready = poolReady(1)
+end

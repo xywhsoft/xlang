@@ -1,0 +1,13 @@
+export "xlir_test_sum_range_control" func sum_range_control() as int64
+    int64 total = 0
+    for value in range(0, 10)
+        if value == 2
+            continue
+        end
+        if value == 7
+            break
+        end
+        total = total + value
+    end
+    return total
+end

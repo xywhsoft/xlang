@@ -121,7 +121,7 @@ static XL6_AstNode* xl6CgenCloneExprTypeForInference(XL6_CgenContext* ctx, const
 
 /*
     控制流收窄服务于协议和重载解析；容器索引最终必须服从变量的真实 C 存储。
-    例如 var 保存 class 时仍是 xvalue，协议未命中后应走动态字段桥接。
+    例如 var 保存 class 时仍是 xvalue*，协议未命中后应走动态字段桥接。
 */
 static XL6_AstNode* xl6CgenCloneExprStorageType(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
@@ -150,7 +150,7 @@ static XL6_AstNode* xl6CgenCloneExprStorageType(XL6_CgenContext* ctx, const XL6_
 
 /*
     动态值在控制流收窄后，语义类型可以是 int/bool 等具体类型，
-    但它在 ABI 中仍然以 xvalue 保存。所有解箱判断必须读取 storageType，
+    但它在 ABI 中仍然以 xvalue* 保存。所有解箱判断必须读取 storageType，
     避免前端、needs 扫描和最终 lowering 对同一个表达式得出不同结论。
 */
 static int xl6CgenExprUsesXValueStorage(XL6_CgenContext* ctx, const XL6_AstNode* expr)
@@ -170,7 +170,7 @@ static int xl6CgenExprUsesXValueStorage(XL6_CgenContext* ctx, const XL6_AstNode*
 }
 
 /*
-    这是静态标量与 xvalue 之间唯一的上下文桥接判定。
+    这是静态标量与 xvalue* 之间唯一的上下文桥接判定。
     声明、赋值、实参、返回值和 needs 扫描必须共用它，不能各自维护类型名单。
 */
 static int xl6CgenExprNeedsXValueScalarBridge(
@@ -202,7 +202,7 @@ static int xl6CgenExprNeedsXValueScalarBridge(
     /*
         storageType 为 var 不代表这里还要再次解箱。
         `if value is string` 分支内，NAME lowering 已按语义类型生成
-        xl6_runtime_value_as_string；外层若再套 xvalue 转换会形成双重解箱。
+        xl6_runtime_value_as_string；外层若再套 xvalue* 转换会形成双重解箱。
     */
     exprType = xl6CgenCloneExprTypeForInference(ctx, expr);
     concreteExpr = xl6CgenResolveAliasType(ctx, exprType);

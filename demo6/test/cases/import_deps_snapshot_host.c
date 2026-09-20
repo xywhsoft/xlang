@@ -1,4 +1,4 @@
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "src/compile/xl6_imports.h"
 #include "src/parser/xl6_parser_api.h"
 
@@ -38,8 +38,7 @@ int main(int argc, char** argv)
 
     path = argc > 1 ? argv[1] : "test\\cases\\import_metadata_combo.xl";
 
-    xrtInit();
-    xl6ParseResultInit(&parse);
+	xl6ParseResultInit(&parse);
     xl6ImportDepsInit(&deps);
 
     ok = xl6ParseFile(path, &parse);
@@ -50,8 +49,7 @@ int main(int argc, char** argv)
         fprintf(stderr, "import dependency snapshot load failed\n");
         xl6ImportDepsFree(&deps);
         xl6ParseResultFree(&parse);
-        xrtUnit();
-        return 1;
+		return 1;
     }
 
     if ( argc > 2 ) {
@@ -59,44 +57,45 @@ int main(int argc, char** argv)
         if ( deps.features != expectedFeatures ||
              deps.packageCount != 0 ||
              deps.cSources.count != 0 ||
+             deps.xrtModules.count != 0 ||
              deps.links.count != 0 ||
              deps.loadlibs.count != 0 ||
-             deps.nativeCount != 0 ) {
+             deps.nativeCount != 0 ||
+             deps.hasUndeclaredCSourceModules ) {
             fprintf(stderr,
                     "builtin import features expected 0x%x, got 0x%x\n",
                     expectedFeatures,
                     deps.features);
             xl6ImportDepsFree(&deps);
             xl6ParseResultFree(&parse);
-            xrtUnit();
-            return 1;
+			return 1;
         }
         xl6ImportDepsFree(&deps);
         xl6ParseResultFree(&parse);
-        xrtUnit();
-        return 0;
+		return 0;
     }
 
     if ( !expect_size("package count", deps.packageCount, 1) ||
          !expect_text("package id", deps.packageIds[0], "metadata_combo@1.0.0#abi1") ||
          !expect_size("cSources count", deps.cSources.count, 1) ||
          !expect_text("cSource[0]", deps.cSources.items[0], "test\\fixtures\\metadata_combo\\metadata_combo_native.c") ||
+         !expect_size("xrtModules count", deps.xrtModules.count, 1) ||
+         !expect_text("xrtModule[0]", deps.xrtModules.items[0], "XRT_MODULE_STRING") ||
+         deps.hasUndeclaredCSourceModules ||
          !expect_size("links count", deps.links.count, 1) ||
-         !expect_text("link[0]", deps.links.items[0], "test\\fixtures\\metadata_combo\\../../../build/test/metadata_combo_link.a") ||
+         !expect_text("link[0]", deps.links.items[0], "build\\test\\metadata_combo_link.a") ||
          !expect_size("loadlibs count", deps.loadlibs.count, 1) ||
-         !expect_text("loadlib[0]", deps.loadlibs.items[0], "test\\fixtures\\metadata_combo\\../../../build/test/metadata_combo_loadlib.dll") ||
+         !expect_text("loadlib[0]", deps.loadlibs.items[0], "build\\test\\metadata_combo_loadlib.dll") ||
          !expect_size("native count", deps.nativeCount, 1) ||
          !expect_text("native package", deps.natives[0].packageId, "metadata_combo@1.0.0#abi1") ||
          !expect_text("native loadName", deps.natives[0].loadName, "metadata_combo_runtime.dll") ||
          !expect_text("native version", deps.natives[0].version, "1.0.0") ) {
         xl6ImportDepsFree(&deps);
         xl6ParseResultFree(&parse);
-        xrtUnit();
-        return 1;
+		return 1;
     }
 
     xl6ImportDepsFree(&deps);
     xl6ParseResultFree(&parse);
-    xrtUnit();
-    return 0;
+	return 0;
 }

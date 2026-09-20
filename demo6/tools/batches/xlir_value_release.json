@@ -1,0 +1,12 @@
+{
+  "SchemaVersion": 1,
+  "Name": "value-release-owner-close",
+  "Gates": [
+    "check_xlir_contract.ps1",
+    "check_xlir_continuation_owner_views.ps1",
+    "check_xlir_continuation_owner_cfg.ps1",
+    "check_xlir_continuation_owner_calls.ps1",
+    "check_xlir_async_terminal_outcome.ps1",
+    "check_xlir_match_cleanup.ps1"
+  ]
+}

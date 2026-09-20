@@ -1,0 +1,8 @@
+[
+  {"Fixture":"stdlib_net_fast_path","Marker":"stdlib net fast path ok","BufferCommands":false},
+  {"Fixture":"stdlib_net_send_file","Marker":"stdlib net send file ok","BufferCommands":false},
+  {"Fixture":"stdlib_tls_server_loopback","Marker":"tls-server-loopback-ok","BufferCommands":true},
+  {"Fixture":"xlir_net_resolver_standalone","Marker":"xlir resolver standalone ok","BufferCommands":false},
+  {"Fixture":"xlir_net_datagram_boundaries","Marker":"xlir datagram boundaries ok","BufferCommands":false},
+  {"Fixture":"xlir_net_buffer_command_lifetime","Marker":"xlir net buffer command lifetime ok","BufferCommands":true}
+]

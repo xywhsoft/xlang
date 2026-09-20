@@ -1,0 +1,2 @@
+extern "xl6_xrt_xson_parse_options" func malformed(string text, bool a, bool b, bool c) as array<int>
+array<int> v = malformed("[]", false, false, false)

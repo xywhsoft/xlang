@@ -1,0 +1,57 @@
+extern "escape_capture" func capture(var value)
+extern "escape_dropped" func dropped(int id)
+
+string moduleText = "module" + " alive"
+
+class Marker
+    int id = 0
+    create(int id)
+        self.id = id
+    end
+    destroy()
+        assert moduleText == "module alive", "escaped destructor lost module globals"
+        dropped(self.id)
+    end
+end
+
+func makeCallback(int id) as func() as int
+    Marker owner = Marker(id)
+    return func() as int
+        assert moduleText == "module alive", "escaped callable lost module globals"
+        return owner.id
+    end
+end
+
+// This owner must not create a module -> closure -> module retirement cycle.
+func() as int internalCallback = makeCallback(7)
+var internalDynamicCallback = xcall(internalCallback)
+Marker internalObject = Marker(8)
+array<Marker> internalValues = [Marker(9)]
+
+export "escape_run" func runEscape(int mode) as int
+    if mode == 0 then
+        var callback = xcall(makeCallback(42))
+        capture(callback)
+    elseif mode == 1 then
+        Marker value = Marker(42)
+        capture(value)
+    elseif mode == 2 or mode == 3 then
+        array<Marker> values = [Marker(42)]
+        capture(values)
+    elseif mode == 4 then
+        assert internalCallback() == 7, "module-owned closure changed"
+    elseif mode == 5 then
+        capture(42)
+    elseif mode == 6 then
+        capture(internalDynamicCallback)
+    elseif mode == 7 then
+        capture(internalObject)
+    elseif mode == 8 or mode == 9 then
+        capture(internalValues)
+    end
+    return 42
+end
+
+func main(...) as int
+    return 0
+end

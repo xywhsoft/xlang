@@ -1,0 +1,113 @@
+class PersistenceAddress
+    derive value
+
+    string city = ""
+end
+
+class PersistenceBase
+    derive value
+
+    int id = 0
+end
+
+class PersistenceProfile extends PersistenceBase
+    derive value
+
+    string displayName @json("display_name") = ""
+    private string secret @persist(name="secret_name", include) = ""
+    string password @persist(skip) = ""
+    string note @json(omit=empty) = ""
+    PersistenceAddress address = PersistenceAddress()
+
+    func setSecret(string value)
+        self.secret = value
+    end
+
+    func secretValue() as string
+        return self.secret
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectText(string actual, string expected)
+
+PersistenceProfile profile = PersistenceProfile()
+profile.id = 42
+profile.displayName = "Alice"
+profile.setSecret("open")
+profile.password = "hidden"
+profile.note = ""
+profile.address.city = "Shanghai"
+
+string compact = json.stringify(profile)
+string pretty = json.stringify(profile, true)
+string scalarJson = json.stringify("quoted")
+string integerJson = json.stringify(42)
+string scalarXson = xson.stringify("plain")
+
+expect(string.contains(compact, "\"id\":42"), 1)
+expect(string.contains(compact, "\"display_name\":\"Alice\""), 1)
+expect(string.contains(compact, "\"secret_name\":\"open\""), 1)
+expect(string.contains(compact, "\"password\""), 0)
+expect(string.contains(compact, "\"note\""), 0)
+expect(string.contains(compact, "\"address\""), 1)
+expect(string.contains(compact, "\"city\":\"Shanghai\""), 1)
+expect(string.contains(pretty, "\"display_name\""), 1)
+expectText(scalarJson, "\"quoted\"")
+expectText(integerJson, "42")
+expectText(scalarXson, "\"plain\"")
+
+PersistenceProfile restored = json.parse::<PersistenceProfile>(compact)
+expect(restored.id, 42)
+expectText(restored.displayName, "Alice")
+expectText(restored.secretValue(), "open")
+expectText(restored.password, "")
+expectText(restored.note, "")
+expectText(restored.address.city, "Shanghai")
+
+string xsonText = xson.stringify(profile)
+expect(string.contains(xsonText, "displayName"), 1)
+expect(string.contains(xsonText, "display_name"), 0)
+expect(string.contains(xsonText, "secret_name"), 1)
+expect(string.contains(xsonText, "password"), 0)
+expect(string.contains(xsonText, "note"), 1)
+expect(string.contains(xsonText, "city"), 1)
+
+PersistenceProfile restoredXson = xson.parse::<PersistenceProfile>(xsonText)
+expect(restoredXson.id, 42)
+expectText(restoredXson.displayName, "Alice")
+expectText(restoredXson.secretValue(), "open")
+expectText(restoredXson.password, "")
+expectText(restoredXson.note, "")
+expectText(restoredXson.address.city, "Shanghai")
+
+string jsonPath = "build/test/xlir_persistence_json_abi.json"
+string xsonPath = "build/test/xlir_persistence_json_abi.xson"
+string scalarPath = "build/test/xlir_persistence_json_scalar.json"
+file.delete(jsonPath)
+file.delete(xsonPath)
+file.delete(scalarPath)
+
+expect(json.write(jsonPath, profile, true), 1)
+PersistenceProfile restoredJsonFile = json.read::<PersistenceProfile>(jsonPath)
+expect(restoredJsonFile.id, 42)
+expectText(restoredJsonFile.displayName, "Alice")
+expectText(restoredJsonFile.secretValue(), "open")
+expectText(restoredJsonFile.password, "")
+expectText(restoredJsonFile.note, "")
+expectText(restoredJsonFile.address.city, "Shanghai")
+
+expect(xson.write(xsonPath, profile), 1)
+PersistenceProfile restoredXsonFile = xson.read::<PersistenceProfile>(xsonPath)
+expect(restoredXsonFile.id, 42)
+expectText(restoredXsonFile.displayName, "Alice")
+expectText(restoredXsonFile.secretValue(), "open")
+expectText(restoredXsonFile.password, "")
+expectText(restoredXsonFile.note, "")
+expectText(restoredXsonFile.address.city, "Shanghai")
+
+expect(json.write(scalarPath, "written"), 1)
+
+file.delete(jsonPath)
+file.delete(xsonPath)
+file.delete(scalarPath)

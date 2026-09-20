@@ -1,0 +1,24 @@
+{
+  "SchemaVersion": 1,
+  "Name": "launch-affected-hosts",
+  "Gates": [
+    "check_xlir_async_cancel_watch.ps1",
+    "check_xlir_async_frame_completion.ps1",
+    "check_xlir_async_pool_outcome.ps1",
+    "check_xlir_async_result_commit.ps1",
+    "check_xlir_async_source_lease.ps1",
+    "check_xlir_async_terminal_outcome.ps1",
+    "check_xlir_async_worker_completion.ps1",
+    "check_xlir_cell_cancel_race.ps1",
+    "check_xlir_cell_continuation_outcome.ps1",
+    "check_xlir_continuation_owner_calls.ps1",
+    "check_xlir_continuation_owner_cfg.ps1",
+    "check_xlir_continuation_owner_views.ps1",
+    "check_xlir_dynamic_iteration_allocation.ps1",
+    "check_xlir_generator_close_routes.ps1",
+    "check_xlir_generator_frame_loan.ps1",
+    "check_xlir_match_cleanup.ps1",
+    "check_xlir_async_machine_admission.ps1",
+    "check_xlir_loop_cleanup_outcome.ps1"
+  ]
+}

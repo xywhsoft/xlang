@@ -13,3 +13,5 @@ values[1] += nextProbe()
 sparse[2] *= nextProbe()
 
 int result = int(values[1]) + int(sparse[2]) + probe
+assert probe == 2, "compound index RHS must execute exactly once per assignment"
+assert result == 91, "compound index RHS must preserve the projected value"

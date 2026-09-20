@@ -1,0 +1,14 @@
+func main(...) as int
+    bool enabled = true
+    bool disabled = false
+
+    int enabledValue = int(enabled)
+    int disabledValue = int(disabled)
+    int identityValue = int(enabledValue)
+
+    assert enabledValue == 1, "bool to int conversion failed"
+    assert disabledValue == 0, "bool to int conversion failed"
+    assert int8(disabled) == 0, "bool to bounded int conversion failed"
+    assert identityValue == 1, "int identity conversion failed"
+    return 0
+end

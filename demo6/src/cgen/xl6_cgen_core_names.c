@@ -549,12 +549,132 @@ static int xl6CgenExternTextEqualsSymbol(const char* text, const char* symbol)
            strncmp(text + 1, symbol, len) == 0;
 }
 
+
+
+/* 判断最终展开 AST 是否声明了指定的 native extern。 */
+static int xl6CgenNodeHasExternSymbol(
+    const XL6_AstNode* node,
+    const char* symbol
+)
+{
+    size_t i;
+
+    if ( node == NULL || symbol == NULL ) {
+        return 0;
+    }
+    if ( (node->kind == XL6_AST_EXTERN_FUNC ||
+          node->kind == XL6_AST_NATIVE_EXTERN_FUNC) &&
+         xl6CgenExternTextEqualsSymbol(node->text, symbol) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; i += 1 ) {
+        if ( xl6CgenNodeHasExternSymbol(node->children[i], symbol) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int xl6CgenCompareExternSymbol(const char* text, const char* symbol)
+{
+    size_t textLen;
+    size_t symbolLen;
+    size_t compareLen;
+    int result;
+
+    if ( text == NULL ) { return symbol == NULL ? 0 : -1; }
+    if ( symbol == NULL ) { return 1; }
+
+    textLen = strlen(text);
+    if ( (textLen >= 2u) &&
+         (((text[0] == '"') && (text[textLen - 1u] == '"')) ||
+          ((text[0] == '\'') && (text[textLen - 1u] == '\''))) ) {
+        ++text;
+        textLen -= 2u;
+    }
+
+    symbolLen = strlen(symbol);
+    compareLen = textLen < symbolLen ? textLen : symbolLen;
+    result = memcmp(text, symbol, compareLen);
+    if ( result != 0 ) { return result; }
+    if ( textLen < symbolLen ) { return -1; }
+    return textLen > symbolLen ? 1 : 0;
+}
+
+static int xl6CgenIsXrtHeaderSymbol(const char* text)
+{
+    static const char* const symbols[] = {
+#define XL_XRT_SYMBOL(name) #name,
+#include "../api/xl_xrt_symbols.inc"
+#undef XL_XRT_SYMBOL
+    };
+    size_t left = 0u;
+    size_t right = sizeof(symbols) / sizeof(symbols[0]);
+
+    while ( left < right ) {
+        size_t middle = left + ((right - left) / 2u);
+        int compare = xl6CgenCompareExternSymbol(text, symbols[middle]);
+
+        if ( compare == 0 ) { return 1; }
+        if ( compare < 0 ) {
+            right = middle;
+        } else {
+            left = middle + 1u;
+        }
+    }
+    return 0;
+}
+
+
+
+/* 判断 extern 文本在去除可选引号后是否使用指定运行时头前缀。 */
+static int xl6CgenExternTextHasPrefix(const char* text, const char* prefix)
+{
+    size_t textSize;
+    size_t prefixSize;
+
+    if ( text == NULL || prefix == NULL ) {
+        return 0;
+    }
+    textSize = strlen(text);
+    prefixSize = strlen(prefix);
+    if ( textSize >= 2u &&
+         ((text[0] == '"' && text[textSize - 1u] == '"') ||
+          (text[0] == '\'' && text[textSize - 1u] == '\'')) ) {
+        text += 1;
+        textSize -= 2u;
+    }
+    return textSize >= prefixSize &&
+           strncmp(text, prefix, prefixSize) == 0;
+}
+
+
+
 static int xl6CgenIsRuntimeHeaderExtern(const XL6_AstNode* node)
 {
     return node != NULL &&
            node->kind == XL6_AST_EXTERN_FUNC &&
-           (xl6CgenExternTextEqualsSymbol(node->text, "xl6_xrt_print") ||
-            xl6CgenExternTextEqualsSymbol(node->text, "xrtHash64"));
+            (xl6CgenExternTextEqualsSymbol(node->text, "xl6_xrt_print") ||
+             xl6CgenExternTextEqualsSymbol(node->text, "xrtHash64") ||
+             xl6CgenExternTextEqualsSymbol(node->text, "xl6_xrt_last_error_text") ||
+             xl6CgenExternTextHasPrefix(node->text, "xl6_xrt_dynamic_fields_") ||
+             xl6CgenIsXrtHeaderSymbol(node->text));
+}
+
+static int xl6CgenIsInternalStdRuntimeExtern(const XL6_AstNode* node)
+{
+    const XL6_AstNode* nameNode;
+    static const char prefix[] = "__xl_std_runtime_";
+
+    if ( node == NULL ||
+         (node->kind != XL6_AST_EXTERN_FUNC &&
+          node->kind != XL6_AST_NATIVE_EXTERN_FUNC) ||
+         node->childCount == 0 ) {
+        return 0;
+    }
+    nameNode = node->children[0];
+    return nameNode != NULL && nameNode->text != NULL &&
+           strncmp(nameNode->text, prefix, sizeof(prefix) - 1u) == 0;
 }
 
 static void xl6CgenNativeBackedTypeName(XL6_Output* out, const char* name)

@@ -1,0 +1,15 @@
+func indexAssignMayRaiseFallback() as var
+    throw "index assign fallback"
+end
+
+func main(...) as int
+    bool caught = false
+    try
+        auto values = [null]
+        values[0] ?= indexAssignMayRaiseFallback()
+    catch failure
+        assert failure.message == "index assign fallback"
+        caught = true
+    end
+    return caught ? 0 : 1
+end

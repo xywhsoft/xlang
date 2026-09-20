@@ -1,0 +1,35 @@
+async func ready() as int
+    return 7
+end
+
+async func directoryAcrossAwait(string path) as int
+    array entries = dir.entries(path)
+    string text = process.exec("echo async")
+    int value = await ready()
+    assert entries.length == 1
+    assert entries[0]["name"] == "value.txt"
+    assert text == "async\r\n" or text == "async\n"
+    assert process.success("exit 0")
+    return value
+end
+
+func directoryAcrossYield() as generator<int>
+    array names = dir.list("build/test/xlir_system_continuation_data")
+    yield process.exitCode("exit 3")
+    assert names.length == 1
+    assert string.contains(string(names[0]), "value.txt")
+    yield process.exitCode("exit 4")
+end
+
+string root = "build/test/xlir_system_continuation_data"
+assert !dir.exists(root), "system continuation fixture must start without stale data"
+assert dir.create(root)
+assert file.writeText(root + "/value.txt", "value")
+assert await directoryAcrossAwait(root) == 7
+int sum = 0
+for value in directoryAcrossYield()
+    sum = sum + value
+end
+assert sum == 7
+assert file.delete(root + "/value.txt")
+assert dir.delete(root)

@@ -1,0 +1,278 @@
+class UnwindOwner
+    native point handle
+    extern "unwind_open" create(int id)
+    extern "unwind_close" destroy()
+    extern "unwind_set" let value(int value)
+    extern "unwind_get_at" get at(int index) as int
+    extern "unwind_set_at" let at(int index, int value)
+
+    get value() as int
+        failNative()
+        return -1
+    end
+
+    get stable() as int
+        return 7
+    end
+
+    func __add__(UnwindOwner other) as int
+        failNative()
+        return -1
+    end
+
+    func __add__(int delta) as UnwindOwner
+        failNative()
+        return self
+    end
+
+    func __sub__(UnwindOwner other) as UnwindOwner
+        return UnwindOwner(3)
+    end
+end
+
+extern "unwind_fail" func failNative()
+extern "unwind_is_normal" func isNormalCleanup() as bool
+
+export "unwind_compound" func compoundFailure() as int
+    try
+        UnwindOwner value = UnwindOwner(2)
+        value += 1
+        return -1
+    catch failure
+        return failure.code
+    end
+end
+
+export "normal_compound" func compoundCleanupFailure() as int
+    try
+        UnwindOwner value = UnwindOwner(1)
+        value -= UnwindOwner(2)
+        return -1
+    catch failure
+        return failure.code
+    end
+end
+
+export "normal_getter" func normalGetter() as int
+    try
+        return UnwindOwner(2).stable
+    catch failure
+        return failure.code
+    end
+end
+
+export "normal_escape" func normalEscape() as int
+    return UnwindOwner(2).stable
+end
+
+func stablePair(UnwindOwner first, UnwindOwner second) as int
+    return 7
+end
+
+export "normal_pair" func normalPair() as int
+    try
+        return stablePair(UnwindOwner(1), UnwindOwner(2))
+    catch failure
+        return failure.code
+    end
+end
+
+func makeStableClosure() as func(UnwindOwner) as int
+    UnwindOwner captured = UnwindOwner(1)
+    return func(UnwindOwner argument) as int
+        return captured.stable
+    end
+end
+
+export "normal_closure" func normalClosure() as int
+    try
+        return makeStableClosure()(UnwindOwner(2))
+    catch failure
+        return failure.code
+    end
+end
+
+func stableOwned(UnwindOwner first, UnwindOwner second) as UnwindOwner
+    return UnwindOwner(3)
+end
+
+export "normal_owned_result" func normalOwnedResult() as int
+    try
+        UnwindOwner result = stableOwned(UnwindOwner(1), UnwindOwner(2))
+        return -1
+    catch failure
+        return failure.code
+    end
+end
+
+class StableConstruction
+    UnwindOwner held = UnwindOwner(1)
+    create(UnwindOwner argument)
+    end
+end
+
+export "normal_constructor" func normalConstructor() as int
+    try
+        StableConstruction value = StableConstruction(UnwindOwner(2))
+        return -1
+    catch failure
+        return failure.code
+    end
+end
+
+export "unwind_caught" func caught() as int
+    try
+        UnwindOwner first = UnwindOwner(1)
+        UnwindOwner second = UnwindOwner(2)
+        failNative()
+        return -1
+    catch failure
+        return failure.code
+    end
+end
+
+export "unwind_escape" func escape() as int
+    UnwindOwner first = UnwindOwner(1)
+    UnwindOwner second = UnwindOwner(2)
+    failNative()
+    return -1
+end
+
+func parameterFailure(var owner) as int
+    owner = UnwindOwner(2)
+    failNative()
+    return -1
+end
+
+export "unwind_parameter" func parameterEntry() as int
+    return parameterFailure(UnwindOwner(1))
+end
+
+export "unwind_property" func propertyEntry() as int
+    return UnwindOwner(2).value
+end
+
+export "unwind_setter" func setterEntry() as int
+    UnwindOwner(2).value = 7
+    return -1
+end
+
+export "unwind_indexed_setter" func indexedSetterEntry() as int
+    try
+        UnwindOwner(2).at[3] = 7
+        return -1
+    catch failure
+        return failure.code
+    end
+end
+
+func closureFailure(UnwindOwner first, UnwindOwner second) as int
+    failNative()
+    return -1
+end
+
+export "unwind_closure" func closureEntry() as int
+    func(UnwindOwner, UnwindOwner) as int callback = closureFailure
+    return callback(UnwindOwner(1), UnwindOwner(2))
+end
+
+export "unwind_operator" func operatorEntry() as int
+    return UnwindOwner(1) + UnwindOwner(2)
+end
+
+export "unwind_operator_caught" func operatorCaught() as int
+    try
+        return UnwindOwner(1) + UnwindOwner(2)
+    catch failure
+        return failure.code
+    end
+end
+
+func makeFailingClosure() as func(UnwindOwner) as int
+    UnwindOwner captured = UnwindOwner(1)
+    return func(UnwindOwner argument) as int
+        return captured.value
+    end
+end
+
+export "unwind_closure_callee" func closureCalleeEntry() as int
+    return makeFailingClosure()(UnwindOwner(2))
+end
+
+class UnwindConstruction
+    UnwindOwner held = UnwindOwner(1)
+    create(UnwindOwner argument)
+        failNative()
+    end
+end
+
+export "unwind_constructor" func constructorEntry() as int
+    UnwindConstruction value = UnwindConstruction(UnwindOwner(2))
+    return -1
+end
+
+export func unwind_pending() as UnwindOwner
+    try
+        return UnwindOwner(2)
+    finally
+        UnwindOwner local = UnwindOwner(1)
+        failNative()
+    end
+end
+
+export func unwind_pending_cleanup() as UnwindOwner
+    try
+        return UnwindOwner(2)
+    finally
+        UnwindOwner local = UnwindOwner(1)
+    end
+end
+
+async func ready() as int
+    return 7
+end
+
+async func asyncCaught() as int
+    try
+        if isNormalCleanup()
+            int resumed = await ready()
+            return UnwindOwner(2).stable
+        end
+        UnwindOwner first = UnwindOwner(1)
+        UnwindOwner second = UnwindOwner(2)
+        int resumed = await ready()
+        failNative()
+        return -1
+    catch failure
+        return failure.code
+    end
+end
+
+export "unwind_async_anchor" func asyncAnchor()
+    future<int> pending = asyncCaught()
+end
+
+func generatedCodes() as generator<int>
+    try
+        if isNormalCleanup()
+            yield 0
+            yield UnwindOwner(2).stable
+            return
+        end
+        UnwindOwner first = UnwindOwner(1)
+        UnwindOwner second = UnwindOwner(2)
+        yield 0
+        failNative()
+        yield -1
+    catch failure
+        yield failure.code
+    end
+end
+
+export "unwind_generator" func generatorEntry() as int
+    int result = -2
+    for code in generatedCodes()
+        result = code
+    end
+    return result
+end

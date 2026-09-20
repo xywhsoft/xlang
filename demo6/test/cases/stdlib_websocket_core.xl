@@ -1,0 +1,86 @@
+WsFrame textFrame = WsFrame.make(1, uint64(5))
+assert textFrame.ready
+assert textFrame.opcode == 1
+assert textFrame.final
+assert not textFrame.masked
+assert textFrame.payloadSize == uint64(5)
+Buffer textHead = textFrame.write()
+assert textHead.len() == 2
+assert textHead[0] == 129
+assert textHead[1] == 5
+
+WsFrame parsedText = WsFrame.parse(textHead, 2)
+assert parsedText.ready
+assert parsedText.headerSize == 2
+assert parsedText.opcode == 1
+assert parsedText.payloadSize == uint64(5)
+
+WsFrame maskedFrame = WsFrame.make(2, uint64(3), true, true, uint32(287454020))
+Buffer maskedHead = maskedFrame.write()
+assert maskedHead.len() == 6
+assert maskedHead[0] == 130
+assert maskedHead[1] == 131
+assert maskedHead[2] == 17
+assert maskedHead[3] == 34
+assert maskedHead[4] == 51
+assert maskedHead[5] == 68
+
+WsFrame parsedMasked = WsFrame.parse(maskedHead, 1)
+assert parsedMasked.ready
+assert parsedMasked.masked
+assert parsedMasked.mask == uint32(287454020)
+
+Buffer payload = Buffer()
+assert payload.append("hello")
+assert WsFrame.applyMask(payload, uint32(287454020))
+assert payload.text() != "hello"
+assert WsFrame.applyMask(payload, uint32(287454020))
+assert payload.text() == "hello"
+
+WsClose closeValue = WsClose.make(1000, "done")
+Buffer closePayload = closeValue.write()
+assert closePayload.len() == 6
+WsClose parsedClose = WsClose.parse(closePayload)
+assert parsedClose.code == 1000
+assert parsedClose.reason() == "done"
+closePayload.clear()
+assert parsedClose.reason() == "done"
+
+string sampleKey = "dGhlIHNhbXBsZSBub25jZQ=="
+string sampleAccept = "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+assert WsHandshake.keyValid(sampleKey)
+assert WsHandshake.accept(sampleKey) == sampleAccept
+assert WsHandshake.acceptValid(sampleKey, sampleAccept)
+assert WsHandshake.protocolsValid("chat, superchat")
+assert WsHandshake.protocolsHas("chat, superchat", "superchat")
+assert WsHandshake.protocolSelect("chat, superchat", "superchat, chat") == "chat"
+
+WsUpgrade client = WsUpgrade.client("example.test", "chat, superchat", true)
+assert client.role == 0
+assert not client.ready
+assert WsHandshake.keyValid(client.key())
+
+Buffer requestWire = Http1.requestHead("GET", "/chat", client.fields())
+Http1Head request = Http1Head.request(requestWire)
+assert request.ready
+
+WsUpgrade server = WsUpgrade.server(request, "superchat, chat", true)
+assert server.ready
+assert server.role == 1
+assert server.protocol() == "chat"
+assert server.deflateEnabled
+assert server.extensions() != ""
+
+requestWire.clear()
+assert server.protocol() == "chat"
+assert server.fields() != ""
+
+Buffer responseWire = Http1.responseHead(101, "Switching Protocols", server.fields())
+Http1Head response = Http1Head.response(responseWire)
+assert response.ready
+assert client.check(response)
+assert client.ready
+assert client.protocol() == "chat"
+assert client.deflateEnabled
+
+println("stdlib websocket core ok")

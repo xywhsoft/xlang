@@ -1,0 +1,6 @@
+bool called = false
+var callable = xcall(func()
+    called = true
+end)
+callable()
+assert called

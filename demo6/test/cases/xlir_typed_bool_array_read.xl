@@ -1,0 +1,12 @@
+func typed_bool_array_score() as int
+    array<bool> values = [true, false]
+    values[1] = true
+    if values[0] and values[1]
+        return 1
+    end
+    return 0
+end
+
+func main(...) as int
+    return typed_bool_array_score() == 1 ? 0 : 1
+end

@@ -1,0 +1,69 @@
+array<bool> boolValues = array[true, false]
+assert boolValues.pop() == false
+assert boolValues.take(0) == true
+assert boolValues.resize(2)
+assert boolValues[0] == false and boolValues[1] == false
+assert boolValues.clear()
+
+array<int> intValues = array[1, 2, 3]
+assert intValues.pop() == 3
+assert intValues.take(0) == 1
+assert intValues.indexOf(2) == 0
+assert intValues.resize(3)
+assert intValues[0] == 2 and intValues[1] == 0 and intValues[2] == 0
+assert intValues.swap(0, 2)
+assert intValues.reverse()
+assert intValues[0] == 2 and intValues[2] == 0
+assert intValues.reserve(8)
+assert intValues.capacity() >= 8
+assert intValues.trim()
+assert intValues.capacity() == intValues.length
+
+array<int> insertedInts = array[2, 3]
+assert insertedInts.insert(0, 1)
+assert insertedInts.length == 3 and insertedInts[0] == 1 and insertedInts[2] == 3
+
+array<uint64> uintValues = array[uint64(7), uint64(8)]
+assert uintValues.pop() == uint64(8)
+assert uintValues.take(0) == uint64(7)
+assert uintValues.resize(1)
+assert uintValues[0] == uint64(0)
+
+array<float> floatValues = array[1.25, 2.5]
+assert floatValues.pop() == 2.5
+assert floatValues.take(0) == 1.25
+assert floatValues.resize(1)
+assert floatValues[0] == 0.0
+
+array<string> stringValues = array["alpha", "beta"]
+assert stringValues.pop() == "beta"
+assert stringValues.take(0) == "alpha"
+assert stringValues.resize(1)
+assert stringValues[0] == ""
+
+array<string> insertedNames = array["beta"]
+assert insertedNames.insert(0, "alpha")
+assert insertedNames.length == 2 and insertedNames[0] == "alpha" and insertedNames[1] == "beta"
+
+list<string> sparseValues = list[7: "seven", 9: "nine"]
+assert sparseValues.take(9) == "nine"
+assert sparseValues.clear()
+assert sparseValues.trimTo(1) >= 0
+assert sparseValues.trim() >= 0
+
+dict<int> keyedValues = dict{"answer": 42}
+assert keyedValues.take("answer") == 42
+assert keyedValues.reserve(8)
+assert keyedValues.capacity() >= 8
+assert keyedValues.clear()
+assert keyedValues.trim()
+
+set<int> leftValues = set{1, 2}
+set<int> rightValues = set{7, 8}
+assert leftValues.isDisjoint(rightValues)
+assert leftValues.reserve(8)
+assert leftValues.capacity() >= 8
+assert leftValues.clear()
+assert leftValues.trim()
+
+println("xlir typed collection methods ok")

@@ -1,0 +1,13 @@
+async func futureItemValue() as int
+    return 7
+end
+func futureItems() as generator<future<int>>
+    yield futureItemValue()
+end
+export "generator_item_future" func futureCount() as int
+    int count = 0
+    for item in futureItems()
+        count += 1
+    end
+    return count
+end

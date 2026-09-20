@@ -1,0 +1,6 @@
+extern "xlir_pkg_count" int count
+extern "xlir_pkg_increment" func increment(byref int value)
+export func verify() as bool
+    increment(byref count)
+    return count == 42
+end

@@ -10,6 +10,7 @@ if ( $Root -eq "" ) {
 
 $caseDir = Join-Path $Root "test\cases"
 $readmePath = Join-Path $Root "test\README.md"
+$manualProbeManifestPath = Join-Path $Root "test\manual_probes.txt"
 $testSuiteDir = Join-Path $Root "test\suites"
 $minTestCaseFiles = 607
 $minCasePrefixes = 28
@@ -49,6 +50,22 @@ function Get-TestSuiteWiringFiles()
     return @($files)
 }
 
+function Get-CheckScriptWiringFiles()
+{
+    $files = New-Object System.Collections.Generic.List[string]
+    $toolDir = Join-Path $script:Root "tools"
+
+    if ( Test-Path -LiteralPath $toolDir -PathType Container ) {
+        $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
+        foreach ( $scriptFile in @(Get-ChildItem -LiteralPath $toolDir -File -Filter "check_*.ps1" |
+            Sort-Object Name) ) {
+            $files.Add($scriptFile.FullName.Substring($rootPath.Length + 1)) | Out-Null
+        }
+    }
+
+    return @($files)
+}
+
 function Normalize-PathText($path)
 {
     return $path.Replace("\", "/")
@@ -79,6 +96,48 @@ function Get-CasePrefix($baseName)
     return $baseName
 }
 
+function Get-ManualProbePaths($manifestPath, $rootPath, $caseRootPath)
+{
+    $paths = New-Object System.Collections.Generic.HashSet[string]
+
+    if ( ! (Test-Path -LiteralPath $manifestPath -PathType Leaf) ) {
+        Add-Failure "manual probe manifest missing: test/manual_probes.txt"
+        return $paths
+    }
+
+    $caseRootFullPath = [System.IO.Path]::GetFullPath($caseRootPath).TrimEnd('\')
+    foreach ( $line in [System.IO.File]::ReadAllLines($manifestPath, [System.Text.Encoding]::UTF8) ) {
+        $relative = Normalize-PathText $line.Trim()
+        if ( ($relative.Length -eq 0) -or $relative.StartsWith("#") ) {
+            continue
+        }
+        if ( ! $relative.StartsWith("test/cases/", [System.StringComparison]::OrdinalIgnoreCase) -or
+             ! $relative.EndsWith(".xl", [System.StringComparison]::OrdinalIgnoreCase) ) {
+            Add-Failure "manual probe path must be an .xl file under test/cases: $relative"
+            continue
+        }
+        if ( [System.IO.Path]::GetFileNameWithoutExtension($relative) -notmatch '_probe_' ) {
+            Add-Failure "manual probe name must contain _probe_: $relative"
+            continue
+        }
+
+        $fullPath = [System.IO.Path]::GetFullPath((Join-Path $rootPath $relative))
+        if ( ! $fullPath.StartsWith($caseRootFullPath + '\', [System.StringComparison]::OrdinalIgnoreCase) ) {
+            Add-Failure "manual probe path escapes test/cases: $relative"
+            continue
+        }
+        if ( ! (Test-Path -LiteralPath $fullPath -PathType Leaf) ) {
+            Add-Failure "manual probe file is missing: $relative"
+            continue
+        }
+        if ( ! $paths.Add($relative) ) {
+            Add-Failure "manual probe is listed more than once: $relative"
+        }
+    }
+
+    return $paths
+}
+
 function Expand-BatchCaseMatrices($text)
 {
     $expanded = New-Object System.Collections.Generic.List[string]
@@ -89,13 +148,20 @@ function Expand-BatchCaseMatrices($text)
     foreach ( $match in $matches ) {
         $varName = $match.Groups['var'].Value
         $body = $match.Groups['body'].Value
-        $casePattern = "test\cases\%%${varName}.xl"
+        $variablePattern = [regex]::Escape("%%${varName}")
+        $caseTemplates = [regex]::Matches(
+            $body,
+            "test[\\/]+cases[\\/]+(?<path>[^`"'\s>]*${variablePattern}[^`"'\s>]*\.xl)")
 
-        if ( ! $body.Contains($casePattern) ) {
+        if ( $caseTemplates.Count -eq 0 ) {
             continue
         }
         foreach ( $itemMatch in [regex]::Matches($match.Groups['items'].Value, '(?m)^\s*([A-Za-z0-9_.-]+)\s*$') ) {
-            $expanded.Add("test/cases/$($itemMatch.Groups[1].Value).xl") | Out-Null
+            foreach ( $caseTemplate in $caseTemplates ) {
+                $casePath = Normalize-PathText $caseTemplate.Groups['path'].Value
+                $casePath = $casePath.Replace("%%${varName}", $itemMatch.Groups[1].Value)
+                $expanded.Add("test/cases/$casePath") | Out-Null
+            }
         }
     }
     return @($expanded)
@@ -115,6 +181,35 @@ function Expand-CaseGlobs($text, $cases, $rootPath)
             $caseRelative = $relative.Substring("test/cases/".Length)
             if ( $caseRelative -like $pattern ) {
                 $expanded.Add($relative) | Out-Null
+            }
+        }
+    }
+    return @($expanded)
+}
+
+function Expand-PowerShellCaseNames($text)
+{
+    $expanded = New-Object System.Collections.Generic.List[string]
+    foreach ( $match in [regex]::Matches(
+        $text, '["''](?<name>[A-Za-z0-9_.-]+\.xl)["'']') ) {
+        $name = $match.Groups['name'].Value
+        if ( Test-Path -LiteralPath (Join-Path $script:caseDir $name) -PathType Leaf ) {
+            $expanded.Add("test/cases/$name") | Out-Null
+        }
+    }
+    return @($expanded)
+}
+
+function Expand-PowerShellCaseFilters($text, $cases, $rootPath)
+{
+    $expanded = New-Object System.Collections.Generic.List[string]
+    foreach ( $match in [regex]::Matches(
+        $text, '-Filter\s+["''](?<pattern>xlir_[^"'']*[*?][^"'']*\.xl)["'']') ) {
+        $pattern = $match.Groups['pattern'].Value
+        foreach ( $case in $cases ) {
+            if ( $case.Name -like $pattern ) {
+                $expanded.Add((Normalize-PathText (
+                    $case.FullName.Substring($rootPath.Length + 1)))) | Out-Null
             }
         }
     }
@@ -157,6 +252,7 @@ if ( ! (Test-Path -LiteralPath $caseDir -PathType Container) ) {
 }
 
 $wiringFiles += Get-TestSuiteWiringFiles
+$wiringFiles += Get-CheckScriptWiringFiles
 
 if ( ! (Test-Path -LiteralPath $readmePath -PathType Leaf) ) {
     Add-Failure "test README missing: test/README.md"
@@ -175,16 +271,35 @@ foreach ( $relative in $wiringFiles ) {
 $wiringText = [string]::Join("`n", $textParts)
 $rootPath = (Resolve-Path -LiteralPath $Root).Path
 $cases = @(Get-ChildItem -LiteralPath $caseDir -Filter "*.xl" -File -Recurse | Sort-Object FullName)
+$manualProbePaths = Get-ManualProbePaths $manualProbeManifestPath $rootPath $caseDir
+$automatedCases = @($cases | Where-Object {
+    $relative = Normalize-PathText ($_.FullName.Substring($rootPath.Length + 1))
+    ! $manualProbePaths.Contains($relative)
+})
 $casePrefixes = New-Object System.Collections.Generic.HashSet[string]
 $wiringText += "`n" + [string]::Join("`n", @(Expand-BatchCaseMatrices $wiringText))
-$wiringText += "`n" + [string]::Join("`n", @(Expand-CaseGlobs $wiringText $cases $rootPath))
-$wiringText += "`n" + [string]::Join("`n", @(Get-ImportedCaseReferences $cases $caseDir))
+$wiringText += "`n" + [string]::Join("`n", @(Expand-CaseGlobs $wiringText $automatedCases $rootPath))
+$wiringText += "`n" + [string]::Join("`n", @(Expand-PowerShellCaseNames $wiringText))
+$wiringText += "`n" + [string]::Join("`n", @(
+    Expand-PowerShellCaseFilters $wiringText $automatedCases $rootPath))
+$wiringText += "`n" + [string]::Join("`n", @(Get-ImportedCaseReferences $automatedCases $caseDir))
 
 foreach ( $case in $cases ) {
+    $relative = Normalize-PathText ($case.FullName.Substring($rootPath.Length + 1))
+    $isManualProbe = $manualProbePaths.Contains($relative)
+
+    if ( ($case.BaseName -match '_probe_') -and ! $isManualProbe ) {
+        Add-Failure "manual probe is not listed in test/manual_probes.txt: $relative"
+    }
+    if ( $isManualProbe ) {
+        if ( Test-CaseReference $wiringText $relative ) {
+            Add-Failure "manual probe must not be wired into automated suites: $relative"
+        }
+        continue
+    }
     if ( $case.DirectoryName -eq $caseDir ) {
         $casePrefixes.Add((Get-CasePrefix $case.BaseName)) | Out-Null
     }
-    $relative = Normalize-PathText ($case.FullName.Substring($rootPath.Length + 1))
 
     if ( ! (Test-CaseReference $wiringText $relative) ) {
         Add-Failure "test case is not wired: $relative"
@@ -239,7 +354,9 @@ $referenced = New-Object System.Collections.Generic.HashSet[string]
 $matches = [regex]::Matches($wiringText, 'test[\\/]+cases[\\/]+([^"''\s>]+\.xl)')
 foreach ( $match in $matches ) {
     $relative = Normalize-PathText $match.Groups[1].Value
-    if ( $relative.Length -gt 0 -and ! $relative.Contains("%") -and ! $relative.Contains("*") ) {
+    if ( $relative.Length -gt 0 -and ! $relative.Contains("%") -and
+         ! $relative.Contains("$") -and ! $relative.Contains("*") -and
+         ! $relative.Contains("{") -and ! $relative.Contains("}") ) {
         $referenced.Add($relative) | Out-Null
     }
 }
@@ -258,5 +375,5 @@ if ( $failures.Count -gt 0 ) {
     exit 1
 }
 
-Write-Host "Test case wiring ok: $($cases.Count) files, $($casePrefixes.Count) prefixes."
+Write-Host "Test case wiring ok: $($automatedCases.Count) automated files, $($manualProbePaths.Count) manual probes, $($casePrefixes.Count) prefixes."
 exit 0

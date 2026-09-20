@@ -1,0 +1,33 @@
+// C 调用 xlang 导出的函数时，回调保持普通 C 函数指针 ABI。
+func identity(c_int value) as c_int
+    return value
+end
+
+func(c_int) as c_int savedCallback = identity
+
+export "xl_apply_callback" func applyCallback(func(c_int) as c_int callback, c_int value) as c_int
+    return callback(value)
+end
+
+// 导出包装器返回后，保存的 C 回调仍由 XL6_Function 生命周期托管。
+export "xl_set_callback" func setCallback(func(c_int) as c_int callback)
+    savedCallback = callback
+end
+
+export "xl_apply_saved_callback" func applySavedCallback(c_int value) as c_int
+    return savedCallback(value)
+end
+
+export "xl_apply_mixed_callback" func applyMixedCallback(
+    func(c_bool, c_double, point, string) as c_double callback,
+    c_bool enabled,
+    c_double value,
+    point token,
+    string text
+) as c_double
+    return callback(enabled, value, token, text)
+end
+
+export "xl_fire_callback" func fireCallback(func(c_int) callback, c_int value)
+    callback(value)
+end

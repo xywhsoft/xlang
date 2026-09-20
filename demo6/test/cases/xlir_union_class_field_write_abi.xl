@@ -1,0 +1,14 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+union Payload
+    int i
+    c_double d
+end
+
+class Envelope
+    Payload payload
+end
+
+Envelope value = Envelope()
+value.payload.i = 9
+expect(value.payload.i, 9)

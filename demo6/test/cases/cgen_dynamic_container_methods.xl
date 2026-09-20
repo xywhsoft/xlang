@@ -1,0 +1,57 @@
+var arr = [1, 3]
+assert arr.push(4) == true
+assert arr.insert(1, 2) == true
+assert arr.length == 4
+assert int(arr[1]) == 2
+assert arr.contains(3) == true
+assert arr.remove(2) == true
+assert arr.length == 3
+assert int(arr.pop()) == 4
+assert int(arr.take(0)) == 1
+assert arr.reserve(8) == true
+assert arr.push(5) == true
+assert arr.swap(0, 1) == true
+assert int(arr[0]) == 5
+assert arr.clear() == true
+assert arr.length == 0
+
+var arrByValue = [1, 2, 3, 2]
+assert arrByValue.removeValue(2) == true
+assert arrByValue.contains(2) == true
+assert int(arrByValue[1]) == 3
+assert arrByValue.removeValue(99) == false
+assert arrByValue.indexOf(3) == 1
+
+// A value copied through another open `var` loses the frontend's concrete
+// collection hint. Typed XLIR must still canonicalize these closed standard
+// members before open dynamic-method dispatch.
+var arrAlias = arrByValue
+assert arrAlias.push(5) == true
+assert arrAlias.indexOf(5) == 3
+assert arrAlias.removeValue(5) == true
+
+var lst = list[0: "a", 2: "b"]
+assert lst.contains("b") == true
+assert lst.remove(0) == true
+assert lst.length == 1
+assert string(lst.take(2)) == "b"
+assert lst.clear() == true
+
+var st = set{1, 2}
+assert st.add(3) == true
+assert st.contains(3) == true
+assert st.remove(2) == true
+assert st.contains(2) == false
+assert st.clear() == true
+
+var tbl = {"a": 1, "b": 2}
+assert tbl.contains("a") == true
+assert int(tbl.take("a")) == 1
+assert tbl.contains("a") == false
+assert tbl.remove("b") == true
+assert tbl.clear() == true
+
+var dynamicArray = [10, 20]
+assert dynamicArray.pop() == 20
+
+println("dynamic container methods ok")

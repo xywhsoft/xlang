@@ -1,0 +1,17 @@
+extern "xlir_test_time_value" func testTimeValue() as time
+extern "xlir_test_time_echo" func testTimeEcho(time value) as time
+
+time observed = testTimeValue()
+bool timeToBool = bool(observed)
+int timeToInteger = int(observed)
+float timeToFloat = float(observed)
+time integerToTime = time(42)
+time echoed = testTimeEcho(integerToTime)
+
+assert timeToBool
+assert timeToInteger == 123456
+assert timeToFloat == 123456.0
+assert int(integerToTime) == 42
+assert int(echoed) == 43
+
+println("xlir_time_conversion_abi ok")

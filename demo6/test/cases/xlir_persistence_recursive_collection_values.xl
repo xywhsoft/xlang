@@ -1,0 +1,39 @@
+class CollectionItem
+    derive value
+    derive json
+
+    int id = 0
+    string name = ""
+end
+
+class CollectionEnvelope
+    derive value
+    derive json
+
+    list<CollectionItem> listed
+    set<CollectionItem> unique
+    dict<CollectionItem> named
+end
+
+CollectionItem first = CollectionItem()
+first.id = 1
+first.name = "first"
+CollectionItem second = CollectionItem()
+second.id = 2
+second.name = "second"
+
+CollectionEnvelope source = CollectionEnvelope()
+source.listed = list[0: first, 1: second]
+source.unique = set{first, second}
+source.named = dict{"first": first, "second": second}
+
+string packed = json.stringify(source)
+assert packed == "{\"listed\":[{\"id\":1,\"name\":\"first\"},{\"id\":2,\"name\":\"second\"}],\"unique\":[{\"id\":1,\"name\":\"first\"},{\"id\":2,\"name\":\"second\"}],\"named\":{\"first\":{\"id\":1,\"name\":\"first\"},\"second\":{\"id\":2,\"name\":\"second\"}}}"
+
+CollectionEnvelope restored = json.parse::<CollectionEnvelope>(packed)
+assert json.stringify(restored) == packed
+assert restored.listed[0].id == 1
+assert restored.listed[1].name == "second"
+assert restored.named["first"].name == "first"
+
+println("xlir_persistence_recursive_collection_values ok")

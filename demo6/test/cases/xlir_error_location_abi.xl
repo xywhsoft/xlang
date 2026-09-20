@@ -1,0 +1,36 @@
+func main(...) as int
+    try
+        throw ValueError "located error"
+    catch e
+        if e.message != "located error" then
+            return 1
+        end
+        if e.kind != "ValueError" then
+            return 2
+        end
+        if e.file != "" then
+            return 3
+        end
+        if e.line <= 0 or e.column <= 0 then
+            return 4
+        end
+        // Legacy language errors historically use code 1 while canonical
+        // XRT/XLIR errors leave an unspecified module code at 0.  This shared
+        // differential fixture verifies the fields are projectable without
+        // adopting the legacy sentinel as new language semantics.
+        if e.code < 0 or e.systemCode != 0 then
+            return 5
+        end
+        if e.domain != "xlang" or e.operation != "throw" then
+            return 6
+        end
+        if e.data != "ValueError" then
+            return 7
+        end
+        error cause = e.cause
+        if cause != null then
+            return 8
+        end
+    end
+    return 0
+end

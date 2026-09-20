@@ -1,0 +1,16 @@
+{
+  "schema": 3,
+  "product": "xruntime",
+  "implementation": {
+    "source": "xrt/extlibs/xruntime/single/xruntime.h",
+    "sha256": "B59069E1ED42E9836ACF825ED87A8B634838E8D162E19B90CD4651F556AFB126",
+    "bytes": 8474880
+  },
+  "declarations": {
+    "source": "xrt/extlibs/xruntime/single/xruntime_decl.h",
+    "sha256": "90D889DB89BA920CF6DC85F5A9BEEB4E125EE413B274B644498116D108DA5C16",
+    "bytes": 1320137
+  },
+  "publicApiCount": 3486,
+  "ownedPublicApiCount": 451
+}

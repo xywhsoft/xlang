@@ -146,7 +146,7 @@ static XL6_AstNode* xl6CgenCloneCanonicalTypeNode(XL6_CgenContext* ctx, const XL
     copy->semanticTypeAbiId = concrete->semanticTypeAbiId;
     /*
         变量表中仍可能保存语法阶段创建的类型节点。协议身份来自当前模块的
-        规范类型注册表；克隆时补写一次，后续所有 xvalue 路径便无需按名称猜测。
+        规范类型注册表；克隆时补写一次，后续所有 xvalue* 路径便无需按名称猜测。
     */
     if ( copy->text != NULL &&
          xl6CgenFindProtocol(ctx, copy->text) != NULL ) {

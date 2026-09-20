@@ -1,0 +1,35 @@
+extern "dependency_peer" func dependencyPeer(int id) as future<int>
+extern "dependency_caught" func dependencyCaught(int id)
+extern "dependency_finally" func dependencyFinally(int id)
+extern "dependency_after" func dependencyAfter(int id)
+extern "dependency_boot" func dependencyBoot() as future<int>
+extern "module_executor_dropped" func moduleDropped()
+string moduleText = "executor " + "alive"
+class ModuleMarker
+    destroy()
+        assert moduleText == "executor alive", "Module globals retired before object finalization"
+        moduleDropped()
+    end
+end
+ModuleMarker marker = ModuleMarker()
+async func moduleCycle(int id, future<int> boot, future<int> cleanup, bool waitCleanup) as int
+    try
+        int ignored = await boot
+        int number = await dependencyPeer(id)
+        dependencyAfter(id)
+        return number
+    catch CancelledError error
+        assert moduleText == "executor alive", "Module globals retired before catch"
+        dependencyCaught(id)
+        throw
+    finally
+        if waitCleanup
+            int ignored = await cleanup
+        end
+        assert moduleText == "executor alive", "Module globals retired before finally"
+        dependencyFinally(id)
+    end
+end
+export "module_executor_keep" func keep()
+    auto output = moduleCycle(0, dependencyBoot(), dependencyBoot(), false)
+end

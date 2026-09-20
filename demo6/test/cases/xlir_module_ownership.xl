@@ -1,0 +1,25 @@
+extern "module_graph_capture" func capture(var value)
+
+var moduleScalar = 42
+array<int> moduleValues = [11, 22]
+string moduleText = "module" + " alive"
+
+func makeCallback(var payload) as func() as int
+    return func() as int
+        assert payload == 42, "capture changed"
+        assert moduleText == "module alive", "module globals were retired"
+        return 42
+    end
+end
+
+func() as int moduleCallback = makeCallback(moduleScalar)
+
+export "module_graph_run" func runGraph() as int
+    assert moduleCallback() == 42 and moduleValues[1] == 22, "module state changed"
+    capture(moduleScalar)
+    return 42
+end
+
+func main(...) as int
+    return 0
+end

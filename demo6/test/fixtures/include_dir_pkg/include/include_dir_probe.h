@@ -1,0 +1,6 @@
+#ifndef XL6_INCLUDE_DIR_PROBE_H
+#define XL6_INCLUDE_DIR_PROBE_H
+
+#define XL6_INCLUDE_DIR_VALUE 42
+
+#endif

@@ -1,0 +1,6 @@
+WsFrame frame = WsFrame.make(1, uint64(0))
+Buffer head = frame.write()
+
+assert frame.ready
+assert head.len() == 2
+println("websocket-frame-trim-ok")

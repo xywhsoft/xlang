@@ -1,0 +1,12 @@
+export "xlir_dynamic_u64_arithmetic_probe" func probe() as bool
+    uint64 forty = 40
+    uint64 two = 2
+    var dynamicForty = forty
+    var dynamicTwo = two
+    return uint64(dynamicForty + dynamicTwo) == 42 and uint64(dynamicForty - dynamicTwo) == 38 and uint64(dynamicForty * dynamicTwo) == 80
+end
+
+func main(...) as int
+    assert(probe())
+    return 0
+end

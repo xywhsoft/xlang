@@ -1,0 +1,30 @@
+class ManagedCounter
+    native point handle
+    extern "managed_counter_open" create(int seed)
+    extern "managed_counter_close" destroy()
+    extern "managed_counter_add" func add(int value) as int
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "managed_counter_closed" func closed() as int
+
+func explicitDestroy()
+    auto counter = ManagedCounter(40)
+    expect(counter.add(2), 42)
+    counter.destroy()
+    expect(closed(), 1)
+end
+
+func automaticDestroy()
+    auto counter = ManagedCounter(10)
+    var erased = counter
+    var rejectedCopy = copy(erased)
+    expect(type(rejectedCopy) == null, 1)
+    expect(counter.add(5), 15)
+end
+
+explicitDestroy()
+expect(closed(), 1)
+
+automaticDestroy()
+expect(closed(), 2)

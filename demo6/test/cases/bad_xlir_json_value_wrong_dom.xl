@@ -1,0 +1,3 @@
+extern "xl6_xrt_json_parse" func malformed(string text) as array<int>
+array<int> result = malformed("[1]")
+assert result[0] == 1

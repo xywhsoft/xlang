@@ -1,0 +1,7 @@
+func chooseValue(bool enabled) as var
+    return enabled ? 41 : 42
+end
+
+export "xl6_diff_choose_value" func chooseValueInt(bool enabled) as int
+    return int(chooseValue(enabled))
+end

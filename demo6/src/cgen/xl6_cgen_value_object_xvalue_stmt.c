@@ -72,21 +72,21 @@ static int xl6CgenTryClassCtorBoxXValueStmt(
     id = ctx->tempId++;
     snprintf(tempName, sizeof(tempName), "__xl6_object_data_%d", id);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = xvoCreateObject(", valueName);
+    xl6OutputPrintf(ctx->out, "%s = xl6ValueObject(", valueName);
     xl6CgenTypeDescSymbol(ctx->out, cTypeName);
     xl6OutputPuts("());\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (%s == 0) {\n", valueName);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = xvoCreateNull();\n", valueName);
+    xl6OutputPrintf(ctx->out, "%s = xrtValueNull();\n", valueName);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("} else {\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out,
-                    "%s* %s = (%s*)xvoGetRecordData(%s);\n",
+                    "%s* %s = (%s*)xl6ValueRecordData(%s);\n",
                     xl6CgenTypeName(ctx, recordType),
                     tempName,
                     xl6CgenTypeName(ctx, recordType),
@@ -95,9 +95,9 @@ static int xl6CgenTryClassCtorBoxXValueStmt(
     xl6OutputPrintf(ctx->out, "if (%s == 0) {\n", tempName);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", valueName);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(%s);\n", valueName);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = xvoCreateNull();\n", valueName);
+    xl6OutputPrintf(ctx->out, "%s = xrtValueNull();\n", valueName);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("} else {\n", ctx->out);
@@ -112,14 +112,13 @@ static int xl6CgenTryClassCtorBoxXValueStmt(
         xl6OutputPuts("if ( xl6_error_has() ) {\n", ctx->out);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", valueName);
+        xl6OutputPrintf(ctx->out, "xrtValueRelease(%s);\n", valueName);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xvoCreateNull();\n", valueName);
+        xl6OutputPrintf(ctx->out, "%s = xrtValueNull();\n", valueName);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("} else {\n", ctx->out);
         ctx->indent += 1;
-        xl6CgenClassValuePublishShared(ctx, recordType, targetExpr);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("}\n", ctx->out);
@@ -174,7 +173,7 @@ static int xl6CgenTryTypedContainerReturnBoxXValueStmt(
     return 1;
 }
 
-/* 将既有 class 值复制到动态 xvalue；新构造值由上面的 move 路径接管。 */
+/* 将既有 class 值复制到动态 xvalue*；新构造值由上面的 move 路径接管。 */
 static int xl6CgenTryClassValueCopyBoxXValueStmt(
     XL6_CgenContext* ctx,
     const XL6_AstNode* valueExpr,
@@ -200,13 +199,13 @@ static int xl6CgenTryClassValueCopyBoxXValueStmt(
 
     xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), typeNode);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = xvoCreateRecord(", valueName);
+    xl6OutputPrintf(ctx->out, "%s = xl6ValueRecord(", valueName);
     xl6CgenTypeDescSymbol(ctx->out, cTypeName);
     xl6OutputPuts("(), &(", ctx->out);
     xl6CgenExpr(ctx, valueExpr);
     xl6OutputPuts("));\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (%s == 0) { %s = xvoCreateNull(); }\n", valueName, valueName);
+    xl6OutputPrintf(ctx->out, "if (%s == 0) { %s = xrtValueNull(); }\n", valueName, valueName);
     xl6AstFree(rawType);
     return 1;
 }
@@ -287,7 +286,7 @@ static void xl6CgenXValueLocalInitStmt(
     const XL6_AstNode* valueExpr)
 {
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", valueName);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", valueName);
     xl6CgenXValueAssignStmt(ctx, targetType, valueName, valueExpr);
 }
 
@@ -336,7 +335,7 @@ static void xl6CgenTypedContainerValueStmt(
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", valueName);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", valueName);
     if ( !xl6CgenTypedContainerNestedLiteralValueStmt(ctx, itemType, valueName, valueExpr) ) {
         xl6CgenXValueAssignStmt(ctx, itemType, valueName, valueExpr);
     }
@@ -349,7 +348,7 @@ static void xl6CgenTypedContainerValueStmt(
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", valueName);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(%s);\n", valueName);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);

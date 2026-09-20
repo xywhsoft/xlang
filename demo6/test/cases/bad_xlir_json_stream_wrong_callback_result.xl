@@ -1,0 +1,5 @@
+extern "xl6_xrt_json_visit" func malformed(string text, func(var) as int visitor) as c_int
+func visit(var event) as int
+    return 1
+end
+assert malformed("null", visit) == 0

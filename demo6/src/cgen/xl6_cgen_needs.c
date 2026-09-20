@@ -21,6 +21,43 @@ static int xl6CgenNeedsTypeIsString(XL6_CgenContext* ctx, const XL6_AstNode* typ
     return xl6CgenIsOwnedStringTypeNode(ctx, typeNode);
 }
 
+
+
+/*
+	typed 容器循环会在 lowering 阶段复制 dict 键和 string 元素。
+	这些复制不是源 AST 中的显式字符串表达式，必须在裁剪扫描阶段单独纳入依赖。
+*/
+static int xl6CgenNeedsTypedForStringCopy(
+	XL6_CgenContext* ctx,
+	const XL6_AstNode* node)
+{
+	const XL6_AstNode* concreteType;
+	const XL6_AstNode* itemType;
+	XL6_AstNode* iterableType;
+	int result;
+
+	if ( (ctx == NULL) ||
+		(node == NULL) ||
+		(node->kind != XL6_AST_FOR) ||
+		(node->childCount < 2) ) {
+		return 0;
+	}
+
+	iterableType = xl6CgenCloneExprTypeForInference(ctx, node->children[1]);
+	if ( !xl6CgenIsTypedContainerType(ctx, iterableType) ) {
+		xl6AstFree(iterableType);
+		return 0;
+	}
+
+	concreteType = xl6CgenTypedContainerConcreteType(ctx, iterableType);
+	itemType = xl6CgenTypedContainerItemType(ctx, iterableType);
+	result = ((concreteType != NULL) &&
+		xl6CTextEquals(concreteType->text, "dict")) ||
+		xl6CgenIsStringTypeNode(ctx, itemType);
+	xl6AstFree(iterableType);
+	return result;
+}
+
 static int xl6CgenNeedsParamListHasString(
     XL6_CgenContext* ctx,
     const XL6_AstNode* params)
@@ -63,7 +100,7 @@ static int xl6CgenNeedsClassValueDeriveStringTempCopy(XL6_CgenContext* ctx, cons
         }
 
         /*
-            自动 value/json/xson 协议会从 xvalue 读回 string 字段。
+            自动 value/json/xson 协议会从 xvalue* 读回 string 字段。
             这里显式拉起 string runtime，避免协议生成代码依赖未输出的临时字符串拷贝 helper。
         */
         if ( xl6CgenNeedsTypeIsString(ctx, member->children[0]) ) {
@@ -96,6 +133,9 @@ static int xl6CgenNodeNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstNode
 
     if ( node == NULL ) {
         return 0;
+    }
+    if ( xl6CgenNeedsTypedForStringCopy(ctx, node) ) {
+        return 1;
     }
     if ( node->kind == XL6_AST_INTERP_STRING ) {
         return 1;
@@ -303,6 +343,34 @@ static int xl6CgenProgramNeedsStringRuntime(XL6_CgenContext* ctx, const XL6_AstN
     return 0;
 }
 
+
+
+
+/*
+	动态算术 helper 只服务于实际以 xvalue* 求值的二元表达式。
+	类型描述和 class 句柄虽然也需要基础 XValue ABI，但不应因此带入字符串拼接路径。
+*/
+static int xl6CgenNodeNeedsXValueBinaryRuntime(
+	XL6_CgenContext* ctx,
+	const XL6_AstNode* node)
+{
+	size_t i;
+
+	if ( (ctx == NULL) || (node == NULL) ) {
+		return 0;
+	}
+	if ( (node->kind == XL6_AST_BINARY) &&
+		xl6CgenBinaryArithmeticIsXValue(ctx, node) ) {
+		return 1;
+	}
+	for ( i = 0; i < node->childCount; ++i ) {
+		if ( xl6CgenNodeNeedsXValueBinaryRuntime(ctx, node->children[i]) ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 static int xl6CgenTypeConvertCallNeedsRuntime(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     const XL6_AstNode* callee;
@@ -328,7 +396,7 @@ static int xl6CgenTypeConvertCallNeedsRuntime(XL6_CgenContext* ctx, const XL6_As
     result = 0;
 
     /*
-        var/xvalue 到静态标量的转换会生成 xl6_xrt_value_to_* helper。
+        var/xvalue* 到静态标量的转换会生成 xl6_xrt_value_to_* helper。
         needs 必须以真实存储类型判断，不能只枚举旧的字符串/数值转换组合。
     */
     if ( xl6CgenIsXValueType(sourceType) &&
@@ -824,6 +892,12 @@ static int xl6CgenNodeNeedsFunctionVarRuntime(XL6_CgenContext* ctx, const XL6_As
 
     if ( node == NULL ) {
         return 0;
+    }
+
+    if ( node->kind == XL6_AST_CALL && node->childCount > 0 &&
+         node->children[0] != NULL && node->children[0]->kind == XL6_AST_NAME &&
+         xl6CTextEquals(node->children[0]->text, "xcall") ) {
+        return 1;
     }
 
     if ( xl6CgenIsTaskNamespaceMemberCall(node, NULL) ) {

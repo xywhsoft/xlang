@@ -1,0 +1,115 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+set<int> snapshotValues = set{1, 2, 3}
+int snapshotSum = 0
+int snapshotVisits = 0
+for value in snapshotValues
+    snapshotSum = snapshotSum + value
+    snapshotVisits = snapshotVisits + 1
+    if value == 1
+        snapshotValues = set{100}
+    end
+end
+expect(snapshotSum, 6)
+expect(snapshotVisits, 3)
+
+func sum_named_set(set<int> values) as int
+    int total = 0
+    for value in values
+        if value == 2
+            continue
+        end
+        total = total + value
+    end
+    return total
+end
+
+func find_named_set_value(set<int> values) as int
+    for value in values
+        if value == 2
+            return value
+        end
+    end
+    return -1
+end
+
+func checked_set_value(int value) as int
+    if value == 2
+        throw ValueError "set loop sentinel"
+    end
+    return value
+end
+
+func sum_with_inner_catch(set<int> values) as int
+    int total = 0
+    for value in values
+        try
+            total = total + checked_set_value(value)
+        catch ValueError ignored
+            total = total + 20
+        end
+    end
+    return total
+end
+
+func sum_with_outer_catch(set<int> values) as int
+    int total = 0
+    try
+        for value in values
+            total = total + checked_set_value(value)
+        end
+    catch ValueError ignored
+        total = total + 100
+    end
+    return total
+end
+
+int setReturnFinallyTrace = 0
+func find_with_finally(set<int> values) as int
+    for value in values
+        if value == 3
+            try
+                return value
+            finally
+                setReturnFinallyTrace = setReturnFinallyTrace + 1
+            end
+        end
+    end
+    return -1
+end
+
+func make_owned_loop_values() as set<int>
+    return set{4, 5, 6}
+end
+
+set<int> parameterValues = set{1, 2, 3}
+expect(sum_named_set(parameterValues), 4)
+expect(find_named_set_value(parameterValues), 2)
+expect(sum_with_inner_catch(parameterValues), 24)
+int outerCatchResult = sum_with_outer_catch(parameterValues)
+if outerCatchResult < 100 or outerCatchResult > 104
+    expect(outerCatchResult, -1)
+end
+expect(find_with_finally(parameterValues), 3)
+expect(setReturnFinallyTrace, 1)
+
+int literalRvalueSum = 0
+for value in set{4, 5}
+    literalRvalueSum = literalRvalueSum + value
+end
+expect(literalRvalueSum, 9)
+
+int returnedRvalueSum = 0
+for value in make_owned_loop_values()
+    returnedRvalueSum = returnedRvalueSum + value
+end
+expect(returnedRvalueSum, 15)
+
+int breakFound = 0
+for value in set{4, 5, 6}
+    if value == 5
+        breakFound = 1
+        break
+    end
+end
+expect(breakFound, 1)

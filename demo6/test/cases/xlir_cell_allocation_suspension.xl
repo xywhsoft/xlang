@@ -1,0 +1,41 @@
+async func cellDelay() as int
+    time.sleep(5)
+    return 1
+end
+
+async func cellAfterAwait(bool present) as func() as int
+    string? text = present ? "value" : null
+    int? number = present ? 7 : null
+    int step = await cellDelay()
+    return func() as int
+        text = (text ?? "") + "!"
+        number = (number ?? 0) + step
+        return (text ?? "").length + (number ?? 0)
+    end
+end
+
+func cellReaders(bool present) as generator<int>
+    string? text = present ? "value" : null
+    auto next = func() as int
+        text = (text ?? "") + "!"
+        return (text ?? "").length
+    end
+    yield next()
+    yield next()
+end
+
+func exerciseCellReaders(bool present)
+    int count = 0
+    for value in cellReaders(present)
+        count += 1
+        assert value == (present ? 5 : 0) + count
+    end
+    assert count == 2
+end
+
+auto absent = await cellAfterAwait(false)
+auto present = await cellAfterAwait(true)
+assert absent() == 2
+assert present() == 14
+exerciseCellReaders(false)
+exerciseCellReaders(true)

@@ -1,10 +1,36 @@
 #ifndef XL_API_INTERNAL_H
 #define XL_API_INTERNAL_H
 
+#include <stdbool.h>
+
 #include "include/xl.h"
 #include "libtcc.h"
+#include "xl_channel_bridge.h"
+#include "xl_future_bridge.h"
+#include "xl_foreign_error.h"
+#include "xl_task_group_bridge.h"
+
+typedef struct xl6_protocol_witness xl6_protocol_witness;
+typedef struct xl6_protocol_entry xl6_protocol_entry;
+
+XL_API bool xl6ProtocolWitnessValidate(const xl6_protocol_witness* witness);
+XL_API const xl6_protocol_entry* xl6ProtocolWitnessFind(
+    const xl6_protocol_witness* witness,
+    const char* name,
+    unsigned int nameSize,
+    unsigned long long signatureId);
+XL_API bool xl6ProtocolRegister(const xl6_protocol_witness* witness);
+XL_API bool xl6ProtocolUnregister(const xl6_protocol_witness* witness);
+XL_API const xl6_protocol_witness* xl6ProtocolLookup(
+    unsigned int protocolTypeId,
+    unsigned int concreteTypeId);
 
 struct XLC_Context;
+
+typedef enum XLC_Backend {
+    XLC_BACKEND_XLIR = 0,
+    XLC_BACKEND_LEGACY = 1
+} XLC_Backend;
 
 XL_ContextOptions xlcDefaultContextOptions(void);
 struct XLC_Context* xlcCreateContext(const XL_ContextOptions* options);
@@ -12,6 +38,7 @@ void xlcDestroyContext(struct XLC_Context* ctx);
 int xlcSetWorkDir(struct XLC_Context* ctx, const char* path);
 int xlcSetTempDir(struct XLC_Context* ctx, const char* path);
 int xlcSetSaveTemps(struct XLC_Context* ctx, int enabled);
+int xlcSetBackend(struct XLC_Context* ctx, XLC_Backend backend);
 int xlcAddIncludePath(struct XLC_Context* ctx, const char* path);
 int xlcAddLibraryPath(struct XLC_Context* ctx, const char* path);
 int xlcAddLinkLibrary(struct XLC_Context* ctx, const char* nameOrPath);
@@ -26,7 +53,9 @@ int xlcCheck(struct XLC_Context* ctx, const char* outputPath, int jsonOutput);
 int xlcEmitTokens(struct XLC_Context* ctx, const char* outputPath, int jsonOutput);
 int xlcEmitAst(struct XLC_Context* ctx, const char* outputPath, int jsonOutput);
 int xlcEmitIr(struct XLC_Context* ctx, const char* outputPath, int jsonOutput);
+int xlcEmitLoweredIr(struct XLC_Context* ctx, const char* outputPath, int jsonOutput);
 int xlcEmitC(struct XLC_Context* ctx, const char* outputPath);
+int xlcEmitXlirC(struct XLC_Context* ctx, const char* outputPath);
 int xlcEmitDebugC(struct XLC_Context* ctx, const char* outputPath, const char* debugSourcePath);
 int xlcEmitHeader(struct XLC_Context* ctx, const char* outputPath, const char* guardName);
 int xlcEmitAbi(struct XLC_Context* ctx, const char* outputPath, int jsonOutput);

@@ -33,9 +33,9 @@
 
 - `NetAddress`、DNS resolve、`NetEngine`、`NetProxy`。
 - TCP/UDP 支持完整配置、异步 accept/recv、代理、TLS、流量水位和关闭等待。
-- `TcpStream` 补齐 pause/resume、vectored/zero-copy send 和 readable/writable/drain/close 等待。
-- HTTP 客户端补齐可复用 `HttpClient`、连接池、异步请求、流式响应、取消和 Header 枚举。
-- HTTP 服务端补齐原始 connection/response 能力，但高层业务继续优先使用 `http.server`。
+- `TcpStream` 已补齐 pause/resume、vectored/move/file zero-copy send 和 readable/writable/drain/close 等待；`sendFileResult` 保留非阻塞背压结果，`sendFile` 对大文件按 `WriteLimit` 分段并共享一个截止时间。
+- HTTP/WebSocket 在本轮只接入 XRT 核心快速路径、TLS、升级和压缩链路；客户端池、路由、表单、Cookie 等高级抽象继续由 xhttp/xws 扩展包承担，不复制回编译器标准库。
+- TCP 文件发送仅在实际使用 `sendFile*` 时保留 `XRT_MODULE_NET_TCP_FILE` 和文件模块；普通 TCP 程序的生成 C 与裁剪实现不得包含该能力。
 
 ### 2.4 原始 TLS
 
@@ -46,7 +46,7 @@
 
 ### 2.5 Regex、Crypto、Encoding、JSON/XSON
 
-- Regex 补齐捕获组、命名捕获、编译错误位置/消息、builder、clone 和 RegexSet captures。
+- Regex 的新 ABI 适配器、捕获组、命名捕获、错误位置、builder、clone 与 RegexSet 已作为正式 `xregex` 源码包接回，并进入 Windows/WSL JIT、AOT 与 C smoke 门禁。
 - Crypto 补齐 P-256/P-384 ECDH、ECDSA verify、SHA-1 streaming 和 Buffer 二进制接口。
 - Encoding 补齐 UTF-8/16/32 显式转换和大小端转换。
 - JSON 补齐 SAX/流式输出；XSON 补齐稳定选项对象，不公开裸 flags。
@@ -84,32 +84,31 @@
 - C 与 xlang 范例实现相同场景并校验相同结果。
 - 标准库依赖裁剪、DLL 符号、XAPI、`xl run`、`xl build` 和完整 RC0 守门全部通过。
 
-## 4. 完成状态（2026-07-15）
+## 4. 当前状态（2026-08-22）
 
-本批任务已经完成实现、双语范例、边界测试和发布守门，不再保留未完成的兼容分支。
+在 HTTP/WebSocket 只接入核心快速路径、TLS、升级与压缩链路的既定边界内，XRT、xruntime 与 xlang 的实现对接已经闭环。当前没有旧 API 延期清单，也没有为兼容历史接口保留第二套语言路径。
 
-### 4.1 标准库公开面
+### 4.1 能力与公开面
 
-- 当前公开 `488` 个函数、`105` 个常量，共 `593` 个标准库符号。
-- 注册表包含 `862` 条函数注册记录；发布守门验证 `405` 个绑定 C 符号和 `1245` 个运行时导出符号。
-- `31` 个 xlang 标准库范例全部通过检查和运行；其中 `26` 个场景提供直接 C 对照范例，其余为语言级或组合应用范例。
-- 标准库测试接线覆盖 `56` 个测试文件，负例诊断基线为 `420/420`。
+- XRT 核心快照包含 `2827` 个公共函数；xruntime 产品快照包含 `3269` 个公共函数，其中 `442` 个由 xruntime 自有模块提供。
+- `3269` 个函数全部进入 TCC 底层符号面；当前有 `1093` 个直接实现调用、`1295` 个语言内核或标准库语义抽象，其余能力仍可通过显式 extern 使用。
+- 标准库公开 `427` 个函数，显式延期为 `0`；自动化接线覆盖 `74` 个标准库测试文件。
+- xhttp、xws、xregex 的旧核心引用均为 `0`。HTTP/WebSocket 非快速路径继续属于扩展包，不回流编译器标准库。
+- xruntime 的类型、调用、动态字段、对象所有权和 typed container 已进入语言内核或语言类型；对象图遍历等能力保留为明确的底层 extern。
 
-### 4.2 本批核心交付
+### 4.2 本轮补强
 
-- 专用结构已公开 `Stack<T>`、`AvlTree<K, V>`、`SpscQueue<T>`、`MpscQueue<T>`、`MpmcQueue<T>` 和 `WaitQueue<T>`，并覆盖所有权、满/空队列、超时、关闭和竞争边界。
-- 原始 TLS 已公开 `TlsConfig`、`TlsSession` 和 `TlsResume`，覆盖内存握手、TCP 回环、证书错误、截断输入、重复关闭和会话恢复。
-- 补齐此前仅部分公开的 URL/query/XID、regex、crypto、encoding、JSON/XSON、process、network、HTTP、logger、template、future/task 等 XRT 能力。
-- XRT Windows IOCP 限时 `accept` 的取消窗口已在 XRT 层修复，并新增“超时后无等待者间隙到达连接”的确定性回归测试。
-- XRT 共享 AVL 完整遍历后的所有权锁泄漏已在迭代器层修复，并增加锁深度和锁状态归零断言。
-- `xl run` 的 C 入口已消除“销毁上下文后读取退出码”的 use-after-free，并增加精确返回 `37` 的入口回归。
-- XRT 单头文件已重新生成并同步到 demo6；XRT 源单头文件与 demo6 副本的 SHA-256 均为 `D69DC389C2DA75C4CA3A757EFC91DA897FD355B540A2FB5FAFC2A5B46BD854BC`。
+- 同步最新 XRT/xruntime 单头文件、声明快照、TCC 符号表和能力矩阵；新增的 `xrtNetStreamSendRefs`、`xrtNetStreamSendBuffer` 保留为显式底层能力，xlang 继续用 `sendVec` 表达复制语义、用 `sendMove` 表达所有权转移。
+- 补齐 `TcpStream.waitAvailable` 与 `waitAvailableAsync` 生成桥接，并增加同步、异步可读字节边界测试。
+- 公开网卡快照、名称/索引转换和接口标志的语言抽象，补充 xlang/C 对照范例及生命周期、裁剪和往返测试。
+- 网络统计生成器改为按 engine、resolver、TCP stream、listener、UDP 的实际依赖分别发射，最小 `NetEngine` 程序不再隐式带出 DNS 或传输层。
+- 网卡顶层 extern 使用固定宽度 `int64_t` ABI，消除 Windows LLP64 与 Linux LP64 数据模型差异导致的声明冲突。
+- `_xge_native` 对 xregex 的真实 C ABI 依赖改为正式包依赖对象，并同步到清单生成器，扩展库依赖闭包重新通过审计。
 
-### 4.3 发布验证
+### 4.3 当前验证
 
-- XRT GCC x64 完整测试通过；IOCP `accept` 间隙回归连续 `50/50` 通过。
-- 专用结构 C 范例连续 `50/50` 通过，C 与 xlang 输出一致。
-- 动态 xs 安静压测连续 `50/50` 通过，正式 xs smoke 测试通过并能自然退出。
-- `build.bat` 成功重建 `xl.exe`、`xl.dll` 和 `xlc.dll`。
-- demo6 完整 `test.bat` 通过，最终输出 `DEMO6 smoke tests ok.`。
-- 完整回归未产生磁盘临时文件，xs 运行目录仅保留 `.gitkeep`。
+- WSL2 Ubuntu 已完成原生 TCC、XRT、`libxl.so`、`libxlc.so` 和 `release/xl` 重建；`test_linux.sh` 全部通过。
+- Linux 门禁覆盖 CLI/VFS、ELF、C/XRT、UTF-8 路径、import/package、xregex、xssh、xmail SMTP/POP3/IMAP 本地回环、async/task、TCP 文件快速路径、网卡快照、HTTP/1.1、WS/WSS 升级与压缩，以及共享库宿主 API。
+- Windows 已按最新源码重建 `xl.dll/xlc.dll` 并通过 DLL 专项：NULL context、cwd、线程宿主、模块依赖生命周期、字符串/文件运行、编译器 API 和 XRT 导出均通过。
+- 快照、能力矩阵、三种头文件包含顺序、TCC 契约、所有权、xruntime 语言桥接、标准库覆盖、源码编码、文档索引和发布扩展库审计均通过；Windows TCC VFS 资源也已按最新源码重新生成并验证。
+- 最新 Windows `xl.exe` 在完整回归中被 Microsoft Defender 机器学习规则隔离。当前源码尚待在可信本地环境补跑 Windows 产品裁剪和最终完整动态回归；不通过恢复隔离文件、关闭防护或添加排除项绕过该门禁。

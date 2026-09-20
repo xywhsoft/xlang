@@ -1,0 +1,14 @@
+extern "expect_str" func expectStr(string actual, string expected)
+
+func pair(string seed) as (string, string)
+    return seed + "-left", seed + "-right"
+end
+
+string left = ""
+string right = ""
+left, right = pair("one")
+expectStr(left, "one-left")
+expectStr(right, "one-right")
+
+auto kept, _ = pair("two")
+expectStr(kept, "two-left")

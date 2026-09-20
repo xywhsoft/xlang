@@ -1,0 +1,11 @@
+func payload_access_requires_an_ir_abi() as int
+    try
+        throw "payload"
+    catch caught
+        caught
+    end
+    return 0
+end
+
+int observed = payload_access_requires_an_ir_abi()
+assert observed == 0

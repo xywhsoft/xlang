@@ -16,6 +16,16 @@ auto tryBadOk, _ = time.tryParse("bad")
 auto tryPatternOk, tryPattern = time.tryParsePattern("2026/06/18 12:30:59", "yyyy/mm/dd hh:mm:ss")
 auto tryPatternBadOk, _ = time.tryParsePattern("bad", "yyyy/mm/dd")
 string formattedPattern = time.formatPattern(dateTime, "yyyy/mm/dd hh:mm:ss")
+time compactPattern = time.parsePattern("2026/6/8 3:4:5", "yyyy/m/d h:n:s")
+time twelveHourPattern = time.parsePattern(
+    "Monday, June 8, 2026 3:04 pm",
+    "www, mmmm d, yyyy H:nn ap")
+string compactFormatted = time.formatPattern(
+    #2026-06-08 03:04:05#,
+    "yyyy/m/d h:n:s")
+string namedFormatted = time.formatPattern(
+    #2026-06-08 15:04:05#,
+    "www, mmmm d, yyyy H:nn ap q")
 
 expect(dateValue == #2026-06-18#, 1)
 expect(clockValue == #12:30:59#, 1)
@@ -36,6 +46,10 @@ expect(tryPatternOk, 1)
 expect(tryPattern == dateTime, 1)
 expect(tryPatternBadOk, 0)
 expectStr(formattedPattern, "2026/06/18 12:30:59")
+expect(compactPattern == #2026-06-08 03:04:05#, 1)
+expect(twelveHourPattern == #2026-06-08 15:04:00#, 1)
+expectStr(compactFormatted, "2026/6/8 3:4:5")
+expectStr(namedFormatted, "Monday, June 8, 2026 3:04 pm 2")
 
 expect(time.year(dateTime), 2026)
 expect(time.month(dateTime), 6)

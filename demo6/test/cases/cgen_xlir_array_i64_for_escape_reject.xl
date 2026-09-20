@@ -1,0 +1,4 @@
+var nonContainer = 42
+for value in nonContainer
+    var observed = value
+end

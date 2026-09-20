@@ -1,0 +1,35 @@
+class BorrowedCallState
+    int calls = 0
+    int total = 0
+end
+
+int borrowedReceiverEvaluations = 0
+
+func observeState(BorrowedCallState state) as BorrowedCallState
+    borrowedReceiverEvaluations += 1
+    return state
+end
+
+func invokeNullable((func(int) as bool)? callback, int value) as bool
+    if callback == null then
+        return false
+    end
+    return callback(value)
+end
+
+func main(...) as int
+    BorrowedCallState state = BorrowedCallState()
+    func(int) as bool callback = func(int value) as bool
+        state.calls += 1
+        state.total += value
+        return true
+    end
+
+    assert invokeNullable(callback, 4)
+    assert invokeNullable(callback, 7)
+    observeState(state).calls += 1
+    assert borrowedReceiverEvaluations == 1
+    assert state.calls == 3
+    assert state.total == 11
+    return 0
+end

@@ -1,0 +1,18 @@
+extern "dispatch_should_run" func dispatchShouldRun() as bool
+extern "dispatch_ready_input" func dispatchReadyInput() as future<int>
+extern "dispatch_probe" func dispatchProbe(int value) as int
+extern "dispatch_cleanup" func dispatchCleanup()
+
+async func dispatchedChain(future<int> first, future<int> second) as int
+    try
+        int left = await first
+        int right = await second
+        return dispatchProbe(left + right)
+    finally
+        dispatchCleanup()
+    end
+end
+
+if dispatchShouldRun()
+    assert await dispatchedChain(dispatchReadyInput(), dispatchReadyInput()) == 42
+end

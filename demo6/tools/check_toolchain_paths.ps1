@@ -125,17 +125,20 @@ foreach ( $file in $batchFiles ) {
 
 $apiPath = Join-Path $Root "src\api\xl_api.c"
 $backendPath = Join-Path $Root "src\backend\xl6_build_backend.c"
+$xrtBridgePath = Join-Path $Root "src\common\xl6_xrt.h"
 
-foreach ( $path in @($apiPath, $backendPath) ) {
+foreach ( $path in @($apiPath, $backendPath, $xrtBridgePath) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         Add-Failure "toolchain consumer source is missing: $(Relative-From-Root $path)"
     }
 }
 
 if ( (Test-Path -LiteralPath $apiPath -PathType Leaf) -and
-     (Test-Path -LiteralPath $backendPath -PathType Leaf) ) {
+     (Test-Path -LiteralPath $backendPath -PathType Leaf) -and
+     (Test-Path -LiteralPath $xrtBridgePath -PathType Leaf) ) {
     $apiText = Read-Utf8Text $apiPath
     $backendText = Read-Utf8Text $backendPath
+    $xrtBridgeText = Read-Utf8Text $xrtBridgePath
 
     if ( $backendText -notmatch [regex]::Escape("XL6_TCC") ) {
         Add-Failure "build backend must honor centralized toolchain environment variable: XL6_TCC"
@@ -155,8 +158,11 @@ if ( (Test-Path -LiteralPath $apiPath -PathType Leaf) -and
             Add-Failure "DLL API must honor centralized toolchain environment variable: $name"
         }
     }
-    if ( $apiText -notmatch 'XRT_IMPLEMENTATION' -or $apiText -notmatch 'lib/xrt/xrt[.]h' ) {
-        Add-Failure "DLL compiler API must embed XRT through the single-header path instead of requiring XL6_XRT_OBJ"
+    if ( $apiText -notmatch 'XRUNTIME_IMPLEMENTATION' -or
+         $apiText -notmatch '#include \\"xruntime[.]h\\"' -or
+         $apiText -notmatch 'src/common/xl6_xrt[.]h' -or
+         $xrtBridgeText -notmatch 'lib/xruntime/xruntime[.]h' ) {
+        Add-Failure "DLL compiler API must embed XRT/xruntime through the product single-header path"
     }
 
     foreach ( $name in @(

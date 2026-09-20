@@ -1,0 +1,70 @@
+export "xlir_integer_from_string" func fromString() as int
+    return int("  42\t")
+end
+
+export "xlir_u64_from_string" func u64FromString() as uint64
+    return uint64("18446744073709551615")
+end
+
+export "xlir_integer_from_u64" func fromU64() as int
+    uint64 maximumSigned = 9223372036854775807
+    return int(maximumSigned)
+end
+
+export "xlir_integer_from_float" func fromFloat() as int
+    return int(19.75)
+end
+
+export "xlir_integer_from_xvalue_string" func fromXValueString() as int
+    var value = "91"
+    return int(value)
+end
+
+export "xlir_u64_from_xvalue_string" func u64FromXValueString() as uint64
+    var value = "18446744073709551615"
+    return uint64(value)
+end
+
+export "xlir_integer_invalid_string" func invalidString() as bool
+    try
+        int ignored = int("42x")
+    catch ValueError error
+        return error.message == "invalid integer string"
+    end
+    return false
+end
+
+export "xlir_u64_negative_string" func negativeU64String() as bool
+    try
+        uint64 ignored = uint64("-1")
+    catch RangeError error
+        return error.message == "negative string cannot convert to unsigned integer"
+    end
+    return false
+end
+
+export "xlir_u64_invalid_string" func invalidU64String() as bool
+    try
+        uint64 ignored = uint64("1x")
+    catch ValueError error
+        return error.message == "invalid unsigned integer string"
+    end
+    return false
+end
+
+export "xlir_integer_u64_wrap" func u64Wrap() as bool
+    uint64 maximum = 18446744073709551615
+    return int(maximum) == -1
+end
+
+assert fromString() == 42, "managed string to int"
+assert u64FromString() == uint64(18446744073709551615), "managed string to uint64"
+assert fromU64() == 9223372036854775807, "uint64 to int64"
+assert fromFloat() == 19, "float to int"
+assert fromXValueString() == 91, "xvalue string to int"
+assert u64FromXValueString() == uint64(18446744073709551615), "xvalue string to uint64"
+assert invalidString(), "invalid signed integer string"
+assert negativeU64String(), "negative unsigned integer string"
+assert invalidU64String(), "invalid unsigned integer string"
+assert u64Wrap(), "uint64 signed wrapping"
+println("xlir_integer_conversion_source_abi ok")

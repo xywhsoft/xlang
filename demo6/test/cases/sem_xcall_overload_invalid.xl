@@ -1,0 +1,9 @@
+func convert(int value) as int
+    return value
+end
+
+func convert(string value) as string
+    return value
+end
+
+var dynamic = xcall(convert)

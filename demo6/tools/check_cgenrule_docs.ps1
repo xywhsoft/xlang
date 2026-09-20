@@ -13,6 +13,7 @@ if ( $Root -eq "" ) {
 $cgenruleDir = Join-Path $Root "cgenrule"
 $readmePath = Join-Path $cgenruleDir "README.md"
 $srcDir = Join-Path $Root "src"
+$runtimeIncludeDir = Join-Path $Root "release\include"
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)
@@ -167,11 +168,16 @@ Get-ChildItem -LiteralPath $srcDir -Recurse -Filter "*.c" -File | ForEach-Object
         $sourceFiles[$_.Name] = $_.FullName
     }
 }
+Get-ChildItem -LiteralPath $runtimeIncludeDir -Filter "xl_runtime.h" -File | ForEach-Object {
+    if ( ! $sourceFiles.ContainsKey($_.Name) ) {
+        $sourceFiles[$_.Name] = $_.FullName
+    }
+}
 
 $lineCountCache = @{}
 foreach ( $doc in $docs ) {
     $text = Read-Utf8Text $doc.FullName
-    foreach ( $match in [regex]::Matches($text, '(xl6_[A-Za-z0-9_]+\.c):([0-9]+)(?:-([0-9]+))?') ) {
+    foreach ( $match in [regex]::Matches($text, '(xl6_[A-Za-z0-9_]+\.c|xl_runtime\.h):([0-9]+)(?:-([0-9]+))?') ) {
         $name = $match.Groups[1].Value
         $start = [int]$match.Groups[2].Value
         $end = $start

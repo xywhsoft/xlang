@@ -1,0 +1,14 @@
+func replaceValueFinally() as var
+    var local = {"count": 40}
+    auto next = func() as var
+        local = {"count": 42}
+        return local
+    end
+    try
+        return next()
+    finally
+        local = {"count": 99}
+    end
+end
+
+var replacedFinally = replaceValueFinally()

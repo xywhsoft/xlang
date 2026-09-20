@@ -367,7 +367,7 @@ static void xl6CgenVirtualWrapperDeclForSlot(
     xl6OutputPuts(" != 0 ) {\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPuts("void* data = xvoGetRecordData(self->", ctx->out);
+    xl6OutputPuts("void* data = xl6ValueRecordData(self->", ctx->out);
     xl6CgenVirtualSelfRefFieldName(ctx->out);
     xl6OutputPuts(");\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -429,7 +429,7 @@ static void xl6CgenVirtualFieldDecl(XL6_CgenContext* ctx, const XL6_AstNode* cla
     xl6OutputPuts("* ", ctx->out);
     xl6CgenVirtualTableFieldName(ctx->out, classNode);
     xl6OutputPuts(";\n", ctx->out);
-    xl6OutputPuts("    xvalue ", ctx->out);
+    xl6OutputPuts("    xvalue* ", ctx->out);
     xl6CgenVirtualSelfRefFieldName(ctx->out);
     xl6OutputPuts(";\n", ctx->out);
 }

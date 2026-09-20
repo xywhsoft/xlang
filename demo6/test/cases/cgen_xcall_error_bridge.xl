@@ -1,0 +1,26 @@
+extern "xcall_error_bridge_invoke" func invokeNative(var callback)
+extern "xcall_error_bridge_observed" func nativeObserved() as bool
+
+
+
+func failBridge() as bool
+    throw RuntimeError "xcall bridge boom"
+    return false
+end
+
+
+
+func main(...) as int
+    func() as bool callback = failBridge
+    var dynamicCallback = xcall(callback)
+    bool caught = false
+    try
+        invokeNative(dynamicCallback)
+    catch RuntimeError e
+        caught = e.message == "xcall bridge boom"
+    end
+
+    assert caught, "xlang callback error was not preserved"
+    assert nativeObserved(), "XRT callable bridge did not receive the callback error"
+    return 0
+end

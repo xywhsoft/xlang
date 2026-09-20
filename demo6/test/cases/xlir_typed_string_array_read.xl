@@ -1,0 +1,9 @@
+func typed_string_array_join() as string
+    array<string> values = ["old", "tail"]
+    values[0] = "new"
+    return values[0] + values[1]
+end
+
+func main(...) as int
+    return typed_string_array_join() == "newtail" ? 0 : 1
+end

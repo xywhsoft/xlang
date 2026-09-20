@@ -105,7 +105,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-findstr /C:"failedStringValueA = xrtCopyStr(xl6_future_await_cstr_copy(failedString" build\test\cgen_async_exception_propagation.assert.c >nul
+findstr /C:"failedStringValueA = xl6_xrt_string_dup(xl6_future_await_cstr_copy(failedString" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed string first await copy.
     exit /b 1
@@ -117,7 +117,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-findstr /C:"failedStringValueB = xrtCopyStr(xl6_future_await_cstr_copy(failedString" build\test\cgen_async_exception_propagation.assert.c >nul
+findstr /C:"failedStringValueB = xl6_xrt_string_dup(xl6_future_await_cstr_copy(failedString" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed string repeated await copy.
     exit /b 1
@@ -225,7 +225,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-findstr /C:"failedItemsValueA = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(failedItems" build\test\cgen_async_exception_propagation.assert.c >nul
+findstr /C:"failedItemsValueA = xl6_xrt_typed_array_copy(xl6TypeInt64(), (*(xtarray*)xl6_future_await_value(failedItems" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed array first await retain.
     exit /b 1
@@ -237,13 +237,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-findstr /C:"failedItemsValueB = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(failedItems" build\test\cgen_async_exception_propagation.assert.c >nul
+findstr /C:"failedItemsValueB = xl6_xrt_typed_array_copy(xl6TypeInt64(), (*(xtarray*)xl6_future_await_value(failedItems" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed array repeated await retain.
     exit /b 1
 )
 
-findstr /C:"failedListValueA = xl6_xrt_typed_list_copy_mode(xrtTypeInt(), (*(xtlist*)xl6_future_await_value(failedList" build\test\cgen_async_exception_propagation.assert.c >nul
+findstr /C:"failedListValueA = xl6_xrt_typed_list_copy(xl6TypeInt64(), (*(xtlist*)xl6_future_await_value(failedList" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed list first await retain.
     exit /b 1
@@ -255,13 +255,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-findstr /C:"failedListValueB = xl6_xrt_typed_list_copy_mode(xrtTypeInt(), (*(xtlist*)xl6_future_await_value(failedList" build\test\cgen_async_exception_propagation.assert.c >nul
+findstr /C:"failedListValueB = xl6_xrt_typed_list_copy(xl6TypeInt64(), (*(xtlist*)xl6_future_await_value(failedList" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed list repeated await retain.
     exit /b 1
 )
 
-findstr /C:"failedSetValueA = xl6_xrt_typed_set_copy_mode(xrtTypeInt(), (*(xtset*)xl6_future_await_value(failedSet" build\test\cgen_async_exception_propagation.assert.c >nul
+findstr /C:"failedSetValueA = xl6_xrt_typed_set_copy(xl6TypeInt64(), (*(xtset*)xl6_future_await_value(failedSet" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed set first await retain.
     exit /b 1
@@ -273,13 +273,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-findstr /C:"failedSetValueB = xl6_xrt_typed_set_copy_mode(xrtTypeInt(), (*(xtset*)xl6_future_await_value(failedSet" build\test\cgen_async_exception_propagation.assert.c >nul
+findstr /C:"failedSetValueB = xl6_xrt_typed_set_copy(xl6TypeInt64(), (*(xtset*)xl6_future_await_value(failedSet" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed set repeated await retain.
     exit /b 1
 )
 
-findstr /C:"failedDictValueA = xl6_xrt_typed_dict_copy_mode(xrtTypeInt(), (*(xtdict*)xl6_future_await_value(failedDict" build\test\cgen_async_exception_propagation.assert.c >nul
+findstr /C:"failedDictValueA = xl6_xrt_typed_dict_copy(xl6TypeInt64(), (*(xtdict*)xl6_future_await_value(failedDict" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed dict first await retain.
     exit /b 1
@@ -291,13 +291,13 @@ if errorlevel 1 (
     exit /b 1
 )
 
-findstr /C:"failedDictValueB = xl6_xrt_typed_dict_copy_mode(xrtTypeInt(), (*(xtdict*)xl6_future_await_value(failedDict" build\test\cgen_async_exception_propagation.assert.c >nul
+findstr /C:"failedDictValueB = xl6_xrt_typed_dict_copy(xl6TypeInt64(), (*(xtdict*)xl6_future_await_value(failedDict" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing failed typed dict repeated await retain.
     exit /b 1
 )
 
-findstr /C:"tempStringValue = xrtCopyStr(xl6_future_await_cstr_release(xl_fn_failStringAsync()" build\test\cgen_async_exception_propagation.assert.c >nul
+findstr /C:"tempStringValue = xl6_xrt_string_dup(xl6_future_await_cstr_release(xl_fn_failStringAsync()" build\test\cgen_async_exception_propagation.assert.c >nul
 if errorlevel 1 (
     echo cgen_async_exception_propagation.c missing temporary failed string await release.
     exit /b 1

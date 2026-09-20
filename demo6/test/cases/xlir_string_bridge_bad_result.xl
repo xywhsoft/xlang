@@ -1,0 +1,3 @@
+// 编译器私有辅助符号不能被声明为拥有型 string 返回。
+extern "xl6_xrt_string_slice" func malformed(string text, int start, int count) as string
+println(malformed("abc", 0, 1))

@@ -10,6 +10,10 @@ class NativeCounter
         self.add(value)
         return self.add(value)
     end
+
+    func hasHandle() as bool
+        return self.handle != null
+    end
 end
 
 extern "expect_i64" func expect(int actual, int expected)
@@ -20,6 +24,7 @@ func exercise()
     expect(counter.value(), 10)
     expect(counter.add(5), 15)
     expect(counter.addTwice(2), 19)
+    expect(counter.hasHandle(), 1)
     expect(counterClosed(), 0)
 end
 

@@ -1,0 +1,10 @@
+extern "xlir_make_i64_future" func makeFuture() as future<int>
+
+async func subtractAfter(future<int> source, int offset) as int
+    return offset - await source
+end
+
+future<int> source = makeFuture()
+future<int> pending = subtractAfter(source, 50)
+int completed = await pending
+assert completed == 9

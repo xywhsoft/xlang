@@ -1,0 +1,6 @@
+export "xlir_test_factorial" func factorial(int64 value) as int64
+    if value <= 1
+        return 1
+    end
+    return value * factorial(value - 1)
+end

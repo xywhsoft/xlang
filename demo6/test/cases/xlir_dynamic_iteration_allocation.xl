@@ -1,0 +1,126 @@
+extern "iteration_projection_input" func projectionInput(int kind) as var
+extern "iteration_projection_visit" func projectionVisit(var key, var item)
+extern "iteration_projection_caught" func projectionCaught()
+extern "iteration_projection_finally" func projectionFinally()
+extern "iteration_projection_drop" func projectionDrop(int id)
+class ProjectionOwner
+    int id
+    create(int id)
+        self.id = id
+    end
+    destroy()
+        projectionDrop(self.id)
+    end
+end
+export "iteration_projection_new" func projectionNew(int id) as ProjectionOwner
+    return ProjectionOwner(id)
+end
+export "iteration_projection_pair" func projectionPair(int kind, int flow) as int
+    int visits = 0
+    try
+        for key, item in projectionInput(kind)
+            projectionVisit(key, item)
+            visits += 1
+            if flow == 1 then
+                break
+            end
+            if flow == 2 then
+                continue
+            end
+            if flow == 3 then
+                return visits
+            end
+        end
+    catch MemoryError
+        projectionCaught()
+        visits = -100
+    finally
+        projectionFinally()
+    end
+    return visits
+end
+export "iteration_projection_single" func projectionSingle(int kind) as int
+    int visits = 0
+    try
+        for item in projectionInput(kind)
+            projectionVisit(item, item)
+            visits += 1
+        end
+    catch MemoryError
+        projectionCaught()
+        visits = -100
+    finally
+        projectionFinally()
+    end
+    return visits
+end
+export "iteration_projection_cells" func projectionCells(int kind) as int
+    int visits = 0
+    try
+        for key, item in projectionInput(kind)
+            projectionVisit(key, item)
+            auto read = func() as bool
+                key = key
+                item = item
+                return key == null
+            end
+            assert not read()
+            visits += 1
+        end
+    catch MemoryError
+        projectionCaught()
+        visits = -100
+    finally
+        projectionFinally()
+    end
+    return visits
+end
+async func projectionAwait(int kind, future<int> input) as int
+    int visits = 0
+    try
+        for key, item in projectionInput(kind)
+            projectionVisit(key, item)
+            int value = await input
+            assert value == 7
+            visits += 1
+        end
+    catch MemoryError
+        projectionCaught()
+        visits = -100
+    finally
+        projectionFinally()
+    end
+    return visits
+end
+func projectionYield(int kind) as generator<int>
+    int visits = 0
+    try
+        for key, item in projectionInput(kind)
+            projectionVisit(key, item)
+            visits += 1
+            yield visits
+        end
+    catch MemoryError
+        projectionCaught()
+        yield -100
+    finally
+        projectionFinally()
+    end
+end
+extern "iteration_projection_future" func projectionFuture() as future<int>
+export "iteration_projection_consume" func projectionConsume(int kind, bool stop) as int
+    int total = 0
+    for value in projectionYield(kind)
+        total += value
+        if stop then
+            break
+        end
+    end
+    return total
+end
+export "iteration_projection_keep" func projectionKeep()
+    auto pending = projectionAwait(0, projectionFuture())
+    for value in projectionYield(0)
+        assert value > 0
+    end
+end

@@ -1,0 +1,52 @@
+async func loopCellDelay() as int
+    time.sleep(5)
+    return 1
+end
+
+async func loopCellAfterAwait() as int
+    func() as int first = func() as int => 0
+    func() as int last = func() as int => 0
+    int visits = 0
+    for item in array[6, 7]
+        auto read = func() as int
+            item += 1
+            return item
+        end
+        int step = await loopCellDelay()
+        assert(step == 1)
+        if visits == 0 then
+            first = read
+        else
+            last = read
+        end
+        visits += 1
+    end
+    assert(visits == 2)
+    return first() + last() + first()
+end
+
+func loopCellYields() as generator<int>
+    for item in array[6, 7]
+        auto read = func() as int
+            item += 1
+            return item
+        end
+        yield read()
+        yield read()
+    end
+end
+
+func loopCellYieldTotal(bool early) as int
+    int total = 0
+    for item in loopCellYields()
+        total += item
+        if early then
+            break
+        end
+    end
+    return total
+end
+
+assert (await loopCellAfterAwait()) == 23
+assert loopCellYieldTotal(false) == 32
+assert loopCellYieldTotal(true) == 7

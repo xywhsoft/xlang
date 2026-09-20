@@ -23,14 +23,14 @@ static int xl6CgenTypedContainerXValueFromExpr(XL6_CgenContext* ctx, const XL6_A
 
     if ( typeName == NULL || itemType == NULL ) {
         xl6CgenError(ctx, expr, "typed container boxing requires a concrete item type");
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         xl6AstFree(rawTypeNode);
         return 1;
     }
 
     if ( returnCall ) {
         xl6CgenError(ctx, expr, "typed container return boxing requires statement-level lowering");
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         xl6AstFree(rawTypeNode);
         return 1;
     }
@@ -40,7 +40,7 @@ static int xl6CgenTypedContainerXValueFromExpr(XL6_CgenContext* ctx, const XL6_A
          !xl6CTextEquals(typeName, "set") &&
          !xl6CTextEquals(typeName, "dict") ) {
         xl6CgenError(ctx, expr, "typed container boxing requires array/list/set/dict");
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         xl6AstFree(rawTypeNode);
         return 1;
     }
@@ -61,7 +61,8 @@ static int xl6CgenTypedContainerXValueFromExpr(XL6_CgenContext* ctx, const XL6_A
 */
 static int xl6CgenTypedContainerMaterializedXValueFromExpr(
     XL6_CgenContext* ctx,
-    const XL6_AstNode* expr
+    const XL6_AstNode* expr,
+    const char* format
 )
 {
     XL6_AstNode* rawTypeNode;
@@ -86,13 +87,13 @@ static int xl6CgenTypedContainerMaterializedXValueFromExpr(
 
     if ( typeName == NULL || itemType == NULL ) {
         xl6CgenError(ctx, expr, "typed container materialization requires a concrete item type");
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         xl6AstFree(rawTypeNode);
         return 1;
     }
     if ( returnCall ) {
         xl6CgenError(ctx, expr, "typed container return materialization requires statement-level lowering");
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         xl6AstFree(rawTypeNode);
         return 1;
     }
@@ -101,31 +102,31 @@ static int xl6CgenTypedContainerMaterializedXValueFromExpr(
          !xl6CTextEquals(typeName, "set") &&
          !xl6CTextEquals(typeName, "dict") ) {
         xl6CgenError(ctx, expr, "typed container materialization requires array/list/set/dict");
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         xl6AstFree(rawTypeNode);
         return 1;
     }
 
-    xl6CgenTypedContainerExprToXValueExpr(ctx, typeNode, expr);
+    xl6CgenTypedContainerExprToXValueExpr(ctx, typeNode, expr, format);
     xl6AstFree(rawTypeNode);
     return 1;
 }
 
 static int xl6CgenPersistenceValueArgNeedsMaterialization(
     const XL6_AstNode* func,
-    const XL6_AstNode* param
+    const XL6_AstNode* param,
+    const char** format
 )
 {
     const char* name;
-    const char* format;
 
     if ( func == NULL || param == NULL || !xl6CTextEquals(param->text, "value") ) {
         return 0;
     }
     name = xl6CgenCallableName(func);
-    format = NULL;
-    return xl6CgenPersistenceStringifyName(name, &format) ||
-           xl6CgenPersistenceWriteName(name, &format);
+    if ( format != NULL ) { *format = NULL; }
+    return xl6CgenPersistenceStringifyName(name, format) ||
+           xl6CgenPersistenceWriteName(name, format);
 }
 
 static void xl6CgenKnownFixedParamArgExpr(
@@ -135,8 +136,17 @@ static void xl6CgenKnownFixedParamArgExpr(
     const XL6_AstNode* expr
 )
 {
-    if ( xl6CgenPersistenceValueArgNeedsMaterialization(func, param) &&
-         xl6CgenTypedContainerMaterializedXValueFromExpr(ctx, expr) ) {
+    const char* format = NULL;
+
+    if ( func != NULL && func->kind == XL6_AST_EXTERN_FUNC &&
+         !xl6CgenIsInternalStdRuntimeExtern(func) &&
+         param != NULL && param->childCount > 0 &&
+         xl6CgenIsFunctionType(param->children[0]) &&
+         xl6CgenEmitCAbiCallbackArgument(ctx, param->children[0], expr) ) {
+        return;
+    }
+    if ( xl6CgenPersistenceValueArgNeedsMaterialization(func, param, &format) &&
+         xl6CgenTypedContainerMaterializedXValueFromExpr(ctx, expr, format) ) {
         return;
     }
     xl6CgenFixedParamArgExpr(ctx, param, expr);

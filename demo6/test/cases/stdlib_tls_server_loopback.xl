@@ -1,0 +1,94 @@
+func require(string name, bool condition)
+    assert condition, name
+    println(name + "=ok")
+end
+
+
+
+async func run() as int
+    TlsConfig serverConfig = TlsConfig()
+    require(
+        "tls_server_identity",
+        serverConfig.certificate(
+            "release/examples/fixtures/tls_cert.pem",
+            "release/examples/fixtures/tls_key.pem"
+        )
+    )
+    require("tls_server_alpn", serverConfig.alpn("http/1.1"))
+
+    TlsServer server = tls.listen(0, serverConfig)
+    require("tls_server_open", server.state == 0 and server.port > 0)
+    require("tls_server_address", server.localAddr() != "")
+
+    future<TlsStream> accepting = server.acceptAsync()
+    require("tls_server_accept_future", accepting != null)
+
+    TlsConfig clientConfig = TlsConfig()
+    clientConfig.verifyPeer(false)
+    require("tls_client_host", clientConfig.host("localhost"))
+    require("tls_client_alpn", clientConfig.alpn("http/1.1"))
+
+    TlsStream client = tls.connect("127.0.0.1", server.port, clientConfig, 8000)
+    TlsStream peer = await accepting
+    require(
+        "tls_loopback_connected",
+        client.nativeHandle() != null and peer.nativeHandle() != null
+    )
+    require(
+        "tls_loopback_addresses",
+        client.localAddr() != "" and client.remoteAddr() != "" and
+            peer.localAddr() != "" and peer.remoteAddr() != ""
+    )
+
+    println(
+        f"tls_states client={client.state} peer={peer.state} " +
+        f"clientPending={client.pending} peerPending={peer.pending} " +
+        f"clientAsync={client.asyncCount} peerAsync={peer.asyncCount}"
+    )
+    require("tls_client_writable", client.waitWritable(8000))
+
+    future<NetBytes> requestFuture = peer.recvBytesAsync()
+    require("tls_client_send", client.send("client-ping", 8000))
+    NetBytes request = await requestFuture
+    require(
+        "tls_server_receive",
+        request.len() == 11 and request.text() == "client-ping"
+    )
+
+    require("tls_peek_send", client.send("peek-consume", 8000))
+    require("tls_peek_readable", peer.waitReadable(8000))
+    Buffer peekPrefix = peer.peek(4)
+    require("tls_peek_prefix", peekPrefix.text() == "peek")
+    Buffer peekAll = peer.peek()
+    require("tls_peek_no_consume", peekAll.text() == "peek-consume")
+    require("tls_consume_overflow", not peer.consume(peekAll.len() + 1))
+    require("tls_consume_exact", peer.consume(4))
+    NetBytes peekRemainder = peer.recvOwned(8000)
+    require("tls_consume_remainder", peekRemainder.text() == "-consume")
+
+    future<NetBytes> responseFuture = client.recvBytesAsync()
+    require("tls_server_send", peer.send("server-pong", 8000))
+    NetBytes response = await responseFuture
+    require(
+        "tls_client_receive",
+        response.len() == 11 and response.text() == "server-pong"
+    )
+
+    TlsServerStats stats = server.stats()
+    require(
+        "tls_server_stats",
+        stats.handshakes >= 1 and stats.accepted >= 1 and
+            stats.handshakeErrors == 0 and stats.activeHandshakes == 0
+    )
+
+    require("tls_client_close", client.close())
+    require("tls_peer_close", peer.close())
+    require("tls_server_close", server.close())
+    return 0
+end
+
+
+
+int exitCode = await run()
+assert exitCode == 0
+println("tls-server-loopback-ok")

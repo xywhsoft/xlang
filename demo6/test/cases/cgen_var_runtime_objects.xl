@@ -36,29 +36,29 @@ end
 func(int, int) as int fn = add
 type fnType = type(fn)
 type bareFuncType = func
-var boxedFn = fn
+var boxedFn = xcall(fn)
 var value = boxedFn(20, 22)
 
 func(int) as (int, int) pairFn = pair
 type pairFnType = type(pairFn)
-var boxedPairFn = pairFn
+var boxedPairFn = xcall(pairFn)
 var firstPairValue = boxedPairFn(31)
 
 func(int) as (int, int, int, int, int) fiveFn = five
-var boxedFiveFn = fiveFn
+var boxedFiveFn = xcall(fiveFn)
 var firstFiveValue = boxedFiveFn(50)
 
 func(int) as (int, int) defaultPairFn = pairDefault
-var boxedDefaultPairFn = defaultPairFn
+var boxedDefaultPairFn = xcall(defaultPairFn)
 var firstDefaultPairValue = boxedDefaultPairFn(40)
 
 func(string, ***) as int optionsFn = optionCount
-var boxedOptions = optionsFn
+var boxedOptions = xcall(optionsFn)
 var optionValue = boxedOptions("demo.txt", mode = "fast", retry = 3)
 var optionNamedValue = boxedOptions(path = "demo.txt", mode = "slow")
 
 func(...) as int variadicDefaultFn = totalDefault
-var boxedVariadicDefault = variadicDefaultFn
+var boxedVariadicDefault = xcall(variadicDefaultFn)
 var variadicDefaultValue = boxedVariadicDefault(1, 2, 3)
 
 expect(type(boxedFn) == fnType, 1)

@@ -1,0 +1,12 @@
+int observed = 0
+try
+    try
+        throw ValueError "outer route"
+    catch TypeError ignored
+        observed = 10
+    end
+catch ValueError e
+    assert e.kind == "ValueError"
+    observed = 1
+end
+assert observed == 1

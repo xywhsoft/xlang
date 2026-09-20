@@ -12,6 +12,10 @@ typedef enum XL6_SemCallKind {
     XL6_SEM_CALL_GENERIC_DIRECT,
     XL6_SEM_CALL_FUNCTION_VALUE,
     XL6_SEM_CALL_DYNAMIC_FUNCTION,
+    /* Runtime member lookup/invocation on an erased `var` receiver.  This is
+     * deliberately distinct from invoking a dynamic value stored in a name or
+     * field: the member name and receiver are part of the call contract. */
+    XL6_SEM_CALL_DYNAMIC_METHOD,
     XL6_SEM_CALL_CONSTRUCTOR,
     XL6_SEM_CALL_METHOD,
     XL6_SEM_CALL_STATIC_METHOD,

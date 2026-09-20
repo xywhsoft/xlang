@@ -1,0 +1,18 @@
+func replaceValueMultiCatchFinally() as var
+    var local = {"count": 40}
+    auto next = func() as var
+        local = {"count": 42}
+        return local
+    end
+    try
+        throw RangeError "route through matching multi catch"
+    catch TypeError ignored
+        return {"count": 1}
+    catch ValueError ignored
+        return next()
+    finally
+        local = {"count": 99}
+    end
+end
+
+var replacedMultiCatchFinally = replaceValueMultiCatchFinally()

@@ -1,0 +1,92 @@
+extern "generator_close_mark" func closeMark(int id)
+extern "generator_close_raise" func closeRaise(int mode)
+
+func closeValues(bool cleanupYield) as generator<int>
+    try
+        closeMark(10)
+        yield 1
+        closeMark(11)
+    finally
+        closeMark(20)
+        if cleanupYield then
+            yield 2
+            closeMark(21)
+        end
+        closeMark(22)
+    end
+    closeMark(30)
+    yield 3
+end
+
+func closeNested() as generator<int>
+    try
+        yield 1
+    finally
+        closeMark(20)
+        try
+            yield 2
+        finally
+            closeMark(40)
+            yield 4
+            closeMark(41)
+        end
+        closeMark(21)
+    end
+    closeMark(30)
+    yield 3
+end
+
+func closePending(int mode) as generator<int>
+    try
+        closeRaise(mode)
+    finally
+        closeMark(20)
+        yield 2
+        closeMark(21)
+    end
+    closeMark(30)
+    yield 3
+end
+
+func closeReturning() as generator<string>
+    try
+        return
+    finally
+        closeMark(20)
+        yield "cleanup payload"
+        closeMark(21)
+    end
+end
+
+export "generator_close_consume" func closeConsume(int mode, int limit) as int
+    int count = 0
+    for value in closeValues(mode != 0)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end
+export "generator_close_nested_consume" func closeNestedConsume(int limit) as int
+    int count = 0
+    for value in closeNested()
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end
+export "generator_close_pending_consume" func closePendingConsume(int mode) as int
+    for value in closePending(mode)
+        break
+    end
+    return 7
+end
+export "generator_close_return_consume" func closeReturnConsume() as int
+    for value in closeReturning()
+        break
+    end
+    return 9
+end

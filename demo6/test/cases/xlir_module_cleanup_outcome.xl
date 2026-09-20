@@ -1,0 +1,19 @@
+extern "module_cleanup_open" func openHandle(int id) as point
+extern "module_cleanup_fail" func failInitialization() as bool
+extern "module_cleanup_entry" func entryStatus() as int
+
+class CleanupHandle
+    native point handle
+    extern "module_cleanup_close" destroy()
+end
+
+CleanupHandle first = CleanupHandle(openHandle(1))
+if failInitialization() then
+    throw "primary initialization failure"
+end
+array<CleanupHandle> nested = array[CleanupHandle(openHandle(2)), CleanupHandle(openHandle(3))]
+CleanupHandle last = CleanupHandle(openHandle(4))
+
+func main(...) as int
+    return entryStatus()
+end

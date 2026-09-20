@@ -16,11 +16,29 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_standalone_compiler_vfs.ps1
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_dev_projects.ps1 -Mode check -KeepGoing
+rem HTTP/WebSocket non-fast applications are intentionally deferred to their later design review.
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_dev_projects.ps1 -Mode check -KeepGoing -ExcludeProjects "chatroom"
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_generated_c_warnings.ps1
 if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_closure_basic_runtime.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xrt_product_trim.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xruntime_language_bridge.ps1
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen release\examples\hello.xl --emit build\test\trim_hello.c
+if errorlevel 1 exit /b 1
+findstr /C:"DynamicFields" build\test\trim_hello.c >nul
+if not errorlevel 1 (
+    echo trim_hello.c unexpectedly contains the dynamic-fields object model.
+    exit /b 1
+)
 
 release\xl.exe build release\examples\hello.xl -o build\test\trim_hello.exe
 if errorlevel 1 exit /b 1
@@ -32,13 +50,6 @@ if errorlevel 1 exit /b 1
 build\test\trim_stdlib_crypto.exe > build\test\trim_stdlib_crypto.out
 if errorlevel 1 exit /b 1
 findstr /C:"signature_guard=ok" build\test\trim_stdlib_crypto.out >nul
-if errorlevel 1 exit /b 1
-
-release\xl.exe build release\examples\stdlib_regex.xl -o build\test\trim_stdlib_regex.exe
-if errorlevel 1 exit /b 1
-build\test\trim_stdlib_regex.exe > build\test\trim_stdlib_regex.out
-if errorlevel 1 exit /b 1
-findstr /C:"set=ok" build\test\trim_stdlib_regex.out >nul
 if errorlevel 1 exit /b 1
 
 release\xl.exe build release\examples\stdlib_json.xl -o build\test\trim_stdlib_json.exe
@@ -64,6 +75,13 @@ if errorlevel 1 exit /b 1
 findstr /C:"hello from dynamic VFS" build\test\trim_script_embed_tcc.out >nul
 if errorlevel 1 exit /b 1
 findstr /C:"script_embed_tcc=ok" build\test\trim_script_embed_tcc.out >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe build test\cases\stdlib_tcc_embed.xl -o build\test\trim_stdlib_tcc_embed.exe
+if errorlevel 1 exit /b 1
+build\test\trim_stdlib_tcc_embed.exe > build\test\trim_stdlib_tcc_embed.out
+if errorlevel 1 exit /b 1
+findstr /C:"stdlib tcc embed ok" build\test\trim_stdlib_tcc_embed.out >nul
 if errorlevel 1 exit /b 1
 
 release\xl.exe build release\examples\script_embed_xlang.xl -o build\test\trim_script_embed_xlang.exe

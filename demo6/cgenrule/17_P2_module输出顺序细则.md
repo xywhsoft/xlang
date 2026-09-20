@@ -78,7 +78,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| xlang 写法 | 使用 `crypto.*`、`url.*`、`query.*`、`regex.*`、`process.*`、`dir.*`、`string.*`、`path.*`、函数变量、HTTP server、整数幂、`in range` |
+| xlang 写法 | 使用 `crypto.*`、`process.*`、`dir.*`、`string.*`、`path.*`、函数变量、整数幂、`in range` |
 | 生成规则描述 | 标准库 wrapper 和专用 helper 在基础 runtime 后按固定顺序注入。HTTP server 依赖 function-var 和 xvalue，因此前面需求聚合阶段已经级联置位。整数幂和 range contains 属于表达式级 helper，也在此统一输出。 |
 | 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_module.c:108` |
 | 对应生成的 C 代码 | 各 std wrapper、function-var runtime、HTTP server runtime、`int pow` helper、range contains helper。 |

@@ -6,12 +6,14 @@ XL="$ROOT/release/xl"
 TEST_DIR="$ROOT/build/linux/test"
 RELEASE_TMP="$ROOT/release/tmp"
 BUILD_TMP="$ROOT/build/tmp"
+export XLANG_PACKAGE_PATH="$ROOT/release/extlibs:$ROOT/test/fixtures"
 
 if [[ ! -x "$XL" ]]; then
     "$ROOT/build_linux.sh"
 fi
 
 mkdir -p "$TEST_DIR"
+cd "$ROOT"
 
 snapshot_runtime_temp() {
     {
@@ -52,6 +54,104 @@ cp "$ROOT/release/examples/hello.xl" "$TEST_DIR/中文路径/你好.xl"
 printf 'Running Linux import and package tests...\n'
 "$XL" run "$ROOT/test/cases/import_source_use.xl"
 "$XL" run "$ROOT/release/examples/extlibs/pkg_math.xl"
+"$XL" run "$ROOT/test/cases/import_package_include_dir.xl"
+"$XL" build "$ROOT/test/cases/import_package_include_dir.xl" \
+    -o "$TEST_DIR/import_package_include_dir"
+"$TEST_DIR/import_package_include_dir"
+"$XL" run "$ROOT/release/extlibs/xregex/test/xregex_test.xl"
+"$XL" build "$ROOT/release/extlibs/xregex/test/xregex_test.xl" \
+    -o "$TEST_DIR/xregex_test"
+"$TEST_DIR/xregex_test"
+"$XL" run "$ROOT/release/extlibs/xssh/test/xssh_test.xl"
+"$XL" build "$ROOT/release/extlibs/xssh/test/xssh_test.xl" \
+    -o "$TEST_DIR/xssh_test"
+"$TEST_DIR/xssh_test"
+"$XL" run "$ROOT/release/extlibs/xssh/test/test_xssh.c" \
+    "$ROOT/release/extlibs/xssh/xssh_native.c" \
+    --inc-path "$ROOT/release/extlibs/xssh/include"
+
+printf 'Running Linux network engine trim tests...\n'
+"$XL" cgen "$ROOT/test/cases/stdlib_net_engine_trim.xl" \
+    --emit "$TEST_DIR/stdlib_net_engine_trim.c"
+grep -q '#define XRT_MODULE_NET_ENGINE 1' \
+    "$TEST_DIR/stdlib_net_engine_trim.c"
+if grep -Eq 'xl6_net_resolver|XRT_MODULE_NET_RESOLVER|XRT_MODULE_NET_TCP_|XRT_MODULE_NET_UDP' \
+    "$TEST_DIR/stdlib_net_engine_trim.c"; then
+    printf 'network engine stats unexpectedly keep resolver or transport modules.\n' >&2
+    exit 1
+fi
+"$XL" run "$ROOT/test/cases/stdlib_net_engine_trim.xl"
+"$XL" build "$ROOT/test/cases/stdlib_net_engine_trim.xl" \
+    -o "$TEST_DIR/stdlib_net_engine_trim"
+"$TEST_DIR/stdlib_net_engine_trim"
+
+"$XL" run "$ROOT/release/extlibs/xmail/test/xmail_test.xl"
+"$XL" build "$ROOT/release/extlibs/xmail/test/xmail_test.xl" \
+    -o "$TEST_DIR/xmail_test"
+"$TEST_DIR/xmail_test"
+for protocol in smtp pop3 imap
+do
+    "$XL" run "$ROOT/release/extlibs/xmail/test/xmail_${protocol}_loopback_test.xl"
+    "$XL" build "$ROOT/release/extlibs/xmail/test/xmail_${protocol}_loopback_test.xl" \
+        -o "$TEST_DIR/xmail_${protocol}_loopback_test"
+    "$TEST_DIR/xmail_${protocol}_loopback_test"
+done
+
+printf 'Running Linux async task runtime tests...\n'
+"$XL" run "$ROOT/release/examples/async_task_wait.xl"
+"$XL" run "$ROOT/release/examples/task_api.xl"
+
+printf 'Running Linux TCP file fast-path tests...\n'
+"$XL" cgen "$ROOT/test/cases/stdlib_net_send_file.xl" \
+    --emit "$TEST_DIR/stdlib_net_send_file.c"
+grep -q '#define XRT_MODULE_NET_TCP_FILE 1' \
+    "$TEST_DIR/stdlib_net_send_file.c"
+grep -q 'xrtNetStreamSendFile' "$TEST_DIR/stdlib_net_send_file.c"
+"$XL" cgen "$ROOT/test/cases/stdlib_net_extended_io.xl" \
+    --emit "$TEST_DIR/stdlib_net_extended_io_trim.c"
+if grep -q 'XRT_MODULE_NET_TCP_FILE' "$TEST_DIR/stdlib_net_extended_io_trim.c"; then
+    printf 'ordinary TCP source unexpectedly keeps TCP file module.\n' >&2
+    exit 1
+fi
+"$XL" run "$ROOT/test/cases/stdlib_net_send_file.xl"
+"$XL" build "$ROOT/test/cases/stdlib_net_send_file.xl" \
+    -o "$TEST_DIR/stdlib_net_send_file"
+"$TEST_DIR/stdlib_net_send_file"
+
+printf 'Running Linux network interface snapshot tests...\n'
+"$XL" cgen "$ROOT/test/cases/stdlib_net_interfaces.xl" \
+    --emit "$TEST_DIR/stdlib_net_interfaces.c"
+grep -q '#define XRT_MODULE_NET_INTERFACE 1' \
+    "$TEST_DIR/stdlib_net_interfaces.c"
+if grep -q 'XRT_MODULE_NET_INTERFACE_TEXT' "$TEST_DIR/stdlib_net_interfaces.c"; then
+    printf 'raw interface enumeration unexpectedly keeps interface text helpers.\n' >&2
+    exit 1
+fi
+if grep -q 'xl6_net_engine' "$TEST_DIR/stdlib_net_interfaces.c"; then
+    printf 'raw interface enumeration unexpectedly creates a network engine.\n' >&2
+    exit 1
+fi
+if grep -q 'xl6_net_resolver' "$TEST_DIR/stdlib_net_interfaces.c"; then
+    printf 'raw interface enumeration unexpectedly creates a DNS resolver.\n' >&2
+    exit 1
+fi
+"$XL" run "$ROOT/test/cases/stdlib_net_interfaces.xl"
+"$XL" build "$ROOT/test/cases/stdlib_net_interfaces.xl" \
+    -o "$TEST_DIR/stdlib_net_interfaces"
+"$TEST_DIR/stdlib_net_interfaces"
+
+printf 'Running Linux HTTP and WebSocket fast-path tests...\n'
+for case_name in \
+    stdlib_http1_core \
+    stdlib_websocket_core \
+    stdlib_websocket_upgrade_loopback \
+    stdlib_websocket_upgrade_tls_loopback
+do
+    "$XL" run "$ROOT/test/cases/$case_name.xl"
+    "$XL" build "$ROOT/test/cases/$case_name.xl" \
+        -o "$TEST_DIR/$case_name"
+    "$TEST_DIR/$case_name"
+done
 
 printf 'Running Linux shared-library host API tests...\n'
 "${CC:-gcc}" -std=c11 -Wall -I"$ROOT/release" \

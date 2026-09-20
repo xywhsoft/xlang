@@ -21,7 +21,7 @@ if errorlevel 1 (
     echo control_flow_do_while.c missing tail break.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\control_flow_do_while.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\control_flow_do_while.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\control_flow_do_while.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\control_flow_do_while.exe
 if errorlevel 1 exit /b 1
 build\test\control_flow_do_while.exe
 if errorlevel 1 exit /b 1
@@ -38,7 +38,7 @@ if errorlevel 1 (
     echo cgen_loop_levels.c missing multi-level continue jump.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_loop_levels.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_loop_levels.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_loop_levels.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_loop_levels.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_loop_levels.exe
 if errorlevel 1 exit /b 1
@@ -48,12 +48,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_loop_multilevel_cleanup.xl --emit build\test\cgen_loop_multilevel_cleanup.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_loop_multilevel_cleanup.c'; $breakGoto=($lines | Select-String -SimpleMatch 'goto __xl6_break_' | Select-Object -First 1).LineNumber; $breakInner=($lines | Select-String -SimpleMatch 'xvoUnref(innerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $breakOuter=($lines | Select-String -SimpleMatch 'xvoUnref(outerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $continueGoto=($lines | Select-String -SimpleMatch 'goto __xl6_continue_' | Select-Object -First 1).LineNumber; $continueInner=($lines | Select-String -SimpleMatch 'xvoUnref(innerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; $continueOuter=($lines | Select-String -SimpleMatch 'xvoUnref(outerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; if(-not $breakInner -or -not $breakOuter -or -not $breakGoto -or -not ($breakInner -lt $breakOuter -and $breakOuter -lt $breakGoto)){exit 1}; if(-not $continueInner -or -not $continueOuter -or -not $continueGoto -or -not ($continueInner -lt $continueOuter -and $continueOuter -lt $continueGoto)){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_loop_multilevel_cleanup.c'; $breakGoto=($lines | Select-String -SimpleMatch 'goto __xl6_break_' | Select-Object -First 1).LineNumber; $breakInner=($lines | Select-String -SimpleMatch 'xrtValueRelease(innerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $breakOuter=($lines | Select-String -SimpleMatch 'xrtValueRelease(outerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $continueGoto=($lines | Select-String -SimpleMatch 'goto __xl6_continue_' | Select-Object -First 1).LineNumber; $continueInner=($lines | Select-String -SimpleMatch 'xrtValueRelease(innerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; $continueOuter=($lines | Select-String -SimpleMatch 'xrtValueRelease(outerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; if(-not $breakInner -or -not $breakOuter -or -not $breakGoto -or -not ($breakInner -lt $breakOuter -and $breakOuter -lt $breakGoto)){exit 1}; if(-not $continueInner -or -not $continueOuter -or -not $continueGoto -or -not ($continueInner -lt $continueOuter -and $continueOuter -lt $continueGoto)){exit 1}"
 if errorlevel 1 (
     echo cgen_loop_multilevel_cleanup.c should destroy inner and outer locals before multi-level jump.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_loop_multilevel_cleanup.c'; $breakGotos=@($lines | Select-String -SimpleMatch 'goto __xl6_break_'); $continueGotos=@($lines | Select-String -SimpleMatch 'goto __xl6_continue_'); if($breakGotos.Count -lt 2 -or $continueGotos.Count -lt 2){exit 1}; $breakGoto=$breakGotos[1].LineNumber; $breakInner=($lines | Select-String -SimpleMatch 'xvoUnref(innerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $breakOuter=($lines | Select-String -SimpleMatch 'xvoUnref(outerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $continueGoto=$continueGotos[1].LineNumber; $continueInner=($lines | Select-String -SimpleMatch 'xvoUnref(innerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; $continueOuter=($lines | Select-String -SimpleMatch 'xvoUnref(outerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; if(-not $breakInner -or -not $breakOuter -or -not ($breakInner -lt $breakOuter -and $breakOuter -lt $breakGoto)){exit 1}; if(-not $continueInner -or -not $continueOuter -or -not ($continueInner -lt $continueOuter -and $continueOuter -lt $continueGoto)){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$lines=Get-Content 'build\test\cgen_loop_multilevel_cleanup.c'; $breakGotos=@($lines | Select-String -SimpleMatch 'goto __xl6_break_'); $continueGotos=@($lines | Select-String -SimpleMatch 'goto __xl6_continue_'); if($breakGotos.Count -lt 2 -or $continueGotos.Count -lt 2){exit 1}; $breakGoto=$breakGotos[1].LineNumber; $breakInner=($lines | Select-String -SimpleMatch 'xrtValueRelease(innerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $breakOuter=($lines | Select-String -SimpleMatch 'xrtValueRelease(outerTracker);' | Where-Object { $_.LineNumber -lt $breakGoto } | Select-Object -Last 1).LineNumber; $continueGoto=$continueGotos[1].LineNumber; $continueInner=($lines | Select-String -SimpleMatch 'xrtValueRelease(innerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; $continueOuter=($lines | Select-String -SimpleMatch 'xrtValueRelease(outerTracker);' | Where-Object { $_.LineNumber -gt $breakGoto -and $_.LineNumber -lt $continueGoto } | Select-Object -Last 1).LineNumber; if(-not $breakInner -or -not $breakOuter -or -not ($breakInner -lt $breakOuter -and $breakOuter -lt $breakGoto)){exit 1}; if(-not $continueInner -or -not $continueOuter -or -not ($continueInner -lt $continueOuter -and $continueOuter -lt $continueGoto)){exit 1}"
 if errorlevel 1 (
     echo cgen_loop_multilevel_cleanup.c should destroy while-loop inner and outer locals before multi-level jump.
     exit /b 1
@@ -93,7 +93,7 @@ if errorlevel 1 (
     echo cgen_loop_multilevel_cleanup.c missing while continue cleanup destroy value assertion.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_loop_multilevel_cleanup.c test\cases\cgen_class_destroy_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_loop_multilevel_cleanup.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_loop_multilevel_cleanup.c test\cases\cgen_class_destroy_host.c %XL6_CGEN_LINKS% -o build\test\cgen_loop_multilevel_cleanup.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_loop_multilevel_cleanup.exe
 if errorlevel 1 exit /b 1
@@ -117,7 +117,7 @@ if errorlevel 1 (
     echo cgen_named_args.c missing named default lowering.
     exit /b 1
 )
-findstr /C:"xvoCreateObject(xl6_type_desc_XL_Class_Box())" build\test\cgen_named_args.c >nul
+findstr /C:"xl6ValueObject(xl6_type_desc_XL_Class_Box())" build\test\cgen_named_args.c >nul
 if errorlevel 1 (
     echo cgen_named_args.c missing managed class object allocation.
     exit /b 1
@@ -127,7 +127,7 @@ if errorlevel 1 (
     echo cgen_named_args.c missing named class payload constructor lowering.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_named_args.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_named_args.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_named_args.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_named_args.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_named_args.exe
 if errorlevel 1 exit /b 1
@@ -144,7 +144,7 @@ if errorlevel 1 (
     echo cgen_multi_return.c missing multi-assign lowering.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_multi_return.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_multi_return.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_multi_return.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_multi_return.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_multi_return.exe
 if errorlevel 1 exit /b 1
@@ -156,7 +156,7 @@ if errorlevel 1 (
     echo cgen_multi_return_struct_dedupe.c should reuse one signature return struct.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_multi_return_struct_dedupe.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_multi_return_struct_dedupe.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_multi_return_struct_dedupe.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_multi_return_struct_dedupe.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_multi_return_struct_dedupe.exe
 if errorlevel 1 exit /b 1
@@ -168,14 +168,14 @@ if errorlevel 1 (
     echo cgen_multi_assign_index.c missing index target lowering.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_multi_assign_index.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_multi_assign_index.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_multi_assign_index.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_multi_assign_index.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_multi_assign_index.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_varargs.xl --emit build\test\cgen_varargs.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue arg" build\test\cgen_varargs.c >nul
+findstr /C:"xvalue* arg" build\test\cgen_varargs.c >nul
 if errorlevel 1 (
     echo cgen_varargs.c missing xvalue arg.
     exit /b 1
@@ -190,24 +190,24 @@ if errorlevel 1 (
     echo cgen_varargs.c missing dict varargs lowering.
     exit /b 1
 )
-findstr /C:"xvoArrayItemCount(arg)" build\test\cgen_varargs.c >nul
+findstr /C:"xrtValueCount(arg)" build\test\cgen_varargs.c >nul
 if errorlevel 1 (
     echo cgen_varargs.c missing array length lowering.
     exit /b 1
 )
-findstr /C:"xvoTableItemCount(arg)" build\test\cgen_varargs.c >nul
+findstr /C:"xrtValueCount(arg)" build\test\cgen_varargs.c >nul
 if errorlevel 1 (
     echo cgen_varargs.c missing dict length lowering.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_varargs.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_varargs.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_varargs.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_varargs.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_varargs.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_extern_xvalue_vararg.xl --emit build\test\cgen_extern_xvalue_vararg.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue arg" build\test\cgen_extern_xvalue_vararg.c >nul
+findstr /C:"xvalue* arg" build\test\cgen_extern_xvalue_vararg.c >nul
 if errorlevel 1 (
     echo cgen_extern_xvalue_vararg.c missing xvalue vararg bridge parameter.
     exit /b 1
@@ -222,7 +222,7 @@ if errorlevel 1 (
     echo cgen_extern_xvalue_vararg.c missing extern dict vararg lowering.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_extern_xvalue_vararg.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_extern_xvalue_vararg.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_extern_xvalue_vararg.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_extern_xvalue_vararg.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_extern_xvalue_vararg.exe
 if errorlevel 1 exit /b 1
@@ -247,11 +247,27 @@ if errorlevel 1 (
     echo cgen_extern_c_vararg.c missing ABI cast for native C vararg argument.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_extern_c_vararg.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_extern_c_vararg.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_extern_c_vararg.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_extern_c_vararg.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_extern_c_vararg.exe > build\test\cgen_extern_c_vararg.out.txt
 if errorlevel 1 exit /b 1
 findstr /C:"c_vararg:42:ok" build\test\cgen_extern_c_vararg.out.txt >nul
+if errorlevel 1 exit /b 1
+
+release\xl.exe ir test\cases\cgen_extern_c_vararg.xl --lowered --emit build\test\xlir_extern_c_vararg.xlir
+if errorlevel 1 exit /b 1
+findstr /C:"scalar-convert" build\test\xlir_extern_c_vararg.xlir >nul
+if errorlevel 1 (
+    echo xlir_extern_c_vararg.xlir missing explicit foreign scalar normalization.
+    exit /b 1
+)
+release\xl.exe cgen test\cases\cgen_extern_c_vararg.xl --backend xlir --emit build\test\xlir_extern_c_vararg_generated.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_extern_c_vararg_host.c %XL6_CGEN_LINKS% -o build\test\xlir_extern_c_vararg_host.exe
+if errorlevel 1 exit /b 1
+build\test\xlir_extern_c_vararg_host.exe > build\test\xlir_extern_c_vararg.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"c_vararg:42:ok" build\test\xlir_extern_c_vararg.out.txt >nul
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_index_access.xl --emit build\test\cgen_index_access.c
@@ -286,17 +302,17 @@ if errorlevel 1 (
     echo cgen_index_access.c missing dynamic var key index helper.
     exit /b 1
 )
-findstr /C:"xrtTypedListGet(__xl6_user_global_sparse, (long long)(2LL))" build\test\cgen_index_access.c >nul
+findstr /C:"xl6TypedListGet(__xl6_user_global_sparse, (long long)(2LL))" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing typed list index lowering.
     exit /b 1
 )
-findstr /C:"xrtTypedDictGet(__xl6_user_global_table, \"count\", 0)" build\test\cgen_index_access.c >nul
+findstr /C:"xl6TypedDictGet(__xl6_user_global_table, \"count\", 0)" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing typed dict index lowering.
     exit /b 1
 )
-findstr /C:"xvoTableGetValue(arg, \"retry\", 0)" build\test\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_value_object_get(arg, \"retry\", 0)" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing dict vararg index lowering.
     exit /b 1
@@ -306,12 +322,12 @@ if errorlevel 1 (
     echo cgen_index_access.c missing typed array index assignment lowering.
     exit /b 1
 )
-findstr /C:"xrtTypedListSetValue(__xl6_user_global_sparse, (long long)(2LL), __xl6_typed_index_assign_" build\test\cgen_index_access.c >nul
+findstr /C:"xl6TypedListSetValue(__xl6_user_global_sparse, (long long)(2LL), __xl6_typed_index_assign_" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing typed list index assignment lowering.
     exit /b 1
 )
-findstr /C:"xrtTypedDictSetValue(__xl6_user_global_table, \"count\", 0, __xl6_typed_index_assign_" build\test\cgen_index_access.c >nul
+findstr /C:"xl6TypedDictSetValue(__xl6_user_global_table, \"count\", 0, __xl6_typed_index_assign_" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing typed dict index assignment lowering.
     exit /b 1
@@ -321,7 +337,7 @@ if errorlevel 1 (
     echo cgen_index_access.c missing typed index compound current temp.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_typed_index_assign_" build\test\cgen_index_access.c >nul
+findstr /C:"xvalue* __xl6_typed_index_assign_" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing typed index compound int lowering.
     exit /b 1
@@ -341,27 +357,27 @@ if not errorlevel 1 (
     echo cgen_index_access.c should not use GNU conversion temporaries.
     exit /b 1
 )
-findstr /C:"if (xvoIsNull(__xl6_index_current_" build\test\cgen_index_access.c >nul
+findstr /C:"if (xl6_xrt_value_is_null(__xl6_index_current_" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c missing dynamic index null assignment lowering.
     exit /b 1
 )
-findstr /C:"xvoUnref(__xl6_index_current_" build\test\cgen_index_access.c >nul
+findstr /C:"xrtValueRelease(__xl6_index_current_" build\test\cgen_index_access.c >nul
 if not errorlevel 1 (
     echo cgen_index_access.c should not unref borrowed index current values.
     exit /b 1
 )
-findstr /C:"xvoGetInt(xvoIndexGetI64(__xl6_user_global_maybe, (long long)(0LL)))" build\test\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_value_to_i64_checked(xl6_xrt_index_get_i64(__xl6_user_global_maybe, (long long)(0LL))" build\test\cgen_index_access.c >nul
 if errorlevel 1 (
     echo cgen_index_access.c should read ordinary dynamic indexes without consuming container elements.
     exit /b 1
 )
-findstr /C:"xl6_xrt_value_to_i64_release(xvoIndexGetI64(__xl6_user_global_maybe" build\test\cgen_index_access.c >nul
+findstr /C:"xl6_xrt_value_to_i64_release(xl6_xrt_index_get_i64(__xl6_user_global_maybe" build\test\cgen_index_access.c >nul
 if not errorlevel 1 (
     echo cgen_index_access.c must not release borrowed ordinary dynamic index values.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_index_access.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_index_access.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_index_access.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_index_access.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_index_access.exe
 if errorlevel 1 exit /b 1
@@ -379,7 +395,7 @@ if errorlevel 1 (
     echo cgen_safe_index.c missing typed array safe index lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_safe_index.c' -Raw; if($t -notmatch '__xl6_safe_container_[0-9]+ = __xl6_user_global_table.*xrtTypedDictGet\(.*\"count\", 0\).*\? \(XL6_Nullable_[0-9a-f]+\)\{ true, \(\*\(long long\*\)'){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_safe_index.c' -Raw; if($t -notmatch '__xl6_safe_container_[0-9]+ = __xl6_user_global_table.*xl6TypedDictGet\(.*\"count\", 0\).*\? \(XL6_Nullable_[0-9a-f]+\)\{ true, \(\*\(long long\*\)'){exit 1}"
 if errorlevel 1 (
     echo cgen_safe_index.c missing typed dict safe index lowering.
     exit /b 1
@@ -399,17 +415,17 @@ if errorlevel 1 (
     echo cgen_safe_index.c missing null safe index lowering.
     exit /b 1
 )
-findstr /C:"return xl6_xrt_retain(xvoIndexGetI64(values, index));" release\include\xl_runtime.h >nul
+findstr /C:"return xl6_xrt_retain(xl6_xrt_index_get_i64(values, index));" release\include\xl_runtime.h >nul
 if errorlevel 1 (
     echo xl_runtime.h should delegate numeric safe index misses to XRT.
     exit /b 1
 )
-findstr /C:"return xl6_xrt_retain(xvoIndexGetKey(values, (str)key, 0));" release\include\xl_runtime.h >nul
+findstr /C:"return xl6_xrt_retain(xl6_xrt_index_get_key(values, key));" release\include\xl_runtime.h >nul
 if errorlevel 1 (
     echo xl_runtime.h should delegate keyed safe index misses to XRT.
     exit /b 1
 )
-findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue __xl6_nc_" build\test\cgen_safe_index.c >nul
+findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue* __xl6_nc_" build\test\cgen_safe_index.c >nul
 if not errorlevel 1 (
     echo cgen_safe_index.c should pre-evaluate null coalesce scalar arguments.
     exit /b 1
@@ -434,7 +450,7 @@ if not errorlevel 1 (
     echo cgen_safe_index.c should not use statement expressions for declaration-level safe index fallback.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_safe_index.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_safe_index.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_safe_index.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_safe_index.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_safe_index.exe
 if errorlevel 1 exit /b 1
@@ -451,7 +467,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"xrtTypedDictGet(__xl6_safe_container_" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"xl6TypedDictGet(__xl6_safe_container_" build\test\cgen_typed_container_safe_index.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing typed dict safe index lowering.
     exit /b 1
@@ -486,7 +502,7 @@ if not errorlevel 1 (
     echo cgen_typed_container_safe_index.c should not box nullable strings for conversion.
     exit /b 1
 )
-findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue __xl6_nc_" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue* __xl6_nc_" build\test\cgen_typed_container_safe_index.c >nul
 if not errorlevel 1 (
     echo cgen_typed_container_safe_index.c should pre-evaluate null coalesce scalar arguments.
     exit /b 1
@@ -496,19 +512,19 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index.c missing direct nullable string coalesce.
     exit /b 1
 )
-findstr /C:"xl6_xrt_value_to_string_release(({ xvalue __xl6_nc_" build\test\cgen_typed_container_safe_index.c >nul
+findstr /C:"xl6_xrt_value_to_string_release(({ xvalue* __xl6_nc_" build\test\cgen_typed_container_safe_index.c >nul
 if not errorlevel 1 (
     echo cgen_typed_container_safe_index.c should pre-evaluate null coalesce string arguments.
     exit /b 1
 )
-"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_typed_container_safe_index.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_typed_container_safe_index.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_typed_container_safe_index.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_typed_container_safe_index.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_typed_container_safe_index.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_safe_index_objects_functions.xl --emit build\test\cgen_typed_container_safe_index_objects_functions.c
 if errorlevel 1 exit /b 1
-findstr /C:"__xl6_user_global_maybePair = xl6_xrt_move_to_shared(((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybePair = ((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c | findstr /C:"xl6_xrt_retain" >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed array safe index lowering.
     exit /b 1
@@ -518,7 +534,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybeNative = xl6_xrt_move_to_shared(((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybeNative = ((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c | findstr /C:"xl6_xrt_retain" >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed array safe index lowering.
     exit /b 1
@@ -528,7 +544,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing function typed array safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybeListPair = xl6_xrt_move_to_shared(((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybeListPair = ((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c | findstr /C:"xl6_xrt_retain" >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing class typed list safe index lowering.
     exit /b 1
@@ -538,7 +554,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed list safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybeListNative = xl6_xrt_move_to_shared(((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybeListNative = ((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c | findstr /C:"xl6_xrt_retain" >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed list safe index lowering.
     exit /b 1
@@ -558,7 +574,7 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing union typed dict safe index lowering.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_maybeDictNative = xl6_xrt_move_to_shared(((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c >nul
+findstr /C:"__xl6_user_global_maybeDictNative = ((__xl6_safe_container_" build\test\cgen_typed_container_safe_index_objects_functions.c | findstr /C:"xl6_xrt_retain" >nul
 if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing native-backed class typed dict safe index lowering.
     exit /b 1
@@ -598,21 +614,21 @@ if errorlevel 1 (
     echo cgen_typed_container_safe_index_objects_functions.c missing dict function safe index var call lowering.
     exit /b 1
 )
-"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_typed_container_safe_index_objects_functions.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_typed_container_safe_index_objects_functions.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_typed_container_safe_index_objects_functions.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_typed_container_safe_index_objects_functions.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_typed_container_safe_index_objects_functions.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_class_handle_items.xl --emit build\test\cgen_typed_container_class_handle_items.c
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_typed_container_class_handle_items.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_typed_container_class_handle_items.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_typed_container_class_handle_items.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_typed_container_class_handle_items.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_typed_container_class_handle_items.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_typed_container_native_class_items.xl --emit build\test\cgen_typed_container_native_class_items.c
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_typed_container_native_class_items.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_typed_container_native_class_items.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_typed_container_native_class_items.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_typed_container_native_class_items.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_typed_container_native_class_items.exe
 if errorlevel 1 exit /b 1

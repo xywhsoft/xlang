@@ -1,0 +1,9 @@
+func dynamic_nested_collection() as var
+  var value = {"items": [41, 42]}
+  return value["items"][1]
+end
+
+export "xlir_test_xvalue_nested_collection_root" func xlir_test_root() as int
+  var rootedValue = dynamic_nested_collection()
+  return 0
+end

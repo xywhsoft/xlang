@@ -1,0 +1,36 @@
+extern "class_storage_capture" func capture(var value)
+extern "class_storage_destroyed" func destroyed(int value)
+
+class PlainStorageOwner
+    int amount = 42
+end
+
+class ConstructedStorageOwner
+    int amount = 42
+    create(bool fail)
+        assert amount == 42, "default field before native publication"
+        capture(self)
+        assert !fail, "failed construction after native publication"
+    end
+    destroy()
+        destroyed(amount)
+    end
+end
+
+export "class_storage_start" func start(int mode) as int
+    try
+        if mode == 0
+            PlainStorageOwner value = PlainStorageOwner()
+            capture(value)
+        else
+            ConstructedStorageOwner value = ConstructedStorageOwner(mode % 2 == 0)
+        end
+        return 42
+    catch error
+        return 77
+    end
+end
+
+func main(...) as int
+    return 0
+end

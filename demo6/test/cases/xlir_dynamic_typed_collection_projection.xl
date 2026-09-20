@@ -1,0 +1,26 @@
+func xlirProjectionGood() as array
+    return [1, 2, 3]
+end
+
+func xlirProjectionBad() as array
+    return ["not-an-integer"]
+end
+
+export "xlir_test_dynamic_typed_collection_projection" func dynamicTypedCollectionProjection() as int
+    array<int> values = [7, 8, 9]
+    try
+        values = xlirProjectionGood()
+    catch ignored
+        return 4
+    end
+    if values.length != 3 or values[2] != 3
+        return 1
+    end
+    try
+        values = xlirProjectionBad()
+        return 2
+    catch ignored
+        // Conversion failure must leave the previous owned target untouched.
+        return values.length == 3 and values[0] == 1 ? 73 : 3
+    end
+end

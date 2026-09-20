@@ -94,9 +94,9 @@ static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node)
     if ( node == NULL ) {
         return 0;
     }
+    /* 同步 generator/yield 自包含，不应引入 Future、Task 和 Channel 运行时。 */
     if ( node->kind == XL6_AST_ASYNC_FUNC ||
-         node->kind == XL6_AST_AWAIT ||
-         node->kind == XL6_AST_YIELD ) {
+         node->kind == XL6_AST_AWAIT ) {
         return 1;
     }
     if ( node->kind == XL6_AST_TYPE && xl6CgenIsFutureLikeType(node) ) {
@@ -106,9 +106,6 @@ static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node)
         return 1;
     }
     if ( node->kind == XL6_AST_TYPE && xl6CgenIsThreadType(node) ) {
-        return 1;
-    }
-    if ( node->kind == XL6_AST_TYPE && xl6CgenIsGeneratorType(node) ) {
         return 1;
     }
     if ( node->kind == XL6_AST_TYPE && xl6CgenIsSyncHandleType(node) ) {
@@ -134,45 +131,6 @@ static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node)
               xl6CTextEquals(callee->text, "cancel")) ) {
             return 1;
         }
-        if ( callee->kind == XL6_AST_MEMBER &&
-             (xl6CTextEquals(callee->text, "lock") ||
-              xl6CTextEquals(callee->text, "tryLock") ||
-              xl6CTextEquals(callee->text, "unlock") ||
-              xl6CTextEquals(callee->text, "wait") ||
-              xl6CTextEquals(callee->text, "tryWait") ||
-              xl6CTextEquals(callee->text, "waitTimeout") ||
-              xl6CTextEquals(callee->text, "post") ||
-              xl6CTextEquals(callee->text, "postMultiple") ||
-              xl6CTextEquals(callee->text, "signal") ||
-              xl6CTextEquals(callee->text, "broadcast") ||
-              xl6CTextEquals(callee->text, "readLock") ||
-              xl6CTextEquals(callee->text, "tryReadLock") ||
-              xl6CTextEquals(callee->text, "readUnlock") ||
-              xl6CTextEquals(callee->text, "writeLock") ||
-              xl6CTextEquals(callee->text, "tryWriteLock") ||
-              xl6CTextEquals(callee->text, "writeUnlock") ||
-              xl6CTextEquals(callee->text, "downgrade") ||
-              xl6CTextEquals(callee->text, "upgrade") ||
-              xl6CTextEquals(callee->text, "waitUntil") ||
-              xl6CTextEquals(callee->text, "setDebugName") ||
-              xl6CTextEquals(callee->text, "debugName") ||
-              xl6CTextEquals(callee->text, "createTimeMs") ||
-              xl6CTextEquals(callee->text, "completeTimeMs") ||
-              xl6CTextEquals(callee->text, "pendingContinuations") ||
-              xl6CTextEquals(callee->text, "then") ||
-              xl6CTextEquals(callee->text, "catch") ||
-              xl6CTextEquals(callee->text, "finally") ||
-              xl6CTextEquals(callee->text, "isDone") ||
-              xl6CTextEquals(callee->text, "isPending") ||
-              xl6CTextEquals(callee->text, "isCancelled") ||
-              xl6CTextEquals(callee->text, "isFailed") ||
-              xl6CTextEquals(callee->text, "stop") ||
-              xl6CTextEquals(callee->text, "state") ||
-              xl6CTextEquals(callee->text, "status") ||
-              xl6CTextEquals(callee->text, "error") ||
-              xl6CTextEquals(callee->text, "exitCode")) ) {
-            return 1;
-        }
     }
     for ( i = 0; i < node->childCount; ++i ) {
         if ( xl6CgenNodeNeedsAsyncRuntime(node->children[i]) ) {
@@ -181,6 +139,27 @@ static int xl6CgenNodeNeedsAsyncRuntime(const XL6_AstNode* node)
     }
     return 0;
 }
+
+
+static int xl6CgenNodeNeedsGeneratorRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( node->kind == XL6_AST_YIELD ||
+         (node->kind == XL6_AST_TYPE && xl6CgenIsGeneratorType(node)) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsGeneratorRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 
 static int xl6CgenNodeNeedsTaskSpawn(const XL6_AstNode* node)
 {
@@ -209,6 +188,36 @@ static int xl6CgenNodeNeedsTaskSpawn(const XL6_AstNode* node)
     }
     for ( i = 0; i < node->childCount; ++i ) {
         if ( xl6CgenNodeNeedsTaskSpawn(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+
+static int xl6CgenNodeNeedsTaskCollectionRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( node->kind == XL6_AST_CALL && node->childCount > 0 && node->children[0] != NULL ) {
+        const XL6_AstNode* callee = node->children[0];
+
+        if ( callee->kind == XL6_AST_MEMBER &&
+             callee->childCount > 0 &&
+             callee->children[0] != NULL &&
+             callee->children[0]->kind == XL6_AST_NAME &&
+             xl6CTextEquals(callee->children[0]->text, "task") &&
+             (xl6CTextEquals(callee->text, "all") ||
+              xl6CTextEquals(callee->text, "race") ||
+              xl6CTextEquals(callee->text, "whenAny")) ) {
+            return 1;
+        }
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsTaskCollectionRuntime(node->children[i]) ) {
             return 1;
         }
     }

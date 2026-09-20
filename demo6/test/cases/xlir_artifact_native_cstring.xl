@@ -1,0 +1,17 @@
+func main(...) as int
+    assert path.nameExt("a/b.txt") == "b.txt"
+    assert path.name("a/b.txt") == "b"
+    assert path.ext("a/b.txt") == ".txt"
+    assert string.len(path.dir("a/b.txt")) > 0
+    assert path.isAbs(path.abs("release"))
+    string here = path.cwd()
+    assert path.isAbs(here)
+    assert path.rel(here, path.join(here, "child")) == "child"
+    assert string.len(path.home()) > 0
+    assert string.len(path.temp()) > 0
+    assert path.isAbs(path.appDir())
+    assert path.ext(path.withExt("a/b.txt", "log")) == ".log"
+    assert path.nameExt(path.withName("a/b.txt", "c.log")) == "c.log"
+    println("native C string ABI ok")
+    return 0
+end

@@ -1,0 +1,16 @@
+union DefaultPayload
+    int i
+    c_double d
+end
+
+class DefaultRecord
+    int count
+    string name
+    time observed
+    DefaultPayload payload
+end
+
+DefaultRecord record
+assert record.count == 0
+assert record.name == ""
+assert record.observed == #00:00:00#

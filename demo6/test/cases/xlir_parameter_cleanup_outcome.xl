@@ -1,0 +1,239 @@
+extern "parameter_open" func opened(int id)
+extern "parameter_drop" func dropped(int id)
+extern "parameter_checked" func checked(int code, int live)
+extern "parameter_finally" func finalCheck(int first, int last)
+extern "parameter_primary" func primary()
+
+class ParameterGuard
+    int id
+    create(int id)
+        self.id = id
+        opened(id)
+    end
+    destroy()
+        dropped(self.id)
+    end
+end
+
+func ownedResult(ParameterGuard first, ParameterGuard last) as ParameterGuard
+    first = ParameterGuard(2)
+    last = ParameterGuard(3)
+    return ParameterGuard(4)
+end
+
+func scalarResult(ParameterGuard first, ParameterGuard last) as int
+    first = ParameterGuard(2)
+    last = ParameterGuard(3)
+    return 17
+end
+
+func voidResult(ParameterGuard first, ParameterGuard last)
+    first = ParameterGuard(2)
+    last = ParameterGuard(3)
+    return
+end
+
+func implicitResult(ParameterGuard first, ParameterGuard last)
+    first = ParameterGuard(2)
+    last = ParameterGuard(3)
+end
+
+func productResult(ParameterGuard first, ParameterGuard last) as (ParameterGuard, ParameterGuard)
+    first = ParameterGuard(2)
+    last = ParameterGuard(3)
+    return ParameterGuard(4), ParameterGuard(5)
+end
+
+// The currently admitted mutable object capture is a var cell. Direct
+// class-typed mutable capture is rejected by semantic analysis separately.
+func cellResult(var first, var last) as ParameterGuard
+    auto replace = func()
+        first = ParameterGuard(2)
+        last = ParameterGuard(3)
+    end
+    replace()
+    return ParameterGuard(4)
+end
+
+func finallyResult(ParameterGuard first, ParameterGuard last) as ParameterGuard
+    first = ParameterGuard(2)
+    last = ParameterGuard(3)
+    try
+        return ParameterGuard(4)
+    catch error
+        assert false
+    finally
+        finalCheck(first.id, last.id)
+    end
+    return ParameterGuard(4)
+end
+
+func thrownResult(ParameterGuard first, ParameterGuard last) as ParameterGuard
+    first = ParameterGuard(2)
+    last = ParameterGuard(3)
+    primary()
+    return ParameterGuard(4)
+end
+
+func replaceOut(out ParameterGuard first, out ParameterGuard last)
+    first = ParameterGuard(2)
+    last = ParameterGuard(3)
+end
+
+func replaceByref(byref ParameterGuard first, byref ParameterGuard last)
+    first = ParameterGuard(2)
+    last = ParameterGuard(3)
+end
+
+func outResult(ParameterGuard first, ParameterGuard last) as ParameterGuard
+    replaceOut(out first, out last)
+    return ParameterGuard(4)
+end
+
+func byrefResult(ParameterGuard first, ParameterGuard last) as ParameterGuard
+    replaceByref(byref first, byref last)
+    return ParameterGuard(4)
+end
+
+// The borrowed argument's call-duration owner must outlive a writeback that
+// replaces the caller's original binding; stable callee cleanup stays no-raise.
+func aliasResult(ParameterGuard first, byref ParameterGuard last) as ParameterGuard
+    last = ParameterGuard(2)
+    assert first.id == 3
+    return ParameterGuard(4)
+end
+
+export "parameter_cleanup_owned" func probe_owned() as int
+    ParameterGuard outer = ParameterGuard(1)
+    try
+        ParameterGuard result = ownedResult(outer, outer)
+        assert result.id == 4
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "parameter_cleanup_scalar" func probe_scalar() as int
+    ParameterGuard outer = ParameterGuard(1)
+    try
+        int result = scalarResult(outer, outer)
+        assert result == 17
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "parameter_cleanup_void" func probe_void() as int
+    ParameterGuard outer = ParameterGuard(1)
+    try
+        voidResult(outer, outer)
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "parameter_cleanup_implicit" func probe_implicit() as int
+    ParameterGuard outer = ParameterGuard(1)
+    try
+        implicitResult(outer, outer)
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "parameter_cleanup_product" func probe_product() as int
+    ParameterGuard outer = ParameterGuard(1)
+    try
+        auto first, last = productResult(outer, outer)
+        assert first.id == 4 and last.id == 5
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "parameter_cleanup_cell" func probe_cell() as int
+    ParameterGuard outer = ParameterGuard(1)
+    try
+        ParameterGuard result = cellResult(outer, outer)
+        assert result.id == 4
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "parameter_cleanup_finally" func probe_finally() as int
+    ParameterGuard outer = ParameterGuard(1)
+    try
+        ParameterGuard result = finallyResult(outer, outer)
+        assert result.id == 4
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "parameter_cleanup_throw" func probe_throw() as int
+    ParameterGuard outer = ParameterGuard(1)
+    try
+        ParameterGuard result = thrownResult(outer, outer)
+        assert result.id == 4
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "parameter_cleanup_out" func probe_out() as int
+    ParameterGuard outer = ParameterGuard(1)
+    try
+        ParameterGuard result = outResult(outer, outer)
+        assert result.id == 4
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "parameter_cleanup_byref" func probe_byref() as int
+    ParameterGuard outer = ParameterGuard(1)
+    try
+        ParameterGuard result = byrefResult(outer, outer)
+        assert result.id == 4
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "parameter_cleanup_alias" func probe_alias() as int
+    ParameterGuard outer = ParameterGuard(1)
+    try
+        ParameterGuard original = ParameterGuard(3)
+        ParameterGuard result = aliasResult(original, byref original)
+        assert result.id == 4
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+func main(...) as int
+    return 0
+end

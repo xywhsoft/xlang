@@ -1,0 +1,23 @@
+func resultAnswer() as int
+    return 42
+end
+func resultError() as error
+    try
+        throw ValueError "result error"
+    catch issue
+        return issue
+    end
+    return null
+end
+func resultManaged() as (string, var, error, func() as int)
+    return "text", array[7], resultError(), resultAnswer
+end
+func resultMany() as (int, int, int, int, int, int)
+    return 1, 2, 3, 4, 5, 6
+end
+func() as (string, var, error, func() as int) managedNative = resultManaged
+array<func() as (string, var, error, func() as int)> managedStored = array[managedNative]
+func() as (string, var, error, func() as int) managedRestored = managedStored[0]
+var managedErased = xcall(managedNative)
+var manyErased = xcall(resultMany)
+var answerErased = xcall(resultAnswer)

@@ -596,11 +596,11 @@ static void xl6CgenBareFunctionInvoke(XL6_CgenContext* ctx, const char* name, co
             xl6OutputPuts(", ", ctx->out);
             if ( arg != NULL && arg->kind == XL6_AST_NAMED_ARG ) {
                 xl6CgenError(ctx, arg, "bare function call does not support named arguments");
-                xl6OutputPuts("xvoCreateNull()", ctx->out);
+                xl6OutputPuts("xrtValueNull()", ctx->out);
             } else if ( arg != NULL && arg->childCount > 0 ) {
                 xl6CgenXValueFromExpr(ctx, arg->children[0]);
             } else {
-                xl6OutputPuts("xvoCreateNull()", ctx->out);
+                xl6OutputPuts("xrtValueNull()", ctx->out);
             }
         }
     }
@@ -635,7 +635,7 @@ static void xl6CgenFunctionInvokeDirectCall(XL6_CgenContext* ctx,
             xl6OutputPutc('*', ctx->out);
         }
     }
-    xl6OutputPrintf(ctx->out, "))%s.invoke)(%s.env", cName, cName);
+    xl6OutputPrintf(ctx->out, "))%s.invoke)(%s.invoke_env", cName, cName);
     for ( i = 0; i < fixedCount; ++i ) {
         const XL6_AstNode* arg = xl6CgenFunctionValuePositionalArg(args, i);
         xl6OutputPuts(", ", ctx->out);
@@ -693,7 +693,7 @@ static void xl6CgenFunctionInvokeDirectCallExpr(XL6_CgenContext* ctx,
     xl6CgenExpr(ctx, fnExpr);
     xl6OutputPuts(".invoke)(", ctx->out);
     xl6CgenExpr(ctx, fnExpr);
-    xl6OutputPuts(".env", ctx->out);
+    xl6OutputPuts(".invoke_env", ctx->out);
     for ( i = 0; i < fixedCount; ++i ) {
         const XL6_AstNode* arg = xl6CgenFunctionValuePositionalArg(args, i);
         xl6OutputPuts(", ", ctx->out);
@@ -742,7 +742,7 @@ static void xl6CgenFunctionInvokeFallbackCall(XL6_CgenContext* ctx, const char* 
             if ( arg != NULL && arg->childCount > 0 ) {
                 xl6CgenXValueFromExpr(ctx, arg->children[0]);
             } else {
-                xl6OutputPuts("xvoCreateNull()", ctx->out);
+                xl6OutputPuts("xrtValueNull()", ctx->out);
             }
         }
     }
@@ -759,10 +759,16 @@ static void xl6CgenFunctionDefaultReturnExpr(XL6_CgenContext* ctx, const XL6_Ast
 
     if ( concreteType == NULL || typeName == NULL ) {
         xl6OutputPuts("0", ctx->out);
+    } else if ( xl6CgenNullableUsesTaggedValue(concreteType) ) {
+        /* A tagged nullable is a C struct.  Function-value signature/fatal
+         * fallback expressions must therefore use its canonical absent
+         * compound value instead of an invalid scalar cast. */
+        xl6OutputPrintf(ctx->out, "(%s){0}", xl6CgenTypeName(ctx, concreteType));
     } else if ( xl6CgenIsTypedContainerType(ctx, concreteType) ) {
         xl6OutputPrintf(ctx->out, "((%s)0)", xl6CgenTypedContainerCType(ctx, concreteType));
-    } else if ( xl6CgenIsXValueType(concreteType) ) {
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+    } else if ( xl6CgenIsXValueType(concreteType) ||
+                xl6CgenClassHandleTargetType(ctx, concreteType) != NULL ) {
+        xl6OutputPuts("xrtValueNull()", ctx->out);
     } else if ( xl6CgenIsFunctionType(concreteType) ||
                 xl6CgenIsClassType(ctx, concreteType) ||
                 xl6CgenIsPlainRecordType(ctx, concreteType) ||
@@ -827,7 +833,7 @@ static void xl6CgenFunctionInvokeFallbackCallExpr(XL6_CgenContext* ctx,
             if ( arg != NULL && arg->childCount > 0 ) {
                 xl6CgenXValueFromExpr(ctx, arg->children[0]);
             } else {
-                xl6OutputPuts("xvoCreateNull()", ctx->out);
+                xl6OutputPuts("xrtValueNull()", ctx->out);
             }
         }
     }
@@ -942,16 +948,25 @@ static void xl6CgenFunctionInvokeFallbackExprForExpr(XL6_CgenContext* ctx,
     }
 }
 
-static int xl6CgenFunctionExprIsRepeatableLvalue(const XL6_AstNode* expr)
+static int xl6CgenFunctionExprIsRepeatableLvalue(XL6_CgenContext* ctx, const XL6_AstNode* expr)
 {
+    size_t i;
+
     if ( expr == NULL ) {
         return 0;
+    }
+    for ( i = 0; ctx != NULL && i < ctx->exprReplacementCount; ++i ) {
+        if ( ctx->exprReplacements[i].expr == expr &&
+             ctx->exprReplacements[i].cName != NULL ) {
+            return 1;
+        }
     }
     if ( expr->kind == XL6_AST_NAME ) {
         return 1;
     }
     if ( expr->kind == XL6_AST_MEMBER ) {
-        return expr->childCount > 0 && xl6CgenFunctionExprIsRepeatableLvalue(expr->children[0]);
+        return expr->childCount > 0 &&
+               xl6CgenFunctionExprIsRepeatableLvalue(ctx, expr->children[0]);
     }
     return 0;
 }
@@ -999,7 +1014,7 @@ static void xl6CgenFunctionInvokeExpr(XL6_CgenContext* ctx, const XL6_AstNode* f
     returnCount = (int)returns->childCount;
     signatureId = xl6CgenFunctionSignatureId(ctx, paramTypes, returns);
 
-    if ( !xl6CgenFunctionExprIsRepeatableLvalue(fnExpr) ) {
+    if ( !xl6CgenFunctionExprIsRepeatableLvalue(ctx, fnExpr) ) {
         if ( returnCount > 1 ) {
             xl6CgenError(ctx, fnExpr, "function expression with multiple return values requires a stable function value");
             xl6OutputPuts("(xl6_function_fatal(3), (", ctx->out);
@@ -1027,7 +1042,9 @@ static void xl6CgenFunctionInvokeExpr(XL6_CgenContext* ctx, const XL6_AstNode* f
         xl6CgenFunctionInvokeDirectCallExpr(ctx, fnExpr, paramTypes, returns, args, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(" : (xl6_function_fatal(3), (", ctx->out);
         xl6CgenFunctionReturnStructName(ctx, paramTypes, returns);
-        xl6OutputPuts("){0})) : (xl6_function_fatal(3), (", ctx->out);
+        xl6OutputPuts("){0})) : (xl6_function_signature_mismatch(", ctx->out);
+        xl6CgenFunctionExprField(ctx, fnExpr, "signature");
+        xl6OutputPrintf(ctx->out, ", 0x%016llXULL), (", signatureId);
         xl6CgenFunctionReturnStructName(ctx, paramTypes, returns);
         xl6OutputPuts("){0}))", ctx->out);
     } else if ( returnCount == 1 ) {
@@ -1037,7 +1054,9 @@ static void xl6CgenFunctionInvokeExpr(XL6_CgenContext* ctx, const XL6_AstNode* f
         xl6CgenFunctionInvokeDirectCallExpr(ctx, fnExpr, paramTypes, returns, args, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(" : ", ctx->out);
         xl6CgenFunctionInvokeFallbackExprForExpr(ctx, returns->children[0], fnExpr, functionType, args, 0);
-        xl6OutputPuts(") : (xl6_function_fatal(3), ", ctx->out);
+        xl6OutputPuts(") : (xl6_function_signature_mismatch(", ctx->out);
+        xl6CgenFunctionExprField(ctx, fnExpr, "signature");
+        xl6OutputPrintf(ctx->out, ", 0x%016llXULL), ", signatureId);
         xl6CgenFunctionDefaultReturnExpr(ctx, returns->children[0]);
         xl6OutputPuts("))", ctx->out);
     } else {
@@ -1047,7 +1066,9 @@ static void xl6CgenFunctionInvokeExpr(XL6_CgenContext* ctx, const XL6_AstNode* f
         xl6CgenFunctionInvokeDirectCallExpr(ctx, fnExpr, paramTypes, returns, args, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(" : xl6_xvalue_drop(", ctx->out);
         xl6CgenFunctionInvokeFallbackCallExpr(ctx, fnExpr, functionType, args, 0);
-        xl6OutputPuts(")) : xl6_function_fatal(3))", ctx->out);
+        xl6OutputPuts(")) : xl6_function_signature_mismatch(", ctx->out);
+        xl6CgenFunctionExprField(ctx, fnExpr, "signature");
+        xl6OutputPrintf(ctx->out, ", 0x%016llXULL))", signatureId);
     }
 }
 
@@ -1078,7 +1099,7 @@ static void xl6CgenVarFunctionInvoke(XL6_CgenContext* ctx, const char* name, con
             if ( arg != NULL && arg->childCount > 0 ) {
                 xl6CgenXValueFromExpr(ctx, arg->children[0]);
             } else {
-                xl6OutputPuts("xvoCreateNull()", ctx->out);
+                xl6OutputPuts("xrtValueNull()", ctx->out);
             }
         }
     }
@@ -1114,7 +1135,7 @@ static void xl6CgenVarFunctionInvokeExpr(XL6_CgenContext* ctx, const XL6_AstNode
             if ( arg != NULL && arg->childCount > 0 ) {
                 xl6CgenXValueFromExpr(ctx, arg->children[0]);
             } else {
-                xl6OutputPuts("xvoCreateNull()", ctx->out);
+                xl6OutputPuts("xrtValueNull()", ctx->out);
             }
         }
     }

@@ -1,0 +1,55 @@
+extern "xcall_result_arm" func armResultFailure()
+extern "xcall_result_keep" func keepResultProducer(var callback, int slot)
+
+func makeError() as error
+    try
+        throw ValueError "owned result error"
+    catch e
+        return e
+    end
+    return null
+end
+
+func makeValues() as (var, string, error, var, string, var, int)
+    var first = [11, 12]
+    string text = "owned" + " first"
+    error reason = makeError()
+    string captured = "captured" + " result"
+    func() as int callback = func() as int
+        return captured.length
+    end
+    var callable = xcall(callback)
+    string tail = "owned" + " tail"
+    var last = [31, 32]
+    armResultFailure()
+    return first, text, reason, callable, tail, last, 42
+end
+
+func() as (var, string, error, var, string, var, int) producer = makeValues
+var values = xcall(producer)
+keepResultProducer(values, 0)
+
+func makeText() as string
+    string text = "solo" + " text"
+    armResultFailure()
+    return text
+end
+
+func makeDynamic() as var
+    var value = [51, 52]
+    armResultFailure()
+    return value
+end
+
+func makeOwnedError() as error
+    error reason = makeError()
+    armResultFailure()
+    return reason
+end
+
+var textProducer = xcall(makeText)
+var dynamicProducer = xcall(makeDynamic)
+var errorProducer = xcall(makeOwnedError)
+keepResultProducer(textProducer, 1)
+keepResultProducer(dynamicProducer, 2)
+keepResultProducer(errorProducer, 3)

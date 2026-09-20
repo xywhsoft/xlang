@@ -1,0 +1,58 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+func makeBoxedText() as var
+    return "owned-dynamic"
+end
+
+func makeNullableText() as string?
+    return "owned-nullable" as string?
+end
+
+var boxedBool = true
+var boxedInt = 42
+uint64 unsignedValue = 64
+var boxedUnsigned = unsignedValue
+var boxedFloat = 2.5
+time timeValue = #2026-08-31 12:34:56#
+var boxedTime = timeValue
+var boxedText = "borrowed-text"
+
+bool? maybeBool = boxedBool as bool?
+int? maybeInt = boxedInt as int?
+uint64? maybeUnsigned = boxedUnsigned as uint64?
+float? maybeFloat = boxedFloat as float?
+time? maybeTime = boxedTime as time?
+string? maybeText = boxedText as string?
+string? ownedText = makeBoxedText() as string?
+int? noInt = boxedText as int?
+string? noText = boxedInt as string?
+
+expect(maybeBool ?? false, 1)
+expect(maybeInt ?? 0, 42)
+expect(int(maybeUnsigned ?? uint64(0)), 64)
+expect((maybeFloat ?? 0.0) > 2.0, 1)
+expect((maybeTime ?? #2000-01-01#) == timeValue, 1)
+expectStr(maybeText ?? "", "borrowed-text")
+expectStr(ownedText ?? "", "owned-dynamic")
+expect(noInt == null, 1)
+expect(noText == null, 1)
+
+int? liftedInt = 7 as int?
+string? liftedText = "lifted-text" as string?
+int directInt = liftedInt as int
+string directText = liftedText as string
+string movedText = makeNullableText() as string
+expect(directInt, 7)
+expectStr(directText, "lifted-text")
+expectStr(movedText, "owned-nullable")
+
+int? missing = null
+int caught = 0
+try
+    int ignored = missing as int
+catch TypeError error
+    expectStr(error.kind, "TypeError")
+    caught = 1
+end
+expect(caught, 1)

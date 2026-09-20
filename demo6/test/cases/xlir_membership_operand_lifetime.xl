@@ -1,0 +1,126 @@
+int created = 0
+int destroyed = 0
+int evaluations = 0
+
+class Marker
+    destroy()
+        destroyed += 1
+    end
+end
+
+func make(int digit) as var
+    created += 1
+    evaluations = evaluations * 10 + digit
+    return Marker()
+end
+
+func failingValues() as var
+    evaluations = evaluations * 10 + 2
+    throw "expected membership right operand failure"
+end
+
+func values(int digit) as array<var>
+    evaluations = evaluations * 10 + digit
+    created += 1
+    return [Marker()]
+end
+
+func failingItem() as var
+    evaluations = evaluations * 10 + 2
+    throw "expected membership argument failure"
+end
+
+func text(int digit) as string
+    evaluations = evaluations * 10 + digit
+    return "owned " + string(digit)
+end
+
+func failingText() as string
+    evaluations = evaluations * 10 + 2
+    throw "expected string membership right operand failure"
+end
+
+func failureScope(int mode)
+    bool caught = false
+    try
+        if mode == 0 then
+            bool found = make(1) in failingValues()
+        elseif mode == 1 then
+            bool found = values(1).contains(failingItem())
+        elseif mode == 2 then
+            bool removed = values(1).removeValue(failingItem())
+        else
+            bool found = text(1) in failingText()
+        end
+        assert false, "membership ignored the right operand failure"
+    catch ignored
+        caught = true
+        if mode == 0 then
+            assert ignored.message == "expected membership right operand failure", "caught the wrong membership failure"
+        elseif mode == 3 then
+            assert ignored.message == "expected string membership right operand failure", "caught the wrong string failure"
+        else
+            assert ignored.message == "expected membership argument failure", "caught the wrong argument failure"
+        end
+        assert created == destroyed, "membership leaked its first operand on later failure"
+    end
+    assert caught, "membership failure did not reach its handler"
+end
+
+class Holder
+    array<var> saved = []
+    func replace() as var
+        self.saved = values(2)
+        return make(3)
+    end
+end
+
+func borrowedScope()
+    Holder holder = Holder()
+    holder.saved = values(1)
+    bool found = holder.saved.contains(holder.replace())
+    assert not found, "replacement changed membership identity"
+    assert evaluations == 123, "receiver replacement was not sequenced"
+    assert created - destroyed == 1, "receiver pin or replaced storage leaked"
+
+    string needle = "before"
+    func() as string replaceText = func() as string
+        needle = "after"
+        return "before"
+    end
+    assert needle in replaceText(), "haystack evaluation invalidated the saved needle"
+
+    array<int> stable = [1, 2, 3]
+    assert stable.contains(2), "borrowed receiver lost membership"
+    assert stable.indexOf(3) == 2, "contains released the caller's receiver owner"
+    assert stable.removeValue(2), "borrowed removeValue did not update its receiver"
+    assert stable.length == 2 and stable[1] == 3, "receiver pin changed mutation semantics"
+end
+
+for iteration in range(200)
+    for mode in range(4)
+        evaluations = 0
+        failureScope(mode)
+        assert evaluations == 12, "failed membership was not evaluated left to right once"
+        assert created == destroyed, "membership owner escaped a catch scope"
+    end
+    evaluations = 0
+    assert not (make(1) in values(2)), "different objects unexpectedly matched"
+    assert evaluations == 12, "in operands were reordered"
+    assert created == destroyed, "successful in leaked temporary operands"
+    evaluations = 0
+    assert not values(1).contains(make(2)), "contains changed object identity"
+    assert evaluations == 12, "contains evaluated its argument before the receiver"
+    assert created == destroyed, "successful contains leaked temporary operands"
+    evaluations = 0
+    assert not values(1).removeValue(make(2)), "removeValue changed object identity"
+    assert evaluations == 12, "removeValue evaluated its argument before the receiver"
+    assert created == destroyed, "successful removeValue leaked temporary operands"
+    evaluations = 0
+    assert not (text(1) in text(2)), "string membership returned an invalid result"
+    assert evaluations == 12, "string membership evaluated haystack before needle"
+    evaluations = 0
+    borrowedScope()
+    assert created == destroyed, "borrowed membership scope leaked its owners"
+end
+assert created == 2400, "membership lifecycle coverage was not executed"

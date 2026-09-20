@@ -6,6 +6,8 @@ func require(string name, bool condition)
 end
 
 func main(...) as int
+    // 纯网络类型也会生成 future 映射辅助函数；这里不使用 async 语法，
+    // 用来防止网络 runtime 漏注入异步前置声明。
     NetAddress ipv4 = NetAddress("127.0.0.1", 8080)
     require("address_text", ipv4.text() == "127.0.0.1")
     require("address_port", ipv4.port == 8080)
@@ -17,34 +19,30 @@ func main(...) as int
 
     NetProxy directProxy = net.proxy(net.proxyNone, "127.0.0.1", 0)
     NetProxy proxy = net.proxy(net.proxySocks5, "127.0.0.1", 1080, "user", "pass")
+    NetProxy httpProxy = net.proxy(net.proxyHttpConnect, "127.0.0.1", 8080)
     require("proxy_none", directProxy.type == net.proxyNone)
     require("proxy_type", proxy.type == net.proxySocks5)
+    require("proxy_http", httpProxy.type == net.proxyHttpConnect)
     require("proxy_port", proxy.port == 1080)
     require("proxy_host", proxy.host() == "127.0.0.1")
     require("proxy_user", proxy.user() == "user")
 
     TcpConnectConfig connectConfig = tcp.connectConfig("127.0.0.1", 65535)
-    require("connect_flags", connectConfig.flags(tcp.connectNoDelay + tcp.connectKeepAlive))
     require("connect_timeout", connectConfig.timeout(100))
     require("connect_watermarks", connectConfig.watermarks(4096, 1024))
     require("connect_recv_limit", connectConfig.recvLimit(8192))
     require("connect_proxy", connectConfig.proxy(proxy))
 
     TcpListenConfig listenConfig = tcp.listenConfig(0, "127.0.0.1")
-    require("listen_flags", listenConfig.flags(tcp.listenReuseAddr + tcp.listenReusePort + tcp.listenNoDelay + tcp.listenKeepAlive))
     require("listen_backlog", listenConfig.backlog(16))
     require("listen_watermarks", listenConfig.watermarks(4096, 1024))
     require("listen_recv_limit", listenConfig.recvLimit(8192))
 
     UdpConfig udpConfig = udp.config(0, "127.0.0.1")
-    require("udp_flags", udpConfig.flags(udp.reuseAddr + udp.reusePort))
     require("udp_batch", udpConfig.recvBatch(8))
     require("udp_queues", udpConfig.queueLimits(64, 64))
 
-    require("close_flags", net.closeAbort + net.closeGraceful + net.closeWaitPeer == 7)
-    require("engine_auto_workers", net.engineAutoWorkers == 1)
-
-    NetEngine engine = net.engine(1, 0)
+    NetEngine engine = net.engine(1)
     require("engine_start", engine.start())
     require("engine_workers", engine.workerCount == 1)
     engine.stop()

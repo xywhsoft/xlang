@@ -1,0 +1,11 @@
+Buffer decoded = codec.hexDecodeBytes("00415A")
+assert decoded.len() == 3
+assert decoded[0] == 0
+assert decoded[1] == 65
+assert decoded[2] == 90
+assert codec.hexEncodeBytes(decoded.data(), c_size(decoded.len())) == "00415A"
+assert codec.hexEncodeBytes(decoded.data(), c_size(0)) == ""
+Buffer empty = codec.hexDecodeBytes("")
+assert empty.len() == 0
+
+println("hex byte trim ok")

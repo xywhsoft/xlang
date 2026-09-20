@@ -1,0 +1,38 @@
+class StringRecord
+    derive string
+
+    int id = 0
+    string name = ""
+    int hidden @string(skip) = 0
+
+    create(int id, string name, int hidden)
+        self.id = id
+        self.name = name
+        self.hidden = hidden
+    end
+end
+
+class CustomText
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+
+    func __toString__() as string
+        return "CustomText(" + string(self.value) + ")"
+    end
+end
+
+StringRecord record = StringRecord(7, "alpha", 99)
+string derived = string(record)
+assert string.contains(derived, "StringRecord{"), "derived string must include the exact class name"
+assert string.contains(derived, "id=7"), "derived string must include scalar fields"
+assert string.contains(derived, "name=alpha"), "derived string must include managed string fields"
+assert !string.contains(derived, "hidden"), "derived string must honor the typed field partition"
+assert record.toString() == derived, "member sugar must select the same derived class ABI"
+assert string(type(record)) == "StringRecord", "type values must use the module TypeId name table"
+
+CustomText custom = CustomText(9)
+assert string(custom) == "CustomText(9)", "string(class) must call the exact explicit protocol target"
+assert custom.toString() == "CustomText(9)", "member sugar must call the exact explicit protocol target"

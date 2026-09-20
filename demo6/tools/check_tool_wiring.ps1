@@ -70,6 +70,9 @@ $testText = Get-TestRegressionText
 $rc0Text = Read-Utf8Text $rc0Guard
 $toolsReadmeText = Read-Utf8Text $toolsReadme
 $checkScripts = @(Get-ChildItem -LiteralPath $toolsDir -Filter "check_*.ps1" -File | Sort-Object Name)
+$xlirRunner = Join-Path $toolsDir "run_xlir_guards.ps1"
+$fullRegressionHasXlirRunner = $testText -match 'tools[\\/]run_xlir_guards\.ps1\s+-Mode\s+FullRegressionSupplement'
+$rc0HasXlirRunner = $rc0Text -match 'tools[\\/]run_xlir_guards\.ps1`?",\s*`?"-Mode`?",\s*`?"Rc0Supplement'
 $testWiredScripts = New-Object System.Collections.Generic.HashSet[string]
 $rc0WiredScripts = New-Object System.Collections.Generic.HashSet[string]
 $fullRegressionOnly = New-Object System.Collections.Generic.HashSet[string]
@@ -77,6 +80,26 @@ $fullRegressionOnly.Add((Normalize-ToolPath "tools\check_stdlib_examples.ps1")) 
 
 if ( $checkScripts.Count -lt $minCheckScripts ) {
     Add-Failure "check script baseline regressed: $($checkScripts.Count) < $minCheckScripts"
+}
+
+if ( ! $toolsReadmeText.Contains("tools/check_*.ps1") ) {
+    Add-Failure "tools README does not declare the canonical check-script inventory"
+}
+
+if ( ! $toolsReadmeText.Contains("check_tool_wiring.ps1") ) {
+    Add-Failure "tools README does not mention the exhaustive wiring guard"
+}
+
+if ( ! (Test-Path -LiteralPath $xlirRunner -PathType Leaf) ) {
+    Add-Failure "central XLIR guard runner is missing: tools\run_xlir_guards.ps1"
+}
+
+if ( ! $fullRegressionHasXlirRunner ) {
+    Add-Failure "full regression does not invoke the central XLIR guard runner"
+}
+
+if ( ! $rc0HasXlirRunner ) {
+    Add-Failure "rc0_guard.ps1 does not invoke the central XLIR guard runner"
 }
 
 foreach ( $match in [regex]::Matches($testText, 'tools[\\/](check_[^"''\s\^<>|&]+\.ps1)') ) {
@@ -101,16 +124,13 @@ foreach ( $match in [regex]::Matches($rc0Text, 'check_[A-Za-z0-9_]+\.ps1') ) {
 
 foreach ( $script in $checkScripts ) {
     $relative = Normalize-ToolPath ("tools\" + $script.Name)
+    $isXlirGuard = $script.Name.StartsWith("check_xlir_", [System.StringComparison]::OrdinalIgnoreCase)
 
-    if ( ! $toolsReadmeText.Contains($script.Name) ) {
-        Add-Failure "tools README does not list check script: $relative"
-    }
-
-    if ( ! $testWiredScripts.Contains($relative) ) {
+    if ( ! $testWiredScripts.Contains($relative) -and ! ($isXlirGuard -and $fullRegressionHasXlirRunner) ) {
         Add-Failure "check script is not wired into test.bat/test suites: $relative"
     }
 
-    if ( ! $rc0WiredScripts.Contains($relative) -and ! $fullRegressionOnly.Contains($relative) ) {
+    if ( ! $rc0WiredScripts.Contains($relative) -and ! ($isXlirGuard -and $rc0HasXlirRunner) -and ! $fullRegressionOnly.Contains($relative) ) {
         Add-Failure "check script is not wired into rc0_guard.ps1 or a full-regression-only exception: $relative"
     }
 }

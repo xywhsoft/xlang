@@ -1,0 +1,8 @@
+import include_dir_pkg
+
+
+func main(...) as int
+    assert include_dir_pkg.value() == 42, "package include directory was not applied"
+    println("package include directory ok")
+    return 0
+end

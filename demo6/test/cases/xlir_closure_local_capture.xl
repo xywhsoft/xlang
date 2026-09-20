@@ -1,0 +1,9 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func applyLocal(int base) as int
+    int local = base + 2
+    auto add = func(int value) as int => local + value
+    return add(3)
+end
+
+expect(applyLocal(7), 12)

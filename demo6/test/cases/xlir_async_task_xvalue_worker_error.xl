@@ -1,0 +1,8 @@
+async func failBoxedWorker() as var
+    assert false
+    var value = 41
+    return value
+end
+
+future<var> pending = failBoxedWorker()
+var completed = await pending

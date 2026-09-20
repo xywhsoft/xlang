@@ -218,11 +218,11 @@ int xl6TypeRegistryAdd(
 
     item = &registry->items[registry->count];
     memset(item, 0, sizeof(*item));
-    item->name = (char*)xrtCopyStr((str)name, strlen(name));
+    item->name = xrtStrDupN(name, strlen(name));
     if ( item->name == NULL ) {
         return 0;
     }
-    item->abiName = (char*)xrtCopyStr((str)abiName, strlen(abiName));
+    item->abiName = xrtStrDupN(abiName, strlen(abiName));
     if ( item->abiName == NULL ) {
         xrtFree(item->name);
         memset(item, 0, sizeof(*item));

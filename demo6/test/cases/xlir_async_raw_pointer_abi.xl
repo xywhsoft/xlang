@@ -1,0 +1,16 @@
+extern "xlir_make_raw_pointer_future" func makeRawPointerFuture() as future<point>
+extern "xlir_raw_pointer_matches" func rawPointerMatches(point value) as bool
+
+async func relayRawPointer() as point
+    return await makeRawPointerFuture()
+end
+
+point direct = await makeRawPointerFuture()
+assert direct != null
+assert rawPointerMatches(direct)
+
+point relayed = await relayRawPointer()
+assert relayed != null
+assert rawPointerMatches(relayed)
+
+println("xlir async raw pointer abi ok")

@@ -1,0 +1,10 @@
+extern "c_apply_i32" func cApply(c_callback func(c_int) as c_int callback, c_int value) as c_int
+
+func run() as c_int
+    const c_int offset = 2
+    return cApply(func(c_int value) as c_int
+        return value + offset
+    end, 40)
+end
+
+run()

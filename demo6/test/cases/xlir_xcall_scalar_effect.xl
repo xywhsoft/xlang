@@ -1,0 +1,38 @@
+extern "expect_xvalue_bool" func expectBool(var actual, bool expected)
+extern "expect_xvalue_float" func expectFloat(var actual, float expected)
+
+func invert(bool value) as bool
+    return value == false
+end
+
+func selectFraction(bool selected, int unusedWhole, float fraction) as float
+    if selected
+        return fraction
+    end
+    return fraction + 1.0
+end
+
+func failScalar() as bool
+    throw ValueError "xcall scalar boom"
+    return false
+end
+
+func(bool) as bool boolFn = invert
+var boxedBool = xcall(boolFn)
+var boolResult = boxedBool(true)
+expectBool(boolResult, false)
+
+func(bool, int, float) as float floatFn = selectFraction
+var boxedFloat = xcall(floatFn)
+var floatResult = boxedFloat(true, 9, 2.5)
+expectFloat(floatResult, 2.5)
+
+func() as bool failFn = failScalar
+var boxedFailure = xcall(failFn)
+bool caught = false
+try
+    var ignored = boxedFailure()
+catch ValueError e
+    caught = e.message == "xcall scalar boom"
+end
+assert caught, "xcall did not preserve the callable error effect"

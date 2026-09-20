@@ -35,9 +35,11 @@ if errorlevel 1 exit /b 1
 call "%~dp003_core_base_10.bat"
 if errorlevel 1 exit /b 1
 
+call "%~dp003_core_function_abi.bat"
+if errorlevel 1 exit /b 1
+
 call "%~dp003_core_current_regressions.bat"
 if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: core C generation and runtime
 exit /b 0
-

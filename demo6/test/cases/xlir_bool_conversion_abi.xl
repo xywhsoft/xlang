@@ -1,0 +1,45 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+bool alreadyBool = bool(true)
+bool zeroInt = bool(0)
+bool nonzeroInt = bool(7)
+bool zeroFloat = bool(0.0)
+bool nonzeroFloat = bool(-0.5)
+bool nullLiteral = bool(null)
+time observed = #2026-08-30 12:30:00#
+bool nonzeroTime = bool(observed)
+
+var dynamicZero = 0
+var dynamicTwo = 2
+var dynamicFalse = false
+var dynamicTrue = true
+var dynamicNull = null
+var dynamicEmpty = ""
+
+expect(alreadyBool, 1)
+expect(zeroInt, 0)
+expect(nonzeroInt, 1)
+expect(zeroFloat, 0)
+expect(nonzeroFloat, 1)
+expect(nullLiteral, 0)
+expect(nonzeroTime, 1)
+expect(bool(dynamicFalse), 0)
+expect(bool(dynamicTrue), 1)
+expect(bool(dynamicNull), 0)
+expect(bool(dynamicEmpty), 0)
+
+export "xlir_bool_dynamic_text_truth" func dynamicTextTruth() as int
+    var dynamicZeroValue = 0
+    var dynamicTwoValue = 2
+    var dynamicText = "x"
+    if bool(dynamicZeroValue) then
+        return 10
+    end
+    if !bool(dynamicTwoValue) then
+        return 11
+    end
+    if !bool(dynamicText) then
+        return 12
+    end
+    return 1
+end

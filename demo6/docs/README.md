@@ -18,6 +18,8 @@
 - `对象与参数传递设计.md`：class/容器受管理引用语义、`union` 值语义、`point<T>`、`byval/byref/out`、多态和 C ABI。
 - `class_object协议设计.md`：class/object 统一对象模型、协议方法、derive 能力、copy/clone、动态字段和持久化设计。
 - `泛型设计.md`：泛型声明、类型参数、显式实例化、静态泛型容器、泛型约束和 C 混编限制。
+- `XLIR统一中间表示设计.md`：`AST -> XLIR -> C` 的统一 IR、阶段不变量、C emitter 边界和替换式迁移顺序。
+- `XLIR迁移验收矩阵.md`：当前已接纳的 XLIR 语义簇、可执行质量门和默认后端切换条件。
 - `Typed_HIR与后端边界.md`：独立 typed semantic HIR、语义/存储类型、后端唯一语义入口和静态容器存储决策。
 - `现代类型语义与HIR改造.md`：TypeId/SymbolId、真实 typed HIR、nullable/weak、用户 protocol、enum/tagged enum 与 match 的统一设计和验收口径。
 - `本批五项能力实现口径.md`：泛型约束、字段级持久化注解、泛型 class 迭代协议、native-backed class 和 class 成员 C ABI 导出的当前实现口径。
@@ -48,6 +50,18 @@
 - `RC三轮问题统一修复任务.md`：本轮 24 项 RC 审计问题、class 引用语义和发布收口验收账本。
 - `运行时类型系统基线审计.md`：当前运行时类型系统事实基线、边界、风险点和补测范围。
 - `XRT标准库完整接入任务.md`：XRT 扩展能力、专用数据结构、原始 TLS、Task/Future 的实现范围与发布验收记录。
+- `XRT与xlang系统整合任务.md`：当前长期整合范围、快照契约、实施顺序和 HTTP/WebSocket 快慢路径边界。
+- `扩展库开发问题清单.md`：六轮扩展库批次发现的语言/编译器/运行时问题账本（P0 崩溃类到 P4 C 库兼容），含最小复现、规避方案与修复优先级。
+- `剩余未压实扩展库清单.md`：删除 22 个占位库后 109 个未压实包的处置规划视图（按编解码改造/平台收编/真外部服务/迁移队列分类）。
+- `acme扩展库设计.md`：对标 acme.sh 的 ACME v2 客户端设计（JWS 密码核心 / 编排 / DNS 提供商三层），含 XRT 依赖核查、mock CA 测试策略与三期计划。
+- `XRT与xlang能力矩阵.md`：从双产品快照和当前语言实现生成的模块覆盖、低层符号与扩展延期边界。
+- `xruntime语言桥接契约.md`：定义 xruntime 的语言内核语义、语言级抽象和显式底层能力三层边界。
+- `extlib_ecosystem_audit.generated.md`：由扩展库生态审计工具生成的包状态、实现范围和阻塞原因清单。
+- `extlib_smoke.generated.md`：由扩展库 smoke 工具生成的逐包可执行验证结果。
+- `featured_extlibs_rc.md`：官网重点扩展库的 RC 范围、清单与可执行门禁。
+- `扩展库ABI迁移队列.md`：仍使用旧 XRT ABI 的历史扩展库迁移顺序与验收约束。
+- `扩展库生态压实计划.md`：扩展库状态模型、首期范围和自动审计入口。
+- `扩展库占位实现预算评估.md`：简化实现扩展库的代码预算、取舍依据和延期边界。
 - `文档整理收口.md`：本轮文档整理后的索引、收口口径、剩余非阻断文档增强和验证命令。
 - `文档状态矩阵.md`：逐份标明当前文档身份、使用方式、维护触发条件和冲突处理顺序。
 
@@ -82,6 +96,7 @@
 - `../release/examples/tutorial/README.md`：教学范例阅读顺序和运行入口。
 - `../release/examples/feature_suite/README.md`：功能范例套件索引、宿主文件和回归入口。
 - `../release/examples/apps/README.md`：复合应用范例索引和运行入口。
+- `../release/examples/games/README.md`：XGE 游戏范例清单、运行方法和无头回归入口。
 
 ## 测试资产文档
 
@@ -100,6 +115,7 @@
 - `../release/include/README.md`：公开 C API 头文件说明。
 - `../lib/README.md`：XRT 单头文件、libprobe fixture 和依赖维护规则。
 - `../release/README.md`：构建产物目录说明。
+- `../release/projects/function_interop/README.md`：C 与 xlang 函数指针双向互操作范例说明。
 - `../release/projects/xs_static/README.md`：静态 xs 原型项目说明和 smoke 入口。
 
 ## 维护规则

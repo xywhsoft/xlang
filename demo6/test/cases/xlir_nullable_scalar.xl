@@ -1,0 +1,80 @@
+int nullableFallbackCount = 0
+
+func nullableFallback() as int
+    nullableFallbackCount += 1
+    return 13
+end
+
+func selectInt(bool present) as int?
+    if present then return 7 end
+    return null
+end
+
+func passInt(int? value) as int?
+    return value
+end
+
+export "xlir_nullable_scalar_echo" func echo(int? value) as int?
+    return value
+end
+
+export "xlir_nullable_scalar_checked_echo" func checkedEcho(int? value, bool accept) as int?
+    assert accept
+    return value
+end
+
+func selectU64(bool present) as uint64?
+    if present then return 18446744073709551615 end
+    return null
+end
+
+func selectFloat(bool present) as float?
+    if present then return 3.5 end
+    return null
+end
+
+func selectBool(bool present) as bool?
+    if present then return true end
+    return null
+end
+
+export "xlir_nullable_scalar_probe" func probe(bool present) as int
+    nullableFallbackCount = 0
+    int? defaultValue
+    if defaultValue != null then return 90 end
+    int? selected = passInt(selectInt(present))
+    int value = selected ?? nullableFallback()
+    if present then
+        if nullableFallbackCount != 0 then return 91 end
+    else
+        if nullableFallbackCount != 1 then return 92 end
+    end
+    return value
+end
+
+export "xlir_nullable_scalar_u64" func probeU64(bool present) as uint64
+    uint64? selected = selectU64(present)
+    return selected ?? uint64(9)
+end
+
+export "xlir_nullable_scalar_float" func probeFloat(bool present) as float
+    float? selected = selectFloat(present)
+    return selected ?? 1.25
+end
+
+export "xlir_nullable_scalar_bool" func probeBool(bool present) as bool
+    bool? selected = selectBool(present)
+    return selected ?? false
+end
+
+func main(...) as int
+    assert(probe(true) == 7)
+    assert(probe(false) == 13)
+    assert(probeU64(true) == 18446744073709551615)
+    assert(probeU64(false) == 9)
+    assert(probeFloat(true) == 3.5)
+    assert(probeFloat(false) == 1.25)
+    assert(probeBool(true))
+    assert(probeBool(false) == false)
+    return 0
+end

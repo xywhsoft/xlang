@@ -1,4 +1,4 @@
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "src/compile/xl6_imports.h"
 #include "src/parser/xl6_parser_api.h"
 
@@ -14,8 +14,7 @@ int main(int argc, char** argv)
         return 2;
     }
 
-    xrtInit();
-    for ( i = 1; i < argc; ++i ) {
+	for ( i = 1; i < argc; ++i ) {
         XL6_ParseResult parse;
         XL6_ImportDeps deps;
         size_t j;
@@ -38,6 +37,5 @@ int main(int argc, char** argv)
         xl6ImportDepsFree(&deps);
         xl6ParseResultFree(&parse);
     }
-    xrtUnit();
-    return ok ? 0 : 1;
+	return ok ? 0 : 1;
 }

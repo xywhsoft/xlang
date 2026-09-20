@@ -1,0 +1,53 @@
+extern "class_cleanup_open" func openPayload() as point
+extern "class_cleanup_step" func step(int id)
+
+class Payload
+    native point handle
+    extern "class_cleanup_close" destroy()
+end
+class CleanupRoot
+    Payload payload
+    destroy()
+        step(1)
+    end
+end
+class CleanupMiddle extends CleanupRoot
+    destroy()
+        step(2)
+    end
+end
+class CleanupLeaf extends CleanupMiddle
+    destroy()
+        step(3)
+    end
+end
+
+CleanupLeaf global = CleanupLeaf()
+global.payload = Payload(openPayload())
+
+func consume(CleanupLeaf value)
+end
+
+export "class_cleanup_temporary" func temporary() as int
+    try
+        consume(CleanupLeaf())
+    catch error
+        return 202
+    end
+    return 7
+end
+
+export "class_cleanup_scope" func scopeProbe() as int
+    try
+        if true then
+            CleanupLeaf local = CleanupLeaf()
+        end
+    catch error
+        return 202
+    end
+    return 7
+end
+
+func main(...) as int
+    return 0
+end

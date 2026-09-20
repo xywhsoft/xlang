@@ -1,0 +1,34 @@
+async func delayedValue() as int
+    time.sleep(5)
+    return 7
+end
+
+async func readerAfterAwait(bool present) as func() as int
+    string? text = present ? "capture" : null
+    int value = await delayedValue()
+    return func() as int => text == null ? value : text.length
+end
+
+func readers(bool present) as generator<int>
+    string? text = present ? "capture" : null
+    auto first = func() as int => text == null ? 7 : text.length
+    yield first()
+    auto second = func() as int => text == null ? 7 : text.length
+    yield second()
+end
+
+func exerciseReaders(bool present)
+    int count = 0
+    for value in readers(present)
+        assert value == 7
+        count += 1
+    end
+    assert count == 2
+end
+
+auto absent = await readerAfterAwait(false)
+auto present = await readerAfterAwait(true)
+assert absent() == 7
+assert present() == 7
+exerciseReaders(false)
+exerciseReaders(true)

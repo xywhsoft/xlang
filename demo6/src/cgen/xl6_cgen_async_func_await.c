@@ -65,11 +65,13 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
         if ( emittedCtor ) {
             ;
         } else if ( xl6CgenIsTypedContainerType(ctx, resultType) ) {
-            xl6CgenTypedContainerValueFromExprMode(ctx, resultType, node->children[0], "XRT_OBJMODE_SHARED");
+            xl6CgenTypedContainerValueFromExpr(ctx, resultType, node->children[0]);
         } else if ( xl6CgenIsTaggedEnumType(ctx, resultType) ) {
             xl6CgenTaggedEnumValueExpr(ctx, resultType, node->children[0]);
         } else if ( xl6CgenIsWeakType(resultType) ) {
             xl6CgenWeakValueExpr(ctx, node->children[0]);
+        } else if ( xl6CgenIsErrorType(ctx, resultType) ) {
+            xl6CgenErrorOwnedExpr(ctx, node->children[0]);
         } else if ( xl6CgenIsXValueType(resultType) ) {
             xl6CgenXValueFromExprForTarget(ctx, resultType, node->children[0]);
         } else if ( xl6CgenIsFunctionType(resultType) ) {
@@ -80,7 +82,7 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
             xl6OutputPuts(
                 xl6CgenIsNullableStringTypeNode(ctx, resultType) ?
                     "xl6_nullable_string_copy(" :
-                    "xrtCopyStr(",
+                    "xl6_xrt_string_dup(",
                 ctx->out);
             xl6CgenStringSourceExpr(ctx, resultType, node->children[0]);
             xl6OutputPuts(
@@ -110,12 +112,6 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
         xl6OutputPuts(";\n", ctx->out);
     }
     xl6CgenRetainClassFunctionFieldsForBorrowedExpr(ctx, resultType, returnName, node->children[0]);
-    /* future 可在任意线程完成和读取，class 内部拥有的对象必须在发布前共享化。 */
-    if ( xl6CgenClassHandleTargetType(ctx, resultType) != NULL ) {
-        xl6CgenClassHandlePublishShared(ctx, resultType, returnName);
-    } else if ( xl6CgenClassNodeForType(ctx, resultType) != NULL ) {
-        xl6CgenClassValuePublishShared(ctx, resultType, returnName);
-    }
     if ( hasReturnArgScope ) {
         xl6CgenClassExprTempScopeEnd(ctx, &returnArgScope);
     }
@@ -150,15 +146,14 @@ static void xl6CgenAsyncReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* node
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "pOut->pValue = __xl6_async_box_%d;\n", id);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("pOut->sError = 0;\n", ctx->out);
+    xl6OutputPuts("pOut->Error = 0;\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("pOut->iFlags = XFUTURE_RESULT_F_OWN_VALUE;\n", ctx->out);
+    xl6OutputPuts("pOut->iFlags = XL6_FUTURE_OWN_VALUE;\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPuts("pOut->pfnFreeValue = ", ctx->out);
     xl6CgenAsyncResultFreeValue(ctx, ctx->currentReturnFunc, resultType);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("pOut->pfnFreeError = 0;\n", ctx->out);
     xl6CgenEmitCleanupsSince(ctx, 0);
     xl6CgenIndent(ctx);
     xl6OutputPuts("return 0;\n", ctx->out);
@@ -320,16 +315,16 @@ static void xl6CgenAwaitTaggedEnumBranchExpr(
 static const char* xl6CgenAwaitTypedContainerCopyFuncName(const char* typeName)
 {
     if ( xl6CTextEquals(typeName, "array") ) {
-        return "xl6_xrt_typed_array_copy_mode";
+        return "xl6_xrt_typed_array_copy";
     }
     if ( xl6CTextEquals(typeName, "list") ) {
-        return "xl6_xrt_typed_list_copy_mode";
+        return "xl6_xrt_typed_list_copy";
     }
     if ( xl6CTextEquals(typeName, "set") ) {
-        return "xl6_xrt_typed_set_copy_mode";
+        return "xl6_xrt_typed_set_copy";
     }
     if ( xl6CTextEquals(typeName, "dict") ) {
-        return "xl6_xrt_typed_dict_copy_mode";
+        return "xl6_xrt_typed_dict_copy";
     }
     return NULL;
 }
@@ -368,7 +363,34 @@ static void xl6CgenAwaitTypedContainerBorrowedBranchExpr(
     xl6CgenExpr(ctx, expr);
     xl6OutputPrintf(ctx->out, ", \"\", %d, %d, 1, sizeof(", line, column);
     xl6OutputPuts(cType, ctx->out);
-    xl6OutputPuts("))), XRT_OBJMODE_LOCAL)", ctx->out);
+    xl6OutputPuts("))))", ctx->out);
+}
+
+static void xl6CgenAwaitErrorBranchExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* expr,
+    int line,
+    int column)
+{
+    if ( expr != NULL && expr->kind == XL6_AST_CONDITIONAL && expr->childCount > 2 ) {
+        xl6OutputPutc('(', ctx->out);
+        xl6CgenConditionExpr(ctx, expr->children[0]);
+        xl6OutputPuts(" ? ", ctx->out);
+        xl6CgenAwaitErrorBranchExpr(ctx, expr->children[1], line, column);
+        xl6OutputPuts(" : ", ctx->out);
+        xl6CgenAwaitErrorBranchExpr(ctx, expr->children[2], line, column);
+        xl6OutputPutc(')', ctx->out);
+        return;
+    }
+
+    xl6OutputPuts("(XL6_Error*)", ctx->out);
+    xl6OutputPuts(
+        xl6CgenAwaitFutureExprIsOwnedDirect(ctx, expr) ?
+            "xl6_future_await_handle_release(" :
+            "xl6_future_await_handle_copy(",
+        ctx->out);
+    xl6CgenExpr(ctx, expr);
+    xl6OutputPrintf(ctx->out, ", xl6TypeError(), \"\", %d, %d)", line, column);
 }
 
 static void xl6CgenAwaitTypedContainerBranchExpr(
@@ -627,6 +649,11 @@ static int xl6CgenAwaitConditionalBranchResultExpr(
         return 1;
     }
 
+    if ( requireValue && xl6CgenIsErrorType(ctx, resultType) ) {
+        xl6CgenAwaitErrorBranchExpr(ctx, operand, line, column);
+        return 1;
+    }
+
     if ( requireValue && xl6CgenIsClassType(ctx, resultType) ) {
         xl6CgenAwaitClassBranchExpr(ctx, resultType, operand, line, column);
         return 1;
@@ -643,6 +670,15 @@ static int xl6CgenAwaitOwnedTemporaryHelperExpr(
 {
     const char* helperName;
     char nullableHelperName[64];
+
+    if ( requireValue && xl6CgenIsErrorType(ctx, resultType) ) {
+        xl6CgenAwaitErrorBranchExpr(
+            ctx,
+            xl6CgenAwaitOperand(node),
+            node != NULL ? node->line : 0,
+            node != NULL ? node->column : 0);
+        return 1;
+    }
 
     if ( requireValue && xl6CgenIsClassType(ctx, resultType) ) {
         xl6CgenAwaitClassBranchExpr(
@@ -782,6 +818,30 @@ static void xl6CgenAwaitExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6OutputPrintf(
             ctx->out,
             ", \"\", %d, %d)",
+            node != NULL ? node->line : 0,
+            node != NULL ? node->column : 0);
+        xl6AstFree(resultType);
+        return;
+    }
+
+	if ( xl6CgenIsWeakType(resultType) ) {
+		xl6OutputPuts("xl6_future_await_weak_copy(", ctx->out);
+		xl6CgenAwaitOperandExpr(ctx, node);
+		xl6OutputPrintf(
+			ctx->out,
+			", \"\", %d, %d)",
+			node != NULL ? node->line : 0,
+			node != NULL ? node->column : 0);
+		xl6AstFree(resultType);
+		return;
+	}
+
+    if ( xl6CgenIsErrorType(ctx, resultType) ) {
+        xl6OutputPuts("(XL6_Error*)xl6_future_await_handle_copy(", ctx->out);
+        xl6CgenAwaitOperandExpr(ctx, node);
+        xl6OutputPrintf(
+            ctx->out,
+            ", xl6TypeError(), \"\", %d, %d)",
             node != NULL ? node->line : 0,
             node != NULL ? node->column : 0);
         xl6AstFree(resultType);

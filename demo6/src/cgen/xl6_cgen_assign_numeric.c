@@ -17,7 +17,7 @@ static void xl6CgenXValueAsI64Expr(XL6_CgenContext* ctx, const XL6_AstNode* expr
     typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
     usesXValue = xl6CgenIsXValueType(typeNode) || xl6CgenExprIsXValueBorrow(ctx, expr);
     if ( usesXValue ) {
-        xl6CgenXValueScalarGetExpr(ctx, "long long", "xvoGetInt", expr);
+        xl6CgenXValueScalarGetExpr(ctx, "long long", "xl6_xrt_value_int", expr);
     } else if ( typeNode != NULL && xl6CgenIsFloatTypeName(typeNode->text) ) {
         xl6OutputPuts("(long long)(", ctx->out);
         xl6CgenExpr(ctx, expr);
@@ -36,7 +36,7 @@ static void xl6CgenXValueAsF64Expr(XL6_CgenContext* ctx, const XL6_AstNode* expr
     typeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
     usesXValue = xl6CgenIsXValueType(typeNode) || xl6CgenExprIsXValueBorrow(ctx, expr);
     if ( usesXValue ) {
-        xl6CgenXValueScalarGetExpr(ctx, "double", "xvoGetFloat", expr);
+        xl6CgenXValueScalarGetExpr(ctx, "double", "xl6_xrt_value_float", expr);
     } else {
         xl6OutputPuts("(double)(", ctx->out);
         xl6CgenExpr(ctx, expr);

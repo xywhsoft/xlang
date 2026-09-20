@@ -19,10 +19,14 @@ func main(...) as int
     var namedResult = dynamicArguments.add(right = 4, left = 3)
     var varargResult = dynamicArguments.count(10, 1, 2, 3)
     var kwargsResult = dynamicArguments.options("x", mode = "fast", retry = 2)
+    var setFallback = set{1}
+    var setFallbackResult = setFallback.add(2)
     assert int(defaultResult) == 5
     assert int(namedResult) == 7
     assert int(varargResult) == 13
     assert int(kwargsResult) == 3
+    assert bool(setFallbackResult) == true
+    assert setFallback.contains(2) == true
     println("dynamic method arguments ok")
     return 0
 end

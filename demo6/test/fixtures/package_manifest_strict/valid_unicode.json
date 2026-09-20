@@ -3,7 +3,11 @@
   "name": "pkg\u4E2D\u6587",
   "version": "1.0.0",
   "abiVersion": "1",
-  "artifact": {"cSources": [], "xlSources": []},
+  "artifact": {
+    "cSources": [],
+    "xlSources": [],
+    "xrtModules": ["XRT_MODULE_UNICODE", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"]
+  },
   "links": [],
   "loadlibs": [],
   "dependencies": [

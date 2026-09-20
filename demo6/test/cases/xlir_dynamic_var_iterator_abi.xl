@@ -1,0 +1,157 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+class DynamicPropertySource
+    get values() as var
+        return dict{"left": 3, "right": 4}
+    end
+end
+
+func makeValues() as var
+    return [7, 8]
+end
+
+var dynamicArray = [1, 2, 3]
+int arrayItemSum = 0
+int arrayVisits = 0
+for value in dynamicArray
+    arrayVisits += 1
+    arrayItemSum += int(value)
+    if arrayVisits == 1
+        dynamicArray.push(99)
+    end
+end
+expect(arrayVisits, 3)
+expect(arrayItemSum, 6)
+expect(dynamicArray.length, 4)
+
+var refinedArray = [4, 5]
+int refinedArraySum = 0
+if refinedArray is array then
+    for value in refinedArray
+        refinedArraySum += int(value)
+    end
+end
+expect(refinedArraySum, 9)
+
+int arrayKeySum = 0
+int arrayKeyValueSum = 0
+for key, value in dynamicArray
+    arrayKeySum += int(key)
+    arrayKeyValueSum += int(value)
+end
+expect(arrayKeySum, 6)
+expect(arrayKeyValueSum, 105)
+
+var dynamicList = list[2: 4, 5: 7, 9: 11]
+int listKeySum = 0
+int listValueSum = 0
+for key, value in dynamicList
+    listKeySum += int(key)
+    listValueSum += int(value)
+end
+expect(listKeySum, 16)
+expect(listValueSum, 22)
+
+var dynamicSet = set{3, 5, 7}
+int setOrdinalSum = 0
+int setValueSum = 0
+for key, value in dynamicSet
+    setOrdinalSum += int(key)
+    setValueSum += int(value)
+end
+expect(setOrdinalSum, 3)
+expect(setValueSum, 15)
+
+var dynamicDict = dict{"a": 10, "b": 20}
+int dictKeyVisits = 0
+for key in dynamicDict
+    if string(key) == "a" or string(key) == "b"
+        dictKeyVisits += 1
+    end
+end
+expect(dictKeyVisits, 2)
+
+int dictValueSum = 0
+int dictSawB = 0
+for key, value in dynamicDict
+    dictValueSum += int(value)
+    if string(key) == "b"
+        dictSawB = int(value)
+    end
+end
+expect(dictValueSum, 30)
+expect(dictSawB, 20)
+
+int propertyValueSum = 0
+auto propertySource = DynamicPropertySource()
+for key, value in propertySource.values
+    propertyValueSum += int(value)
+end
+expect(propertyValueSum, 7)
+
+int discardPairVisits = 0
+for _, _ in dynamicDict
+    discardPairVisits += 1
+end
+expect(discardPairVisits, 2)
+
+int discardItemVisits = 0
+for _ in dynamicArray
+    discardItemVisits += 1
+end
+expect(discardItemVisits, 4)
+
+int temporarySum = 0
+for value in makeValues()
+    temporarySum += int(value)
+end
+expect(temporarySum, 15)
+
+int skipBreakSum = 0
+for value in dynamicArray
+    if int(value) == 2
+        continue
+    elseif int(value) == 3
+        break
+    end
+    skipBreakSum += int(value)
+end
+expect(skipBreakSum, 1)
+
+int finallyTrace = 0
+func firstDynamic(var values) as int
+    for value in values
+        try
+            return int(value)
+        finally
+            finallyTrace += 1
+        end
+    end
+    return -1
+end
+expect(firstDynamic(makeValues()), 7)
+expect(finallyTrace, 1)
+
+func validateInvalidSource() as int
+    var invalidSource = 42
+    int caughtTypeError = 0
+    int invalidBodyVisits = 0
+    int invalidFinally = 0
+    string invalidMessage = ""
+    try
+        for value in invalidSource
+            invalidBodyVisits += 1
+        end
+    catch error
+        if error.kind == "TypeError"
+            caughtTypeError = 1
+        end
+        invalidMessage = error.message
+    finally
+        invalidFinally += 1
+    end
+    expectStr(invalidMessage, "for in value must be array, list, set or dict")
+    return caughtTypeError * 100 + invalidBodyVisits * 10 + invalidFinally
+end
+expect(validateInvalidSource(), 101)

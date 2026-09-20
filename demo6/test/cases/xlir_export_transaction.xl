@@ -1,0 +1,61 @@
+extern "export_transaction_fail" func failNative()
+
+export "tx_scalar" func scalar() as int
+    failNative()
+    return 42
+end
+
+export "tx_void" func noValue()
+    failNative()
+end
+
+export func tx_string() as string
+    failNative()
+    return "owned"
+end
+
+export func tx_value() as var
+    failNative()
+    return 42
+end
+
+export func tx_product() as (string, int)
+    failNative()
+    return "owned", 42
+end
+
+export "tx_pure" func pure(c_int value) as c_int
+    return value
+end
+
+export "tx_catch_callback" func catchCallback(func() as int callback) as int
+    try
+        return callback()
+    catch failure
+        return 17
+    end
+end
+
+export "tx_apply_callback" func applyCallback(func() as int callback) as int
+    return callback()
+end
+
+export func tx_string_callback(func() as string callback) as string
+    return callback()
+end
+
+export func tx_value_callback(func() as var callback) as var
+    return callback()
+end
+
+export func tx_accept_string(func() as int first, func() as int second) as string
+    return "pending"
+end
+
+export func tx_accept_value(func() as int first, func() as int second) as var
+    return 42
+end
+
+export func tx_accept_product(func() as int first, func() as int second) as (string, int)
+    return "pending", 42
+end

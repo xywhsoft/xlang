@@ -5,41 +5,66 @@ param(
 $ErrorActionPreference = "Stop"
 
 $cgenDir = Join-Path $Root "src\cgen"
-$tccPath = Join-Path $cgenDir "xl6_cgen_tcc.c"
+$commonPath = Join-Path $PSScriptRoot "xrt_snapshot_contract.ps1"
+$runtimePath = Join-Path $Root "release\include\xl_runtime.h"
 
-if (!(Test-Path -LiteralPath $tccPath)) {
-    throw "missing TCC cgen source: $tccPath"
+if ( ! (Test-Path -LiteralPath $cgenDir -PathType Container) ) {
+    throw "missing C generator directory: $cgenDir"
+}
+if ( ! (Test-Path -LiteralPath $commonPath -PathType Leaf) ) {
+    throw "missing XRT snapshot contract helper: $commonPath"
+}
+if ( ! (Test-Path -LiteralPath $runtimePath -PathType Leaf) ) {
+    throw "missing xlang runtime header: $runtimePath"
 }
 
-$declarations = @()
+. $commonPath
 
-# 只接受从字符串首字符开始的 C 函数原型。先用字符串切片取出内容，
-# 再解析函数名，避免脚本编码差异和超长字符串造成正则行为不一致。
+$registered = Read-XrtSnapshotRuntimeSymbols -Root $Root
+Assert-XrtSnapshotRuntimeWiring -Root $Root
+$declarations = @()
+$runtimeText = [System.IO.File]::ReadAllText(
+    $runtimePath,
+    [System.Text.Encoding]::UTF8)
+
+if ( $runtimeText -match '\bmax_align_t\b' ) {
+    throw "xl_runtime.h must not require the C11-only max_align_t typedef"
+}
+if ( $runtimeText -notmatch 'typedef\s+union\s+xl6_value_record_align\b' -or
+     $runtimeText -notmatch '\bxl6_value_record_align\s+Align\s*;' ) {
+    throw "xl_runtime.h is missing the C99-compatible value-record alignment contract"
+}
+
+# Read only C prototypes starting at the first byte of an emitted string.
+# Slice before parsing so Windows PowerShell and long lines behave consistently.
 $outputPrefix = 'xl6OutputPuts("'
 $outputSuffix = '\n"'
-$prototypePattern = '^(?<return>[^;{}=]+?[ \t\*]+)(?<name>xrt[A-Za-z0-9_]+)\s*\((?<params>[^;{}=]*)\);$'
+$prototypePattern = '^(?!(?:return|if|for|while|switch|case)\b)(?<return>[A-Za-z_][A-Za-z0-9_]*(?:[ \t]+[A-Za-z_][A-Za-z0-9_]*)*(?:[ \t]*\*)*)[ \t]*(?<name>xrt[A-Za-z0-9_]+)\s*\((?<params>[^;{}=]*)\);$'
 
-foreach ($file in (Get-ChildItem -LiteralPath $cgenDir -File -Filter '*.c')) {
-    foreach ($line in (Get-Content -LiteralPath $file.FullName -Encoding UTF8)) {
+foreach ( $file in (Get-ChildItem -LiteralPath $cgenDir -File -Filter '*.c') ) {
+    foreach ( $line in (Get-Content -LiteralPath $file.FullName -Encoding UTF8) ) {
         $trimmed = $line.TrimStart()
-        if (!$trimmed.StartsWith($outputPrefix, [System.StringComparison]::Ordinal)) {
+        if ( ! $trimmed.StartsWith($outputPrefix, [System.StringComparison]::Ordinal) ) {
             continue
         }
 
         $payloadStart = $outputPrefix.Length
-        $payloadEnd = $trimmed.IndexOf($outputSuffix, $payloadStart, [System.StringComparison]::Ordinal)
-        if ($payloadEnd -lt 0) {
+        $payloadEnd = $trimmed.IndexOf(
+            $outputSuffix,
+            $payloadStart,
+            [System.StringComparison]::Ordinal)
+        if ( $payloadEnd -lt 0 ) {
             continue
         }
 
         $payload = $trimmed.Substring($payloadStart, $payloadEnd - $payloadStart)
-        if ($payload.Length -eq 0 -or [char]::IsWhiteSpace($payload[0])) {
+        if ( $payload.Length -eq 0 -or [char]::IsWhiteSpace($payload[0]) ) {
+            continue
+        }
+        if ( $payload -notmatch $prototypePattern ) {
             continue
         }
 
-        if ($payload -notmatch $prototypePattern) {
-            continue
-        }
         $declarations += [pscustomobject]@{
             Name = $Matches['name']
             ReturnType = (($Matches['return'] -replace '\s+', ' ').Trim())
@@ -49,55 +74,48 @@ foreach ($file in (Get-ChildItem -LiteralPath $cgenDir -File -Filter '*.c')) {
     }
 }
 
-$tccText = [System.IO.File]::ReadAllText($tccPath, [System.Text.Encoding]::UTF8)
-$registered = @(
-    [regex]::Matches($tccText, 'XL6_TCC_ADD_SYMBOL\((?<name>xrt[A-Za-z0-9_]+)\)') |
-        ForEach-Object { $_.Groups['name'].Value } |
-        Sort-Object -Unique
-)
-$tccDeclaredNames = @(
+if ( $env:XL6_CONTRACT_DEBUG ) {
+    Write-Host "root=$Root declarations=$($declarations.Count) runtimeSymbols=$($registered.Count)"
+}
+
+$failed = $false
+$declaredNames = @(
     $declarations |
-        Where-Object { $_.Path -eq $tccPath } |
         ForEach-Object { $_.Name } |
         Sort-Object -Unique
 )
 
-if ($env:XL6_CONTRACT_DEBUG) {
-    Write-Host "root=$Root declarations=$($declarations.Count) tccDeclarations=$($tccDeclaredNames.Count)"
-}
-
-$failed = $false
-
-foreach ($name in $registered) {
-    if ($tccDeclaredNames -contains $name) {
+foreach ( $name in $declaredNames ) {
+    if ( $registered.Contains($name) ) {
         continue
     }
-    Write-Host "registered XRT symbol has no emitted declaration: $name" -ForegroundColor Red
+    Write-Host "emitted XRT declaration has no runtime symbol: $name" -ForegroundColor Red
     $failed = $true
 }
 
-# 参数名不属于 ABI，不能用原型全文比较。这里检查最容易造成未定义行为的
-# 返回类型冲突；完整参数契约由生成模块的 TCC 编译门禁负责。
-$groups = @($declarations | Group-Object Name)
-foreach ($item in $groups) {
-    if ($tccDeclaredNames -notcontains $item.Name) {
-        continue
-    }
-
-    $returnTypes = @($item.Group | Select-Object -ExpandProperty ReturnType -Unique)
-    if ($returnTypes.Count -le 1) {
+# Storage-class specifiers are not part of a C return type.  XLIR emits explicit
+# extern declarations while the legacy emitter may omit the redundant specifier.
+# Parameter names are not ABI. Check normalized return-type conflicts here;
+# generated TCC compilation gates validate the complete parameter contract.
+foreach ( $item in @($declarations | Group-Object Name) ) {
+    $returnTypes = @($item.Group | ForEach-Object {
+        ($_.ReturnType -replace '^extern\s+', '').Trim()
+    } | Select-Object -Unique)
+    if ( $returnTypes.Count -le 1 ) {
         continue
     }
 
     Write-Host "conflicting emitted return types for $($item.Name)" -ForegroundColor Red
     $item.Group |
         Sort-Object Signature, Path |
-        ForEach-Object { Write-Host "  $($_.Signature) [$($_.Path)]" -ForegroundColor Red }
+        ForEach-Object {
+            Write-Host "  $($_.Signature) [$($_.Path)]" -ForegroundColor Red
+        }
     $failed = $true
 }
 
-if ($failed) {
+if ( $failed ) {
     exit 1
 }
 
-Write-Host "TCC/XRT contract ok: $($registered.Count) registered symbols"
+Write-Host "TCC/XRT contract ok: $($registered.Count) runtime symbols, $($declaredNames.Count) emitted declarations"

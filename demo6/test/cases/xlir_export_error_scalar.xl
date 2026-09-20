@@ -1,0 +1,4 @@
+export "xlir_public_fail" func failExport() as int
+    assert false
+    return 1
+end

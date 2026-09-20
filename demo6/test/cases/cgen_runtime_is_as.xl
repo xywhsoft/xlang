@@ -17,6 +17,12 @@ func inc(int value) as int
     return value + 1
 end
 
+int voidCallCount = 0
+
+func markCalled()
+    voidCallCount += 1
+end
+
 var boxedInt = 42
 var boxedBool = true
 var boxedFloat = 1.5
@@ -80,11 +86,20 @@ Payload castPayload = boxedPayload as Payload
 expect(castPayload.value, 88)
 
 func(int) as int fn = inc
-var boxedFn = fn
+var boxedFn = xcall(fn)
 
 expect(boxedFn is func(int) as int, 1)
 expect(boxedFn is func(string) as int, 0)
 expect(int(boxedFn(41)), 42)
+
+func(int) as int restoredFn = boxedFn as func(int) as int
+expect(restoredFn(41), 42)
+
+func() voidFn = markCalled
+var boxedVoidFn = xcall(voidFn)
+func() restoredVoidFn = boxedVoidFn as func()
+restoredVoidFn()
+expect(voidCallCount, 1)
 
 array<int> values = array[1, 2, 3]
 var boxedValues = values
@@ -114,4 +129,20 @@ catch e
     failedCastCount += 1
 end
 
-expect(failedCastCount, 3)
+try
+    Payload invalidPayload = boxedInt as Payload
+    expect(invalidPayload.value, 0)
+catch e
+    expect(e.kind == "TypeError", 1)
+    failedCastCount += 1
+end
+
+try
+    func(string) as int invalidFn = boxedFn as func(string) as int
+    invalidFn("ignored")
+catch e
+    expect(e.kind == "TypeError", 1)
+    failedCastCount += 1
+end
+
+expect(failedCastCount, 5)

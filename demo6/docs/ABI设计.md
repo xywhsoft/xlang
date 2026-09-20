@@ -370,6 +370,13 @@ byref/out class -> C xvalue*
 
 - C -> xlang 参数：`string` 对应 C 的 UTF-8 只读字符串指针，xlang 如需保存必须复制。
 - C -> xlang 返回：`string` 表示 C 返回 UTF-8 只读字符串指针，xlang 立即复制为 xlang string。
+
+XLIR 的 `CallTarget.resultConversionAbi` 显式记录这个拥有权边界：真正的外部
+字符串返回使用 `borrowed-string-copy`，由 XRT `xrtStrDup` 建立拥有副本；内部函数
+和已提供拥有返回的运行库桥接使用 `direct`，不再重复复制。`CALL` 的 SSA 结果
+已经完成转换，复制必须早于参数临时值和 native 接收者的清理。具名函数值适配器、
+native 属性、成员函数、协议派发以及 async/generator 内的调用遵守同一规则。
+C 返回 `NULL` 时，非可空的 `string` 得到空字符串；不向用户暴露可释放的静态缓冲地址。
 - xlang -> C 参数：`string` 对应 UTF-8 只读字符串指针，调用期间有效。
 - xlang -> C 返回：第一阶段不直接支持，必须显式改成 `point`、out 参数、XRT string 句柄或用户自定义 wrapper。
 
@@ -495,6 +502,39 @@ void player_set_hp(XL_Class_Player* self, int64_t value);
 - `var`、`function`、容器、object 动态字段等复杂值导出到 C 时必须使用 XRT 类型和元数据描述。
 - internal ABI symbol 仍使用 signature id 保证唯一性，不要求人工可读。
 - C export symbol 是公开契约，不能随 internal ABI symbol 变化自动改名。
+
+### 12.2 callable ABI
+
+DEMO6 callable 分为三层：
+
+1. typed/native 入口：编译器已知完整签名时直接调用，保留原生性能。
+2. raw C callback：只有 C 函数指针本身，没有闭包环境，供 `extern` / `export` C ABI 使用。
+3. XCall callable：`xrt_call_frame + xrt_call_result + Env`，承载动态调用、可选参数、`...`、`***`、多返回值和生命周期。
+
+内部 `XL6_Function` 概念上保存：
+
+```text
+signature id
+xrt_func_sig
+ownership/XCall env
+typed invoke env
+typed invoke entry
+raw C callback entry
+XCall entry
+retain/release
+```
+
+规则：
+
+- typed invoke env 与 ownership/XCall env 必须分离；二者不能因为都表现为 `void*` 就互换。
+- 通用函数指针字段使用 C 函数指针类型保存，不经 `void*` 往返，避免 ISO C 未定义/实现相关转换。
+- `xcall(typedFunc)` 创建 XRT callable，并把原始 `XL6_Function` 放入受管理环境；它不会把期待 typed env 的入口错误登记为 XRT `NativeEntry`。
+- 从任意 XRT callable 恢复 typed func 前必须比较完整 64 位 signature id；恢复后的通用路径走 XCall。
+- 编译器不会读取或猜测第三方 callable 的私有 Env 布局。将来若 XRT 提供稳定的 callable introspection API，可在不改变语言语义的前提下增加同源 callable 快路径。
+- raw C callback 类型由规范化 func 签名生成稳定 typedef，并在同一生成单元和头文件中去重。
+- C 回调进入 xlang 时，函数指针由原子引用计数 box 托管；跨 wrapper 保存不会形成栈悬垂。
+- 当前 C callback 使用目标平台默认 C 调用约定。`stdcall`、`fastcall` 等必须以后通过显式 ABI 属性加入，不能按平台猜测。
+- C callback 的受支持类型和字符串借用规则见 `C混编设计.md`。
 
 ## 13. 模块 ABI
 

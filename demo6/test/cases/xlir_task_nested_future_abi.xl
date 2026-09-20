@@ -1,0 +1,47 @@
+async func xlirNestedFutureValue(int value, int delay) as int
+    time.sleep(delay)
+    return value
+end
+
+func xlirNestedFutureStart(int value, int delay) as future<int>
+    return xlirNestedFutureValue(value, delay)
+end
+
+func xlirNestedFutureWait(future<int> value) as bool
+    return value.wait()
+end
+
+func(int, int) as future<int> nestedFutureJob = xlirNestedFutureStart
+func(future<int>) as bool nestedFutureWaitJob = xlirNestedFutureWait
+
+future<int> borrowedArgument = xlirNestedFutureValue(7, 1)
+assert await task.spawn(nestedFutureWaitJob, borrowedArgument), "task.spawn must retain Future arguments in its worker frame"
+assert await borrowedArgument == 7, "task.spawn must not consume a borrowed Future argument"
+
+future<future<int>> spawnedLeft = task.spawn(nestedFutureJob, 11, 15)
+future<future<int>> spawnedRight = task.spawn(nestedFutureJob, 22, 1)
+array<future<int>> literalValues = await task.all([spawnedLeft, spawnedRight])
+assert await literalValues[0] == 11, "task.all must retain the first nested Future payload"
+assert await literalValues[1] == 22, "task.all must retain the second nested Future payload"
+
+array<future<future<int>>> typedJobs = array[
+    task.spawn(nestedFutureJob, 31, 10), task.spawn(nestedFutureJob, 42, 1)
+]
+array<future<int>> typedValues = await task.all(typedJobs)
+assert await typedValues[0] == 31, "typed task.all must retain the first nested Future payload"
+assert await typedValues[1] == 42, "typed task.all must retain the second nested Future payload"
+
+future<future<int>> literalRace = task.race([
+    task.spawn(nestedFutureJob, 62, 1)
+])
+future<int> literalWinner = await literalRace
+assert await literalWinner == 62, "task.race must retain the winning nested Future payload"
+
+array<future<future<int>>> typedRaceJobs = array[
+    task.spawn(nestedFutureJob, 82, 1)
+]
+future<future<int>> typedRace = task.race(typedRaceJobs)
+future<int> typedWinner = await typedRace
+assert await typedWinner == 82, "typed task.race must retain the winning nested Future payload"
+
+println("xlir task nested future abi ok")

@@ -253,148 +253,51 @@ if errorlevel 1 (
 
 release\xl.exe cgen test\cases\cgen_primitive_widths.xl --emit build\test\cgen_primitive_widths.c
 if errorlevel 1 exit /b 1
-findstr /C:"signed char __xl6_user_global_i8" build\test\cgen_primitive_widths.c >nul
-if errorlevel 1 (
-    echo cgen_primitive_widths.c missing int8 C type.
-    exit /b 1
-)
-findstr /C:"unsigned char __xl6_user_global_u8" build\test\cgen_primitive_widths.c >nul
-if errorlevel 1 (
-    echo cgen_primitive_widths.c missing uint8 C type.
-    exit /b 1
-)
-findstr /C:"short __xl6_user_global_i16" build\test\cgen_primitive_widths.c >nul
-if errorlevel 1 (
-    echo cgen_primitive_widths.c missing int16 C type.
-    exit /b 1
-)
-findstr /C:"unsigned short __xl6_user_global_u16" build\test\cgen_primitive_widths.c >nul
-if errorlevel 1 (
-    echo cgen_primitive_widths.c missing uint16 C type.
-    exit /b 1
-)
-findstr /C:"int __xl6_user_global_i32" build\test\cgen_primitive_widths.c >nul
-if errorlevel 1 (
-    echo cgen_primitive_widths.c missing int32 C type.
-    exit /b 1
-)
-findstr /C:"unsigned int __xl6_user_global_u32" build\test\cgen_primitive_widths.c >nul
-if errorlevel 1 (
-    echo cgen_primitive_widths.c missing uint32 C type.
-    exit /b 1
-)
-findstr /C:"long long __xl6_user_global_i64" build\test\cgen_primitive_widths.c >nul
-if errorlevel 1 (
-    echo cgen_primitive_widths.c missing int64 C type.
-    exit /b 1
-)
-findstr /C:"unsigned long long __xl6_user_global_u64" build\test\cgen_primitive_widths.c >nul
-if errorlevel 1 (
-    echo cgen_primitive_widths.c missing uint64 C type.
-    exit /b 1
-)
-findstr /C:"float __xl6_user_global_f32" build\test\cgen_primitive_widths.c >nul
-if errorlevel 1 (
-    echo cgen_primitive_widths.c missing float32 C type.
-    exit /b 1
-)
-findstr /C:"double __xl6_user_global_f64" build\test\cgen_primitive_widths.c >nul
-if errorlevel 1 (
-    echo cgen_primitive_widths.c missing float64 C type.
-    exit /b 1
-)
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_primitive_widths.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_primitive_widths.exe
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_scalar_container_contract.ps1 -Name cgen_primitive_widths
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/cgen_primitive_widths.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_primitive_widths.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_primitive_widths.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_safe_widening.xl --emit build\test\cgen_safe_widening.c
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_safe_widening.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_safe_widening.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/cgen_safe_widening.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_safe_widening.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_safe_widening.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_mixed_numeric_binary_infer.xl --emit build\test\cgen_mixed_numeric_binary_infer.c
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_mixed_numeric_binary_infer.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_mixed_numeric_binary_infer.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/cgen_mixed_numeric_binary_infer.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_mixed_numeric_binary_infer.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_mixed_numeric_binary_infer.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe ir test\cases\cgen_mixed_numeric_binary_infer.xl --lowered --emit build\test\xlir_mixed_numeric_binary.xlir
+if errorlevel 1 exit /b 1
+findstr /C:"scalar-convert" build\test\xlir_mixed_numeric_binary.xlir >nul
+if errorlevel 1 (
+    echo xlir_mixed_numeric_binary.xlir missing explicit i64-to-f64 execution promotion.
+    exit /b 1
+)
+release\xl.exe cgen test\cases\cgen_mixed_numeric_binary_infer.xl --backend xlir --emit build\test\xlir_mixed_numeric_binary_generated.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_mixed_numeric_binary_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\xlir_mixed_numeric_binary_host.exe
+if errorlevel 1 exit /b 1
+build\test\xlir_mixed_numeric_binary_host.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe run test\cases\cgen_var_numeric_convert.xl > build\test\cgen_var_numeric_convert.out.txt
+if errorlevel 1 exit /b 1
+findstr /C:"var numeric conversion ok" build\test\cgen_var_numeric_convert.out.txt >nul
+if errorlevel 1 exit /b 1
+
 release\xl.exe cgen test\cases\cgen_containers.xl --emit build\test\cgen_containers.c
 if errorlevel 1 exit /b 1
-findstr /C:"emptyArray = xvoCreateArray();" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing array default init.
-    exit /b 1
-)
-findstr /C:"xvoArrayAppendValue(__xl6_global_init_" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing statement-level array literal append.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_list_literal(2" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing list literal lowering.
-    exit /b 1
-)
-findstr /C:"xrtTypedSetCreate(xrtTypeInt()" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing inferred typed set literal lowering.
-    exit /b 1
-)
-findstr /C:"xrtTypedDictCreate(xrtTypeInt()" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing inferred typed dict literal lowering.
-    exit /b 1
-)
-findstr /C:"xrtTypedDictSetValue(__xl6_global_init_" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing inferred typed dict item lowering.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_set_literal(0" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing explicit empty set lowering.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_dict_varargs(0" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing explicit empty dict lowering.
-    exit /b 1
-)
-findstr /C:"xvoArrayAppendValue(__xl6_global_init_" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing prefixed array statement-level append.
-    exit /b 1
-)
-findstr /C:"prefixedDict = xl6_xrt_move_to_shared(xl6_xrt_dict_varargs(1" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing shared prefixed dict publication.
-    exit /b 1
-)
-findstr /C:"xrtTypedArrayCreate(xrtTypeInt()" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing typed array lowering.
-    exit /b 1
-)
-findstr /C:"xrtTypedListItemAt" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing typed list iteration.
-    exit /b 1
-)
-findstr /C:"xrtTypedDictItemAt" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing typed dict iteration.
-    exit /b 1
-)
-findstr /C:"xrtTypedArrayDestroy(__xl6_user_global_typedArray)" build\test\cgen_containers.c >nul
-if errorlevel 1 (
-    echo cgen_containers.c missing typed container cleanup.
-    exit /b 1
-)
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_containers.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_containers.exe
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_scalar_container_contract.ps1 -Name cgen_containers
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/cgen_containers.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_containers.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_containers.exe
 if errorlevel 1 exit /b 1
@@ -405,155 +308,43 @@ release\xl.exe run test\cases\cgen_typed_shared_copy_probe.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_container_ops.xl --emit build\test\cgen_container_ops.c
 if errorlevel 1 exit /b 1
-findstr /C:"xrtTypedArrayConcat(" build\test\cgen_container_ops.c >nul
-if errorlevel 1 (
-    echo cgen_container_ops.c missing typed array concat lowering.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_typed_list_concat(" build\test\cgen_container_ops.c >nul
-if errorlevel 1 (
-    echo cgen_container_ops.c missing typed list concat lowering.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_typed_dict_concat(" build\test\cgen_container_ops.c >nul
-if errorlevel 1 (
-    echo cgen_container_ops.c missing typed dict concat lowering.
-    exit /b 1
-)
-findstr /C:"xrtTypedSetUnion(" build\test\cgen_container_ops.c >nul
-if errorlevel 1 (
-    echo cgen_container_ops.c missing typed set union lowering.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_typed_set_relation(" build\test\cgen_container_ops.c >nul
-if errorlevel 1 (
-    echo cgen_container_ops.c missing typed set relation lowering.
-    exit /b 1
-)
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_scalar_container_contract.ps1 -Name cgen_container_ops
+if errorlevel 1 exit /b 1
 
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_dynamic_integer_index_write.ps1
+if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\cgen_dynamic_container_reference.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_dynamic_container_reference.xl --emit build\test\cgen_dynamic_container_reference.c
 if errorlevel 1 exit /b 1
-findstr /C:"if ( value != 0 ) { xvoAddRef(value); }" release\include\xl_runtime.h >nul
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_scalar_container_contract.ps1 -Name cgen_dynamic_container_reference
+if errorlevel 1 exit /b 1
+findstr /C:"return xrtValueRetain(value);" release\include\xl_runtime.h >nul
 if errorlevel 1 (
     echo xl_runtime.h missing managed-reference retain path.
     exit /b 1
 )
-findstr /C:"void (*clone)(void* pDst, const void* pSrc);" release\include\xl_runtime.h >nul
+findstr /C:"bool (*Clone)(ptr pTarget, const void* pSource, const xrttype* pType);" release\include\xruntime_decl.h >nul
 if errorlevel 1 (
-    echo xl_runtime.h is missing the XRT clone type operation.
+    echo xruntime_decl.h is missing the runtime clone type operation.
     exit /b 1
 )
-findstr /C:"xvalue xvoGetRecordOwner(const ptr pData);" release\include\xl_runtime.h >nul
+findstr /C:"static inline xvalue* xl6ValueRecordOwnerRef(const ptr pData);" release\include\xl_runtime.h >nul
 if errorlevel 1 (
     echo xl_runtime.h is missing the managed record owner lookup.
     exit /b 1
 )
-findstr /C:"int32_t xrtAtomicRefRetain(volatile int32_t* pCount);" release\include\xl_runtime.h >nul
+findstr /C:"XRT_API int32 xrtRefRetain(volatile int32* pCount);" release\include\xruntime_decl.h >nul
 if errorlevel 1 (
-    echo xl_runtime.h is missing the atomic reference retain API.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_retain(__xl6_user_global_values)" build\test\cgen_dynamic_container_reference.c >nul
-if errorlevel 1 (
-    echo cgen_dynamic_container_reference.c missing managed-reference assignment path.
-    exit /b 1
-)
-findstr /C:"xvoIndexGetMutableKey(xvoIndexGetMutableI64(__xl6_user_global_nestedAlias" build\test\cgen_dynamic_container_reference.c >nul
-if errorlevel 1 (
-    echo cgen_dynamic_container_reference.c missing nested mutable access path.
+    echo xruntime_decl.h is missing the reference retain API.
     exit /b 1
 )
 
 release\xl.exe cgen test\cases\cgen_static_typed_containers.xl --emit build\test\cgen_static_typed_containers.c
 if errorlevel 1 exit /b 1
-findstr /C:"xrtTypedArrayCreate(xrtTypeInt()" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing typed array create.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(__xl6_user_global_values" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing guarded typed array index.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_typed_require_item(xrtTypedListGet(__xl6_user_global_names" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing guarded typed list index.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_typed_require_item(xrtTypedDictGet(__xl6_user_global_table" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing guarded typed dict index.
-    exit /b 1
-)
-findstr /C:"((int)(*(bool*)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(__xl6_user_global_flags" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing language bool typed array read width normalization.
-    exit /b 1
-)
-findstr /C:"((int)(*(bool*)xl6_xrt_typed_require_item(xrtTypedListGet(__xl6_user_global_checks" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing language bool typed list read width normalization.
-    exit /b 1
-)
-findstr /C:"((int)(*(bool*)xl6_xrt_typed_require_item(xrtTypedDictGet(__xl6_user_global_states" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing language bool typed dict read width normalization.
-    exit /b 1
-)
-findstr /C:"xrtTypedListItemAt(" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing typed list iteration.
-    exit /b 1
-)
-findstr /C:"xrtTypedSetItemAt(" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing typed set iteration.
-    exit /b 1
-)
-findstr /C:"xrtTypedDictItemAt(" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing typed dict iteration.
-    exit /b 1
-)
-findstr /C:"int flag = ((int)(*(bool*)__xl6_typed_item_" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing language bool typed array for-in normalization.
-    exit /b 1
-)
-findstr /C:"int check = ((int)(*(bool*)__xl6_typed_item_" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing language bool typed list for-in normalization.
-    exit /b 1
-)
-findstr /C:"int item = ((int)(*(bool*)__xl6_typed_item_" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing language bool typed set for-in normalization.
-    exit /b 1
-)
-findstr /C:"int state = ((int)(*(bool*)__xl6_typed_item_" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing language bool typed dict for-in normalization.
-    exit /b 1
-)
-findstr /C:"const char* key = xrtCopyStr(__xl6_typed_key_" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing typed dict key value copy.
-    exit /b 1
-)
-findstr /C:"__xl6_typed_key_len_" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing typed dict key length copy.
-    exit /b 1
-)
-findstr /C:"xrtFree((void*)key);" build\test\cgen_static_typed_containers.c >nul
-if errorlevel 1 (
-    echo cgen_static_typed_containers.c missing typed dict key cleanup.
-    exit /b 1
-)
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_static_typed_containers.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_static_typed_containers.exe
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_scalar_container_contract.ps1 -Name cgen_static_typed_containers
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror -DXLIR_GENERATED_MODULE=\"build/test/cgen_static_typed_containers.c\" test\cases\xlir_generated_module_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_static_typed_containers.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_static_typed_containers.exe
 if errorlevel 1 exit /b 1

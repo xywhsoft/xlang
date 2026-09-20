@@ -1,0 +1,17 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+var integerValue = 41
+var booleanValue = true
+var floatValue = 1.5
+var stringValue = "xlang"
+var nullValue = null
+
+array<int> typedNumbers = array[1, 2]
+var erasedNumbers = typedNumbers
+
+expect(type(integerValue) == int, 1)
+expect(type(booleanValue) == bool, 1)
+expect(type(floatValue) == float, 1)
+expect(type(stringValue) == string, 1)
+expect(type(nullValue) == null, 1)
+expect(type(erasedNumbers) == type(typedNumbers), 1)

@@ -1,0 +1,2 @@
+extern "xl6_xrt_string_repeat" func malformed(string text, c_int count) as point
+malformed("ab", c_int(3))

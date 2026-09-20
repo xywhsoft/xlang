@@ -1,0 +1,11 @@
+func dynamicItems() as generator<var>
+    yield 7
+    yield 9
+end
+export "generator_item_dynamic" func dynamicTotal() as int
+    int total = 0
+    for item in dynamicItems()
+        total += int(item)
+    end
+    return total
+end

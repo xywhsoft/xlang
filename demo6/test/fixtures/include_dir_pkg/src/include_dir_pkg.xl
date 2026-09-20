@@ -1,0 +1,6 @@
+extern "xl6_include_dir_value" func __include_dir_value() as int
+
+
+export func value() as int
+    return __include_dir_value()
+end

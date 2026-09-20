@@ -1,0 +1,70 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+extern "xlir_checked_cast_point_source" func pointSource() as point
+extern "xlir_checked_cast_expect_point" func expectPoint(point actual, point expected)
+extern "xlir_checked_cast_expect_c_bool" func expectCBool(c_bool actual, c_bool expected)
+
+func makeBoxedText() as var
+    return "owned-rvalue"
+end
+
+var boxedInt = 42
+var boxedBool = true
+uint64 unsignedValue = 64
+var boxedUnsigned = unsignedValue
+var boxedFloat = 2.5
+time timeValue = #2026-08-31 12:34:56#
+var boxedTime = timeValue
+var boxedText = "borrowed-text"
+var boxedNull = null
+point sourcePoint = pointSource()
+var boxedPoint = sourcePoint
+
+int castInt = boxedInt as int
+bool castBool = boxedBool as bool
+uint64 castUnsigned = boxedUnsigned as uint64
+float castFloat = boxedFloat as float
+float convertedFloat = float(boxedFloat)
+time castTime = boxedTime as time
+string castText = boxedText as string
+string castOwnedText = makeBoxedText() as string
+point convertedPoint = point(boxedPoint)
+c_bool convertedTruth = c_bool(boxedInt)
+
+expect(castInt, 42)
+expect(castBool, 1)
+expect(int(castUnsigned), 64)
+expect(castFloat > 2.0, 1)
+expect(convertedFloat > 2.0, 1)
+expect(castTime == #2026-08-31 12:34:56#, 1)
+expectStr(castText, "borrowed-text")
+expectStr(castOwnedText, "owned-rvalue")
+expectPoint(convertedPoint, sourcePoint)
+expectCBool(convertedTruth, c_bool(true))
+
+int recovered = 0
+try
+    string invalidText = boxedInt as string
+catch TypeError ignored
+    recovered += 1
+end
+
+try
+    int invalidNull = boxedNull as int
+catch TypeError ignored
+    recovered += 1
+end
+
+try
+    float invalidFloat = float(boxedText)
+catch TypeError ignored
+    recovered += 1
+end
+
+try
+    point invalidPoint = point(boxedInt)
+catch TypeError ignored
+    recovered += 1
+end
+
+expect(recovered, 4)

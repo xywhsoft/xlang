@@ -1,0 +1,105 @@
+extern "string_outcome_default" func stringOutcomeDefault() as string
+
+class OutcomeRecord
+    derive string
+    int value = 41
+end
+class OutcomeCustom
+    int value = 41
+    func __toString__() as string
+        return "custom" + string(self.value)
+    end
+end
+OutcomeRecord outcomeRecord = OutcomeRecord()
+OutcomeCustom outcomeCustom = OutcomeCustom()
+
+func concatPair(byval string left, byval string right) as string
+    return left + right
+end
+
+func concatNested(byval string left, byval string right) as string
+    return (left + right) + (right + left)
+end
+
+func concatInterpolation(byval string left, byval string right) as string
+    return f"{left}{right}"
+end
+
+func concatCompound(byval string left, byval string right) as string
+    left += right + right
+    return left
+end
+
+func concatDefault(byval string left, string right = stringOutcomeDefault()) as string
+    return left + right
+end
+
+func concatInout(byref string left, byval string right)
+    left += right + right
+end
+
+func allocationLiteral(byval string left, byval string right) as string
+    return "literal"
+end
+func allocationInteger(byval string left, byval string right) as string
+    return string(41)
+end
+func allocationPrefix(byval string left, byval string right) as string
+    return f"prefix{left}"
+end
+func allocationEmpty(byval string left, byval string right) as string
+    string empty
+    return empty
+end
+func allocationBool(byval string left, byval string right) as string
+    return string(true)
+end
+func allocationUnsigned(byval string left, byval string right) as string
+    return string(uint64(41))
+end
+func allocationFloat(byval string left, byval string right) as string
+    return string(41.5)
+end
+func allocationTime(byval string left, byval string right) as string
+    return string(time(0))
+end
+func allocationType(byval string left, byval string right) as string
+    return string(type(41))
+end
+func allocationDynamic(byval string left, byval string right, var value) as string
+    return string(value)
+end
+func allocationDerived(byval string left, byval string right) as string
+    return string(outcomeRecord)
+end
+func allocationNullable(byval string left, byval string? right) as string
+    string? copy = right
+    return copy ?? left
+end
+func allocationProtocol(byval string left, byval string right) as string
+    return string(outcomeCustom)
+end
+
+export "string_outcome_keep" func stringOutcomeKeep() as int
+    string a = concatPair("first", "suffix")
+    string b = concatNested("first", "suffix")
+    string c = concatInterpolation("first", "suffix")
+    string d = concatCompound("first", "suffix")
+    func(byval string) as string callback = concatDefault
+    string e = callback("first")
+    concatInout(byref a, "suffix")
+    string f = allocationLiteral("first", "suffix")
+    string g = allocationInteger("first", "suffix")
+    string h = allocationPrefix("first", "suffix")
+    string i = allocationEmpty("first", "suffix")
+    string j = allocationBool("first", "suffix")
+    string k = allocationUnsigned("first", "suffix")
+    string l = allocationFloat("first", "suffix")
+    string m = allocationTime("first", "suffix")
+    string n = allocationType("first", "suffix")
+    string o = allocationDynamic("first", "suffix", 41)
+    string p = allocationDerived("first", "suffix")
+    string q = allocationNullable("first", "suffix")
+    string r = allocationProtocol("first", "suffix")
+    return a.length + b.length + c.length + d.length + e.length
+end

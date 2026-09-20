@@ -1,0 +1,29 @@
+class Child
+    int value
+
+    create(int value)
+        self.value = value
+    end
+end
+
+class Holder
+    Child child
+
+    create(int value)
+        self.child = Child(value)
+    end
+end
+
+class RecursiveNode
+    int value
+    RecursiveNode next
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+Holder holder = Holder(9)
+expect(holder.child.value, 9)
+
+RecursiveNode node = RecursiveNode()
+node.value = 13
+expect(node.value, 13)

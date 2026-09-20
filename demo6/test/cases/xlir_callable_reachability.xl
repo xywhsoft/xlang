@@ -1,0 +1,15 @@
+extern "xlir_reachability_live_external" func liveExternal(int value) as int
+extern "xlir_reachability_dead_external" func deadExternal(int value) as int
+
+func transit(int value) as int
+    return liveExternal(value) + 1
+end
+
+func dead(int value) as int
+    return deadExternal(value)
+end
+
+export "xlir_reachability_probe" func probe() as int
+    auto increment = func(int value) as int => value + 1
+    return increment(transit(39))
+end

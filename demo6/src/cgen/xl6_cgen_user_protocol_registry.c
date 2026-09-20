@@ -92,10 +92,10 @@ static void xl6CgenUserProtocolDefinitions(XL6_CgenContext* ctx)
         protocolTypeId = xl6CgenTypeIdForTypeNode(ctx, &protocolType);
         body = xl6CgenProtocolBody(protocolNode);
 
-        xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
+        xl6OutputPuts("static const xl6_type_desc* ", ctx->out);
         xl6CgenProtocolTypeDescSymbol(ctx->out, protocolNode);
         xl6OutputPuts("(void)\n{\n", ctx->out);
-        xl6OutputPuts("    static xrt_type_desc desc = {\n", ctx->out);
+        xl6OutputPuts("    static xl6_type_desc desc = {\n", ctx->out);
         xl6OutputPrintf(
             ctx->out,
             "        0x%08XU, XL6_XRT_TYPE_KIND_PROTOCOL,\n",
@@ -105,12 +105,10 @@ static void xl6CgenUserProtocolDefinitions(XL6_CgenContext* ctx)
         xl6OutputPrintf(
             ctx->out,
             ", %uu,\n"
-            "        \"xvalue\", 6u, sizeof(void*), sizeof(void*),\n"
-            "        0, 0, 0, 0\n"
-            "    };\n"
-            "    const xrt_type_desc* valueType = xrtTypeValue();\n"
-            "    if (desc.Ops == 0 && valueType != 0) { desc.Ops = valueType->Ops; }\n"
-            "    return &desc;\n"
+			"        \"xvalue*\", 6u, sizeof(void*), sizeof(void*),\n"
+			"        &xl6_runtime_xvalue_ops, 0, 0, 0\n"
+			"    };\n"
+			"    return &desc;\n"
             "}\n\n",
             (unsigned)strlen(protocolNode->text));
 
@@ -131,7 +129,7 @@ static void xl6CgenUserProtocolDefinitions(XL6_CgenContext* ctx)
                  xl6CgenCallableParams(requirement)->childCount > 0 ) {
                 xl6OutputPrintf(
                     ctx->out,
-                    "static xrt_func_param %s_params[%uu];\n",
+                    "static xl6_func_param %s_params[%uu];\n",
                     sigName,
                     (unsigned)xl6CgenCallableParams(requirement)->childCount);
             }
@@ -140,26 +138,26 @@ static void xl6CgenUserProtocolDefinitions(XL6_CgenContext* ctx)
                  requirement->children[2]->childCount > 0 ) {
                 xl6OutputPrintf(
                     ctx->out,
-                    "static const xrt_type_desc* %s_returns[%uu];\n",
+                    "static const xl6_type_desc* %s_returns[%uu];\n",
                     sigName,
                     (unsigned)requirement->children[2]->childCount);
             }
             xl6OutputPrintf(
                 ctx->out,
-                "static xrt_func_sig %s;\n",
+                "static xl6_func_sig %s;\n",
                 sigName);
         }
         if ( body != NULL && body->childCount > 0 ) {
             xl6OutputPrintf(
                 ctx->out,
-                "static xrtprotocolrequirement "
+                "static xl6_protocol_requirement "
                 "xl6_protocol_requirements_%u[%uu];\n",
                 (unsigned)protocolIndex,
                 (unsigned)body->childCount);
         }
         xl6OutputPrintf(
             ctx->out,
-            "static xrtprotocol xl6_protocol_%u;\n\n",
+            "static xl6_protocol xl6_protocol_%u;\n\n",
             (unsigned)protocolIndex);
 
         for ( classIndex = 0;
@@ -178,13 +176,13 @@ static void xl6CgenUserProtocolDefinitions(XL6_CgenContext* ctx)
             if ( body != NULL && body->childCount > 0 ) {
                 xl6OutputPrintf(
                     ctx->out,
-                    "static xrtprotocolentry "
+                    "static xl6_protocol_entry "
                     "xl6_protocol_entries_%u_%u[%uu];\n",
                     (unsigned)classIndex,
                     (unsigned)protocolIndex,
                     (unsigned)body->childCount);
             }
-            xl6OutputPuts("static xrtprotocolwitness ", ctx->out);
+            xl6OutputPuts("static xl6_protocol_witness ", ctx->out);
             xl6CgenProtocolWitnessSymbol(
                 ctx,
                 classNode,
@@ -475,7 +473,7 @@ static void xl6CgenUserProtocolDefinitions(XL6_CgenContext* ctx)
             } else {
                 xl6OutputPuts(".Entries = 0;\n", ctx->out);
             }
-            xl6OutputPuts("    if ( !xrtProtocolRegister(&", ctx->out);
+            xl6OutputPuts("    if ( !xl6ProtocolRegister(&", ctx->out);
             xl6CgenProtocolWitnessSymbol(
                 ctx,
                 classNode,
@@ -508,7 +506,7 @@ static void xl6CgenUserProtocolDefinitions(XL6_CgenContext* ctx)
                          classNode,
                          protocolNode) ) {
                     xl6OutputPuts(
-                        "    (void)xrtProtocolUnregister(&",
+                        "    (void)xl6ProtocolUnregister(&",
                         ctx->out);
                     xl6CgenProtocolWitnessSymbol(
                         ctx,
@@ -545,7 +543,7 @@ static void xl6CgenUserProtocolDefinitions(XL6_CgenContext* ctx)
                      classNode,
                      protocolNode) ) {
                 xl6OutputPuts(
-                    "    (void)xrtProtocolUnregister(&",
+                    "    (void)xl6ProtocolUnregister(&",
                     ctx->out);
                 xl6CgenProtocolWitnessSymbol(
                     ctx,

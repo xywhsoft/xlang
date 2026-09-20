@@ -98,6 +98,13 @@ function Get-MarkdownTargetPath($rawTarget)
         return ""
     }
 
+    # Source links may carry a one-based line suffix for the local viewer.
+    # It is navigation metadata, not part of the Windows filesystem path.
+    $sourceLine = [regex]::Match($target, '^(?<path>.+):[1-9][0-9]*$')
+    if ( $sourceLine.Success ) {
+        $target = $sourceLine.Groups['path'].Value
+    }
+
     return $target.Replace("/", "\")
 }
 
@@ -114,10 +121,15 @@ function Test-MarkdownLinkTarget($rootFull, $doc, $lineNumber, $rawTarget)
         return
     }
 
-    if ( [System.IO.Path]::IsPathRooted($targetPath) ) {
-        $resolved = [System.IO.Path]::GetFullPath($targetPath)
-    } else {
-        $resolved = [System.IO.Path]::GetFullPath((Join-Path $doc.DirectoryName $targetPath))
+    try {
+        if ( [System.IO.Path]::IsPathRooted($targetPath) ) {
+            $resolved = [System.IO.Path]::GetFullPath($targetPath)
+        } else {
+            $resolved = [System.IO.Path]::GetFullPath((Join-Path $doc.DirectoryName $targetPath))
+        }
+    } catch {
+        Add-Failure "invalid markdown link path: ${docRelative}:$lineNumber -> $rawTarget"
+        return
     }
 
     $rootPrefix = $rootFull

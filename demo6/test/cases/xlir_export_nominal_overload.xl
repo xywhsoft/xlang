@@ -1,0 +1,15 @@
+class LeftToken
+    int value
+end
+
+class RightToken
+    int value
+end
+
+export func read(LeftToken token) as int
+    return token.value
+end
+
+export func read(RightToken token) as int
+    return token.value
+end

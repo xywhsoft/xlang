@@ -1,0 +1,39 @@
+extern "cell_cancel_phase" func cellCancelPhase(int phase)
+extern "cell_cancel_drop" func cellCancelDrop()
+extern "cell_cancel_caught" func cellCancelCaught()
+extern "cell_cancel_input" func cellCancelInput() as future<int>
+
+class CellCancelOwner
+    destroy()
+        cellCancelDrop()
+    end
+end
+
+async func cellCancelRun(future<int> input, future<int> cleanup, bool handle) as int
+    var owner = CellCancelOwner()
+    auto read = func() as int
+        owner = owner
+        return owner == null ? 0 : 7
+    end
+    int number = 0
+    try
+        number = await input
+        cellCancelPhase(1)
+    catch CancelledError error
+        cellCancelCaught()
+        if not handle then
+            throw
+        end
+        number = 100
+    finally
+        cellCancelPhase(2)
+        int acknowledged = await cleanup
+        assert(acknowledged == 20)
+        cellCancelPhase(3)
+    end
+    return number + read()
+end
+
+export "cell_cancel_keep" func cellCancelKeep()
+    auto result = cellCancelRun(cellCancelInput(), cellCancelInput(), false)
+end

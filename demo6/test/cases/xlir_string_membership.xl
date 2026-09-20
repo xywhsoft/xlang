@@ -1,0 +1,13 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+string text = "alphabet"
+
+func makeText() as string
+    return "temporary text"
+end
+
+expect("pha" in text, 1)
+expect("missing" in text, 0)
+expect("text" in makeText(), 1)
+expect("ell" in "hello", 1)
+expect("xyz" in "hello", 0)

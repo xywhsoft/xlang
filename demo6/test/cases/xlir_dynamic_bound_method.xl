@@ -1,0 +1,133 @@
+int boundDestroyed = 0
+bool boundFail = false
+class BoundBase
+    func pick(int value) as int
+        return value + 10
+    end
+end
+class BoundReceiver extends BoundBase
+    int stored
+    create(int value)
+        self.stored = value
+    end
+    destroy()
+        boundDestroyed += 1
+    end
+    func read(int offset = 0) as int
+        assert not boundFail, "bound method failed"
+        return self.stored + offset
+    end
+    func pick(string value) as int
+        return string.len(value)
+    end
+    func count(int base, ...) as int
+        return base + arg.length
+    end
+    func options(string path, ***) as int
+        return string.len(path) + arg.length
+    end
+    func text(string value) as string
+        assert value != "fail", "bound string method failed"
+        return value + ":bound"
+    end
+    func nullable(bool missing) as string?
+        if missing then return null end
+        return "present"
+    end
+    func mutate(byref int value)
+        value += 1
+    end
+end
+class BoundGetter
+    get read() as int
+        return 19
+    end
+end
+func boundRead(var receiver) as var
+    return receiver.read
+end
+func boundPick(var receiver) as var
+    return receiver.pick
+end
+func boundText(var receiver) as var
+    return receiver.text
+end
+var boundFaultReceiver = BoundReceiver(55)
+var boundFaultCallable = null
+export "dynamic_bound_prepare" func boundPrepare()
+    boundFaultCallable = boundRead(boundFaultReceiver)
+end
+export "dynamic_bound_check" func boundCheck() as int
+    boundDestroyed = 0
+    boundFail = false
+    var receiver = BoundReceiver(73)
+    var reader = boundRead(receiver)
+    var copy = reader
+    receiver.stored = 91
+    receiver = null
+    assert boundDestroyed == 0 and int(reader()) == 91
+    assert int(reader(offset = 4)) == 95
+    reader = null
+    assert boundDestroyed == 0 and int(copy()) == 91
+    copy = null
+    assert boundDestroyed == 1, "last method value must release its receiver"
+    var inherited = boundPick(BoundReceiver(7))
+    assert int(inherited(5)) == 15
+    assert int(inherited("child")) == 5
+    inherited = null
+    assert boundDestroyed == 2
+    var target = BoundReceiver(3)
+    var counter = target.count
+    var options = target.options
+    var text = boundText(target)
+    var nullable = target.nullable
+    var unsupported = target.mutate
+    target = null
+    assert int(counter(10, 1, "two", {"number": 3})) == 13
+    assert int(options("x", mode = "fast", retry = 2)) == 3
+    assert string(text("hello")) == "hello:bound"
+    assert nullable(true) == null and string(nullable(false)) == "present"
+    bool caught = false
+    try
+        text("fail")
+    catch failure
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        options(41)
+    catch failure
+        caught = true
+    end
+    assert caught, "mismatched frame must not invoke any overload"
+    caught = false
+    try
+        unsupported(1)
+    catch failure
+        caught = true
+    end
+    assert caught, "unsupported adapter must fail explicitly"
+    assert boundRead({"read": null}) == null
+    assert boundRead({}) == null and boundRead(null) == null
+    assert int(boundRead(BoundGetter())) == 19
+    return 0
+end
+extern "dynamic_bound_future" func boundFuture() as future<int>
+async func boundAsync(var receiver, future<int> pending) as int
+    var reader = boundRead(receiver)
+    receiver = null
+    int value = await pending
+    return int(reader()) + value
+end
+async func boundReady() as int
+    return 0
+end
+future<int> boundPending = boundReady()
+export "dynamic_bound_start" func boundStart()
+    boundFail = false
+    boundPending = boundAsync(BoundReceiver(73), boundFuture())
+end
+export "dynamic_bound_fail" func boundSetFailure()
+    boundFail = true
+end

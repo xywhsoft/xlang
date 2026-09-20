@@ -1,0 +1,2 @@
+extern "xl6_xrt_write" func badWrite(point text)
+badWrite(null)

@@ -502,15 +502,15 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         if ( initExpr != NULL && xl6CgenDeclTryXValueBinaryInit(ctx, typeNode, cName, initExpr) ) {
             return;
         }
-        if ( initExpr != NULL && xl6CgenDeclTryTaskSpawnArgTempsInit(ctx, typeNode, "xvalue", cName, initExpr) ) {
+        if ( initExpr != NULL && xl6CgenDeclTryTaskSpawnArgTempsInit(ctx, typeNode, "xvalue*", cName, initExpr) ) {
             return;
         }
         if ( initExpr != NULL ) {
             xl6CgenXValueLocalInitStmt(ctx, typeNode, cName, initExpr);
         } else if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
-            xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateNull();\n", cName);
+            xl6OutputPrintf(ctx->out, "xvalue* %s = xrtValueNull();\n", cName);
         } else {
-            xl6OutputPrintf(ctx->out, "xvalue %s = ", cName);
+            xl6OutputPrintf(ctx->out, "xvalue* %s = ", cName);
             xl6CgenDefaultXValueForTarget(ctx, typeNode);
             xl6OutputPuts(";\n", ctx->out);
         }
@@ -561,7 +561,7 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
             xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_runtime_fatal(3); }\n", cName);
             return;
         }
-        xl6OutputPrintf(ctx->out, "const char* %s = xrtCopyStr(", cName);
+        xl6OutputPrintf(ctx->out, "const char* %s = xl6_xrt_string_dup(", cName);
         if ( initExpr != NULL ) {
             xl6CgenStringSourceExpr(ctx, typeNode, initExpr);
         } else {
@@ -570,6 +570,14 @@ static void xl6CgenDecl(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6OutputPuts(", 0u);\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_runtime_fatal(3); }\n", cName);
+        return;
+    }
+    if ( xl6CgenIsErrorType(ctx, typeNode) ) {
+        xl6CgenAddVarType(ctx, node->text, typeNode);
+        xl6CgenAddErrorCleanup(ctx, node->text, typeNode);
+        xl6OutputPrintf(ctx->out, "%s %s = ", cType, cName);
+        xl6CgenErrorOwnedExpr(ctx, initExpr);
+        xl6OutputPuts(";\n", ctx->out);
         return;
     }
     xl6CgenAddVarType(ctx, node->text, typeNode);

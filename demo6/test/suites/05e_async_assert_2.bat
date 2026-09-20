@@ -41,12 +41,12 @@ if errorlevel 1 (
     echo cgen_async.c should pass completed async class future cancel as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelBox = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(boxFuture" build\test\cgen_async.assert.c >nul
+findstr /C:"postCancelBox = xl6_future_await_xvalue_copy(boxFuture" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c should retain the completed async class handle after cancel.
     exit /b 1
 )
-findstr /C:"xvoUnref(postCancelBox);" build\test\cgen_async.assert.c >nul
+findstr /C:"xrtValueRelease(postCancelBox);" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing post-cancel async class-handle cleanup.
     exit /b 1
@@ -71,7 +71,7 @@ if errorlevel 1 (
     echo cgen_async.c should pass completed async var future cancel as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelVar = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(varFuture" build\test\cgen_async.assert.c >nul
+findstr /C:"postCancelVar = xl6_future_await_xvalue_copy(varFuture" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c should keep completed async var future awaitable after cancel.
     exit /b 1
@@ -81,7 +81,7 @@ if errorlevel 1 (
     echo cgen_async.c should pass completed async string future cancel as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelGreeting = xrtCopyStr(xl6_future_await_cstr_copy(greetingFuture" build\test\cgen_async.assert.c >nul
+findstr /C:"postCancelGreeting = xl6_xrt_string_dup(xl6_future_await_cstr_copy(greetingFuture" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c should keep completed async string future awaitable after cancel.
     exit /b 1
@@ -101,12 +101,12 @@ if errorlevel 1 (
     echo cgen_async.c missing null int future await path.
     exit /b 1
 )
-findstr /C:"missingAwaitStringValue = xrtCopyStr(xl6_future_await_cstr_copy(missingAwaitString" build\test\cgen_async.assert.c >nul
+findstr /C:"missingAwaitStringValue = xl6_xrt_string_dup(xl6_future_await_cstr_copy(missingAwaitString" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing null string future await path.
     exit /b 1
 )
-findstr /C:"missingAwaitItemsValue = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(missingAwaitItems" build\test\cgen_async.assert.c >nul
+findstr /C:"missingAwaitItemsValue = xl6_xrt_typed_array_copy(xl6TypeInt64(), (*(xtarray*)xl6_future_await_value(missingAwaitItems" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing null typed array future await path.
     exit /b 1
@@ -191,7 +191,7 @@ if errorlevel 1 (
     echo cgen_async.c missing null typed list future await fixture.
     exit /b 1
 )
-findstr /C:"missingAwaitListValue = xl6_xrt_typed_list_copy_mode(xrtTypeInt(), (*(xtlist*)xl6_future_await_value(missingAwaitList" build\test\cgen_async.assert.c >nul
+findstr /C:"missingAwaitListValue = xl6_xrt_typed_list_copy(xl6TypeInt64(), (*(xtlist*)xl6_future_await_value(missingAwaitList" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing null typed list future await path.
     exit /b 1
@@ -206,7 +206,7 @@ if errorlevel 1 (
     echo cgen_async.c missing null typed set future await fixture.
     exit /b 1
 )
-findstr /C:"missingAwaitSetValue = xl6_xrt_typed_set_copy_mode(xrtTypeInt(), (*(xtset*)xl6_future_await_value(missingAwaitSet" build\test\cgen_async.assert.c >nul
+findstr /C:"missingAwaitSetValue = xl6_xrt_typed_set_copy(xl6TypeInt64(), (*(xtset*)xl6_future_await_value(missingAwaitSet" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing null typed set future await path.
     exit /b 1
@@ -221,7 +221,7 @@ if errorlevel 1 (
     echo cgen_async.c missing null typed dict future await fixture.
     exit /b 1
 )
-findstr /C:"missingAwaitDictValue = xl6_xrt_typed_dict_copy_mode(xrtTypeInt(), (*(xtdict*)xl6_future_await_value(missingAwaitDict" build\test\cgen_async.assert.c >nul
+findstr /C:"missingAwaitDictValue = xl6_xrt_typed_dict_copy(xl6TypeInt64(), (*(xtdict*)xl6_future_await_value(missingAwaitDict" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing null typed dict future await path.
     exit /b 1
@@ -231,7 +231,7 @@ if errorlevel 1 (
     echo cgen_async.c missing null typed dict future await assertion.
     exit /b 1
 )
-findstr /C:"xrtStrComp(xl6_error_message(e), \"await on null future\"" build\test\cgen_async.assert.c >nul
+findstr /C:"xrtStrCompare(xrtStrView(xl6_error_message(e, 0)), xrtStrView(\"await on null future\"))" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing null future await diagnostic check.
     exit /b 1

@@ -7,6 +7,11 @@ func fail() as int
     return 0
 end
 
+func delayedProduce() as int
+    time.sleep(120)
+    return 30
+end
+
 func plusTwo(int value) as int
     return value + 2
 end
@@ -43,6 +48,7 @@ end
 
 func() as int producer = produce
 func() as int failure = fail
+func() as int delayedProducer = delayedProduce
 
 future<int> mapped = task.spawn(producer).then(plusTwo)
 assert await mapped == 22
@@ -57,9 +63,28 @@ future<int> finalized = task.spawn(producer).finally(cleanup)
 assert await finalized == 20
 assert cleanupCount == 1
 
+future<int> failedFinalized = task.spawn(failure).finally(cleanup)
+int failedFinalizedCaught = 0
+try
+    int ignoredFailedFinalized = await failedFinalized
+catch e
+    if e.message == "task boom" then
+        failedFinalizedCaught = 1
+    end
+end
+assert failedFinalizedCaught == 1
+assert cleanupCount == 2
+
+future<int> cancelSource = task.spawn(delayedProducer)
+future<int> cancelledFinalized = cancelSource.finally(cleanup)
+assert cancelSource.cancel()
+assert not cancelledFinalized.wait()
+assert cancelledFinalized.isCancelled()
+assert cleanupCount == 3
+
 future<string> chained = task.spawn(producer).then(func(int value) as string => f"value={value}").finally(cleanup)
 assert await chained == "value=20"
-assert cleanupCount == 2
+assert cleanupCount == 4
 
 future<int> cleanupFailed = task.spawn(producer).finally(brokenCleanup)
 int cleanupError = 0

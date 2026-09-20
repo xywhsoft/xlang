@@ -4,7 +4,7 @@ static void xl6CgenEmitMainLikeWrapper(XL6_CgenContext* ctx, const char* symbolN
     xl6OutputPuts(symbolName != NULL ? symbolName : "main", ctx->out);
     xl6OutputPuts("(int argc, char** argv)\n{\n", ctx->out);
     xl6OutputPuts("    XL_InitOptions __xl6_options = xlInitOptions(argc, argv);\n", ctx->out);
-    xl6OutputPuts("    xvalue __xl6_arg;\n", ctx->out);
+    xl6OutputPuts("    xvalue* __xl6_arg;\n", ctx->out);
     xl6OutputPuts("    int __xl6_code;\n", ctx->out);
     xl6OutputPuts("\n", ctx->out);
     xl6OutputPuts("    if ( !xlInit(&__xl6_options) ) {\n", ctx->out);
@@ -21,12 +21,12 @@ static void xl6CgenEmitMainLikeWrapper(XL6_CgenContext* ctx, const char* symbolN
         xl6OutputPuts("        xl6_error_print_uncaught();\n", ctx->out);
         xl6OutputPuts("        xl6_error_clear();\n", ctx->out);
         xl6OutputPuts("        xl6_error_tls_unit();\n", ctx->out);
-        xl6OutputPuts("        xvoUnref(__xl6_arg);\n", ctx->out);
+        xl6OutputPuts("        xrtValueRelease(__xl6_arg);\n", ctx->out);
         xl6OutputPuts("        xlUnit();\n", ctx->out);
         xl6OutputPuts("        return 1;\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
     }
-    xl6OutputPuts("    xvoUnref(__xl6_arg);\n", ctx->out);
+    xl6OutputPuts("    xrtValueRelease(__xl6_arg);\n", ctx->out);
     if ( ctx->needsErrorRuntime ) {
         xl6OutputPuts("    xl6_error_tls_unit();\n", ctx->out);
     }

@@ -1,0 +1,2 @@
+extern "xl6_xrt_hex_encode_bytes" func bad(string data, c_size size) as point
+point result = bad("x", c_size(1))

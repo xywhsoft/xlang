@@ -1,0 +1,20 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "native_handle" func nativeHandle(int value) as point
+
+class NativeProbe
+    native point handle
+end
+
+point firstRaw = nativeHandle(1)
+point secondRaw = nativeHandle(2)
+NativeProbe first = NativeProbe(firstRaw)
+NativeProbe second = NativeProbe(secondRaw)
+set<NativeProbe> values = set{first, first, second}
+
+int count = 0
+for value in values
+    count = count + 1
+    expect(type(value) == NativeProbe, 1)
+    expect(value.handle == firstRaw or value.handle == secondRaw, 1)
+end
+expect(count, 2)

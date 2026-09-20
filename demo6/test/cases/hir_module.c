@@ -1,4 +1,6 @@
 #include "src/ir/xl6_hir.h"
+#include "src/ir/xl6_ir.h"
+#include "src/cgen/xl6_ir_cgen.h"
 
 #include <stdio.h>
 
@@ -17,12 +19,15 @@ static XL6_AstNode* testIntType(void)
 int main(void)
 {
     XL6_HirModule hir;
+    XL6_IrModule ir;
     XL6_DiagList diags;
     XL6_AstNode* root;
     XL6_AstNode* decl;
     XL6_AstNode* autoType;
     XL6_AstNode* value;
     XL6_AstNode* call;
+    XL6_AstNode* callee;
+    XL6_AstNode* callArgs;
     XL6_AstNode* assign;
     XL6_AstNode* assignTarget;
     XL6_AstNode* assignValue;
@@ -38,33 +43,43 @@ int main(void)
     const XL6_HirNode* assignNode;
     const XL6_HirNode* returnHirNode;
     const XL6_HirNode* symbolNode;
+    const XL6_IrNode* irValueNode;
+    const XL6_IrNode* irCallNode;
+    const XL6_IrType* irStringType;
     XL6_HirTypeId savedType;
     XL6_HirTypeId savedStorageType;
+    XL6_IrTypeId savedIrType;
     XL6_HirNodeId savedChild;
     XL6_AstKind savedSourceKind;
     XL6_HirNodeId savedSymbolNode;
     size_t savedResolvedCallCount;
+    XL6_Output cgenOut;
+    char* ignoredC;
     int baselineOk;
     int ok;
 
     memset(&diags, 0, sizeof(diags));
     xl6HirModuleInit(&hir);
+    xl6IrModuleInit(&ir);
     root = xl6AstNew(XL6_AST_MODULE, NULL);
     decl = xl6AstNewText(XL6_AST_VAR_DECL, "answer", 6, NULL);
     autoType = xl6AstNewText(XL6_AST_TYPE, "auto", 4, NULL);
     value = xl6AstNewText(XL6_AST_INT, "42", 2, NULL);
     call = xl6AstNew(XL6_AST_CALL, NULL);
+    callee = xl6AstNewText(XL6_AST_NAME, "answer", 6, NULL);
+    callArgs = xl6AstNew(XL6_AST_LIST, NULL);
     assign = xl6AstNewText(XL6_AST_ASSIGN, "=", 1, NULL);
     assignTarget = xl6AstNewText(XL6_AST_NAME, "answer", 6, NULL);
     assignValue = xl6AstNewText(XL6_AST_INT, "7", 1, NULL);
     returnNode = xl6AstNew(XL6_AST_RETURN, NULL);
     returnValue = xl6AstNewText(XL6_AST_INT, "0", 1, NULL);
     if ( root == NULL || decl == NULL || autoType == NULL || value == NULL ||
-         call == NULL || assign == NULL || assignTarget == NULL ||
+         call == NULL || callee == NULL || callArgs == NULL || assign == NULL || assignTarget == NULL ||
          assignValue == NULL || returnNode == NULL || returnValue == NULL ) {
         return 1;
     }
     decl->semanticSymbolId = 7;
+    decl->inferredType = testIntType();
     value->inferredType = testIntType();
     value->semanticOwnership = XL6_SEM_OWNERSHIP_COPY;
     xl6AstAddChild(decl, autoType);
@@ -75,11 +90,15 @@ int main(void)
     call->semanticCallKind = XL6_SEM_CALL_DIRECT;
     call->semanticTargetSymbolId = 7;
     call->semanticOwnership = XL6_SEM_OWNERSHIP_COPY;
+    callee->inferredType = testIntType();
+    xl6AstAddChild(call, callee);
+    xl6AstAddChild(call, callArgs);
     xl6AstAddChild(root, call);
 
     assign->semanticLvalueKind = XL6_SEM_LVALUE_LOCAL;
     assignTarget->inferredType = testIntType();
     assignTarget->semanticLvalueKind = XL6_SEM_LVALUE_LOCAL;
+    assignTarget->semanticTargetSymbolId = 7;
     assignTarget->semanticOwnership = XL6_SEM_OWNERSHIP_BORROW;
     assignValue->inferredType = testIntType();
     assignValue->semanticOwnership = XL6_SEM_OWNERSHIP_COPY;
@@ -108,12 +127,27 @@ int main(void)
     assignNode = xl6HirNodeGet(&hir, assignId);
     returnHirNode = xl6HirNodeGet(&hir, returnId);
     symbolNode = xl6HirSymbolNodeGet(&hir, 7);
+    ok = ok && xl6IrBuildModuleFromHir(&ir, &hir, &diags);
+    irValueNode = xl6IrNodeGet(&ir, valueId);
+    irCallNode = xl6IrNodeGet(&ir, callId);
+    irStringType = NULL;
+    {
+        size_t typeIndex;
+        for ( typeIndex = 0; typeIndex < ir.types.count; ++typeIndex ) {
+            const XL6_IrType* candidate = &ir.types.items[typeIndex];
+            if ( candidate->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+                 candidate->name != NULL && strcmp(candidate->name, "string") == 0 ) {
+                irStringType = candidate;
+                break;
+            }
+        }
+    }
     baselineOk =
          xl6HirVerifyModule(&hir, &diags) &&
          diags.count == 0 &&
          hir.root != XL6_HIR_NODE_INVALID &&
-         hir.nodeCount == 10 &&
-         hir.stats.hirNodeCount == 10 &&
+         hir.nodeCount == 12 &&
+         hir.stats.hirNodeCount == 12 &&
          hir.stats.symbolBindingCount == 1 &&
          hir.stats.resolvedCallCount == 1 &&
          hir.stats.lvaluePlanCount == 2 &&
@@ -139,6 +173,29 @@ int main(void)
          returnHirNode->targetScopeDepth == 1 &&
          returnHirNode->region == 3 &&
          returnHirNode->targetRegion == 2;
+    baselineOk = baselineOk &&
+         ir.ready &&
+         ir.stage == XL6_IR_STAGE_TYPED &&
+         xl6IrVerifyModule(&ir, &diags) &&
+         ir.nodeCount == hir.nodeCount &&
+         ir.types.count == hir.types.count + 1 &&
+         irStringType != NULL &&
+         irValueNode != NULL &&
+         irValueNode->text != value->text &&
+         strcmp(irValueNode->text, "42") == 0 &&
+         irCallNode != NULL &&
+         irCallNode->callKind == XL6_SEM_CALL_DIRECT &&
+         irCallNode->targetSymbol == 7 &&
+         xl6IrSymbolNodeGet(&ir, 7) != NULL;
+    /* The HIR fixture deliberately uses its global value symbol as a direct
+     * call target to exercise source mappings.  It is valid typed HIR, but
+     * must not become lowered XLIR: a direct call needs a resolved function
+     * ABI, not merely a symbol number. */
+    baselineOk = baselineOk &&
+         !xl6IrLowerModule(&ir, &diags) &&
+         ir.stage == XL6_IR_STAGE_TYPED &&
+         diags.count > 0 &&
+         xl6IrVerifyModule(&ir, NULL);
     if ( !baselineOk ) {
         fprintf(
             stderr,
@@ -165,6 +222,26 @@ int main(void)
                 : "<none>");
     }
     ok = ok && baselineOk;
+
+    /* 顶层运行时语句会形成 synthetic module-init。C emitter 在该 ABI
+     * 尚未实现时必须拒绝它，绝不能静默遗漏这些语义。 */
+    ignoredC = NULL;
+    ok = ok && xl6OutputOpenMemory(&cgenOut) &&
+         !xl6IrCgenEmitC(&cgenOut, &ir, &diags) && diags.count > 0;
+    ignoredC = xl6OutputTakeMemoryText(&cgenOut, NULL);
+    xrtFree(ignoredC);
+
+    /* XLIR owns its text and has no AST pointer back-edge. */
+    value->text[0] = '9';
+    ok = ok && strcmp(irValueNode->text, "42") == 0 && xl6IrVerifyModule(&ir, NULL);
+    value->text[0] = '4';
+
+    /* XLIR 使用自己的类型池与 TypeId；导入器之后不依赖 HIR 容器。 */
+    savedIrType = ir.nodes[(size_t)valueId - 1].type;
+    ir.nodes[(size_t)valueId - 1].type = (XL6_IrTypeId)(ir.types.count + 1);
+    ok = ok && !xl6IrVerifyModule(&ir, NULL);
+    ir.nodes[(size_t)valueId - 1].type = savedIrType;
+    ok = ok && xl6IrVerifyModule(&ir, NULL);
 
     /* verifier 必须拒绝 arena、索引、类型和统计量的任何局部损坏。 */
     savedType = hir.nodes[(size_t)valueId - 1].type;
@@ -199,6 +276,7 @@ int main(void)
     ok = ok && xl6HirVerifyModule(&hir, NULL);
 
     xl6HirModuleFree(&hir);
+    xl6IrModuleFree(&ir);
     xl6AstFree(root);
     xrtFree(diags.items);
     if ( !ok ) {

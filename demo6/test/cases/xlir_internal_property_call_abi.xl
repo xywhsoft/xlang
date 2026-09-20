@@ -1,0 +1,35 @@
+class PropertyCallProbe
+    array<int> values = [10, 20, 30]
+    int offset = 0
+
+    create(int offset)
+        self.offset = offset
+    end
+
+    get items() as array<int>
+        return self.values
+    end
+
+    get at(int index) as int
+        return self.values[index] + self.offset
+    end
+
+    get checked() as int
+        return self.offset
+    end
+end
+
+func main(...) as int
+    PropertyCallProbe probe = PropertyCallProbe(5)
+    if probe.items[1] != 20
+        return 11
+    end
+    if probe.at[2] != 35
+        return 12
+    end
+    if probe.checked != 5
+        return 13
+    end
+
+    return 0
+end

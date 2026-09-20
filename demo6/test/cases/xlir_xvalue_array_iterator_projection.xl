@@ -1,0 +1,136 @@
+class ArrayCursorBox
+    string text = ""
+
+    create(string value)
+        self.text = value
+    end
+end
+
+func make_names() as array<string>
+    return array["left", "right"]
+end
+
+func first_name(array<string> values) as string
+    for index, value in values
+        assert(index == 0)
+        return value
+    end
+    return ""
+end
+
+func first_box(array<ArrayCursorBox> values) as ArrayCursorBox
+    for value in values
+        return value
+    end
+    return ArrayCursorBox("fallback")
+end
+
+func managed_control(array<ArrayCursorBox> values) as int
+    int trace = 0
+    for value in values
+        try
+            if value.text == "skip"
+                continue
+            end
+            if value.text == "stop"
+                break
+            end
+        finally
+            trace += value.text.length
+        end
+    end
+    return trace
+end
+
+extern "xlir_array_iterator_tick" func arrayIteratorTick() as future<int>
+
+async func async_array_total(array<string> values) as int
+    int total = 0
+    for index, value in values
+        int tick = await arrayIteratorTick()
+        total += index + value.length + tick
+    end
+    return total
+end
+
+array<uint64> unsignedValues = array<uint64>[
+    uint64(4), uint64(7), uint64(11)
+]
+uint64 unsignedTotal = uint64(0)
+int unsignedOrdinalTotal = 0
+for index, value in unsignedValues
+    unsignedOrdinalTotal += index
+    unsignedTotal += value
+end
+assert(unsignedOrdinalTotal == 3)
+assert(unsignedTotal == uint64(22))
+
+array<bool> flags = array[false, true, true]
+int trueCount = 0
+for value in flags
+    if value
+        trueCount += 1
+    end
+end
+assert(trueCount == 2)
+
+array<float> fractions = array[1.25, 2.75]
+float fractionTotal = 0.0
+for value in fractions
+    fractionTotal += value
+end
+assert(fractionTotal == 4.0)
+
+array<string> names = array["a", "bb", "ccc"]
+string snapshotText = ""
+int snapshotOrdinalTotal = 0
+for index, value in names
+    snapshotText = snapshotText + value
+    snapshotOrdinalTotal += index
+    if index == 0
+        names = array["replacement"]
+    end
+end
+assert(snapshotText == "abbccc")
+assert(snapshotOrdinalTotal == 3)
+assert(names.length == 1)
+assert(first_name(make_names()) == "left")
+array<string> asyncNames = array["a", "bb"]
+future<int> asyncTotal = async_array_total(asyncNames)
+assert(await asyncTotal == 6)
+future<int> emptyAsyncTotal = async_array_total(array<string>[])
+assert(await emptyAsyncTotal == 0)
+
+ArrayCursorBox first = ArrayCursorBox("first")
+ArrayCursorBox second = ArrayCursorBox("second")
+array<ArrayCursorBox> boxes = array[first, second]
+ArrayCursorBox retained = first_box(boxes)
+assert(retained.text == "first")
+assert(boxes[1].text == "second")
+
+array<var> erased = array<var>[first, second]
+int erasedCount = 0
+for index, value in erased
+    assert(value is ArrayCursorBox)
+    assert(index == erasedCount)
+    erasedCount += 1
+end
+assert(erasedCount == 2)
+
+ArrayCursorBox? present = first
+array<ArrayCursorBox?> optionalBoxes = array[present, null]
+int presentCount = 0
+for value in optionalBoxes
+    if value != null
+        assert(value.text == "first")
+        presentCount += 1
+    end
+end
+assert(presentCount == 1)
+
+assert(managed_control(array[
+    ArrayCursorBox("a"), ArrayCursorBox("skip"),
+    ArrayCursorBox("stop"), ArrayCursorBox("after")
+]) == 9)
+
+println("xvalue array iterator projection ok")

@@ -1,0 +1,178 @@
+channel<int> secureServerEvents = channel::<int>(32)
+channel<int> secureClientEvents = channel::<int>(32)
+channel<string> secureServerPayloads = channel::<string>(8)
+channel<string> secureClientPayloads = channel::<string>(8)
+
+
+
+func secureServerHandler(int event, int opcode, int flags, uint64 value, point data, c_size size)
+    secureServerEvents.send(event)
+    if event == 1 then
+        Buffer payload = Buffer()
+        if payload.appendRaw(data, size) then
+            secureServerPayloads.send(payload.text())
+        end
+    end
+end
+
+
+
+func secureClientHandler(int event, int opcode, int flags, uint64 value, point data, c_size size)
+    secureClientEvents.send(event)
+    if event == 1 then
+        Buffer payload = Buffer()
+        if payload.appendRaw(data, size) then
+            secureClientPayloads.send(payload.text())
+        end
+    end
+end
+
+
+
+func require(string name, bool condition)
+    assert condition, name
+    println(name + "=ok")
+end
+
+
+
+func waitTlsBytes(TlsStream stream, int minimum, int timeoutMs) as Buffer
+    int elapsed = 0
+    Buffer snapshot = stream.peek()
+    while snapshot.len() < minimum and elapsed < timeoutMs
+        stream.waitReadable(10)
+        time.sleep(1)
+        elapsed += 11
+        snapshot = stream.peek()
+    end
+    return snapshot
+end
+
+
+
+func waitEvent(channel<int> events, int expected, int timeoutMs) as bool
+    int elapsed = 0
+    int event = -1
+    while elapsed < timeoutMs
+        if events.recvTimeoutInto(event, 50) then
+            if event == expected then
+                return true
+            end
+        end
+        elapsed += 50
+    end
+    return false
+end
+
+
+
+async func run() as int
+    TlsConfig serverConfig = TlsConfig()
+    require(
+        "wss_identity",
+        serverConfig.certificate(
+            "release/examples/fixtures/tls_cert.pem",
+            "release/examples/fixtures/tls_key.pem"
+        )
+    )
+    require("wss_server_alpn", serverConfig.alpn("http/1.1"))
+    TlsServer listener = tls.listen(0, serverConfig)
+    require("wss_listener", listener.port > 0)
+
+    future<TlsStream> accepting = listener.acceptAsync()
+    TlsConfig clientConfig = TlsConfig()
+    clientConfig.verifyPeer(false)
+    require("wss_client_host", clientConfig.host("localhost"))
+    require("wss_client_alpn", clientConfig.alpn("http/1.1"))
+    TlsStream clientTransport = tls.connect(
+        "127.0.0.1",
+        listener.port,
+        clientConfig,
+        8000
+    )
+    TlsStream serverTransport = await accepting
+    require(
+        "wss_tls_connected",
+        clientTransport.nativeHandle() != null and
+            serverTransport.nativeHandle() != null
+    )
+
+    WsUpgrade clientUpgrade = WsUpgrade.client("localhost", "chat", true, true)
+    Buffer requestHead = Http1.requestHead("GET", "/secure", clientUpgrade.fields())
+    Buffer firstPayload = Buffer()
+    require("wss_first_payload", firstPayload.append("secure-first"))
+    WsFrame firstFrame = WsFrame.make(
+        1,
+        uint64(firstPayload.len()),
+        true,
+        true,
+        uint32(1432778632)
+    )
+    Buffer firstFrameHead = firstFrame.write()
+    require("wss_first_mask", WsFrame.applyMask(firstPayload, uint32(1432778632)))
+    Buffer requestWire = Buffer()
+    require("wss_request_head_copy", requestWire.append(requestHead))
+    require("wss_request_frame_copy", requestWire.append(firstFrameHead))
+    require("wss_request_payload_copy", requestWire.append(firstPayload))
+    require("wss_upgrade_send", clientTransport.send(requestWire, 8000))
+
+    Buffer requestSnapshot = waitTlsBytes(serverTransport, requestWire.len(), 8000)
+    require("wss_upgrade_coalesced", requestSnapshot.len() >= requestWire.len())
+    Http1Head request = Http1Head.request(requestSnapshot)
+    require("wss_request_head", request.ready and request.headerBytes == requestHead.len())
+    require("wss_request_unconsumed", serverTransport.peek().len() == requestSnapshot.len())
+
+    WsUpgrade serverUpgrade = WsUpgrade.server(request, "chat", true, true)
+    require(
+        "wss_server_upgrade",
+        serverUpgrade.ready and serverUpgrade.protocol() == "chat" and
+            serverUpgrade.deflateEnabled
+    )
+    Buffer responseHead = Http1.responseHead(
+        101,
+        "Switching Protocols",
+        serverUpgrade.fields()
+    )
+    require("wss_response_send", serverTransport.send(responseHead, 8000))
+    WebSocket serverSocket = WebSocket.attachTls(
+        serverTransport,
+        serverUpgrade,
+        secureServerHandler,
+        request.headerBytes
+    )
+    require("wss_server_attach", serverSocket.nativeHandle() != null)
+
+    Buffer responseSnapshot = waitTlsBytes(clientTransport, responseHead.len(), 8000)
+    Http1Head response = Http1Head.response(responseSnapshot)
+    require("wss_response_head", response.ready and response.headerBytes == responseHead.len())
+    require("wss_client_upgrade", clientUpgrade.check(response))
+    WebSocket clientSocket = WebSocket.attachTls(
+        clientTransport,
+        clientUpgrade,
+        secureClientHandler,
+        response.headerBytes
+    )
+    require("wss_client_attach", clientSocket.nativeHandle() != null)
+
+    string payload = ""
+    require("wss_first_callback", secureServerPayloads.recvTimeoutInto(payload, 8000))
+    require("wss_first_preserved", payload == "secure-first")
+
+    require("wss_client_compressed_send", clientSocket.send("secure-client", true))
+    require("wss_server_compressed_recv", secureServerPayloads.recvTimeoutInto(payload, 8000))
+    require("wss_server_compressed_data", payload == "secure-client")
+    require("wss_server_compressed_send", serverSocket.send("secure-server", true))
+    require("wss_client_compressed_recv", secureClientPayloads.recvTimeoutInto(payload, 8000))
+    require("wss_client_compressed_data", payload == "secure-server")
+
+    require("wss_close_send", clientSocket.close(1000, "done"))
+    require("wss_close_server_event", waitEvent(secureServerEvents, 9, 8000))
+    require("wss_close_client_event", waitEvent(secureClientEvents, 9, 8000))
+    return 0
+end
+
+
+
+int exitCode = await run()
+assert exitCode == 0
+println("websocket-upgrade-tls-loopback-ok")

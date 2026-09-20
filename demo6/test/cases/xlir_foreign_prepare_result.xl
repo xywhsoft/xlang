@@ -1,0 +1,15 @@
+extern "prepare_future" func prepareFuture() as future<int>
+int calls = 0
+int failures = 0
+int iteration = 0
+while iteration < 3
+    try
+        future<int> value = prepareFuture()
+        calls = calls + 1
+    catch error
+        failures = failures + 1
+    end
+    iteration = iteration + 1
+end
+assert calls == 1
+assert failures == 2

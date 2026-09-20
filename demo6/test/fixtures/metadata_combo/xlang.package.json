@@ -10,6 +10,9 @@
                                   ],
                      "xlSources":  [
                                        "src/metadata_combo.xl"
+                                   ],
+                     "xrtModules": [
+                                       "XRT_MODULE_STRING"
                                    ]
                  },
     "links":  [

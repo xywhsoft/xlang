@@ -1,0 +1,50 @@
+extern "expect_i64" func expect_i64(int actual, int expected)
+
+class VirtualBase
+    int tag = 3
+
+    virtual func value() as int
+        return 1
+    end
+
+    get doubled() as int
+        return self.value() * 2
+    end
+
+    get tagValue() as int
+        return self.tag
+    end
+
+    let tagValue(int value)
+        self.tag = value
+    end
+end
+
+class VirtualDerived extends VirtualBase
+    int extra
+
+    create(int value)
+        self.extra = value
+    end
+
+    override func value() as int
+        return self.extra
+    end
+end
+
+VirtualDerived derived = VirtualDerived(42)
+VirtualBase base = derived
+expect_i64(base.value(), 42)
+expect_i64(base.doubled, 84)
+expect_i64(base.tag, 3)
+base.tag = 9
+expect_i64(base.tagValue, 9)
+base.tagValue = 11
+expect_i64(base.tag, 11)
+
+/* A generic array retains a derived class item through the erased xvalue
+ * collection ABI; indexing returns the statically widened base and must still
+ * select the derived virtual implementation. */
+array<VirtualBase> values = array[]
+values.append(derived)
+expect_i64(values[0].value(), 42)

@@ -1,0 +1,90 @@
+int closed = 0
+
+func values(var shared) as generator<var>
+    array<var> items = [shared, shared]
+    try
+        for item in items
+            yield item
+        end
+    finally
+        closed += 1
+    end
+end
+
+func forwarded(var shared) as generator<var>
+    for item in values(shared)
+        yield item
+    end
+end
+
+func nested(var shared) as generator<generator<var>>
+    yield forwarded(shared)
+    yield forwarded(shared)
+end
+
+func errors() as generator<error>
+    try
+        throw RuntimeError "canonical yielded error"
+    catch reason
+        yield reason
+        yield reason
+    end
+end
+
+func broken() as generator<int>
+    yield 1
+    throw RuntimeError "generator next failed"
+end
+
+async func ready(int value) as int
+    return value
+end
+
+async func sumAwaited(var shared) as int
+    int total = 0
+    for item in forwarded(shared)
+        total += int(item[0]) + await ready(1)
+    end
+    return total
+end
+
+async func catchConsumerFailure() as int
+    try
+        for item in broken()
+            int result = await ready(item)
+            assert(result == 1)
+        end
+    catch reason
+        assert(reason.message == "generator next failed")
+        return 77
+    end
+    return 0
+end
+
+var shared = [41]
+int total = 0
+for item in values(shared)
+    total += int(item[0])
+end
+assert(total == 82 and closed == 1)
+for item in forwarded(shared)
+    assert(int(item[0]) == 41)
+    break
+end
+assert(closed == 2)
+int children = 0
+for child in nested(shared)
+    for item in child
+        assert(int(item[0]) == 41)
+    end
+    children += 1
+end
+assert(children == 2 and closed == 4)
+int errorCount = 0
+for reason in errors()
+    assert(reason.message == "canonical yielded error")
+    errorCount += 1
+end
+assert(errorCount == 2)
+assert(await sumAwaited(shared) == 84 and closed == 5)
+assert(await catchConsumerFailure() == 77)

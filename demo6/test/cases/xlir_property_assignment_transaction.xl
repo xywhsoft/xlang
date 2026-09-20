@@ -1,0 +1,288 @@
+// Receiver/key/getter/RHS/setter are one ordered, exception-safe transaction.
+extern "property_fail" func propertyFail(int code)
+extern "property_future" func propertyFuture() as future<int>
+int propertyStage = 0
+int propertyOrder = 0
+string propertyKeyValue = "7"
+func propertyStep(int step)
+    propertyOrder = propertyOrder * 10 + step
+    if propertyStage == step then propertyFail(73) end
+end
+class PropertyScore
+    int value
+    create(int value)
+        self.value = value
+    end
+    func __add__(int delta) as PropertyScore
+        propertyStep(5)
+        return PropertyScore(self.value + delta)
+    end
+end
+class PropertyState
+    int number
+    string text = "a"
+    array<int> items = array[1]
+    PropertyScore score = PropertyScore(3)
+    create(int number)
+        self.number = number
+    end
+    get num(string key) as int
+        propertyStep(3)
+        assert key == "7"
+        return self.number
+    end
+    let num(string key, int value)
+        propertyStep(6)
+        assert key == (self.number == 29 ? "29" : "7")
+        self.number = value
+        propertyStep(7)
+    end
+    virtual get word(string key) as string
+        return self.text
+    end
+    virtual let word(string key, string value)
+        self.text = value
+    end
+    get entries(string key) as array<int>
+        propertyStep(3)
+        assert key == "7"
+        return self.items
+    end
+    let entries(string key, array<int> value)
+        propertyStep(6)
+        assert key == (self.number == 29 ? "29" : "7")
+        self.items = value
+        propertyStep(7)
+    end
+    get points(string key) as PropertyScore
+        propertyStep(3)
+        assert key == "7"
+        return self.score
+    end
+    let points(string key, PropertyScore value)
+        propertyStep(6)
+        assert key == (self.number == 29 ? "29" : "7")
+        self.score = value
+        propertyStep(7)
+    end
+end
+class PropertyDerived extends PropertyState
+    create(int number)
+        base(number)
+    end
+    override get word(string key) as string
+        propertyStep(3)
+        assert key == "7"
+        return self.text
+    end
+    override let word(string key, string value)
+        propertyStep(6)
+        assert key == (self.number == 29 ? "29" : "7")
+        self.text = value
+        propertyStep(7)
+    end
+end
+PropertyState propertyCurrent = PropertyDerived(3)
+// Both non-raising base bodies are lifted into the slot's joined outcome.
+export "property_base_virtual" func propertyBaseVirtual() as int
+    PropertyState state = PropertyState(3)
+    state.word["7"] = "base"
+    assert state.word["7"] == "base"
+    return 0
+end
+func propertyReceiver() as PropertyState
+    propertyStep(1)
+    return propertyCurrent
+end
+func propertyKey() as string
+    propertyStep(2)
+    return propertyKeyValue
+end
+func propertyNullableNormal() as string?
+    return string(17)
+end
+func propertyNullableDeferred() as string?
+    try
+        return string(17)
+    finally
+        propertyKeyValue = "after"
+    end
+end
+func propertyNullableBorrowed() as string?
+    try
+        return propertyKeyValue
+    finally
+        propertyKeyValue = "after"
+    end
+end
+export "property_nullable_return" func propertyNullableReturn() as int
+    assert (propertyNullableNormal() ?? "missing") == "17"
+    assert (propertyNullableDeferred() ?? "missing") == "17"
+    propertyKeyValue = "before"
+    assert (propertyNullableBorrowed() ?? "missing") == "before"
+    assert propertyKeyValue == "after"
+    return 0
+end
+export "property_replace" func propertyReplace()
+    propertyCurrent = PropertyDerived(29)
+    propertyKeyValue = "29"
+end
+func propertyReset(int stage)
+    propertyStage = stage
+    propertyOrder = 0
+    propertyCurrent = PropertyDerived(3)
+    propertyKeyValue = "7"
+end
+func propertyRhsnum() as int
+    propertyStep(4)
+    propertyReplace()
+    return 4
+end
+func propertyRhsword() as string
+    propertyStep(4)
+    propertyReplace()
+    return "b"
+end
+func propertyRhsentries() as array<int>
+    propertyStep(4)
+    propertyReplace()
+    return array[4]
+end
+func propertyRhspoints() as int
+    propertyStep(4)
+    propertyReplace()
+    return 4
+end
+export "property_compound" func propertyCompound(int mode, int stage) as int
+    propertyReset(stage)
+    PropertyState original = propertyCurrent
+    int caught = 0
+    try
+        if mode == 0
+            propertyReceiver().num[propertyKey()] += propertyRhsnum()
+        elseif mode == 1
+            propertyReceiver().word[propertyKey()] += propertyRhsword()
+        elseif mode == 2
+            propertyReceiver().entries[propertyKey()] += propertyRhsentries()
+        elseif mode == 3
+            propertyReceiver().points[propertyKey()] += propertyRhspoints()
+        end
+    catch failure
+        assert failure.code == 73
+        caught = 1
+    end
+    bool committed = stage == 0 or stage == 7 or (stage == 5 and mode != 3)
+    if mode == 0 then assert original.number == (committed ? 7 : 3) end
+    if mode == 1 then assert original.text == (committed ? "ab" : "a") end
+    if mode == 2 then assert original.items.length == (committed ? 2 : 1) end
+    if mode == 3 then assert original.score.value == (committed ? 7 : 3) end
+    if stage == 0 or stage > 4 then assert propertyCurrent.number == 29 end
+    return propertyOrder * 10 + caught
+end
+export "property_set" func propertySet(int mode, int stage) as int
+    propertyReset(stage)
+    PropertyState original = propertyCurrent
+    int caught = 0
+    try
+        if mode == 0
+            propertyReceiver().num[propertyKey()] = propertyRhsnum()
+        elseif mode == 1
+            propertyReceiver().word[propertyKey()] = propertyRhsword()
+        elseif mode == 2
+            propertyReceiver().entries[propertyKey()] = propertyRhsentries()
+        end
+    catch failure
+        assert failure.code == 73
+        caught = 1
+    end
+    bool committed = stage == 0 or stage == 3 or stage == 5 or stage == 7
+    assert original.number == 3 and original.text == "a" and original.items.length == 1
+    if committed
+        if mode == 0 then assert propertyCurrent.number == 4 end
+        if mode == 1 then assert propertyCurrent.text == "b" end
+        if mode == 2 then assert propertyCurrent.items[0] == 4 end
+    end
+    return propertyOrder * 10 + caught
+end
+export "property_get" func propertyGet(int mode, int stage) as int
+    propertyReset(stage)
+    int caught = 0
+    try
+        if mode == 0
+            int result = propertyReceiver().num[propertyKey()]
+        elseif mode == 1
+            string result = propertyReceiver().word[propertyKey()]
+        elseif mode == 2
+            array<int> result = propertyReceiver().entries[propertyKey()]
+        elseif mode == 3
+            PropertyScore result = propertyReceiver().points[propertyKey()]
+        end
+    catch failure
+        assert failure.code == 73
+        caught = 1
+    end
+    return propertyOrder * 10 + caught
+end
+
+async func propertyAwait(future<int> pending, int mode) as int
+    PropertyState original = propertyCurrent
+    if mode == 0
+        propertyReceiver().num[propertyKey()] += await pending
+    elseif mode == 1
+        propertyReceiver().word[propertyKey()] += string(await pending)
+    elseif mode == 2
+        propertyReceiver().entries[propertyKey()] += array[await pending]
+    elseif mode == 3
+        propertyReceiver().points[propertyKey()] += await pending
+    end
+    if mode == 0 then return original.number end
+    if mode == 1
+        assert original.text == "a4"
+        return 7
+    end
+    if mode == 2
+        assert original.items.length == 2 and original.items[0] == 1
+        return original.items[1] + 3
+    end
+    return original.score.value
+end
+async func propertyReady() as int
+    return 0
+end
+future<int> propertyPending = propertyReady()
+export "property_start" func propertyStart(int mode, int stage)
+    propertyReset(stage)
+    propertyPending = propertyAwait(propertyFuture(), mode)
+end
+
+class PropertyEphemeral
+    int number = 3
+    get value() as int
+        return self.number
+    end
+    let value(int value)
+        self.number = value
+    end
+    destroy()
+        if propertyStage == 8 then propertyFail(88) end
+    end
+end
+export "property_cleanup" func propertyCleanup(int mode) as int
+    propertyReset(8)
+    bool caught = false
+    try
+        if mode == 0
+            int result = PropertyEphemeral().value
+        elseif mode == 1
+            PropertyEphemeral().value = 7
+        else
+            PropertyEphemeral().value += 4
+        end
+    catch failure
+        assert failure.code == 88
+        caught = true
+    end
+    assert caught
+    propertyStage = 0
+    return 0
+end

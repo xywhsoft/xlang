@@ -1,0 +1,26 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "native_handle" func nativeHandle(int value) as point
+
+class NativeProbe
+    native point handle
+end
+
+point firstRaw = nativeHandle(1)
+point secondRaw = nativeHandle(2)
+NativeProbe first = NativeProbe(firstRaw)
+NativeProbe second = NativeProbe(secondRaw)
+
+array<NativeProbe> values = array[first, second]
+list<NativeProbe> sparse = list[7: second]
+dict<NativeProbe> named = dict{"first": first}
+
+NativeProbe fromArray = values[0]
+NativeProbe fromList = sparse[7]
+NativeProbe fromDict = named["first"]
+
+expect(fromArray.handle == firstRaw, 1)
+expect(fromList.handle == secondRaw, 1)
+expect(fromDict.handle == firstRaw, 1)
+
+var boxed = fromArray
+expect(type(boxed) == NativeProbe, 1)

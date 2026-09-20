@@ -2,30 +2,27 @@ static void xl6CgenEmitArgvArrayHelper(XL6_Output* out)
 {
     xl6OutputPuts("#ifndef XL6_XVALUE_TYPEDEF\n", out);
     xl6OutputPuts("#define XL6_XVALUE_TYPEDEF\n", out);
-    xl6OutputPuts("typedef struct xvalue_struct* xvalue;\n", out);
+    xl6OutputPuts("typedef struct xvalue xvalue;\n", out);
     xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("#include <stddef.h>\n", out);
-    xl6OutputPuts("xvalue xvoCreateArray(void);\n", out);
-    xl6OutputPuts("xvalue xvoCreateText(void* sVal, unsigned int iSize, bool bColloc);\n", out);
-    xl6OutputPuts("bool xvoArrayAppendValue(xvalue pArr, xvalue pVal, bool bColloc);\n", out);
-    xl6OutputPuts("void xvoUnref(xvalue pVal);\n\n", out);
+    xl6OutputPuts("xvalue* xrtValueArray(void);\n", out);
+    xl6OutputPuts("xvalue* xrtValueString(xstrview Text);\n", out);
+    xl6OutputPuts("bool xrtValueArrayAppendNew(xvalue* pArray, xvalue* pItem);\n", out);
+    xl6OutputPuts("void xrtValueRelease(xvalue* pValue);\n\n", out);
     xl6OutputPuts("void* xrtMalloc(size_t size);\n", out);
     xl6OutputPuts("void xrtFree(void* p);\n\n", out);
-    xl6OutputPuts("static xvalue xl6_argv_to_arg(int argc, char** argv)\n", out);
+    xl6OutputPuts("static xvalue* xl6_argv_to_arg(int argc, char** argv)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xvalue arg = xvoCreateArray();\n", out);
+    xl6OutputPuts("    xvalue* arg = xrtValueArray();\n", out);
     xl6OutputPuts("    int i;\n\n", out);
     xl6OutputPuts("    if ( arg == 0 ) {\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    for ( i = 0; i < argc; ++i ) {\n", out);
     xl6OutputPuts("        const char* text = (argv != 0 && argv[i] != 0) ? argv[i] : \"\";\n", out);
-    xl6OutputPuts("        xvalue item = xvoCreateText((void*)text, 0, false);\n", out);
-    xl6OutputPuts("        if ( item == 0 || !xvoArrayAppendValue(arg, item, true) ) {\n", out);
-    xl6OutputPuts("            if ( item != 0 ) {\n", out);
-    xl6OutputPuts("                xvoUnref(item);\n", out);
-    xl6OutputPuts("            }\n", out);
-    xl6OutputPuts("            xvoUnref(arg);\n", out);
+    xl6OutputPuts("        xvalue* item = xrtValueString((xstrview){ text, strlen(text) });\n", out);
+    xl6OutputPuts("        if ( item == 0 || !xrtValueArrayAppendNew(arg, item) ) {\n", out);
+    xl6OutputPuts("            xrtValueRelease(arg);\n", out);
     xl6OutputPuts("            return 0;\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
@@ -39,7 +36,7 @@ static void xl6CgenEmitArgvArrayHelper(XL6_Output* out)
     xl6OutputPuts("__declspec(dllimport) wchar_t** __stdcall CommandLineToArgvW(const wchar_t* lpCmdLine, int* pNumArgs);\n", out);
     xl6OutputPuts("__declspec(dllimport) int __stdcall WideCharToMultiByte(unsigned int CodePage, unsigned long dwFlags, const wchar_t* lpWideCharStr, int cchWideChar, char* lpMultiByteStr, int cbMultiByte, const char* lpDefaultChar, int* lpUsedDefaultChar);\n", out);
     xl6OutputPuts("__declspec(dllimport) void* __stdcall LocalFree(void* hMem);\n", out);
-    xl6OutputPuts("#define XL6_CP_UTF8 65001u\n", out);
+    xl6OutputPuts("#define XL6_WIN_UTF8_CODE_PAGE 65001u\n", out);
     xl6OutputPuts("#endif\n\n", out);
     xl6OutputPuts("static char* xl6_wide_to_utf8(const wchar_t* text)\n", out);
     xl6OutputPuts("{\n", out);
@@ -48,7 +45,7 @@ static void xl6CgenEmitArgvArrayHelper(XL6_Output* out)
     xl6OutputPuts("    if ( text == 0 ) {\n", out);
     xl6OutputPuts("        text = L\"\";\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    size = WideCharToMultiByte(XL6_CP_UTF8, 0, text, -1, 0, 0, 0, 0);\n", out);
+    xl6OutputPuts("    size = WideCharToMultiByte(XL6_WIN_UTF8_CODE_PAGE, 0, text, -1, 0, 0, 0, 0);\n", out);
     xl6OutputPuts("    if ( size <= 0 ) {\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
@@ -56,37 +53,34 @@ static void xl6CgenEmitArgvArrayHelper(XL6_Output* out)
     xl6OutputPuts("    if ( utf8 == 0 ) {\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if ( WideCharToMultiByte(XL6_CP_UTF8, 0, text, -1, utf8, size, 0, 0) <= 0 ) {\n", out);
+    xl6OutputPuts("    if ( WideCharToMultiByte(XL6_WIN_UTF8_CODE_PAGE, 0, text, -1, utf8, size, 0, 0) <= 0 ) {\n", out);
     xl6OutputPuts("        xrtFree(utf8);\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return utf8;\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("static xvalue xl6_windows_argv_to_arg(int fallbackArgc, char** fallbackArgv)\n", out);
+    xl6OutputPuts("static xvalue* xl6_windows_argv_to_arg(int fallbackArgc, char** fallbackArgv)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    int argc = 0;\n", out);
     xl6OutputPuts("    wchar_t** argv = CommandLineToArgvW(GetCommandLineW(), &argc);\n", out);
-    xl6OutputPuts("    xvalue arg;\n", out);
+    xl6OutputPuts("    xvalue* arg;\n", out);
     xl6OutputPuts("    int i;\n\n", out);
     xl6OutputPuts("    if ( argv == 0 ) {\n", out);
     xl6OutputPuts("        return xl6_argv_to_arg(fallbackArgc, fallbackArgv);\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    arg = xvoCreateArray();\n", out);
+    xl6OutputPuts("    arg = xrtValueArray();\n", out);
     xl6OutputPuts("    if ( arg == 0 ) {\n", out);
     xl6OutputPuts("        LocalFree(argv);\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    for ( i = 0; i < argc; ++i ) {\n", out);
     xl6OutputPuts("        char* text = xl6_wide_to_utf8(argv[i]);\n", out);
-    xl6OutputPuts("        xvalue item = text != 0 ? xvoCreateText((void*)text, 0, false) : 0;\n", out);
+    xl6OutputPuts("        xvalue* item = text != 0 ? xrtValueString((xstrview){ text, strlen(text) }) : 0;\n", out);
     xl6OutputPuts("        if ( text != 0 ) {\n", out);
     xl6OutputPuts("            xrtFree(text);\n", out);
     xl6OutputPuts("        }\n", out);
-    xl6OutputPuts("        if ( item == 0 || !xvoArrayAppendValue(arg, item, true) ) {\n", out);
-    xl6OutputPuts("            if ( item != 0 ) {\n", out);
-    xl6OutputPuts("                xvoUnref(item);\n", out);
-    xl6OutputPuts("            }\n", out);
-    xl6OutputPuts("            xvoUnref(arg);\n", out);
+    xl6OutputPuts("        if ( item == 0 || !xrtValueArrayAppendNew(arg, item) ) {\n", out);
+    xl6OutputPuts("            xrtValueRelease(arg);\n", out);
     xl6OutputPuts("            LocalFree(argv);\n", out);
     xl6OutputPuts("            return 0;\n", out);
     xl6OutputPuts("        }\n", out);
@@ -95,7 +89,7 @@ static void xl6CgenEmitArgvArrayHelper(XL6_Output* out)
     xl6OutputPuts("    return arg;\n", out);
     xl6OutputPuts("}\n", out);
     xl6OutputPuts("#endif\n\n", out);
-    xl6OutputPuts("static xvalue xl6_command_argv_to_arg(int argc, char** argv)\n", out);
+    xl6OutputPuts("static xvalue* xl6_command_argv_to_arg(int argc, char** argv)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("#if defined(_WIN32) || defined(_WIN64)\n", out);
     xl6OutputPuts("    return xl6_windows_argv_to_arg(argc, argv);\n", out);
@@ -453,6 +447,10 @@ static void xl6CgenAddModuleGlobalCleanup(XL6_CgenContext* ctx, const XL6_AstNod
     }
 
     concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
+    if ( xl6CgenIsErrorType(ctx, concreteType) ) {
+        xl6CgenAddErrorCleanup(ctx, name, concreteType);
+        return;
+    }
     if ( xl6CgenIsOwnedStringTypeNode(ctx, concreteType) ) {
         xl6CgenAddStringCleanup(ctx, name, concreteType);
         return;
@@ -542,8 +540,6 @@ static int xl6CgenEmitModuleGlobalLoweredInit(
                 ? xl6CgenCloneCanonicalTypeNode(ctx, rightConcrete)
                 : NULL;
             XL6_HirOwnership ownership = xl6CgenHirOwnership(ctx, initExpr);
-            int sourceShared =
-                xl6CgenTypedContainerExprIsSharedStorage(ctx, initExpr);
             char sourceName[64];
 
             if ( initExpr->kind != XL6_AST_NULL && literal == NULL &&
@@ -568,10 +564,7 @@ static int xl6CgenEmitModuleGlobalLoweredInit(
             if ( initExpr->kind == XL6_AST_NULL ) {
                 xl6OutputPuts("0", ctx->out);
             } else if ( literal != NULL ) {
-                xl6CgenTypedContainerCreateExprMode(
-                    ctx,
-                    storageType,
-                    "XRT_OBJMODE_SHARED");
+                xl6CgenTypedContainerCreateExpr(ctx, storageType);
             } else {
                 snprintf(
                     sourceName,
@@ -593,23 +586,12 @@ static int xl6CgenEmitModuleGlobalLoweredInit(
                 xl6OutputPuts(";\n", ctx->out);
                 xl6CgenIndent(ctx);
                 xl6OutputPrintf(ctx->out, "%s = %s != 0 ? ", tempName, sourceName);
-                if ( sourceShared ) {
+                if ( ownership != XL6_HIR_OWNERSHIP_MOVE ) {
                     xl6CgenTypedContainerRetainCExpr(ctx, storageType, sourceName);
                 } else {
-                    xl6CgenTypedContainerCopyCExprMode(
-                        ctx,
-                        storageType,
-                        sourceName,
-                        "XRT_OBJMODE_SHARED");
+                    xl6OutputPuts(sourceName, ctx->out);
                 }
                 xl6OutputPuts(" : 0;\n", ctx->out);
-                if ( ownership == XL6_HIR_OWNERSHIP_MOVE && !sourceShared ) {
-                    xl6CgenIndent(ctx);
-                    xl6CgenTypedContainerDestroyValue(
-                        ctx,
-                        storageType,
-                        sourceName);
-                }
             }
             xl6OutputPuts(";\n", ctx->out);
             if ( literal != NULL ) {
@@ -648,11 +630,7 @@ static int xl6CgenEmitModuleGlobalLoweredInit(
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), tempName);
             if ( initByCopy ) {
-                if ( xl6CgenTypedContainerExprIsSharedStorage(ctx, initExpr) ) {
-            xl6CgenTypedContainerRetainExpr(ctx, typeNode, initExpr);
-                } else {
-                    xl6CgenTypedContainerCopyExprMode(ctx, typeNode, initExpr, "XRT_OBJMODE_SHARED");
-                }
+                xl6CgenTypedContainerRetainExpr(ctx, typeNode, initExpr);
             } else if ( initByMove ) {
                 if ( memberFunctionType != NULL ) {
                     xl6CgenMemberFunctionStatementInvokeExpr(ctx, initExpr, memberFunctionType, memberTempName);
@@ -660,13 +638,9 @@ static int xl6CgenEmitModuleGlobalLoweredInit(
                     xl6CgenExpr(ctx, initExpr);
                 }
             } else if ( initByImport ) {
-                xl6CgenTypedContainerImportDynamicExprMode(
-                    ctx,
-                    typeNode,
-                    initExpr,
-                    "XRT_OBJMODE_SHARED");
+                xl6CgenTypedContainerImportDynamicExpr(ctx, typeNode, initExpr);
             } else {
-                xl6CgenTypedContainerCreateExprMode(ctx, typeNode, "XRT_OBJMODE_SHARED");
+                xl6CgenTypedContainerCreateExpr(ctx, typeNode);
             }
             xl6OutputPuts(";\n", ctx->out);
             if ( initByImport ) {
@@ -685,19 +659,6 @@ static int xl6CgenEmitModuleGlobalLoweredInit(
             }
             emitted = 1;
         }
-        if ( emitted && initByMove ) {
-            char sharedTempName[64];
-
-            snprintf(sharedTempName, sizeof(sharedTempName), "__xl6_global_shared_%d", ctx->tempId++);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s %s = ", xl6CgenTypedContainerCType(ctx, typeNode), sharedTempName);
-            xl6CgenTypedContainerCopyCExprMode(ctx, typeNode, tempName, "XRT_OBJMODE_SHARED");
-            xl6OutputPuts(";\n", ctx->out);
-            xl6CgenIndent(ctx);
-            xl6CgenTypedContainerDestroyValue(ctx, typeNode, tempName);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = %s;\n", tempName, sharedTempName);
-        }
         xl6AstFree(memberFunctionType);
 module_global_typed_container_done:
         ;
@@ -713,7 +674,7 @@ module_global_typed_container_done:
                       xl6CgenDeclTryXValueNullCoalesceInit(ctx, typeNode, tempName, initExpr) ||
                       xl6CgenDeclTryXValueBinaryInit(ctx, typeNode, tempName, initExpr) ||
                       xl6CgenDeclTryXValueConditionalInit(ctx, typeNode, tempName, initExpr) ||
-                      xl6CgenDeclTryTaskSpawnArgTempsInit(ctx, typeNode, "xvalue", tempName, initExpr);
+                      xl6CgenDeclTryTaskSpawnArgTempsInit(ctx, typeNode, "xvalue*", tempName, initExpr);
         }
     } else if ( !xl6CgenIsFunctionType(typeNode) ) {
         cType = xl6CgenTypeName(ctx, typeNode);
@@ -731,10 +692,6 @@ module_global_typed_container_done:
     }
     if ( !emitted ) {
         return 0;
-    }
-    if ( xl6CgenIsXValueType(typeNode) ) {
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_move_to_shared(%s);\n", tempName, tempName);
     }
     xl6CgenIndent(ctx);
     xl6CgenFputsValueStorageName(ctx, name);

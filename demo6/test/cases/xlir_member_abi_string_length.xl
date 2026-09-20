@@ -1,0 +1,13 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+string ascii = "abc"
+string unicode = "你好a"
+
+func makeUnicode() as string
+    return "语言x"
+end
+
+expect(ascii.length, 3)
+expect(unicode.length, 3)
+expect("".length, 0)
+expect(makeUnicode().length, 3)

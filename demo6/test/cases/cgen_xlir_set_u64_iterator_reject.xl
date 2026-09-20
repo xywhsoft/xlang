@@ -1,0 +1,7 @@
+func consume_unsigned_set(set<uint64> values) as uint64
+    uint64 total = uint64(0)
+    for value in values
+        total = total + value
+    end
+    return total
+end

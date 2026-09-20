@@ -1,0 +1,9 @@
+array<int> values
+list<int> sparse
+dict<string> names
+set<int> unique
+
+assert values.length == 0
+assert sparse.length == 0
+assert names.length == 0
+assert unique.length == 0

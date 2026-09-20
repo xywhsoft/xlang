@@ -1,0 +1,8 @@
+func check_inner() as int
+  assert 1 == 1
+  return 1
+end
+
+func check_outer() as int
+  return check_inner()
+end

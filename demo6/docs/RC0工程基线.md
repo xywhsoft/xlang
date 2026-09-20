@@ -1,5 +1,7 @@
 # DEMO6 RC0 工程基线
 
+<!-- xl6-canonical-rc0-baseline -->
+
 本文档记录 DEMO6 进入 RC0 前的工程守门口径。后续开发如果改变这里的边界，应先明确更新本文档和 `rc0_guard.bat`。
 
 ## 相关文档

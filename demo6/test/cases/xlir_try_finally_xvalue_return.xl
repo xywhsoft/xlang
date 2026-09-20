@@ -1,0 +1,20 @@
+int xvalue_finally_trace = 0
+
+func xvalue_return_through_finally() as var
+    var value = {"answer": 42}
+    try
+        return value
+    finally
+        xvalue_finally_trace = xvalue_finally_trace + 1
+    end
+end
+
+func xvalue_return_through_finally_check() as int
+    var value = xvalue_return_through_finally()
+    return xvalue_finally_trace
+end
+
+
+if false
+    xvalue_return_through_finally_check()
+end

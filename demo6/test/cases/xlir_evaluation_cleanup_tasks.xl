@@ -1,0 +1,33 @@
+extern "evaluation_task_drop" func taskDrop()
+extern "evaluation_task_after" func taskAfter(int count)
+extern "evaluation_task_caught" func taskCaught()
+
+class TaskText
+    string text = "hello"
+    destroy()
+        taskDrop()
+    end
+end
+
+func makeTaskText() as TaskText
+    return TaskText()
+end
+
+func makeTaskValue(int value) as var
+    return value
+end
+
+func variadicTask(...) as int
+    return arg.length
+end
+
+func(...) as int callback = variadicTask
+int first = await task.spawn(callback, true ? makeTaskValue(1) : makeTaskValue(9), makeTaskValue(2) + makeTaskValue(3))
+assert first == 2
+try
+    int count = await task.spawn(callback, makeTaskValue(1), makeTaskText().text)
+    taskAfter(count)
+catch error
+    assert error.code == 77
+    taskCaught()
+end

@@ -1,0 +1,5 @@
+func choose(bool enabled) as var
+    return enabled ? {"value": 41} : {"value": 42}
+end
+
+var actual = choose(true)

@@ -1,0 +1,1 @@
+assert string.byteLen("你好") == 6

@@ -7,12 +7,12 @@ end
 
 func(int, int) as int fn = cadd
 int direct = fn(10, 3)
-var boxed = fn
+var boxed = xcall(fn)
 var dynamic = boxed(20, 22)
 
 func(int, int) as int exportedFn = exportedAdd
 int exportedDirect = exportedFn(5, 6)
-var boxedExported = exportedFn
+var boxedExported = xcall(exportedFn)
 var exportedDynamic = boxedExported(7, 8)
 
 expect(direct, 13)

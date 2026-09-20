@@ -21,7 +21,7 @@ record(true ? makeValue(7) : makeValue(8))
 expect(recorded(), 7)
 
 func(var, var) as var sumFn = sumNamed
-var dynamicSum = sumFn
+var dynamicSum = xcall(sumFn)
 record(dynamicSum(makeValue(4) + makeValue(5), makeValue(6)))
 expect(recorded(), 15)
 

@@ -1,0 +1,1348 @@
+/* Derive all generated-runtime dependencies from reachable lowered IR. */
+static int xl6IrCgenRequireErrorResult(
+    const XL6_IrModule* module, XL6_IrCgenNeeds* needs,
+    XL6_IrTypeId returnType, XL6_IrNodeId declaration, XL6_DiagList* diags)
+{
+    const XL6_IrType* type;
+    if ( returnType == XL6_IR_TYPE_INVALID ) needs->needsResultVoid = 1;
+    else if ( (type = xl6IrTypeGet(&module->types, returnType)) == NULL )
+        return xl6IrCgenDiag(diags, module, declaration,
+            "XLIR C emitter error-result ABI is unresolved");
+    else if ( type->cAbi == XL6_IR_C_ABI_BOOL ) needs->needsResultBool = 1;
+    else if ( type->cAbi == XL6_IR_C_ABI_I64 || type->cAbi == XL6_IR_C_ABI_TIME_I64 )
+        needs->needsResultI64 = 1;
+    else if ( type->cAbi == XL6_IR_C_ABI_U64 ) needs->needsResultU64 = 1;
+    else if ( type->cAbi == XL6_IR_C_ABI_TYPE_ID ) needs->needsResultTypeId = 1;
+    else if ( type->cAbi == XL6_IR_C_ABI_F64 ) needs->needsResultF64 = 1;
+    else if ( type->cAbi == XL6_IR_C_ABI_F32 ) needs->needsResultF32 = 1;
+    else if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ) needs->needsResultString = 1;
+    else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) needs->needsResultXValue = 1;
+    else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ) needs->needsResultFuture = 1;
+    else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR ) needs->needsResultGenerator = 1;
+    else if ( xl6IrCgenErrorResultType(module, returnType) != NULL ) needs->needsExtendedResults = 1;
+    else return xl6IrCgenDiag(diags, module, declaration,
+        "XLIR C emitter does not support this error-result ABI");
+    return 1;
+}
+
+static int xl6IrCgenAnalyzePrimaryNeeds(
+    const XL6_IrModule* module, XL6_IrCgenNeeds* needs,
+    XL6_DiagList* diags)
+{
+    size_t i;
+    size_t parameter;
+    if (module->abi.taskPoolAbi == XL6_IR_MODULE_TASK_POOL_XRT_GUARDED_QUIESCE) {
+        needs->needsAsyncTaskRuntime = 1;
+        needs->needsRuntimeTrap = 1;
+        needs->needsFutureRuntime = 1;
+        needs->needsErrorRuntime = 1;
+        needs->needsForeignErrorRuntime = 1;
+        needs->needsResultVoid = 1;
+    }
+    for ( i = 0; i < module->exportCount; ++i )
+        for ( parameter = 0; parameter < module->exports[i].parameterCount; ++parameter )
+            if ( xl6IrExportValueAbiIsCallback(module->exports[i].parameterValueAbis[parameter]) ) {
+                const XL6_IrType* signature = xl6IrTypeGet(&module->types,
+                    xl6IrExportCallbackSignatureType(module, module->exports[i].parameterTypes[parameter]));
+                const XL6_IrType* result = xl6IrTypeGet(&module->types, signature->callableResultType);
+                size_t p;
+                needs->needsRawCallbackRuntime = 1;
+                needs->needsClosureRuntime = 1;
+                needs->needsErrorRuntime = 1;
+                if ( result != NULL && result->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
+                    needs->needsXValueRuntime = 1;
+                for ( p = 0; p < signature->paramCount; ++p ) {
+                    const XL6_IrType* item = xl6IrTypeGet(&module->types, signature->params[p]);
+                    if ( item->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) needs->needsXValueRuntime = 1;
+                }
+            }
+    for ( i = 0; i < module->instructionCount; ++i ) {
+        const XL6_IrType* instructionType;
+        if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
+        instructionType = xl6IrTypeGet(&module->types, module->instructions[i].type);
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp == XL6_IR_RUNTIME_I64_POW )
+            needs->needsI64PowRuntime = 1;
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp == XL6_IR_RUNTIME_TIME_APPROX )
+            needs->needsTimeApproxRuntime = 1;
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_WEAK_CREATE ||
+              module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_WEAK_LOCK) ) {
+            needs->needsXValueWeakRuntime = 1;
+            needs->needsXValueRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             xl6IrCgenPersistenceRuntimeFormat(
+                 module->instructions[i].runtimeOp) !=
+                 XL6_IR_PERSIST_FORMAT_NONE ) {
+            needs->needsPersistenceFormats |= xl6IrCgenPersistenceRuntimeFormat(
+                module->instructions[i].runtimeOp);
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueObjectRuntime = 1;
+        }
+        if ( instructionType != NULL &&
+             instructionType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR )
+            needs->needsFutureRuntime = 1;
+        if ( instructionType != NULL &&
+             instructionType->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR )
+            needs->needsGeneratorRuntime = 1;
+        if ( instructionType != NULL &&
+             instructionType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR &&
+             module->instructions[i].kind == XL6_IR_INSTR_RELEASE )
+            needs->needsClosureRuntime = 1;
+        if ( (module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+              xl6IrCgenXValueIteratorRuntimeOpIs(
+                  module->instructions[i].runtimeOp)) ||
+             ((module->instructions[i].kind == XL6_IR_INSTR_RELEASE ||
+               module->instructions[i].kind == XL6_IR_INSTR_VALUE_RELEASE) &&
+              instructionType != NULL && instructionType->cAbi ==
+                  XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR) ) {
+            needs->needsXValueIteratorRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsRuntimeTrap = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp ==
+                   XL6_IR_RUNTIME_XVALUE_ITERATOR_ITEM_STRING_COPY ||
+              module->instructions[i].runtimeOp ==
+                   XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_STRING_COPY) ) {
+            needs->needsXValueIteratorStringRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_SAFE_CLASS_FIELD_GET_LITERAL ) {
+            needs->needsXValueSafeClassFieldRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueObjectRuntime = 1;
+            needs->needsStringViews = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_STRING_COPY ) {
+            needs->needsXValueIteratorNullableStringRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_PROJECT_TAGGED_NULLABLE_COPY ) {
+            needs->needsXValueTaggedNullableRuntime = 1;
+            needs->needsXValueRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_CLOSURE_COPY ) {
+            needs->needsXValueIteratorNullableClosureRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueClosureBridgeRuntime = 1;
+            needs->needsClosureRuntime = 1;
+            needs->needsXCallRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_PROJECT_CLOSURE_COPY ) {
+            needs->needsXValueClosureProjectionRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueClosureBridgeRuntime = 1;
+            needs->needsClosureRuntime = 1;
+            needs->needsXCallRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED ) {
+            needs->needsXValueClosureCheckedCastRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsXValueClosureBridgeRuntime = 1;
+            needs->needsClosureRuntime = 1;
+            needs->needsXCallRuntime = 1;
+            needs->needsErrorRuntime = 1;
+            if ( xl6IrCgenRuntimeCallableHasClosureResult(
+                     module, module->instructions[i].calleeType) )
+                needs->needsXValueClosureProjectionRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_PROJECT_NATIVE_HANDLE_BORROW ) {
+            needs->needsXValueNativeHandleProjectionRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsRuntimeTrap = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_XVALUE_RETAIN ) {
+            needs->needsXValueNullableRetainProjectionRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsRuntimeTrap = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_PROJECT_XVALUE_RETAIN ) {
+            needs->needsXValueRetainProjectionRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsRuntimeTrap = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_PROJECT_SCALAR_COPY ) {
+            needs->needsXValueScalarProjectionRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsRuntimeTrap = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_PROJECT_RAW_POINTER_BORROW ) {
+            needs->needsXValueRawPointerProjectionRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsRuntimeTrap = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_PROJECT_STRING_COPY ) {
+            needs->needsXValueStringProjectionRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsRuntimeTrap = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_CAST_CHECKED ) {
+            needs->needsXValueCheckedCastRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsErrorRuntime = 1;
+            if ( module->instructions[i].castAbi ==
+                     XL6_IR_CAST_XVALUE_TO_ERROR_CHECKED )
+                needs->needsXValueHandleRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_TAGGED ) {
+            needs->needsXValueTaggedNullableRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsXValueRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_STRING ) {
+            needs->needsXValueNullableStringCastRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsErrorRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_NOMINAL_TEST ||
+              module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_CHECKED ||
+              module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_NULLABLE) ) {
+            const XL6_IrNominalIdentitySet* set =
+                xl6IrNominalIdentitySetGet(module,
+                    module->instructions[i].payloadType, NULL);
+            if ( set == NULL )
+                return xl6IrCgenDiag(diags, module,
+                    module->instructions[i].origin,
+                    "XLIR C emitter nominal identity set is unresolved");
+            needs->needsNominalIdentityRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            if ( set->kind == XL6_IR_NOMINAL_IDENTITY_EXACT_TYPE_ID )
+                needs->needsXValueTypeIdentityRuntime = 1;
+            else {
+                needs->needsStringViews = 1;
+                needs->needsXValueObjectRuntime = 1;
+            }
+            if ( module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_CHECKED )
+                needs->needsErrorRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED ||
+              module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_DYNAMIC_XVALUE ||
+              module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_ITERATOR_DYNAMIC_LOGICAL_XVALUE) ) {
+            needs->needsXValueIteratorDynamicRuntime = 1;
+            needs->needsStringViews = 1;
+            if ( module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED )
+                needs->needsErrorRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_CAST ||
+              module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND) ) {
+            needs->needsXValueCollectionCheckedRebindRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             xl6IrCgenCheckedIntegerRuntimeOpIs(
+                 module->instructions[i].runtimeOp) ) {
+            needs->needsCheckedIntegerArithmeticRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        }
+        if ( instructionType != NULL &&
+             (module->instructions[i].kind == XL6_IR_INSTR_RETAIN ||
+              module->instructions[i].kind == XL6_IR_INSTR_PRODUCT_DROP ||
+              module->instructions[i].kind == XL6_IR_INSTR_VALUE_RELEASE) ) {
+            if ( instructionType->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
+                needs->needsStringRuntime = 1;
+            else if ( instructionType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
+                needs->needsXValueRuntime = 1;
+            else if ( instructionType->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR )
+                needs->needsErrorRuntime = 1;
+            else if ( instructionType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR )
+                needs->needsFutureRuntime = 1;
+            else if ( instructionType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
+                needs->needsClosureRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_UNION_BOX ||
+              module->instructions[i].runtimeOp ==
+                   XL6_IR_RUNTIME_XVALUE_UNION_UNBOX ||
+              module->instructions[i].runtimeOp ==
+                   XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_UNION_COPY ||
+              module->instructions[i].runtimeOp ==
+                   XL6_IR_RUNTIME_XVALUE_UNION_CAST_CHECKED) ) {
+            needs->needsXValueUnionRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            if ( module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_UNION_CAST_CHECKED ) {
+                needs->needsXValueUnionCheckedCastRuntime = 1;
+                needs->needsErrorRuntime = 1;
+            } else {
+                needs->needsRuntimeTrap = 1;
+            }
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_FOREIGN_FLOAT ||
+              module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_ERROR_REF) ) {
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsRuntimeTrap = 1;
+            if ( module->instructions[i].runtimeOp ==
+                     XL6_IR_RUNTIME_XVALUE_ERROR_REF ) {
+                needs->needsXValueErrorBoxRuntime = 1;
+                needs->needsXValueHandleRuntime = 1;
+                needs->needsErrorRuntime = 1;
+            }
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_PROJECT_ERROR_REF ) {
+            needs->needsXValueErrorProjectionRuntime = 1;
+            needs->needsXValueHandleRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsErrorRuntime = 1;
+            needs->needsRuntimeTrap = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+              (module->instructions[i].runtimeOp ==
+                   XL6_IR_RUNTIME_XVALUE_TYPE_BIND ||
+               module->instructions[i].runtimeOp ==
+                   XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED ||
+               module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_TYPE_ID) ) {
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsRuntimeTrap = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_TRAP_IF_FALSE ) needs->needsRuntimeTrap = 1;
+        if ( module->instructions[i].kind == XL6_IR_INSTR_VIRTUAL_CALL ||
+             module->instructions[i].kind == XL6_IR_INSTR_PROTOCOL_CALL ) {
+            needs->needsRuntimeTrap = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsXValueObjectRuntime = 1;
+            needs->needsXValueObjectLiteralI64Runtime = 1;
+            if (xl6IrCallInstructionErrorAbi(module, &module->instructions[i]) == XL6_IR_ERROR_ABI_MAY_RAISE &&
+                !xl6IrCgenRequireErrorResult(module, needs, module->instructions[i].type,
+                    module->instructions[i].origin, diags)) return 0;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_CLASS_IS ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_CLASS_AS) ) {
+            needs->needsRuntimeTrap = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsXValueObjectRuntime = 1;
+            needs->needsXValueObjectLiteralI64Runtime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_CALLABLE_FROM_CLOSURE ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_NULLABLE_CLOSURE_BOX ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_CLOSURE ||
+             module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_CLOSURE) ) {
+            needs->needsXCallRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsErrorRuntime = 1;
+            needs->needsStringViews = 1;
+            if ( module->instructions[i].runtimeOp !=
+                 XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL )
+                needs->needsClosureRuntime = 1;
+            if ( module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_CLOSURE )
+                needs->needsRuntimeTrap = 1;
+            if ( module->instructions[i].runtimeOp !=
+                     XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL &&
+                 module->instructions[i].runtimeOp !=
+                     XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_CLOSURE &&
+                 xl6IrTypeGet(&module->types,
+                     module->instructions[i].calleeType) != NULL &&
+                 xl6IrTypeGet(&module->types,
+                     module->instructions[i].calleeType)->callableErasureAbi ==
+                     XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC )
+                needs->needsXValueObjectRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL ) {
+            needs->needsDynamicMethodRuntime = 1;
+            if (module->instructions[i].dynamicCallSite < module->dynamicCallSiteCount &&
+                (module->dynamicCallSites[module->instructions[i].dynamicCallSite].kind == XL6_IR_DYNAMIC_CALL_MEMBER_GET ||
+                 module->dynamicCallSites[module->instructions[i].dynamicCallSite].kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET)) {
+                needs->needsXValueDynamicFieldRuntime = 1;
+                if (module->dynamicCallSites[module->instructions[i].dynamicCallSite].memberBindingAbi ==
+                        XL6_IR_DYNAMIC_MEMBER_BINDING_RETAIN_RECEIVER)
+                    needs->needsXCallRuntime = 1;
+            }
+            needs->needsXValueRuntime = 1;
+            needs->needsErrorRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsXValueArrayRuntime = 1;
+            needs->needsXValueObjectRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_NULLABLE_STRING_BOX ) {
+            needs->needsXValueRuntime = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_FUTURE_REF ) {
+            needs->needsXValueFutureRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsFutureRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE ) {
+            needs->needsNativeHandleTakeRuntime = 1;
+            needs->needsForeignErrorRuntime = 1;
+            needs->needsErrorRuntime = 1;
+            needs->needsRuntimeTrap = 1;
+            needs->needsXValueHandleRuntime = 1;
+            needs->needsXValueRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             xl6IrCgenThreadRuntimeOpIs(
+                 module->instructions[i].runtimeOp) ) {
+            needs->needsThreadResourceRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueHandleRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsClosureRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             xl6IrCgenChannelRuntimeOpIs(
+                 module->instructions[i].runtimeOp) ) {
+            needs->needsChannelResourceRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueHandleRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             xl6IrCgenSpecialQueueRuntimeOpIs(
+                 module->instructions[i].runtimeOp) ) {
+            /* Concurrent collections share the verified owning payload-box
+             * transport, while their RuntimeOps remain distinct. */
+            needs->needsChannelResourceRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueHandleRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsErrorRuntime = 1;
+            if ( module->instructions[i].runtimeOp ==
+                     XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
+                 module->instructions[i].runtimeOp ==
+                     XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO )
+                needs->needsSpecialQueueBatchRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             xl6IrCgenStackRuntimeOpIs(
+                 module->instructions[i].runtimeOp) ) {
+            needs->needsStackResourceRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueHandleRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             xl6IrCgenAvlRuntimeOpIs(
+                 module->instructions[i].runtimeOp) ) {
+            needs->needsAvlTreeResourceRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueHandleRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsXValueArrayRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             xl6IrCgenSyncRuntimeOpIs(
+                 module->instructions[i].runtimeOp) ) {
+            needs->needsSyncResourceRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueHandleRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp == XL6_IR_RUNTIME_FUTURE_CANCEL ) {
+            needs->needsFutureCancelRuntime = 1;
+            needs->needsFutureRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             xl6IrCgenFutureMemberHelper(
+                 module->instructions[i].runtimeOp) != NULL ) {
+            needs->needsFutureMemberRuntime |= xl6IrCgenFutureMemberMask(
+                module->instructions[i].runtimeOp);
+            needs->needsFutureRuntime = 1;
+            if ( module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_FUTURE_DEBUG_NAME_COPY )
+                needs->needsStringRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_TASK_SPAWN_CLOSURE ) {
+            const XL6_IrType* signature = xl6IrTypeGet(
+                &module->types, module->instructions[i].calleeType);
+            size_t parameter;
+            needs->needsTaskSpawnRuntime = 1;
+            needs->needsAsyncTaskRuntime = 1;
+            needs->needsFutureRuntime = 1;
+            needs->needsClosureRuntime = 1;
+            needs->needsErrorRuntime = 1;
+            if ( signature != NULL ) {
+                for ( parameter = 0;
+                      parameter < signature->paramCount; ++parameter ) {
+                    const XL6_IrType* type = xl6IrTypeGet(
+                        &module->types, signature->params[parameter]);
+                    if ( type == NULL ) continue;
+                    if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
+                        needs->needsStringRuntime = 1;
+                    else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
+                        needs->needsXValueRuntime = 1;
+                    else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR )
+                        needs->needsFutureRuntime = 1;
+                    else if ( type->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
+                        needs->needsClosureRuntime = 1;
+                }
+            }
+            if ( module->instructions[i].asyncResultAbi ==
+                 XL6_IR_ASYNC_RESULT_OWNED_STRING ) {
+                needs->needsAsyncStringResult = 1;
+                needs->needsStringRuntime = 1;
+            } else if ( module->instructions[i].asyncResultAbi ==
+                        XL6_IR_ASYNC_RESULT_RETAINED_XVALUE ) {
+                needs->needsAsyncXValueResult = 1;
+                needs->needsXValueRuntime = 1;
+            } else if ( module->instructions[i].asyncResultAbi ==
+                        XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE ) {
+                needs->needsAsyncClosureResult = 1;
+                needs->needsClosureRuntime = 1;
+            } else if ( module->instructions[i].asyncResultAbi ==
+                        XL6_IR_ASYNC_RESULT_RETAINED_ERROR ) {
+                needs->needsAsyncErrorResult = 1;
+                needs->needsErrorRuntime = 1;
+            } else if ( module->instructions[i].asyncResultAbi ==
+                        XL6_IR_ASYNC_RESULT_RETAINED_FUTURE ) {
+                needs->needsAsyncFutureResult = 1;
+                needs->needsFutureRuntime = 1;
+            }
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_FUTURE_CONTINUE_CLOSURE ) {
+            XL6_IrAsyncResultAbi abis[2] = {
+                module->instructions[i].sourceAsyncResultAbi,
+                module->instructions[i].asyncResultAbi
+            };
+            size_t abiIndex;
+            needs->needsFutureContinuationRuntime = 1;
+            needs->needsFutureRuntime = 1;
+            needs->needsClosureRuntime = 1;
+            needs->needsErrorRuntime = 1;
+            for ( abiIndex = 0; abiIndex < 2; ++abiIndex ) {
+                if ( abis[abiIndex] == XL6_IR_ASYNC_RESULT_OWNED_STRING ) {
+                    needs->needsAsyncStringResult = 1;
+                    needs->needsStringRuntime = 1;
+                } else if ( abis[abiIndex] ==
+                            XL6_IR_ASYNC_RESULT_RETAINED_XVALUE ) {
+                    needs->needsAsyncXValueResult = 1;
+                    needs->needsXValueRuntime = 1;
+                } else if ( abis[abiIndex] ==
+                            XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE ) {
+                    needs->needsAsyncClosureResult = 1;
+                    needs->needsClosureRuntime = 1;
+                } else if ( abis[abiIndex] ==
+                            XL6_IR_ASYNC_RESULT_RETAINED_ERROR ) {
+                    needs->needsAsyncErrorResult = 1;
+                    needs->needsErrorRuntime = 1;
+                } else if ( abis[abiIndex] ==
+                            XL6_IR_ASYNC_RESULT_RETAINED_FUTURE ) {
+                    needs->needsAsyncFutureResult = 1;
+                    needs->needsFutureRuntime = 1;
+                }
+            }
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_FUTURE_ALL_XVALUES ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_FUTURE_RACE ||
+              module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_FUTURE_ALL_XVALUES_ARRAY ||
+              module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_FUTURE_RACE_ARRAY ||
+              module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_FUTURE_WHEN_ANY_INDEX ||
+              module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_FUTURE_WHEN_ANY_INDEX_ARRAY) ) {
+            needs->needsFutureRuntime = 1;
+            needs->needsErrorRuntime = 1;
+            if ( module->instructions[i].runtimeOp ==
+                     XL6_IR_RUNTIME_FUTURE_ALL_XVALUES ||
+                 module->instructions[i].runtimeOp ==
+                     XL6_IR_RUNTIME_FUTURE_ALL_XVALUES_ARRAY ) {
+                needs->needsFutureAggregateAll = 1;
+                needs->needsXValueRuntime = 1;
+                if ( module->instructions[i].runtimeOp ==
+                     XL6_IR_RUNTIME_FUTURE_ALL_XVALUES_ARRAY )
+                    needs->needsFutureAggregateAllArray = 1;
+                if ( module->instructions[i].asyncResultAbi ==
+                     XL6_IR_ASYNC_RESULT_OWNED_STRING ) {
+                    needs->needsStringRuntime = 1;
+                    needs->needsStringViews = 1;
+                } else if ( module->instructions[i].asyncResultAbi ==
+                            XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE ) {
+                    needs->needsClosureRuntime = 1;
+                    needs->needsXCallRuntime = 1;
+                } else if ( module->instructions[i].asyncResultAbi ==
+                            XL6_IR_ASYNC_RESULT_RETAINED_FUTURE ) {
+                    needs->needsXValueFutureRuntime = 1;
+                }
+            } else if ( module->instructions[i].runtimeOp ==
+                            XL6_IR_RUNTIME_FUTURE_RACE ||
+                        module->instructions[i].runtimeOp ==
+                            XL6_IR_RUNTIME_FUTURE_RACE_ARRAY ) {
+                needs->needsFutureAggregateRace = 1;
+                if ( module->instructions[i].runtimeOp ==
+                     XL6_IR_RUNTIME_FUTURE_RACE_ARRAY ) {
+                    needs->needsFutureAggregateRaceArray = 1;
+                    needs->needsXValueRuntime = 1;
+                }
+            } else {
+                needs->needsFutureAggregateWhenAny = 1;
+                if ( module->instructions[i].runtimeOp ==
+                     XL6_IR_RUNTIME_FUTURE_WHEN_ANY_INDEX_ARRAY ) {
+                    needs->needsFutureAggregateWhenAnyArray = 1;
+                    needs->needsXValueRuntime = 1;
+                }
+            }
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_I64 ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_U64 ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_BOOL ||
+                 module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_F64 ||
+                 module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_TIME ||
+                 module->instructions[i].runtimeOp ==
+                     XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE ||
+                 module->instructions[i].runtimeOp ==
+                     XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL ||
+                  module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_RAW_POINTER ||
+              module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_NATIVE_POINTER_BORROW ||
+              module->instructions[i].runtimeOp ==
+                   XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_NATIVE_HANDLE_BORROW ||
+              module->instructions[i].runtimeOp ==
+                   XL6_IR_RUNTIME_XVALUE_OBJECT_TAKE_LITERAL_NATIVE_HANDLE ||
+              xl6IrCgenTypedDictLiteralRuntimeOpIs(
+                  module->instructions[i].runtimeOp)) )
+            needs->needsRuntimeTrap = 1;
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_TAGGED_NULLABLE_BOX ||
+              module->instructions[i].runtimeOp ==
+                  XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_TAGGED_NULLABLE) ) {
+            needs->needsXValueTaggedNullableRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            if ( module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_TAGGED_NULLABLE ) {
+                needs->needsXValueObjectRuntime = 1;
+                needs->needsStringViews = 1;
+                needs->needsRuntimeTrap = 1;
+            }
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_CELL_NEW ||
+             module->instructions[i].kind == XL6_IR_INSTR_CELL_INIT ||
+             module->instructions[i].kind == XL6_IR_INSTR_CELL_LOAD ||
+             module->instructions[i].kind == XL6_IR_INSTR_CELL_STORE ||
+             module->instructions[i].kind == XL6_IR_INSTR_CELL_EXCHANGE ||
+             module->instructions[i].kind == XL6_IR_INSTR_CELL_RETAIN ||
+             module->instructions[i].kind == XL6_IR_INSTR_CELL_RELEASE ) {
+            needs->needsCellRuntime = 1;
+            needs->needsRuntimeTrap = 1;
+        }
+        if (module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+            xl6IrCallErrorPhysicalUsesForeignScope(xl6IrCallInstructionErrorPhysicalAbi(module, &module->instructions[i]))) {
+            needs->needsForeignErrorRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        }
+        /* ERROR_TEST itself emits xrtGetError().  Its declaration dependency
+         * follows the lowered instruction directly; it must not depend on an
+         * unrelated runtime helper happening to request the error API. */
+        if ( module->instructions[i].kind == XL6_IR_INSTR_ERROR_TEST )
+            needs->needsErrorRuntime = 1;
+        if ( module->instructions[i].kind == XL6_IR_INSTR_ERROR_RAISE ||
+             module->instructions[i].kind == XL6_IR_INSTR_ERROR_TAKE ||
+             module->instructions[i].kind == XL6_IR_INSTR_ERROR_SET_TAKE ||
+              module->instructions[i].kind == XL6_IR_INSTR_ERROR_CLEAR ||
+              (module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+              (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_TO_F64_CHECKED ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED ||
+               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_TIME_CHECKED)) )
+            needs->needsErrorRuntime = 1;
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_ERROR_MESSAGE_COPY ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_ERROR_CODE ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_ERROR_DOMAIN_COPY ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_ERROR_OPERATION_COPY ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_ERROR_DATA_COPY ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_ERROR_SYSTEM_CODE ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_ERROR_CAUSE_REF ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_ERROR_KIND_COPY ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_ERROR_KIND_IS ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_ERROR_FILE_COPY ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_ERROR_LINE ||
+              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_ERROR_COLUMN) )
+            needs->needsErrorRuntime = 1;
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_STRING_TO_F64_CHECKED )
+            needs->needsStringF64ConvertRuntime = 1;
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED ) {
+            needs->needsStringTimeConvertRuntime = 1;
+            needs->needsStringViews = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_XVALUE_TO_TIME_CHECKED ) {
+            needs->needsXValueTimeConvertRuntime = 1;
+            needs->needsXValueRuntime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_TIME )
+            needs->needsXValueRuntime = 1;
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ) {
+            if ( module->instructions[i].integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64 )
+                needs->needsCheckedU64Runtime = 1;
+            else
+                needs->needsCheckedI64Runtime = 1;
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ) {
+            const XL6_IrInstruction* conversion = &module->instructions[i];
+            if ( conversion->integerSourceAbi == XL6_IR_INTEGER_SOURCE_XVALUE ) {
+                needs->needsXValueIntegerConvertRuntime = 1;
+                needs->needsXValueRuntime = 1;
+                needs->needsStringViews = 1;
+                /* The shared dynamic decoder emits exact signed and unsigned
+                 * projections; keep both range helper families available. */
+                needs->needsCheckedI64Runtime = 1;
+            } else if ( conversion->integerSourceAbi ==
+                        XL6_IR_INTEGER_SOURCE_MANAGED_STRING ) {
+                if ( conversion->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64 )
+                    needs->needsStringU64ConvertRuntime = 1;
+                else
+                    needs->needsStringI64ConvertRuntime = 1;
+            }
+        }
+        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+             module->instructions[i].runtimeOp ==
+                 XL6_IR_RUNTIME_INTEGER_CONVERT_WRAPPING &&
+             module->instructions[i].integerTarget !=
+                 XL6_IR_INTEGER_TARGET_UNSIGNED_64 )
+            needs->needsWrappingIntegerRuntime = 1;
+        if ( module->instructions[i].kind == XL6_IR_INSTR_AWAIT ) {
+            needs->needsErrorRuntime = 1;
+            needs->needsFutureRuntime = 1;
+            needs->needsFutureAwaitRuntime = 1;
+            if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_VOID ) needs->needsFutureAwaitVoid = 1;
+            else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_BOOL ) needs->needsFutureAwaitBool = 1;
+            else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_I64 ) needs->needsFutureAwaitI64 = 1;
+            else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_U64 ) needs->needsFutureAwaitU64 = 1;
+            else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_TYPE_ID ) needs->needsFutureAwaitTypeId = 1;
+            else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_F64 ) needs->needsFutureAwaitF64 = 1;
+            else if ( module->instructions[i].asyncResultAbi ==
+                      XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER )
+                needs->needsFutureAwaitRawPointer = 1;
+            else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_OWNED_STRING ) {
+                needs->needsFutureAwaitString = 1;
+                needs->needsStringRuntime = 1;
+            } else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_RETAINED_XVALUE ) {
+                needs->needsFutureAwaitXValue = 1;
+                needs->needsXValueRuntime = 1;
+            } else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE ) {
+                needs->needsFutureAwaitClosure = 1;
+                needs->needsClosureRuntime = 1;
+            } else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_RETAINED_ERROR ) {
+                needs->needsFutureAwaitError = 1;
+                needs->needsAsyncErrorResult = 1;
+                needs->needsErrorRuntime = 1;
+            } else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_RETAINED_FUTURE ) {
+                needs->needsFutureAwaitFuture = 1;
+                needs->needsAsyncFutureResult = 1;
+                needs->needsFutureRuntime = 1;
+            } else if ( module->instructions[i].asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_TAGGED )
+                needs->needsFutureAwaitTagged = 1;
+        }
+    }
+    for (i = 0; i < module->instructionCount; ++i)
+        if (module->instructions[i].kind == XL6_IR_INSTR_ERROR_UNWIND_BEGIN ||
+            module->instructions[i].kind == XL6_IR_INSTR_CLEANUP_BEGIN ||
+            module->instructions[i].kind == XL6_IR_INSTR_CLEANUP_INHERIT_BEGIN) {
+            needs->needsForeignErrorRuntime = 1;
+            needs->needsErrorRuntime = 1;
+            needs->needsRuntimeTrap = 1;
+        }
+    if (module->exportCount != 0) {
+        needs->needsForeignErrorRuntime = 1;
+        needs->needsErrorRuntime = 1;
+    }
+    for ( i = 0; i < module->callTargetCount; ++i ) {
+        const XL6_IrCallTarget* target = &module->callTargets[i];
+        if ( target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) continue;
+        if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ) {
+            needs->needsForeignErrorRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        }
+        if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER &&
+             !xl6IrCgenRequireErrorResult(module, needs, target->returnType,
+                 target->declaration, diags) ) return 0;
+        for ( parameter = 0; parameter < target->parameterCount; ++parameter ) {
+            if ( target->parameterPhysicalAbis[parameter] ==
+                     XL6_IR_CALL_PARAMETER_PHYSICAL_LANGUAGE_FUNCTION_VALUE ) {
+                const XL6_IrType* signature = xl6IrTypeGet(
+                    &module->types, target->parameterTypes[parameter]);
+                size_t callableParameter;
+                needs->needsLanguageFunctionRuntime = 1;
+                needs->needsClosureRuntime = 1;
+                needs->needsXValueRuntime = 1;
+                if ( signature != NULL ) {
+                    for ( callableParameter = 0;
+                          callableParameter < signature->paramCount;
+                          ++callableParameter ) {
+                        const XL6_IrType* item = xl6IrTypeGet(
+                            &module->types,
+                            signature->params[callableParameter]);
+                        if ( item != NULL &&
+                             item->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
+                            needs->needsLanguageFunctionStringRuntime = 1;
+                    }
+                    if ( signature->callableResultType !=
+                             XL6_IR_TYPE_INVALID ) {
+                        const XL6_IrType* item = xl6IrTypeGet(
+                            &module->types, signature->callableResultType);
+                        if ( item != NULL &&
+                             item->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
+                            needs->needsLanguageFunctionStringRuntime = 1;
+                    }
+                }
+                if ( needs->needsLanguageFunctionStringRuntime ) {
+                    needs->needsStringRuntime = 1;
+                    needs->needsStringViews = 1;
+                }
+            } else if ( target->parameterPhysicalAbis[parameter] ==
+                            XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK ) {
+                needs->needsRawCallbackRuntime = 1;
+                needs->needsClosureRuntime = 1;
+            }
+        }
+        if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_PRINT ) {
+            needs->needsPrintRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueCountRuntime = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_WRITE ) {
+            needs->textOutputBridgeOperations |= XL6_CGEN_TEXT_OUTPUT_WRITE;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_WRITELN ) {
+            needs->textOutputBridgeOperations |= XL6_CGEN_TEXT_OUTPUT_WRITELN;
+        } else if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_DIR_LIST &&
+                    target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_DIR_SIZE ) {
+            switch (target->runtimeBridge) {
+            case XL6_IR_RUNTIME_BRIDGE_DIR_LIST: needs->dirBridgeOperations |= XL6_CGEN_DIR_LIST; break;
+            case XL6_IR_RUNTIME_BRIDGE_DIR_GLOB: needs->dirBridgeOperations |= XL6_CGEN_DIR_GLOB; break;
+            case XL6_IR_RUNTIME_BRIDGE_DIR_ENTRIES: needs->dirBridgeOperations |= XL6_CGEN_DIR_ENTRIES; break;
+            case XL6_IR_RUNTIME_BRIDGE_DIR_IS_EMPTY: needs->dirBridgeOperations |= XL6_CGEN_DIR_IS_EMPTY; break;
+            case XL6_IR_RUNTIME_BRIDGE_DIR_COUNT: needs->dirBridgeOperations |= XL6_CGEN_DIR_COUNT; break;
+            case XL6_IR_RUNTIME_BRIDGE_DIR_SIZE: needs->dirBridgeOperations |= XL6_CGEN_DIR_SIZE; break;
+            default: break;
+            }
+        } else if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_PROCESS_EXEC &&
+                    target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_PROCESS_EXIT_CODE ) {
+            switch (target->runtimeBridge) {
+            case XL6_IR_RUNTIME_BRIDGE_PROCESS_EXEC: needs->processRunBridgeOperations |= XL6_CGEN_PROCESS_EXEC; break;
+            case XL6_IR_RUNTIME_BRIDGE_PROCESS_SUCCESS: needs->processRunBridgeOperations |= XL6_CGEN_PROCESS_SUCCESS; break;
+            case XL6_IR_RUNTIME_BRIDGE_PROCESS_EXIT_CODE: needs->processRunBridgeOperations |= XL6_CGEN_PROCESS_EXIT_CODE; break;
+            default: break;
+            }
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_CONTAINS ) {
+            needs->needsStringContainsRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT_LINES ) {
+            needs->needsStringSplitLinesRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueArrayRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS ) {
+            needs->needsDynamicFieldsBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsXValueRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_XVALUE_TABLE_REMOVE ) {
+            needs->needsXValueTableRemoveBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsXValueRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_STRING_INDEX_OF ) {
+            needs->needsStringIndexOfBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_JSON_PARSE ) {
+            needs->jsonValueBridgeOperations |= XL6_CGEN_JSON_PARSE;
+            needs->needsStringViews = 1;
+            needs->needsXValueRuntime = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_VALID ) {
+            needs->jsonValueBridgeOperations |= XL6_CGEN_JSON_VALID;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_PARSE_FILE ) {
+            needs->jsonValueBridgeOperations |= XL6_CGEN_JSON_PARSE_FILE;
+            needs->needsXValueRuntime = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_STRINGIFY ) {
+            needs->jsonValueBridgeOperations |= XL6_CGEN_JSON_STRINGIFY;
+            needs->needsXValueRuntime = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_WRITE_FILE ) {
+            needs->jsonValueBridgeOperations |= XL6_CGEN_JSON_WRITE_FILE;
+            needs->needsXValueRuntime = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_VISIT ) {
+            needs->needsJsonVisitBridgeRuntime = 1;
+            needs->needsLanguageFunctionRuntime = 1;
+            needs->needsClosureRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_JSON_WRITER ) {
+            needs->needsJsonWriterBridgeRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge >= XL6_IR_RUNTIME_BRIDGE_XSON_PARSE &&
+                    target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_XSON_WRITER ) {
+            switch ( target->runtimeBridge ) {
+            case XL6_IR_RUNTIME_BRIDGE_XSON_PARSE:
+                needs->xsonBridgeOperations |= XL6_CGEN_XSON_PARSE; break;
+            case XL6_IR_RUNTIME_BRIDGE_XSON_VALID:
+                needs->xsonBridgeOperations |= XL6_CGEN_XSON_VALID; break;
+            case XL6_IR_RUNTIME_BRIDGE_XSON_READ:
+                needs->xsonBridgeOperations |= XL6_CGEN_XSON_READ; break;
+            case XL6_IR_RUNTIME_BRIDGE_XSON_STRINGIFY:
+                needs->xsonBridgeOperations |= XL6_CGEN_XSON_STRINGIFY; break;
+            case XL6_IR_RUNTIME_BRIDGE_XSON_WRITE:
+                needs->xsonBridgeOperations |= XL6_CGEN_XSON_WRITE; break;
+            case XL6_IR_RUNTIME_BRIDGE_XSON_VISIT:
+                needs->xsonBridgeOperations |= XL6_CGEN_XSON_VISIT;
+                needs->needsLanguageFunctionRuntime = 1;
+                needs->needsClosureRuntime = 1;
+                break;
+            case XL6_IR_RUNTIME_BRIDGE_XSON_WRITER:
+                needs->xsonBridgeOperations |= XL6_CGEN_XSON_WRITER; break;
+            default: break;
+            }
+            needs->needsXValueRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_STRING_INT_FORMAT ) {
+            needs->needsStringIntFormatBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_STRING_UINT_FORMAT ) {
+            needs->needsStringUIntFormatBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_STRING_NUM_FORMAT ) {
+            needs->needsStringNumFormatBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_TAKE_CSTR ) {
+            needs->needsTakeCstrBridgeRuntime = 1;
+            needs->needsStringRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_TEMPLATE ) {
+            needs->needsTemplateBridgeRuntime = 1;
+            needs->needsStringRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_BUFFER ) {
+            needs->needsBufferBridgeRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN ) {
+            needs->needsStringCharLenBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( xl6IrRuntimeStringBridgeKindIs(target->runtimeBridge) ) {
+            needs->needsStringViews = 1;
+            switch ( target->runtimeBridge ) {
+            case XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_LEN: needs->needsStringByteLenBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_BYTE_AT: needs->needsStringByteAtBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_SLICE: needs->needsStringSliceBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_REPLACE: needs->needsStringReplaceBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_REPEAT: needs->needsStringRepeatBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_STARTS_WITH: needs->needsStringStartsWithBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_ENDS_WITH: needs->needsStringEndsWithBridgeRuntime = 1; break;
+            case XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT:
+                needs->needsStringSplitBridgeRuntime = 1;
+                needs->needsXValueRuntime = 1;
+                needs->needsXValueArrayRuntime = 1;
+                break;
+            default: return 0;
+            }
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_TEXT_CODEC ) {
+            needs->needsTextCodecBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_BASE64_TEXT_CODEC ) {
+            needs->needsBase64TextCodecBridgeRuntime = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_HEX_BYTES_CODEC ) {
+            needs->needsHexBytesCodecBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_BASE64_BYTES_CODEC ) {
+            needs->needsBase64BytesCodecBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_CRYPTO_TEXT_HASH ) {
+            needs->needsCryptoTextHashBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_PATH_JOIN ) {
+            needs->needsPathJoinBridgeRuntime = 1;
+            needs->needsStringViews = 1;
+            needs->needsXValueRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_FILE ) {
+            needs->needsFileBridgeRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        } else if (xl6IrRuntimeNetDatagramBridgeKindIs(target->runtimeBridge)) {
+            needs->needsNetDatagramRuntime = 1;
+        } else if ( target->runtimeBridge >=
+                        XL6_IR_RUNTIME_BRIDGE_NET_TCP_DIAL &&
+                    target->runtimeBridge <=
+                        XL6_IR_RUNTIME_BRIDGE_NET_TCP_SERVER ) {
+            needs->needsNetTcpRuntime = 1;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueObjectRuntime = 1;
+            needs->needsXValueClassRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsFutureRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        } else if ( target->runtimeBridge >=
+                        XL6_IR_RUNTIME_BRIDGE_NET_TLS_CONFIG &&
+                    target->runtimeBridge <=
+                        XL6_IR_RUNTIME_BRIDGE_NET_TLS_SERVER ) {
+            needs->needsNetTlsRuntime = 1;
+            needs->needsNetTlsStreamRuntime |=
+                target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NET_TLS_STREAM;
+            needs->needsNetTlsDialRuntime |=
+                target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NET_TLS_DIAL;
+            needs->needsNetTlsServerRuntime |=
+                target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NET_TLS_SERVER;
+            needs->needsXValueRuntime = 1;
+            needs->needsXValueObjectRuntime = 1;
+            needs->needsXValueClassRuntime = 1;
+            needs->needsXValueTypeIdentityRuntime = 1;
+            needs->needsFutureRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_HTTP1 ) {
+            needs->needsHttp1Runtime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_FRAME ) {
+            needs->needsWebSocketFrameRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_HANDSHAKE ) {
+            needs->needsWebSocketHandshakeRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_UPGRADE ) {
+            needs->needsWebSocketUpgradeRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM_CONFIG ) {
+            needs->needsWebSocketStreamConfigRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM ) {
+            needs->needsWebSocketStreamRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_WEBSOCKET_STREAM_TLS ) {
+            needs->needsWebSocketStreamTlsRuntime = 1;
+        } else if ( target->runtimeBridge ==
+                        XL6_IR_RUNTIME_BRIDGE_LAST_ERROR_TEXT ) {
+            needs->needsLastErrorTextBridgeRuntime = 1;
+            needs->needsErrorRuntime = 1;
+            needs->needsStringRuntime = 1;
+        }
+        if ( target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR ) {
+            const XL6_IrGeneratorMachine* machine =
+                xl6IrCgenGeneratorMachine(module, target);
+            size_t slot;
+            needs->needsGeneratorRuntime = 1;
+            needs->needsErrorRuntime = 1;
+            if ( machine == NULL )
+                return xl6IrCgenDiag(diags, module, target->declaration,
+                    "XLIR C emitter generator machine feature set is unresolved");
+            for ( slot = 0; slot < machine->frameSlotCount; ++slot ) {
+                const XL6_IrContinuationFrameSlot* frame =
+                    &module->generatorFrameSlots[
+                        machine->firstFrameSlot + slot];
+                const XL6_IrType* type =
+                    xl6IrTypeGet(&module->types, frame->type);
+                if ( type == NULL )
+                    return xl6IrCgenDiag(diags, module, target->declaration,
+                        "XLIR C emitter generator frame type is unresolved");
+                if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
+                    needs->needsStringRuntime = 1;
+                else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
+                    needs->needsXValueRuntime = 1;
+                else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR )
+                    needs->needsFutureRuntime = 1;
+                else if ( type->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
+                    needs->needsClosureRuntime = 1;
+                else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_CELL_PTR )
+                    needs->needsCellRuntime = 1;
+                else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR )
+                    needs->needsErrorRuntime = 1;
+                else if ( type->cAbi ==
+                          XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR ) {
+                    needs->needsXValueIteratorRuntime = 1;
+                    needs->needsXValueRuntime = 1;
+                    needs->needsRuntimeTrap = 1;
+                }
+            }
+            {
+                const XL6_IrType* item =
+                    xl6IrTypeGet(&module->types, machine->itemType);
+                if ( item == NULL )
+                    return xl6IrCgenDiag(diags, module, target->declaration,
+                        "XLIR C emitter generator item type is unresolved");
+                if ( item->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
+                    needs->needsStringRuntime = 1;
+                else if ( item->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
+                    needs->needsXValueRuntime = 1;
+                else if ( item->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
+                    needs->needsClosureRuntime = 1;
+            }
+        }
+    }
+    if ( needs->needsWebSocketStreamTlsRuntime )
+        needs->needsWebSocketStreamRuntime = 1;
+    if ( needs->needsWebSocketStreamRuntime ) {
+        needs->needsWebSocketStreamConfigRuntime = 1;
+        needs->needsWebSocketUpgradeRuntime = 1;
+    }
+    if ( needs->needsWebSocketUpgradeRuntime ) {
+        needs->needsWebSocketHandshakeRuntime = 1;
+        needs->needsHttp1Runtime = 1;
+    }
+    if ( needs->needsHttp1Runtime ) {
+        needs->needsBufferBridgeRuntime = 1;
+        needs->needsErrorRuntime = 1;
+    }
+    if ( needs->needsNetTcpRuntime || needs->needsNetDatagramRuntime ) {
+        needs->needsBufferBridgeRuntime = 1;
+        needs->needsStringRuntime = 1;
+        needs->needsStringViews = 1;
+        needs->needsXValueRuntime = 1;
+        needs->needsXValueObjectRuntime = 1;
+        needs->needsXValueClassRuntime = 1;
+        needs->needsXValueTypeIdentityRuntime = 1;
+        needs->needsFutureRuntime = 1;
+        needs->needsErrorRuntime = 1;
+    }
+    if ( needs->needsNetTlsRuntime ) {
+        needs->needsBufferBridgeRuntime = 1;
+        needs->needsStringRuntime = 1;
+        needs->needsStringViews = 1;
+        needs->needsXValueRuntime = 1;
+        needs->needsXValueObjectRuntime = 1;
+        needs->needsXValueClassRuntime = 1;
+        needs->needsXValueTypeIdentityRuntime = 1;
+        needs->needsFutureRuntime = 1;
+        needs->needsErrorRuntime = 1;
+    }
+    for ( i = 0; i < module->protocolDispatchImplCount; ++i ) {
+        const XL6_IrProtocolDispatchImpl* impl =
+            &module->protocolDispatchImpls[i];
+        const XL6_IrProtocolDispatchSlot* slot =
+            impl->slot < module->protocolDispatchSlotCount
+                ? &module->protocolDispatchSlots[impl->slot] : NULL;
+        const XL6_IrCallTarget* target =
+            xl6IrCallTargetGet(module, impl->implementationSymbol);
+        const XL6_IrClassField* field;
+        if ( slot == NULL ||
+             !xl6IrCgenProtocolDispatchSlotIsReachable(module, impl->slot) ||
+             target == NULL || target->kind != XL6_IR_CALL_TARGET_EXTERN_C )
+            continue;
+        field = xl6IrCgenProtocolExternReceiverField(module, slot, target);
+        if ( field == NULL )
+            return xl6IrCgenDiag(diags, module, impl->implementationDeclaration,
+                "XLIR protocol extern witness adapter feature set is unresolved");
+        needs->needsXValueRuntime = 1;
+        needs->needsXValueObjectRuntime = 1;
+        needs->needsStringViews = 1;
+        needs->needsRuntimeTrap = 1;
+        if ( field->nativeDestroySymbol != 0 )
+            needs->needsXValueObjectLiteralNativeHandleRuntime = 1;
+        else
+            needs->needsXValueObjectLiteralRawPointerRuntime = 1;
+    }
+    for ( i = 0; i < module->closureTargetCount; ++i ) {
+        const XL6_IrClosureTarget* closure = &module->closureTargets[i];
+        if ( closure->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) continue;
+        needs->needsClosureRuntime = 1;
+        if ( closure->rawCallbackAbi == XL6_IR_CLOSURE_RAW_CALLBACK_FOREIGN_SCOPE_THUNK ) {
+            needs->needsForeignErrorRuntime = 1;
+            needs->needsErrorRuntime = 1;
+        }
+        for ( parameter = 0; parameter < closure->captureCount; ++parameter ) {
+            const XL6_IrClosureCapture* capture =
+                &module->closureCaptures[closure->firstCapture + parameter];
+            if ( capture->abi == XL6_IR_CLOSURE_CAPTURE_COPY_STRING ||
+                 capture->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING )
+                needs->needsStringRuntime = 1;
+            else if ( capture->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE )
+                needs->needsXValueRuntime = 1;
+            else if ( capture->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_FUTURE )
+                needs->needsFutureRuntime = 1;
+        }
+    }
+    for ( i = 0; i < module->callTargetCount; ++i ) {
+        if (module->callTargets[i].reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
+            (module->callTargets[i].kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC ||
+             module->callTargets[i].kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR)) {
+            /* Frame drops and pre-frame rollback preserve the first failure. */
+            needs->needsErrorRuntime = 1;
+            needs->needsForeignErrorRuntime = 1;
+        }
+        if ( module->callTargets[i].reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
+             module->callTargets[i].kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC ) {
+            const XL6_IrType* worker = xl6IrTypeGet(&module->types, module->callTargets[i].workerReturnType);
+            if ( module->callTargets[i].asyncMachine < module->asyncMachineCount &&
+                 module->asyncMachines[module->callTargets[i].asyncMachine].status ==
+                    XL6_IR_ASYNC_MACHINE_ANALYZED ) {
+                needs->needsAsyncMachineRuntime = 1;
+                /* A direct machine callback always imports failed Future
+                 * results into the canonical error channel before executing
+                 * its verified resume CFG.  The original AWAIT may no longer
+                 * be reachable from the ordinary synchronous block walk, so
+                 * this dependency belongs to the machine admission itself. */
+                needs->needsErrorRuntime = 1;
+            }
+            if ( module->callTargets[i].asyncDispatch ==
+                     XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL &&
+                 xl6IrCgenAsyncMachine(module, &module->callTargets[i]) == NULL )
+                needs->needsAsyncTaskRuntime = 1;
+            if ( module->callTargets[i].asyncDispatch == XL6_IR_ASYNC_DISPATCH_XRT_READY_FUTURE ) {
+                needs->needsAsyncReadyRuntime = 1;
+                if ( module->callTargets[i].workerErrorAbi == XL6_IR_ERROR_ABI_MAY_RAISE )
+                    needs->needsAsyncReadyErrorRuntime = 1;
+            }
+            if ( worker != NULL && worker->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) {
+                needs->needsAsyncXValueResult = 1;
+                needs->needsXValueRuntime = 1;
+            }
+            if ( worker != NULL && worker->cAbi == XL6_IR_C_ABI_MANAGED_STRING ) {
+                needs->needsAsyncStringResult = 1;
+                needs->needsStringRuntime = 1;
+            }
+            if ( worker != NULL && worker->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ) {
+                needs->needsAsyncClosureResult = 1;
+                needs->needsClosureRuntime = 1;
+            }
+            if ( worker != NULL && worker->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR ) {
+                needs->needsAsyncErrorResult = 1;
+                needs->needsErrorRuntime = 1;
+            }
+            if ( worker != NULL && worker->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ) {
+                needs->needsAsyncFutureResult = 1;
+                needs->needsFutureRuntime = 1;
+            }
+            for ( parameter = 0; parameter < module->callTargets[i].parameterCount; ++parameter ) {
+                if ( module->callTargets[i].asyncCaptureAbis[parameter] == XL6_IR_ASYNC_CAPTURE_COPY_STRING ) {
+                    needs->needsStringRuntime = 1;
+                } else if ( module->callTargets[i].asyncCaptureAbis[parameter] == XL6_IR_ASYNC_CAPTURE_RETAIN_XVALUE ) {
+                    needs->needsXValueRuntime = 1;
+                } else if ( module->callTargets[i].asyncCaptureAbis[parameter] == XL6_IR_ASYNC_CAPTURE_RETAIN_ERROR ) {
+                    needs->needsErrorRuntime = 1;
+                }
+            }
+            needs->needsFutureRuntime = 1;
+        }
+    }
+    for ( i = 0; i < module->functionCount; ++i ) {
+        const XL6_IrFunction* function = &module->functions[i];
+        if ( function->reachability == XL6_IR_REACHABILITY_UNREACHABLE ||
+             xl6IrCgenFunctionIsCanonicalMachineProgram(module, function) ||
+             (function->kind != XL6_IR_FUNCTION_USER &&
+              function->kind != XL6_IR_FUNCTION_ASYNC_WORKER &&
+              function->kind != XL6_IR_FUNCTION_NAMED_ADAPTER &&
+              function->kind != XL6_IR_FUNCTION_MODULE_FINI &&
+              function->kind != XL6_IR_FUNCTION_CLASS_FINI) ||
+             function->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ) continue;
+        if ( !xl6IrCgenRequireErrorResult(module, needs, function->returnType,
+                 function->declaration, diags) ) return 0;
+    }
+    return 1;
+}

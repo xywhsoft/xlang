@@ -1,0 +1,6 @@
+extern "xrtClearError" func clearNativeError()
+assert json.valid("null")
+assert json.valid("[1,true,{}]")
+assert !json.valid("[1,]")
+assert !json.valid("")
+clearNativeError()

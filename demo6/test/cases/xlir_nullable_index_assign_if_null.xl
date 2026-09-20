@@ -1,0 +1,20 @@
+int indexAssignFallbackCount = 0
+
+func indexAssignFallback() as var
+    indexAssignFallbackCount += 1
+    return 17
+end
+
+export "xlir_nullable_index_assign" func probeIndexAssign(bool present) as int
+    indexAssignFallbackCount = 0
+    auto values = [null]
+    if present then values[0] = 8 end
+    values[0] ?= indexAssignFallback()
+    return int(values[0]) + indexAssignFallbackCount * 100
+end
+
+func main(...) as int
+    assert(probeIndexAssign(true) == 8)
+    assert(probeIndexAssign(false) == 117)
+    return 0
+end

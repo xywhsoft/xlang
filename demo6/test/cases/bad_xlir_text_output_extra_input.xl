@@ -1,0 +1,2 @@
+extern "xl6_xrt_writeln" func badWriteln(string text, bool newline)
+badWriteln("invalid", true)

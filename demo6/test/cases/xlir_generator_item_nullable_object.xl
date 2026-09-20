@@ -1,0 +1,14 @@
+class Payload
+    int value = 7
+end
+func items(Payload? value) as generator<Payload?>
+    yield value
+    yield null
+end
+export "payload_probe" func probe() as int
+    int count = 0
+    for item in items(Payload())
+        if item != null then count += item.value end
+    end
+    return count
+end

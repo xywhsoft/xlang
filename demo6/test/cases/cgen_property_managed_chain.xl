@@ -1,9 +1,13 @@
 class PropertyEntry
     string name = ""
 
-    create(string name)
-        self.name = name
-    end
+	create(string name)
+		self.name = name
+	end
+
+	func text() as string
+		return self.name
+	end
 end
 
 class PropertyCatalog
@@ -21,9 +25,14 @@ class PropertyCatalog
     end
 
     // class 返回值也必须存活到调用者表达式结束。
-    get selected() as PropertyEntry
-        return self.selectedValue
-    end
+	get selected() as PropertyEntry
+		return self.selectedValue
+	end
+
+	// 新建的 class getter 返回值只有一个引用，链式调用结束时必须同步撤销临时所有权。
+	get fresh() as PropertyEntry
+		return PropertyEntry("fresh")
+	end
 end
 
 
@@ -33,18 +42,20 @@ func main(...) as int
 
     assert catalog.items.length == 3, "managed property container length"
     assert catalog.items[1] == "one", "managed property container chained index"
-    assert catalog.cell[2] == "two", "dimension property remains available"
-    assert catalog.selected.name == "chosen", "managed property class chain"
+	assert catalog.cell[2] == "two", "dimension property remains available"
+	assert catalog.selected.name == "chosen", "managed property class chain"
+	assert catalog.fresh.text() == "fresh", "fresh managed property class chain"
 
     array<string> saved = catalog.items
     assert saved.length == 3 and saved[0] == "zero", "managed property assignment owns its reference"
 
     // 重复临时访问覆盖调用者作用域释放路径。
     int i = 0
-    while i < 1000
-        assert catalog.items[2] == "two", "repeated managed property access"
-        i += 1
-    end
+	while i < 1000
+		assert catalog.items[2] == "two", "repeated managed property access"
+		assert catalog.fresh.text() == "fresh", "repeated fresh managed property access"
+		i += 1
+	end
 
     return 0
 end

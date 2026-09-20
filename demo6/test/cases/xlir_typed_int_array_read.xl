@@ -1,0 +1,9 @@
+func typed_int_array_sum() as int
+    array<int> values = [13, 29]
+    values[1] = 30
+    return values[0] + values[1]
+end
+
+func main(...) as int
+    return typed_int_array_sum() == 43 ? 0 : 1
+end

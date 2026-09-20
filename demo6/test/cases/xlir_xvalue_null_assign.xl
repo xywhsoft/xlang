@@ -1,0 +1,10 @@
+func dynamic_null_assign() as var
+  var value = 41
+  value = null
+  return value
+end
+
+export "xlir_test_xvalue_null_assign_root" func xlir_test_root() as int
+  var rootedValue = dynamic_null_assign()
+  return 0
+end

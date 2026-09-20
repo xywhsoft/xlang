@@ -1,8 +1,13 @@
-static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
+static void xl6CgenEmitAsyncAwaitRuntime(
+	XL6_Output* out,
+	int hasWeakRuntime,
+	int hasTypedContainers,
+	int hasStringRuntime)
 {
-    xl6CgenEmitAsyncRuntimeWhenAnyAdapters(out);
+    if ( hasTypedContainers ) {
+        xl6CgenEmitAsyncRuntimeWhenAnyAdapters(out);
 
-    xl6OutputPuts("static xfuture* xl6_task_all_from_array(xtarray pArray, const xrt_type_desc* itemType, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("static xfuture* xl6_task_all_from_array(xtarray pArray, const xl6_type_desc* itemType, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xfuture** futures;\n", out);
     xl6OutputPuts("    unsigned int count;\n", out);
@@ -12,7 +17,7 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.all source array is null\", file, line, column);\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    count = xrtTypedArrayCount(pArray);\n", out);
+    xl6OutputPuts("    count = xl6TypedArrayCount(pArray);\n", out);
     xl6OutputPuts("    if ( count == 0 ) {\n", out);
     xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.all requires a non-empty future array\", file, line, column);\n", out);
     xl6OutputPuts("        return 0;\n", out);
@@ -23,7 +28,7 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
-    xl6OutputPuts("        xfuture** slot = (xfuture**)xrtTypedArrayGet(pArray, i + 1u);\n", out);
+    xl6OutputPuts("        xfuture** slot = (xfuture**)xl6TypedArrayGet(pArray, i);\n", out);
     xl6OutputPuts("        futures[i] = slot != 0 ? *slot : 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    result = xl6_task_all_start(futures, (int)count, itemType, file, line, column);\n", out);
@@ -41,7 +46,7 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.race source array is null\", file, line, column);\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    count = xrtTypedArrayCount(pArray);\n", out);
+    xl6OutputPuts("    count = xl6TypedArrayCount(pArray);\n", out);
     xl6OutputPuts("    if ( count == 0 ) {\n", out);
     xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.race requires a non-empty future array\", file, line, column);\n", out);
     xl6OutputPuts("        return 0;\n", out);
@@ -52,19 +57,20 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
-    xl6OutputPuts("        xfuture** slot = (xfuture**)xrtTypedArrayGet(pArray, i + 1u);\n", out);
+    xl6OutputPuts("        xfuture** slot = (xfuture**)xl6TypedArrayGet(pArray, i);\n", out);
     xl6OutputPuts("        futures[i] = slot != 0 ? *slot : 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    result = xl6_task_race_start(futures, (int)count, file, line, column);\n", out);
     xl6OutputPuts("    xrtFree(futures);\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
+    }
 
     xl6OutputPuts("static void* xl6_async_zero_value(size_t valueSize)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    unsigned char* value;\n", out);
     xl6OutputPuts("    if ( valueSize == 0 ) { return 0; }\n", out);
-    xl6OutputPuts("    value = (unsigned char*)xrtTempMemory(valueSize);\n", out);
+    xl6OutputPuts("    value = (unsigned char*)xrtTemp(valueSize);\n", out);
     xl6OutputPuts("    if ( value == 0 ) { return 0; }\n", out);
     xl6OutputPuts("    memset(value, 0, valueSize);\n", out);
     xl6OutputPuts("    return value;\n", out);
@@ -72,24 +78,33 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("static void* xl6_future_await_value(xfuture* pFuture, const char* file, int line, int column, int requireValue, size_t valueSize)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    void* value;\n", out);
-    xl6OutputPuts("    char* error;\n", out);
+    xl6OutputPuts("    const xerror* nativeError;\n", out);
+    xl6OutputPuts("    XL6_Error* languageError;\n", out);
     xl6OutputPuts("    if ( pFuture == 0 ) {\n", out);
     xl6OutputPuts("        if ( !xl6_error_has() ) {\n", out);
     xl6OutputPuts("            xl6_error_raise(\"AsyncError\", \"await on null future\", file, line, column);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("        return xl6_async_zero_value(valueSize);\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if ( !xFutureWait(pFuture) ) {\n", out);
-    xl6OutputPuts("        error = xFutureError(pFuture);\n", out);
-    xl6OutputPuts("        xl6_error_raise(\"AsyncError\", error != 0 ? error : \"async task failed\", file, line, column);\n", out);
+    xl6OutputPuts("    if ( !xl6FutureWait(pFuture) ) {\n", out);
+    xl6OutputPuts("        if ( xl6FutureState(pFuture) == XL6_FUTURE_CANCELLED ) {\n", out);
+    xl6OutputPuts("            xl6_error_raise(\"CancelledError\", \"future cancel requested.\", file, line, column);\n", out);
+    xl6OutputPuts("            return xl6_async_zero_value(valueSize);\n", out);
+    xl6OutputPuts("        }\n", out);
+    xl6OutputPuts("        nativeError = xl6FutureError(pFuture);\n", out);
+    xl6OutputPuts("        languageError = xl6_error_from_xrt(nativeError, file, line, column);\n", out);
+    xl6OutputPuts("        if ( languageError != 0 ) { xl6_error_set_active(languageError); }\n", out);
+    xl6OutputPuts("        else { xl6_error_raise(\"AsyncError\", \"async task failed\", file, line, column); }\n", out);
     xl6OutputPuts("        return xl6_async_zero_value(valueSize);\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    error = xFutureError(pFuture);\n", out);
-    xl6OutputPuts("    if ( error != 0 && error[0] != 0 ) {\n", out);
-    xl6OutputPuts("        xl6_error_raise(\"AsyncError\", error, file, line, column);\n", out);
+    xl6OutputPuts("    nativeError = xl6FutureError(pFuture);\n", out);
+    xl6OutputPuts("    if ( nativeError != 0 ) {\n", out);
+    xl6OutputPuts("        languageError = xl6_error_from_xrt(nativeError, file, line, column);\n", out);
+    xl6OutputPuts("        if ( languageError != 0 ) { xl6_error_set_active(languageError); }\n", out);
+    xl6OutputPuts("        else { xl6_error_raise(\"AsyncError\", \"async task failed\", file, line, column); }\n", out);
     xl6OutputPuts("        return xl6_async_zero_value(valueSize);\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    value = xFutureValue(pFuture);\n", out);
+    xl6OutputPuts("    value = xl6FutureValue(pFuture);\n", out);
     xl6OutputPuts("    if ( requireValue && value == 0 ) {\n", out);
     xl6OutputPuts("        xl6_error_raise(\"AsyncError\", \"async task returned empty value\", file, line, column);\n", out);
     xl6OutputPuts("        return xl6_async_zero_value(valueSize);\n", out);
@@ -100,7 +115,7 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("static void xl6_future_release_if_needed(xfuture* pFuture)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    if ( pFuture != 0 ) {\n", out);
-    xl6OutputPuts("        xFutureRelease(pFuture);\n", out);
+    xl6OutputPuts("        xl6FutureDestroy(pFuture);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("}\n\n", out);
 
@@ -110,9 +125,9 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("    if ( pFuture == 0 ) {\n", out);
     xl6OutputPuts("        return false;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    result = xFutureRequestCancel(pFuture);\n", out);
+    xl6OutputPuts("    result = xl6FutureCancel(pFuture);\n", out);
     xl6OutputPuts("    if ( owned && pFuture != 0 ) {\n", out);
-    xl6OutputPuts("        xFutureRelease(pFuture);\n", out);
+    xl6OutputPuts("        xl6FutureDestroy(pFuture);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
@@ -127,28 +142,23 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static void* xl6_future_await_handle_release(xfuture* pFuture, const xrt_type_desc* valueType, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("static void* xl6_future_await_handle_release(xfuture* pFuture, const xl6_type_desc* valueType, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    void* result = 0;\n", out);
     xl6OutputPuts("    void* value;\n", out);
-    xl6OutputPuts("    int valueOwned;\n", out);
     xl6OutputPuts("    value = xl6_future_await_value(pFuture, file, line, column, 1, sizeof(result));\n", out);
-    xl6OutputPuts("    valueOwned = xFutureValueIsOwned(pFuture);\n", out);
     xl6OutputPuts("    if ( value != 0 && !xl6_error_has() ) {\n", out);
-    xl6OutputPuts("        if ( valueOwned ) {\n", out);
-    xl6OutputPuts("            result = *(void**)value;\n", out);
-    xl6OutputPuts("            *(void**)value = 0;\n", out);
-    xl6OutputPuts("        } else if ( valueType != 0 && valueType->Ops != 0 && valueType->Ops->copy != 0 ) {\n", out);
+    xl6OutputPuts("        if ( valueType != 0 && valueType->Ops != 0 && valueType->Ops->copy != 0 ) {\n", out);
     xl6OutputPuts("            valueType->Ops->copy(&result, value);\n", out);
     xl6OutputPuts("        } else {\n", out);
-    xl6OutputPuts("            xl6_error_raise(\"AsyncError\", \"borrowed async handle is not copyable\", file, line, column);\n", out);
+    xl6OutputPuts("            xl6_error_raise(\"AsyncError\", \"async handle is not copyable\", file, line, column);\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static void* xl6_future_await_handle_copy(xfuture* pFuture, const xrt_type_desc* valueType, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("static void* xl6_future_await_handle_copy(xfuture* pFuture, const xl6_type_desc* valueType, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    void* result = 0;\n", out);
     xl6OutputPuts("    void* value = xl6_future_await_value(pFuture, file, line, column, 1, sizeof(result));\n", out);
@@ -159,7 +169,7 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static void* xl6_future_await_typed_value_copy(xfuture* pFuture, const xrt_type_desc* valueType, int releaseFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("static void* xl6_future_await_typed_value_copy(xfuture* pFuture, const xl6_type_desc* valueType, int releaseFuture, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    void* source;\n", out);
     xl6OutputPuts("    void* result;\n", out);
@@ -169,14 +179,14 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    source = xl6_future_await_value(pFuture, file, line, column, 1, valueType->Size);\n", out);
-    xl6OutputPuts("    result = xrtTempMemory(valueType->Size);\n", out);
+    xl6OutputPuts("    result = xrtTemp(valueType->Size);\n", out);
     xl6OutputPuts("    if ( result == 0 ) {\n", out);
     xl6OutputPuts("        if ( releaseFuture ) { xl6_future_release_if_needed(pFuture); }\n", out);
     xl6OutputPuts("        xl6_runtime_fatal(2);\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    memset(result, 0, valueType->Size);\n", out);
-    xl6OutputPuts("    if ( source != 0 && !xl6_error_has() && !xrtTypeCopyValue(valueType, result, source) ) {\n", out);
+    xl6OutputPuts("    if ( source != 0 && !xl6_error_has() && !xl6TypeCopyValue(valueType, result, source) ) {\n", out);
     xl6OutputPuts("        xl6_error_raise(\"AsyncError\", \"async result value is not copyable\", file, line, column);\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    if ( releaseFuture ) { xl6_future_release_if_needed(pFuture); }\n", out);
@@ -225,32 +235,31 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static const char* xl6_future_await_cstr_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    const char* result = 0;\n", out);
-    xl6OutputPuts("    void* value;\n", out);
-    xl6OutputPuts("    int valueOwned;\n", out);
-    xl6OutputPuts("    value = xl6_future_await_value(pFuture, file, line, column, 1, sizeof(result));\n", out);
-    xl6OutputPuts("    valueOwned = xFutureValueIsOwned(pFuture);\n", out);
-    xl6OutputPuts("    if ( value != 0 && !xl6_error_has() ) {\n", out);
-    xl6OutputPuts("        result = *(const char**)value;\n", out);
-    xl6OutputPuts("        if ( valueOwned ) { *(const char**)value = 0; }\n", out);
-    xl6OutputPuts("        else { result = result != 0 ? xrtCopyStr(result, 0) : \"\"; }\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
-    xl6OutputPuts("    return xrtTempStringTake((char*)result, 0);\n", out);
-    xl6OutputPuts("}\n\n", out);
+	if ( hasStringRuntime ) {
+		xl6OutputPuts("static const char* xl6_future_await_cstr_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+		xl6OutputPuts("{\n", out);
+		xl6OutputPuts("    const char* result = 0;\n", out);
+		xl6OutputPuts("    void* value;\n", out);
+		xl6OutputPuts("    value = xl6_future_await_value(pFuture, file, line, column, 1, sizeof(result));\n", out);
+		xl6OutputPuts("    if ( value != 0 && !xl6_error_has() ) {\n", out);
+		xl6OutputPuts("        result = *(const char**)value;\n", out);
+		xl6OutputPuts("        result = result != 0 ? xl6_xrt_string_dup(result, 0) : \"\";\n", out);
+		xl6OutputPuts("    }\n", out);
+		xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
+		xl6OutputPuts("    return xl6_temp_string_take((char*)result, 0);\n", out);
+		xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static const char* xl6_future_await_cstr_copy(xfuture* pFuture, const char* file, int line, int column)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    const char** value;\n", out);
-    xl6OutputPuts("    value = (const char**)xl6_future_await_value(pFuture, file, line, column, 1, sizeof(const char*));\n", out);
-    xl6OutputPuts("    if ( xl6_error_has() ) {\n", out);
-    xl6OutputPuts("        return \"\";\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if ( value == 0 || *value == 0 ) { return \"\"; }\n", out);
-    xl6OutputPuts("    return xrtTempStringTake(xrtCopyStr(*value, 0), 0);\n", out);
-    xl6OutputPuts("}\n\n", out);
+		xl6OutputPuts("static const char* xl6_future_await_cstr_copy(xfuture* pFuture, const char* file, int line, int column)\n", out);
+		xl6OutputPuts("{\n", out);
+		xl6OutputPuts("    const char** value;\n", out);
+		xl6OutputPuts("    value = (const char**)xl6_future_await_value(pFuture, file, line, column, 1, sizeof(const char*));\n", out);
+		xl6OutputPuts("    if ( xl6_error_has() ) {\n", out);
+		xl6OutputPuts("        return \"\";\n", out);
+		xl6OutputPuts("    }\n", out);
+		xl6OutputPuts("    if ( value == 0 || *value == 0 ) { return \"\"; }\n", out);
+		xl6OutputPuts("    return xl6_temp_string_take(xl6_xrt_string_dup(*value, 0), 0);\n", out);
+		xl6OutputPuts("}\n\n", out);
+	}
 
     xl6OutputPuts("static void* xl6_future_await_ptr_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
@@ -259,55 +268,61 @@ static void xl6CgenEmitAsyncAwaitRuntime(XL6_Output* out)
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static xvalue xl6_future_await_xvalue_copy(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("static xvalue* xl6_future_await_xvalue_copy(xfuture* pFuture, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xvalue result = 0;\n", out);
+    xl6OutputPuts("    xvalue* result = 0;\n", out);
     xl6OutputPuts("    void* value;\n", out);
-    xl6OutputPuts("    value = xl6_future_await_value(pFuture, file, line, column, 1, sizeof(xvalue));\n", out);
+    xl6OutputPuts("    value = xl6_future_await_value(pFuture, file, line, column, 1, sizeof(xvalue*));\n", out);
     xl6OutputPuts("    if ( value != 0 ) {\n", out);
-    xl6OutputPuts("        result = *(xvalue*)value;\n", out);
-    xl6OutputPuts("        if ( result != 0 ) { xvoAddRef(result); }\n", out);
+    xl6OutputPuts("        result = *(xvalue**)value;\n", out);
+    xl6OutputPuts("        if ( result != 0 ) { xrtValueRetain(result); }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static xvalue xl6_future_await_xvalue_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("static xvalue* xl6_future_await_xvalue_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xvalue result = xl6_future_await_xvalue_copy(pFuture, file, line, column);\n", out);
+    xl6OutputPuts("    xvalue* result = xl6_future_await_xvalue_copy(pFuture, file, line, column);\n", out);
     xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n", out);
     xl6OutputPuts("\n", out);
 
-    xl6OutputPuts("static xrt_value_weak xl6_future_await_weak_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xrt_value_weak result;\n", out);
-    xl6OutputPuts("    void* value;\n", out);
-    xl6OutputPuts("    xvoWeakInit(&result);\n", out);
-    xl6OutputPuts("    value = xl6_future_await_value(pFuture, file, line, column, 1, sizeof(result));\n", out);
-    xl6OutputPuts("    if ( value != 0 && !xl6_error_has() ) {\n", out);
-    xl6OutputPuts("        result = xvoWeakClone((const xrt_value_weak*)value);\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
-    xl6OutputPuts("    return result;\n", out);
-    xl6OutputPuts("}\n\n", out);
+    if ( hasWeakRuntime ) {
+		xl6OutputPuts("static xl6_weak xl6_future_await_weak_copy(xfuture* pFuture, const char* file, int line, int column)\n", out);
+		xl6OutputPuts("{\n", out);
+		xl6OutputPuts("    xl6_weak result;\n", out);
+		xl6OutputPuts("    void* value;\n", out);
+        xl6OutputPuts("    xl6WeakInit(&result);\n", out);
+        xl6OutputPuts("    value = xl6_future_await_value(pFuture, file, line, column, 1, sizeof(result));\n", out);
+		xl6OutputPuts("    if ( value != 0 && !xl6_error_has() ) {\n", out);
+		xl6OutputPuts("        result = xl6WeakClone((const xl6_weak*)value);\n", out);
+		xl6OutputPuts("    }\n", out);
+		xl6OutputPuts("    return result;\n", out);
+		xl6OutputPuts("}\n\n", out);
+		xl6OutputPuts("static xl6_weak xl6_future_await_weak_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+		xl6OutputPuts("{\n", out);
+		xl6OutputPuts("    xl6_weak result = xl6_future_await_weak_copy(pFuture, file, line, column);\n", out);
+		xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
+		xl6OutputPuts("    return result;\n", out);
+		xl6OutputPuts("}\n\n", out);
+    }
 
     xl6OutputPuts("#ifdef XL6_FUNCTION_TYPEDEF\n", out);
-    xl6OutputPuts("static XL6_Function xl6_future_await_function_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    XL6_Function result;\n", out);
-    xl6OutputPuts("    void* value;\n", out);
+	xl6OutputPuts("static XL6_Function xl6_future_await_function_release(xfuture* pFuture, const char* file, int line, int column)\n", out);
+	xl6OutputPuts("{\n", out);
+	xl6OutputPuts("    XL6_Function result;\n", out);
+	xl6OutputPuts("    void* value;\n", out);
     xl6OutputPuts("    memset(&result, 0, sizeof(result));\n", out);
     xl6OutputPuts("    value = xl6_future_await_value(pFuture, file, line, column, 1, sizeof(XL6_Function));\n", out);
     xl6OutputPuts("    if ( value != 0 ) {\n", out);
     xl6OutputPuts("        result = *(XL6_Function*)value;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    if ( result.retain != 0 && result.env != 0 ) {\n", out);
-    xl6OutputPuts("        result.retain(result.env);\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
-    xl6OutputPuts("    return result;\n", out);
-    xl6OutputPuts("}\n", out);
-    xl6OutputPuts("#endif\n\n", out);
-    xl6CgenEmitGeneratorRuntime(out);
+	xl6OutputPuts("    if ( result.retain != 0 && result.env != 0 ) {\n", out);
+	xl6OutputPuts("        result.retain(result.env);\n", out);
+	xl6OutputPuts("    }\n", out);
+	xl6OutputPuts("    xl6_future_release_if_needed(pFuture);\n", out);
+	xl6OutputPuts("    return result;\n", out);
+	xl6OutputPuts("}\n", out);
+	xl6OutputPuts("#endif\n\n", out);
 }

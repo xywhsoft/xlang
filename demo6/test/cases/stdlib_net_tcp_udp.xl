@@ -3,16 +3,14 @@ func requireLine(string name, bool ok)
     println(name + "=ok")
 end
 
-TcpServer server = TcpServer(tcp.listen(0))
+TcpServer server = tcp.listen(0)
 int tcpPort = int(server.port())
-future<point> accepted = server.acceptAsync(8000)
+future<TcpStream> accepted = server.acceptAsync()
 assert accepted != null, "tcp_accept_future"
-TcpStream client = TcpStream(tcp.connect("127.0.0.1", tcpPort, 8000))
-point acceptedPoint = await accepted
-assert acceptedPoint != null, "tcp_accept_value"
-TcpStream peer = TcpStream(acceptedPoint)
+TcpStream client = tcp.connect("127.0.0.1", tcpPort, 8000)
+TcpStream peer = await accepted
 
-future<string> received = peer.recvAsync(8000)
+future<string> received = peer.recvAsync()
 assert received != null, "tcp_recv_future"
 bool sent = client.send("ping")
 bool drained = client.drain(8000)
@@ -46,25 +44,19 @@ requireLine(
         tcpBytesRecv[3] == 255
 )
 
-TcpServer asyncServer = TcpServer(tcp.listen(0))
+TcpServer asyncServer = tcp.listen(0)
 int asyncPort = int(asyncServer.port())
-future<point> asyncAccepted = asyncServer.acceptAsync(8000)
-future<point> asyncConnected = tcp.connectAsync("127.0.0.1", asyncPort, 8000)
+future<TcpStream> asyncAccepted = asyncServer.acceptAsync()
+future<TcpStream> asyncConnected = tcp.connectAsync("127.0.0.1", asyncPort, 8000)
 assert asyncAccepted != null, "tcp_async_accept_future"
 assert asyncConnected != null, "tcp_async_connect_future"
-point asyncClientPoint = await asyncConnected
-point asyncPeerPoint = await asyncAccepted
-assert asyncClientPoint != null, "tcp_async_connect_value"
-assert asyncPeerPoint != null, "tcp_async_accept_value"
-TcpStream asyncClient = TcpStream(asyncClientPoint)
-TcpStream asyncPeer = TcpStream(asyncPeerPoint)
+TcpStream asyncClient = await asyncConnected
+TcpStream asyncPeer = await asyncAccepted
 
-future<string> asyncReceived = asyncPeer.recvAsync(8000)
+future<string> asyncReceived = asyncPeer.recvAsync()
 assert asyncReceived != null, "tcp_async_recv_future"
-future<bool> asyncSendFuture = asyncClient.sendAsync("async")
-assert asyncSendFuture != null, "tcp_async_send_future"
-bool asyncSent = await asyncSendFuture
-future<bool> asyncDrainFuture = asyncClient.drainAsync(8000)
+bool asyncSent = asyncClient.send("async")
+future<bool> asyncDrainFuture = asyncClient.drainAsync()
 assert asyncDrainFuture != null, "tcp_async_drain_future"
 bool asyncDrained = await asyncDrainFuture
 string asyncRequest = await asyncReceived
@@ -73,15 +65,15 @@ asyncPeer.close()
 
 requireLine("tcp_async", asyncPort > 0 and asyncSent and asyncDrained and asyncRequest == "async")
 
-UdpSocket left = UdpSocket(udp.bind(0))
-UdpSocket right = UdpSocket(udp.bind(0))
+UdpSocket left = udp.bind(0)
+UdpSocket right = udp.bind(0)
 int leftPort = left.port()
 int rightPort = right.port()
 time.sleep(10)
 bool udpSent = left.send("127.0.0.1", uint16(rightPort), "hello")
-UdpPacket packet = UdpPacket(right.recv(8000))
+UdpPacket packet = right.recv(8000)
 bool udpReplySent = right.send("127.0.0.1", uint16(leftPort), "reply")
-UdpPacket replyPacket = UdpPacket(left.recv(8000))
+UdpPacket replyPacket = left.recv(8000)
 
 Buffer udpBytes = Buffer()
 udpBytes.appendByte(0)
@@ -89,7 +81,7 @@ udpBytes.appendByte(2)
 udpBytes.appendByte(127)
 udpBytes.appendByte(255)
 bool udpBytesSent = left.sendBytes("127.0.0.1", uint16(rightPort), udpBytes.data(), c_size(udpBytes.len()))
-UdpPacket bytesPacket = UdpPacket(right.recv(8000))
+UdpPacket bytesPacket = right.recv(8000)
 Buffer udpBytesRecv = bytesPacket.bytes()
 
 requireLine(
@@ -105,16 +97,14 @@ requireLine(
         udpBytesRecv[3] == 255
 )
 
-UdpSocket asyncLeft = UdpSocket(udp.bind(0))
-UdpSocket asyncRight = UdpSocket(udp.bind(0))
+UdpSocket asyncLeft = udp.bind(0)
+UdpSocket asyncRight = udp.bind(0)
 int asyncLeftPort = asyncLeft.port()
 int asyncRightPort = asyncRight.port()
-future<point> packetFuture = asyncRight.recvAsync(8000)
+future<UdpPacket> packetFuture = asyncRight.recvAsync()
 assert packetFuture != null, "udp_async_recv_future"
 time.sleep(10)
-future<bool> asyncUdpSendFuture = asyncLeft.sendAsync("127.0.0.1", uint16(asyncRightPort), "async-udp")
-assert asyncUdpSendFuture != null, "udp_async_send_future"
-bool asyncUdpSent = await asyncUdpSendFuture
-UdpPacket asyncPacket = UdpPacket(await packetFuture)
+bool asyncUdpSent = asyncLeft.send("127.0.0.1", uint16(asyncRightPort), "async-udp")
+UdpPacket asyncPacket = await packetFuture
 
 requireLine("udp_async", asyncLeftPort > 0 and asyncRightPort > 0 and asyncUdpSent and asyncPacket.text() == "async-udp")

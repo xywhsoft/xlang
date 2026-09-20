@@ -1,0 +1,9 @@
+func addOne(int value) as int
+    return value + 1
+end
+
+(func(int) as int)? present = addOne
+if present != null
+    var callable = xcall(present)
+    assert int(callable(41)) == 42
+end

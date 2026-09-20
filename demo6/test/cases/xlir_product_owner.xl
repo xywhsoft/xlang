@@ -1,0 +1,74 @@
+extern "product_owner_index" func ownerIndex(int index, int stage) as int
+extern "product_owner_drop" func ownerDrop(int id)
+extern "product_owner_caught" func ownerCaught(int code)
+extern "product_owner_finally" func ownerFinally()
+extern "product_owner_disarm" func ownerDisarm()
+
+class ProductOwnerItem
+    int id
+    create(int id)
+        self.id = id
+    end
+    destroy()
+        ownerDrop(self.id)
+    end
+end
+
+func ownerPair() as (ProductOwnerItem, ProductOwnerItem)
+    return ProductOwnerItem(1), ProductOwnerItem(2)
+end
+
+func ownerStrings() as (string, string)
+    return "left" + "-value", "right" + "-value"
+end
+
+func ownerVars() as (var, var)
+    return ProductOwnerItem(1), ProductOwnerItem(2)
+end
+
+// stage 1/2 fail during the first/second destination's address evaluation.
+// Host drop failures separately test discard and replacement transactions.
+export func product_owner_case(int kind, int stage) as int
+    try
+        if kind == 0
+            array<ProductOwnerItem> items = array[ProductOwnerItem(10), ProductOwnerItem(20)]
+            items[ownerIndex(0, stage)], items[ownerIndex(1, stage)] = ownerPair()
+            assert items[0].id == 1 and items[1].id == 2
+        elseif kind == 1
+            array<string> items = array["old-left", "old-right"]
+            items[ownerIndex(0, stage)], items[ownerIndex(1, stage)] = ownerStrings()
+            if stage == 3 then ownerDisarm() end
+            assert items[0] == "left-value" and items[1] == "right-value"
+        elseif kind == 2
+            auto _, kept = ownerPair()
+            assert kept.id == 2
+        elseif kind == 3
+            ProductOwnerItem left = ProductOwnerItem(10)
+            ProductOwnerItem right = ProductOwnerItem(20)
+            left, right = ownerPair()
+            assert left.id == 1 and right.id == 2
+        elseif kind == 5
+            var left = ProductOwnerItem(10)
+            var right = ProductOwnerItem(20)
+            // Writes inside the closure require real mutable cells, not copied captures.
+            auto captured = func() as int
+                left = left
+                right = right
+                return int(left.id) + int(right.id)
+            end
+            left, right = ownerVars()
+            assert captured() == 3
+        else
+            ProductOwnerItem left = ProductOwnerItem(10)
+            ProductOwnerItem right = ProductOwnerItem(20)
+            _, right = ownerPair()
+            assert left.id == 10 and right.id == 2
+        end
+    catch error
+        ownerCaught(error.code)
+        return 23
+    finally
+        ownerFinally()
+    end
+    return 0
+end

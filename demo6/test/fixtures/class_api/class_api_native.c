@@ -1,18 +1,20 @@
 #include <stdint.h>
+
+#define XRT_MODULE_VALUE
 #include "xrt.h"
 
-typedef struct XL_Class_____xl6__import__class__api__Point {
-    int64_t x;
-    int64_t y;
-} XL_Class_____xl6__import__class__api__Point;
-
-int64_t xl6_class_api_sum(xvalue point)
+int64_t xl6_class_api_sum(xvalue* point)
 {
-    XL_Class_____xl6__import__class__api__Point* data;
+	xvalue* x;
+	xvalue* y;
+	int64_t xValue;
+	int64_t yValue;
 
-    data = (XL_Class_____xl6__import__class__api__Point*)xvoGetRecordData(point);
-    if ( data == NULL ) {
-        return 0;
-    }
-    return data->x + data->y;
+	x = xrtValueObjectGet(point, xrtStrView("x"));
+	y = xrtValueObjectGet(point, xrtStrView("y"));
+	if ( x == NULL || y == NULL ||
+		 !xrtValueGetInt(x, &xValue) || !xrtValueGetInt(y, &yValue) ) {
+		return 0;
+	}
+	return xValue + yValue;
 }

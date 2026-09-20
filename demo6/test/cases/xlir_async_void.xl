@@ -1,0 +1,26 @@
+async func completeVoid()
+end
+
+async func checkedVoid(int value)
+    assert value == 42, "async void worker did not receive its copied frame value"
+end
+
+async func failVoid()
+    throw "async void failure"
+end
+
+auto completed = completeVoid()
+await completed
+await completed
+
+auto checked = checkedVoid(42)
+await checked
+
+int caught = 0
+try
+    await failVoid()
+catch e
+    caught = 1
+end
+
+assert caught == 1, "failed async void Future did not reach catch"

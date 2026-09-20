@@ -10,17 +10,17 @@ release\xl.exe run test\cases\cgen_var_class_dispatch.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_var_class_dispatch.xl --emit build\test\cgen_var_class_dispatch.c
 if errorlevel 1 exit /b 1
-findstr /C:"methodValue = xvoCreateInt(" build\test\cgen_var_class_dispatch.c >nul
+findstr /C:"methodValue = xrtValueInt(" build\test\cgen_var_class_dispatch.c >nul
 if errorlevel 1 (
     echo cgen_var_class_dispatch.c lost static var class return boxing.
     exit /b 1
 )
-findstr /C:"propertyValue = xvoCreateText(" build\test\cgen_var_class_dispatch.c >nul
+findstr /C:"propertyValue = xl6_xrt_value_text_create(" build\test\cgen_var_class_dispatch.c >nul
 if errorlevel 1 (
     echo cgen_var_class_dispatch.c lost static var property return boxing.
     exit /b 1
 )
-findstr /C:"xl6_xrt_value_to_i64_release(xl6_var_call(" build\test\cgen_var_class_dispatch.c >nul
+findstr /C:"xl6_xrt_value_to_i64_checked_release(xl6_var_call(" build\test\cgen_var_class_dispatch.c >nul
 if errorlevel 1 (
     echo cgen_var_class_dispatch.c kept a stale class flow across a control-flow merge.
     exit /b 1
@@ -42,6 +42,27 @@ if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_local_var_dynamic_member_storage.xl -o build\test\cgen_local_var_dynamic_member_storage.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_local_var_dynamic_member_storage.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\xruntime_dynamic_fields.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\xruntime_dynamic_fields.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\xruntime_dynamic_fields.xl --emit build\test\xruntime_dynamic_fields.c
+if errorlevel 1 exit /b 1
+findstr /C:"#define XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD 1" build\test\xruntime_dynamic_fields.c >nul
+if errorlevel 1 (
+    echo xruntime_dynamic_fields.c missing runtime dynamic-field trim closure.
+    exit /b 1
+)
+findstr /C:"xl6_xrt_dynamic_fields_set" build\test\xruntime_dynamic_fields.c >nul
+if errorlevel 1 (
+    echo xruntime_dynamic_fields.c missing xruntime dynamic-field bridge calls.
+    exit /b 1
+)
+release\xl.exe build test\cases\xruntime_dynamic_fields.xl -o build\test\xruntime_dynamic_fields.exe
+if errorlevel 1 exit /b 1
+build\test\xruntime_dynamic_fields.exe
 if errorlevel 1 exit /b 1
 
 for %%F in (
@@ -78,7 +99,7 @@ if errorlevel 1 (
     echo cgen_generic_multi_return.c missing generic class multi-return call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_multi_return.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_multi_return.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_multi_return.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_multi_return.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_multi_return.exe
 if errorlevel 1 exit /b 1
@@ -93,7 +114,7 @@ if errorlevel 1 (
     echo cgen_class_field_module_const.c has an invalid module constant declaration order.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_field_module_const.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_field_module_const.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_class_field_module_const.c %XL6_CGEN_LINKS% -o build\test\cgen_class_field_module_const.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_field_module_const.exe
 if errorlevel 1 exit /b 1
@@ -108,7 +129,7 @@ if errorlevel 1 (
     echo cgen_generic_self_method.c lost the concrete generic class symbol.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_self_method.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_self_method.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_self_method.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_self_method.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_self_method.exe
 if errorlevel 1 exit /b 1
@@ -117,11 +138,30 @@ if not errorlevel 0 exit /b 1
 rem ------------------------------------------------------------------
 rem class: default reference semantics, polymorphism and parameter modes.
 rem ------------------------------------------------------------------
+release\xl.exe cgen test\cases\cgen_property_managed_chain.xl --emit build\test\cgen_property_managed_chain.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_temp_managed_release((void*)__xl6_call_receiver_" build\test\cgen_property_managed_chain.c >nul
+if errorlevel 1 (
+    echo cgen_property_managed_chain.c lost managed getter receiver disown.
+    exit /b 1
+)
+
+release\xl.exe check test\cases\cgen_imported_class_method_nested_arg.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_imported_class_method_nested_arg.xl --emit build\test\cgen_imported_class_method_nested_arg.c
+if errorlevel 1 exit /b 1
+findstr /C:"XL6_Function __xl6_member_fn_stmt_" build\test\cgen_imported_class_method_nested_arg.c >nul
+if not errorlevel 1 (
+    echo cgen_imported_class_method_nested_arg.c lowered an imported class method as a function field.
+    exit /b 1
+)
+
 for %%F in (
     cgen_class_polymorphism
     cgen_class_null_identity
     cgen_class_self_property_dispatch
     cgen_property_managed_chain
+    cgen_imported_class_method_nested_arg
     cgen_param_modes_class
     cgen_param_modes_container
     cgen_param_modes_container_matrix
@@ -143,12 +183,12 @@ if errorlevel 1 (
     echo cgen_function_param_modes.c lost the byref pointer ABI.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_incrementer.invoke)(__xl6_user_global_incrementer.env, &(__xl6_user_global_number))" build\test\cgen_function_param_modes.c >nul
+findstr /C:"__xl6_user_global_incrementer.invoke)(__xl6_user_global_incrementer.invoke_env, &(__xl6_user_global_number))" build\test\cgen_function_param_modes.c >nul
 if errorlevel 1 (
     echo cgen_function_param_modes.c lost byref function-value address passing.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_producer.invoke)(__xl6_user_global_producer.env, &(__xl6_user_global_result))" build\test\cgen_function_param_modes.c >nul
+findstr /C:"__xl6_user_global_producer.invoke)(__xl6_user_global_producer.invoke_env, &(__xl6_user_global_result))" build\test\cgen_function_param_modes.c >nul
 if errorlevel 1 (
     echo cgen_function_param_modes.c lost out function-value address passing.
     exit /b 1
@@ -156,7 +196,7 @@ if errorlevel 1 (
 
 release\xl.exe cgen test\cases\cgen_class_polymorphism.xl --emit build\test\cgen_class_polymorphism.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvoCreateObject(xl6_type_desc_XL_Class_RefDerived()" build\test\cgen_class_polymorphism.c >nul
+findstr /C:"xl6ValueObject(xl6_type_desc_XL_Class_RefDerived()" build\test\cgen_class_polymorphism.c >nul
 if errorlevel 1 (
     echo cgen_class_polymorphism.c missing managed derived object allocation.
     exit /b 1
@@ -215,13 +255,13 @@ if errorlevel 1 (
 )
 release\xl.exe cgen test\cases\export_class_handle.xl --emit build\test\export_class_handle.c --emit-header build\test\export_class_handle.h
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue xl6_class_make(int64_t value);" build\test\export_class_handle.h >nul
+findstr /C:"xvalue* xl6_class_make(int64_t value);" build\test\export_class_handle.h >nul
 if errorlevel 1 exit /b 1
-findstr /C:"int64_t xl6_class_read(xvalue value);" build\test\export_class_handle.h >nul
+findstr /C:"int64_t xl6_class_read(xvalue* value);" build\test\export_class_handle.h >nul
 if errorlevel 1 exit /b 1
 findstr /C:"void xl6_mode_increment(int64_t* value);" build\test\export_class_handle.h >nul
 if errorlevel 1 exit /b 1
-findstr /C:"void xl6_mode_make(xvalue* value);" build\test\export_class_handle.h >nul
+findstr /C:"void xl6_mode_make(xvalue** value);" build\test\export_class_handle.h >nul
 if errorlevel 1 exit /b 1
 findstr /C:"fn:app.increment(byref int) as ()" build\test\export_class_handle.abi.json >nul
 if errorlevel 1 exit /b 1
@@ -387,8 +427,13 @@ for %%F in (
     if errorlevel 1 exit /b 1
 )
 
+echo Verifying XLIR dynamic method argument dispatch...
 release\xl.exe cgen test\cases\cgen_dynamic_method_arguments.xl --emit build\test\cgen_dynamic_method_arguments.c
-if errorlevel 1 exit /b 1
+if errorlevel 1 (
+    echo Legacy Cgen failed for dynamic method arguments.
+    exit /b 1
+)
+echo Legacy dynamic method argument Cgen ok.
 findstr /C:"defaultResult = xl6_var_call(" build\test\cgen_dynamic_method_arguments.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_method_arguments.c lost dynamic var return typing.
@@ -399,6 +444,111 @@ if not errorlevel 1 (
     echo cgen_dynamic_method_arguments.c wrapped a dynamic return as bool.
     exit /b 1
 )
+
+rem XLIR owns dynamic method binding/default/variadic semantics as verified IR.
+release\xl.exe ir test\cases\cgen_dynamic_method_arguments.xl --lowered > build\test\cgen_dynamic_method_arguments_xlir.txt
+if errorlevel 1 (
+    echo Lowered XLIR generation failed for dynamic method arguments.
+    exit /b 1
+)
+echo Lowered dynamic method argument XLIR ok.
+findstr /C:"name=right type=t3 abi=value match=i64 default=n12/i64 literal=2LL" build\test\cgen_dynamic_method_arguments_xlir.txt >nul
+if errorlevel 1 (
+    echo Lowered XLIR lost the closed dynamic-method default descriptor.
+    exit /b 1
+)
+findstr /C:"member=add fallback=add" build\test\cgen_dynamic_method_arguments_xlir.txt >nul
+if errorlevel 1 (
+    echo Lowered XLIR lost class-first dynamic method collection fallback.
+    exit /b 1
+)
+release\xl.exe cgen test\cases\cgen_dynamic_method_arguments.xl --backend xlir --emit build\test\cgen_dynamic_method_arguments_xlir_generated.c
+if errorlevel 1 (
+    echo XLIR Cgen failed for dynamic method arguments.
+    exit /b 1
+)
+echo Dynamic method argument XLIR Cgen ok.
+findstr /C:"static xvalue* xlir_dynamic_method_dm0(" build\test\cgen_dynamic_method_arguments_xlir_generated.c >nul
+if errorlevel 1 (
+    echo XLIR Cgen did not emit the verified dynamic-method adapter.
+    exit /b 1
+)
+findstr /C:"else a1 = 2LL;" build\test\cgen_dynamic_method_arguments_xlir_generated.c >nul
+if errorlevel 1 (
+    echo XLIR Cgen did not consume the canonical dynamic-method default.
+    exit /b 1
+)
+findstr /C:"xlir_xvalue_dynamic_collection_method(receiver, XLIR_DYNAMIC_COLLECTION_ADD" build\test\cgen_dynamic_method_arguments_xlir_generated.c >nul
+if errorlevel 1 (
+    echo XLIR Cgen did not consume the explicit dynamic collection fallback.
+    exit /b 1
+)
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_dynamic_method_arguments_host.c %XL6_CGEN_LINKS% -o build\test\xlir_dynamic_method_arguments_host.exe
+if errorlevel 1 (
+    echo XLIR dynamic method argument host compile failed.
+    exit /b 1
+)
+build\test\xlir_dynamic_method_arguments_host.exe
+if errorlevel 1 (
+    echo XLIR dynamic method argument host runtime failed.
+    exit /b 1
+)
+
+release\xl.exe ir test\cases\cgen_dynamic_method_overload.xl --lowered > build\test\cgen_dynamic_method_overload_xlir.txt
+if errorlevel 1 exit /b 1
+findstr /C:"name=value type=t4 abi=value match=f64" build\test\cgen_dynamic_method_overload_xlir.txt >nul
+if errorlevel 1 (
+    echo Lowered XLIR lost the exact dynamic overload match ABI.
+    exit /b 1
+)
+findstr /C:"name=pick returns=1/t3 targetError=may-raise adapter=verified" build\test\cgen_dynamic_method_overload_xlir.txt >nul
+if errorlevel 1 (
+    echo Lowered XLIR did not preserve the may-raise overload target ABI.
+    exit /b 1
+)
+release\xl.exe cgen test\cases\cgen_dynamic_method_overload.xl --backend xlir --emit build\test\cgen_dynamic_method_overload_xlir_generated.c
+if errorlevel 1 exit /b 1
+findstr /C:"static bool xlir_dynamic_method_match_dm1(" build\test\cgen_dynamic_method_overload_xlir_generated.c >nul
+if errorlevel 1 (
+    echo XLIR Cgen did not emit non-mutating overload selection.
+    exit /b 1
+)
+findstr /C:"callResult = xlir_fn_3(receiver, a0);" build\test\cgen_dynamic_method_overload_xlir_generated.c >nul
+if errorlevel 1 (
+    echo XLIR Cgen did not consume the may-raise overload result carrier.
+    exit /b 1
+)
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_dynamic_method_overload_host.c %XL6_CGEN_LINKS% -o build\test\xlir_dynamic_method_overload_host.exe
+if errorlevel 1 exit /b 1
+build\test\xlir_dynamic_method_overload_host.exe
+if errorlevel 1 exit /b 1
+
+rem A dynamic call on Generic<T> must dispatch to an isolated monomorphic
+rem registry row.  Neither Cgen nor the runtime may interpret the source T.
+echo Verifying XLIR generic dynamic method dispatch...
+release\xl.exe ir test\cases\cgen_generic_dynamic_method.xl --lowered > build\test\cgen_generic_dynamic_method_xlir.txt
+if errorlevel 1 exit /b 1
+findstr /C:"name=get returns=1/t6 targetError=no-raise adapter=verified" build\test\cgen_generic_dynamic_method_xlir.txt >nul
+if errorlevel 1 (
+    echo Lowered XLIR did not specialize the generic dynamic return ABI.
+    exit /b 1
+)
+findstr /C:"name=next type=t6 abi=value match=i64" build\test\cgen_generic_dynamic_method_xlir.txt >nul
+if errorlevel 1 (
+    echo Lowered XLIR did not specialize the generic dynamic parameter ABI.
+    exit /b 1
+)
+release\xl.exe cgen test\cases\cgen_generic_dynamic_method.xl --backend xlir --emit build\test\cgen_generic_dynamic_method_xlir_generated.c
+if errorlevel 1 exit /b 1
+findstr /C:"static xvalue* xlir_dynamic_method_dm0(" build\test\cgen_generic_dynamic_method_xlir_generated.c >nul
+if errorlevel 1 (
+    echo XLIR Cgen did not emit the specialized generic dynamic adapter.
+    exit /b 1
+)
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_generic_dynamic_method_host.c %XL6_CGEN_LINKS% -o build\test\xlir_generic_dynamic_method_host.exe
+if errorlevel 1 exit /b 1
+build\test\xlir_generic_dynamic_method_host.exe
+if errorlevel 1 exit /b 1
 
 echo DEMO6 suite ok: current OOP and parameter-mode regressions
 exit /b 0

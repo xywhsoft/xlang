@@ -78,7 +78,7 @@ static void xl6CgenClassAutoDeriveAppendLiteral(XL6_CgenContext* ctx, const char
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtFree((void*)%s); }\n", resultName, resultName);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = __xl6_next != 0 ? __xl6_next : xrtCopyStr(\"\", 0u);\n", resultName);
+    xl6OutputPrintf(ctx->out, "%s = __xl6_next != 0 ? __xl6_next : xl6_xrt_string_dup(\"\", 0u);\n", resultName);
 }
 
 static void xl6CgenClassAutoDeriveAppendValue(XL6_CgenContext* ctx, const char* resultName)
@@ -86,17 +86,17 @@ static void xl6CgenClassAutoDeriveAppendValue(XL6_CgenContext* ctx, const char* 
     xl6CgenIndent(ctx);
     xl6OutputPuts("__xl6_text_size = 0u;\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("__xl6_text = (char*)xvoToString(__xl6_value, &__xl6_text_size);\n", ctx->out);
+    xl6OutputPuts("__xl6_text = (char*)xl6_xrt_value_string_owned(__xl6_value, &__xl6_text_size);\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "__xl6_next = (char*)xrtFormat(\"%%s%%s\", %s != 0 ? %s : \"\", __xl6_text != 0 ? __xl6_text : \"\");\n", resultName, resultName);
     xl6CgenIndent(ctx);
     xl6OutputPuts("if (__xl6_text != 0) { xrtFree(__xl6_text); __xl6_text = 0; }\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("if (__xl6_value != 0) { xvoUnref(__xl6_value); __xl6_value = 0; }\n", ctx->out);
+    xl6OutputPuts("if (__xl6_value != 0) { xrtValueRelease(__xl6_value); __xl6_value = 0; }\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtFree((void*)%s); }\n", resultName, resultName);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = __xl6_next != 0 ? __xl6_next : xrtCopyStr(\"\", 0u);\n", resultName);
+    xl6OutputPrintf(ctx->out, "%s = __xl6_next != 0 ? __xl6_next : xl6_xrt_string_dup(\"\", 0u);\n", resultName);
 }
 
 static void xl6CgenClassAutoToStringProtocol(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
@@ -117,11 +117,11 @@ static void xl6CgenClassAutoToStringProtocol(XL6_CgenContext* ctx, const XL6_Ast
     xl6CgenIndent(ctx);
     xl6OutputPuts("unsigned int __xl6_text_size;\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("xvalue __xl6_value;\n", ctx->out);
+    xl6OutputPuts("xvalue* __xl6_value;\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("if ( self == 0 ) { return xrtCopyStr(\"null\", 0u); }\n", ctx->out);
+    xl6OutputPuts("if ( self == 0 ) { return xl6_xrt_string_dup(\"null\", 0u); }\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("__xl6_result = xrtCopyStr(", ctx->out);
+    xl6OutputPuts("__xl6_result = xl6_xrt_string_dup(", ctx->out);
     xl6CgenCStringLiteral(ctx->out, classNode != NULL ? classNode->text : "");
     xl6OutputPuts(", 0u);\n", ctx->out);
     xl6CgenClassAutoDeriveAppendLiteral(ctx, "__xl6_result", "{");
@@ -171,7 +171,7 @@ static void xl6CgenClassAutoHashProtocol(XL6_CgenContext* ctx, const XL6_AstNode
     xl6CgenIndent(ctx);
     xl6OutputPuts("unsigned int __xl6_text_size;\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("xvalue __xl6_value;\n", ctx->out);
+    xl6OutputPuts("xvalue* __xl6_value;\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPuts("if ( self == 0 ) { return 0; }\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -197,11 +197,11 @@ static void xl6CgenClassAutoHashProtocol(XL6_CgenContext* ctx, const XL6_AstNode
         xl6CgenIndent(ctx);
         xl6OutputPuts("__xl6_text_size = 0u;\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPuts("__xl6_text = (char*)xvoToString(__xl6_value, &__xl6_text_size);\n", ctx->out);
+        xl6OutputPuts("__xl6_text = (char*)xl6_xrt_value_string_owned(__xl6_value, &__xl6_text_size);\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPuts("if (__xl6_text != 0) { __xl6_hash ^= xrtHash64(__xl6_text, __xl6_text_size) + 0x9e3779b97f4a7c15ULL + (__xl6_hash << 6) + (__xl6_hash >> 2); xrtFree(__xl6_text); }\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPuts("if (__xl6_value != 0) { xvoUnref(__xl6_value); __xl6_value = 0; }\n", ctx->out);
+        xl6OutputPuts("if (__xl6_value != 0) { xrtValueRelease(__xl6_value); __xl6_value = 0; }\n", ctx->out);
     }
 
     xl6CgenIndent(ctx);
@@ -229,9 +229,9 @@ static void xl6CgenClassAutoEqualsBody(XL6_CgenContext* ctx, const XL6_AstNode* 
     xl6CgenIndent(ctx);
     xl6OutputPuts("unsigned int __xl6_right_size;\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("xvalue __xl6_left;\n", ctx->out);
+    xl6OutputPuts("xvalue* __xl6_left;\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("xvalue __xl6_right;\n", ctx->out);
+    xl6OutputPuts("xvalue* __xl6_right;\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPuts("if ( self == 0 ) { return ", ctx->out);
     xl6OutputPuts(negate ? "true" : "false", ctx->out);
@@ -262,9 +262,9 @@ static void xl6CgenClassAutoEqualsBody(XL6_CgenContext* ctx, const XL6_AstNode* 
         xl6CgenIndent(ctx);
         xl6OutputPuts("__xl6_left_size = 0u; __xl6_right_size = 0u;\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPuts("__xl6_left_text = (char*)xvoToString(__xl6_left, &__xl6_left_size);\n", ctx->out);
+        xl6OutputPuts("__xl6_left_text = (char*)xl6_xrt_value_string_owned(__xl6_left, &__xl6_left_size);\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPuts("__xl6_right_text = (char*)xvoToString(__xl6_right, &__xl6_right_size);\n", ctx->out);
+        xl6OutputPuts("__xl6_right_text = (char*)xl6_xrt_value_string_owned(__xl6_right, &__xl6_right_size);\n", ctx->out);
         xl6CgenIndent(ctx);
         xl6OutputPuts("if (__xl6_left_size != __xl6_right_size || (__xl6_left_size > 0u && memcmp(__xl6_left_text, __xl6_right_text, __xl6_left_size) != 0)) { __xl6_equal = 0; }\n", ctx->out);
         xl6CgenIndent(ctx);
@@ -272,9 +272,9 @@ static void xl6CgenClassAutoEqualsBody(XL6_CgenContext* ctx, const XL6_AstNode* 
         xl6CgenIndent(ctx);
         xl6OutputPuts("if (__xl6_right_text != 0) { xrtFree(__xl6_right_text); }\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPuts("if (__xl6_left != 0) { xvoUnref(__xl6_left); }\n", ctx->out);
+        xl6OutputPuts("if (__xl6_left != 0) { xrtValueRelease(__xl6_left); }\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPuts("if (__xl6_right != 0) { xvoUnref(__xl6_right); }\n", ctx->out);
+        xl6OutputPuts("if (__xl6_right != 0) { xrtValueRelease(__xl6_right); }\n", ctx->out);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("}\n", ctx->out);

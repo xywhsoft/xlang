@@ -1,0 +1,17 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+union Payload
+    int integer
+    c_double decimal
+end
+
+Payload source
+source.integer = 42
+
+var boxed = source
+expect(type(boxed) == Payload, 1)
+
+array<Payload> values = array[source]
+Payload projected = values[0]
+expect(projected.integer, 42)
+expect(type(projected) == Payload, 1)

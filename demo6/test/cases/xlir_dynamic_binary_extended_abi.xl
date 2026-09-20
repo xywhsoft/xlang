@@ -1,0 +1,91 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectString(string actual, string expected)
+
+var left = 200
+var two = 2
+var oneHundredFifty = 150
+var oneHundred = 100
+var fifteen = 15
+var three = 3
+var seven = 7
+var one = 1
+
+var quotient = left / two
+var remainder = left % oneHundredFifty
+var intersection = oneHundred & fifteen
+var unionBits = oneHundred | three
+var differenceBits = oneHundred ^ seven
+var shiftedLeft = oneHundred << one
+var shiftedRight = left >> two
+
+expect(int(quotient), 100)
+expect(int(remainder), 50)
+expect(int(intersection), 4)
+expect(int(unionBits), 103)
+expect(int(differenceBits), 99)
+expect(int(shiftedLeft), 200)
+expect(int(shiftedRight), 50)
+
+var zero = 0
+var negativeShift = -1
+var tooWideShift = 64
+
+func catchesDivideByZero() as bool
+    bool caught = false
+    try
+        var ignored = left / zero
+    catch ZeroDivisionError error
+        caught = true
+    end
+    return caught
+end
+
+func catchesModuloByZero() as bool
+    bool caught = false
+    try
+        var ignored = left % zero
+    catch ZeroDivisionError error
+        caught = true
+    end
+    return caught
+end
+
+func catchesNegativeShift() as bool
+    bool caught = false
+    try
+        var ignored = left << negativeShift
+    catch RangeError error
+        caught = true
+    end
+    return caught
+end
+
+func catchesWideShift() as bool
+    bool caught = false
+    try
+        var ignored = left << tooWideShift
+    catch RangeError error
+        caught = true
+    end
+    return caught
+end
+
+var floating = 5.0
+var floatingModulo = floating % two
+
+expect(catchesDivideByZero(), 1)
+expect(catchesModuloByZero(), 1)
+expect(catchesNegativeShift(), 1)
+expect(catchesWideShift(), 1)
+expect(type(floatingModulo) == null, 1)
+
+var textLeft = "ab"
+var textRight = "cd"
+var joinedText = textLeft + textRight
+expectString(string(joinedText), "abcd")
+
+var arrayLeft = [1, 2]
+var arrayRight = [3, 4]
+var joinedArray = arrayLeft + arrayRight
+expect(joinedArray.length, 4)
+expect(int(joinedArray[2]), 3)

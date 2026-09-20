@@ -16,7 +16,7 @@ static void xl6CgenAsyncArgStructDecl(XL6_CgenContext* ctx, const XL6_AstNode* n
             保存对象外壳而不是 payload 副本。
             worker 通过它恢复 self，并保证对象在异步任务完成前始终存活。
         */
-        xl6OutputPuts("    xvalue __xl6_self;\n", ctx->out);
+        xl6OutputPuts("    xvalue* __xl6_self;\n", ctx->out);
     }
     for ( i = 0; params != NULL && i < params->childCount; ++i ) {
         const XL6_AstNode* param = params->children[i];

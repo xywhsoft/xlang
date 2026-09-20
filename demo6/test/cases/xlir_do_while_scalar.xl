@@ -1,0 +1,7 @@
+export "xlir_test_do_answer" func do_answer() as int64
+    int value = 0
+    do
+        value = value + 1
+    while value < 4 end
+    return value
+end

@@ -1,0 +1,20 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+dict<int> values = dict{"a": 1, "bb": 2}
+int keyLength = 0
+for key in values
+    keyLength = keyLength + key.length
+end
+expect(keyLength, 3)
+
+func first_key(dict<int> items) as string
+    for key in items
+        return key
+    end
+    return ""
+end
+
+string selected = first_key(dict{"owned": 7})
+if selected != "owned"
+    expect(0, 1)
+end

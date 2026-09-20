@@ -1,0 +1,152 @@
+extern "scope_cleanup_open" func opened(int id)
+extern "scope_cleanup_drop" func closed(int id)
+extern "scope_cleanup_checked" func checked(int code, int live)
+extern "scope_cleanup_outer_error" func checkOuter()
+extern "scope_cleanup_mark" func mark(int bit)
+
+class ScopeGuard
+    int id
+    create(int id)
+        self.id = id
+        opened(id)
+    end
+    destroy()
+        closed(self.id)
+    end
+end
+
+export "scope_cleanup_basic" func basic() as int
+    ScopeGuard outer = ScopeGuard(1)
+    try
+        ScopeGuard middle = ScopeGuard(2)
+        if true then
+            ScopeGuard first = ScopeGuard(3)
+            ScopeGuard last = ScopeGuard(4)
+        end
+        mark(1)
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "scope_cleanup_deep" func deep() as int
+    ScopeGuard outer = ScopeGuard(1)
+    try
+        ScopeGuard middle = ScopeGuard(2)
+        if true then
+            ScopeGuard inner = ScopeGuard(3)
+            if true then
+                ScopeGuard first = ScopeGuard(4)
+                ScopeGuard last = ScopeGuard(5)
+            end
+            mark(4)
+        end
+        mark(1)
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "scope_cleanup_nested_catch" func nestedCatch() as int
+    ScopeGuard outer = ScopeGuard(1)
+    try
+        throw "outer-sentinel"
+    catch original
+        assert original.message == "outer-sentinel"
+        checkOuter()
+        try
+            ScopeGuard middle = ScopeGuard(2)
+            if true then
+                ScopeGuard first = ScopeGuard(3)
+                ScopeGuard last = ScopeGuard(4)
+            end
+            mark(1)
+        catch error
+            assert outer.id == 1
+            checked(error.code, 1)
+        end
+        assert original.message == "outer-sentinel"
+        checkOuter()
+    end
+    return outer.id
+end
+
+export "scope_cleanup_finally" func withFinally() as int
+    ScopeGuard outer = ScopeGuard(1)
+    try
+        ScopeGuard middle = ScopeGuard(2)
+        if true then
+            ScopeGuard first = ScopeGuard(3)
+            ScopeGuard last = ScopeGuard(4)
+        end
+        mark(1)
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    finally
+        assert outer.id == 1
+        mark(2)
+    end
+    return outer.id
+end
+
+export "scope_cleanup_unhandled" func unhandled() as int
+    ScopeGuard outer = ScopeGuard(1)
+    if true then
+        ScopeGuard first = ScopeGuard(2)
+        ScopeGuard last = ScopeGuard(3)
+    end
+    mark(1)
+    return outer.id
+end
+
+export "scope_cleanup_cell" func cell() as int
+    ScopeGuard outer = ScopeGuard(1)
+    try
+        if true then
+            var first = ScopeGuard(2)
+            var last = ScopeGuard(3)
+            func() as int read = func() as int
+                first = first
+                last = last
+                return int(first.id) + int(last.id)
+            end
+            assert read() == 5
+        end
+        mark(1)
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "scope_cleanup_outer_cell" func outerCell() as int
+    ScopeGuard outer = ScopeGuard(1)
+    try
+        int count = 0
+        func() as int bump = func() as int
+            count += 1
+            return count
+        end
+        assert bump() == 1
+        ScopeGuard middle = ScopeGuard(2)
+        if true then
+            ScopeGuard first = ScopeGuard(3)
+            ScopeGuard last = ScopeGuard(4)
+        end
+        mark(1)
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+func main(...) as int
+    return 0
+end

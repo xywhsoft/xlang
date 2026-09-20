@@ -1,0 +1,3 @@
+func main(...) as int
+    return int(xson.valid("{bad}"))
+end

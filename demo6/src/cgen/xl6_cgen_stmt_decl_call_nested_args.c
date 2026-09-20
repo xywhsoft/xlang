@@ -263,21 +263,12 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
                 ctx->currentGenericArgs = typeArgs;
             }
         }
-    } else if ( callee != NULL && callee->kind == XL6_AST_NAME ) {
-        func = xl6CgenFindExternFunc(ctx, callee->text);
-        if ( func == NULL ) {
-            XL6_AstNode* exportFunc = xl6CgenFindExportFunc(ctx, callee->text);
-            if ( exportFunc != NULL && xl6CgenExportFuncOverloadCount(ctx, callee->text) <= 1 ) {
-                func = exportFunc;
-            }
-        }
-        if ( func == NULL ) {
-            func = xl6CgenResolveCallFuncInternal(ctx, expr, callee->text, &inferredArgs, 0);
-            if ( func != NULL && inferredArgs != NULL ) {
-                ctx->currentGenericParams = xl6CgenFuncTypeParams(func);
-                ctx->currentGenericArgs = inferredArgs;
-            }
-        }
+	} else if ( callee != NULL && callee->kind == XL6_AST_NAME ) {
+		func = xl6CgenResolveCallFuncInternal(ctx, expr, callee->text, &inferredArgs, 0);
+		if ( func != NULL && inferredArgs != NULL ) {
+			ctx->currentGenericParams = xl6CgenFuncTypeParams(func);
+			ctx->currentGenericArgs = inferredArgs;
+		}
     } else if ( callee != NULL && callee->kind == XL6_AST_MEMBER &&
                 callee->text != NULL && callee->childCount > 0 ) {
         const XL6_AstNode* receiver = callee->children[0];
@@ -355,7 +346,7 @@ static int xl6CgenDeclCollectKnownCallExprArgTemps(
 
         /*
             显式或推断泛型调用收集实参临时量时，参数类型必须先替换 T。
-            否则 array<T> 与字面量会被当作未定型容器，错误退回动态 xvalue 路径。
+            否则 array<T> 与字面量会被当作未定型容器，错误退回动态 xvalue* 路径。
         */
         tempType = xl6CgenCloneCanonicalTypeNode(ctx, xl6CgenSubstituteGenericType(ctx, paramType));
         if ( tempType != NULL && xl6CgenDeclCallArgumentNeedsTemp(ctx, tempType, argExpr) ) {
@@ -472,13 +463,19 @@ static void xl6CgenDeclDestroyCallArgTemps(XL6_CgenContext* ctx, XL6_CgenDeclCal
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtFree((void*)%s); %s = 0; }\n",
                             temps[i].name, temps[i].name, temps[i].name);
-        } else if ( temps[i].active && temps[i].releaseAfterUse &&
-                    xl6CgenClassHandleTargetType(ctx, temps[i].typeNode) != NULL ) {
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n",
-                            temps[i].name, temps[i].name, temps[i].name);
-        }
-    }
+		} else if ( temps[i].active && temps[i].releaseAfterUse &&
+					xl6CgenClassHandleTargetType(ctx, temps[i].typeNode) != NULL ) {
+			xl6CgenIndent(ctx);
+			xl6OutputPrintf(
+				ctx->out,
+				"if (%s != 0) { xl6_temp_managed_release((void*)%s, "
+				"(XL6_TempManagedDrop)xrtValueRelease); %s = 0; }\n",
+				temps[i].name,
+				temps[i].name,
+				temps[i].name
+			);
+		}
+	}
 }
 
 /*
@@ -673,7 +670,7 @@ static int xl6CgenDeclEmitTypedContainerCallExprWithArgTemps(
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s = ", valueName);
     if ( xl6CgenIsStringTypeNode(ctx, targetType) ) {
-        xl6OutputPuts("xrtCopyStr(", ctx->out);
+        xl6OutputPuts("xl6_xrt_string_dup(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts(", 0u)", ctx->out);
     } else {
@@ -762,7 +759,7 @@ static int xl6CgenDeclEmitScalarCallExprWithArgTemps(
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s = ", valueName);
     if ( xl6CgenIsStringTypeNode(ctx, targetType) ) {
-        xl6OutputPuts("xrtCopyStr(", ctx->out);
+        xl6OutputPuts("xl6_xrt_string_dup(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts(", 0u)", ctx->out);
     } else {

@@ -1,0 +1,16 @@
+func replaceValueCatchFinally() as var
+    var local = {"count": 40}
+    auto next = func() as var
+        local = {"count": 42}
+        return local
+    end
+    try
+        throw "route through catch"
+    catch ignored
+        return next()
+    finally
+        local = {"count": 99}
+    end
+end
+
+var replacedCatchFinally = replaceValueCatchFinally()

@@ -1,0 +1,10 @@
+async func run() as int
+    future<NetAddressList> resolving = net.resolveAsync("localhost", 8123, net.familyAny)
+    NetAddressList addresses = await resolving
+    assert addresses.count() > 0
+    assert addresses.port(0) == 8123
+    println("xlir resolver standalone ok")
+    return 0
+end
+int exitCode = await run()
+assert exitCode == 0

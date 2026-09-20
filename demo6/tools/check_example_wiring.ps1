@@ -19,10 +19,14 @@ $wiringFiles = @(
     "test_feature_suite.bat",
     "tools\check_stdlib_examples.ps1",
     "tools\run_extlib_examples.ps1",
+    "tools\run_game_examples.ps1",
     "tools\run_xge_examples.ps1",
+    "tools\run_xui_examples.ps1",
     "release\examples\apps\run_apps.bat",
     "release\examples\extlibs\run_extlibs.bat",
+    "release\examples\games\run_games.bat",
     "release\examples\xge\run_xge_examples.bat",
+    "release\examples\xui\run_xui_examples.bat",
     "release\examples\feature_suite\run_feature_suite.bat"
 )
 $draftExampleFiles = @()
@@ -232,7 +236,7 @@ function Test-RootExampleReadmeIndex()
         }
     }
 
-    foreach ( $required in @("tutorial/README.md", "feature_suite/README.md", "apps/README.md")) {
+    foreach ( $required in @("tutorial/README.md", "feature_suite/README.md", "apps/README.md", "games/README.md")) {
         if ( ! $readme.Contains($required) ) {
             Add-Failure "examples README does not reference ${required}"
         }
@@ -464,9 +468,11 @@ Test-RootExampleCoverageModes
 Test-ExampleReadmeIndex "release\examples\tutorial"
 Test-ExampleReadmeIndex "release\examples\feature_suite"
 Test-ExampleReadmeIndex "release\examples\apps"
+Test-ExampleReadmeIndex "release\examples\games"
 Test-ExampleExecutionIndex "release\examples\tutorial" "test_tutorial.bat" @("11_export_to_c.xl")
 Test-ExampleExecutionIndex "release\examples\feature_suite" "release\examples\feature_suite\run_feature_suite.bat" @("09_c_export_abi.xl")
 Test-ExampleExecutionIndex "release\examples\apps" "release\examples\apps\run_apps.bat" @()
+Test-ExampleExecutionIndex "release\examples\games" "release\examples\games\run_games.bat" @()
 Test-ExampleExecutionIndex "release\examples\extlibs" "release\examples\extlibs\run_extlibs.bat" @("com.xl")
 
 if ( $failures.Count -gt 0 ) {

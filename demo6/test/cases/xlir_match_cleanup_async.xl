@@ -1,0 +1,92 @@
+extern "match_async_drop" func matchDrop()
+extern "match_async_after" func matchAfter(int count)
+extern "match_async_input" func matchInput() as future<int>
+class AsyncMatchObject
+    string text = "hello"
+    destroy()
+        matchDrop()
+    end
+end
+enum AsyncMatchPair<T>
+    pair(T first, T second)
+    none
+end
+func makePair() as AsyncMatchPair<AsyncMatchObject>
+    return AsyncMatchPair::<AsyncMatchObject>.pair(AsyncMatchObject(), AsyncMatchObject())
+end
+async func matchAsync(int kind, future<int> pending) as int
+    if kind == 0
+        int count = match makePair()
+        case pair(first, second) then (await pending) + first.text.length + second.text.length
+        case none then 0
+        end
+        matchAfter(count)
+        return count
+    elseif kind == 1
+        string text = match makePair()
+        case pair(first, second) then (await pending) == 10 ? first.text : second.text
+        case none then "empty"
+        end
+        matchAfter(text.length)
+        return text.length
+    elseif kind == 2
+        AsyncMatchObject value = match makePair()
+        case pair(first, second) then (await pending) == 10 ? first : second
+        case none then AsyncMatchObject()
+        end
+        matchAfter(value.text.length)
+        return value.text.length
+    elseif kind == 3
+        func() as int reader = match makePair()
+        case pair(first, second) then (await pending) == 10 ? func() as int
+            return first.text.length
+        end : func() as int
+            return second.text.length
+        end
+        case none then func() as int
+            return 0
+        end
+        end
+        int count = reader()
+        matchAfter(count)
+        return count
+    elseif kind == 4
+        int count = match makePair()
+        case none then 0
+        else then (await pending) + 10
+        end
+        matchAfter(count)
+        return count
+    elseif kind == 5
+        int count = match makePair()
+        case pair(first, second) then match kind
+            case 5 then (await pending) + first.text.length + second.text.length
+            else then 0
+            end
+        case none then 0
+        end
+        matchAfter(count)
+        return count
+    elseif kind == 6
+        int count = match makePair()
+        case pair(first, second) then (false or (await pending) == 10) ? first.text.length : second.text.length
+        case none then 0
+        end
+        matchAfter(count)
+        return count
+    else
+        int? optional = null
+        int count = match makePair()
+        case pair(first, second) then (optional ?? (await pending)) + first.text.length + second.text.length
+        case none then 0
+        end
+        matchAfter(count)
+        return count
+    end
+end
+func matchStart(int kind, future<int> pending) as future<int>
+    return matchAsync(kind, pending)
+end
+export "match_async_keep" func matchKeep()
+    future<int> result = matchStart(0, matchInput())
+end

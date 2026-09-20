@@ -1,0 +1,151 @@
+extern "match_cleanup_drop" func matchDrop()
+extern "match_cleanup_holder_drop" func holderDrop()
+extern "match_cleanup_after" func matchAfter(int count)
+extern "match_cleanup_primary" func matchPrimary()
+extern "match_cleanup_caught" func matchCaught()
+extern "match_cleanup_finally" func matchFinally()
+
+class MatchObject
+    string text = "hello"
+    destroy()
+        matchDrop()
+    end
+end
+enum MatchObjects<T>
+    pair(T first, T second)
+    none
+end
+func makeObjects() as MatchObjects<MatchObject>
+    return MatchObjects::<MatchObject>.pair(MatchObject(), MatchObject())
+end
+func makeDynamicObjects() as MatchObjects<var>
+    return MatchObjects::<var>.pair(MatchObject(), MatchObject())
+end
+func failingValue() as int
+    matchPrimary()
+    return 5
+end
+func resultWithFinally() as string
+    try
+        return match makeObjects()
+        case pair(first, second) then first.text
+        case none then "empty"
+        end
+    finally
+        matchFinally()
+    end
+end
+class MatchHolder
+    string text = match makeObjects()
+    case pair(first, second) then first.text
+    case none then "empty"
+    end
+    destroy()
+        holderDrop()
+    end
+end
+export func match_cleanup_case(int kind) as int
+    if kind == 0
+        int count = match makeObjects()
+        case pair(first, second) then first.text.length + second.text.length
+        case none then 0
+        end
+        matchAfter(count)
+        return count
+    elseif kind == 1
+        string text = match makeObjects()
+        case pair(first, second) then first.text
+        case none then "empty"
+        end
+        matchAfter(text.length)
+        return text.length
+    elseif kind == 2
+        MatchObject value = match makeObjects()
+        case pair(first, second) then first
+        case none then MatchObject()
+        end
+        matchAfter(value.text.length)
+        return value.text.length
+    elseif kind == 3
+        int count = match makeObjects()
+        case none then 0
+        else then 5
+        end
+        matchAfter(count)
+        return count
+    elseif kind == 4
+        int count = match makeObjects()
+        case pair(first, second) then failingValue()
+        case none then 0
+        end
+        matchAfter(count)
+        return count
+    elseif kind == 5
+        try
+            int count = match makeObjects()
+            case pair(first, second) then first.text.length + second.text.length
+            case none then 0
+            end
+            matchAfter(count)
+            return count
+        catch error
+            assert error.code == 77
+            matchCaught()
+            return 17
+        end
+    elseif kind == 6
+        try
+            matchPrimary()
+        finally
+            int count = match makeObjects()
+            case pair(first, second) then first.text.length + second.text.length
+            case none then 0
+            end
+            matchAfter(count)
+        end
+    elseif kind == 7
+        string text = resultWithFinally()
+        matchAfter(text.length)
+        return text.length
+    elseif kind == 8
+        func() as int reader = match makeObjects()
+        case pair(first, second) then func() as int
+            return first.text.length
+        end
+        case none then func() as int
+            return 0
+        end
+        end
+        int count = reader()
+        matchAfter(count)
+        return count
+    elseif kind == 9
+        func() as int reader = match makeDynamicObjects()
+        case pair(first, second) then func() as int
+            first = MatchObject()
+            return first.text.length
+        end
+        case none then func() as int
+            return 0
+        end
+        end
+        int count = reader()
+        matchAfter(count)
+        return count
+    elseif kind == 10
+        int count = match makeObjects()
+        case pair(first, second) then match makeObjects()
+            case pair(innerFirst, innerSecond) then first.text.length + innerFirst.text.length
+            case none then 0
+            end
+        case none then 0
+        end
+        matchAfter(count)
+        return count
+    else
+        int count = MatchHolder().text.length
+        matchAfter(count)
+        return count
+    end
+    return 0
+end

@@ -1,0 +1,5 @@
+async func decorateAsync(string name) as string
+    return name + "!"
+end
+
+future<string> pending = decorateAsync("ignored")

@@ -1,0 +1,107 @@
+int memberGets = 0
+int memberReceivers = 0
+bool memberFail = false
+class MemberBase
+    virtual get label() as string
+        memberGets += 1
+        return "base"
+    end
+end
+class MemberDerived extends MemberBase
+    override get label() as string
+        memberGets += 1
+        assert not memberFail, "dynamic getter failed"
+        return "derived"
+    end
+end
+class MemberInherited extends MemberDerived
+end
+class MemberField
+    string label = "field"
+end
+class MemberMethod
+    func label() as string
+        assert false, "property read must not invoke a method"
+        return "method"
+    end
+end
+class MemberNullable
+    get label() as string?
+        return null
+    end
+end
+class MemberIndexed
+    get label(string key) as string
+        return key
+    end
+end
+func memberRead(var receiver) as var
+    return receiver.label
+end
+func memberSafe(var receiver) as var
+    return receiver?.label
+end
+func memberReceiver(bool base) as var
+    memberReceivers += 1
+    if base then return MemberBase() end
+    return MemberInherited()
+end
+func memberNested(var receiver) as string
+    return string(receiver.inner.label)
+end
+export "dynamic_member_check" func memberCheck() as int
+    memberGets = 0
+    memberReceivers = 0
+    assert string(memberRead(memberReceiver(true))) == "base"
+    assert string(memberRead(memberReceiver(false))) == "derived"
+    assert memberReceivers == 2 and memberGets == 2
+    assert string(memberRead(MemberField())) == "field"
+    assert memberRead(MemberNullable()) == null
+    assert string(memberRead({"label": "object"})) == "object"
+    assert memberRead({}) == null and memberSafe(null) == null
+    assert memberNested({"inner": MemberInherited()}) == "derived"
+    memberFail = true
+    bool caught = false
+    try
+        memberRead(memberReceiver(false))
+    catch failure
+        caught = true
+    end
+    memberFail = false
+    assert caught and memberReceivers == 3 and memberGets == 4
+    caught = false
+    try
+        memberRead(41)
+    catch failure
+        caught = true
+    end
+    assert caught, "invalid receiver must use the error outcome"
+    caught = false
+    try
+        memberRead(MemberIndexed())
+    catch failure
+        caught = true
+    end
+    assert caught, "unsupported getter must not become a missing field"
+    return 0
+end
+extern "dynamic_member_future" func memberFuture() as future<int>
+async func memberAsync(var receiver, future<int> pending) as int
+    // Keep an owned getter result across actual suspension; read again after
+    // resumption so both sides of the continuation use the same contract.
+    string before = string(receiver.label)
+    int value = await pending
+    assert before == "derived" and string(receiver.label) == "derived"
+    return value
+end
+async func memberReady() as int
+    return 0
+end
+future<int> memberPending = memberReady()
+export "dynamic_member_start" func memberStart()
+    memberFail = false
+    memberPending = memberAsync(memberReceiver(false), memberFuture())
+end
+export "dynamic_member_fail" func memberSetFailure()
+    memberFail = true
+end

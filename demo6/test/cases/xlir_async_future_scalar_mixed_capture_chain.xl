@@ -1,0 +1,11 @@
+extern "xlir_make_i64_future" func makeFuture() as future<int>
+
+async func combineMixed(future<int> source, int prefix, int suffix) as int
+    int middle = 2
+    return prefix + await source + middle + suffix
+end
+
+future<int> source = makeFuture()
+future<int> pending = combineMixed(source, 3, 4)
+int completed = await pending
+assert completed == 50

@@ -1,0 +1,9 @@
+func typed_float_array_score() as int
+    array<float> values = [1.5, 0.5]
+    values[1] = 2.5
+    return values[0] + values[1] == 4.0 ? 1 : 0
+end
+
+func main(...) as int
+    return typed_float_array_score() == 1 ? 0 : 1
+end

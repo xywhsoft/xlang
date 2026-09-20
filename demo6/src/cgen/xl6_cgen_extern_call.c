@@ -1,6 +1,6 @@
 /*
-    xlang 内部的 xvalue 形参 ABI 接收 owned 引用，普通 C/XRT API 则借用 xvalue。
-    仅为包含 xvalue 参数的 extern 函数生成薄包装器，集中完成这层所有权转换。
+    xlang 内部的 xvalue* 形参 ABI 接收 owned 引用，普通 C/XRT API 则借用 xvalue*。
+    仅为包含 xvalue* 参数的 extern 函数生成薄包装器，集中完成这层所有权转换。
 */
 
 static int xl6CgenExternCallNeedsWrapper(XL6_CgenContext* ctx, const XL6_AstNode* node)
@@ -111,7 +111,7 @@ static void xl6CgenExternCallWrapper(XL6_CgenContext* ctx, const XL6_AstNode* no
         if ( isXValue ) {
             xl6OutputPuts("    if (", ctx->out);
             xl6CgenFputsCIdent(ctx->out, param->text);
-            xl6OutputPuts(" != 0) { xvoUnref(", ctx->out);
+            xl6OutputPuts(" != 0) { xrtValueRelease(", ctx->out);
             xl6CgenFputsCIdent(ctx->out, param->text);
             xl6OutputPuts("); }\n", ctx->out);
         }

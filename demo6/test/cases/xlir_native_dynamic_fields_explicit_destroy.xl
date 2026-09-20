@@ -1,0 +1,10 @@
+func explicitNativeDestroy()
+    DynamicFields fields = DynamicFields()
+    fields.destroy()
+end
+
+func main(...) as int
+    explicitNativeDestroy()
+    println("xlir native dynamic-fields explicit destroy ownership ok")
+    return 0
+end

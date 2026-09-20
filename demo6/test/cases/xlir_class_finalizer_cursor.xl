@@ -1,0 +1,36 @@
+extern "finalizer_snapshot_keep" func keepSnapshot(var value, int mode)
+extern "finalizer_snapshot_end" func endSnapshot()
+
+int destroyed = 0
+int lastId = -1
+string stateText = "module" + " alive"
+
+class CursorOwner
+    int id = 0
+    create(int id)
+        self.id = id
+    end
+    destroy()
+        assert stateText == "module alive", "module globals must survive finalization"
+        destroyed += 1
+        lastId = self.id
+    end
+end
+
+func produce(int id, int mode)
+    CursorOwner value = CursorOwner(id)
+    keepSnapshot(value, mode)
+end
+
+func main(...) as int
+    int i = 0
+    while i < 200
+        produce(i, i % 4)
+        assert destroyed == i, "iterator must keep the object unfinalized"
+        endSnapshot()
+        assert destroyed == i + 1, "last native iterator must finalize exactly once"
+        assert lastId == i, "finalizer lost receiver fields"
+        i += 1
+    end
+    return 0
+end

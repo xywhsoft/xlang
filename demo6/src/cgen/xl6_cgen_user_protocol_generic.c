@@ -109,14 +109,14 @@ static void xl6CgenUserGenericProtocolDefinitions(XL6_CgenContext* ctx)
         if ( body != NULL && body->childCount > 0 ) {
             xl6OutputPrintf(
                 ctx->out,
-                "static xrtprotocolrequirement "
+                "static xl6_protocol_requirement "
                 "xl6_generic_protocol_requirements_%u[%uu];\n",
                 (unsigned)instanceIndex,
                 (unsigned)body->childCount);
         }
         xl6OutputPrintf(
             ctx->out,
-            "static xrtprotocol xl6_generic_protocol_%u;\n",
+            "static xl6_protocol xl6_generic_protocol_%u;\n",
             (unsigned)instanceIndex);
 
         for ( classIndex = 0;
@@ -143,13 +143,13 @@ static void xl6CgenUserGenericProtocolDefinitions(XL6_CgenContext* ctx)
             if ( body != NULL && body->childCount > 0 ) {
                 xl6OutputPrintf(
                     ctx->out,
-                    "static xrtprotocolentry "
+                    "static xl6_protocol_entry "
                     "xl6_generic_protocol_entries_%u_%u[%uu];\n",
                     (unsigned)classIndex,
                     (unsigned)instanceIndex,
                     (unsigned)body->childCount);
             }
-            xl6OutputPuts("static xrtprotocolwitness ", ctx->out);
+            xl6OutputPuts("static xl6_protocol_witness ", ctx->out);
             xl6CgenGenericProtocolWitnessSymbol(
                 ctx,
                 classType,
@@ -364,7 +364,7 @@ static void xl6CgenUserGenericProtocolDefinitions(XL6_CgenContext* ctx)
             } else {
                 xl6OutputPuts(".Entries = 0;\n", ctx->out);
             }
-            xl6OutputPuts("    if (!xrtProtocolRegister(&", ctx->out);
+            xl6OutputPuts("    if (!xl6ProtocolRegister(&", ctx->out);
             xl6CgenGenericProtocolWitnessSymbol(
                 ctx,
                 classType,
@@ -398,7 +398,7 @@ static void xl6CgenUserGenericProtocolDefinitions(XL6_CgenContext* ctx)
                      instance->typeNode) ) {
                 continue;
             }
-            xl6OutputPuts("    (void)xrtProtocolUnregister(&", ctx->out);
+            xl6OutputPuts("    (void)xl6ProtocolUnregister(&", ctx->out);
             xl6CgenGenericProtocolWitnessSymbol(
                 ctx,
                 classType,
@@ -439,7 +439,7 @@ static void xl6CgenUserGenericProtocolDefinitions(XL6_CgenContext* ctx)
                      instance->typeNode) ) {
                 continue;
             }
-            xl6OutputPuts("    (void)xrtProtocolUnregister(&", ctx->out);
+            xl6OutputPuts("    (void)xl6ProtocolUnregister(&", ctx->out);
             xl6CgenGenericProtocolWitnessSymbol(
                 ctx,
                 classType,
@@ -562,13 +562,13 @@ static void xl6CgenUserGenericClassProtocolDefinitions(XL6_CgenContext* ctx)
             if ( body != NULL && body->childCount > 0 ) {
                 xl6OutputPrintf(
                     ctx->out,
-                    "static xrtprotocolentry "
+                    "static xl6_protocol_entry "
                     "xl6_generic_class_protocol_entries_%u_%u[%uu];\n",
                     (unsigned)instanceIndex,
                     (unsigned)protocolIndex,
                     (unsigned)body->childCount);
             }
-            xl6OutputPuts("static xrtprotocolwitness ", ctx->out);
+            xl6OutputPuts("static xl6_protocol_witness ", ctx->out);
             xl6CgenGenericProtocolWitnessSymbol(
                 ctx,
                 instance->typeNode,
@@ -697,7 +697,7 @@ static void xl6CgenUserGenericClassProtocolDefinitions(XL6_CgenContext* ctx)
             } else {
                 xl6OutputPuts(".Entries = 0;\n", ctx->out);
             }
-            xl6OutputPuts("    if ( !xrtProtocolRegister(&", ctx->out);
+            xl6OutputPuts("    if ( !xl6ProtocolRegister(&", ctx->out);
             xl6CgenGenericProtocolWitnessSymbol(
                 ctx,
                 instance->typeNode,
@@ -737,7 +737,7 @@ static void xl6CgenUserGenericClassProtocolDefinitions(XL6_CgenContext* ctx)
                     continue;
                 }
                 xl6OutputPuts(
-                    "    (void)xrtProtocolUnregister(&",
+                    "    (void)xl6ProtocolUnregister(&",
                     ctx->out);
                 xl6CgenGenericProtocolWitnessSymbol(
                     ctx,
@@ -780,7 +780,7 @@ static void xl6CgenUserGenericClassProtocolDefinitions(XL6_CgenContext* ctx)
                     NULL) ) {
                 continue;
             }
-            xl6OutputPuts("    (void)xrtProtocolUnregister(&", ctx->out);
+            xl6OutputPuts("    (void)xl6ProtocolUnregister(&", ctx->out);
             xl6CgenGenericProtocolWitnessSymbol(
                 ctx,
                 instance->typeNode,

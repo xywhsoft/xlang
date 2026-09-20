@@ -1,0 +1,4 @@
+func main(...) as int
+    assert !xson.valid("{bad}")
+    return 7
+end

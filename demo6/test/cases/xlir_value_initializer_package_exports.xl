@@ -1,0 +1,10 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectString(string actual, string expected)
+
+export int packageCounter = 1
+export var packageValue = "hello"
+export const int packageVersion = 6
+
+expect(packageCounter, 1)
+expect(packageVersion, 6)
+expectString(string(packageValue), "hello")

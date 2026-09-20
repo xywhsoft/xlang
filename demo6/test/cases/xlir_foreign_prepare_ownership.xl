@@ -1,0 +1,7 @@
+extern "prepare_consume" func consumeText(byval string left, string borrowed, byval string right) as int
+
+func prepareCase(string text) as int
+    return consumeText(text, text, text)
+end
+
+assert prepareCase("abc") == 9

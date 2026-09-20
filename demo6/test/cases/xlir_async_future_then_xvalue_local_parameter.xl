@@ -1,0 +1,11 @@
+async func addCopiedValueAfter(future<var> source, var supplied) as var
+    var local = supplied
+    return await source + local
+end
+
+extern "xlir_test_unreachable_xvalue_future" func rootFuture() as future<var>
+
+if false
+    future<var> source = rootFuture()
+    future<var> pending = addCopiedValueAfter(source, 1)
+end

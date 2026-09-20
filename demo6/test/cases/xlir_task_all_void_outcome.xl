@@ -1,0 +1,24 @@
+async func failVoidAggregate()
+    throw ValueError("void aggregate source failure")
+end
+
+async func succeedVoidAggregate()
+end
+
+bool literalFailed = false
+try
+    await task.all([succeedVoidAggregate(), failVoidAggregate()])
+catch e
+    literalFailed = true
+end
+assert literalFailed, "task.all must propagate void source failure"
+
+auto inputs = [succeedVoidAggregate(), failVoidAggregate()]
+bool arrayFailed = false
+try
+    await task.all(inputs)
+catch e
+    arrayFailed = true
+end
+assert arrayFailed, "task.all array must propagate void source failure"
+println("void aggregate outcomes preserved")

@@ -1,0 +1,85 @@
+AvlTree<string, int> defaultScores
+
+class AvlHolder
+    AvlTree<string, string> values
+end
+
+func main(...) as int
+    assert(defaultScores.count() == 0)
+    assert(defaultScores.set("root", 1))
+
+    AvlTree<string, int> scores = AvlTree::<string, int>()
+    assert(scores.set("bob", 70))
+    assert(scores.set("alice", 90))
+    assert(scores.set("bob", 80))
+    assert(scores.count() == 2)
+    assert(scores.contains("alice"))
+
+    int number = 0
+    assert(scores.getInto("bob", number))
+    assert(number == 80)
+    AvlTree<string, int> clone = scores.clone()
+    assert(scores.equals(clone))
+
+    AvlTree<string, int> patch = AvlTree::<string, int>()
+    assert(patch.set("bob", 81))
+    assert(patch.set("carol", 75))
+    assert(clone.merge(patch, false))
+    assert(clone.getInto("bob", number))
+    assert(number == 80)
+    assert(clone.merge(patch))
+    assert(clone.getInto("bob", number))
+    assert(number == 81)
+    assert(not scores.equals(clone))
+
+    string name = ""
+    int score = 0
+    assert(scores.firstInto(name, score))
+    assert(name == "alice")
+    assert(score == 90)
+    assert(scores.lastInto(name, score))
+    assert(name == "bob")
+    assert(score == 80)
+    assert(scores.lowerBoundInto("amy", name, score))
+    assert(name == "bob")
+    assert(scores.upperBoundInto("alice", name, score))
+    assert(name == "bob")
+
+    array<string> names = scores.keys()
+    assert(names.length == 2)
+    assert(names[0] == "alice")
+    assert(names[1] == "bob")
+    array<int> values = scores.values()
+    assert(values.length == 2)
+    assert(values[0] == 90)
+    assert(values[1] == 80)
+
+    assert(scores.takeInto("alice", number))
+    assert(number == 90)
+    assert(not scores.contains("alice"))
+    assert(scores.remove("bob"))
+    assert(scores.count() == 0)
+    assert(scores.trimTo(1) >= 0)
+    assert(scores.trim() >= 0)
+
+    AvlTree<int, int> sameType = AvlTree::<int, int>()
+    assert(sameType.set(1, 10))
+    int aliasedOutput = 0
+    assert(not sameType.firstInto(aliasedOutput, aliasedOutput))
+    sameType.clear()
+    assert(sameType.count() == 0)
+
+    AvlHolder holder = AvlHolder()
+    string text = ""
+    assert(holder.values.set("key", "value"))
+    assert(holder.values.getInto("key", text))
+    assert(text == "value")
+
+    func() as int observe = func() as int
+        return clone.count()
+    end
+    assert(observe() == 3)
+
+    println("xlir avl resource abi ok")
+    return 0
+end

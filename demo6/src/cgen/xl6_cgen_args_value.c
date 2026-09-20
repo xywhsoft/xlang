@@ -1,4 +1,5 @@
 static void xl6CgenKnownCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* args);
+static void xl6CgenKnownCAbiCallArgs(XL6_CgenContext* ctx, const XL6_AstNode* func, const XL6_AstNode* args);
 static int xl6CgenNativeClassCtorHasPointBindingArgs(const XL6_AstNode* args);
 static void xl6CgenNativeBackedPointBindingValue(
     XL6_CgenContext* ctx,
@@ -115,7 +116,7 @@ static int xl6CgenTryNativeClassCtorBoxValue(
         xl6OutputPrintf(ctx->out, "(%s){", cTypeName);
         xl6CgenCStringSymbol(ctx->out, createNode->text);
         xl6OutputPutc('(', ctx->out);
-        xl6CgenKnownCallArgs(ctx, createNode, args);
+        xl6CgenKnownCAbiCallArgs(ctx, createNode, args);
         xl6OutputPuts(")}", ctx->out);
         return 1;
     }
@@ -155,7 +156,7 @@ static int xl6CgenTryClassCtorBoxXValue(
         不再用 GNU statement expression 隐式兜底。
     */
     xl6CgenError(ctx, call, "class constructor boxing requires statement-level lowering");
-    xl6OutputPuts("xvoCreateNull()", ctx->out);
+    xl6OutputPuts("xrtValueNull()", ctx->out);
     return 1;
 }
 
@@ -342,11 +343,11 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
     size_t replacementIndex;
 
     if ( expr == NULL ) {
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         return;
     }
     if ( expr->kind == XL6_AST_NULL ) {
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         return;
     }
 
@@ -362,7 +363,7 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         }
         if ( bareFunctionCount > 1 ) {
             xl6CgenError(ctx, expr, "bare overloaded function assigned to var requires an explicit func signature");
-            xl6OutputPuts("xvoCreateNull()", ctx->out);
+            xl6OutputPuts("xrtValueNull()", ctx->out);
             return;
         }
     }
@@ -378,7 +379,7 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
     }
 
     /*
-        普通容器字面量写入 var 时固定生成动态 xvalue 容器。
+        普通容器字面量写入 var 时固定生成动态 xvalue* 容器。
         array<int> 这类显式静态泛型容器仍由 typed-container 路径处理。
     */
     if ( expr->kind == XL6_AST_ARRAY_LITERAL ) {
@@ -416,7 +417,7 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
     }
 
     /*
-        var 参与的算术表达式本身已经生成 xvalue。
+        var 参与的算术表达式本身已经生成 xvalue*。
         其语言级推断结果可能因另一侧为 string 而收窄，不能再次按静态值装箱。
     */
     if ( xl6CgenBinaryArithmeticIsXValue(ctx, expr) ) {
@@ -425,7 +426,7 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
     }
 
     /*
-        流分析可以把 var 名字收窄成具体类型，但它在 C 中仍然保存为 xvalue。
+        流分析可以把 var 名字收窄成具体类型，但它在 C 中仍然保存为 xvalue*。
         向 var 返回值或实参传递时必须读取真实存储，不能按收窄类型再次装箱。
     */
     storageTypeNode = xl6CgenCloneExprStorageType(ctx, expr);
@@ -462,10 +463,10 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6OutputPutc(')', ctx->out);
     } else if ( typeNode != NULL && xl6CgenIsNullableType(typeNode) ) {
         /*
-            typed literal 先通过 xvalue 交换元素。pointer/xvalue nullable 也必须
+            typed literal 先通过 xvalue* 交换元素。pointer/xvalue* nullable 也必须
             使用自己的 TypeDesc 装箱，不能把 T? 当作 T 或退回逐类型分支。
         */
-        xl6OutputPuts("xrtTypeBoxValue(", ctx->out);
+        xl6OutputPuts("xl6TypeBoxValue(", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, typeNode);
         xl6OutputPuts(", &(", ctx->out);
         xl6OutputPuts(xl6CgenTypeName(ctx, typeNode), ctx->out);
@@ -484,39 +485,32 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6OutputPutc('(', ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPutc(')', ctx->out);
-    } else if ( typeNode != NULL &&
-                (xl6CTextEquals(typeNode->text, "int") || xl6CTextEquals(typeNode->text, "int8") ||
-                 xl6CTextEquals(typeNode->text, "uint8") || xl6CTextEquals(typeNode->text, "int16") ||
-                 xl6CTextEquals(typeNode->text, "uint16") || xl6CTextEquals(typeNode->text, "int32") ||
-                 xl6CTextEquals(typeNode->text, "uint32") || xl6CTextEquals(typeNode->text, "int64") ||
-                 xl6CTextEquals(typeNode->text, "uint64")) ) {
-        xl6OutputPuts("xvoCreateInt((long long)(", ctx->out);
+    } else if ( typeNode != NULL && xl6CgenIsIntegerTypeName(typeNode->text) ) {
+        xl6OutputPuts("xrtValueInt((long long)(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts("))", ctx->out);
     } else if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "point") ) {
-        xl6OutputPuts("xvoCreatePoint((void*)(", ctx->out);
+        xl6OutputPuts("xrtValuePointer((void*)(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts("))", ctx->out);
     } else if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "type") ) {
-        xl6OutputPuts("xvoCreateText((void*)xl6_program_type_name_from_id((unsigned long long)(", ctx->out);
+        xl6OutputPuts("xl6_xrt_value_text_create((void*)xl6_program_type_name_from_id((unsigned long long)(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts(")), 0, false)", ctx->out);
-    } else if ( typeNode != NULL &&
-                (xl6CTextEquals(typeNode->text, "float") || xl6CTextEquals(typeNode->text, "float32") ||
-                 xl6CTextEquals(typeNode->text, "float64")) ) {
-        xl6OutputPuts("xvoCreateFloat((double)(", ctx->out);
+    } else if ( typeNode != NULL && xl6CgenIsFloatTypeName(typeNode->text) ) {
+        xl6OutputPuts("xrtValueFloat((double)(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts("))", ctx->out);
     } else if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "string") ) {
-        xl6OutputPuts("xvoCreateText((void*)(", ctx->out);
+        xl6OutputPuts("xl6_xrt_value_text_create((void*)(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts("), 0, false)", ctx->out);
     } else if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "time") ) {
-        xl6OutputPuts("xvoCreateTime((long long)(", ctx->out);
+        xl6OutputPuts("xrtValueTime((long long)(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts("))", ctx->out);
     } else if ( typeNode != NULL && xl6CgenIsBoolTypeName(typeNode->text) ) {
-        xl6OutputPuts("xvoCreateBool(", ctx->out);
+        xl6OutputPuts("xrtValueBool(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPutc(')', ctx->out);
     } else if ( typeNode != NULL && xl6CgenIsFunctionType(typeNode) ) {
@@ -526,7 +520,7 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
     } else if ( typeNode != NULL && xl6CgenIsFutureLikeType(typeNode) ) {
         xl6CgenFutureToXValueExpr(ctx, expr);
     } else if ( typeNode != NULL && xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
-        xl6OutputPuts("xrtTypeBoxValue(", ctx->out);
+        xl6OutputPuts("xl6TypeBoxValue(", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, typeNode);
         xl6OutputPuts(", &(", ctx->out);
         xl6OutputPuts(xl6CgenTypeName(ctx, typeNode), ctx->out);
@@ -534,9 +528,7 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts("})", ctx->out);
     } else if ( typeNode != NULL && xl6CTextEquals(typeNode->text, "error") ) {
-        xl6OutputPuts("xvoCreateHandle(xrtTypeHandle(), (void*)(", ctx->out);
-        xl6CgenExpr(ctx, expr);
-        xl6OutputPuts("), 0x00000002u | 0x00000004u)", ctx->out);
+        xl6CgenErrorBoxExpr(ctx, expr);
     } else if ( typeNode != NULL && xl6CgenIsClassType(ctx, typeNode) ) {
         XL6_AstNode* ctorClass = NULL;
         int isCtor;
@@ -593,7 +585,7 @@ static void xl6CgenXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* expr)
         xl6OutputPutc(')', ctx->out);
     } else {
         xl6CgenError(ctx, expr, "当前 C 生成暂不支持将该表达式打包为 var");
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
     }
     xl6AstFree(rawTypeNode);
 }

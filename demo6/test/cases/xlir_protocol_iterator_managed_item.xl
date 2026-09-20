@@ -1,0 +1,103 @@
+class WordIterator
+    int index = 0
+
+    create()
+        self.index = 0
+    end
+
+    func __next__() as (bool, string)
+        string value = ""
+        if self.index == 0
+            value = "a"
+        elseif self.index == 1 then
+            value = "b"
+        elseif self.index == 2 then
+            value = "c"
+        else
+            return false, ""
+        end
+        self.index = self.index + 1
+        return true, value
+    end
+end
+
+class WordSequence
+    func __iter__() as WordIterator
+        return WordIterator()
+    end
+end
+
+func makeWordSequence() as WordSequence
+    return WordSequence()
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expect_string(string actual, string expected)
+
+string complete = ""
+auto completeWords = WordSequence()
+for value in completeWords
+    complete = complete + value
+end
+expect_string(complete, "abc")
+
+string temporary = ""
+for value in makeWordSequence()
+    temporary = temporary + value
+end
+expect_string(temporary, "abc")
+
+int indexed = 0
+auto indexedWords = WordSequence()
+for index, value in indexedWords
+    indexed = indexed + index + value.length
+end
+expect(indexed, 6)
+
+string continued = ""
+auto continuedWords = WordSequence()
+for value in continuedWords
+    if value == "b"
+        continue
+    end
+    continued = continued + value
+end
+expect_string(continued, "ac")
+
+string broken = ""
+auto brokenWords = WordSequence()
+for value in brokenWords
+    if value == "b"
+        break
+    end
+    broken = broken + value
+end
+expect_string(broken, "a")
+
+func first_word() as string
+    auto words = WordSequence()
+    for value in words
+        return value
+    end
+    return ""
+end
+
+expect_string(first_word(), "a")
+
+func throw_from_loop() as int
+    int total = 0
+    try
+        auto words = WordSequence()
+        for value in words
+            if value == "b"
+                throw ValueError "managed protocol iterator sentinel"
+            end
+            total = total + value.length
+        end
+    catch ValueError ignored
+        total = total + 10
+    end
+    return total
+end
+
+expect(throw_from_loop(), 11)

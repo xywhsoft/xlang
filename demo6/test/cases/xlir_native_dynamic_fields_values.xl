@@ -1,0 +1,18 @@
+DynamicFields fields = DynamicFields()
+
+assert fields.set("answer", 42)
+assert fields.has("answer")
+assert int(fields.get("answer")) == 42
+
+var snapshot = fields.toValue()
+DynamicFields restored = DynamicFields(snapshot)
+assert int(restored.get("answer")) == 42
+
+var taken = restored.take("answer")
+assert int(taken) == 42
+assert not restored.has("answer")
+
+func main(...) as int
+    println("xlir native dynamic-fields values ok")
+    return 0
+end

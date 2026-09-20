@@ -1,0 +1,20 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectString(string actual, string expected)
+
+class FieldBase
+    int inherited = 7
+end
+
+class FieldChild extends FieldBase
+    string label = "child"
+end
+
+FieldChild direct = FieldChild()
+expect(direct.inherited, 7)
+expectString(direct.label, "child")
+
+FieldChild? optional = direct
+if optional != null
+    expect(optional.inherited, 7)
+    expectString(optional.label, "child")
+end

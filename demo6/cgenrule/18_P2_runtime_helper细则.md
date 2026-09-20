@@ -1,6 +1,6 @@
 # P2 runtime helper 细则
 
-本文细化 `xl6_cgen_runtime.c`、`xl6_cgen_lifecycle.c`、`xl6_cgen_main.c`、`xl6_cgen_main_wrapper.c`、`xl6_cgen_xvalue_runtime.c` 和 `xl6_cgen_xvalue_runtime_index_ops.c`。这些规则多数不是单一语法节点本体，而是为了表达式、动态值、脚本入口和生命周期生成额外 C helper。相关 emitter 是 `static`，通过 `xl6_cgen.c` 的分片 include 顺序进入同一个翻译单元，由 `xl6_cgen_module.c` 调用。
+本文细化 `xl6_cgen_runtime.c`、`xl6_cgen_lifecycle.c`、`xl6_cgen_main.c`、`xl6_cgen_main_wrapper.c`、`xl6_cgen_xvalue_runtime.c` 和 `xl_runtime.h`。这些规则多数不是单一语法节点本体，而是为了表达式、动态值、脚本入口和生命周期提供生成期或共享运行时 helper。生成期 emitter 是 `static`，通过 `xl6_cgen.c` 的分片 include 顺序进入同一个翻译单元；跨生成单元共享的 helper 统一由运行时头提供。
 
 ## CGEN-RTH-001 `~=` 近似比较原型注入
 
@@ -199,9 +199,9 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `int(x)`、`float(x)`、`string(x)`、`time(x)`、动态值转字符串 |
-| 生成规则描述 | 类型转换 runtime 输出 XRT 字符串/数值/时间转换函数、xvalue getter、`xvoToString` 和 `xvoUnref` 原型。它还保护性定义 `xvalue` typedef，并输出 `xl6_xrt_value_to_i64/f64/bool/time/point_release` helper，供拥有型 xvalue 到静态标量的转换使用。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:1`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:52`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:142`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:403` |
-| 对应生成的 C 代码 | `long long xrtStrToI64(...)`、`double xrtStrToNum(...)`、`unsigned char* xvoToString(...)`、`static long long xl6_xrt_value_to_i64_release(xvalue value)` 等。 |
+| 生成规则描述 | 类型转换 runtime 输出当前 XRT 数值写入、编码和动态值字符串转换入口，并保护性定义 `xvalue`、`xstrview` 与 Base64 配置类型。它还输出 `xl6_xrt_value_to_i64/f64/bool/time/point_release` helper，供拥有型 `xvalue*` 到静态标量的转换使用。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:1`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:54`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:68`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:437`、`demo6/release/include/xl_runtime.h:12` |
+| 对应生成的 C 代码 | `bool xrtIntWrite(...)`、`bool xrtNumWrite(...)`、`void* xrtHexEncodeNew(...)`、`static long long xl6_xrt_value_to_i64_release(xvalue* value)` 等。 |
 | 中间形态伪代码 | `emitConvertProtos(); emit xvalue typedef if missing; emit guarded releaseConvertHelpers()` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自行声明所有转换入口并处理 xvalue 生命周期。 |
 | 额外依赖的封装代码 | release conversion helper 使用 `XL6_XRT_VALUE_RELEASE_CONVERT_HELPERS` 宏守住重复输出；类型转换 helper 见后续条目。 |
@@ -211,10 +211,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `string(x)`、`x.toString()` 中需要接管 XRT 返回字符串 |
-| 生成规则描述 | `xl6_xrt_temp_cstr` 使用 `xrtTempMemory` 复制普通 C 字符串，`xl6_xrt_take_cstr` 先复制为临时字符串，再用 `xrtFree` 释放原始 XRT 返回内存。空指针或分配失败返回空串。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:29` |
+| 生成规则描述 | `xl6_xrt_temp_cstr` 使用 `xrtTemp` 复制普通 C 字符串，`xl6_xrt_take_cstr` 先复制为临时字符串，再用 `xrtFree` 释放原始 XRT 返回内存。空指针或分配失败返回空串。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:235`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:251` |
 | 对应生成的 C 代码 | `static const char* xl6_xrt_temp_cstr(...)`、`const char* xl6_xrt_take_cstr(void* value)` |
-| 中间形态伪代码 | `tmp = xrtTempMemory(strlen+1); copy; if take: xrtFree(value); return tmp` |
+| 中间形态伪代码 | `tmp = xrtTemp(strlen+1); copy; if take: xrtFree(value); return tmp` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要明确谁释放 XRT 返回的堆字符串。 |
 | 额外依赖的封装代码 | `xl6_xrt_temp_cstr`、`xl6_xrt_take_cstr`。 |
 
@@ -223,8 +223,8 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `string(123)`、`string(uint64Value)`、`string(1.25)`、`string(varValue)` |
-| 生成规则描述 | 有符号整数和浮点分别通过 `xrtI64ToStr`、`xrtNumToStr` 写入栈缓冲区；无符号整数使用 `xrtFormat("%llu", value)` 生成十进制文本并由 `xl6_xrt_take_cstr` 接管。不能使用 XRT 的十六进制 `xrtU64ToStr` 代替语言层十进制转换。xvalue 转字符串调用 `xvoToString`。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:170-190` |
+| 生成规则描述 | 有符号整数、无符号整数和浮点分别通过 `xrtIntWrite`、`xrtUIntWrite`、`xrtNumWrite` 写入栈缓冲区。动态值转字符串调用统一的 `xl6_xrt_value_string_owned`，再接管返回文本。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:376-434` |
 | 对应生成的 C 代码 | `xl6_xrt_i64_to_string`、`xl6_xrt_u64_to_string`、`xl6_xrt_f64_to_string`、`xl6_xrt_value_to_string` |
 | 中间形态伪代码 | `buffer = xrtToStr(value); return tempCopy(buffer)` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自己选择缓冲区、格式化和释放策略。 |
@@ -235,9 +235,9 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | 临时 `var` 表达式参与 `string(...)` 或拼接后需要释放 |
-| 生成规则描述 | `xl6_xrt_value_to_string_release` 先把 xvalue 转为临时 C 字符串，再对输入 xvalue 调用 `xvoUnref`。该 helper 用于表达式生成器处理临时动态值所有权。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:82` |
-| 对应生成的 C 代码 | `static const char* xl6_xrt_value_to_string_release(xvalue value) { ... xvoUnref(value); ... }` |
+| 生成规则描述 | `xl6_xrt_value_to_string_release` 先把 `xvalue*` 转为临时 C 字符串，再对输入值调用 `xrtValueRelease`。该 helper 用于表达式生成器处理临时动态值所有权。 |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:427` |
+| 对应生成的 C 代码 | `static const char* xl6_xrt_value_to_string_release(xvalue* value) { ... xrtValueRelease(value); ... }` |
 | 中间形态伪代码 | `text = valueToString(value); unref(value); return text` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要在转换后手动释放临时 xvalue。 |
 | 额外依赖的封装代码 | `xl6_xrt_value_to_string_release`。 |
@@ -247,9 +247,9 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `var`、动态容器、func 值、typed container、class/native-backed class 装箱 |
-| 生成规则描述 | xvalue runtime 输出 `xvalue`、typed container 句柄、`xrt_type_desc`、`xrt_func_sig`、`xrt_call_frame`、`xrt_call_result` 等结构声明，以及大量 XRT/xvalue 操作原型。当前还声明 `xrtListWalk`、`xrtDictWalk`、`xrtRealloc` 与 list/dict snapshot helper 所需的 `Dict_EachProc`，让动态 list/dict `for-in` 不再直接理解 XRT AVL 迭代器。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:92`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:330`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:331`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:667`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:681`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:712`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:784`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:802` |
-| 对应生成的 C 代码 | `typedef struct xvalue_struct* xvalue;`、`struct xrt_type_desc { ... };`、`typedef struct xrt_call_frame { ... } xrt_call_frame;`、`typedef struct XL6_XrtIterSnapshot { ... } XL6_XrtIterSnapshot;` |
+| 生成规则描述 | 共享运行时头声明 `xvalue`、typed container 句柄、`xl6_type_desc`、`xl6_func_sig`、`xl6_call_frame`、`xl6_call_result` 等结构，以及当前 XRT/value 操作入口。动态 list/dict `for-in` 通过 `xrtValueIterCreate/Next/Destroy` 构建快照，不再依赖旧 AVL 遍历器。 |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:12`、`demo6/release/include/xl_runtime.h:48`、`demo6/release/include/xl_runtime.h:121`、`demo6/release/include/xl_runtime.h:163`、`demo6/release/include/xl_runtime.h:198`、`demo6/release/include/xl_runtime.h:208`、`demo6/release/include/xl_runtime.h:6517`、`demo6/release/include/xl_runtime.h:6572` |
+| 对应生成的 C 代码 | `typedef struct xvalue xvalue;`、`struct xl6_type_desc { ... };`、`struct xl6_call_frame { ... };`、`typedef struct XL6_XrtIterSnapshot { ... } XL6_XrtIterSnapshot;` |
 | 中间形态伪代码 | `emit xvalue typedefs; emit type desc structs; emit callable frame structs; emit XRT/xvo prototypes; emit dynamic iteration snapshot helpers` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要包含或声明 xvalue 与 XRT 类型系统接口。 |
 | 额外依赖的封装代码 | 类型/调用帧结构声明、动态遍历 snapshot helper；具体实现依赖 XRT。 |
@@ -260,7 +260,7 @@
 |---|---|
 | xlang 写法 | 动态类型分派、`type(expr)`、动态容器判断 |
 | 生成规则描述 | xvalue runtime 输出 `XL6_XVO_DT_*` 类型码和 `XL6_XRT_TYPE_KIND_*` 常量。生成的动态比较、长度、包含、类型 ID 等 helper 都依赖这些常量进行分派。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:181` |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:87`、`demo6/release/include/xl_runtime.h:243` |
 | 对应生成的 C 代码 | `#define XL6_XVO_DT_INT 2`、`#define XL6_XRT_TYPE_KIND_RECORD 13u` 等。 |
 | 中间形态伪代码 | `emit dynamic type code constants` |
 | 实现同等功能手写的 C 代码 | 手写 C 通常需要包含统一类型码定义。 |
@@ -271,10 +271,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `type(v)`，其中 `v` 是 `var`、function、class、native-backed class 或容器 |
-| 生成规则描述 | `xl6_xrt_type_name_id` 使用固定 FNV-1a 风格哈希和 `type:` 前缀生成类型名 ID。`xl6_xrt_type_value_id` 根据 xvalue 类型码返回内置类型 ID；function 优先使用签名 TypeId；容器/class/native-backed class 优先读取 runtime type desc 名称，否则退回 `var`。可选 `release` 会在结束时释放输入 xvalue。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:326` |
-| 对应生成的 C 代码 | `static unsigned long long xl6_xrt_type_name_id(...)`、`static unsigned long long xl6_xrt_type_value_id(...)` |
-| 中间形态伪代码 | `switch xvoType(value): builtin -> builtinId; func -> sigId; record/container -> descNameId; default -> varId` |
+| 生成规则描述 | `xl6_xrt_type_name_id` 使用固定 FNV-1a 风格哈希和 `type:` 前缀生成类型名 ID。`xl6_xrt_type_value_id` 根据当前 value kind 返回内置类型 ID；function 优先使用 callable 签名 ID；容器/class/native-backed class 优先读取运行时类型描述名称，否则退回 `var`。可选 `release` 会在结束时释放输入 `xvalue*`。 |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:4584`、`demo6/release/include/xl_runtime.h:4645` |
+| 对应生成的 C 代码 | `static inline uint64 xl6_xrt_type_name_id(...)`、`static inline uint64 xl6_xrt_type_value_id(...)` |
+| 中间形态伪代码 | `switch valueKind(value): builtin -> builtinId; func -> sigId; runtimeDesc -> descNameId; default -> varId` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自己约定类型 ID 和 func 签名 ID 映射。 |
 | 额外依赖的封装代码 | 类型 ID helper。 |
 
@@ -283,9 +283,9 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | class/native-backed class/typed container 装箱到 `var`，或动态值跨表达式保留 |
-| 生成规则描述 | `xl6_xrt_bind_type` 给 xvalue 绑定 runtime type desc；`xl6_xrt_retain` 对非空 xvalue 调用 `xvoAddRef` 并返回自身。前者用于保持 `var` 内部的真实类型元数据，后者用于表达式临时值转移。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:346` |
-| 对应生成的 C 代码 | `static xvalue xl6_xrt_bind_type(...)`、`static xvalue xl6_xrt_retain(...)` |
+| 生成规则描述 | `xl6_xrt_bind_type` 通过语言运行时桥给 `xvalue*` 绑定类型描述；`xl6_xrt_retain` 对非空值调用 `xrtValueRetain` 并返回自身。前者用于保持 `var` 内部的真实类型元数据，后者用于表达式临时值转移。 |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:4637`、`demo6/release/include/xl_runtime.h:4168` |
+| 对应生成的 C 代码 | `static inline xvalue* xl6_xrt_bind_type(...)`、`static inline xvalue* xl6_xrt_retain(...)` |
 | 中间形态伪代码 | `if value && desc: setTypeDesc(value, desc); if value: addRef(value)` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要手动维护动态值的类型描述和引用计数。 |
 | 额外依赖的封装代码 | `xl6_xrt_bind_type`、`xl6_xrt_retain`。 |
@@ -295,10 +295,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `array<T>`、`list<T>`、`set<T>`、`dict<T>` 转为动态容器 |
-| 生成规则描述 | `xl6_xrt_typed_box_or_null` 对空 item 返回 `null` xvalue；非空 item 调用 `xrtTypeBoxValue`，若装箱失败也返回 `null`。它是 typed container 转动态容器和复制时的共同兜底。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:439` |
-| 对应生成的 C 代码 | `static xvalue xl6_xrt_typed_box_or_null(const xrt_type_desc* type, const void* item)` |
-| 中间形态伪代码 | `if item == null return xvoCreateNull(); boxed = xrtTypeBoxValue(type,item); return boxed ? boxed : null` |
+| 生成规则描述 | `xl6_xrt_typed_box_or_null` 对空 item 返回 null value；非空 item 调用 `xl6TypeBoxValue`，若装箱失败也返回 null。它是 typed container 转动态容器和复制时的共同兜底。 |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:5980` |
+| 对应生成的 C 代码 | `static inline xvalue* xl6_xrt_typed_box_or_null(const xl6_type_desc* type, const void* item)` |
+| 中间形态伪代码 | `if item == null return xrtValueNull(); boxed = xl6TypeBoxValue(type,item); return boxed ? boxed : null` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要在每次取 typed item 时做空值和装箱失败处理。 |
 | 额外依赖的封装代码 | `xl6_xrt_typed_box_or_null`。 |
 
@@ -308,7 +308,7 @@
 |---|---|
 | xlang 写法 | `var v = array<int>[1, 2]` 或 typed container 作为 `var` 返回 |
 | 生成规则描述 | 分别生成 typed array/list/set/dict 到 xvalue array/list/set/table 的转换 helper。每个 helper 创建对应动态容器，逐项读取 typed item，调用装箱 helper，再写入动态容器。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:450` |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:6218`、`demo6/release/include/xl_runtime.h:6248`、`demo6/release/include/xl_runtime.h:6300`、`demo6/release/include/xl_runtime.h:6350` |
 | 对应生成的 C 代码 | `xl6_xrt_typed_array_to_xvalue`、`xl6_xrt_typed_list_to_xvalue`、`xl6_xrt_typed_set_to_xvalue`、`xl6_xrt_typed_dict_to_xvalue` |
 | 中间形态伪代码 | `result = create dynamic container; for each typed item: boxed = box(item); set/append boxed` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要分别遍历四种 typed container 并装箱。 |
@@ -320,7 +320,7 @@
 |---|---|
 | xlang 写法 | typed container 赋值、返回、临时值需要复制 |
 | 生成规则描述 | 分别生成 typed array/list/set/dict copy helper。每个 helper 创建同 item type 的 XRT typed container，遍历原容器并把装箱后的 xvalue 写入新容器，写入后释放临时 boxed value。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:467` |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:6233`、`demo6/release/include/xl_runtime.h:6284`、`demo6/release/include/xl_runtime.h:6335`、`demo6/release/include/xl_runtime.h:6367` |
 | 对应生成的 C 代码 | `xl6_xrt_typed_array_copy`、`xl6_xrt_typed_list_copy`、`xl6_xrt_typed_set_copy`、`xl6_xrt_typed_dict_copy` |
 | 中间形态伪代码 | `copy = create typed container(type); for each item: boxed = box(item); typedSet(copy, boxed); unref(boxed)` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要写四套容器复制循环。 |
@@ -331,9 +331,9 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `v[i]`、`v["key"]`，其中 `v` 是 `var` |
-| 生成规则描述 | `xl6_xrt_index_safe_get_i64` 对 array 使用 `xvoArrayGetValue`，对 list 使用 `xvoListGetValue`，空值或不支持类型返回空读取结果。`xl6_xrt_index_safe_get_key` 只对 table 读取 key，其他类型返回空读取结果。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:600` |
-| 对应生成的 C 代码 | `static xvalue xl6_xrt_index_safe_get_i64(...)`、`static xvalue xl6_xrt_index_safe_get_key(...)` |
+| 生成规则描述 | `xl6_xrt_index_safe_get_i64` 对动态 array/int-map 和 typed container 统一读取；`xl6_xrt_index_safe_get_key` 对动态 object 和 typed dict 读取。空值、不支持类型或未命中均返回 null value。 |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:4912`、`demo6/release/include/xl_runtime.h:4920` |
+| 对应生成的 C 代码 | `static inline xvalue* xl6_xrt_index_safe_get_i64(...)`、`static inline xvalue* xl6_xrt_index_safe_get_key(...)` |
 | 中间形态伪代码 | `if null return nullGet; switch type: array/list/table else nullGet` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要先判断 xvalue 类型再调用对应 getter。 |
 | 额外依赖的封装代码 | 两个 safe get helper。 |
@@ -343,10 +343,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `v.length` 或依赖动态容器长度的 for-in |
-| 生成规则描述 | `xl6_xrt_member_safe_length` 返回 xvalue int 或 null；`xl6_xrt_member_length` 返回原生 `unsigned int`。两者都支持 array/list/set/table，空值或不支持类型返回 null/0。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:624` |
-| 对应生成的 C 代码 | `static xvalue xl6_xrt_member_safe_length(...)`、`static unsigned int xl6_xrt_member_length(...)` |
-| 中间形态伪代码 | `switch xvoType(values): return count as xvalue or uint; default null/0` |
+| 生成规则描述 | `xl6_xrt_member_safe_length` 返回 value int 或 null；`xl6_xrt_member_length` 返回原生 `uint32`。两者通过当前 value count 与 typed container count 支持 array/list/set/object 和 typed container，空值或不支持类型返回 null/0。 |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:5031`、`demo6/release/include/xl_runtime.h:5015` |
+| 对应生成的 C 代码 | `static inline xvalue* xl6_xrt_member_safe_length(...)`、`static inline uint32 xl6_xrt_member_length(...)` |
+| 中间形态伪代码 | `if typed: typedCount; else if container: xrtValueCount; default null/0` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要对每种动态容器分别读取 count。 |
 | 额外依赖的封装代码 | 两个 length helper。 |
 
@@ -355,8 +355,8 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `varA == varB`、`varA ~= varB`、`varA < varB` |
-| 生成规则描述 | 动态比较先通过 `xl6_xrt_type_is_numeric` 和 `xl6_xrt_value_to_double` 统一数值路径；`xl6_xrt_basic_compare` 支持 null、数值、字符串、time；`basic_equal` 不可比较时退回指针相等；`basic_approx` 调用对应 XRT 近似函数；`basic_order` 将比较结果映射到 `< <= > >=`。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:668` |
+| 生成规则描述 | 动态比较先通过 `xl6_xrt_type_is_numeric` 和 `xl6_xrt_value_to_double` 统一数值路径；`xl6_xrt_basic_compare` 支持 null、数值、字符串、time；`basic_equal` 使用 `xrtValueEqual` 并为 typed handle 保留类型与句柄恒等语义；`basic_approx` 调用当前 UTF-8、数值和时间近似入口；`basic_order` 将比较结果映射到 `< <= > >=`。 |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:5061`、`demo6/release/include/xl_runtime.h:5104`、`demo6/release/include/xl_runtime.h:5127`、`demo6/release/include/xl_runtime.h:5155` |
 | 对应生成的 C 代码 | `xl6_xrt_basic_compare`、`xl6_xrt_basic_equal`、`xl6_xrt_basic_approx`、`xl6_xrt_basic_order` |
 | 中间形态伪代码 | `if numeric compare numeric; else if string compare xrtStrComp; else if time compare time; approx uses XRT approx` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自己维护动态类型比较矩阵。 |
@@ -367,9 +367,9 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `varA + varB`、`varA - varB`、`varA * varB`、`varA / varB`、`varA & varB`、位移等动态运算 |
-| 生成规则描述 | `xl6_xrt_value_text_concat` 处理两个文本 xvalue 的 `+`。`xl6_xrt_basic_binary` 根据 op 编号分派：op 0 文本拼接优先；数值路径支持加减乘除取模；整数路径额外支持按位与/或/异或和左右移；不合法类型、除零、浮点位运算返回 null。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:760` |
-| 对应生成的 C 代码 | `static xvalue xl6_xrt_value_text_concat(...)`、`static xvalue xl6_xrt_basic_binary(...)` |
+| 生成规则描述 | `xl6_xrt_value_text_concat` 处理两个文本 value 的 `+`，array 的 `+` 由 `xl6_xrt_array_concat` 创建新数组并保留元素。`xl6_xrt_basic_binary` 根据 op 编号分派数值与位运算；不合法类型、除零、浮点位运算和非法移位返回 null。 |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:5191`、`demo6/release/include/xl_runtime.h:5200`、`demo6/release/include/xl_runtime.h:5227` |
+| 对应生成的 C 代码 | `static inline xvalue* xl6_xrt_value_text_concat(...)`、`static inline xvalue* xl6_xrt_array_concat(...)`、`static inline xvalue* xl6_xrt_basic_binary(...)` |
 | 中间形态伪代码 | `if op==add && both text: concat; if not numeric: null; if bit op require int; else numeric arithmetic` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要写动态类型检查和运算分派。 |
 | 额外依赖的封装代码 | 文本拼接和动态二元运算 helper。 |
@@ -379,10 +379,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `if varValue then`、`not varValue`、`-varValue`、`~varValue` |
-| 生成规则描述 | `xl6_xrt_value_truthy` 定义动态值真假规则：null 为假，bool 按值，数值非零为真，字符串非空为真，容器非空为真，其他为真。`xl6_xrt_basic_unary` 支持数值正负号，整数额外支持按位取反，非法类型返回 null。`xl6_xrt_value_truthy_release` 和 `xl6_xrt_basic_unary_release` 是表达式生成侧使用的释放型 helper：读取或生成结果后释放输入 xvalue，避免单操作数动态路径继续生成 GNU 语句表达式。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:xl6CgenEmitXValueRuntime` |
-| 对应生成的 C 代码 | `static int xl6_xrt_value_truthy(...)`、`static xvalue xl6_xrt_basic_unary(...)`、`static int xl6_xrt_value_truthy_release(...)`、`static xvalue xl6_xrt_basic_unary_release(...)` |
-| 中间形态伪代码 | `truthy by type; unary requires numeric; release helper calls base helper then xvoUnref(input)` |
+| 生成规则描述 | `xl6_xrt_value_truthy` 委托统一的 `xrtValueTruthy` 契约；`xl6_xrt_basic_unary` 支持数值正负号，整数额外支持按位取反，非法类型返回 null。`xl6_xrt_value_truthy_release` 和 `xl6_xrt_basic_unary_release` 在取得结果后释放输入 `xvalue*`。 |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:5273`、`demo6/release/include/xl_runtime.h:5281`、`demo6/release/include/xl_runtime.h:5301`、`demo6/release/include/xl_runtime.h:5308` |
+| 对应生成的 C 代码 | `static inline int xl6_xrt_value_truthy(...)`、`static inline xvalue* xl6_xrt_basic_unary(...)`、`static inline int xl6_xrt_value_truthy_release(...)`、`static inline xvalue* xl6_xrt_basic_unary_release(...)` |
+| 中间形态伪代码 | `truthy = xrtValueTruthy(value); unary requires numeric; release helper calls base helper then xrtValueRelease(input)` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要固定动态真假表和一元运算矩阵。 |
 | 额外依赖的封装代码 | truthy、unary 和单操作数 release helper。 |
 
@@ -391,10 +391,10 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `item in values`，其中 `values` 是 `var` |
-| 生成规则描述 | `xl6_xrt_value_contains` 根据 values 类型分派：array 线性比较，list 通过 `xrtListWalk` 回调遍历，set 调用 `xvoCollExists`，dict 仅支持字符串 key，字符串包含调用 `xrtFindStr`。item 在所有路径结束后释放。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:869` |
-| 对应生成的 C 代码 | `XL6_XrtListContainsCtx`、`xl6_xrt_list_contains_each`、`xl6_xrt_array_contains`、`xl6_xrt_list_contains`、`xl6_xrt_set_contains`、`xl6_xrt_value_contains` |
-| 中间形态伪代码 | `switch valuesType: array/list/set/dict/text; compare item; unref item; return found` |
+| 生成规则描述 | `xl6_xrt_value_contains` 根据 values 类型分派：typed container 使用统一 contains 桥；array/list 使用 `xrtValueIterCreate/Next/Destroy`；set 调用 `xrtValueSetHas`；object 仅接受字符串 key；字符串调用 `xrtStrContains`。item 在所有路径结束后释放，拥有型 receiver 由 `xl6_xrt_value_contains_release` 继续释放。 |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:5326`、`demo6/release/include/xl_runtime.h:5369` |
+| 对应生成的 C 代码 | `xl6_xrt_value_contains`、`xl6_xrt_value_contains_release`、`xl6_xrt_array_contains`、`xl6_xrt_list_contains`、`xl6_xrt_set_contains` |
+| 中间形态伪代码 | `switch valuesKind: typed/array/list/set/object/text; compare item; xrtValueRelease(item); return found` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要分别处理五类动态包含语义。 |
 | 额外依赖的封装代码 | contains helper 组。 |
 
@@ -402,11 +402,11 @@
 
 本次继续压实动态成员访问的临时 receiver 生命周期，不新增 `CGEN-*` 规则编号，只补充 `CGEN-EXPR-011`、`CGEN-EXPR-012` 对应 runtime helper 形态：
 
-- 成员 key 访问复用既有 `xl6_xrt_index_safe_get_key_retain_release(values, key)`。`makeObj().name` 现在生成 `xl6_xrt_index_safe_get_key_retain_release(makeObj(), "name")`，不再展开 `({ xvalue __xl6_member_values_N = ... })`。
-- 安全成员 key 访问走同一 helper。`makeObj()?.name` 和 `makeObj()?.nested?.name` 会形成嵌套 retain/release helper 调用，每一级都释放自己的临时 receiver。
+- 成员 key 访问统一调用 `xl6_record_field_get_owned(values, key, releaseReceiver)`。`makeObj().name` 传入 `releaseReceiver = 1`，借用 receiver 传入 `0`，不再展开 GNU 语句表达式。
+- 安全成员 key 访问沿用同一拥有权参数；`makeObj()?.name` 和 `makeObj()?.nested?.name` 的每一级都按 receiver 是否拥有决定释放。
 - `?.length` 的临时 receiver 新增 `xl6_xrt_member_safe_length_release(values)`，内部调用 `xl6_xrt_member_safe_length(values)` 后释放 receiver。
 - 普通 `.length` 的临时 owned xvalue receiver 新增 `xl6_xrt_member_length_release(values)`，内部调用 `xl6_xrt_member_length(values)` 后释放 receiver。
-- 生成位置为 `demo6/src/cgen/xl6_cgen_value_object.c:909`、`927`、`1042`，helper 输出位置为 `demo6/src/cgen/xl6_cgen_xvalue_runtime_index_ops.c:122`、`162`、`193`。
+- 生成位置为 `demo6/src/cgen/xl6_cgen_value_object_member.c:1`、`demo6/src/cgen/xl6_cgen_value_object_member.c:60`、`demo6/src/cgen/xl6_cgen_value_object_member.c:360`；字段读取 helper 由 `demo6/src/cgen/xl6_cgen_record_field.c:602` 输出，长度释放 helper 位于 `demo6/release/include/xl_runtime.h:5044`、`demo6/release/include/xl_runtime.h:5037`。
 
 守门用例为 `cgen_dynamic_member_access.xl` 和 `cgen_safe_member.xl`。`test.bat` 检查 retain/release helper 形态，并禁止 `({ xvalue __xl6_member_values_` 回流。
 
@@ -416,8 +416,8 @@
 |---|---|
 | xlang 写法 | `[a, b, c]` 动态数组字面量，或 `...` 可变参数打包 |
 | 生成规则描述 | `xl6_xrt_array_varargs` 创建 xvalue array，并从 C varargs 中读取若干 xvalue 逐项追加。追加失败时释放当前 item，最终返回 array；创建失败返回 null。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:954` |
-| 对应生成的 C 代码 | `static xvalue xl6_xrt_array_varargs(int count, ...) { ... }` |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:5843` |
+| 对应生成的 C 代码 | `static inline xvalue* xl6_xrt_array_varargs(uint32 count, ...) { ... }` |
 | 中间形态伪代码 | `arr = createArray(); for each vararg xvalue: append(colloc=true)` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要显式创建 xvalue array 并逐项 append。 |
 | 额外依赖的封装代码 | `xl6_xrt_array_varargs`。 |
@@ -427,8 +427,8 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `[1: "a"]`、`set{1, 2}`、`{"a": 1}` 或 `***` 字典参数打包 |
-| 生成规则描述 | `xl6_xrt_list_literal` 从 varargs 读取 index/value 成对写入 list；`xl6_xrt_set_literal` 读取 value 写入 set；`xl6_xrt_dict_varargs` 读取 key/value 成对写入 table。创建失败返回 null，写入失败释放当前 item。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:973` |
+| 生成规则描述 | `xl6_xrt_list_literal` 从 varargs 读取 index/value 成对写入 int-map；`xl6_xrt_set_literal` 读取 value 写入 set；`xl6_xrt_dict_varargs` 读取 key/value 成对写入 object。创建失败返回 null，写入失败释放当前 item 和部分构造结果。 |
+| 生成器文件名和行号 | `demo6/release/include/xl_runtime.h:5865`、`demo6/release/include/xl_runtime.h:5888`、`demo6/release/include/xl_runtime.h:5910` |
 | 对应生成的 C 代码 | `xl6_xrt_list_literal`、`xl6_xrt_set_literal`、`xl6_xrt_dict_varargs` |
 | 中间形态伪代码 | `create container; read varargs as pairs/items; set with colloc=true; cleanup failed item` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要分别构造 list/set/table 并处理每个元素所有权。 |

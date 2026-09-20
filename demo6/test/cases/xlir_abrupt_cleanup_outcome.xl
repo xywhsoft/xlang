@@ -1,0 +1,222 @@
+extern "abrupt_cleanup_open" func opened(int id)
+extern "abrupt_cleanup_drop" func dropped(int id)
+extern "abrupt_cleanup_checked" func checked(int code, int live)
+extern "abrupt_cleanup_finally" func finalCheck(int id, int live)
+
+class AbruptGuard
+    int id
+    create(int id)
+        self.id = id
+        opened(id)
+    end
+    destroy()
+        dropped(self.id)
+    end
+end
+
+export "abrupt_cleanup_return" func returnExit() as int
+    AbruptGuard outer = AbruptGuard(1)
+    try
+        AbruptGuard middle = AbruptGuard(2)
+        if true then
+            AbruptGuard first = AbruptGuard(3)
+            AbruptGuard last = AbruptGuard(4)
+            return 17
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "abrupt_cleanup_return_finally" func returnFinally() as int
+    AbruptGuard outer = AbruptGuard(1)
+    try
+        AbruptGuard middle = AbruptGuard(2)
+        if true then
+            AbruptGuard first = AbruptGuard(3)
+            AbruptGuard last = AbruptGuard(4)
+            return 17
+        end
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    finally
+        assert outer.id == 1
+        finalCheck(outer.id, 1)
+    end
+    return outer.id
+end
+
+export "abrupt_cleanup_break" func breakExit() as int
+    AbruptGuard outer = AbruptGuard(1)
+    while true
+        try
+            AbruptGuard middle = AbruptGuard(2)
+            if true then
+                AbruptGuard first = AbruptGuard(3)
+                AbruptGuard last = AbruptGuard(4)
+                break
+            end
+        catch error
+            assert outer.id == 1
+            checked(error.code, 1)
+        end
+        break
+    end
+    return outer.id
+end
+
+export "abrupt_cleanup_continue" func continueExit() as int
+    AbruptGuard outer = AbruptGuard(1)
+    int count = 0
+    while count < 1
+        count += 1
+        try
+            AbruptGuard middle = AbruptGuard(2)
+            if true then
+                AbruptGuard first = AbruptGuard(3)
+                AbruptGuard last = AbruptGuard(4)
+                continue
+            end
+        catch error
+            assert outer.id == 1
+            checked(error.code, 1)
+        end
+    end
+    return outer.id
+end
+
+export "abrupt_cleanup_break_finally" func breakFinally() as int
+    AbruptGuard outer = AbruptGuard(1)
+    while true
+        AbruptGuard middle = AbruptGuard(2)
+        try
+            if true then
+                AbruptGuard first = AbruptGuard(3)
+                AbruptGuard last = AbruptGuard(4)
+                break
+            end
+        catch error
+            assert outer.id == 1 and middle.id == 2
+            checked(error.code, 3)
+        finally
+            assert outer.id == 1 and middle.id == 2
+            finalCheck(middle.id, 3)
+        end
+        break
+    end
+    return outer.id
+end
+
+func pendingArray() as array<int>
+    AbruptGuard outer = AbruptGuard(1)
+    array<int> value = array[17, 19]
+    try
+        AbruptGuard middle = AbruptGuard(2)
+        if true then
+            AbruptGuard first = AbruptGuard(3)
+            AbruptGuard last = AbruptGuard(4)
+            return value
+        end
+    catch error
+        assert outer.id == 1 and value[0] == 17 and value[1] == 19
+        checked(error.code, 1)
+    end
+    return value
+end
+
+export "abrupt_cleanup_pending" func pending() as int
+    array<int> result = pendingArray()
+    assert result[0] == 17 and result[1] == 19
+    return 1
+end
+
+class CopyBox
+    int value = 17
+    func __copy__() as CopyBox
+        AbruptGuard middle = AbruptGuard(2)
+        AbruptGuard first = AbruptGuard(3)
+        AbruptGuard last = AbruptGuard(4)
+        CopyBox result = CopyBox()
+        result.value = self.value
+        return result
+    end
+    func __clone__() as CopyBox
+        return self.__copy__()
+    end
+end
+
+export "abrupt_cleanup_copy" func copyExit() as int
+    AbruptGuard outer = AbruptGuard(1)
+    CopyBox source = CopyBox()
+    try
+        CopyBox result = copy(source)
+        assert result.value == 17
+    catch error
+        assert outer.id == 1 and source.value == 17
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "abrupt_cleanup_copy_temporary" func copyTemporary() as int
+    AbruptGuard outer = AbruptGuard(1)
+    try
+        CopyBox result = copy(CopyBox())
+        assert result.value == 17
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+export "abrupt_cleanup_clone_temporary" func cloneTemporary() as int
+    AbruptGuard outer = AbruptGuard(1)
+    try
+        CopyBox result = clone(CopyBox())
+        assert result.value == 17
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+func overridePending() as AbruptGuard
+    try
+        return AbruptGuard(4)
+    finally
+        return AbruptGuard(3)
+    end
+end
+
+export "abrupt_cleanup_pending_override" func pendingOverride() as int
+    AbruptGuard outer = AbruptGuard(1)
+    try
+        AbruptGuard middle = AbruptGuard(2)
+        AbruptGuard result = overridePending()
+        assert result.id == 3
+    catch error
+        assert outer.id == 1
+        checked(error.code, 1)
+    end
+    return outer.id
+end
+
+// The early return owns only `first`. Normal fallthrough and the later
+// return own both bindings: deleting exitStep must fail verification here.
+func partialScope(bool early) as int
+    AbruptGuard first = AbruptGuard(3)
+    if early then
+        return 7
+    end
+    AbruptGuard last = AbruptGuard(4)
+    return 8
+end
+
+func main(...) as int
+    return 0
+end

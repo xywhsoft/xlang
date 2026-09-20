@@ -1,0 +1,12 @@
+func assert_inner(bool flag) as int
+  assert flag
+  return 19
+end
+
+func assert_outer(bool flag) as int
+  return assert_inner(flag)
+end
+
+// Keep the may-raise call chain in the executable reachability closure.  The C
+// host calls the internal target directly to inspect its result carrier.
+assert_outer(true)

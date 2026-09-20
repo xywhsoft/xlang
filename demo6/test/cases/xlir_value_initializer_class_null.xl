@@ -1,0 +1,10 @@
+class RequiredRecord
+    int value
+
+    create(int input)
+        self.value = input
+    end
+end
+
+RequiredRecord missing
+assert missing == null

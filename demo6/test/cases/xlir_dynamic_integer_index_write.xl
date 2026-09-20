@@ -1,0 +1,42 @@
+var target = list[0: 10]
+var alias = target
+int order = 0
+int receiverCalls = 0
+int keyCalls = 0
+
+func receiver() as var
+    receiverCalls += 1
+    order = order * 10 + 2
+    return target
+end
+
+func key() as int
+    keyCalls += 1
+    order = order * 10 + 3
+    return -7
+end
+
+func item() as int
+    order = order * 10 + 1
+    return 41
+end
+
+receiver()[key()] = item()
+assert int(alias[-7]) == 41, "erased list must preserve sparse signed keys"
+assert alias.length == 2
+assert receiverCalls == 1 and keyCalls == 1, "index address must evaluate once"
+assert order == 123, "index assignment must preserve RHS/receiver/key evaluation order"
+
+var values = [1]
+var arrayAlias = values
+arrayAlias[0] = 9
+assert int(values[0]) == 9
+bool rejected = false
+try
+    arrayAlias[3] = 10
+catch e
+    rejected = e.kind == "RangeError" and string.contains(e.message, "index")
+end
+assert rejected, "erased array bounds failure must stay catchable"
+assert values.length == 1
+println("dynamic integer index write ok")

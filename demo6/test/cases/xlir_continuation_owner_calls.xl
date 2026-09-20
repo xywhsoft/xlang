@@ -1,0 +1,60 @@
+// The contract turns initial consuming placeholder calls into transparent
+// views of their owned argument copies. Final sinks consume those owners.
+func ownerCallPlaceholder(byval string text) as int
+    return text.length
+end
+extern "owner_calls_observe" func ownerCallsObserve(string first, string second, bool fail) as int
+func ownerCallPair(byval string first, byval string second, bool fail) as int
+    return ownerCallsObserve(first, second, fail)
+end
+func ownerCallGenerator(string first, string second, bool fail) as generator<string>
+    ownerCallPlaceholder(first)
+    ownerCallPlaceholder(second)
+    yield "pause"
+    int result = ownerCallPair(first, second, fail)
+    yield "done"
+end
+async func ownerCallAlias(string text, future<int> input, future<int> second, bool first) as int
+    ownerCallPlaceholder(text)
+    int value = 0
+    try
+        value = await input
+    catch failure
+        value = 3
+    end
+    try
+        value += await second
+    catch failure
+        value += 7
+    end
+    try
+        value += await second
+    catch failure
+        value += 11
+    end
+    if first
+        return ownerCallPlaceholder(text) + value
+    else
+        return ownerCallPlaceholder(text) + value
+    end
+end
+async func ownerCallAsyncPair(string first, string second, future<int> input, bool fail) as int
+    ownerCallPlaceholder(first)
+    ownerCallPlaceholder(second)
+    try
+        int ignored = await input
+    catch failure
+    end
+    return ownerCallPair(first, second, fail)
+end
+async func ownerCallReady() as int
+    return 0
+end
+export "owner_calls_keep" func ownerCallsKeep()
+    future<int> input = ownerCallReady()
+    for word in ownerCallGenerator("left", "right", false)
+        assert word == "pause" or word == "done"
+    end
+    future<int> alias = ownerCallAlias("owner", input, input, true)
+    future<int> pair = ownerCallAsyncPair("left", "right", input, false)
+end

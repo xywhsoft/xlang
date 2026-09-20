@@ -1,0 +1,12 @@
+array values = []
+
+assert values.append(41), "erased array append should report success"
+assert values.push("two"), "erased array push should report success"
+assert values.length == 2, "erased array append/push should mutate one receiver"
+assert int(values[0]) == 41, "erased array scalar item should preserve its boxed value"
+assert string(values[1]) == "two", "erased array string item should preserve its boxed value"
+
+array<var> dynamicValues = []
+assert dynamicValues.append(7), "array<var> append should consume one boxed scalar"
+assert dynamicValues.push("three"), "array<var> push should consume one boxed string"
+assert dynamicValues.length == 2, "array<var> insertion should preserve the generic open element ABI"

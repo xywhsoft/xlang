@@ -6,12 +6,12 @@ echo Running DEMO6 suite: core C generation and runtime baseline 1/10...
 
 release\xl.exe cgen test\cases\cgen_array_negative_index.xl --emit build\test\cgen_array_negative_index.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvoIndexSetI64" build\test\cgen_array_negative_index.c >nul
+findstr /C:"xlir_xvalue_array_set_i64_new" build\test\cgen_array_negative_index.c >nul
 if errorlevel 1 (
     echo cgen_array_negative_index.c missing signed array write helper.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_get_at(__xl6_user_global_typedValues, (long long)((-1LL)))" build\test\cgen_array_negative_index.c >nul
+findstr /C:"xrtValueArrayAt(" build\test\cgen_array_negative_index.c >nul
 if errorlevel 1 (
     echo cgen_array_negative_index.c missing signed typed array read.
     exit /b 1
@@ -30,9 +30,14 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe ir release\examples\hello.xl > build\test\hello.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"func add(a: int, b: int) as int" build\test\hello.xlir >nul
+findstr /C:"kind=function-declaration/4 source=func/3" build\test\hello.xlir >nul
 if errorlevel 1 (
-    echo hello.xlir missing func signature.
+    echo hello.xlir missing typed function declaration.
+    exit /b 1
+)
+findstr /C:"text=add @" build\test\hello.xlir >nul
+if errorlevel 1 (
+    echo hello.xlir missing function name binding.
     exit /b 1
 )
 release\xl.exe ir release\examples\hello.xl --json --emit build\test\hello.ir.json
@@ -50,175 +55,177 @@ if errorlevel 1 (
 
 release\xl.exe ir test\cases\control_flow.xl --emit build\test\control_flow.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"for index, value in call range(1, 10, 2)" build\test\control_flow.xlir >nul
+findstr /C:"loop=range-i64-index-value" build\test\control_flow.xlir >nul
 if errorlevel 1 (
-    echo control_flow.xlir missing range for loop.
+    echo control_flow.xlir missing typed range index/value loop ABI.
     exit /b 1
 )
 
 release\xl.exe ir test\cases\control_flow_do_while.xl --emit build\test\control_flow_do_while.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"do" build\test\control_flow_do_while.xlir >nul
+findstr /C:"kind=loop/19 source=do_while/72" build\test\control_flow_do_while.xlir >nul
 if errorlevel 1 (
     echo control_flow_do_while.xlir missing do block.
     exit /b 1
 )
-findstr /C:"while (value < 3)" build\test\control_flow_do_while.xlir >nul
+findstr /C:"kind=binary/31 source=binary/58" build\test\control_flow_do_while.xlir | findstr /C:"opcode=lt" >nul
 if errorlevel 1 (
-    echo control_flow_do_while.xlir missing while condition.
+    echo control_flow_do_while.xlir missing typed loop condition.
     exit /b 1
 )
 
 release\xl.exe ir test\cases\control_flow_inline_if.xl --emit build\test\control_flow_inline_if.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"return 1" build\test\control_flow_inline_if.xlir >nul
+findstr /C:"kind=return/12 source=return/34" build\test\control_flow_inline_if.xlir >nul
 if errorlevel 1 (
-    echo control_flow_inline_if.xlir missing inline return.
+    echo control_flow_inline_if.xlir missing typed inline return.
     exit /b 1
 )
-findstr /C:"else" build\test\control_flow_inline_if.xlir >nul
+findstr /C:"kind=if/18 source=if/69" build\test\control_flow_inline_if.xlir >nul
 if errorlevel 1 (
-    echo control_flow_inline_if.xlir missing inline else.
+    echo control_flow_inline_if.xlir missing typed inline conditional.
     exit /b 1
 )
 
 release\xl.exe ir test\cases\operators.xl --emit build\test\operators.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"a += 2" build\test\operators.xlir >nul
+findstr /C:"kind=assign/29 source=assign/55" build\test\operators.xlir | findstr /C:"opcode=add" >nul
 if errorlevel 1 (
-    echo operators.xlir missing compound assignment.
+    echo operators.xlir missing typed compound assignment.
     exit /b 1
 )
-findstr /C:"null ?? 9" build\test\operators.xlir >nul
+findstr /C:"kind=binary/31 source=binary/58" build\test\operators.xlir | findstr /C:"opcode=null-coalesce" >nul
 if errorlevel 1 (
-    echo operators.xlir missing null coalesce expression.
+    echo operators.xlir missing typed null coalesce expression.
     exit /b 1
 )
 
 release\xl.exe ir test\cases\member_index.xl --emit build\test\member_index.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"obj.name" build\test\member_index.xlir >nul
+findstr /C:"kind=member/27 source=member/48" build\test\member_index.xlir >nul
 if errorlevel 1 (
-    echo member_index.xlir missing member access.
+    echo member_index.xlir missing typed member access.
     exit /b 1
 )
-findstr /C:"obj?.name" build\test\member_index.xlir >nul
+findstr /C:"kind=member/27 source=safe_member/49" build\test\member_index.xlir >nul
 if errorlevel 1 (
-    echo member_index.xlir missing safe member access.
+    echo member_index.xlir missing typed safe member access.
     exit /b 1
 )
-findstr /C:"obj[0]" build\test\member_index.xlir >nul
+findstr /C:"kind=index/28 source=index/50" build\test\member_index.xlir >nul
 if errorlevel 1 (
-    echo member_index.xlir missing index access.
+    echo member_index.xlir missing typed index access.
     exit /b 1
 )
-findstr /C:"obj?[1]" build\test\member_index.xlir >nul
+findstr /C:"kind=index/28 source=safe_index/51" build\test\member_index.xlir >nul
 if errorlevel 1 (
-    echo member_index.xlir missing safe index access.
+    echo member_index.xlir missing typed safe index access.
     exit /b 1
 )
 
 release\xl.exe ir test\cases\function_types.xl --emit build\test\function_types.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"var binary : func(int, int) as int" build\test\function_types.xlir >nul
+findstr /C:"callable=fixed" build\test\function_types.xlir | findstr /C:"params=[t4/default/value,t4/default/value]" >nul
 if errorlevel 1 (
-    echo function_types.xlir missing func type signature.
+    echo function_types.xlir missing fixed binary callable ABI.
     exit /b 1
 )
-findstr /C:"var parser : func(string) as (bool, int)" build\test\function_types.xlir >nul
+findstr /C:"name=__tuple" build\test\function_types.xlir | findstr /C:"params=[t1,t4]" >nul
 if errorlevel 1 (
-    echo function_types.xlir missing multi-return func type.
+    echo function_types.xlir missing typed multi-return tuple.
     exit /b 1
 )
 
 release\xl.exe ir test\cases\anonymous_functions.xl --emit build\test\anonymous_functions.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"var inc : auto = func(value: int) as int <body>" build\test\anonymous_functions.xlir >nul
+findstr /C:"kind=function-declaration/4 source=anon_func/5" build\test\anonymous_functions.xlir | findstr /C:"text=func @1:12" >nul
 if errorlevel 1 (
-    echo anonymous_functions.xlir missing arrow anonymous func.
+    echo anonymous_functions.xlir missing typed arrow anonymous func.
     exit /b 1
 )
-findstr /C:"return func(value: int) as int <body>" build\test\anonymous_functions.xlir >nul
+findstr /C:"kind=function-declaration/4 source=anon_func/5" build\test\anonymous_functions.xlir | findstr /C:"text=func @8:12" >nul
 if errorlevel 1 (
-    echo anonymous_functions.xlir missing captured anonymous func return.
+    echo anonymous_functions.xlir missing typed captured anonymous func return.
     exit /b 1
 )
 
 release\xl.exe ir test\cases\class_native_backed.xl --emit build\test\class_native_backed.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"class Point" build\test\class_native_backed.xlir >nul
+findstr /C:"kind=type-declaration/5 source=class/13" build\test\class_native_backed.xlir | findstr /C:"text=Point @" >nul
 if errorlevel 1 (
-    echo class_native_backed.xlir missing class declaration.
+    echo class_native_backed.xlir missing typed class declaration.
     exit /b 1
 )
-findstr /C:"field x : int = 0" build\test\class_native_backed.xlir >nul
+findstr /C:"kind=field-declaration/8 source=field/19" build\test\class_native_backed.xlir | findstr /C:"text=x @" >nul
 if errorlevel 1 (
-    echo class_native_backed.xlir missing class field.
+    echo class_native_backed.xlir missing typed class field.
     exit /b 1
 )
-findstr /C:"extern \"bag_count\" func count() as int" build\test\class_native_backed.xlir >nul
+findstr /C:"kind=function-declaration/4 source=native_extern_func/24" build\test\class_native_backed.xlir | findstr /C:"text=\"bag_count\" @" >nul
 if errorlevel 1 (
-    echo class_native_backed.xlir missing native-backed class extern method.
+    echo class_native_backed.xlir missing typed native-backed class extern method.
     exit /b 1
 )
 
 release\xl.exe ir test\cases\generics.xl --emit build\test\generics.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"func identity<T>(value: T) as T" build\test\generics.xlir >nul
+findstr /C:"source=type_params/25" build\test\generics.xlir >nul
 if errorlevel 1 (
-    echo generics.xlir missing generic func.
+    echo generics.xlir missing typed generic parameters.
     exit /b 1
 )
-findstr /C:"class Box<T>" build\test\generics.xlir >nul
+findstr /C:"kind=type-declaration/5 source=class/13" build\test\generics.xlir | findstr /C:"text=Box @" >nul
 if errorlevel 1 (
-    echo generics.xlir missing generic class.
+    echo generics.xlir missing typed generic class.
     exit /b 1
 )
-findstr /C:"identity::<int>" build\test\generics.xlir >nul
+findstr /C:"kind=call/26 source=generic_instant/52" build\test\generics.xlir >nul
 if errorlevel 1 (
-    echo generics.xlir missing explicit generic instantiation.
+    echo generics.xlir missing typed explicit generic instantiation.
     exit /b 1
 )
 
 release\xl.exe ir test\cases\overloads.xl --emit build\test\overloads.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"func pick(value: int) as int" build\test\overloads.xlir >nul
+findstr /C:"kind=parameter-declaration/9 source=param/28" build\test\overloads.xlir | findstr /C:"text=value @1:15" >nul
 if errorlevel 1 (
-    echo overloads.xlir missing int overload.
+    echo overloads.xlir missing typed int overload parameter.
     exit /b 1
 )
-findstr /C:"func pick(value: string) as string" build\test\overloads.xlir >nul
+findstr /C:"kind=parameter-declaration/9 source=param/28" build\test\overloads.xlir | findstr /C:"text=value @5:18" >nul
 if errorlevel 1 (
-    echo overloads.xlir missing string overload.
+    echo overloads.xlir missing typed string overload parameter.
     exit /b 1
 )
 
 release\xl.exe ir test\cases\overload_varargs.xl --emit build\test\overload_varargs.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"func pick(value: string) as int" build\test\overload_varargs.xlir >nul
+findstr /C:"call-site c0" build\test\overload_varargs.xlir | findstr /C:"fixed=1 variadic=none" >nul
 if errorlevel 1 (
-    echo overload_varargs.xlir missing fixed overload.
+    echo overload_varargs.xlir missing fixed overload call binding.
     exit /b 1
 )
-findstr /C:"func pick(value: string, arg: array<var>) as int" build\test\overload_varargs.xlir >nul
+findstr /C:"call-site c1" build\test\overload_varargs.xlir | findstr /C:"fixed=1 variadic=array" >nul
 if errorlevel 1 (
-    echo overload_varargs.xlir missing array vararg overload.
+    echo overload_varargs.xlir missing array variadic call binding.
     exit /b 1
 )
-findstr /C:"func options(path: string, arg: dict<var>) as int" build\test\overload_varargs.xlir >nul
+findstr /C:"call-site c2" build\test\overload_varargs.xlir | findstr /C:"fixed=1 variadic=dict" >nul
 if errorlevel 1 (
-    echo overload_varargs.xlir missing dict vararg overload.
+    echo overload_varargs.xlir missing dict variadic call binding.
     exit /b 1
 )
 
 release\xl.exe cgen test\cases\cgen_basic.xl --emit build\test\cgen_basic.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long xl_fn_add(long long a, long long b);" build\test\cgen_basic.c >nul
+findstr /C:"static int64_t xlir_fn_1(int64_t" build\test\cgen_basic.c >nul
 if errorlevel 1 (
-    echo cgen_basic.c missing add prototype.
+    echo cgen_basic.c missing XLIR-lowered add prototype.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_basic.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_basic.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -c build\test\cgen_basic.c -o build\test\cgen_basic.o
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_basic.xl -o build\test\cgen_basic.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_basic.exe
 if errorlevel 1 exit /b 1
@@ -247,31 +254,36 @@ build\test\cgen_multi_return_typed_containers.exe
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_multi_return_typed_containers.xl --emit build\test\cgen_multi_return_typed_containers.c
 if errorlevel 1 exit /b 1
-findstr /C:"xtarray value0;" build\test\cgen_multi_return_typed_containers.c >nul
+findstr /C:"struct xvalue* e0;" build\test\cgen_multi_return_typed_containers.c >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xtlist value1;" build\test\cgen_multi_return_typed_containers.c >nul
+findstr /C:"struct xvalue* e1;" build\test\cgen_multi_return_typed_containers.c >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xtset value2;" build\test\cgen_multi_return_typed_containers.c >nul
+findstr /C:"struct xvalue* e2;" build\test\cgen_multi_return_typed_containers.c >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xtdict value3;" build\test\cgen_multi_return_typed_containers.c >nul
+findstr /C:"struct xvalue* e3;" build\test\cgen_multi_return_typed_containers.c >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xrtTypedArrayDestroy(__xl6_multi_" build\test\cgen_multi_return_typed_containers.c >nul
+findstr /C:"xrtValueRelease(v" build\test\cgen_multi_return_typed_containers.c | findstr /C:".e0);" >nul
 if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\cgen_dynamic_to_typed_containers.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_dynamic_to_typed_containers.xl --emit build\test\cgen_dynamic_to_typed_containers.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_array_from_value_release(" build\test\cgen_dynamic_to_typed_containers.c >nul
+findstr /C:"xlir_xvalue_collection_checked_take(" build\test\cgen_dynamic_to_typed_containers.c | findstr /C:", 9, 2)" >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_list_from_value_release(" build\test\cgen_dynamic_to_typed_containers.c >nul
+findstr /C:"xlir_xvalue_collection_checked_take(" build\test\cgen_dynamic_to_typed_containers.c | findstr /C:", 10, 4)" >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_set_from_value_release(" build\test\cgen_dynamic_to_typed_containers.c >nul
+findstr /C:"xlir_xvalue_collection_checked_take(" build\test\cgen_dynamic_to_typed_containers.c | findstr /C:", 11, 2)" >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_dict_from_value_release(" build\test\cgen_dynamic_to_typed_containers.c >nul
+findstr /C:"xlir_xvalue_collection_checked_take(" build\test\cgen_dynamic_to_typed_containers.c | findstr /C:", 12, 2)" >nul
 if errorlevel 1 exit /b 1
-findstr /C:"XRT_OBJMODE_SHARED" build\test\cgen_dynamic_to_typed_containers.c >nul
+findstr /C:"static xvalue* s56;" build\test\cgen_dynamic_to_typed_containers.c >nul
 if errorlevel 1 (
-    echo cgen_dynamic_to_typed_containers.c missing shared module-global import.
+    echo cgen_dynamic_to_typed_containers.c missing XLIR module-global storage.
+    exit /b 1
+)
+findstr /C:"s56 = v3;" build\test\cgen_dynamic_to_typed_containers.c >nul
+if errorlevel 1 (
+    echo cgen_dynamic_to_typed_containers.c missing validated module-global ownership transfer.
     exit /b 1
 )
 findstr /C:"dynamic container contains an incompatible value" build\test\cgen_dynamic_to_typed_containers.c >nul
@@ -347,98 +359,88 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_default_init.xl --emit build\test\cgen_default_init.c
 if errorlevel 1 exit /b 1
-findstr /C:"long long __xl6_user_global_count;" build\test\cgen_default_init.c >nul
+findstr /C:"static int64_t s3;" build\test\cgen_default_init.c >nul
 if errorlevel 1 (
     echo cgen_default_init.c missing int default init.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_name = xrtCopyStr(\"\", 0u);" build\test\cgen_default_init.c >nul
+findstr /C:"xrtStrDup(\"\")" build\test\cgen_default_init.c >nul
 if errorlevel 1 (
     echo cgen_default_init.c missing string default init.
     exit /b 1
 )
-findstr /C:"void* __xl6_user_global_handle;" build\test\cgen_default_init.c >nul
+findstr /C:"static void* s7;" build\test\cgen_default_init.c >nul
 if errorlevel 1 (
     echo cgen_default_init.c missing point default init.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_default_init.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_default_init.exe
+release\xl.exe build test\cases\cgen_default_init.xl test\cases\cgen_class_host.c -o build\test\cgen_default_init.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_default_init.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_union.xl --emit build\test\cgen_union.c
 if errorlevel 1 exit /b 1
-findstr /C:"typedef union XL_Union_Payload" build\test\cgen_union.c >nul
+findstr /C:"typedef union xlir_union_t" build\test\cgen_union.c >nul
 if errorlevel 1 (
     echo cgen_union.c missing top-level union typedef.
     exit /b 1
 )
-findstr /C:"union {" build\test\cgen_union.c >nul
+findstr /C:"xlir_xvalue_union_box(" build\test\cgen_union.c >nul
 if errorlevel 1 (
-    echo cgen_union.c missing inline class union.
+    echo cgen_union.c missing verified union boxing ABI.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_union.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_union.exe
+release\xl.exe build test\cases\cgen_union.xl test\cases\cgen_class_host.c -o build\test\cgen_union.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_union.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_union_var_box.xl --emit build\test\cgen_union_var_box.c
 if errorlevel 1 exit /b 1
-findstr /C:"static const xrt_type_desc* xl6_type_desc_XL_Union_Payload" build\test\cgen_union_var_box.c >nul
+findstr /C:"typedef union xlir_union_t" build\test\cgen_union_var_box.c >nul
 if errorlevel 1 (
-    echo cgen_union_var_box.c missing union XRT type descriptor.
+    echo cgen_union_var_box.c missing verified union storage ABI.
     exit /b 1
 )
-findstr /C:"static int xl6_type_compare_XL_Union_Payload" build\test\cgen_union_var_box.c >nul
+findstr /C:"xlir_xvalue_union_box(" build\test\cgen_union_var_box.c >nul
 if errorlevel 1 (
-    echo cgen_union_var_box.c missing union compare type op.
+    echo cgen_union_var_box.c missing union boxing ABI.
     exit /b 1
 )
-findstr /C:"static unsigned long long xl6_type_hash_XL_Union_Payload" build\test\cgen_union_var_box.c >nul
+findstr /C:"xlir_xvalue_union_unbox(" build\test\cgen_union_var_box.c >nul
 if errorlevel 1 (
-    echo cgen_union_var_box.c missing union hash type op.
+    echo cgen_union_var_box.c missing union unboxing ABI.
     exit /b 1
 )
-findstr /C:"xl6_box_XL_Union_Payload(__xl6_user_global_p)" build\test\cgen_union_var_box.c >nul
+findstr /C:"xrtValueArrayAppendNew(" build\test\cgen_union_var_box.c >nul
 if errorlevel 1 (
-    echo cgen_union_var_box.c missing union var boxing helper call.
+    echo cgen_union_var_box.c missing owned typed-array append.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayCreate(xl6_type_desc_XL_Union_Payload()" build\test\cgen_union_var_box.c >nul
+findstr /C:"xrtValueSetAddNew(" build\test\cgen_union_var_box.c >nul
 if errorlevel 1 (
-    echo cgen_union_var_box.c missing typed union array descriptor.
+    echo cgen_union_var_box.c missing owned typed-set insert.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_container_box_ref(xl6_runtime_type_desc_" build\test\cgen_union_var_box.c >nul
+findstr /C:"xlir_xvalue_type_bind(" build\test\cgen_union_var_box.c >nul
 if errorlevel 1 (
-    echo cgen_union_var_box.c missing handle-preserving typed union array boxing.
+    echo cgen_union_var_box.c missing canonical runtime TypeId binding.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_to_xvalue(xl6_type_desc_XL_Union_Payload(), __xl6_user_global_copied)" build\test\cgen_union_var_box.c >nul
-if not errorlevel 1 (
-    echo cgen_union_var_box.c materialized a typed union array during ordinary var boxing.
-    exit /b 1
-)
-findstr /C:"xrtTypedSetCreate(xl6_type_desc_XL_Union_Payload()" build\test\cgen_union_var_box.c >nul
-if errorlevel 1 (
-    echo cgen_union_var_box.c missing typed union set descriptor.
-    exit /b 1
-)
-"%XL6_TCC%" -Irelease\tcc\include_win %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_union_var_box.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_union_var_box.exe
+release\xl.exe build test\cases\cgen_union_var_box.xl test\cases\cgen_class_host.c -o build\test\cgen_union_var_box.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_union_var_box.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\export_union.xl --dump-dir build\test\dump_export_union
 if errorlevel 1 exit /b 1
-findstr /C:"typedef union XL_Union_Payload" build\test\dump_export_union\export_union.h >nul
+findstr /C:"typedef union xlir_union_t" build\test\dump_export_union\export_union.h >nul
 if errorlevel 1 (
     echo export_union.h missing union typedef.
     exit /b 1
 )
-findstr /C:"XL_Union_Payload p" build\test\dump_export_union\export_union.h >nul
+findstr /C:"xlir_union_t" build\test\dump_export_union\export_union.h | findstr /C:" p);" >nul
 if errorlevel 1 (
     echo export_union.h missing union parameter.
     exit /b 1

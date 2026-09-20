@@ -1,0 +1,61 @@
+Stack<int> defaultStack
+
+class StackHolder
+    Stack<string> values
+end
+
+func main(...) as int
+    assert(defaultStack.count() == 0)
+    assert(defaultStack.push(5))
+
+    Stack<int> numbers = Stack::<int>()
+    assert(numbers.reserve(8))
+    assert(numbers.capacity() >= 8)
+    assert(numbers.push(10))
+    assert(numbers.push(20))
+    assert(numbers.count() == 2)
+
+    Stack<int> clone = numbers.clone()
+    assert(numbers.equals(clone))
+    assert(clone.push(30))
+    assert(not numbers.equals(clone))
+
+    int number = 0
+    assert(numbers.peekInto(number))
+    assert(number == 20)
+    assert(numbers.peekAtInto(1, number))
+    assert(number == 10)
+    assert(not numbers.peekAtInto(-1, number))
+    assert(numbers.popInto(number))
+    assert(number == 20)
+    numbers.clear()
+    assert(numbers.count() == 0)
+    assert(numbers.trim())
+    assert(numbers.capacity() == 0)
+
+    StackHolder holder = StackHolder()
+    string text = ""
+    assert(holder.values.push("alpha"))
+    assert(holder.values.peekInto(text))
+    assert(text == "alpha")
+    assert(holder.values.popInto(text))
+    assert(text == "alpha")
+    assert(holder.values.count() == 0)
+
+    Stack<StackHolder> objects = Stack::<StackHolder>()
+    StackHolder object = StackHolder()
+    StackHolder objectResult = StackHolder()
+    assert(objects.push(object))
+    assert(objects.peekInto(objectResult))
+    assert(objectResult.values.push("nested"))
+    assert(objects.popInto(objectResult))
+    assert(objects.count() == 0)
+
+    func() as int observe = func() as int
+        return clone.count()
+    end
+    assert(observe() == 3)
+
+    println("xlir stack resource abi ok")
+    return 0
+end

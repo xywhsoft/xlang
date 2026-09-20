@@ -40,6 +40,16 @@ test\suites\02_language_frontend.bat
 - `09_artifact_closure.bat`：负例诊断产物和 `build\tmp` 文本产物收口检查，通常作为 `test.bat` 全量调度的最后一步运行。
 - `10_format_extlibs.bat`：gzip/bz2/zip/tar、CSV/INI/TOML/plist/netrc/XML 的 xlang/C 双语测试、Python 双向互操作、严格编译、私有依赖裁剪与按需链接守门。
 
+## Manual probes
+
+`tools/check_xlir_conditional_nullable_join.ps1` 验证三元表达式的可空类型汇合、分支局部收窄、惰性表达式的确定赋值，以及字符串/类/闭包汇合的所有权。门禁包含语义正负例、IR 变异拒绝、确定性 C/header、严格 C 内存平衡和 C-host JIT/AOT；它不代表全部 `out` 参数异常路径已完成证明。
+
+`tools/check_xlir_managed_storage_inputs.ps1` 验证普通存储、闭包 cell 写入前的独立所有权取得，以及托管 `match` 的显式存储汇合、支配使用的 MOVE、临时字段投影与 checked 转换的生命周期。包含 IR 变异拒绝、严格 C 内存平衡和 C-host JIT/AOT；它尚不等于所有 RuntimeOp 输入的全局单次消费证明。
+
+`tools/check_xlir_owner_consumption.ps1` 在此基础上验证托管 SSA 的路径敏感单次消费：统一 RuntimeOp/调用/返回/存储的输入效果，区分互斥分支、循环重新取得和透明别名，并禁止省略 STORE 的物理类型。包含已复现的跨块重复 STORE 反例、同路径重复消费变异、独立 CFG 单元测试及确定性 C/header；这仍不替代借用存活、存储重新激活与部分 product 字段生命周期的完整证明。
+
+`test/manual_probes.txt` lists interactive probes that require a local GUI, hardware, or human observation. These files remain checked test assets, but they must not be wired into automated suites. Every probe path is explicit and must use an `_probe_` filename.
+
 ## fixtures
 
 - `fixtures/libprobe`：package/import 测试用裸包名 fixture，用于验证 `XLANG_PACKAGE_PATH=release\extlibs;test\fixtures` 下的非发布物搜索路径。
@@ -71,6 +81,7 @@ test\suites\02_language_frontend.bat
 - `extlib`：随发布包扩展库的 xlang 回归用例。
 - `extern`：C extern 函数/变量用例。
 - `function`：function 类型基础用例。
+- `future`：future 值、等待、取消和生命周期用例。
 - `generic`：泛型类型基础用例。
 - `generics`：泛型语法基础用例。
 - `hir`：typed HIR 类型覆盖与后端边界用例。
@@ -93,6 +104,8 @@ test\suites\02_language_frontend.bat
 - `weak`：弱引用生命周期和升级用例。
 - `xlang`：xlang 嵌入、嵌套运行和脚本上下文用例。
 - `xl`：`xl run` 参数用例。
+- `xlir`：统一 XLIR 直接 AST 构建与确定性 C 发射用例。
+- `xruntime`：xruntime 类型协议、动态字段和语言桥接用例。
 <!-- case-prefix-index:end -->
 
 ## 守门脚本

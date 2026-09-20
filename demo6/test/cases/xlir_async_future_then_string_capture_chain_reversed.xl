@@ -1,0 +1,12 @@
+extern "xlir_make_string_future" func makeText() as future<string>
+
+async func surround(future<string> source, string prefix) as string
+    string copied = prefix
+    string suffix = "!"
+    return copied + await source + suffix
+end
+
+future<string> source = makeText()
+future<string> pending = surround(source, "[")
+string completed = await pending
+assert completed == "[hello!"

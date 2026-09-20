@@ -130,7 +130,7 @@ task.cancel(t)
 规则：
 
 - `t` 必须是 task/future 或聚合 task。
-- 取消已经完成的 task 不报错，返回成功。
+- 只有 pending task 首次接受取消请求时返回 `true`；已取消或已完成的 task 返回 `false`，且不报错、不改写原状态。
 - 取消不保证任务立刻停止。
 - 如果任务在取消后到达可取消点，应进入 canceled 状态。
 - await canceled task 时抛出取消错误，错误模型复用当前异常系统。

@@ -329,13 +329,41 @@ Invoke-GuardStep "static wiring guards" {
         "check_cgen_module_size.ps1",
         "check_markdown_links.ps1",
         "check_tool_wiring.ps1",
+        "check_xrt_snapshot.ps1",
+        "check_xrt_header_abi.ps1",
+        "check_xrt_ownership_contract.ps1",
+        "check_xruntime_language_bridge.ps1",
         "check_batch_wiring.ps1",
         "check_cli_temp_cleanup.ps1",
         "check_source_wiring.ps1",
         "check_typed_hir_contract.ps1",
+        "check_xlir_contract.ps1",
+        "check_xlir_cgen_determinism.ps1",
+        "check_xlir_cgen_differential.ps1",
+        "check_xlir_export_boundary.ps1",
+        "check_xlir_global_export_boundary.ps1",
+        "check_xlir_extern_global_boundary.ps1",
+        "check_xlir_null_abi_boundary.ps1",
+        "check_xlir_callsite_binding.ps1",
+        "check_xlir_callsite_variadic.ps1",
+        "check_xlir_callsite_c_vararg.ps1",
+        "check_xlir_callsite_generic_specialization.ps1",
+        "check_xlir_native_nominal_receiver.ps1",
+        "check_xlir_native_handle_bind.ps1",
+        "check_xlir_value_initializer.ps1",
+        "check_xlir_reachability.ps1",
+        "check_xlir_product_result.ps1",
+        "check_xlir_named_function_adapter.ps1",
+        "check_xlir_collection_member_intrinsics.ps1",
+        "check_xlir_collection_algebra.ps1",
+        "check_xlir_xvalue_array_iterator_projection.ps1",
+        "check_xlir_dynamic_collection_methods.ps1",
+        "check_xlir_migration_coverage.ps1",
+        "check_xlir_default_backend_boundary.ps1",
         "check_source_encoding.ps1",
         "check_frontend_fuzz.ps1",
         "check_toolchain_paths.ps1",
+        "check_xrt_product_trim.ps1",
         "check_dll_api_boundary.ps1",
         "check_test_case_wiring.ps1",
         "check_test_data_wiring.ps1",
@@ -351,6 +379,7 @@ Invoke-GuardStep "static wiring guards" {
         "check_stdlib_test_wiring.ps1",
         "check_stdlib_dll_symbols.ps1",
         "check_tcc_export_environment.ps1",
+        "check_tcc_vfs_resources.ps1",
         "check_tcc_xrt_contract.ps1",
         "check_release_tmp_artifacts.ps1",
         "check_negative_diagnostics.ps1"
@@ -359,6 +388,11 @@ Invoke-GuardStep "static wiring guards" {
     foreach ( $script in $scripts ) {
         Invoke-CheckScript $script
     }
+
+    # Discover every specialized XLIR gate not already named above.  The
+    # repository inventory is authoritative, so adding a new XLIR ABI gate
+    # automatically extends the RC0 static/semantic boundary.
+    Invoke-Cmd "powershell.exe" @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tools\run_xlir_guards.ps1", "-Mode", "Rc0Supplement")
 }
 
 Invoke-GuardStep "handwritten C safety" {

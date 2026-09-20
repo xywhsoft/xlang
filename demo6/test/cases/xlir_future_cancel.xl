@@ -1,0 +1,28 @@
+async func readyValue(int value) as int
+    return value
+end
+
+async func slowValue(int value) as int
+    time.sleep(50)
+    return value
+end
+
+future<int> completed = readyValue(41)
+assert await completed == 41
+assert not task.cancel(completed), "completed Future accepted cancellation"
+
+future<int> pending = slowValue(42)
+assert task.cancel(pending), "pending Future rejected cancellation"
+int caught = 0
+try
+    int ignored = await pending
+catch e
+    caught = 1
+end
+assert caught == 1, "cancelled Future did not enter catch"
+
+bool temporary = task.cancel(slowValue(43))
+assert temporary == true or temporary == false
+
+future<int> memberPending = slowValue(44)
+assert memberPending.cancel(), "Future member cancellation rejected"

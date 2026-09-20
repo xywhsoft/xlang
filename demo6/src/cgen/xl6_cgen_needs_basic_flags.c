@@ -66,24 +66,6 @@ int xl6CgenNodeNeedsFunctionRuntime(const XL6_AstNode* node)
     return 0;
 }
 
-int xl6CgenNodeNeedsApprox(const XL6_AstNode* node)
-{
-    size_t i;
-
-    if ( node == NULL ) {
-        return 0;
-    }
-    if ( node->kind == XL6_AST_BINARY && xl6CgenNeedsBasicTextEquals(node->text, "~=") ) {
-        return 1;
-    }
-    for ( i = 0; i < node->childCount; ++i ) {
-        if ( xl6CgenNodeNeedsApprox(node->children[i]) ) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 int xl6CgenNodeNeedsTimeRuntime(const XL6_AstNode* node)
 {
     size_t i;
@@ -158,6 +140,47 @@ int xl6CgenNodeNeedsXValueRuntime(const XL6_AstNode* node)
     return 0;
 }
 
+
+
+int xl6CgenNodeNeedsWeakRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( node->kind == XL6_AST_TYPE &&
+         xl6CgenNeedsBasicTextEquals(node->text, "weak") ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsWeakRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+
+
+int xl6CgenNodeNeedsPrintRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( xl6CgenNeedsBasicIsPrintIntrinsicCall(node) ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsPrintRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int xl6CgenNodeNeedsCryptoRuntime(const XL6_AstNode* node)
 {
     size_t i;
@@ -179,42 +202,6 @@ int xl6CgenNodeNeedsCryptoRuntime(const XL6_AstNode* node)
     return 0;
 }
 
-int xl6CgenNodeNeedsUrlRuntime(const XL6_AstNode* node)
-{
-    size_t i;
-
-    if ( node == NULL ) {
-        return 0;
-    }
-    if ( xl6CgenNeedsBasicIsUrlRuntimeCall(node) ) {
-        return 1;
-    }
-    for ( i = 0; i < node->childCount; ++i ) {
-        if ( xl6CgenNodeNeedsUrlRuntime(node->children[i]) ) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int xl6CgenNodeNeedsQueryRuntime(const XL6_AstNode* node)
-{
-    size_t i;
-
-    if ( node == NULL ) {
-        return 0;
-    }
-    if ( xl6CgenNeedsBasicIsQueryRuntimeCall(node) ) {
-        return 1;
-    }
-    for ( i = 0; i < node->childCount; ++i ) {
-        if ( xl6CgenNodeNeedsQueryRuntime(node->children[i]) ) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 int xl6CgenNodeNeedsXidRuntime(const XL6_AstNode* node)
 {
     size_t i;
@@ -227,27 +214,6 @@ int xl6CgenNodeNeedsXidRuntime(const XL6_AstNode* node)
     }
     for ( i = 0; i < node->childCount; ++i ) {
         if ( xl6CgenNodeNeedsXidRuntime(node->children[i]) ) {
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int xl6CgenNodeNeedsRegexRuntime(const XL6_AstNode* node)
-{
-    size_t i;
-
-    if ( node == NULL ) {
-        return 0;
-    }
-    if ( xl6CgenNeedsBasicIsRegexClass(node) ) {
-        return 1;
-    }
-    if ( xl6CgenNeedsBasicIsRegexRuntimeCall(node) ) {
-        return 1;
-    }
-    for ( i = 0; i < node->childCount; ++i ) {
-        if ( xl6CgenNodeNeedsRegexRuntime(node->children[i]) ) {
             return 1;
         }
     }
@@ -287,6 +253,28 @@ int xl6CgenNodeNeedsProcessRuntime(const XL6_AstNode* node)
     }
     for ( i = 0; i < node->childCount; ++i ) {
         if ( xl6CgenNodeNeedsProcessRuntime(node->children[i]) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int xl6CgenNodeNeedsProcessWaitAsyncRuntime(const XL6_AstNode* node)
+{
+    size_t i;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( (node->kind == XL6_AST_EXTERN_FUNC ||
+          node->kind == XL6_AST_NATIVE_EXTERN_FUNC) &&
+         xl6CgenNeedsBasicExternTextEquals(
+             node->text,
+             "xl6_xrt_process_wait_future") ) {
+        return 1;
+    }
+    for ( i = 0; i < node->childCount; ++i ) {
+        if ( xl6CgenNodeNeedsProcessWaitAsyncRuntime(node->children[i]) ) {
             return 1;
         }
     }

@@ -1,0 +1,8 @@
+async func failWorker() as int
+    assert false
+    return 1
+end
+
+future<int> pending = failWorker()
+int completed = await pending
+assert completed == 1

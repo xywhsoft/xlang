@@ -30,6 +30,15 @@ class ScalarBridgeBox
     end
 end
 
+func constructorFailureCaught() as bool
+    try
+        ScalarBridgeBox ignored = ScalarBridgeBox("not-an-int")
+    catch e
+        return true
+    end
+    return false
+end
+
 func main(...) as int
     int declared = int(dynamicInt(1))
     int assigned = 0
@@ -50,6 +59,7 @@ func main(...) as int
     assert text == "ok"
     assert narrowedString("narrowed") == "narrowed"
     assert box.value == 8
+    assert constructorFailureCaught()
     println("xvalue scalar bridge matrix ok")
     return 0
 end

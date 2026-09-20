@@ -1,0 +1,7 @@
+export "xlir_dynamic_conditional_truth" func exercise() as int
+    var falseCondition = 0
+    var trueCondition = 2
+    int scalarResult = falseCondition ? 10 : 20
+    var dynamicResult = trueCondition ? 30 : "bad"
+    return scalarResult + int(dynamicResult)
+end

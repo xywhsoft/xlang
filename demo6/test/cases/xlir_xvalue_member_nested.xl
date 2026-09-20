@@ -1,0 +1,10 @@
+func dynamic_member_nested() as var
+  var value = {"nested": {"answer": 41}}
+  value.nested.answer = 42
+  return value.nested.answer
+end
+
+export "xlir_test_xvalue_member_nested_root" func xlir_test_root() as int
+  var rootedValue = dynamic_member_nested()
+  return 0
+end

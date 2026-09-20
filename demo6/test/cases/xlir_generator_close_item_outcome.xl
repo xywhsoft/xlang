@@ -1,0 +1,36 @@
+extern "close_item_mark" func itemMark(int id)
+extern "close_item_fail" func itemFail(int mode, int code)
+extern "close_item_drop" func itemDrop(int mode, int code)
+
+class CloseItemOwner
+    int mode
+    int code
+    create(int mode, int code)
+        self.mode = mode
+        self.code = code
+    end
+    destroy()
+        itemDrop(self.mode, self.code)
+    end
+end
+
+func ownedItems(int itemMode, int cleanupMode) as generator<CloseItemOwner>
+    try
+        yield CloseItemOwner(itemMode, 73)
+        itemMark(90)
+    finally
+        itemMark(10)
+        yield CloseItemOwner(itemMode, 74)
+        itemMark(11)
+        itemFail(cleanupMode, 42)
+    end
+    itemMark(91)
+end
+
+export "close_item_consume" func consumeItems(int consumerMode, int itemMode, int cleanupMode) as int
+    for value in ownedItems(itemMode, cleanupMode)
+        itemFail(consumerMode, 31)
+        break
+    end
+    return 7
+end

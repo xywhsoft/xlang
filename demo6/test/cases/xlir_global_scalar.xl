@@ -1,0 +1,5 @@
+int base = 40
+
+export "xlir_test_global_answer" func global_answer() as int64
+    return base + 2
+end

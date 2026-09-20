@@ -1,0 +1,11 @@
+func items(int? value) as generator<int?>
+    yield value
+    yield null
+end
+export "payload_probe" func probe() as int
+    int count = 0
+    for item in items(7)
+        count += item ?? 0
+    end
+    return count
+end

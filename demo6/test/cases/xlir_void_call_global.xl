@@ -1,0 +1,11 @@
+int64 counter = 0
+
+func increment()
+    counter = counter + 1
+end
+
+export "xlir_test_run_counter" func run_counter() as int64
+    increment()
+    increment()
+    return counter
+end

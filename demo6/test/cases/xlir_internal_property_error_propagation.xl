@@ -1,0 +1,25 @@
+class FailingPropertyProbe
+    int value = 0
+
+    create(int value)
+        self.value = value
+    end
+
+    get checked() as int
+        if self.value < 0
+            throw ValueError "negative property value"
+        end
+        return self.value
+    end
+end
+
+func main(...) as int
+    bool caught = false
+    try
+        FailingPropertyProbe probe = FailingPropertyProbe(-1)
+        int unused = probe.checked
+    catch ValueError error
+        caught = true
+    end
+    return caught ? 0 : 14
+end

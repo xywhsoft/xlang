@@ -1,0 +1,50 @@
+class MaybeBox
+    int? value
+
+    func set(int? next)
+        self.value = next
+    end
+
+    func get() as int?
+        return self.value
+    end
+end
+
+class ReadyMaybeBox
+    int? value = 23
+
+    func get() as int?
+        return self.value
+    end
+end
+
+export "xlir_nullable_class_default" func defaultValue() as int
+    MaybeBox box = MaybeBox()
+    return box.get() ?? 5
+end
+
+export "xlir_nullable_class_present" func presentValue() as int
+    MaybeBox box = MaybeBox()
+    box.set(64)
+    return box.get() ?? 9
+end
+
+export "xlir_nullable_class_reset" func resetValue() as int
+    MaybeBox box = MaybeBox()
+    box.set(71)
+    box.set(null)
+    return box.get() ?? 11
+end
+
+export "xlir_nullable_class_explicit" func explicitValue() as int
+    ReadyMaybeBox box = ReadyMaybeBox()
+    return box.get() ?? 13
+end
+
+func main(...) as int
+    assert(defaultValue() == 5)
+    assert(presentValue() == 64)
+    assert(resetValue() == 11)
+    assert(explicitValue() == 23)
+    return 0
+end

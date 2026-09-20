@@ -1,0 +1,37 @@
+extern "xl6_test_point_is_null" func pointIsNull(point value) as bool
+extern "xl6_test_invoke_void" func invokeVoid(func() callback) as bool
+extern "xl6_test_invoke_scalars" func invokeScalars(func(bool, int, uint64, type, float) as float callback) as bool
+extern "xl6_test_invoke_string" func invokeString(func(var, string) as string callback) as bool
+extern "xl6_test_invoke_value" func invokeValue(func(var) as var callback) as bool
+extern "xl6_test_invoke_captured" func invokeCaptured(func(int) as bool callback) as bool
+
+func truthy(var value) as bool
+    return bool(value)
+end
+
+func observe()
+end
+
+func scalars(bool flag, int signedValue, uint64 unsignedValue, type typeValue, float number) as float
+    return number
+end
+
+func echo(var ignored, string value) as string
+    return value
+end
+
+func identity(var value) as var
+    return value
+end
+
+int threshold = 10
+auto captured = func(int value) as bool => value > threshold
+
+TlsConfig callbackHost = TlsConfig()
+assert(callbackHost.verifyCallback(truthy))
+assert(invokeVoid(observe))
+assert(invokeScalars(scalars))
+assert(invokeString(echo))
+assert(invokeValue(identity))
+assert(invokeCaptured(captured))
+assert(pointIsNull(point(null)))

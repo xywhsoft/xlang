@@ -1,0 +1,11 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func pair<T>(T value) as (bool, T)
+    return true, value
+end
+
+bool ok = false
+int value = 0
+ok, value = pair(41)
+assert ok
+expect(value, 41)

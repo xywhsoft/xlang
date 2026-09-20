@@ -1,0 +1,59 @@
+extern "c_apply_i32" func cApply(c_callback func(c_int) as c_int callback, c_int value) as c_int
+extern "c_apply_text" func cApplyText(c_callback func(string) as c_int callback, string text) as c_int
+extern "c_apply_mixed" func cApplyMixed(c_callback func(c_bool, c_double, point, string) as c_double callback) as c_double
+extern "c_fire_i32" func cFire(c_callback func(c_int) callback, c_int value)
+extern "c_text_is_hello" func cTextIsHello(string text) as c_bool
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_f64" func expectFloat(c_double actual, c_double expected)
+
+class NativeCallbackBox
+    native point handle
+    extern "callback_box_create" create(c_callback func(c_int) as c_int callback)
+    extern "callback_box_destroy" destroy()
+    extern "callback_box_set" func set(c_callback func(c_int) as c_int callback)
+    extern "callback_box_apply" func apply(c_int value) as c_int
+end
+
+func twice(c_int value) as c_int
+    return value * 2
+end
+
+func plusOne(c_int value) as c_int
+    return value + 1
+end
+
+func textBytes(string text) as c_int
+    if cTextIsHello(text) then
+        return 6
+    end
+    return -1
+end
+
+func mixed(c_bool enabled, c_double value, point token, string text) as c_double
+    if enabled and token != null and cTextIsHello(text) then
+        return value * 2.0
+    end
+    return -1.0
+end
+
+int firedValue = 0
+
+func remember(c_int value)
+    firedValue = value
+end
+
+func(c_int) as c_int callback = twice
+expect(cApply(callback, 21), 42)
+expect(cApply(plusOne, 41), 42)
+expect(cApply(func(c_int value) as c_int
+    return value - 1
+end, 43), 42)
+expect(cApplyText(textBytes, "你好"), 6)
+expectFloat(cApplyMixed(mixed), 42.0)
+cFire(remember, 42)
+expect(firedValue, 42)
+
+auto box = NativeCallbackBox(twice)
+expect(box.apply(10), 20)
+box.set(plusOne)
+expect(box.apply(41), 42)

@@ -1,0 +1,27 @@
+export "xlir_u64_async_value" uint64 asyncValue = 0
+export "xlir_u64_closure_value" uint64 closureValue = 0
+export "xlir_u64_cell_value" uint64 cellValue = 0
+
+async func addReady(uint64 left, uint64 right) as uint64
+    return left + right
+end
+
+func applyBase(uint64 base) as uint64
+    auto add = func(uint64 value) as uint64 => base + value
+    return add(4)
+end
+
+func applyCounter(uint64 initial) as uint64
+    uint64 local = initial
+    auto next = func() as uint64
+        local += 1
+        return local
+    end
+    next()
+    return next()
+end
+
+future<uint64> pending = addReady(9223372036854775808, 7)
+asyncValue = await pending
+closureValue = applyBase(18446744073709551610)
+cellValue = applyCounter(18446744073709551613)

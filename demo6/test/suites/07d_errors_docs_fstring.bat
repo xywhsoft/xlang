@@ -84,6 +84,27 @@ release\xl.exe build test\cases\cgen_error_model.xl -o build\test\cgen_error_mod
 if errorlevel 1 exit /b 1
 build\test\cgen_error_model.exe
 if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_structured_error_bridge.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_structured_error_bridge.xl -o build\test\cgen_structured_error_bridge.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_structured_error_bridge.exe
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\cgen_error_value_lifetime.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\cgen_error_value_lifetime.xl -o build\test\cgen_error_value_lifetime.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_error_value_lifetime.exe
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_error_value_lifetime.xl --emit build\test\cgen_error_value_lifetime.c
+if errorlevel 1 exit /b 1
+for %%S in (xl6_error_retain xl6_error_box_ref xl6_async_free_error_value xl6_future_await_handle_copy) do (
+    findstr /C:"%%S" build\test\cgen_error_value_lifetime.c >nul
+    if errorlevel 1 (
+        echo cgen_error_value_lifetime.c missing %%S ownership path.
+        exit /b 1
+    )
+)
 release\xl.exe run release\examples\error_model.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_try_finally_pending_control.xl --emit build\test\cgen_try_finally_pending_control.c

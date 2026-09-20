@@ -1,0 +1,25 @@
+func main(...) as int
+    bool caughtDivision = false
+    bool caughtModulo = false
+    int zero = 0
+
+    try
+        int value = 10
+        value /= zero
+        assert value == 0, "compound division must not continue"
+    catch ArithmeticError e
+        caughtDivision = e.kind == "ZeroDivisionError"
+    end
+
+    try
+        int value = 10
+        value %= zero
+        assert value == 0, "compound modulo must not continue"
+    catch ZeroDivisionError e
+        caughtModulo = e.kind == "ZeroDivisionError"
+    end
+
+    assert caughtDivision and caughtModulo
+    println("xlir_checked_integer_compound_error_abi ok")
+    return 0
+end

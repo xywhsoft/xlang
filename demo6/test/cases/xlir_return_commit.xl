@@ -1,0 +1,92 @@
+func single(string input) as string
+    string scratch = input + " scratch"
+    assert scratch == "value scratch"
+    string local = input + "!"
+    return local
+end
+
+func adapted(string input, string suffix = "!") as string
+    if input == "fail" then
+        throw ValueError "adapter failure"
+    end
+    return input + suffix
+end
+
+func repeated(string input) as (string, string)
+    string local = input + "!"
+    return local, local
+end
+
+func nested(string input) as (string, string)
+    try
+        try
+            return input + "!", input + "?"
+        finally
+            assert input == "value"
+        end
+    finally
+        assert input == "value"
+    end
+end
+
+func handled(string input) as string
+    try
+        throw ValueError "handled"
+    catch e
+        return input + "!"
+    finally
+        assert input == "value"
+    end
+end
+
+func multi(string input) as string
+    try
+        return input + "!"
+    catch ValueError e
+        return input + "bad"
+    catch e
+        return input + "bad"
+    finally
+        assert input == "value"
+    end
+end
+
+func cancelled(string input) as (string, string)
+    try
+        return input + "lost one", input + "lost two"
+    finally
+        throw ValueError "cancel result"
+    end
+end
+
+export "xlir_return_probe" func probe() as int
+    string input = "val" + "ue"
+    assert single(input) == "value!"
+    auto first, second = repeated(input)
+    assert first == "value!" and second == "value!"
+    auto left, right = nested(input)
+    assert left == "value!" and right == "value?"
+    assert handled(input) == "value!"
+    assert multi(input) == "value!"
+    func(string) as string callback = adapted
+    assert callback(input) == "value!"
+    int adapterCaught = 0
+    try
+        string lost = callback("fail")
+        assert false
+    catch e
+        adapterCaught = 1
+    end
+    assert adapterCaught == 1
+    int caught = 0
+    try
+        auto lostOne, lostTwo = cancelled(input)
+        assert false
+    catch e
+        caught = 1
+    end
+    assert caught == 1
+    return 41
+end
+
+assert probe() == 41

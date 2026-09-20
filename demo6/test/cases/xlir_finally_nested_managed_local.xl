@@ -1,0 +1,27 @@
+func nested_managed_finally_local() as int
+    try
+        return 1
+    finally
+        if true then
+            string message = "pending"
+        end
+    end
+end
+
+func loop_managed_finally_local() as int
+    int index = 0
+    try
+        return 5
+    finally
+        while index < 2
+            string message = "pending"
+            index = index + 1
+        end
+    end
+end
+
+
+if false
+    nested_managed_finally_local()
+    loop_managed_finally_local()
+end

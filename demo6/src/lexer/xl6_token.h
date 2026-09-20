@@ -68,6 +68,7 @@ typedef enum XL6_TokenKind {
     XL6_KW_VIRTUAL,
     XL6_KW_NATIVE,
     XL6_KW_C_VARARG,
+    XL6_KW_C_CALLBACK,
     XL6_KW_BYVAL,
     XL6_KW_BYREF,
     XL6_KW_OUT,

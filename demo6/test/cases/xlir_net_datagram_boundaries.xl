@@ -1,0 +1,29 @@
+async func run() as int
+    UdpSocket sender = udp.bind(0)
+    UdpSocket receiver = udp.bind(0)
+    uint16 port = uint16(receiver.port())
+    Buffer item = Buffer()
+    item.append("x")
+    array invalid = [item, "not a Buffer"]
+    assert not sender.sendVec("127.0.0.1", port, invalid)
+    assert sender.sendBatch("127.0.0.1", port, invalid) == 0
+    array many = [item,item,item,item,item,item,item,item,item,item,item,item,item,item,item,item,item]
+    future<UdpPacket> receiving = receiver.recvAsync()
+    assert sender.sendVec("127.0.0.1", port, many)
+    UdpPacket received = await receiving
+    assert received.text() == "xxxxxxxxxxxxxxxxx"
+    assert not received.truncated()
+    assert item.len() == 1
+    assert sender.sendBatch("127.0.0.1", port, many) == 17
+    int index = 0
+    while index < 17
+        UdpPacket packet = receiver.recv(8000)
+        assert packet.text() == "x"
+        index += 1
+    end
+    assert item.len() == 1
+    println("xlir datagram boundaries ok")
+    return 0
+end
+int exitCode = await run()
+assert exitCode == 0

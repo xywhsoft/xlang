@@ -2,6 +2,26 @@ class Box
     int value = 0
 end
 
-func bad(Box box) as generator<int>
+// Former first-stage negative: a frame retains the same class identity.
+func values(Box box) as generator<int>
     yield box.value
+    yield box.value
+end
+
+Box box = Box()
+box.value = 7
+int seen = 0
+for item in values(box)
+    if seen == 0
+        assert item == 7
+        box.value = 9
+    else
+        assert item == 9
+    end
+    seen += 1
+end
+assert seen == 2
+for item in values(Box())
+    assert item == 0
+    break
 end

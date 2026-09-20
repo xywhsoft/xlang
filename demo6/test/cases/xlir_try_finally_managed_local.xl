@@ -1,0 +1,24 @@
+func managed_finally_local_normal() as int
+    int value = 0
+    try
+        value = 1
+    finally
+        string detail = "normal"
+        value = value + 1
+    end
+    return value
+end
+
+func managed_finally_local_return() as int
+    try
+        return 9
+    finally
+        string detail = "return"
+    end
+end
+
+
+if false
+    managed_finally_local_normal()
+    managed_finally_local_return()
+end

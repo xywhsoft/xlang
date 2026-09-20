@@ -4,9 +4,27 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: core C generation and runtime baseline 10/10...
 
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_module_finalization.ps1
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\xlir_module_finalization.xl --emit build\test\xlir_module_finalization.c
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\xlir_module_native_finalization.xl --emit build\test\xlir_module_native_finalization.c
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\xlir_module_scalar_finalization.xl --emit build\test\xlir_module_scalar_finalization.c
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\xlir_module_finalization_cli.xl --emit build\test\xlir_module_finalization_cli.c
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\xlir_module_finalization_cli_error.xl --emit build\test\xlir_module_finalization_cli_error.c
+if errorlevel 1 exit /b 1
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_binary_evaluation_lifetime.ps1
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\xlir_binary_operand_lifetime.xl --emit build\test\xlir_binary_operand_lifetime.c
+if errorlevel 1 exit /b 1
+
 release\xl.exe run release\examples\stdlib_random.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_random_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_random_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_random_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_random_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_random_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_random_c.exe > build\test\stdlib_random_c.out.txt
 if errorlevel 1 exit /b 1
@@ -22,14 +40,14 @@ if errorlevel 1 (
     echo stdlib_buffer.c missing Buffer class bridge.
     exit /b 1
 )
-findstr /C:"xbuffer xrtBufferCreate" build\test\stdlib_buffer.c >nul
-if errorlevel 1 (
-    echo stdlib_buffer.c missing xrtBufferCreate extern prototype.
+findstr /C:"XL6_XBuffer xrtBufferCreate" build\test\stdlib_buffer.c >nul
+if not errorlevel 1 (
+    echo stdlib_buffer.c duplicates the XRT buffer create declaration.
     exit /b 1
 )
 findstr /C:"bool xrtBufferAppend" build\test\stdlib_buffer.c >nul
-if errorlevel 1 (
-    echo stdlib_buffer.c missing xrtBufferAppend extern prototype.
+if not errorlevel 1 (
+    echo stdlib_buffer.c duplicates the XRT buffer append declaration.
     exit /b 1
 )
 findstr /C:"void* xl6_xrt_buffer_create" build\test\stdlib_buffer.c >nul
@@ -42,13 +60,13 @@ if errorlevel 1 (
     echo stdlib_buffer.c missing Buffer appendBytes runtime helper.
     exit /b 1
 )
-"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\stdlib_buffer.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_buffer.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\stdlib_buffer.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_buffer.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_buffer.exe
 if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\stdlib_buffer.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_buffer_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_buffer_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_buffer_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_buffer_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_buffer_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_buffer_c.exe > build\test\stdlib_buffer_c.out.txt
 if errorlevel 1 exit /b 1
@@ -64,14 +82,24 @@ if errorlevel 1 (
     echo stdlib_file_async.c missing async file read helper.
     exit /b 1
 )
-findstr /C:"xfuture* xrtFileReadAllAsync" build\test\stdlib_file_async.c >nul
+findstr /C:"xrtFileReadAllAsync(xl6_async_file_pool, path)" build\test\stdlib_file_async.c >nul
 if errorlevel 1 (
     echo stdlib_file_async.c missing direct XRT async file API.
     exit /b 1
 )
-findstr /C:"xFutureThenSource" build\test\stdlib_file_async.c >nul
+findstr /C:"xtaskpool* xrtTaskPoolCreate" build\test\stdlib_file_async.c >nul
+if not errorlevel 1 (
+    echo stdlib_file_async.c duplicates the XRT task-pool declaration.
+    exit /b 1
+)
+findstr /C:"xl6_async_file_pool = xrtTaskPoolCreate(0)" build\test\stdlib_file_async.c >nul
 if errorlevel 1 (
-    echo stdlib_file_async.c missing XRT future result adapter.
+    echo stdlib_file_async.c missing the current XRT task-pool call.
+    exit /b 1
+)
+findstr /C:"result = xl6FutureCatchOwned" build\test\stdlib_file_async.c >nul
+if errorlevel 1 (
+    echo stdlib_file_async.c missing structured path error adaptation.
     exit /b 1
 )
 findstr /C:"xl6_task_run_thread_tracked(xl6_xrt_file" build\test\stdlib_file_async.c >nul
@@ -84,17 +112,62 @@ if errorlevel 1 (
     echo stdlib_file_async.c missing async file delete helper.
     exit /b 1
 )
-"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\stdlib_file_async.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_file_async.exe
+findstr /C:"xrtAsyncFileConfigInit" build\test\stdlib_file_async.c >nul
+if not errorlevel 1 (
+    echo stdlib_file_async.c still contains the removed async-file config ABI.
+    exit /b 1
+)
+findstr /C:"xrtFileGetAllAsync" build\test\stdlib_file_async.c >nul
+if not errorlevel 1 (
+    echo stdlib_file_async.c still contains the removed binary whole-file ABI.
+    exit /b 1
+)
+findstr /C:"xrtDirDeleteAsync" build\test\stdlib_file_async.c >nul
+if not errorlevel 1 (
+    echo stdlib_file_async.c still contains the removed directory async ABI.
+    exit /b 1
+)
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\stdlib_file_async.c test\cases\cgen_class_host.c release\xl.dll -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_file_async.exe
 if errorlevel 1 exit /b 1
+set "PATH=%CD%\release;%PATH%"
 build\test\stdlib_file_async.exe
 if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\stdlib_file_async.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_file_async_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_file_async_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_file_async_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_file_async_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_file_async_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_file_async_c.exe > build\test\stdlib_file_async_c.out.txt
 if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$a=[System.IO.File]::ReadAllLines('build\test\stdlib_file_async_xlang.out.txt'); $b=[System.IO.File]::ReadAllLines('build\test\stdlib_file_async_c.out.txt'); if (($a -join \"`n\") -ne ($b -join \"`n\")) { Write-Host 'stdlib file async xlang/C output mismatch.'; Write-Host 'xlang:'; $a; Write-Host 'C:'; $b; exit 1 }"
+if errorlevel 1 exit /b 1
+
+release\xl.exe check test\cases\stdlib_net_trim_dns_only.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_net_trim_dns_only.xl --emit build\test\stdlib_net_trim_dns_only.c
+if errorlevel 1 exit /b 1
+findstr /C:"static bool xl6_net_address_parse" build\test\stdlib_net_trim_dns_only.c >nul
+if errorlevel 1 (
+    echo stdlib_net_trim_dns_only.c missing address helper.
+    exit /b 1
+)
+findstr /C:"xl6_net_deadline" build\test\stdlib_net_trim_dns_only.c >nul
+if not errorlevel 1 (
+    echo stdlib_net_trim_dns_only.c unexpectedly contains deadline helper.
+    exit /b 1
+)
+findstr /C:"xrtDeadlineAfter" build\test\stdlib_net_trim_dns_only.c >nul
+if not errorlevel 1 (
+    echo stdlib_net_trim_dns_only.c unexpectedly depends on deadline support.
+    exit /b 1
+)
+findstr /C:"#define XL_RUNTIME_NEED_TYPED_CONTAINER 1" build\test\stdlib_net_trim_dns_only.c >nul
+if not errorlevel 1 (
+    echo stdlib_net_trim_dns_only.c unexpectedly enables typed containers.
+    exit /b 1
+)
+release\xl.exe build test\cases\stdlib_net_trim_dns_only.xl -o build\test\stdlib_net_trim_dns_only.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_net_trim_dns_only.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_net_tcp_udp.xl
@@ -106,14 +179,39 @@ if errorlevel 1 (
     echo stdlib_net_tcp_udp.c missing TcpStream class bridge.
     exit /b 1
 )
-findstr /C:"void* xrtNetTcpConnect" build\test\stdlib_net_tcp_udp.c >nul
-if errorlevel 1 (
-    echo stdlib_net_tcp_udp.c missing xrtNetTcpConnect extern prototype.
+findstr /C:"xnetstream* xrtNetConnect" build\test\stdlib_net_tcp_udp.c >nul
+if not errorlevel 1 (
+    echo stdlib_net_tcp_udp.c duplicates the XRT connect declaration.
     exit /b 1
 )
-findstr /C:"void* xrtNetUdpBind" build\test\stdlib_net_tcp_udp.c >nul
+findstr /C:"return xrtNetConnect(xl6_net_engine, xl6_net_resolver, host, port" build\test\stdlib_net_tcp_udp.c >nul
 if errorlevel 1 (
-    echo stdlib_net_tcp_udp.c missing xrtNetUdpBind extern prototype.
+    echo stdlib_net_tcp_udp.c missing the current XRT connect call.
+    exit /b 1
+)
+findstr /C:"xnetudp* xrtNetUdpBind" build\test\stdlib_net_tcp_udp.c >nul
+if not errorlevel 1 (
+    echo stdlib_net_tcp_udp.c duplicates the XRT UDP bind declaration.
+    exit /b 1
+)
+findstr /C:"return xrtNetUdpBind(xl6_net_engine, &address" build\test\stdlib_net_tcp_udp.c >nul
+if errorlevel 1 (
+    echo stdlib_net_tcp_udp.c missing the current XRT UDP bind call.
+    exit /b 1
+)
+findstr /C:"static bool xl6_net_runtime_wait_objects" build\test\stdlib_net_tcp_udp.c >nul
+if errorlevel 1 (
+    echo stdlib_net_tcp_udp.c missing bounded network shutdown wait.
+    exit /b 1
+)
+findstr /C:"xrtNetTcpConnect" build\test\stdlib_net_tcp_udp.c >nul
+if not errorlevel 1 (
+    echo stdlib_net_tcp_udp.c still contains the removed TCP compatibility API.
+    exit /b 1
+)
+findstr /C:"xrtNetUdpRecvAsync" build\test\stdlib_net_tcp_udp.c >nul
+if not errorlevel 1 (
+    echo stdlib_net_tcp_udp.c still contains the removed UDP compatibility API.
     exit /b 1
 )
 findstr /C:"void* xl6_xrt_tcp_stream_recv_buffer" build\test\stdlib_net_tcp_udp.c >nul
@@ -131,6 +229,16 @@ if not errorlevel 1 (
     echo stdlib_net_tcp_udp.c unexpectedly contains raw TLS wrappers.
     exit /b 1
 )
+findstr /C:"#define XL_RUNTIME_NEED_TYPED_CONTAINER 1" build\test\stdlib_net_tcp_udp.c >nul
+if not errorlevel 1 (
+    echo stdlib_net_tcp_udp.c unexpectedly enables typed containers.
+    exit /b 1
+)
+findstr /R /C:"xl6TypedArray" /C:"xl6TypedList" /C:"xl6TypedSet" /C:"xl6TypedDict" build\test\stdlib_net_tcp_udp.c >nul
+if not errorlevel 1 (
+    echo stdlib_net_tcp_udp.c unexpectedly contains typed-container helpers.
+    exit /b 1
+)
 release\xl.exe build test\cases\stdlib_net_tcp_udp.xl -o build\test\stdlib_net_tcp_udp.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_net_tcp_udp.exe
@@ -139,12 +247,17 @@ release\xl.exe check test\cases\stdlib_tcp_lifecycle.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_tcp_lifecycle.xl --emit build\test\stdlib_tcp_lifecycle.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_point_take((void**)&(clientHandle))" build\test\stdlib_tcp_lifecycle.c >nul
+findstr /C:"server = __xl_std_tcp_listen" build\test\stdlib_tcp_lifecycle.c >nul
 if errorlevel 1 (
-    echo stdlib_tcp_lifecycle.c missing TcpStream ownership transfer.
+    echo stdlib_tcp_lifecycle.c missing direct TcpServer return binding.
     exit /b 1
 )
-findstr /C:"xl_class_TcpStream__close__void(((XL_Class_TcpStream*)xl6_class_data(client" build\test\stdlib_tcp_lifecycle.c >nul
+findstr /C:"client = __xl_std_tcp_connect" build\test\stdlib_tcp_lifecycle.c >nul
+if errorlevel 1 (
+    echo stdlib_tcp_lifecycle.c missing direct TcpStream return binding.
+    exit /b 1
+)
+findstr /C:"xl_class_TcpStream__close(((XL_Class_TcpStream*)xl6_class_data(client" build\test\stdlib_tcp_lifecycle.c >nul
 if errorlevel 1 (
     echo stdlib_tcp_lifecycle.c missing graceful close call.
     exit /b 1
@@ -155,9 +268,37 @@ for /L %%I in (1,1,5) do (
     build\test\stdlib_tcp_lifecycle.exe > build\test\stdlib_tcp_lifecycle_%%I.out.txt
     if errorlevel 1 exit /b 1
 )
+release\xl.exe check test\cases\stdlib_net_fast_path.xl
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\stdlib_net_fast_path.xl --emit build\test\stdlib_net_fast_path.c
+if errorlevel 1 exit /b 1
+findstr /C:"xnetspan local[16]" build\test\stdlib_net_fast_path.c >nul
+if errorlevel 1 (
+    echo stdlib_net_fast_path.c missing stack vector send path.
+    exit /b 1
+)
+findstr /C:"xnetdgramsend local[16]" build\test\stdlib_net_fast_path.c >nul
+if errorlevel 1 (
+    echo stdlib_net_fast_path.c missing stack UDP batch path.
+    exit /b 1
+)
+findstr /C:"xrtNetUdpSendBatch" build\test\stdlib_net_fast_path.c >nul
+if errorlevel 1 (
+    echo stdlib_net_fast_path.c missing XRT UDP batch call.
+    exit /b 1
+)
+findstr /C:"xl6_net_free_class_value" build\test\stdlib_net_fast_path.c >nul
+if errorlevel 1 (
+    echo stdlib_net_fast_path.c missing owned async class cleanup.
+    exit /b 1
+)
+release\xl.exe build test\cases\stdlib_net_fast_path.xl -o build\test\stdlib_net_fast_path.exe
+if errorlevel 1 exit /b 1
+build\test\stdlib_net_fast_path.exe
+if errorlevel 1 exit /b 1
 release\xl.exe run release\examples\stdlib_net_tcp_udp.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_net_tcp_udp_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_net_tcp_udp_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_net_tcp_udp_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_net_tcp_udp_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_net_tcp_udp_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_net_tcp_udp_c.exe > build\test\stdlib_net_tcp_udp_c.out.txt
 if errorlevel 1 exit /b 1
@@ -166,7 +307,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe run release\examples\stdlib_path_file.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_path_file_xlang.out.txt
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" -std=c11 -Wall -Ilib\xrt %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% release\examples\stdlib_path_file_c.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_path_file_c.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_path_file_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_path_file_c.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_path_file_c.exe > build\test\stdlib_path_file_c.out.txt
 if errorlevel 1 exit /b 1
@@ -175,21 +316,21 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\stdlib_path_file.xl
 if errorlevel 1 exit /b 1
-release\xl.exe cgen test\cases\stdlib_path_file.xl --emit build\test\stdlib_path_file.c
+release\xl.exe cgen test\cases\stdlib_path_file.xl --emit build\test\stdlib_path_file.c --emit-header build\test\stdlib_path_file.h
 if errorlevel 1 exit /b 1
-findstr /C:"bool xrtPathExists" build\test\stdlib_path_file.c >nul
+findstr /C:"int64_t accessTime;" build\test\stdlib_path_file.h >nul
 if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtPathExists extern prototype.
+    echo stdlib_path_file.h does not expose time fields as int64_t.
     exit /b 1
 )
-findstr /C:"void* xrtPathRandom" build\test\stdlib_path_file.c >nul
+findstr /C:"int64_t changeTime;" build\test\stdlib_path_file.h >nul
 if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtPathRandom extern prototype.
+    echo stdlib_path_file.h does not expose changeTime as int64_t.
     exit /b 1
 )
-findstr /C:"void* xrtPathJoin" build\test\stdlib_path_file.c >nul
+findstr /C:"void* xl6_xrt_path_random" build\test\stdlib_path_file.c >nul
 if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtPathJoin extern prototype.
+    echo stdlib_path_file.c missing path.random runtime helper.
     exit /b 1
 )
 findstr /C:"void* xl6_xrt_path_join" build\test\stdlib_path_file.c >nul
@@ -202,59 +343,24 @@ if errorlevel 1 (
     echo stdlib_path_file.c missing path.join helper.
     exit /b 1
 )
-findstr /C:"void* xrtPathNormalize" build\test\stdlib_path_file.c >nul
+findstr /C:"void* xl6_xrt_path_clean" build\test\stdlib_path_file.c >nul
 if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtPathNormalize extern prototype.
+    echo stdlib_path_file.c missing path.normalize runtime helper.
     exit /b 1
 )
-findstr /C:"void* xrtPathAbs" build\test\stdlib_path_file.c >nul
+findstr /C:"bool xl6_xrt_file_rename" build\test\stdlib_path_file.c >nul
 if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtPathAbs extern prototype.
+    echo stdlib_path_file.c missing file.rename runtime helper.
     exit /b 1
 )
-findstr /C:"void* xrtPathRel" build\test\stdlib_path_file.c >nul
+findstr /C:"bool xl6_xrt_file_replace" build\test\stdlib_path_file.c >nul
 if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtPathRel extern prototype.
+    echo stdlib_path_file.c missing file.replace runtime helper.
     exit /b 1
 )
-findstr /C:"void* xrtPathCwd" build\test\stdlib_path_file.c >nul
+findstr /C:"bool xl6_xrt_file_write_text_atomic" build\test\stdlib_path_file.c >nul
 if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtPathCwd extern prototype.
-    exit /b 1
-)
-findstr /C:"void* xrtPathTemp" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtPathTemp extern prototype.
-    exit /b 1
-)
-findstr /C:"void* xrtPathWithExt" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtPathWithExt extern prototype.
-    exit /b 1
-)
-findstr /C:"void* xrtPathWithName" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtPathWithName extern prototype.
-    exit /b 1
-)
-findstr /C:"bool xrtFileRename" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtFileRename extern prototype.
-    exit /b 1
-)
-findstr /C:"bool xrtFileReplace" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtFileReplace extern prototype.
-    exit /b 1
-)
-findstr /C:"bool xrtFileTouch" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtFileTouch extern prototype.
-    exit /b 1
-)
-findstr /C:"bool xrtFileWriteAllAtomic" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtFileWriteAllAtomic extern prototype.
+    echo stdlib_path_file.c missing atomic text write runtime helper.
     exit /b 1
 )
 findstr /C:"typedef struct XL_Class_FileInfo" build\test\stdlib_path_file.c >nul
@@ -267,29 +373,9 @@ if errorlevel 1 (
     echo stdlib_path_file.c missing File class bridge.
     exit /b 1
 )
-findstr /C:"void* xrtOpen" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtOpen extern prototype.
-    exit /b 1
-)
 findstr /C:"void* xl6_xrt_file_open" build\test\stdlib_path_file.c >nul
 if errorlevel 1 (
     echo stdlib_path_file.c missing file.open runtime helper.
-    exit /b 1
-)
-findstr /C:"int xrtDirDelete" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtDirDelete extern prototype.
-    exit /b 1
-)
-findstr /C:"int xrtDirCopy" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtDirCopy extern prototype.
-    exit /b 1
-)
-findstr /C:"int xrtDirMove" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtDirMove extern prototype.
     exit /b 1
 )
 findstr /C:"int __xl_std_dir_delete" build\test\stdlib_path_file.c >nul
@@ -307,27 +393,47 @@ if errorlevel 1 (
     echo stdlib_path_file.c missing dir.move helper.
     exit /b 1
 )
-findstr /C:"int xrtDirScanEx" build\test\stdlib_path_file.c >nul
-if errorlevel 1 (
-    echo stdlib_path_file.c missing xrtDirScanEx runtime prototype.
-    exit /b 1
-)
-findstr /C:"xvalue xl6_xrt_dir_list" build\test\stdlib_path_file.c >nul
+findstr /C:"xvalue* xl6_xrt_dir_list" build\test\stdlib_path_file.c >nul
 if errorlevel 1 (
     echo stdlib_path_file.c missing dir.list runtime helper.
     exit /b 1
 )
-findstr /C:"xvalue __xl_std_dir_files" build\test\stdlib_path_file.c >nul
+findstr /C:"xvalue* __xl_std_dir_files" build\test\stdlib_path_file.c >nul
 if errorlevel 1 (
     echo stdlib_path_file.c missing dir.files helper.
     exit /b 1
 )
-findstr /C:"xvalue __xl_std_dir_dirs" build\test\stdlib_path_file.c >nul
+findstr /C:"xvalue* __xl_std_dir_dirs" build\test\stdlib_path_file.c >nul
 if errorlevel 1 (
     echo stdlib_path_file.c missing dir.dirs helper.
     exit /b 1
 )
-"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\stdlib_path_file.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_path_file.exe
+findstr /C:"xrtPathRandom" build\test\stdlib_path_file.c >nul
+if not errorlevel 1 (
+    echo stdlib_path_file.c still contains removed xrtPathRandom API.
+    exit /b 1
+)
+findstr /C:"xrtPathNormalize" build\test\stdlib_path_file.c >nul
+if not errorlevel 1 (
+    echo stdlib_path_file.c still contains removed xrtPathNormalize API.
+    exit /b 1
+)
+findstr /C:"xrtFileRename" build\test\stdlib_path_file.c >nul
+if not errorlevel 1 (
+    echo stdlib_path_file.c still contains removed xrtFileRename API.
+    exit /b 1
+)
+findstr /C:"xrtFileReplace" build\test\stdlib_path_file.c >nul
+if not errorlevel 1 (
+    echo stdlib_path_file.c still contains removed xrtFileReplace API.
+    exit /b 1
+)
+findstr /C:"xrtDirScanEx" build\test\stdlib_path_file.c >nul
+if not errorlevel 1 (
+    echo stdlib_path_file.c still contains removed xrtDirScanEx API.
+    exit /b 1
+)
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\stdlib_path_file.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_path_file.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_path_file.exe
 if errorlevel 1 exit /b 1
@@ -336,22 +442,27 @@ release\xl.exe check test\cases\stdlib_file_meta.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\stdlib_file_meta.xl --emit build\test\stdlib_file_meta.c
 if errorlevel 1 exit /b 1
-findstr /C:"bool xrtFileSetSize" build\test\stdlib_file_meta.c >nul
+findstr /C:"int xl6_xrt_file_get_attributes" build\test\stdlib_file_meta.c >nul
 if errorlevel 1 (
-    echo stdlib_file_meta.c missing xrtFileSetSize extern prototype.
+    echo stdlib_file_meta.c missing file attribute runtime helper.
     exit /b 1
 )
-findstr /C:"int xrtFileGetAttr" build\test\stdlib_file_meta.c >nul
+findstr /C:"int64_t xl6_xrt_file_get_access_time" build\test\stdlib_file_meta.c >nul
 if errorlevel 1 (
-    echo stdlib_file_meta.c missing xrtFileGetAttr extern prototype.
+    echo stdlib_file_meta.c missing file access-time runtime helper.
     exit /b 1
 )
-findstr /C:"int64_t xrtFileGetAccessTime" build\test\stdlib_file_meta.c >nul
+findstr /C:"int64_t xl6_xrt_file_get_change_time" build\test\stdlib_file_meta.c >nul
 if errorlevel 1 (
-    echo stdlib_file_meta.c missing xrtFileGetAccessTime extern prototype.
+    echo stdlib_file_meta.c missing file modification-time runtime helper.
     exit /b 1
 )
-"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\stdlib_file_meta.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\stdlib_file_meta.exe
+findstr /C:"xrtFileGetAttr" build\test\stdlib_file_meta.c >nul
+if not errorlevel 1 (
+    echo stdlib_file_meta.c still contains removed xrtFileGetAttr API.
+    exit /b 1
+)
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\stdlib_file_meta.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\stdlib_file_meta.exe
 if errorlevel 1 exit /b 1
 build\test\stdlib_file_meta.exe
 if errorlevel 1 exit /b 1
@@ -372,7 +483,7 @@ if errorlevel 1 (
     echo cgen_loop_fstring_needs.c missing typed-loop f-string conversion.
     exit /b 1
 )
-"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_loop_fstring_needs.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_loop_fstring_needs.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\cgen_loop_fstring_needs.c %XL6_CGEN_LINKS% -o build\test\cgen_loop_fstring_needs.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_loop_fstring_needs.exe
 if errorlevel 1 exit /b 1
@@ -398,7 +509,17 @@ if errorlevel 1 (
     echo cgen_generator_fstring_needs.c missing generator value f-string conversion.
     exit /b 1
 )
-"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generator_fstring_needs.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generator_fstring_needs.exe
+findstr /C:"typedef struct XL6_Generator" build\test\cgen_generator_fstring_needs.c >nul
+if errorlevel 1 (
+    echo cgen_generator_fstring_needs.c missing the standalone generator runtime.
+    exit /b 1
+)
+findstr /C:"xl6FutureCancel" build\test\cgen_generator_fstring_needs.c >nul
+if not errorlevel 1 (
+    echo cgen_generator_fstring_needs.c unexpectedly contains the async Future bridge.
+    exit /b 1
+)
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\cgen_generator_fstring_needs.c %XL6_CGEN_LINKS% -o build\test\cgen_generator_fstring_needs.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generator_fstring_needs.exe
 if errorlevel 1 exit /b 1
@@ -414,12 +535,12 @@ if errorlevel 1 (
     echo cgen_class_string_ownership.c missing nested XRT temporary scope.
     exit /b 1
 )
-findstr /C:"return xrtTempStringTake((char*)__xl6_return_" build\test\cgen_class_string_ownership.c >nul
+findstr /C:"return xl6_temp_string_take((char*)__xl6_return_" build\test\cgen_class_string_ownership.c >nul
 if errorlevel 1 (
     echo cgen_class_string_ownership.c missing returned string promotion.
     exit /b 1
 )
-findstr /C:".text = xrtCopyStr(" build\test\cgen_class_string_ownership.c >nul
+findstr /C:".text = xl6_xrt_string_dup(" build\test\cgen_class_string_ownership.c >nul
 if errorlevel 1 (
     echo cgen_class_string_ownership.c missing owned class string copy.
     exit /b 1
@@ -429,7 +550,7 @@ if errorlevel 1 (
     echo cgen_class_string_ownership.c missing class string destruction.
     exit /b 1
 )
-"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_string_ownership.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_string_ownership.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\cgen_class_string_ownership.c %XL6_CGEN_LINKS% -o build\test\cgen_class_string_ownership.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_string_ownership.exe
 if errorlevel 1 exit /b 1
@@ -450,17 +571,17 @@ if errorlevel 1 (
     echo cgen_closure_ownership.c missing static typed-container capture storage.
     exit /b 1
 )
-findstr /C:"xtarray __xl6_shared_values = xrtTypedArrayMoveToShared((*values));" build\test\cgen_closure_ownership.c >nul
+findstr /C:"__env->values = xl6TypedArrayRetain((*values));" build\test\cgen_closure_ownership.c >nul
 if errorlevel 1 (
-    echo cgen_closure_ownership.c missing shared typed-container capture promotion.
+    echo cgen_closure_ownership.c missing typed-container capture retain.
     exit /b 1
 )
-findstr /C:"__env->values = xrtTypedArrayRetain(__xl6_shared_values);" build\test\cgen_closure_ownership.c >nul
-if errorlevel 1 (
-    echo cgen_closure_ownership.c missing shared typed-container capture retain.
+findstr /C:"xl6TypedArrayShare" build\test\cgen_closure_ownership.c >nul
+if not errorlevel 1 (
+    echo cgen_closure_ownership.c still contains obsolete typed-container sharing promotion.
     exit /b 1
 )
-findstr /C:"__env->prefix = xrtCopyStr(prefix, 0u);" build\test\cgen_closure_ownership.c >nul
+findstr /C:"__env->prefix = xl6_xrt_string_dup(prefix, 0u);" build\test\cgen_closure_ownership.c >nul
 if errorlevel 1 (
     echo cgen_closure_ownership.c missing owned string capture copy.
     exit /b 1
@@ -480,17 +601,17 @@ if errorlevel 1 (
     echo cgen_closure_ownership.c missing captured class receiver rewrite.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayDestroy(__env->values);" build\test\cgen_closure_ownership.c >nul
+findstr /C:"xl6TypedArrayRelease(__env->values);" build\test\cgen_closure_ownership.c >nul
 if errorlevel 1 (
     echo cgen_closure_ownership.c missing typed-container capture destruction.
     exit /b 1
 )
-findstr /C:"xvoUnref(__env->box);" build\test\cgen_closure_ownership.c >nul
+findstr /C:"xrtValueRelease(__env->box);" build\test\cgen_closure_ownership.c >nul
 if errorlevel 1 (
     echo cgen_closure_ownership.c missing class handle capture release.
     exit /b 1
 )
-"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_closure_ownership.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_closure_ownership.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\cgen_closure_ownership.c %XL6_CGEN_LINKS% -o build\test\cgen_closure_ownership.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_closure_ownership.exe
 if errorlevel 1 exit /b 1
@@ -501,12 +622,12 @@ release\xl.exe run test\cases\cgen_string_value_ownership.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_string_value_ownership.xl --emit build\test\cgen_string_value_ownership.c
 if errorlevel 1 exit /b 1
-findstr /C:"text = xrtCopyStr(text != 0 ? text : \"\", 0u);" build\test\cgen_string_value_ownership.c >nul
+findstr /C:"text = xl6_xrt_string_dup(text != 0 ? text : \"\", 0u);" build\test\cgen_string_value_ownership.c >nul
 if errorlevel 1 (
     echo cgen_string_value_ownership.c missing owned string parameter copy.
     exit /b 1
 )
-findstr /C:"globalText = xrtCopyStr(\"global\", 0u);" build\test\cgen_string_value_ownership.c >nul
+findstr /C:"globalText = xl6_xrt_string_dup(\"global\", 0u);" build\test\cgen_string_value_ownership.c >nul
 if errorlevel 1 (
     echo cgen_string_value_ownership.c missing owned module string initialization.
     exit /b 1
@@ -521,7 +642,7 @@ if errorlevel 1 (
     echo cgen_string_value_ownership.c missing owned multi-return string assignment.
     exit /b 1
 )
-findstr /C:"part = xrtCopyStr(part, 0u);" build\test\cgen_string_value_ownership.c >nul
+findstr /C:"part = xl6_xrt_string_dup(part, 0u);" build\test\cgen_string_value_ownership.c >nul
 if errorlevel 1 (
     echo cgen_string_value_ownership.c missing generator string value copy.
     exit /b 1
@@ -531,7 +652,7 @@ if errorlevel 1 (
     echo cgen_string_value_ownership.c missing module string cleanup.
     exit /b 1
 )
-"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_string_value_ownership.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_string_value_ownership.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\cgen_string_value_ownership.c %XL6_CGEN_LINKS% -o build\test\cgen_string_value_ownership.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_string_value_ownership.exe
 if errorlevel 1 exit /b 1
@@ -547,22 +668,24 @@ if errorlevel 1 (
     echo cgen_contextual_identifiers.c missing private function symbol or protected C macro parameters.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_discard_" build\test\cgen_contextual_identifiers.c >nul
+findstr /C:"xvalue* __xl6_discard_" build\test\cgen_contextual_identifiers.c >nul
 if errorlevel 1 (
     echo cgen_contextual_identifiers.c missing independent discard slots.
     exit /b 1
 )
-findstr /C:"void* xl6_xrt_path_join(const char* first, const char* second, xvalue rest)" build\test\cgen_contextual_identifiers.c >nul
+findstr /C:"void* xl6_xrt_path_join(const char* first, const char* second, xvalue* rest)" build\test\cgen_contextual_identifiers.c >nul
 if errorlevel 1 (
     echo cgen_contextual_identifiers.c missing variadic path.join runtime.
     exit /b 1
 )
-"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_contextual_identifiers.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_contextual_identifiers.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\cgen_contextual_identifiers.c %XL6_CGEN_LINKS% -o build\test\cgen_contextual_identifiers.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_contextual_identifiers.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe run test\cases\cgen_stdout_crlf.xl > build\test\cgen_stdout_crlf.out.bin
+release\xl.exe build test\cases\cgen_stdout_crlf.xl -o build\test\cgen_stdout_crlf.exe
+if errorlevel 1 exit /b 1
+build\test\cgen_stdout_crlf.exe > build\test\cgen_stdout_crlf.out.bin
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$actual=[System.IO.File]::ReadAllBytes('build\test\cgen_stdout_crlf.out.bin');$expected=[System.Text.Encoding]::UTF8.GetBytes(\"first`r`nsecond`r`n\");if($actual.Length -ne $expected.Length){exit 1};for($i=0;$i -lt $actual.Length;$i++){if($actual[$i] -ne $expected[$i]){exit 1}}"
 if errorlevel 1 (
@@ -588,7 +711,7 @@ release\xl.exe check test\cases\cgen_typed_container_param_reassign.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_typed_container_param_reassign.xl --emit build\test\cgen_typed_container_param_reassign.c
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_typed_container_param_reassign.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_typed_container_param_reassign.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\cgen_typed_container_param_reassign.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_typed_container_param_reassign.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_typed_container_param_reassign.exe
 if errorlevel 1 exit /b 1

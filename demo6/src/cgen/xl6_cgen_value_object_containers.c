@@ -101,6 +101,11 @@ static int xl6CgenContainerMethodSupported(XL6_CgenContainerMethodKind kind, int
                    xl6CTextEquals(name, "pop") ||
                    xl6CTextEquals(name, "take") ||
                    xl6CTextEquals(name, "clear") ||
+                   xl6CTextEquals(name, "capacity") ||
+                   xl6CTextEquals(name, "reserve") ||
+                   xl6CTextEquals(name, "resize") ||
+                   xl6CTextEquals(name, "trim") ||
+                   xl6CTextEquals(name, "swap") ||
                    xl6CTextEquals(name, "contains") ||
                    xl6CTextEquals(name, "indexOf") ||
                    xl6CTextEquals(name, "reverse");
@@ -122,6 +127,8 @@ static int xl6CgenContainerMethodSupported(XL6_CgenContainerMethodKind kind, int
             return xl6CTextEquals(name, "remove") ||
                    xl6CTextEquals(name, "take") ||
                    xl6CTextEquals(name, "clear") ||
+                   xl6CTextEquals(name, "trim") ||
+                   xl6CTextEquals(name, "trimTo") ||
                    xl6CTextEquals(name, "contains");
         }
         return xl6CTextEquals(name, "remove") ||
@@ -133,13 +140,20 @@ static int xl6CgenContainerMethodSupported(XL6_CgenContainerMethodKind kind, int
         return xl6CTextEquals(name, "add") ||
                xl6CTextEquals(name, "remove") ||
                xl6CTextEquals(name, "contains") ||
-               xl6CTextEquals(name, "clear");
+               xl6CTextEquals(name, "clear") ||
+               (typed && (xl6CTextEquals(name, "capacity") ||
+                          xl6CTextEquals(name, "reserve") ||
+                          xl6CTextEquals(name, "trim") ||
+                          xl6CTextEquals(name, "isDisjoint")));
     }
     if ( kind == XL6_CGEN_CONTAINER_METHOD_DICT ) {
         return xl6CTextEquals(name, "remove") ||
                xl6CTextEquals(name, "contains") ||
                xl6CTextEquals(name, "take") ||
-               xl6CTextEquals(name, "clear");
+               xl6CTextEquals(name, "clear") ||
+               (typed && (xl6CTextEquals(name, "capacity") ||
+                          xl6CTextEquals(name, "reserve") ||
+                          xl6CTextEquals(name, "trim")));
     }
     return 0;
 }
@@ -166,7 +180,7 @@ static void xl6CgenTypedArrayValueCall(
     if ( index != NULL ) {
         xl6OutputPuts(", (unsigned int)(", ctx->out);
         xl6CgenExpr(ctx, index);
-        xl6OutputPuts(") + 1u", ctx->out);
+        xl6OutputPuts(")", ctx->out);
     }
     xl6OutputPutc(')', ctx->out);
 }
@@ -283,7 +297,7 @@ static int xl6CgenContainerMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* c
             xl6CgenContainerReceiverExpr(ctx, receiver);
             xl6OutputPuts(", (unsigned int)(", ctx->out);
             xl6CgenExpr(ctx, arg0);
-            xl6OutputPuts(") + 1u, ", ctx->out);
+            xl6OutputPuts("), ", ctx->out);
             xl6CgenContainerValueArgExpr(ctx, arg1);
             xl6OutputPutc(')', ctx->out);
         } else if ( kind == XL6_CGEN_CONTAINER_METHOD_ARRAY && !typed ) {
@@ -312,11 +326,11 @@ static int xl6CgenContainerMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* c
 
     if ( xl6CTextEquals(name, "remove") && (argCount == 1 || argCount == 2) && arg0 != NULL ) {
         if ( typed && kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ) {
-            xl6OutputPuts("xrtTypedArrayRemove(", ctx->out);
+            xl6OutputPuts("xl6TypedArrayRemove(", ctx->out);
             xl6CgenContainerReceiverExpr(ctx, receiver);
             xl6OutputPuts(", (unsigned int)(", ctx->out);
             xl6CgenExpr(ctx, arg0);
-            xl6OutputPuts(") + 1u, (unsigned int)(", ctx->out);
+            xl6OutputPuts("), (unsigned int)(", ctx->out);
             if ( argCount == 2 && arg1 != NULL ) {
                 xl6CgenExpr(ctx, arg1);
             } else {
@@ -324,7 +338,7 @@ static int xl6CgenContainerMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* c
             }
             xl6OutputPuts("))", ctx->out);
         } else if ( typed && kind == XL6_CGEN_CONTAINER_METHOD_LIST ) {
-            xl6OutputPuts("xrtTypedListRemove(", ctx->out);
+            xl6OutputPuts("xl6TypedListRemove(", ctx->out);
             xl6CgenContainerReceiverExpr(ctx, receiver);
             xl6OutputPuts(", (long long)(", ctx->out);
             xl6CgenExpr(ctx, arg0);
@@ -336,13 +350,13 @@ static int xl6CgenContainerMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* c
             xl6CgenContainerValueArgExpr(ctx, arg0);
             xl6OutputPutc(')', ctx->out);
         } else if ( typed && kind == XL6_CGEN_CONTAINER_METHOD_DICT ) {
-            xl6OutputPuts("xrtTypedDictRemove(", ctx->out);
+            xl6OutputPuts("xl6TypedDictRemove(", ctx->out);
             xl6CgenContainerReceiverExpr(ctx, receiver);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, arg0);
             xl6OutputPuts(", 0)", ctx->out);
         } else if ( kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ) {
-            xl6OutputPuts("xvoArrayRemove(", ctx->out);
+            xl6OutputPuts("xrtValueArrayRemove(", ctx->out);
             xl6CgenContainerReceiverExpr(ctx, receiver);
             xl6OutputPuts(", (unsigned int)(", ctx->out);
             xl6CgenExpr(ctx, arg0);
@@ -354,7 +368,7 @@ static int xl6CgenContainerMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* c
             }
             xl6OutputPuts("))", ctx->out);
         } else if ( kind == XL6_CGEN_CONTAINER_METHOD_LIST ) {
-            xl6OutputPuts("xvoListRemove(", ctx->out);
+            xl6OutputPuts("xrtValueIntMapRemove(", ctx->out);
             xl6CgenContainerReceiverExpr(ctx, receiver);
             xl6OutputPuts(", (long long)(", ctx->out);
             xl6CgenExpr(ctx, arg0);
@@ -366,7 +380,7 @@ static int xl6CgenContainerMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* c
             xl6CgenContainerValueArgExpr(ctx, arg0);
             xl6OutputPutc(')', ctx->out);
         } else if ( kind == XL6_CGEN_CONTAINER_METHOD_DICT ) {
-            xl6OutputPuts("xvoTableRemove(", ctx->out);
+            xl6OutputPuts("xl6_xrt_value_object_remove(", ctx->out);
             xl6CgenContainerReceiverExpr(ctx, receiver);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, arg0);
@@ -435,7 +449,7 @@ static int xl6CgenContainerMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* c
             xl6CgenContainerValueArgExpr(ctx, arg0);
             xl6OutputPutc(')', ctx->out);
         } else if ( typed && kind == XL6_CGEN_CONTAINER_METHOD_DICT ) {
-            xl6OutputPuts("xrtTypedDictExists(", ctx->out);
+            xl6OutputPuts("xl6TypedDictExists(", ctx->out);
             xl6CgenContainerReceiverExpr(ctx, receiver);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, arg0);
@@ -447,7 +461,7 @@ static int xl6CgenContainerMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* c
         } else if ( kind == XL6_CGEN_CONTAINER_METHOD_SET ) {
             xl6CgenContainsXValueCallExpr(ctx, "xl6_xrt_set_contains", receiver, arg0);
         } else if ( kind == XL6_CGEN_CONTAINER_METHOD_DICT ) {
-            xl6OutputPuts("xvoTableExists(", ctx->out);
+            xl6OutputPuts("xl6_xrt_value_object_has(", ctx->out);
             xl6CgenContainerReceiverExpr(ctx, receiver);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, arg0);
@@ -502,7 +516,7 @@ static int xl6CgenContainerMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* c
                 xl6CgenContainerReceiverExpr(ctx, receiver);
                 xl6OutputPuts(", (unsigned int)(", ctx->out);
                 xl6CgenExpr(ctx, arg0);
-                xl6OutputPuts(") + 1u)", ctx->out);
+                xl6OutputPuts("))", ctx->out);
             }
         } else if ( kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ) {
             xl6OutputPuts("xl6_xrt_array_take_value_or_null(", ctx->out);
@@ -547,25 +561,99 @@ static int xl6CgenContainerMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* c
 
     if ( xl6CTextEquals(name, "clear") && argCount == 0 ) {
         if ( typed && kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ) {
-            xl6OutputPuts("xrtTypedArrayClear(", ctx->out);
+            xl6OutputPuts("xl6TypedArrayClear(", ctx->out);
         } else if ( typed && kind == XL6_CGEN_CONTAINER_METHOD_LIST ) {
-            xl6OutputPuts("xrtTypedListClear(", ctx->out);
+            xl6OutputPuts("xl6TypedListClear(", ctx->out);
         } else if ( typed && kind == XL6_CGEN_CONTAINER_METHOD_SET ) {
-            xl6OutputPuts("xrtTypedSetClear(", ctx->out);
+            xl6OutputPuts("xl6TypedSetClear(", ctx->out);
         } else if ( typed && kind == XL6_CGEN_CONTAINER_METHOD_DICT ) {
-            xl6OutputPuts("xrtTypedDictClear(", ctx->out);
+            xl6OutputPuts("xl6TypedDictClear(", ctx->out);
         } else if ( kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ) {
-            xl6OutputPuts("xvoArrayClear(", ctx->out);
+            xl6OutputPuts("xrtValueClear(", ctx->out);
         } else if ( kind == XL6_CGEN_CONTAINER_METHOD_LIST ) {
-            xl6OutputPuts("xvoListClear(", ctx->out);
+            xl6OutputPuts("xrtValueClear(", ctx->out);
         } else if ( kind == XL6_CGEN_CONTAINER_METHOD_SET ) {
-            xl6OutputPuts("xvoSetClear(", ctx->out);
+            xl6OutputPuts("xrtValueClear(", ctx->out);
         } else if ( kind == XL6_CGEN_CONTAINER_METHOD_DICT ) {
-            xl6OutputPuts("xvoTableClear(", ctx->out);
+            xl6OutputPuts("xrtValueClear(", ctx->out);
         } else {
             xl6OutputPuts("xl6_xrt_container_clear(", ctx->out);
         }
         xl6CgenContainerReceiverExpr(ctx, receiver);
+        xl6OutputPutc(')', ctx->out);
+        xl6AstFree(receiverType);
+        return 1;
+    }
+
+    if ( xl6CTextEquals(name, "capacity") && argCount == 0 && typed ) {
+        if ( kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ) {
+            xl6OutputPuts("((long long)xl6TypedArrayCapacity(", ctx->out);
+        } else if ( kind == XL6_CGEN_CONTAINER_METHOD_SET ) {
+            xl6OutputPuts("((long long)xl6TypedSetCapacity(", ctx->out);
+        } else if ( kind == XL6_CGEN_CONTAINER_METHOD_DICT ) {
+            xl6OutputPuts("((long long)xl6TypedDictCapacity(", ctx->out);
+        } else {
+            xl6CgenError(ctx, call, "capacity requires typed array, set, or dict receiver");
+            xl6OutputPuts("0", ctx->out);
+            xl6AstFree(receiverType);
+            return 1;
+        }
+        xl6CgenContainerReceiverExpr(ctx, receiver);
+        xl6OutputPuts("))", ctx->out);
+        xl6AstFree(receiverType);
+        return 1;
+    }
+
+    if ( xl6CTextEquals(name, "resize") && argCount == 1 && arg0 != NULL &&
+         typed && kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ) {
+        xl6OutputPuts("xl6TypedArrayResize(", ctx->out);
+        xl6CgenContainerReceiverExpr(ctx, receiver);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenExpr(ctx, arg0);
+        xl6OutputPutc(')', ctx->out);
+        xl6AstFree(receiverType);
+        return 1;
+    }
+
+    if ( (xl6CTextEquals(name, "trim") || xl6CTextEquals(name, "trimTo")) && typed ) {
+        if ( kind == XL6_CGEN_CONTAINER_METHOD_ARRAY && argCount == 0 ) {
+            xl6OutputPuts("xl6TypedArrayTrim(", ctx->out);
+            xl6CgenContainerReceiverExpr(ctx, receiver);
+            xl6OutputPutc(')', ctx->out);
+        } else if ( kind == XL6_CGEN_CONTAINER_METHOD_LIST &&
+                    ((argCount == 0 && xl6CTextEquals(name, "trim")) ||
+                     (argCount == 1 && arg0 != NULL && xl6CTextEquals(name, "trimTo"))) ) {
+            xl6OutputPuts("xl6TypedListTrim(", ctx->out);
+            xl6CgenContainerReceiverExpr(ctx, receiver);
+            xl6OutputPuts(", ", ctx->out);
+            if ( argCount == 1 ) {
+                xl6CgenExpr(ctx, arg0);
+            } else {
+                xl6OutputPuts("0", ctx->out);
+            }
+            xl6OutputPutc(')', ctx->out);
+        } else if ( kind == XL6_CGEN_CONTAINER_METHOD_SET && argCount == 0 ) {
+            xl6OutputPuts("xl6TypedSetTrim(", ctx->out);
+            xl6CgenContainerReceiverExpr(ctx, receiver);
+            xl6OutputPutc(')', ctx->out);
+        } else if ( kind == XL6_CGEN_CONTAINER_METHOD_DICT && argCount == 0 ) {
+            xl6OutputPuts("xl6TypedDictTrim(", ctx->out);
+            xl6CgenContainerReceiverExpr(ctx, receiver);
+            xl6OutputPutc(')', ctx->out);
+        } else {
+            xl6CgenError(ctx, call, "invalid typed container trim arguments");
+            xl6OutputPuts("0", ctx->out);
+        }
+        xl6AstFree(receiverType);
+        return 1;
+    }
+
+    if ( xl6CTextEquals(name, "isDisjoint") && argCount == 1 && arg0 != NULL &&
+         typed && kind == XL6_CGEN_CONTAINER_METHOD_SET ) {
+        xl6OutputPuts("xl6TypedSetIsDisjoint(", ctx->out);
+        xl6CgenContainerReceiverExpr(ctx, receiver);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenExpr(ctx, arg0);
         xl6OutputPutc(')', ctx->out);
         xl6AstFree(receiverType);
         return 1;
@@ -595,7 +683,7 @@ static int xl6CgenContainerMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* c
 
     if ( xl6CTextEquals(name, "reverse") && argCount == 0 ) {
         if ( typed && kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ) {
-            xl6OutputPuts("xrtTypedArrayReverse(", ctx->out);
+            xl6OutputPuts("xl6TypedArrayReverse(", ctx->out);
             xl6CgenContainerReceiverExpr(ctx, receiver);
             xl6OutputPutc(')', ctx->out);
         } else {
@@ -607,43 +695,47 @@ static int xl6CgenContainerMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* c
     }
 
     if ( xl6CTextEquals(name, "reserve") && argCount == 1 && arg0 != NULL ) {
-        if ( kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ) {
-            xl6OutputPuts("xvoArrayAlloc(", ctx->out);
-            xl6CgenContainerReceiverExpr(ctx, receiver);
-            xl6OutputPuts(", (unsigned int)(", ctx->out);
-            xl6CgenExpr(ctx, arg0);
-            xl6OutputPuts("))", ctx->out);
-        } else if ( kind == XL6_CGEN_CONTAINER_METHOD_VAR ) {
+        if ( typed && kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ) {
+            xl6OutputPuts("xl6TypedArrayReserve(", ctx->out);
+        } else if ( typed && kind == XL6_CGEN_CONTAINER_METHOD_SET ) {
+            xl6OutputPuts("xl6TypedSetReserve(", ctx->out);
+        } else if ( typed && kind == XL6_CGEN_CONTAINER_METHOD_DICT ) {
+            xl6OutputPuts("xl6TypedDictReserve(", ctx->out);
+        } else if ( kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ||
+                    kind == XL6_CGEN_CONTAINER_METHOD_VAR ) {
             xl6OutputPuts("xl6_xrt_container_reserve(", ctx->out);
-            xl6CgenContainerReceiverExpr(ctx, receiver);
-            xl6OutputPuts(", (unsigned int)(", ctx->out);
-            xl6CgenExpr(ctx, arg0);
-            xl6OutputPuts("))", ctx->out);
         } else {
-            xl6CgenError(ctx, call, "reserve requires dynamic array receiver");
+            xl6CgenError(ctx, call, "reserve requires array, typed set, or typed dict receiver");
             xl6OutputPuts("0", ctx->out);
+            xl6AstFree(receiverType);
+            return 1;
         }
+        xl6CgenContainerReceiverExpr(ctx, receiver);
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenExpr(ctx, arg0);
+        xl6OutputPutc(')', ctx->out);
         xl6AstFree(receiverType);
         return 1;
     }
 
     if ( xl6CTextEquals(name, "swap") && argCount == 2 && arg0 != NULL && arg1 != NULL ) {
-        if ( kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ) {
-            xl6OutputPuts("xvoArraySwap(", ctx->out);
+        if ( typed && kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ) {
+            xl6OutputPuts("xl6TypedArraySwap(", ctx->out);
             xl6CgenContainerReceiverExpr(ctx, receiver);
-            xl6OutputPuts(", (unsigned int)(", ctx->out);
+            xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, arg0);
-            xl6OutputPuts("), (unsigned int)(", ctx->out);
+            xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, arg1);
-            xl6OutputPuts("))", ctx->out);
-        } else if ( kind == XL6_CGEN_CONTAINER_METHOD_VAR ) {
+            xl6OutputPutc(')', ctx->out);
+        } else if ( kind == XL6_CGEN_CONTAINER_METHOD_ARRAY ||
+                    kind == XL6_CGEN_CONTAINER_METHOD_VAR ) {
             xl6OutputPuts("xl6_xrt_container_swap(", ctx->out);
             xl6CgenContainerReceiverExpr(ctx, receiver);
-            xl6OutputPuts(", (unsigned int)(", ctx->out);
+            xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, arg0);
-            xl6OutputPuts("), (unsigned int)(", ctx->out);
+            xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, arg1);
-            xl6OutputPuts("))", ctx->out);
+            xl6OutputPutc(')', ctx->out);
         } else {
             xl6CgenError(ctx, call, "swap requires dynamic array receiver");
             xl6OutputPuts("0", ctx->out);

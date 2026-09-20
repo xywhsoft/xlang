@@ -1,0 +1,29 @@
+// Exercise the private write facade as well as public persistence lowering.
+extern "xl6_xrt_json_write_file" func bridgeWrite(string path, var value, c_int pretty) as c_bool
+extern "xrtClearError" func clearNativeError()
+
+string path = "build/test/xlir_json_value_bridge.json"
+file.delete(path)
+assert json.valid('{"name":"中文","items":[null,true,42]}')
+assert !json.valid('{"name":')
+assert !json.valid("")
+assert json.parse("") == null
+assert json.parse("{") == null
+// These no-raise facades report failure by value and leave XRT diagnostics.
+clearNativeError()
+
+var value = json.parse('{"name":"中文","items":[null,true,42]}')
+string compact = json.stringify(value)
+string pretty = json.stringify(value, pretty = true)
+assert json.valid(compact)
+assert json.valid(pretty)
+assert string.len(pretty) > string.len(compact)
+assert json.stringify(json.parse(pretty)) == compact
+assert bridgeWrite(path, value, c_int(1))
+assert json.stringify(json.read(path)) == compact
+// Both value arguments are borrowed and remain usable after serialization.
+assert json.stringify(value) == compact
+assert file.delete(path)
+assert json.read(path) == null
+clearNativeError()
+assert json.stringify(json.parse("null")) == "null"

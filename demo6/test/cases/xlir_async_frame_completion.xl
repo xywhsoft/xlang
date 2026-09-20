@@ -1,0 +1,31 @@
+extern "frame_completion_drop" func frameCompletionDrop(int id)
+extern "frame_completion_arm" func frameCompletionArm()
+extern "frame_completion_fail" func frameCompletionFail()
+extern "frame_completion_input" func frameCompletionInput() as future<int>
+class FrameCompletionValue
+    int id = 0
+    destroy()
+        frameCompletionDrop(self.id)
+    end
+end
+export "frame_completion_new" func frameCompletionNew(int id) as FrameCompletionValue
+    auto value = FrameCompletionValue()
+    value.id = id
+    return value
+end
+async func frameCompletionRun(FrameCompletionValue first, FrameCompletionValue second, future<int> input, bool early) as FrameCompletionValue
+    int number = 10
+    if not early
+        number = await input
+    end
+    assert number + first.id + second.id == 13
+    auto result = frameCompletionNew(3)
+    frameCompletionArm()
+    frameCompletionFail()
+    return result
+end
+export "frame_completion_keep" func frameCompletionKeep()
+    auto first = frameCompletionNew(1)
+    auto second = frameCompletionNew(2)
+    auto result = frameCompletionRun(first, second, frameCompletionInput(), false)
+end

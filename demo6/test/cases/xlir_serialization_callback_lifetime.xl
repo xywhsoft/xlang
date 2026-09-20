@@ -1,0 +1,37 @@
+extern "xlir_json_observe_lifetime" func observeLifetime(var target) as var
+extern "xlir_json_lifetime_expired" func expired(var witness) as c_bool
+
+func capturedVisitor(var state, array<var> witnesses) as func(var) as bool
+    return func(var event) as bool
+        witnesses.append(observeLifetime(event))
+        assert state["ready"] == true
+        throw ValueError "callback-lifetime-sentinel"
+        return true
+    end
+end
+
+func visitScope(bool useXson) as array<var>
+    var state = {"ready": true}
+    array<var> witnesses = [observeLifetime(state)]
+    bool caught = false
+    try
+        if useXson then
+            int status = xson.visit("null", capturedVisitor(state, witnesses))
+        else
+            int status = json.visit("null", capturedVisitor(state, witnesses))
+        end
+    catch e
+        assert e.message == "callback-lifetime-sentinel"
+        caught = true
+    end
+    assert caught
+    assert witnesses.length == 2
+    assert expired(witnesses[1]), "owned visitor event survived exception propagation"
+    return witnesses
+end
+
+for i in range(30)
+    array<var> witnesses = visitScope(i % 2 != 0)
+    assert expired(witnesses[0]), "temporary visitor retained its captured state after throw"
+    assert expired(witnesses[1])
+end

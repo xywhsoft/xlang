@@ -1,0 +1,58 @@
+extern "payload_lifetime_drop" func payloadDrop(int mode)
+extern "payload_lifetime_finally" func payloadFinally()
+
+class PayloadLifetimeOwner
+    int mode
+    create(int mode)
+        self.mode = mode
+    end
+    destroy()
+        payloadDrop(self.mode)
+    end
+end
+
+func dynamicPayload(var value) as generator<var>
+    try
+        yield value
+        yield value
+    finally
+        payloadFinally()
+    end
+end
+
+async func readyPayload(var value) as var
+    return value
+end
+func futurePayload(var value) as generator<future<var>>
+    try
+        yield readyPayload(value)
+        yield readyPayload(value)
+    finally
+        payloadFinally()
+    end
+end
+
+export "payload_lifetime_case" func payloadLifetimeCase(int kind, int stop, int mode) as int
+    int count = 0
+    var seed = PayloadLifetimeOwner(mode)
+    if kind == 0
+        generator<var> stream = dynamicPayload(seed)
+        seed = null
+        if stop >= 0
+            for item in stream
+                count += 1
+                if count == stop then break end
+            end
+        end
+    else
+        generator<future<var>> stream = futurePayload(seed)
+        seed = null
+        if stop >= 0
+            for item in stream
+                count += 1
+                if count == stop then break end
+            end
+        end
+    end
+    return count
+end

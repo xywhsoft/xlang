@@ -52,7 +52,7 @@ void xl6DiagAdd(XL6_DiagList* list, int line, int column, const char* message)
 
     list->items[list->count].line = line;
     list->items[list->count].column = column;
-    list->items[list->count].message = xrtCopyStr((char*)text, strlen(text));
+    list->items[list->count].message = xrtStrDupN(text, strlen(text));
     list->count += 1;
 }
 

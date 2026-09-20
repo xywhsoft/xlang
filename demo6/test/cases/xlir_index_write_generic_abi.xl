@@ -1,0 +1,26 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expect_string(string actual, string expected)
+
+func replace_list<T>(list<T> values, int key, T item)
+    values[key] = item
+end
+
+func replace_array<T>(array<T> values, int key, T item)
+    values[key] = item
+end
+
+list<int> intList
+replace_list(intList, 2, 71)
+expect(intList[2], 71)
+
+list<string> stringList
+replace_list(stringList, 3, "generic-list")
+expect_string(stringList[3], "generic-list")
+
+array<int> intArray = array[0]
+replace_array(intArray, 0, 81)
+expect(intArray[0], 81)
+
+array<string> stringArray = array[""]
+replace_array(stringArray, 0, "generic-array")
+expect_string(stringArray[0], "generic-array")

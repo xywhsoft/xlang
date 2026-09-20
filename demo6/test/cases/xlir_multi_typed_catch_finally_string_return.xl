@@ -1,0 +1,25 @@
+int trace = 0
+
+func multi_catch_finally_string_return() as string
+    try
+        throw RangeError "managed return through multi handler finally"
+    catch TypeError ignored
+        return "wrong"
+    catch ValueError e
+        assert e.kind == "RangeError"
+        string value = "managed multi return"
+        return value
+    finally
+        trace = trace + 1
+    end
+end
+
+func multi_catch_finally_string_return_check() as int
+    string actual = multi_catch_finally_string_return()
+    if actual == "managed multi return" then
+        return trace
+    end
+    return 0
+end
+
+assert multi_catch_finally_string_return_check() == 1

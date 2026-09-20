@@ -1,0 +1,16 @@
+int trace = 0
+try
+    try
+        throw TypeError "multi typed finally miss"
+    catch ValueError ignored
+        trace = 100
+    catch RangeError ignored2
+        trace = 200
+    finally
+        trace = trace + 10
+    end
+catch TypeError outer
+    assert outer.kind == "TypeError"
+    trace = trace + 1
+    assert trace == 11
+end

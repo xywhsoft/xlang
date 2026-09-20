@@ -1,0 +1,154 @@
+param([Parameter(Mandatory=$true)][string]$PublicDirectory,
+    [Parameter(Mandatory=$true)][string]$Directory)
+$ErrorActionPreference='Stop'
+$rootPath=Split-Path -Parent $PSScriptRoot
+Push-Location $rootPath
+try {
+    $outputPath=[IO.Path]::GetFullPath($Directory)
+    if(Test-Path -LiteralPath $outputPath){throw 'Preserve prior artifact-runtime evidence'}
+    $public=Get-Content -LiteralPath (Join-Path $PublicDirectory 'build.json') -Raw|ConvertFrom-Json
+    $cases=@('cgen_basic','cgen_optional_nullable_function_default','cgen_try_finally_pending_async',
+        'xlir_task_aggregate_array_abi','xlir_task_when_any_array_abi','xlir_artifact_linkage_literal',
+        'cgen_closure_ownership','cgen_generator','cgen_generator_two_targets','cgen_channel_string',
+        'xlir_cell_loop_binding','xlir_nullable_cell_capture','cgen_function_value_error_propagation','xlir_generator_string_machine',
+        'xlir_artifact_native_linkage','xlir_string_bridge_abi','xlir_artifact_native_cstring')
+    $fixtures=@($cases|ForEach-Object {"test/cases/$_.xl"})
+    $files=Get-Item -LiteralPath (@($PSCommandPath,'src/driver/xl6_xlc_shell.c','test/cases/xlir_artifact_runtime_contract.c',
+        'tools/stage_xlir_artifact_runtime_sources.ps1','src/compile/xl6_artifact_runtime_symbols.inc',(Get-Command gcc).Source,(Get-Command nm).Source)+$fixtures)
+    $inputs=@($public.Inputs)+@($public.Headers)+@($public.Objects)+@($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
+    foreach($row in $inputs){if((Get-FileHash -LiteralPath $row.Path).Hash-ne$row.Sha256){throw "Stale artifact input: $($row.Path)"}}
+    New-Item -ItemType Directory -Path $outputPath|Out-Null
+    Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
+    $objects=@($public.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-ne'xlir_public_source_driver.o'}|ForEach-Object Path)
+    $flags=@('-std=c11','-O0','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
+        '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-pointer-sign','-Wno-format-truncation',
+        '-Wno-missing-field-initializers','-DXL_STATIC_EMBED','-I.','-Irelease','-Ilib/tcc')
+    $libs=@('release/xl.dll','-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
+    & gcc @flags src/driver/xl6_xlc_shell.c @objects @libs -o "$outputPath/xl.exe" *> "$outputPath/cli-build.log"
+    $cliBuild=$LASTEXITCODE
+    & gcc @flags test/cases/xlir_artifact_runtime_contract.c @objects @libs -o "$outputPath/contract.exe" *> "$outputPath/contract-build.log"
+    $contractBuild=$LASTEXITCODE
+    $rows=@();$catalog=@();$linkage=@();$nativeLinkage=@();$contractRun=$null;$catalogRun=$null
+    if($contractBuild-eq0){
+        & "$outputPath/contract.exe" @fixtures 1> "$outputPath/contract.log" 2> "$outputPath/contract.err.log"
+        $contractRun=$LASTEXITCODE
+        & "$outputPath/contract.exe" --catalog 1> "$outputPath/catalog.jsonl" 2> "$outputPath/catalog.err.log"
+        $catalogRun=$LASTEXITCODE
+        if($catalogRun-eq0){$catalog=@(Get-Content -LiteralPath "$outputPath/catalog.jsonl"|ForEach-Object {$_|ConvertFrom-Json})}
+    }
+    # Build each actual provider separately. Validate the declared resident
+    # closure against unresolved symbols; no successful host link may hide a
+    # missing private dependency in a standalone artifact.
+    $symbolOwners=@{};$componentObjects=@()
+    foreach($component in $catalog){
+        $object="$outputPath/component-$($component.Id).o"
+        & gcc @flags -c $component.Source -o $object *> "$outputPath/component-$($component.Id).log"
+        $componentBuild=$LASTEXITCODE;$defined=@();$undefined=@();$nativeUndefined=@()
+        if($componentBuild-eq0){
+            $defined=@(& nm -g --defined-only $object|ForEach-Object {if($_-match '\b[TRD] (xl6\w+)$'){$Matches[1]}})
+            $undefined=@(& nm -u $object|ForEach-Object {if($_-match '\bU (xl6\w+)$'){$Matches[1]}})
+            $nativeUndefined=@(& nm -u $object|ForEach-Object {if($_-match '\bU (xrt\w+)$'){$Matches[1]}})
+            foreach($symbol in $defined){if($symbolOwners.ContainsKey($symbol)){throw "Duplicate resident export $symbol"};$symbolOwners[$symbol]=$component.Id}
+        }
+        $componentObjects+=[pscustomobject]@{Component=$component;Build=$componentBuild;Path=$object;Defined=$defined;Undefined=$undefined;NativeUndefined=$nativeUndefined}
+    }
+    $declared=@{}
+    $enum=[regex]::Match((Get-Content -LiteralPath src/compile/xl6_artifact_runtime.h -Raw),
+        '(?s)typedef\s+enum\s+XL6_ArtifactRuntimeId\s*\{(?<body>.*?)\}\s*XL6_ArtifactRuntimeId\s*;')
+    if(!$enum.Success){throw 'Missing explicit resident component identities'}
+    $idNames=[regex]::Matches($enum.Groups['body'].Value,'\bXL6_ARTIFACT_(?!RUNTIME_COUNT\b)([A-Z_]+)\b')
+    $nameIds=@{};$componentIndex=0
+    foreach($idName in $idNames){
+        $name=$idName.Groups[1].Value
+        if($nameIds.ContainsKey($name)){throw "Duplicate resident component identity $name"}
+        $nameIds[$name]=$componentIndex;$componentIndex++
+    }
+    $expectedComponents=$nameIds.Count
+    if($expectedComponents-lt24-or!$nameIds.ContainsKey('NETWORK_SERVICE')){throw 'Resident component population regressed'}
+    foreach($entry in [regex]::Matches((Get-Content -LiteralPath src/compile/xl6_artifact_runtime_symbols.inc -Raw),'XL6_ARTIFACT_SYMBOL\("(\w+)", (\w+)\)')){
+        $declared[$entry.Groups[1].Value]=$nameIds[$entry.Groups[2].Value]
+    }
+    $registryErrors=@()
+    foreach($symbol in $symbolOwners.Keys){if(!$declared.ContainsKey($symbol)-or$declared[$symbol]-ne$symbolOwners[$symbol]){$registryErrors+="Unregistered or misowned actual export: $symbol"}}
+    foreach($symbol in $declared.Keys){if(!$symbolOwners.ContainsKey($symbol)){$registryErrors+="Declared export missing: $symbol"}}
+    foreach($componentObject in $componentObjects){
+        $missing=@()
+        foreach($symbol in $componentObject.Undefined){
+            if(!$symbolOwners.ContainsKey($symbol)-or!($componentObject.Component.Closure-band(1-shl$symbolOwners[$symbol]))){$missing+=$symbol}
+        }
+        $linkage+=[pscustomobject]@{Id=$componentObject.Component.Id;Source=$componentObject.Component.Source;Build=$componentObject.Build;
+            Missing=$missing;Complete=($componentObject.Build-eq0-and!$missing.Count)}
+    }
+    if($cliBuild-eq0-and$contractBuild-eq0){
+        $identity=[pscustomobject]@{Driver="$outputPath/xl.exe";DriverSha256=(Get-FileHash -LiteralPath "$outputPath/xl.exe").Hash}
+        [IO.File]::WriteAllText("$outputPath/build.json",($identity|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
+        & "$PSScriptRoot/stage_xlir_artifact_runtime_sources.ps1" -Directory $outputPath *> "$outputPath/stage.log"
+        $env:XL6_TCC_DLL=[IO.Path]::GetFullPath('release/xl.dll')
+        $env:XL6_TCC_ROOT=[IO.Path]::GetFullPath('res/tcc/win64/x86_64')
+        $env:XL6_TCC_LIB=[IO.Path]::GetFullPath('res/tcc/win64/x86_64/lib')
+        $includes=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
+        foreach($case in $cases){
+            foreach($phase in @('cgen','run','build','execute')){
+                $prefix="$outputPath/$case";$binary="$outputPath/xl.exe";$arguments=@($phase,"test/cases/$case.xl",'--inc-path',$includes)
+                if($phase-eq'cgen'){$arguments+=@('--emit',"$prefix.c",'--emit-header',"$prefix.h")}
+                if($phase-eq'build'){$arguments+=@('-o',"$prefix.exe",'--save-temps')}
+                if($phase-eq'execute'){$binary="$prefix.exe";$arguments=@()}
+                $code=$null
+                if(Test-Path -LiteralPath $binary){
+                    $start=@{FilePath=$binary;WindowStyle='Hidden';PassThru=$true;WorkingDirectory=$rootPath;
+                        RedirectStandardOutput="$prefix.$phase.out.log";RedirectStandardError="$prefix.$phase.err.log"}
+                    if($arguments.Count){$start.ArgumentList=$arguments}
+                    $process=Start-Process @start
+                    if($process.WaitForExit(45000)){$process.Refresh();$code=$process.ExitCode}else{$process.Kill();$process.WaitForExit();$code='timeout-45s'}
+                    $process.Dispose()
+                }
+                $rows+=[pscustomobject]@{Fixture=$case;Phase=$phase;Exit=$code;Complete=$code-eq0;Executable=$binary;Arguments=$arguments}
+                Write-Output "Artifact $case $phase exit=$code"
+            }
+            # Independent object-level oracle: generated code and every selected
+            # resident provider must resolve against this plan's actual XRT TU.
+            # Inspecting symbols is test evidence, never production selection.
+            $prefix="$outputPath/$case"
+            & "$outputPath/contract.exe" --emit-native "test/cases/$case.xl" "$prefix.native.c" 1> "$prefix.native-plan.log" 2> "$prefix.native-plan.err.log"
+            $nativePlanExit=$LASTEXITCODE;$nativeBuild=$null;$generatedBuild=$null;$missing=@();$defined=@();$required=@();$selectedSources=@();$assemblyMatches=$false
+            if($nativePlanExit-eq0){
+                $plan=Get-Content -LiteralPath "$prefix.native-plan.log"|Where-Object {$_-match '^\{"Fixture"'}|ConvertFrom-Json
+                $selectedSources=@($plan.Sources)
+                & gcc @flags "-I$includes" -Ilib/xruntime -c "$prefix.native.c" -o "$prefix.native.o" *> "$prefix.native-build.log"
+                $nativeBuild=$LASTEXITCODE
+                & gcc @flags "-I$includes" -c "$prefix.c" -o "$prefix.generated.o" *> "$prefix.generated-build.log"
+                $generatedBuild=$LASTEXITCODE
+                if($nativeBuild-eq0-and$generatedBuild-eq0){
+                    $defined=@(& nm -g --defined-only "$prefix.native.o"|ForEach-Object {if($_-match '\b[TRD] (xrt\w+)$'){$Matches[1]}})
+                    $required=@(& nm -u "$prefix.generated.o" "$prefix.native.o"|ForEach-Object {if($_-match '\bU (xrt\w+)$'){$Matches[1]}})+
+                        @($componentObjects|Where-Object {$_.Component.Source-in$selectedSources}|ForEach-Object NativeUndefined)
+                    $required=@($required|Sort-Object -Unique)
+                    $missing=@($required|Where-Object {$_-notin$defined})
+                }
+                $saved=@(Get-Content -LiteralPath "$prefix.build.err.log"|ForEach-Object {if($_-match '^temporary files kept: (.+)$'){$Matches[1]}})
+                if($saved.Count-eq1){
+                    $actual=Join-Path $saved[0] 'xl6_xrt_impl.c'
+                    if(Test-Path -LiteralPath $actual){
+                        Copy-Item -LiteralPath $actual -Destination "$prefix.actual-native.c"
+                        $assemblyMatches=(Get-FileHash -LiteralPath $actual).Hash-eq(Get-FileHash -LiteralPath "$prefix.native.c").Hash
+                    }
+                }
+            }
+            $nativeLinkage+=[pscustomobject]@{Fixture=$case;Plan=$nativePlanExit;NativeBuild=$nativeBuild;GeneratedBuild=$generatedBuild;
+                Sources=$selectedSources;Required=$required;Defined=$defined;Missing=$missing;ActualAssemblyMatchesPlan=$assemblyMatches;
+                Complete=($nativePlanExit-eq0-and$nativeBuild-eq0-and$generatedBuild-eq0-and!$missing.Count-and$assemblyMatches)}
+            Write-Output "Native closure $case plan=$nativePlanExit build=$nativeBuild C=$generatedBuild missing=$($missing.Count) actual=$assemblyMatches"
+        }
+    }
+    $unchanged=@($inputs|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash-ne$_.Sha256}).Count-eq0
+    $complete=$unchanged-and$cliBuild-eq0-and$contractBuild-eq0-and$contractRun-eq0-and$catalogRun-eq0-and$catalog.Count-eq$expectedComponents-and
+        $rows.Count-eq($cases.Count*4)-and!@($rows|Where-Object {!$_.Complete}).Count-and!$registryErrors.Count-and$declared.Count-eq$symbolOwners.Count-and
+        $linkage.Count-eq$expectedComponents-and!@($linkage|Where-Object {!$_.Complete}).Count-and
+        $nativeLinkage.Count-eq$cases.Count-and!@($nativeLinkage|Where-Object {!$_.Complete}).Count
+    $report=[pscustomobject]@{Complete=$complete;Inputs=$inputs;InputsUnchanged=$unchanged;CliBuild=$cliBuild;ContractBuild=$contractBuild;
+        ContractRun=$contractRun;CatalogRun=$catalogRun;ComponentCount=$expectedComponents;DependencyPairs=($expectedComponents*$expectedComponents);DeclaredExports=$declared.Count;ActualExports=$symbolOwners.Count;
+        RegistryErrors=$registryErrors;Linkage=$linkage;NativeLinkage=$nativeLinkage;Results=$rows;
+        Scope='Current-source standalone CLI with explicit private declaration/source staging and TCC provider. Preserves all fifteen v204 programs, adds string bridge coverage, actual native object closure and actual assembly/plan equality. Not shared release xlc.dll, isolated deployment or whole-platform acceptance.'}
+    [IO.File]::WriteAllText("$outputPath/results.json",($report|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
+    if(!$complete){throw 'Artifact runtime failures retained'}
+} finally {Pop-Location}

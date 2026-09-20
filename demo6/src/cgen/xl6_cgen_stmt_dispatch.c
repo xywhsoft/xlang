@@ -144,16 +144,23 @@ static int xl6CgenReturnTrySingleValueStmt(
             return 1;
         }
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "const char* %s = xrtCopyStr(", returnName);
+        xl6OutputPrintf(ctx->out, "const char* %s = xl6_xrt_string_dup(", returnName);
         xl6CgenStringSourceExpr(ctx, concreteReturnType, expr);
         xl6OutputPuts(", 0u);\n", ctx->out);
+        return 1;
+    }
+    if ( xl6CgenIsErrorType(ctx, concreteReturnType) ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "XL6_Error* %s = ", returnName);
+        xl6CgenErrorOwnedExpr(ctx, expr);
+        xl6OutputPuts(";\n", ctx->out);
         return 1;
     }
 
     /*
         语义类型可以比实际存储更精确，例如 XValue 容器的迭代目标在
         语义阶段推断为 int，lowering 入口仍以 var 保存。返回具体标量
-        时必须在统一出口解箱，不能把 xvalue 指针直接写入 C 标量。
+        时必须在统一出口解箱，不能把 xvalue* 指针直接写入 C 标量。
     */
     if ( xl6CgenDeclCallArgStaticScalarType(concreteReturnType) &&
          xl6CgenReturnExprUsesXValueStorage(ctx, expr) ) {
@@ -164,7 +171,7 @@ static int xl6CgenReturnTrySingleValueStmt(
             xl6CgenTypeName(ctx, concreteReturnType),
             returnName);
         if ( !xl6CgenFixedParamXValueConvertArgExpr(ctx, concreteReturnType, expr) ) {
-            xl6CgenError(ctx, expr, "xvalue return conversion lowering failed");
+            xl6CgenError(ctx, expr, "xvalue* return conversion lowering failed");
             xl6CgenDefaultValue(ctx, concreteReturnType);
         }
         xl6OutputPuts(";\n", ctx->out);
@@ -221,7 +228,7 @@ static void xl6CgenPrepareMultiStringReturns(XL6_CgenContext* ctx, int returnId)
                 (unsigned)i);
         } else {
             xl6OutputPrintf(ctx->out,
-                            "__xl6_return_%d.value%u = xrtCopyStr(__xl6_return_%d.value%u, 0u);\n",
+                            "__xl6_return_%d.value%u = xl6_xrt_string_dup(__xl6_return_%d.value%u, 0u);\n",
                             returnId, (unsigned)i, returnId, (unsigned)i);
         }
     }
@@ -250,7 +257,7 @@ static void xl6CgenPrepareSingleStringReturn(XL6_CgenContext* ctx, int returnId)
     } else {
         xl6OutputPrintf(
             ctx->out,
-            "__xl6_return_%d = xrtCopyStr(__xl6_return_%d, 0u);\n",
+            "__xl6_return_%d = xl6_xrt_string_dup(__xl6_return_%d, 0u);\n",
             returnId,
             returnId);
     }
@@ -273,7 +280,7 @@ static void xl6CgenPromoteMultiStringReturns(XL6_CgenContext* ctx, int returnId)
                  ctx->currentReturns->children[i]) ) {
             xl6OutputPrintf(
                 ctx->out,
-                "__xl6_return_%d.value%u = __xl6_return_%d.value%u != 0 ? xrtTempStringTake((char*)__xl6_return_%d.value%u, 0u) : 0;\n",
+                "__xl6_return_%d.value%u = __xl6_return_%d.value%u != 0 ? xl6_temp_string_take((char*)__xl6_return_%d.value%u, 0u) : 0;\n",
                 returnId,
                 (unsigned)i,
                 returnId,
@@ -282,7 +289,7 @@ static void xl6CgenPromoteMultiStringReturns(XL6_CgenContext* ctx, int returnId)
                 (unsigned)i);
         } else {
             xl6OutputPrintf(ctx->out,
-                            "__xl6_return_%d.value%u = xrtTempStringTake((char*)__xl6_return_%d.value%u, 0u);\n",
+                            "__xl6_return_%d.value%u = xl6_temp_string_take((char*)__xl6_return_%d.value%u, 0u);\n",
                             returnId, (unsigned)i, returnId, (unsigned)i);
         }
     }
@@ -453,7 +460,7 @@ static void xl6CgenDiscardExpressionStatementTemp(
 
     if ( xl6CgenIsXValueType(typeNode) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", tempName, tempName, tempName);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtValueRelease(%s); %s = 0; }\n", tempName, tempName, tempName);
         return;
     }
 
@@ -529,7 +536,7 @@ static int xl6CgenTryPrintIntrinsicStatement(XL6_CgenContext* ctx, const XL6_Ast
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_print_args_%d = ", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_print_args_%d = ", id);
     xl6CgenPrintArrayArgsExpr(ctx, args);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -540,7 +547,7 @@ static int xl6CgenTryPrintIntrinsicStatement(XL6_CgenContext* ctx, const XL6_Ast
     }
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out,
-                    "if (__xl6_print_args_%d != 0) { xvoUnref(__xl6_print_args_%d); __xl6_print_args_%d = 0; }\n",
+                    "if (__xl6_print_args_%d != 0) { xrtValueRelease(__xl6_print_args_%d); __xl6_print_args_%d = 0; }\n",
                     id,
                     id,
                     id);
@@ -861,6 +868,11 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                             xl6OutputPrintf(ctx->out, "%s = ", returnValuePath);
                             xl6CgenWeakValueExpr(ctx, node->children[i]);
                             xl6OutputPuts(";\n", ctx->out);
+                        } else if ( xl6CgenIsErrorType(ctx, retType) ) {
+                            xl6CgenIndent(ctx);
+                            xl6OutputPrintf(ctx->out, "%s = ", returnValuePath);
+                            xl6CgenErrorOwnedExpr(ctx, node->children[i]);
+                            xl6OutputPuts(";\n", ctx->out);
                         } else if ( xl6CgenIsXValueType(retType) ) {
                             xl6CgenIndent(ctx);
                             xl6OutputPrintf(ctx->out, "%s = ", returnValuePath);
@@ -998,11 +1010,11 @@ static void xl6CgenStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
                     if ( xl6CgenIsNullableStringTypeNode(ctx, ctx->currentReturnType) ) {
                         xl6OutputPrintf(
                             ctx->out,
-                            "return __xl6_return_%d != 0 ? xrtTempStringTake((char*)__xl6_return_%d, 0u) : 0;\n",
+                            "return __xl6_return_%d != 0 ? xl6_temp_string_take((char*)__xl6_return_%d, 0u) : 0;\n",
                             id,
                             id);
                     } else {
-                        xl6OutputPrintf(ctx->out, "return xrtTempStringTake((char*)__xl6_return_%d, 0u);\n", id);
+                        xl6OutputPrintf(ctx->out, "return xl6_temp_string_take((char*)__xl6_return_%d, 0u);\n", id);
                     }
                 } else {
                     xl6OutputPrintf(ctx->out, "return __xl6_return_%d;\n", id);

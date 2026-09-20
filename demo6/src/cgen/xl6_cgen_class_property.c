@@ -133,7 +133,12 @@ static int xl6CgenClassPropertyResolve(
     if ( semanticSource == NULL ) {
         semanticSource = indexNode != NULL ? indexNode : member;
     }
-    hirTarget = xl6CgenHirTarget(ctx, semanticSource);
+    hirTarget = semanticSource != NULL &&
+                (semanticSource->semanticCallKind == XL6_SEM_CALL_PROPERTY_GET ||
+                 semanticSource->semanticCallKind == XL6_SEM_CALL_PROPERTY_SET ||
+                 semanticSource->semanticCallKind == XL6_SEM_CALL_WITNESS)
+        ? xl6CgenHirTarget(ctx, semanticSource)
+        : NULL;
     if ( hirTarget != NULL ) {
         ownerClass = xl6CgenFindCallableOwnerClass(ctx, classNode, hirTarget);
         method = ownerClass != NULL &&
@@ -144,7 +149,8 @@ static int xl6CgenClassPropertyResolve(
         if ( method == NULL ) {
             xl6CgenError(ctx, semanticSource, "typed HIR 属性访问器目标无效");
         }
-    } else {
+    } else if ( semanticSource == NULL ||
+                semanticSource->semanticCallKind == XL6_SEM_CALL_NONE ) {
         method = xl6CgenResolveClassProperty(
             ctx,
             classNode,
@@ -153,6 +159,11 @@ static int xl6CgenClassPropertyResolve(
             kind,
             &ownerClass
         );
+    } else {
+        /* A resolved non-property target (for example __field__ or __item__)
+         * belongs to another semantic operation.  Do not reinterpret that
+         * target, or re-resolve the same spelling, as a property accessor. */
+        method = NULL;
     }
     ctx->currentGenericParams = prevParams;
     ctx->currentGenericArgs = prevArgs;
@@ -277,7 +288,7 @@ static int xl6CgenClassPropertyEmitSelf(
     }
     /*
         成员函数中的 self 已经是对象 payload 指针。即使 class 在语言层使用
-        xvalue 句柄，也不能再次调用 xl6_class_data，否则会把 payload 当成 xvalue。
+        xvalue* 句柄，也不能再次调用 xl6_class_data，否则会把 payload 当成 xvalue*。
     */
     if ( xl6CgenClassHandleTargetType(ctx, receiverType) != NULL ) {
         char ownerTypeName[512];

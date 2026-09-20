@@ -1,0 +1,25 @@
+extern "xlir_make_i64_future" func makeI64Future() as future<int>
+extern "xlir_make_string_future" func makeStringFuture() as future<string>
+
+async func nestedScalar(future<int> source, int prefix) as int
+    return prefix - (await source + 2)
+end
+
+async func nestedDirectScalar(int prefix) as int
+    return prefix - (await makeI64Future() + 2)
+end
+
+async func decorate(future<string> source, string suffix) as string
+    return "<" + await source + suffix + ">"
+end
+
+future<int> scalarSource = makeI64Future()
+future<int> scalarPending = nestedScalar(scalarSource, 50)
+assert await scalarPending == 7
+
+future<int> directPending = nestedDirectScalar(50)
+assert await directPending == 7
+
+future<string> stringSource = makeStringFuture()
+future<string> stringPending = decorate(stringSource, "!")
+assert await stringPending == "<hello!>"

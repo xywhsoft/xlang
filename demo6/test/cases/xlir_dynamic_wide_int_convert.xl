@@ -1,0 +1,19 @@
+export "xlir_test_signed16_from_dynamic" func signed16_from_dynamic() as int16
+    var value = "-32768"
+    return int16(value)
+end
+
+export "xlir_test_unsigned16_from_dynamic" func unsigned16_from_dynamic() as uint16
+    var value = "65535"
+    return uint16(value)
+end
+
+export "xlir_test_signed32_from_dynamic" func signed32_from_dynamic() as int32
+    var value = "-2147483648"
+    return int32(value)
+end
+
+export "xlir_test_unsigned32_from_dynamic" func unsigned32_from_dynamic() as uint32
+    var value = "4294967295"
+    return uint32(value)
+end

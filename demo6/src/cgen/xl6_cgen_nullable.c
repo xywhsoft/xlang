@@ -1,6 +1,6 @@
 /*
  * nullable 的规范类型与运行时描述集中在这里收集。
- * 只有 tagged nullable 需要额外 C 布局；指针和 xvalue 形态仍需要
+ * 只有 tagged nullable 需要额外 C 布局；指针和 xvalue* 形态仍需要
  * 独立 TypeDesc，不能借用内部 T 的类型身份。
  */
 
@@ -210,7 +210,7 @@ static void xl6CgenEmitNullableTypeDescProtos(XL6_CgenContext* ctx)
         return;
     }
     for ( i = 0; i < ctx->nullableTypeCount; ++i ) {
-        xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
+        xl6OutputPuts("static const xl6_type_desc* ", ctx->out);
         xl6CgenNullableTypeDescSymbol(
             ctx->out,
             ctx,
@@ -352,7 +352,7 @@ static void xl6CgenEmitNullableTypeDecls(XL6_CgenContext* ctx, int hasAsyncRunti
             } else {
                 xl6OutputPuts(
                     "    if ( !copy ) { return source.value; }\n"
-                    "    if ( !xrtTypeCopyValue(",
+                    "    if ( !xl6TypeCopyValue(",
                     ctx->out);
                 xl6CgenEmitXrtTypeDescRef(ctx, inner);
                 xl6OutputPuts(
@@ -403,7 +403,7 @@ static void xl6CgenEmitNullableTypeDecls(XL6_CgenContext* ctx, int hasAsyncRunti
                     "        result.value = xl6_function_copy_value(source.value);\n",
                     ctx->out);
             } else {
-                xl6OutputPuts("        if (!xrtTypeCopyValue(", ctx->out);
+                xl6OutputPuts("        if (!xl6TypeCopyValue(", ctx->out);
                 xl6CgenEmitXrtTypeDescRef(ctx, inner);
                 xl6OutputPuts(
                     ", &result.value, &source.value)) { xl6_runtime_fatal(3); }\n",
@@ -425,7 +425,7 @@ static void xl6CgenEmitNullableTypeDecls(XL6_CgenContext* ctx, int hasAsyncRunti
                     "    xl6_function_release_value(value->value);\n",
                     ctx->out);
             } else {
-                xl6OutputPuts("    xrtTypeDropValue(", ctx->out);
+                xl6OutputPuts("    xl6TypeDropValue(", ctx->out);
                 xl6CgenEmitXrtTypeDescRef(ctx, inner);
                 xl6OutputPuts(", &value->value);\n", ctx->out);
             }
@@ -468,7 +468,7 @@ static void xl6CgenEmitNullableTypeDecls(XL6_CgenContext* ctx, int hasAsyncRunti
         }
 
         /*
-         * var 可以承载任意 nullable：空分支成为 xvalue null，值分支由
+         * var 可以承载任意 nullable：空分支成为 xvalue* null，值分支由
          * XRT TypeDesc 统一装箱。帮助函数按值接收 tagged nullable，保证
          * 安全导航、函数调用等复合表达式只求值一次。
          */
@@ -486,10 +486,10 @@ static void xl6CgenEmitNullableTypeDecls(XL6_CgenContext* ctx, int hasAsyncRunti
                 typeNode);
             xl6OutputPrintf(
                 ctx->out,
-                "static xvalue %s(%s source)\n"
+                "static xvalue* %s(%s source)\n"
                 "{\n"
-                "    xvalue result;\n"
-                "    if ( !source.hasValue ) { return xvoCreateNull(); }\n",
+                "    xvalue* result;\n"
+                "    if ( !source.hasValue ) { return xrtValueNull(); }\n",
                 boxName,
                 cTypeName);
             if ( xl6CgenIsFunctionType(inner) ) {
@@ -497,7 +497,7 @@ static void xl6CgenEmitNullableTypeDecls(XL6_CgenContext* ctx, int hasAsyncRunti
                     "    return xl6_function_to_xvalue(source.value);\n",
                     ctx->out);
             } else {
-                xl6OutputPuts("    result = xrtTypeBoxValue(", ctx->out);
+                xl6OutputPuts("    result = xl6TypeBoxValue(", ctx->out);
                 xl6CgenEmitXrtTypeDescRef(ctx, inner);
                 xl6OutputPuts(
                     ", &source.value);\n"
@@ -509,20 +509,20 @@ static void xl6CgenEmitNullableTypeDecls(XL6_CgenContext* ctx, int hasAsyncRunti
 
             xl6OutputPrintf(
                 ctx->out,
-                "static %s %s(xvalue source)\n"
+                "static %s %s(xvalue* source)\n"
                 "{\n"
                 "    %s result;\n"
                 "    memset(&result, 0, sizeof(result));\n"
-                "    if ( source != 0 && !xvoIsNull(source) ) {\n",
+                "    if ( source != 0 && !xl6_xrt_value_is_null(source) ) {\n",
                 cTypeName,
                 fromXValueName,
                 cTypeName);
             if ( xl6CgenIsFunctionType(inner) ) {
                 xl6OutputPuts(
-                    "        result.value = xl6_function_from_callable(xvoGetCallable(source));\n",
+                    "        result.value = xl6_function_from_callable(xrtValueGetCallable(source));\n",
                     ctx->out);
             } else {
-                xl6OutputPuts("        if (!xrtTypeUnboxValue(", ctx->out);
+                xl6OutputPuts("        if (!xl6TypeUnboxValue(", ctx->out);
                 xl6CgenEmitXrtTypeDescRef(ctx, inner);
                 xl6OutputPuts(
                     ", source, &result.value)) { xl6_runtime_fatal(3); }\n",
@@ -531,7 +531,7 @@ static void xl6CgenEmitNullableTypeDecls(XL6_CgenContext* ctx, int hasAsyncRunti
             xl6OutputPuts(
                 "        result.hasValue = true;\n"
                 "    }\n"
-                "    if ( source != 0 ) { xvoUnref(source); }\n"
+                "    if ( source != 0 ) { xrtValueRelease(source); }\n"
                 "    return result;\n"
                 "}\n",
                 ctx->out);
@@ -579,58 +579,64 @@ static int xl6CgenNullableStorageIsXValue(
     const XL6_AstNode* typeNode)
 {
     const char* cType = xl6CgenTypeName(ctx, typeNode);
-    return cType != NULL && strcmp(cType, "xvalue") == 0;
+    return cType != NULL && strcmp(cType, "xvalue*") == 0;
 }
 
-/* xvalue 形态保留 nullable 自身的类型身份，同时复用 XRT 引用计数。 */
+/* xvalue* 形态保留 nullable 自身的类型身份，同时复用 XRT 引用计数。 */
 static void xl6CgenEmitNullableXValueOps(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode,
     const char* prefix)
 {
+    const XL6_AstNode* inner = xl6CgenNullableInnerType(typeNode);
     XL6_Output* out = ctx->out;
+    int protocolInner = xl6CgenIsProtocolType(ctx, inner);
 
-    xl6OutputPrintf(out, "static void %s_init(void* pObj) { if (pObj != 0) { *(xvalue*)pObj = 0; } }\n", prefix);
+    xl6OutputPrintf(out, "static void %s_init(void* pObj) { if (pObj != 0) { *(xvalue**)pObj = 0; } }\n", prefix);
     xl6OutputPrintf(out, "static void %s_copy(void* pDst, const void* pSrc)\n{\n", prefix);
-    xl6OutputPuts("    xvalue value = pSrc != 0 ? *(xvalue const*)pSrc : 0;\n", out);
+    xl6OutputPuts("    xvalue* value = pSrc != 0 ? *(xvalue* const*)pSrc : 0;\n", out);
     xl6OutputPuts("    if (pDst == 0) { return; }\n", out);
-    xl6OutputPuts("    if (value != 0 && !xvoIsNull(value)) { xvoAddRef(value); *(xvalue*)pDst = value; }\n", out);
-    xl6OutputPuts("    else { *(xvalue*)pDst = 0; }\n}\n", out);
-    xl6OutputPrintf(out, "static void %s_move(void* pDst, void* pSrc) { if (pDst != 0) { *(xvalue*)pDst = pSrc != 0 ? *(xvalue*)pSrc : 0; } if (pSrc != 0) { *(xvalue*)pSrc = 0; } }\n", prefix);
-    xl6OutputPrintf(out, "static void %s_drop(void* pObj) { xvalue value = pObj != 0 ? *(xvalue*)pObj : 0; if (value != 0) { xvoUnref(value); *(xvalue*)pObj = 0; } }\n", prefix);
+    xl6OutputPuts("    if (value != 0 && !xl6_xrt_value_is_null(value)) { xrtValueRetain(value); *(xvalue**)pDst = value; }\n", out);
+    xl6OutputPuts("    else { *(xvalue**)pDst = 0; }\n}\n", out);
+    xl6OutputPrintf(out, "static void %s_move(void* pDst, void* pSrc) { if (pDst != 0) { *(xvalue**)pDst = pSrc != 0 ? *(xvalue**)pSrc : 0; } if (pSrc != 0) { *(xvalue**)pSrc = 0; } }\n", prefix);
+    xl6OutputPrintf(out, "static void %s_drop(void* pObj) { xvalue* value = pObj != 0 ? *(xvalue**)pObj : 0; if (value != 0) { xrtValueRelease(value); *(xvalue**)pObj = 0; } }\n", prefix);
     xl6OutputPrintf(out, "static int %s_compare(const void* pA, const void* pB)\n{\n", prefix);
-    xl6OutputPuts("    xvalue a = pA != 0 ? *(xvalue const*)pA : 0;\n", out);
-    xl6OutputPuts("    xvalue b = pB != 0 ? *(xvalue const*)pB : 0;\n", out);
-    xl6OutputPuts("    bool an = a == 0 || xvoIsNull(a);\n", out);
-    xl6OutputPuts("    bool bn = b == 0 || xvoIsNull(b);\n", out);
+    xl6OutputPuts("    xvalue* a = pA != 0 ? *(xvalue* const*)pA : 0;\n", out);
+    xl6OutputPuts("    xvalue* b = pB != 0 ? *(xvalue* const*)pB : 0;\n", out);
+    xl6OutputPuts("    bool an = a == 0 || xl6_xrt_value_is_null(a);\n", out);
+    xl6OutputPuts("    bool bn = b == 0 || xl6_xrt_value_is_null(b);\n", out);
     xl6OutputPuts("    if (an || bn) { return an == bn ? 0 : (an ? -1 : 1); }\n", out);
-    xl6OutputPuts("    return xrtTypeCompareValue(", out);
+    xl6OutputPuts("    return xl6TypeCompareValue(", out);
     xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
     xl6OutputPuts(", &a, &b);\n}\n", out);
     xl6OutputPrintf(out, "static uint64 %s_hash(const void* pObj)\n{\n", prefix);
-    xl6OutputPuts("    xvalue value = pObj != 0 ? *(xvalue const*)pObj : 0;\n", out);
-    xl6OutputPuts("    if (value == 0 || xvoIsNull(value)) { return 0; }\n", out);
-    xl6OutputPuts("    return xrtTypeHashValue(", out);
+    xl6OutputPuts("    xvalue* value = pObj != 0 ? *(xvalue* const*)pObj : 0;\n", out);
+    xl6OutputPuts("    if (value == 0 || xl6_xrt_value_is_null(value)) { return 0; }\n", out);
+    xl6OutputPuts("    return xl6TypeHashValue(", out);
     xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
     xl6OutputPuts(", &value);\n}\n", out);
     xl6OutputPrintf(out, "static str %s_to_string(const void* pObj, uint32* pSize)\n{\n", prefix);
-    xl6OutputPuts("    xvalue value = pObj != 0 ? *(xvalue const*)pObj : 0;\n", out);
-    xl6OutputPuts("    if (value == 0 || xvoIsNull(value)) { if (pSize != 0) { *pSize = 4u; } return xrtCopyStr((str)\"null\", 4u); }\n", out);
-    xl6OutputPuts("    return xvoToString(value, pSize);\n}\n", out);
-    xl6OutputPrintf(out, "static xvalue %s_box(const void* pObj, const xrt_type_desc* pType)\n{\n", prefix);
-    xl6OutputPuts("    xvalue value = pObj != 0 ? *(xvalue const*)pObj : 0; (void)pType;\n", out);
-    xl6OutputPuts("    if (value == 0 || xvoIsNull(value)) { return xvoCreateNull(); }\n", out);
-    xl6OutputPuts("    xvoAddRef(value); return value;\n}\n", out);
-    xl6OutputPrintf(out, "static bool %s_unbox(xvalue value, void* pOut, const xrt_type_desc* pType)\n{\n", prefix);
-    xl6OutputPuts("    const xrt_type_desc* actual; const xrt_type_desc* target; bool compatible;\n", out);
-    xl6OutputPuts("    if (pOut == 0) { return false; } *(xvalue*)pOut = 0;\n", out);
-    xl6OutputPuts("    if (value == 0 || xvoIsNull(value)) { return true; }\n", out);
-    xl6OutputPuts("    actual = xvoTypeDesc(value); target = xrtTypeGenericArg(pType, 0u);\n", out);
-    xl6OutputPuts("    compatible = actual != 0 && target != 0 && (target->Kind == XL6_XRT_TYPE_KIND_PROTOCOL ? xrtProtocolLookup(target->TypeId, actual->TypeId) != 0 : xrtTypeIsA(actual, target));\n", out);
-    xl6OutputPuts("    if (!compatible) { return false; } xvoAddRef(value); *(xvalue*)pOut = value; return true;\n}\n", out);
+    xl6OutputPuts("    xvalue* value = pObj != 0 ? *(xvalue* const*)pObj : 0;\n", out);
+    xl6OutputPuts("    if (value == 0 || xl6_xrt_value_is_null(value)) { if (pSize != 0) { *pSize = 4u; } return xl6_xrt_string_dup((str)\"null\", 4u); }\n", out);
+    xl6OutputPuts("    return xl6_xrt_value_string_owned(value, pSize);\n}\n", out);
+    xl6OutputPrintf(out, "static xvalue* %s_box(const void* pObj, const xl6_type_desc* pType)\n{\n", prefix);
+    xl6OutputPuts("    xvalue* value = pObj != 0 ? *(xvalue* const*)pObj : 0; (void)pType;\n", out);
+    xl6OutputPuts("    if (value == 0 || xl6_xrt_value_is_null(value)) { return xrtValueNull(); }\n", out);
+    xl6OutputPuts("    xrtValueRetain(value); return value;\n}\n", out);
+    xl6OutputPrintf(out, "static bool %s_unbox(xvalue* value, void* pOut, const xl6_type_desc* pType)\n{\n", prefix);
+    xl6OutputPuts("    const xl6_type_desc* actual; const xl6_type_desc* target; bool compatible;\n", out);
+    xl6OutputPuts("    if (pOut == 0) { return false; } *(xvalue**)pOut = 0;\n", out);
+    xl6OutputPuts("    if (value == 0 || xl6_xrt_value_is_null(value)) { return true; }\n", out);
+    xl6OutputPuts("    actual = xl6ValueType(value); target = xl6TypeGenericArg(pType, 0u);\n", out);
+    if ( protocolInner ) {
+        xl6OutputPuts("    compatible = actual != 0 && target != 0 && xl6ProtocolLookup(target->TypeId, actual->TypeId) != 0;\n", out);
+    } else {
+        xl6OutputPuts("    compatible = actual != 0 && target != 0 && xl6TypeIsA(actual, target);\n", out);
+    }
+    xl6OutputPuts("    if (!compatible) { return false; } xrtValueRetain(value); *(xvalue**)pOut = value; return true;\n}\n", out);
     xl6OutputPrintf(
         out,
-        "static const xrt_type_ops %s_table = { %s_init, %s_copy, %s_move, %s_drop, %s_compare, %s_hash, %s_to_string, %s_box, %s_unbox, %s_copy };\n",
+        "static const xl6_type_ops %s_table = { %s_init, %s_copy, %s_move, %s_drop, %s_compare, %s_hash, %s_to_string, %s_box, %s_unbox, %s_copy };\n",
         prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix);
 }
 
@@ -648,36 +654,36 @@ static void xl6CgenEmitNullablePointerOps(
     xl6OutputPrintf(out, "    %s value = pSrc != 0 ? *(%s const*)pSrc : 0;\n", cType, cType);
     xl6OutputPuts("    if (pDst == 0) { return; } if (value == 0) { *(", out);
     xl6OutputPrintf(out, "%s*)pDst = 0; return; }\n", cType);
-    xl6OutputPuts("    if (!xrtTypeCopyValue(", out);
+    xl6OutputPuts("    if (!xl6TypeCopyValue(", out);
     xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
     xl6OutputPuts(", pDst, &value)) { xl6_runtime_fatal(3); }\n}\n", out);
     xl6OutputPrintf(out, "static void %s_move(void* pDst, void* pSrc) { if (pDst != 0) { *(%s*)pDst = pSrc != 0 ? *(%s*)pSrc : 0; } if (pSrc != 0) { *(%s*)pSrc = 0; } }\n", prefix, cType, cType, cType);
-    xl6OutputPrintf(out, "static void %s_drop(void* pObj) { if (pObj != 0 && *(%s*)pObj != 0) { xrtTypeDropValue(", prefix, cType);
+    xl6OutputPrintf(out, "static void %s_drop(void* pObj) { if (pObj != 0 && *(%s*)pObj != 0) { xl6TypeDropValue(", prefix, cType);
     xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
     xl6OutputPrintf(out, ", pObj); *(%s*)pObj = 0; } }\n", cType);
     xl6OutputPrintf(out, "static int %s_compare(const void* pA, const void* pB)\n{\n", prefix);
     xl6OutputPrintf(out, "    %s a = pA != 0 ? *(%s const*)pA : 0; %s b = pB != 0 ? *(%s const*)pB : 0;\n", cType, cType, cType, cType);
-    xl6OutputPuts("    if (a == 0 || b == 0) { return a == b ? 0 : (a == 0 ? -1 : 1); } return xrtTypeCompareValue(", out);
+    xl6OutputPuts("    if (a == 0 || b == 0) { return a == b ? 0 : (a == 0 ? -1 : 1); } return xl6TypeCompareValue(", out);
     xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
     xl6OutputPuts(", &a, &b);\n}\n", out);
-    xl6OutputPrintf(out, "static uint64 %s_hash(const void* pObj) { %s value = pObj != 0 ? *(%s const*)pObj : 0; return value != 0 ? xrtTypeHashValue(", prefix, cType, cType);
+    xl6OutputPrintf(out, "static uint64 %s_hash(const void* pObj) { %s value = pObj != 0 ? *(%s const*)pObj : 0; return value != 0 ? xl6TypeHashValue(", prefix, cType, cType);
     xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
     xl6OutputPuts(", &value) : 0; }\n", out);
-    xl6OutputPrintf(out, "static str %s_to_string(const void* pObj, uint32* pSize) { %s value = pObj != 0 ? *(%s const*)pObj : 0; if (value == 0) { if (pSize != 0) { *pSize = 4u; } return xrtCopyStr((str)\"null\", 4u); } return xrtTypeToStringValue(", prefix, cType, cType);
+    xl6OutputPrintf(out, "static str %s_to_string(const void* pObj, uint32* pSize) { %s value = pObj != 0 ? *(%s const*)pObj : 0; if (value == 0) { if (pSize != 0) { *pSize = 4u; } return xl6_xrt_string_dup((str)\"null\", 4u); } return xl6TypeToStringValue(", prefix, cType, cType);
     xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
     xl6OutputPuts(", &value, pSize); }\n", out);
-    xl6OutputPrintf(out, "static xvalue %s_box(const void* pObj, const xrt_type_desc* pType) { %s value = pObj != 0 ? *(%s const*)pObj : 0; (void)pType; return value != 0 ? xrtTypeBoxValue(", prefix, cType, cType);
+    xl6OutputPrintf(out, "static xvalue* %s_box(const void* pObj, const xl6_type_desc* pType) { %s value = pObj != 0 ? *(%s const*)pObj : 0; (void)pType; return value != 0 ? xl6TypeBoxValue(", prefix, cType, cType);
     xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
-    xl6OutputPuts(", &value) : xvoCreateNull(); }\n", out);
-    xl6OutputPrintf(out, "static bool %s_unbox(xvalue value, void* pOut, const xrt_type_desc* pType) { (void)pType; if (pOut == 0) { return false; } memset(pOut, 0, sizeof(%s)); if (value == 0 || xvoIsNull(value)) { return true; } return xrtTypeUnboxValue(", prefix, cType);
+    xl6OutputPuts(", &value) : xrtValueNull(); }\n", out);
+    xl6OutputPrintf(out, "static bool %s_unbox(xvalue* value, void* pOut, const xl6_type_desc* pType) { (void)pType; if (pOut == 0) { return false; } memset(pOut, 0, sizeof(%s)); if (value == 0 || xl6_xrt_value_is_null(value)) { return true; } return xl6TypeUnboxValue(", prefix, cType);
     xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
     xl6OutputPuts(", value, pOut); }\n", out);
-    xl6OutputPrintf(out, "static void %s_clone(void* pDst, const void* pSrc) { if (pDst == 0) { return; } if (pSrc == 0 || *(%s const*)pSrc == 0) { *(%s*)pDst = 0; return; } if (!xrtTypeCloneValue(", prefix, cType, cType);
+    xl6OutputPrintf(out, "static void %s_clone(void* pDst, const void* pSrc) { if (pDst == 0) { return; } if (pSrc == 0 || *(%s const*)pSrc == 0) { *(%s*)pDst = 0; return; } if (!xl6TypeCloneValue(", prefix, cType, cType);
     xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
     xl6OutputPuts(", pDst, pSrc)) { xl6_runtime_fatal(3); } }\n", out);
     xl6OutputPrintf(
         out,
-        "static const xrt_type_ops %s_table = { %s_init, %s_copy, %s_move, %s_drop, %s_compare, %s_hash, %s_to_string, %s_box, %s_unbox, %s_clone };\n",
+        "static const xl6_type_ops %s_table = { %s_init, %s_copy, %s_move, %s_drop, %s_compare, %s_hash, %s_to_string, %s_box, %s_unbox, %s_clone };\n",
         prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix);
 }
 
@@ -697,7 +703,7 @@ static void xl6CgenEmitNullableTaggedOps(
     if ( functionInner ) {
         xl6OutputPuts("    d->value = xl6_function_copy_value(s->value);\n", out);
     } else {
-        xl6OutputPuts("    if (!xrtTypeCopyValue(", out);
+        xl6OutputPuts("    if (!xl6TypeCopyValue(", out);
         xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
         xl6OutputPuts(", &d->value, &s->value)) { xl6_runtime_fatal(3); }\n", out);
     }
@@ -707,7 +713,7 @@ static void xl6CgenEmitNullableTaggedOps(
     if ( functionInner ) {
         xl6OutputPuts("xl6_function_release_value(value->value); ", out);
     } else {
-        xl6OutputPuts("xrtTypeDropValue(", out);
+        xl6OutputPuts("xl6TypeDropValue(", out);
         xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
         xl6OutputPuts(", &value->value); ", out);
     }
@@ -717,7 +723,7 @@ static void xl6CgenEmitNullableTaggedOps(
     if ( functionInner ) {
         xl6OutputPuts("    if (a->value.signature != b->value.signature) { return a->value.signature < b->value.signature ? -1 : 1; } return a->value.env == b->value.env ? 0 : ((uintptr_t)a->value.env < (uintptr_t)b->value.env ? -1 : 1);\n", out);
     } else {
-        xl6OutputPuts("    return xrtTypeCompareValue(", out);
+        xl6OutputPuts("    return xl6TypeCompareValue(", out);
         xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
         xl6OutputPuts(", &a->value, &b->value);\n", out);
     }
@@ -726,34 +732,34 @@ static void xl6CgenEmitNullableTaggedOps(
     if ( functionInner ) {
         xl6OutputPuts("uint64 hash = xrtHash64(&value->value.signature, sizeof(value->value.signature)); return hash ^ xrtHash64(&value->value.env, sizeof(value->value.env));", out);
     } else {
-        xl6OutputPuts("return xrtTypeHashValue(", out);
+        xl6OutputPuts("return xl6TypeHashValue(", out);
         xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
         xl6OutputPuts(", &value->value);", out);
     }
     xl6OutputPuts(" }\n", out);
-    xl6OutputPrintf(out, "static str %s_to_string(const void* pObj, uint32* pSize) { const %s* value = (const %s*)pObj; if (value == 0 || !value->hasValue) { if (pSize != 0) { *pSize = 4u; } return xrtCopyStr((str)\"null\", 4u); } ", prefix, cType, cType);
+    xl6OutputPrintf(out, "static str %s_to_string(const void* pObj, uint32* pSize) { const %s* value = (const %s*)pObj; if (value == 0 || !value->hasValue) { if (pSize != 0) { *pSize = 4u; } return xl6_xrt_string_dup((str)\"null\", 4u); } ", prefix, cType, cType);
     if ( functionInner ) {
-        xl6OutputPuts("if (pSize != 0) { *pSize = 8u; } return xrtCopyStr((str)\"function\", 8u);", out);
+        xl6OutputPuts("if (pSize != 0) { *pSize = 8u; } return xl6_xrt_string_dup((str)\"function\", 8u);", out);
     } else {
-        xl6OutputPuts("return xrtTypeToStringValue(", out);
+        xl6OutputPuts("return xl6TypeToStringValue(", out);
         xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
         xl6OutputPuts(", &value->value, pSize);", out);
     }
     xl6OutputPuts(" }\n", out);
-    xl6OutputPrintf(out, "static xvalue %s_box(const void* pObj, const xrt_type_desc* pType) { const %s* value = (const %s*)pObj; (void)pType; if (value == 0 || !value->hasValue) { return xvoCreateNull(); } ", prefix, cType, cType);
+    xl6OutputPrintf(out, "static xvalue* %s_box(const void* pObj, const xl6_type_desc* pType) { const %s* value = (const %s*)pObj; (void)pType; if (value == 0 || !value->hasValue) { return xrtValueNull(); } ", prefix, cType, cType);
     if ( functionInner ) {
         xl6OutputPuts("return xl6_function_to_xvalue(value->value);", out);
     } else {
-        xl6OutputPuts("return xrtTypeBoxValue(", out);
+        xl6OutputPuts("return xl6TypeBoxValue(", out);
         xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
         xl6OutputPuts(", &value->value);", out);
     }
     xl6OutputPuts(" }\n", out);
-    xl6OutputPrintf(out, "static bool %s_unbox(xvalue value, void* pOut, const xrt_type_desc* pType) { %s* result = (%s*)pOut; (void)pType; if (result == 0) { return false; } memset(result, 0, sizeof(*result)); if (value == 0 || xvoIsNull(value)) { return true; } ", prefix, cType, cType);
+    xl6OutputPrintf(out, "static bool %s_unbox(xvalue* value, void* pOut, const xl6_type_desc* pType) { %s* result = (%s*)pOut; (void)pType; if (result == 0) { return false; } memset(result, 0, sizeof(*result)); if (value == 0 || xl6_xrt_value_is_null(value)) { return true; } ", prefix, cType, cType);
     if ( functionInner ) {
-        xl6OutputPuts("if (xvoGetCallable(value) == 0) { return false; } result->value = xl6_function_from_callable(xvoGetCallable(value)); result->hasValue = true; return true;", out);
+        xl6OutputPuts("if (xrtValueGetCallable(value) == 0) { return false; } result->value = xl6_function_from_callable(xrtValueGetCallable(value)); result->hasValue = true; return true;", out);
     } else {
-        xl6OutputPuts("if (!xrtTypeUnboxValue(", out);
+        xl6OutputPuts("if (!xl6TypeUnboxValue(", out);
         xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
         xl6OutputPuts(", value, &result->value)) { return false; } result->hasValue = true; return true;", out);
     }
@@ -763,14 +769,14 @@ static void xl6CgenEmitNullableTaggedOps(
     if ( functionInner ) {
         xl6OutputPuts("    d->value = xl6_function_copy_value(s->value);\n", out);
     } else {
-        xl6OutputPuts("    if (!xrtTypeCloneValue(", out);
+        xl6OutputPuts("    if (!xl6TypeCloneValue(", out);
         xl6CgenEmitNullableInnerTypeDesc(ctx, typeNode);
         xl6OutputPuts(", &d->value, &s->value)) { xl6_runtime_fatal(3); }\n", out);
     }
     xl6OutputPuts("}\n", out);
     xl6OutputPrintf(
         out,
-        "static const xrt_type_ops %s_table = { %s_init, %s_copy, %s_move, %s_drop, %s_compare, %s_hash, %s_to_string, %s_box, %s_unbox, %s_clone };\n",
+        "static const xl6_type_ops %s_table = { %s_init, %s_copy, %s_move, %s_drop, %s_compare, %s_hash, %s_to_string, %s_box, %s_unbox, %s_clone };\n",
         prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix, prefix);
 }
 
@@ -814,15 +820,15 @@ static void xl6CgenEmitNullableTypeDesc(
 
     typeText[0] = '\0';
     xl6CgenTypeText(ctx, typeNode, typeText, sizeof(typeText));
-    xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
+    xl6OutputPuts("static const xl6_type_desc* ", ctx->out);
     xl6CgenNullableTypeDescSymbol(ctx->out, ctx, typeNode);
     xl6OutputPuts("_args[1u];\n", ctx->out);
-    xl6OutputPuts("static const xrt_generic_type ", ctx->out);
+    xl6OutputPuts("static const xl6_generic_type ", ctx->out);
     xl6CgenNullableTypeDescSymbol(ctx->out, ctx, typeNode);
     xl6OutputPuts("_generic = { 1u, ", ctx->out);
     xl6CgenNullableTypeDescSymbol(ctx->out, ctx, typeNode);
     xl6OutputPuts("_args };\n", ctx->out);
-    xl6OutputPuts("static const xrt_type_desc ", ctx->out);
+    xl6OutputPuts("static const xl6_type_desc ", ctx->out);
     xl6CgenNullableTypeDescSymbol(ctx->out, ctx, typeNode);
     xl6OutputPuts("_value = {\n", ctx->out);
     xl6OutputPrintf(ctx->out, "    0x%08XU, XL6_XRT_TYPE_KIND_NULLABLE, ", (unsigned int)(typeId & 0xFFFFFFFFULL));
@@ -832,17 +838,17 @@ static void xl6CgenEmitNullableTypeDesc(
     xl6OutputPrintf(ctx->out, ", %uu, sizeof(%s), _Alignof(%s), &%s_table, 0, &", (unsigned)strlen(cType), cType, cType, prefix);
     xl6CgenNullableTypeDescSymbol(ctx->out, ctx, typeNode);
     xl6OutputPuts("_generic, 0\n};\n", ctx->out);
-    xl6OutputPuts("static xrt_once ", ctx->out);
+    xl6OutputPuts("static xonce ", ctx->out);
     xl6CgenNullableTypeDescSymbol(ctx->out, ctx, typeNode);
-    xl6OutputPuts("_once = XRT_ONCE_INIT;\nstatic void ", ctx->out);
+	xl6OutputPuts("_once = XRT_ONCE_INIT;\nstatic bool ", ctx->out);
     xl6CgenNullableTypeDescSymbol(ctx->out, ctx, typeNode);
     xl6OutputPuts("_init(void* pContext) { (void)pContext; ", ctx->out);
     xl6CgenNullableTypeDescSymbol(ctx->out, ctx, typeNode);
     xl6OutputPuts("_args[0] = ", ctx->out);
     xl6CgenEmitXrtTypeDescRef(ctx, inner);
-    xl6OutputPuts("; }\nstatic const xrt_type_desc* ", ctx->out);
+	xl6OutputPuts("; return true; }\nstatic const xl6_type_desc* ", ctx->out);
     xl6CgenNullableTypeDescSymbol(ctx->out, ctx, typeNode);
-    xl6OutputPuts("(void) { xrtOnceRunGraph(&", ctx->out);
+	xl6OutputPuts("(void) { (void)xrtOnce(&", ctx->out);
     xl6CgenNullableTypeDescSymbol(ctx->out, ctx, typeNode);
     xl6OutputPuts("_once, ", ctx->out);
     xl6CgenNullableTypeDescSymbol(ctx->out, ctx, typeNode);
@@ -970,18 +976,23 @@ static int xl6CgenWeakDecl(
         return 0;
     }
 
-    xl6OutputPrintf(ctx->out, "xrt_value_weak %s = {0};\n", cName);
+    xl6OutputPrintf(ctx->out, "xl6_weak %s = {0};\n", cName);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoWeakInit(&%s);\n", cName);
+    xl6OutputPrintf(ctx->out, "xl6WeakInit(&%s);\n", cName);
     if ( initExpr != NULL && initExpr->kind != XL6_AST_NULL ) {
         sourceType = xl6CgenCloneExprTypeForInference(ctx, initExpr);
         xl6CgenIndent(ctx);
-        if ( xl6CgenIsWeakType(sourceType) ) {
-            xl6OutputPrintf(ctx->out, "xvoWeakCopy(&%s, &(", cName);
+        if ( xl6CgenIsWeakType(sourceType) &&
+             (initExpr->kind == XL6_AST_CALL || initExpr->kind == XL6_AST_AWAIT) ) {
+            xl6OutputPrintf(ctx->out, "xl6WeakTake(&%s, ", cName);
+            xl6CgenExpr(ctx, initExpr);
+            xl6OutputPuts(");\n", ctx->out);
+        } else if ( xl6CgenIsWeakType(sourceType) ) {
+            xl6OutputPrintf(ctx->out, "xl6WeakCopy(&%s, &(", cName);
             xl6CgenExpr(ctx, initExpr);
             xl6OutputPuts("));\n", ctx->out);
         } else {
-            xl6OutputPrintf(ctx->out, "xvoWeakSet(&%s, ", cName);
+            xl6OutputPrintf(ctx->out, "xl6WeakSet(&%s, ", cName);
             xl6CgenExpr(ctx, initExpr);
             xl6OutputPuts(");\n", ctx->out);
         }
@@ -995,7 +1006,7 @@ static int xl6CgenWeakDecl(
 
 /*
     生成一个拥有独立弱引用计数的值。
-    该表达式用于按值参数和返回值，接收方必须最终调用 xvoWeakUnit。
+    该表达式用于按值参数和返回值，接收方必须最终调用 xl6WeakUnit。
 */
 static void xl6CgenWeakValueExpr(
     XL6_CgenContext* ctx,
@@ -1004,16 +1015,20 @@ static void xl6CgenWeakValueExpr(
     XL6_AstNode* sourceType;
 
     if ( expr == NULL || expr->kind == XL6_AST_NULL ) {
-        xl6OutputPuts("(xrt_value_weak){0}", ctx->out);
+        xl6OutputPuts("(xl6_weak){0}", ctx->out);
         return;
     }
     sourceType = xl6CgenCloneExprTypeForInference(ctx, expr);
     if ( xl6CgenIsWeakType(sourceType) ) {
-        xl6OutputPuts("xvoWeakClone(&(", ctx->out);
-        xl6CgenExpr(ctx, expr);
-        xl6OutputPuts("))", ctx->out);
+        if ( expr->kind == XL6_AST_CALL || expr->kind == XL6_AST_AWAIT ) {
+            xl6CgenExpr(ctx, expr);
+        } else {
+            xl6OutputPuts("xl6WeakClone(&(", ctx->out);
+            xl6CgenExpr(ctx, expr);
+            xl6OutputPuts("))", ctx->out);
+        }
     } else {
-        xl6OutputPuts("xvoWeakCreate(", ctx->out);
+        xl6OutputPuts("xl6WeakCreate(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPutc(')', ctx->out);
     }
@@ -1022,7 +1037,7 @@ static void xl6CgenWeakValueExpr(
 
 /*
     weak<T>.lock() 按值接收弱引用，因而变量、字段和返回弱引用的表达式都能
-    使用同一条生成路径。返回的 xvalue 已拥有一个强引用。
+    使用同一条生成路径。返回的 xvalue* 已拥有一个强引用。
 */
 static int xl6CgenWeakLockCall(
     XL6_CgenContext* ctx,
@@ -1056,7 +1071,7 @@ static int xl6CgenWeakLockCall(
         return 1;
     }
 
-    xl6OutputPuts("xvoWeakLockValue(", ctx->out);
+    xl6OutputPuts("xl6WeakLockValue(", ctx->out);
     xl6CgenExpr(ctx, receiver);
     xl6OutputPutc(')', ctx->out);
     return 1;
@@ -1104,7 +1119,7 @@ static int xl6CgenNullableNullComparison(
         if ( notEqual ) {
             xl6OutputPutc('!', ctx->out);
         }
-        xl6OutputPuts("xvoIsNull(", ctx->out);
+        xl6OutputPuts("xl6_xrt_value_is_null(", ctx->out);
         xl6CgenExpr(ctx, valueExpr);
         xl6OutputPutc(')', ctx->out);
     } else {

@@ -1,0 +1,180 @@
+extern "projection_arm" func armProjection()
+extern "projection_dropped" func projectionDropped()
+extern "projection_observe" func projectionObserve(int count)
+extern "projection_raise" func projectionRaise()
+extern "projection_caught" func projectionCaught()
+extern "projection_raise_on_drop" func projectionRaiseOnDrop()
+
+class ProjectionText
+    string text = "hello"
+    destroy()
+        projectionDropped()
+    end
+end
+
+enum ProjectionPair<T>
+    pair(T first, T second)
+    empty
+end
+
+func armText(ProjectionText value) as ProjectionText
+    armProjection()
+    return value
+end
+
+func armDict(dict<string> value) as dict<string>
+    armProjection()
+    return value
+end
+
+func armPair(ProjectionPair<string> value) as ProjectionPair<string>
+    armProjection()
+    return value
+end
+
+func temporaryPair() as ProjectionPair<ProjectionText>
+    ProjectionText first = ProjectionText()
+    ProjectionText second = ProjectionText()
+    ProjectionPair<ProjectionText> result = ProjectionPair::<ProjectionText>.pair(first, second)
+    armProjection()
+    return result
+end
+
+export func projection_case(int kind) as int
+    if kind == 0
+        ProjectionText value = ProjectionText()
+        armProjection()
+        return value.text.length
+    elseif kind == 1
+        ProjectionText value = ProjectionText()
+        return armText(value).text.length
+    elseif kind == 2
+        dict<string> value = dict{"text": "hello"}
+        armProjection()
+        return value["text"].length
+    elseif kind == 3
+        dict<string> value = dict{"text": "hello"}
+        return armDict(value)["text"].length
+    elseif kind == 4
+        ProjectionPair<string> value = ProjectionPair::<string>.pair("hello", "world")
+        armProjection()
+        return match value
+        case pair(first, second) then first.length + second.length
+        case empty then 0
+        end
+    elseif kind == 5
+        ProjectionPair<string> value = ProjectionPair::<string>.pair("hello", "world")
+        return match armPair(value)
+        case pair(first, second) then first.length + second.length
+        case empty then 0
+        end
+    elseif kind == 6
+        ProjectionPair<string> value = ProjectionPair::<string>.pair("hello", "world")
+        armProjection()
+        match value
+        case pair(first, second)
+            return first.length + second.length
+        case empty
+            return 0
+        end
+    elseif kind == 7
+        string value = "hello"
+        armProjection()
+        int first = value.length
+        return first + value.length
+    elseif kind == 8
+        ProjectionPair<string> value = ProjectionPair::<string>.pair("hello", "world")
+        int total = 0
+        armProjection()
+        match value
+        case pair(first, second)
+            total = first.length + second.length
+        case empty
+            total = 0
+        end
+        return total
+    elseif kind == 9
+        ProjectionPair<string> value = ProjectionPair::<string>.pair("hello", "world")
+        int total = 0
+        int iteration = 0
+        armProjection()
+        while iteration < 2
+            iteration += 1
+            match value
+            case pair(first, second)
+                total += first.length + second.length
+                continue
+            case empty
+                break
+            end
+        end
+        return total
+    elseif kind == 10
+        ProjectionPair<string> value = ProjectionPair::<string>.pair("hello", "world")
+        int total = 0
+        armProjection()
+        while true
+            match value
+            case pair(first, second)
+                total = first.length + second.length
+                break
+            case empty
+                break
+            end
+        end
+        return total
+    elseif kind == 11
+        ProjectionPair<string> value = ProjectionPair::<string>.pair("hello", "world")
+        armProjection()
+        match value
+        case pair(first, second)
+            try
+                return first.length + second.length
+            finally
+                projectionObserve(first.length + second.length)
+            end
+        case empty
+            return 0
+        end
+    elseif kind == 12
+        ProjectionPair<string> value = ProjectionPair::<string>.pair("hello", "world")
+        armProjection()
+        match value
+        case pair(first, second)
+            try
+                projectionRaise()
+            catch error
+                assert error.code == 77
+                projectionObserve(first.length + second.length)
+            end
+            return first.length + second.length
+        case empty
+            return 0
+        end
+    elseif kind == 13
+        ProjectionPair<string> value = ProjectionPair::<string>.pair("hello", "world")
+        armProjection()
+        try
+            match value
+            case pair(first, second)
+                projectionRaise()
+            case empty
+                return 0
+            end
+        catch error
+            projectionCaught()
+        end
+        return 17
+    else
+        match temporaryPair()
+        case pair(first, second)
+            if kind == 15
+                projectionRaiseOnDrop()
+            end
+            return first.text.length + second.text.length
+        case empty
+            return 0
+        end
+    end
+    return 0
+end

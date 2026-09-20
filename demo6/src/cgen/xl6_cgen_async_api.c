@@ -128,7 +128,7 @@ static int xl6CgenChannelCtorCall(XL6_CgenContext* ctx, const XL6_AstNode* call,
     capArg = args != NULL && args->childCount > 0 && args->children[0] != NULL &&
              args->children[0]->childCount > 0 ? args->children[0]->children[0] : NULL;
 
-    xl6OutputPuts("xl6_channel_require_handle(xrtChannelCreate(", ctx->out);
+    xl6OutputPuts("xl6_channel_require_handle(xl6ChannelCreate(", ctx->out);
     if ( capArg != NULL ) {
         xl6CgenExpr(ctx, capArg);
     } else {
@@ -174,19 +174,19 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
     }
 
     if ( xl6CTextEquals(member->text, "close") ) {
-        xl6OutputPuts("(xrtChannelClose(", ctx->out);
+        xl6OutputPuts("(xl6ChannelClose(", ctx->out);
         xl6CgenChannelReceiverExpr(ctx, receiver);
         xl6OutputPuts("), 0)", ctx->out);
         return 1;
     }
     if ( xl6CTextEquals(member->text, "count") ) {
-        xl6OutputPuts("xrtChannelCount(", ctx->out);
+        xl6OutputPuts("xl6ChannelCount(", ctx->out);
         xl6CgenChannelReceiverExpr(ctx, receiver);
         xl6OutputPutc(')', ctx->out);
         return 1;
     }
     if ( xl6CTextEquals(member->text, "isClosed") ) {
-        xl6OutputPuts("xrtChannelIsClosed(", ctx->out);
+        xl6OutputPuts("xl6ChannelIsClosed(", ctx->out);
         xl6CgenChannelReceiverExpr(ctx, receiver);
         xl6OutputPutc(')', ctx->out);
         return 1;
@@ -216,7 +216,7 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
                             member->column);
             return 1;
         }
-        if ( itemType != NULL && xl6CTextEquals(cType, "xvalue") ) {
+        if ( itemType != NULL && xl6CTextEquals(cType, "xvalue*") ) {
             xl6OutputPuts("xl6_channel_send_xvalue(", ctx->out);
             xl6CgenChannelReceiverExpr(ctx, receiver);
             xl6OutputPuts(", ", ctx->out);
@@ -264,7 +264,7 @@ static int xl6CgenChannelMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* cal
             }
             return 1;
         }
-        if ( itemType != NULL && xl6CTextEquals(cType, "xvalue") ) {
+        if ( itemType != NULL && xl6CTextEquals(cType, "xvalue*") ) {
             xl6OutputPuts(isTimeoutRecv ? "xl6_channel_recv_xvalue_timeout(" : "xl6_channel_recv_xvalue(", ctx->out);
             xl6CgenChannelReceiverExpr(ctx, receiver);
             xl6OutputPuts(", &", ctx->out);
@@ -415,13 +415,13 @@ static int xl6CgenFutureMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call
     }
 
     if ( xl6CTextEquals(member->text, "wait") ) {
-        xl6OutputPuts("xFutureWait(", ctx->out);
+        xl6OutputPuts("xl6FutureWait(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPutc(')', ctx->out);
         return 1;
     }
     if ( xl6CTextEquals(member->text, "waitTimeout") ) {
-        xl6OutputPuts("xFutureWaitTimeout(", ctx->out);
+        xl6OutputPuts("xl6FutureWaitFor(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
@@ -429,7 +429,7 @@ static int xl6CgenFutureMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call
         return 1;
     }
     if ( xl6CTextEquals(member->text, "waitUntil") ) {
-        xl6OutputPuts("xFutureWaitUntil(", ctx->out);
+        xl6OutputPuts("xl6FutureWaitUntil(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
@@ -437,7 +437,7 @@ static int xl6CgenFutureMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call
         return 1;
     }
     if ( xl6CTextEquals(member->text, "setDebugName") ) {
-        xl6OutputPuts("xFutureSetDebugName(", ctx->out);
+        xl6OutputPuts("xl6FutureSetName(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
@@ -451,19 +451,19 @@ static int xl6CgenFutureMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call
         return 1;
     }
     if ( xl6CTextEquals(member->text, "createTimeMs") ) {
-        xl6OutputPuts("(long long)xFutureGetCreateTimeMs(", ctx->out);
+        xl6OutputPuts("(long long)xl6FutureCreatedMs(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPutc(')', ctx->out);
         return 1;
     }
     if ( xl6CTextEquals(member->text, "completeTimeMs") ) {
-        xl6OutputPuts("(long long)xFutureGetCompleteTimeMs(", ctx->out);
+        xl6OutputPuts("(long long)xl6FutureCompletedMs(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPutc(')', ctx->out);
         return 1;
     }
     if ( xl6CTextEquals(member->text, "pendingContinuations") ) {
-        xl6OutputPuts("(long long)xFutureGetPendingContinuationCount(", ctx->out);
+        xl6OutputPuts("(long long)xl6FuturePendingCount(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPutc(')', ctx->out);
         return 1;
@@ -475,43 +475,43 @@ static int xl6CgenFutureMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call
         return 1;
     }
     if ( xl6CTextEquals(member->text, "state") ) {
-        xl6OutputPuts("(int)xFutureState(", ctx->out);
+        xl6OutputPuts("(int)xl6FutureState(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPutc(')', ctx->out);
         return 1;
     }
     if ( xl6CTextEquals(member->text, "status") ) {
-        xl6OutputPuts("(int)xFutureStatus(", ctx->out);
+        xl6OutputPuts("(int)xl6FutureStatus(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPutc(')', ctx->out);
         return 1;
     }
     if ( xl6CTextEquals(member->text, "isDone") ) {
-        xl6OutputPuts("(xFutureState(", ctx->out);
+        xl6OutputPuts("(xl6FutureState(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPuts(") != 0)", ctx->out);
         return 1;
     }
     if ( xl6CTextEquals(member->text, "isPending") ) {
-        xl6OutputPuts("(xFutureState(", ctx->out);
+        xl6OutputPuts("(xl6FutureState(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPuts(") == 0)", ctx->out);
         return 1;
     }
     if ( xl6CTextEquals(member->text, "isCancelled") ) {
-        xl6OutputPuts("(xFutureState(", ctx->out);
+        xl6OutputPuts("(xl6FutureState(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPuts(") == 3)", ctx->out);
         return 1;
     }
     if ( xl6CTextEquals(member->text, "isFailed") ) {
-        xl6OutputPuts("(xFutureState(", ctx->out);
+        xl6OutputPuts("(xl6FutureState(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPuts(") == 2)", ctx->out);
         return 1;
     }
     if ( xl6CTextEquals(member->text, "error") ) {
-        xl6OutputPuts("xl6_future_error_text(", ctx->out);
+        xl6OutputPuts("xl6_future_error_object(", ctx->out);
         xl6CgenFutureReceiverExpr(ctx, receiver);
         xl6OutputPutc(')', ctx->out);
         return 1;
@@ -640,7 +640,7 @@ static int xl6CgenTaskSpawnCall(XL6_CgenContext* ctx, const XL6_AstNode* call, c
         xl6OutputPuts(xl6CgenTypeName(ctx, resultType), ctx->out);
         xl6OutputPutc(')', ctx->out);
     } else {
-        xl6OutputPuts("xrtTypeNull(), 0", ctx->out);
+        xl6OutputPuts("xl6TypeNull(), 0", ctx->out);
     }
     xl6OutputPrintf(ctx->out, ", \"\", %d, %d, %d, %d",
                     member != NULL ? member->line : 0,
@@ -861,9 +861,9 @@ static int xl6CgenSyncMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, 
 
     if ( xl6CTextEquals(typeName, "mutex") ) {
         if ( xl6CTextEquals(member->text, "lock") ) {
-            xl6OutputPuts("(xrtMutexLock(", ctx->out);
+            xl6OutputPuts("xrtMutexLock(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
+            xl6OutputPutc(')', ctx->out);
             return 1;
         }
         if ( xl6CTextEquals(member->text, "tryLock") ) {
@@ -873,9 +873,9 @@ static int xl6CgenSyncMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, 
             return 1;
         }
         if ( xl6CTextEquals(member->text, "unlock") ) {
-            xl6OutputPuts("(xrtMutexUnlock(", ctx->out);
+            xl6OutputPuts("xrtMutexUnlock(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
+            xl6OutputPutc(')', ctx->out);
             return 1;
         }
     }
@@ -884,21 +884,21 @@ static int xl6CgenSyncMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, 
         if ( xl6CTextEquals(member->text, "wait") ) {
             xl6OutputPuts("(xrtSemWait(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
+            xl6OutputPuts(") == 0)", ctx->out);
             return 1;
         }
         if ( xl6CTextEquals(member->text, "tryWait") ) {
-            xl6OutputPuts("xrtSemTryWait(", ctx->out);
+            xl6OutputPuts("(xrtSemTryWait(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPutc(')', ctx->out);
+            xl6OutputPuts(") == 0)", ctx->out);
             return 1;
         }
         if ( xl6CTextEquals(member->text, "waitTimeout") ) {
-            xl6OutputPuts("(xrtSemWaitTimeout(", ctx->out);
+            xl6OutputPuts("(xrtSemWaitFor(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts(", ", ctx->out);
+            xl6OutputPuts(", xl6_timeout_ms_to_us(", ctx->out);
             xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
-            xl6OutputPuts(") == 0)", ctx->out);
+            xl6OutputPuts(")) == 0)", ctx->out);
             return 1;
         }
         if ( xl6CTextEquals(member->text, "post") ) {
@@ -908,7 +908,7 @@ static int xl6CgenSyncMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, 
             return 1;
         }
         if ( xl6CTextEquals(member->text, "postMultiple") ) {
-            xl6OutputPuts("xrtSemPostMultiple(", ctx->out);
+            xl6OutputPuts("xrtSemPostMany(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
@@ -923,74 +923,74 @@ static int xl6CgenSyncMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call, 
             xl6CgenSyncReceiver(ctx, receiver);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
-            xl6OutputPuts("), true)", ctx->out);
-            return 1;
-        }
-        if ( xl6CTextEquals(member->text, "waitTimeout") ) {
-            xl6OutputPuts("(xrtCondWaitTimeout(", ctx->out);
-            xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts(", ", ctx->out);
-            xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
-            xl6OutputPuts(", ", ctx->out);
-            xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 1));
             xl6OutputPuts(") == 0)", ctx->out);
             return 1;
         }
-        if ( xl6CTextEquals(member->text, "signal") ) {
-            xl6OutputPuts("(xrtCondSignal(", ctx->out);
+        if ( xl6CTextEquals(member->text, "waitTimeout") ) {
+            xl6OutputPuts("(xrtCondWaitFor(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
+            xl6OutputPuts(", xl6_timeout_ms_to_us(", ctx->out);
+            xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 1));
+            xl6OutputPuts(")) == 0)", ctx->out);
+            return 1;
+        }
+        if ( xl6CTextEquals(member->text, "signal") ) {
+            xl6OutputPuts("xrtCondSignal(", ctx->out);
+            xl6CgenSyncReceiver(ctx, receiver);
+            xl6OutputPutc(')', ctx->out);
             return 1;
         }
         if ( xl6CTextEquals(member->text, "broadcast") ) {
-            xl6OutputPuts("(xrtCondBroadcast(", ctx->out);
+            xl6OutputPuts("xrtCondBroadcast(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
+            xl6OutputPutc(')', ctx->out);
             return 1;
         }
     }
 
     if ( xl6CTextEquals(typeName, "rwlock") ) {
         if ( xl6CTextEquals(member->text, "readLock") ) {
-            xl6OutputPuts("(xrtRWLockReadLock(", ctx->out);
+            xl6OutputPuts("xrtRWLockRead(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
+            xl6OutputPutc(')', ctx->out);
             return 1;
         }
         if ( xl6CTextEquals(member->text, "tryReadLock") ) {
-            xl6OutputPuts("xrtRWLockTryReadLock(", ctx->out);
+            xl6OutputPuts("xrtRWLockTryRead(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
             xl6OutputPutc(')', ctx->out);
             return 1;
         }
         if ( xl6CTextEquals(member->text, "readUnlock") ) {
-            xl6OutputPuts("(xrtRWLockReadUnlock(", ctx->out);
+            xl6OutputPuts("xrtRWLockReadUnlock(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
+            xl6OutputPutc(')', ctx->out);
             return 1;
         }
         if ( xl6CTextEquals(member->text, "writeLock") ) {
-            xl6OutputPuts("(xrtRWLockWriteLock(", ctx->out);
+            xl6OutputPuts("xrtRWLockWrite(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
+            xl6OutputPutc(')', ctx->out);
             return 1;
         }
         if ( xl6CTextEquals(member->text, "tryWriteLock") ) {
-            xl6OutputPuts("xrtRWLockTryWriteLock(", ctx->out);
+            xl6OutputPuts("xrtRWLockTryWrite(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
             xl6OutputPutc(')', ctx->out);
             return 1;
         }
         if ( xl6CTextEquals(member->text, "writeUnlock") ) {
-            xl6OutputPuts("(xrtRWLockWriteUnlock(", ctx->out);
+            xl6OutputPuts("xrtRWLockWriteUnlock(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
+            xl6OutputPutc(')', ctx->out);
             return 1;
         }
         if ( xl6CTextEquals(member->text, "downgrade") ) {
-            xl6OutputPuts("(xrtRWLockDowngrade(", ctx->out);
+            xl6OutputPuts("xrtRWLockDowngrade(", ctx->out);
             xl6CgenSyncReceiver(ctx, receiver);
-            xl6OutputPuts("), true)", ctx->out);
+            xl6OutputPutc(')', ctx->out);
             return 1;
         }
         if ( xl6CTextEquals(member->text, "upgrade") ) {
@@ -1085,31 +1085,31 @@ static int xl6CgenThreadMethodCall(XL6_CgenContext* ctx, const XL6_AstNode* call
     if ( xl6CTextEquals(member->text, "wait") ) {
         xl6OutputPuts("(xrtThreadWait(", ctx->out);
         xl6CgenThreadReceiver(ctx, receiver);
-        xl6OutputPuts("), true)", ctx->out);
-        return 1;
-    }
-    if ( xl6CTextEquals(member->text, "waitTimeout") ) {
-        xl6OutputPuts("(xrtThreadWaitTimeout(", ctx->out);
-        xl6CgenThreadReceiver(ctx, receiver);
-        xl6OutputPuts(", ", ctx->out);
-        xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
         xl6OutputPuts(") == 0)", ctx->out);
         return 1;
     }
-    if ( xl6CTextEquals(member->text, "stop") ) {
-        xl6OutputPuts("(xrtThreadStop(", ctx->out);
+    if ( xl6CTextEquals(member->text, "waitTimeout") ) {
+        xl6OutputPuts("(xrtThreadWaitFor(", ctx->out);
         xl6CgenThreadReceiver(ctx, receiver);
-        xl6OutputPuts("), true)", ctx->out);
+        xl6OutputPuts(", xl6_timeout_ms_to_us(", ctx->out);
+        xl6CgenExpr(ctx, xl6CgenCallArgExpr(call, 0));
+        xl6OutputPuts(")) == 0)", ctx->out);
+        return 1;
+    }
+    if ( xl6CTextEquals(member->text, "stop") ) {
+        xl6OutputPuts("xrtThreadStop(", ctx->out);
+        xl6CgenThreadReceiver(ctx, receiver);
+        xl6OutputPutc(')', ctx->out);
         return 1;
     }
     if ( xl6CTextEquals(member->text, "state") ) {
-        xl6OutputPuts("xrtThreadGetState(", ctx->out);
+        xl6OutputPuts("xrtThreadState(", ctx->out);
         xl6CgenThreadReceiver(ctx, receiver);
         xl6OutputPutc(')', ctx->out);
         return 1;
     }
     if ( xl6CTextEquals(member->text, "exitCode") ) {
-        xl6OutputPuts("(int)xrtThreadGetExitCode(", ctx->out);
+        xl6OutputPuts("(int)xrtThreadExitCode(", ctx->out);
         xl6CgenThreadReceiver(ctx, receiver);
         xl6OutputPutc(')', ctx->out);
         return 1;

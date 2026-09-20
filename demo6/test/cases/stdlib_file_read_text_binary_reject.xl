@@ -1,7 +1,15 @@
+string binaryPath = "build/test/file_read_text_binary.bin"
+Buffer bytes = Buffer()
+assert bytes.appendByte(65)
+assert bytes.appendByte(0)
+assert bytes.appendByte(66)
+assert bytes.appendByte(67)
+assert file.writeBytes(binaryPath, bytes)
+
 bool caught = false
 
 try
-    string text = file.readText("build/test/file_read_text_binary.bin")
+    string text = file.readText(binaryPath)
     assert false, "file.readText should reject binary data instead of returning: " + text
 catch e
     if e.kind == "FileError" and string.contains(e.message, "NUL") then

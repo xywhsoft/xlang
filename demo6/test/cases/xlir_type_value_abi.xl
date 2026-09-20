@@ -1,0 +1,39 @@
+export "xlir_type_int" const type intType = int
+export "xlir_type_async" type asyncType = int
+export "xlir_type_closure" type closureType = int
+
+extern "xlir_type_external" type externalType
+
+export "xlir_type_identity" func identity(type value) as type
+    return value
+end
+
+export "xlir_type_of_int" func typeOfInt(int value) as type
+    return type(value)
+end
+
+export "xlir_type_read_external" func readExternal() as type
+    return externalType
+end
+
+export "xlir_type_fail" func failType() as type
+    assert false
+    return int
+end
+
+async func readyType(type value) as type
+    return value
+end
+
+func mutateCapturedType() as type
+    type current = int
+    auto replace = func(type value) as type
+        current = value
+        return current
+    end
+    return replace(string)
+end
+
+future<type> pending = readyType(string)
+asyncType = await pending
+closureType = mutateCapturedType()
