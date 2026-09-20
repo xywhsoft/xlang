@@ -4,6 +4,9 @@ param(
     [string]$Root = "",
     [string]$StartAt = "",
     [string]$ReportPath = "",
+    [string]$NativeRoot = "",
+    [string]$Tcc = "",
+    [ValidateRange(1, 8)][int]$MaxParallel = 3,
     [switch]$ListOnly
 )
 
@@ -42,27 +45,65 @@ foreach ( $file in $wiringFiles ) {
 
 $allGuards = @(Get-ChildItem -LiteralPath $toolsDir -Filter "check_xlir_*.ps1" -File | Sort-Object Name)
 $pending = @($allGuards | Where-Object { ! $explicit.Contains($_.Name) })
-$selected = $pending
+function Get-RequiredParameters([string]$Path) {
+    $tokens = $null
+    $parseErrors = $null
+    $ast = [Management.Automation.Language.Parser]::ParseFile(
+        $Path, [ref]$tokens, [ref]$parseErrors)
+    if ( $parseErrors.Count ) {
+        throw "Cannot classify XLIR guard parameters: $Path ($($parseErrors[0].Message))"
+    }
+
+    $required = New-Object System.Collections.Generic.List[string]
+    foreach ( $parameter in $ast.ParamBlock.Parameters ) {
+        foreach ( $attribute in $parameter.Attributes ) {
+            foreach ( $argument in $attribute.NamedArguments ) {
+                if ( $argument.ArgumentName -ne "Mandatory" ) { continue }
+                if ( $null -eq $argument.Argument -or
+                     $argument.Argument.Extent.Text -match '^\$true$' ) {
+                    $required.Add($parameter.Name.VariablePath.UserPath) | Out-Null
+                }
+            }
+        }
+    }
+    return @($required | Sort-Object -Unique)
+}
+
+$pendingInventory = @($pending | ForEach-Object {
+    [pscustomobject]@{
+        File = $_
+        RequiredParameters = @(Get-RequiredParameters $_.FullName)
+    }
+})
+$standalone = @($pendingInventory | Where-Object { $_.RequiredParameters.Count -eq 0 })
+$parameterized = @($pendingInventory | Where-Object { $_.RequiredParameters.Count -ne 0 })
+$selected = @($standalone)
 
 if ( $StartAt -ne "" ) {
     $startIndex = -1
-    for ( $index = 0; $index -lt $pending.Count; $index++ ) {
-        if ( $pending[$index].Name.Equals($StartAt, [System.StringComparison]::OrdinalIgnoreCase) ) {
+    for ( $index = 0; $index -lt $standalone.Count; $index++ ) {
+        if ( $standalone[$index].File.Name.Equals($StartAt, [System.StringComparison]::OrdinalIgnoreCase) ) {
             $startIndex = $index
             break
         }
     }
     if ( $startIndex -lt 0 ) {
-        throw "XLIR supplemental start gate is not pending in ${Mode}: $StartAt"
+        throw "XLIR standalone supplemental start gate is not pending in ${Mode}: $StartAt"
     }
-    $selected = @($pending | Select-Object -Skip $startIndex)
+    $selected = @($standalone | Select-Object -Skip $startIndex)
 }
 
-Write-Host "XLIR guard inventory: $($allGuards.Count) total, $($explicit.Count) explicit, $($pending.Count) supplemental, $($selected.Count) selected ($Mode)."
+Write-Host "XLIR guard inventory: $($allGuards.Count) total, $($explicit.Count) explicit, $($standalone.Count) standalone supplemental, $($parameterized.Count) parameterized workers, $($selected.Count) selected ($Mode)."
+if ( $parameterized.Count ) {
+    Write-Host "Parameterized XLIR workers require an explicit scenario runner and are not invoked without their declared inputs."
+}
 
 if ( $ListOnly ) {
-    foreach ( $guard in $selected ) {
-        Write-Host $guard.Name
+    foreach ( $record in $selected ) {
+        Write-Host $record.File.Name
+    }
+    foreach ( $record in $parameterized ) {
+        Write-Host "parameterized|$($record.File.Name)|$($record.RequiredParameters -join ',')"
     }
     exit 0
 }
@@ -75,6 +116,11 @@ $runReport = [ordered]@{
     TotalGuards = $allGuards.Count
     ExplicitGuards = $explicit.Count
     SupplementalGuards = $pending.Count
+    StandaloneSupplementalGuards = $standalone.Count
+    ParameterizedGuards = @($parameterized | ForEach-Object {
+        [ordered]@{ Guard = $_.File.Name; RequiredParameters = @($_.RequiredParameters) }
+    })
+    ParameterizedReport = $null
     SelectedGuards = $selected.Count
     Status = "running"
     Results = @()
@@ -96,7 +142,7 @@ $previousLocation = Get-Location
 try {
     Set-Location $Root
     for ( $index = 0; $index -lt $selected.Count; $index++ ) {
-        $guard = $selected[$index]
+        $guard = $selected[$index].File
         Write-Host "[$($index + 1)/$($selected.Count)] $($guard.Name)"
         $result = [pscustomobject]@{
             Guard = $guard.Name
@@ -117,6 +163,24 @@ try {
             throw "XLIR guard failed with code $($result.ExitCode): $($guard.Name)"
         }
     }
+    if ( $parameterized.Count ) {
+        $scenarioRoot = Join-Path $Root ("build\tmp\xlir_parameterized_{0}_{1}" -f
+            $Mode, [Guid]::NewGuid().ToString('N').Substring(0, 8))
+        $scenarioArguments = @(
+            '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
+            (Join-Path $toolsDir 'run_xlir_parameterized_guards.ps1'),
+            '-Root', $Root, '-OutputRoot', $scenarioRoot,
+            '-MaxParallel', [string]$MaxParallel
+        )
+        if ( $NativeRoot ) { $scenarioArguments += @('-NativeRoot', $NativeRoot) }
+        if ( $Tcc ) { $scenarioArguments += @('-Tcc', $Tcc) }
+        & powershell.exe @scenarioArguments
+        if ( $LASTEXITCODE -ne 0 ) {
+            throw "XLIR parameterized scenario runner failed with code $LASTEXITCODE"
+        }
+        $runReport.ParameterizedReport = Join-Path $scenarioRoot 'results.json'
+        Save-RunReport
+    }
     $runReport.Status = "passed"
 }
 catch {
@@ -129,5 +193,5 @@ finally {
     Set-Location $previousLocation
 }
 
-Write-Host "XLIR supplemental guards ok: $($selected.Count) scripts ($Mode)."
+Write-Host "XLIR standalone supplemental guards ok: $($selected.Count) scripts ($Mode); $($parameterized.Count) parameterized workers require scenario orchestration."
 exit 0

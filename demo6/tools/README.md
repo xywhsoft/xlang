@@ -14,7 +14,8 @@ This directory contains DEMO6 toolchain setup scripts and engineering guard chec
 - `tcc_vfs_manifest_linux_runtime.txt`: minimal Linux runtime VFS resource list for `libxl.so`.
 - `tcc_vfs_manifest_linux_xlc.txt`: Linux compiler VFS resource list for `libxlc.so`.
 - `clear_release_tmp_files.ps1`: removes top-level `build\test` regression artifacts with bounded retries so cleanup fails hard instead of continuing after file-lock errors.
-- `run_xlir_guards.ps1`: discovers all specialized XLIR semantic guards and supplements the explicit full-regression or RC0 entries without running those entries twice.
+- `run_xlir_guards.ps1`: discovers specialized XLIR semantic guards and supplements the explicit full-regression or RC0 entries without running those entries twice. Standalone guards run directly; workers with mandatory inputs are delegated to the reviewed scenario runner.
+- `run_xlir_parameterized_guards.ps1`: builds one current-source public compiler, one runtime-only compiler and one shared contract-driver set, then executes every parameterized XLIR worker through dependency-ordered immutable batch reports.
 - `rc0_guard.ps1`: lightweight release-candidate guard for required files, static boundaries, build, command smoke, diagnostics, docs, risk ledger, cgen size, and wiring.
 
 ## Guard scripts and inventory

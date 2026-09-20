@@ -94,6 +94,7 @@ if ( $null -ne $gitCommand -and $LASTEXITCODE -eq 0 -and
         Sort-Object Name)
 }
 $xlirRunner = Join-Path $toolsDir "run_xlir_guards.ps1"
+$xlirParameterizedRunner = Join-Path $toolsDir "run_xlir_parameterized_guards.ps1"
 $fullRegressionHasXlirRunner = $testText -match 'tools[\\/]run_xlir_guards\.ps1\s+-Mode\s+FullRegressionSupplement'
 $rc0HasXlirRunner = $rc0Text -match 'tools[\\/]run_xlir_guards\.ps1`?",\s*`?"-Mode`?",\s*`?"Rc0Supplement'
 $testWiredScripts = New-Object System.Collections.Generic.HashSet[string]
@@ -117,12 +118,28 @@ if ( ! (Test-Path -LiteralPath $xlirRunner -PathType Leaf) ) {
     Add-Failure "central XLIR guard runner is missing: tools\run_xlir_guards.ps1"
 }
 
+if ( ! (Test-Path -LiteralPath $xlirParameterizedRunner -PathType Leaf) ) {
+    Add-Failure "parameterized XLIR scenario runner is missing: tools\run_xlir_parameterized_guards.ps1"
+} elseif ( (Read-Utf8Text $xlirRunner) -notmatch 'run_xlir_parameterized_guards\.ps1' ) {
+    Add-Failure "central XLIR guard runner does not invoke the parameterized scenario runner"
+}
+
 if ( ! $fullRegressionHasXlirRunner ) {
     Add-Failure "full regression does not invoke the central XLIR guard runner"
 }
 
 if ( ! $rc0HasXlirRunner ) {
     Add-Failure "rc0_guard.ps1 does not invoke the central XLIR guard runner"
+}
+
+$parameterizedInventory = New-Object System.Collections.Generic.HashSet[string] ([System.StringComparer]::OrdinalIgnoreCase)
+if ( Test-Path -LiteralPath $xlirParameterizedRunner -PathType Leaf ) {
+    $listed = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $xlirParameterizedRunner -Root $Root -ListOnly)
+    if ( $LASTEXITCODE -ne 0 ) {
+        Add-Failure "parameterized XLIR scenario inventory cannot be loaded"
+    } else {
+        foreach ( $name in $listed ) { $parameterizedInventory.Add([string]$name) | Out-Null }
+    }
 }
 
 foreach ( $match in [regex]::Matches($testText, 'tools[\\/](check_[^"''\s\^<>|&]+\.ps1)') ) {
@@ -148,6 +165,29 @@ foreach ( $match in [regex]::Matches($rc0Text, 'check_[A-Za-z0-9_]+\.ps1') ) {
 foreach ( $script in $checkScripts ) {
     $relative = Normalize-ToolPath ("tools\" + $script.Name)
     $isXlirGuard = $script.Name.StartsWith("check_xlir_", [System.StringComparison]::OrdinalIgnoreCase)
+
+    if ( $isXlirGuard ) {
+        $tokens = $null
+        $parseErrors = $null
+        $ast = [Management.Automation.Language.Parser]::ParseFile(
+            $script.FullName, [ref]$tokens, [ref]$parseErrors)
+        if ( $parseErrors.Count ) {
+            Add-Failure "XLIR guard cannot be parsed for wiring: $relative"
+        } else {
+            $required = @($ast.ParamBlock.Parameters | Where-Object {
+                @($_.Attributes.NamedArguments | Where-Object {
+                    $_.ArgumentName -eq "Mandatory" -and
+                    ($null -eq $_.Argument -or $_.Argument.Extent.Text -match '^\$true$')
+                }).Count -ne 0
+            })
+            if ( $required.Count -and ! $parameterizedInventory.Contains($script.Name) ) {
+                Add-Failure "parameterized XLIR guard lacks a reviewed scenario invocation: $relative"
+            }
+            if ( !$required.Count -and $parameterizedInventory.Contains($script.Name) ) {
+                Add-Failure "standalone XLIR guard is incorrectly listed as parameterized: $relative"
+            }
+        }
+    }
 
     if ( ! $testWiredScripts.Contains($relative) -and ! ($isXlirGuard -and $fullRegressionHasXlirRunner) ) {
         Add-Failure "check script is not wired into test.bat/test suites: $relative"
@@ -183,5 +223,5 @@ if ( $failures.Count -gt 0 ) {
     exit 1
 }
 
-Write-Host "Tool wiring ok: $($checkScripts.Count) check scripts."
+Write-Host "Tool wiring ok: $($checkScripts.Count) check scripts; $($parameterizedInventory.Count) XLIR workers have reviewed scenario inputs."
 exit 0
