@@ -1,0 +1,4 @@
+set<int> values = set{1, 2, 3}
+for key, value in values
+    int observed = key + value
+end

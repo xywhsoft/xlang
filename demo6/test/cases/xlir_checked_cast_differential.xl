@@ -1,0 +1,39 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+func makeBoxedText() as var
+    return "owned-rvalue"
+end
+
+var boxedInt = 42
+var boxedBool = true
+var boxedFloat = 2.5
+var boxedText = "borrowed-text"
+var boxedNull = null
+
+int castInt = boxedInt as int
+bool castBool = boxedBool as bool
+float castFloat = boxedFloat as float
+string castText = boxedText as string
+string castOwnedText = makeBoxedText() as string
+
+expect(castInt, 42)
+expect(castBool, 1)
+expect(castFloat > 2.0, 1)
+expectStr(castText, "borrowed-text")
+expectStr(castOwnedText, "owned-rvalue")
+
+int recovered = 0
+try
+    string invalidText = boxedInt as string
+catch TypeError ignored
+    recovered += 1
+end
+
+try
+    int invalidNull = boxedNull as int
+catch TypeError ignored
+    recovered += 1
+end
+
+expect(recovered, 2)

@@ -26,12 +26,12 @@ if errorlevel 1 (
     echo cgen_async.c should cancel pending async string future as borrowed.
     exit /b 1
 )
-findstr /C:"pendingAsyncStringValueA = xrtCopyStr(xl6_future_await_cstr_copy(pendingAsyncString" build\test\cgen_async.assert.c >nul
+findstr /C:"pendingAsyncStringValueA = xl6_xrt_string_dup(xl6_future_await_cstr_copy(pendingAsyncString" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing first string await after pending async cancel.
     exit /b 1
 )
-findstr /C:"pendingAsyncStringValueB = xrtCopyStr(xl6_future_await_cstr_copy(pendingAsyncString" build\test\cgen_async.assert.c >nul
+findstr /C:"pendingAsyncStringValueB = xl6_xrt_string_dup(xl6_future_await_cstr_copy(pendingAsyncString" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing late string await after pending async worker completion.
     exit /b 1
@@ -181,7 +181,7 @@ if errorlevel 1 (
     echo cgen_async.c missing first class-handle await after pending async cancel.
     exit /b 1
 )
-findstr /C:"xvoUnref(pendingAsyncBoxValueA);" build\test\cgen_async.assert.c >nul
+findstr /C:"xrtValueRelease(pendingAsyncBoxValueA);" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing first class-handle await cleanup.
     exit /b 1
@@ -206,12 +206,12 @@ if errorlevel 1 (
     echo cgen_async.c should cancel pending async typed array future as borrowed.
     exit /b 1
 )
-findstr /C:"pendingAsyncItemsValueA = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(pendingAsyncItems" build\test\cgen_async.assert.c >nul
+findstr /C:"pendingAsyncItemsValueA = xl6_xrt_typed_array_copy(xl6TypeInt64(), (*(xtarray*)xl6_future_await_value(pendingAsyncItems" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing first typed array await retain after pending async cancel.
     exit /b 1
 )
-findstr /C:"pendingAsyncItemsValueB = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(pendingAsyncItems" build\test\cgen_async.assert.c >nul
+findstr /C:"pendingAsyncItemsValueB = xl6_xrt_typed_array_copy(xl6TypeInt64(), (*(xtarray*)xl6_future_await_value(pendingAsyncItems" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing late typed array await retain after pending async worker completion.
     exit /b 1
@@ -231,12 +231,12 @@ if errorlevel 1 (
     echo cgen_async.c should cancel pending async typed list future as borrowed.
     exit /b 1
 )
-findstr /C:"pendingAsyncListValueA = xl6_xrt_typed_list_copy_mode(xrtTypeInt(), (*(xtlist*)xl6_future_await_value(pendingAsyncList" build\test\cgen_async.assert.c >nul
+findstr /C:"pendingAsyncListValueA = xl6_xrt_typed_list_copy(xl6TypeInt64(), (*(xtlist*)xl6_future_await_value(pendingAsyncList" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing first typed list await retain after pending async cancel.
     exit /b 1
 )
-findstr /C:"pendingAsyncListValueB = xl6_xrt_typed_list_copy_mode(xrtTypeInt(), (*(xtlist*)xl6_future_await_value(pendingAsyncList" build\test\cgen_async.assert.c >nul
+findstr /C:"pendingAsyncListValueB = xl6_xrt_typed_list_copy(xl6TypeInt64(), (*(xtlist*)xl6_future_await_value(pendingAsyncList" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing late typed list await retain after pending async worker completion.
     exit /b 1
@@ -256,7 +256,7 @@ if errorlevel 1 (
     echo cgen_async.c should cancel pending async typed set future as borrowed.
     exit /b 1
 )
-findstr /C:"pendingAsyncSetValueA = xl6_xrt_typed_set_copy_mode(xrtTypeInt(), (*(xtset*)xl6_future_await_value(pendingAsyncSet" build\test\cgen_async.assert.c >nul
+findstr /C:"pendingAsyncSetValueA = xl6_xrt_typed_set_copy(xl6TypeInt64(), (*(xtset*)xl6_future_await_value(pendingAsyncSet" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing first typed set await retain after pending async cancel.
     exit /b 1

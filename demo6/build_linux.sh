@@ -35,17 +35,22 @@ require_tool "$PYTHON"
 
 mkdir -p "$BUILD_DIR" "$TCC_DIST_DIR/include" "$TCC_DIST_DIR/lib" "$ROOT/release"
 
+"$PYTHON" "$ROOT/tools/sync_xrt_snapshot.py" --root "$ROOT" --check
 "$PYTHON" "$ROOT/tools/generate_stdlib_index.py" --root "$ROOT"
+"$PYTHON" "$ROOT/tools/gen_xrt_symbol_table.py" --root "$ROOT"
 
 printf 'Preparing native Linux TCC...\n'
 rm -rf "$TCC_SOURCE_DIR"
 cp -a "$ROOT/lib/tcc" "$TCC_SOURCE_DIR"
+sed -i 's/\r$//' "$TCC_SOURCE_DIR/configure"
+chmod +x "$TCC_SOURCE_DIR/configure"
 (
     cd "$TCC_SOURCE_DIR"
     ./configure --cc="$CC" --prefix="$TCC_DIST_DIR" --tccdir="$TCC_DIST_DIR"
     "$MAKE" -j"$JOBS" tcc libtcc1.a
 )
 cp -a "$TCC_SOURCE_DIR/include/." "$TCC_DIST_DIR/include/"
+cp "$TCC_SOURCE_DIR/libtcc1.a" "$TCC_DIST_DIR/libtcc1.a"
 cp "$TCC_SOURCE_DIR/libtcc1.a" "$TCC_DIST_DIR/lib/libtcc1.a"
 cp "$TCC_SOURCE_DIR/tcc" "$BUILD_DIR/tcc"
 
@@ -91,18 +96,17 @@ COMMON_FLAGS=(
     -fPIC
     -ffunction-sections
     -fdata-sections
-    -DXL_BUILD_DLL
-    -DXL_STATIC_TCC
-    -DLIBTCC_AS_DLL
-    -DCONFIG_TCC_STATIC
-    -DCONFIG_TCC_BUILTIN_VFS=1
+	-DXL_BUILD_DLL
+	-DXL_STATIC_TCC
+	-DLIBTCC_AS_DLL
+	-DCONFIG_TCC_BUILTIN_VFS=1
     -I"$ROOT"
     -I"$ROOT/release"
     -I"$ROOT/src"
     -I"$ROOT/lib/lzma"
     -I"$TCC_SOURCE_DIR"
 )
-SHARED_FLAGS=(-shared -s -Wl,--gc-sections)
+SHARED_FLAGS=(-shared -s -Wl,--gc-sections -Wl,-z,defs)
 SYSTEM_LIBS=(-pthread -ldl -lm)
 
 TCC_SOURCES=(
@@ -112,13 +116,35 @@ TCC_SOURCES=(
     "$ROOT/lib/lzma/LzmaDec.c"
 )
 RUNTIME_SOURCES=(
-    "$ROOT/src/api/xl_api.c"
-    "$ROOT/src/api/xl_api_symbols.c"
-    "$ROOT/src/api/xl_api_path.c"
-    "$ROOT/src/api/xl_xrt_dll.c"
-    "$ROOT/src/abi/xl6_abi_json.c"
-    "$ROOT/src/abi/xl6_callable.c"
-    "$ROOT/src/backend/xl6_build_backend.c"
+	"$ROOT/src/api/xl_api.c"
+	"$ROOT/src/api/xl_api_symbols.c"
+	"$ROOT/src/api/xl_api_path.c"
+	"$ROOT/src/api/xl_protocol_registry.c"
+	"$ROOT/src/api/xl_channel_bridge.c"
+	"$ROOT/src/api/xl_future_bridge.c"
+	"$ROOT/src/api/xl_task_group_bridge.c"
+	"$ROOT/src/runtime/xl6_continuation_queue.c"
+	"$ROOT/src/runtime/xl6_continuation_executor.c"
+	"$ROOT/src/runtime/xl6_continuation_future.c"
+	"$ROOT/src/runtime/xl6_code_lease.c"
+	"$ROOT/src/runtime/xl6_closure.c"
+	"$ROOT/src/runtime/xl6_cell.c"
+	"$ROOT/src/runtime/xl6_slot.c"
+	"$ROOT/src/runtime/xl6_frame_storage.c"
+	"$ROOT/src/runtime/xl6_task.c"
+	"$ROOT/src/runtime/xl6_network_service.c"
+	"$ROOT/src/runtime/xl6_continuation_frame.c" "$ROOT/src/runtime/xl6_future_wait.c"
+	"$ROOT/src/runtime/xl6_capture.c"
+	"$ROOT/src/runtime/xl6_value_iterator.c"
+	"$ROOT/src/runtime/xl6_future_callback.c"
+	"$ROOT/src/runtime/xl6_ownership_plan.c"
+	"$ROOT/src/runtime/xl6_generator.c"
+	"$ROOT/src/runtime/xl6_code_finalizer.c"
+	"$ROOT/src/runtime/xl6_future_payload.c"
+	"$ROOT/src/api/xl_xrt_dll.c"
+	"$ROOT/src/abi/xl6_abi_json.c"
+	"$ROOT/src/abi/xl6_callable.c"
+	"$ROOT/src/backend/xl6_build_backend.c"
     "$ROOT/src/compile/xl6_compile_unit.c"
     "$ROOT/src/compile/xl6_imports.c"
     "$ROOT/src/compile/xl6_xrt_trim.c"
@@ -128,12 +154,16 @@ RUNTIME_SOURCES=(
     "$ROOT/src/ast/xl6_ast.c"
     "$ROOT/src/ir/xl6_hir.c"
     "$ROOT/src/ir/xl6_hir_type.c"
+  "$ROOT/src/ir/xl6_ir.c"
+  "$ROOT/src/ir/xl6_ir_lower.c"
     "$ROOT/src/cgen/xl6_cgen_entry.c"
     "$ROOT/src/cgen/xl6_cgen_lifecycle.c"
     "$ROOT/src/cgen/xl6_cgen_runtime.c"
     "$ROOT/src/cgen/xl6_cgen_header.c"
     "$ROOT/src/cgen/xl6_cgen_needs_basic.c"
+    "$ROOT/src/cgen/xl6_cgen_shared_runtime.c"
     "$ROOT/src/cgen/xl6_cgen.c"
+    "$ROOT/src/cgen/xl6_ir_cgen.c"
     "$ROOT/src/lexer/xl6_token.c"
     "$ROOT/src/lexer/xl6_lexer_api.c"
     "$ROOT/src/lexer/xl6_lexer_gen.c"

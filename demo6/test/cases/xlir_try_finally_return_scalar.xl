@@ -1,0 +1,19 @@
+int finally_return_trace = 0
+
+func return_through_finally() as int
+    try
+        return 41
+    finally
+        finally_return_trace = finally_return_trace + 1
+    end
+end
+
+func finally_return_trace_value() as int
+    return finally_return_trace
+end
+
+
+if false
+    return_through_finally()
+    finally_return_trace_value()
+end

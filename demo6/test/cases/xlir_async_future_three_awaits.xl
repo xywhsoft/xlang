@@ -1,0 +1,12 @@
+extern "xlir_make_i64_future" func makeFuture() as future<int>
+
+async func addThree(future<int> first, future<int> second, future<int> third) as int
+    return await first + await second + await third
+end
+
+future<int> first = makeFuture()
+future<int> second = makeFuture()
+future<int> third = makeFuture()
+future<int> pending = addThree(first, second, third)
+int completed = await pending
+assert completed == 123

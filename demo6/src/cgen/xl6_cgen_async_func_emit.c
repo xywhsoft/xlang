@@ -17,7 +17,7 @@ static void xl6CgenAsyncWorker(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     xl6OutputPuts("static int ", ctx->out);
     xl6CgenAsyncWorkerSymbol(ctx, node);
-    xl6OutputPuts("(void* __xl6_arg, xfuture_result* pOut)\n{\n", ctx->out);
+    xl6OutputPuts("(void* __xl6_arg, xl6_future_result* pOut)\n{\n", ctx->out);
     ctx->indent += 1;
 
     varMark = ctx->varCount;
@@ -51,7 +51,7 @@ static void xl6CgenAsyncWorker(XL6_CgenContext* ctx, const XL6_AstNode* node)
         if ( xl6CgenAsyncIsClassMethod(ctx) ) {
             xl6CgenIndent(ctx);
             xl6OutputPuts(
-                "xvalue __xl6_self_handle = __xl6_args->__xl6_self;\n",
+                "xvalue* __xl6_self_handle = __xl6_args->__xl6_self;\n",
                 ctx->out);
             xl6CgenIndent(ctx);
             xl6OutputPuts("__xl6_args->__xl6_self = 0;\n", ctx->out);
@@ -65,7 +65,7 @@ static void xl6CgenAsyncWorker(XL6_CgenContext* ctx, const XL6_AstNode* node)
                     ctx->out,
                     ctx->currentAsyncNativeClass->text);
                 xl6OutputPuts(
-                    "*)xvoGetHandleSlot(__xl6_self_handle);\n",
+                    "*)xl6ValueHandleSlot(__xl6_self_handle);\n",
                     ctx->out);
             } else {
                 if ( ctx->currentAsyncClassType != NULL ) {
@@ -91,26 +91,26 @@ static void xl6CgenAsyncWorker(XL6_CgenContext* ctx, const XL6_AstNode* node)
                      xl6CgenClassIsPureNativeHandle(
                          ctx->currentAsyncClass) ) {
                     xl6OutputPuts(
-                        "*)xvoGetHandleSlot(__xl6_self_handle);\n",
+                        "*)xl6ValueHandleSlot(__xl6_self_handle);\n",
                         ctx->out);
                 } else {
                     xl6OutputPuts(
-                        "*)xvoGetRecordData(__xl6_self_handle);\n",
+                        "*)xl6ValueRecordData(__xl6_self_handle);\n",
                         ctx->out);
                 }
             }
             xl6CgenIndent(ctx);
             xl6OutputPuts(
                 "if (self == 0) { "
-                "xvoUnref(__xl6_self_handle); "
+                "xrtValueRelease(__xl6_self_handle); "
                 "xrtFree(__xl6_args); "
                 "return xl6_async_result_error("
                 "pOut, \"missing async class receiver\"); }\n",
                 ctx->out);
             /*
-                异步接收者帧固定保存 xvalue owner，不受公开 class
-                的具体表示影响。这里直接登记 xvalue 清理，避免把
-                class 声明节点误判成非 xvalue 而泄漏 owner。
+                异步接收者帧固定保存 xvalue* owner，不受公开 class
+                的具体表示影响。这里直接登记 xvalue* 清理，避免把
+                class 声明节点误判成非 xvalue* 而泄漏 owner。
             */
             xl6CgenAddCleanupEntry(
                 ctx,
@@ -174,11 +174,9 @@ static void xl6CgenAsyncWorker(XL6_CgenContext* ctx, const XL6_AstNode* node)
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("XL6_Error* __xl6_error = xl6_error_take();\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("const char* __xl6_message = xl6_error_message(__xl6_error);\n", ctx->out);
     xl6CgenEmitCleanupsSince(ctx, cleanupMark);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("xl6_async_result_error(pOut, __xl6_message);\n", ctx->out);
+    xl6OutputPuts("xl6_async_result_language_error(pOut, __xl6_error);\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPuts("xl6_error_free(__xl6_error);\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -254,18 +252,18 @@ static void xl6CgenAsyncFunc(XL6_CgenContext* ctx, const XL6_AstNode* node)
                       ctx->currentAsyncClass)) ) {
                 xl6OutputPuts(
                     "__xl6_args->__xl6_self = "
-                    "xvoGetHandleOwner((const ptr*)self);\n",
+                    "xl6ValueHandleOwner((const ptr*)self);\n",
+                    ctx->out);
+                xl6CgenIndent(ctx);
+                xl6OutputPuts(
+                    "if (__xl6_args->__xl6_self != 0) { "
+                    "xrtValueRetain(__xl6_args->__xl6_self); }\n",
                     ctx->out);
             } else {
                 xl6OutputPuts(
-                    "__xl6_args->__xl6_self = xvoGetRecordOwner(self);\n",
+                    "__xl6_args->__xl6_self = xl6ValueRecordOwnerRef(self);\n",
                     ctx->out);
             }
-            xl6CgenIndent(ctx);
-            xl6OutputPuts(
-                "if (__xl6_args->__xl6_self != 0) { "
-                "xvoAddRef(__xl6_args->__xl6_self); }\n",
-                ctx->out);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(
                 ctx->out,

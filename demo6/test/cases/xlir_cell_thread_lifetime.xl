@@ -1,0 +1,50 @@
+extern "cell_thread_drop" func cellThreadDrop()
+
+class CellThreadOwner
+    destroy()
+        cellThreadDrop()
+    end
+end
+
+func cellThreadFactory() as func() as func() as int
+    var owner = CellThreadOwner()
+    return func() as func() as int
+        // Establish a mutable capture without concurrently writing its payload.
+        if false then
+            owner = owner
+        end
+        return func() as int => owner == null ? 0 : 73
+    end
+end
+
+export "cell_thread_keep" func cellThreadKeep() as int
+    auto factory = cellThreadFactory()
+    auto reader = factory()
+    return reader()
+end
+
+func cellThreadShared(int state) as func() as func() as int
+    return func() as func() as int
+        state += 1
+        return func() as int => state
+    end
+end
+
+export "cell_thread_semantics" func cellThreadSemantics() as int
+    int sibling = 1
+    auto read = func() as int => sibling
+    auto write = func() as int
+        sibling += 1
+        return sibling
+    end
+    assert(read() == 1)
+    assert(write() == 2)
+    assert(read() == 2)
+    auto factory = cellThreadShared(1)
+    auto first = factory()
+    assert(first() == 2)
+    auto second = factory()
+    assert(first() == 3)
+    assert(second() == 3)
+    return read() + first() + second()
+end

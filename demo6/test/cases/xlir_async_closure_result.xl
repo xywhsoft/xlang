@@ -1,0 +1,36 @@
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+async func makeAdderAsync(int base) as func(int) as int
+    return makeAdder(base)
+end
+
+async func slowMakeAdderAsync(int base) as func(int) as int
+    time.sleep(25)
+    return makeAdder(base)
+end
+
+async func retainAdderAsync(func(int) as int value) as func(int) as int
+    return value
+end
+
+future<func(int) as int> ready = makeAdderAsync(40)
+func(int) as int first = await ready
+func(int) as int second = await ready
+assert first(2) == 42, "first await did not retain the closure"
+assert second(3) == 43, "second await did not retain the closure"
+
+func(int) as int temporary = await makeAdderAsync(50)
+assert temporary(4) == 54, "temporary Future did not transfer a retained closure"
+
+future<func(int) as int> pending = slowMakeAdderAsync(60)
+func(int) as int delayed = await pending
+assert delayed(5) == 65, "task-pool Future did not transfer a retained closure"
+
+func(int) as int source = makeAdder(70)
+future<func(int) as int> immediate = retainAdderAsync(source)
+func(int) as int retained = await immediate
+assert retained(6) == 76, "ready Future did not transfer a retained closure"

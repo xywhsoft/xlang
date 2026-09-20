@@ -14,42 +14,37 @@ static void xl6CgenXValueMemberLengthExpr(XL6_CgenContext* ctx, const XL6_AstNod
         const XL6_AstNode* concreteType = xl6CgenTypedContainerConcreteType(ctx, receiverType);
         const char* typeName = concreteType != NULL ? concreteType->text : NULL;
 
+        /* XRT 计数使用无符号类型，xlang length 的稳定类型是 int64。 */
+        xl6OutputPuts("((long long)", ctx->out);
         if ( xl6CTextEquals(typeName, "array") ) {
-            xl6OutputPuts("xrtTypedArrayCount(", ctx->out);
+            xl6OutputPuts("xl6TypedArrayCount(", ctx->out);
         } else if ( xl6CTextEquals(typeName, "list") ) {
-            xl6OutputPuts("xrtTypedListCount(", ctx->out);
+            xl6OutputPuts("xl6TypedListCount(", ctx->out);
         } else if ( xl6CTextEquals(typeName, "set") ) {
-            xl6OutputPuts("xrtTypedSetCount(", ctx->out);
+            xl6OutputPuts("xl6TypedSetCount(", ctx->out);
         } else if ( xl6CTextEquals(typeName, "dict") ) {
-            xl6OutputPuts("xrtTypedDictCount(", ctx->out);
+            xl6OutputPuts("xl6TypedDictCount(", ctx->out);
         } else {
             xl6CgenError(ctx, receiver, "typed container length requires array/list/set/dict");
             xl6OutputPuts("0", ctx->out);
             return;
         }
         xl6CgenExpr(ctx, receiver);
-        xl6OutputPutc(')', ctx->out);
+        xl6OutputPuts("))", ctx->out);
         return;
-    }
+	}
 
-    if ( xl6CgenExprIsXValueBorrow(ctx, receiver) ) {
-        if ( receiver != NULL && receiver->kind == XL6_AST_NAME && xl6CgenIsArrayXValueType(receiverType) ) {
-            xl6OutputPuts("xvoArrayItemCount(", ctx->out);
-            xl6CgenNamedValueReference(ctx, receiver->text);
-            xl6OutputPutc(')', ctx->out);
-        } else if ( receiver != NULL && receiver->kind == XL6_AST_NAME && xl6CgenIsListXValueType(receiverType) ) {
-            xl6OutputPuts("xvoListItemCount(", ctx->out);
-            xl6CgenNamedValueReference(ctx, receiver->text);
-            xl6OutputPutc(')', ctx->out);
-        } else if ( receiver != NULL && receiver->kind == XL6_AST_NAME && xl6CgenIsSetXValueType(receiverType) ) {
-            xl6OutputPuts("xvoSetItemCount(", ctx->out);
-            xl6CgenNamedValueReference(ctx, receiver->text);
-            xl6OutputPutc(')', ctx->out);
-        } else if ( receiver != NULL && receiver->kind == XL6_AST_NAME && xl6CgenIsDictXValueType(receiverType) ) {
-            xl6OutputPuts("xvoTableItemCount(", ctx->out);
-            xl6CgenNamedValueReference(ctx, receiver->text);
-            xl6OutputPutc(')', ctx->out);
-        } else {
+	if ( xl6CgenExprIsXValueBorrow(ctx, receiver) ) {
+		if ( receiver != NULL && receiver->kind == XL6_AST_NAME &&
+			 (xl6CgenIsArrayXValueType(receiverType) ||
+			  xl6CgenIsListXValueType(receiverType) ||
+			  xl6CgenIsSetXValueType(receiverType) ||
+			  xl6CgenIsDictXValueType(receiverType)) ) {
+			/* XRT 计数使用 size_t，xlang length 的稳定类型是 int64。 */
+			xl6OutputPuts("((long long)xrtValueCount(", ctx->out);
+			xl6CgenNamedValueReference(ctx, receiver->text);
+			xl6OutputPuts("))", ctx->out);
+		} else {
             xl6OutputPuts("xl6_xrt_member_length(", ctx->out);
             xl6CgenExpr(ctx, receiver);
             xl6OutputPutc(')', ctx->out);
@@ -109,9 +104,9 @@ static int xl6CgenStaticStringMemberAccess(
         return 0;
     }
 
-    xl6OutputPuts("((long long)xrtStrCharLen(", ctx->out);
+    xl6OutputPuts("((long long)xrtUtf8Count(xrtStrView(", ctx->out);
     xl6CgenExpr(ctx, receiver);
-    xl6OutputPuts(", 0))", ctx->out);
+    xl6OutputPuts(")))", ctx->out);
     xl6AstFree(receiverType);
     return 1;
 }
@@ -159,7 +154,7 @@ static int xl6CgenSafeStringMemberAccess(
     xl6CgenExpr(ctx, receiver);
     xl6OutputPrintf(
         ctx->out,
-        "), %s != 0 ? (%s){ true, (long long)xrtStrCharLen(%s, 0) } : (%s){0})",
+        "), %s != 0 ? (%s){ true, (long long)xrtUtf8Count(xrtStrView(%s)) } : (%s){0})",
         slotName,
         resultCType,
         slotName,
@@ -216,13 +211,13 @@ static int xl6CgenSafeTypedContainerMemberAccess(XL6_CgenContext* ctx, const XL6
     xl6CgenExpr(ctx, receiver);
     xl6OutputPrintf(ctx->out, "), %s != 0 ? (%s){ true, (long long)", slotName, resultCType);
     if ( xl6CTextEquals(typeName, "array") ) {
-        xl6OutputPuts("xrtTypedArrayCount(", ctx->out);
+        xl6OutputPuts("xl6TypedArrayCount(", ctx->out);
     } else if ( xl6CTextEquals(typeName, "list") ) {
-        xl6OutputPuts("xrtTypedListCount(", ctx->out);
+        xl6OutputPuts("xl6TypedListCount(", ctx->out);
     } else if ( xl6CTextEquals(typeName, "set") ) {
-        xl6OutputPuts("xrtTypedSetCount(", ctx->out);
+        xl6OutputPuts("xl6TypedSetCount(", ctx->out);
     } else if ( xl6CTextEquals(typeName, "dict") ) {
-        xl6OutputPuts("xrtTypedDictCount(", ctx->out);
+        xl6OutputPuts("xl6TypedDictCount(", ctx->out);
     } else {
         xl6CgenError(ctx, member, "typed safe length requires array/list/set/dict");
         xl6OutputPuts("0", ctx->out);
@@ -262,7 +257,7 @@ static int xl6CgenXValueMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode* me
         xl6CgenXValueMemberKeyExpr(ctx, receiver, member->text);
     } else {
         xl6CgenError(ctx, member, "member key receiver must be var or dynamic dict");
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
     }
     xl6AstFree(receiverType);
     return 1;
@@ -271,17 +266,15 @@ static int xl6CgenXValueMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode* me
 static int xl6CgenErrorMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode* member)
 {
     const XL6_AstNode* receiver;
-    const XL6_AstNode* receiverType;
+    XL6_AstNode* receiverType;
 
     if ( member == NULL || member->text == NULL || member->childCount == 0 ) {
         return 0;
     }
     receiver = member->children[0];
-    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
-        return 0;
-    }
-    receiverType = xl6CgenFindVarType(ctx, receiver->text);
-    if ( receiverType == NULL || !xl6CTextEquals(receiverType->text, "error") ) {
+    receiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
+    if ( !xl6CgenIsErrorType(ctx, receiverType) ) {
+        xl6AstFree(receiverType);
         return 0;
     }
 
@@ -295,11 +288,27 @@ static int xl6CgenErrorMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode* mem
         xl6OutputPuts("xl6_error_line(", ctx->out);
     } else if ( xl6CTextEquals(member->text, "column") ) {
         xl6OutputPuts("xl6_error_column(", ctx->out);
+    } else if ( xl6CTextEquals(member->text, "domain") ) {
+        xl6OutputPuts("xl6_error_domain(", ctx->out);
+    } else if ( xl6CTextEquals(member->text, "operation") ) {
+        xl6OutputPuts("xl6_error_operation(", ctx->out);
+    } else if ( xl6CTextEquals(member->text, "data") ) {
+        xl6OutputPuts("xl6_error_data(", ctx->out);
+    } else if ( xl6CTextEquals(member->text, "code") ) {
+        xl6OutputPuts("xl6_error_code(", ctx->out);
+    } else if ( xl6CTextEquals(member->text, "systemCode") ) {
+        xl6OutputPuts("xl6_error_system_code(", ctx->out);
+    } else if ( xl6CTextEquals(member->text, "cause") ) {
+        xl6OutputPuts("xl6_error_cause(", ctx->out);
     } else {
+        xl6AstFree(receiverType);
         return 0;
     }
-    xl6CgenNamedValueReference(ctx, receiver->text);
-    xl6OutputPutc(')', ctx->out);
+    xl6CgenExpr(ctx, receiver);
+    xl6OutputPuts(
+        xl6CgenExprIsManagedBorrow(ctx, receiver) ? ", 0)" : ", 1)",
+        ctx->out);
+    xl6AstFree(receiverType);
     return 1;
 }
 
@@ -327,7 +336,7 @@ static int xl6CgenSafeXValueMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode
             xl6CgenXValueMemberKeyExpr(ctx, receiver, member->text);
         } else {
             xl6CgenError(ctx, member, "member key receiver must be var or dynamic dict");
-            xl6OutputPuts("xvoCreateNull()", ctx->out);
+            xl6OutputPuts("xrtValueNull()", ctx->out);
         }
         xl6AstFree(receiverType);
         return 1;
@@ -345,7 +354,7 @@ static int xl6CgenSafeXValueMemberAccess(XL6_CgenContext* ctx, const XL6_AstNode
 
     if ( xl6CgenExprUsesTypedContainerStorage(ctx, receiver) &&
          xl6CgenIsTypedContainerType(ctx, receiverType) ) {
-        xl6OutputPuts("xvoCreateInt((long long)(", ctx->out);
+        xl6OutputPuts("xrtValueInt((long long)(", ctx->out);
         xl6CgenXValueMemberLengthExpr(ctx, receiver, receiverType);
         xl6OutputPuts("))", ctx->out);
         if ( taggedResult ) {

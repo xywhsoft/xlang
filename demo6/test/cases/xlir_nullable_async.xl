@@ -1,0 +1,20 @@
+export "xlir_nullable_async_present" int nullableAsyncPresent = 0
+export "xlir_nullable_async_missing" int nullableAsyncMissing = 0
+
+async func chooseNullable(bool present, int? candidate) as int?
+    if present then return candidate end
+    return null
+end
+
+future<int?> presentFuture = chooseNullable(true, 27)
+future<int?> missingFuture = chooseNullable(false, 81)
+int? presentResult = await presentFuture
+int? missingResult = await missingFuture
+nullableAsyncPresent = presentResult ?? 3
+nullableAsyncMissing = missingResult ?? 7
+
+func main(...) as int
+    assert(nullableAsyncPresent == 27)
+    assert(nullableAsyncMissing == 7)
+    return 0
+end

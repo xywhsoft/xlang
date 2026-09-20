@@ -1,0 +1,27 @@
+async func raceAsyncError(error value, int delay) as error
+    time.sleep(delay)
+    return value
+end
+
+try
+    throw ValueError "async error race payload"
+catch captured
+    future<error> slow = raceAsyncError(captured, 40)
+    future<error> fast = raceAsyncError(captured, 1)
+    error winner = await task.race([slow, fast])
+    assert winner.kind == "ValueError"
+    assert winner.message == "async error race payload"
+
+    int slowState = 0
+    try
+        error slowAgain = await slow
+        slowState = 1
+    catch loserError
+        if loserError.message == "future cancel requested." then
+            slowState = 42
+        end
+    end
+    assert slowState == 42
+end
+
+println("xlir async error race abi ok")

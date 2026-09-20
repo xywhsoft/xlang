@@ -1,0 +1,71 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expect_string(string actual, string expected)
+
+array<int> intArray = array[0]
+intArray[0] = 11
+expect(intArray[0], 11)
+
+array<uint64> unsignedArray = array[uint64(0)]
+unsignedArray[0] = uint64(18446744073709551615)
+if unsignedArray[0] != uint64(18446744073709551615)
+    expect(0, 1)
+end
+
+array<bool> boolArray = array[false]
+boolArray[0] = true
+if not boolArray[0]
+    expect(0, 1)
+end
+
+array<float> floatArray = array[0.0]
+floatArray[0] = 2.5
+if floatArray[0] < 2.49 or floatArray[0] > 2.51
+    expect(0, 1)
+end
+
+array<string> stringArray = array[""]
+stringArray[0] = "array"
+expect_string(stringArray[0], "array")
+
+list<int> intList
+intList[2] = 21
+expect(intList[2], 21)
+
+list<uint64> unsignedList
+unsignedList[3] = uint64(18446744073709551614)
+if unsignedList[3] != uint64(18446744073709551614)
+    expect(0, 1)
+end
+
+list<bool> boolList
+boolList[4] = true
+if not boolList[4]
+    expect(0, 1)
+end
+
+list<float> floatList
+floatList[5] = 3.5
+if floatList[5] < 3.49 or floatList[5] > 3.51
+    expect(0, 1)
+end
+
+list<string> stringList
+stringList[6] = "list"
+expect_string(stringList[6], "list")
+
+list<var> nullableList
+nullableList[8] ?= 51
+nullableList[8] ?= 99
+expect(int(nullableList[8]), 51)
+
+dict<int> scores
+scores["literal"] = 31
+string scoreKey = "named"
+scores[scoreKey] = 32
+expect(scores["literal"], 31)
+expect(scores["named"], 32)
+
+var dynamicValues = [0]
+var dynamicKey = 0
+dynamicValues[dynamicKey] = 41
+expect(int(dynamicValues[dynamicKey]), 41)

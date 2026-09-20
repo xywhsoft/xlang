@@ -1,0 +1,258 @@
+class LoopCellIterator
+    int index = 0
+    func __next__() as (bool, string)
+        self.index += 1
+        if self.index == 1 then
+            return true, "a"
+        elseif self.index == 2 then
+            return true, "b"
+        end
+        return false, ""
+    end
+end
+class LoopCellSequence
+    func __iter__() as LoopCellIterator
+        return LoopCellIterator()
+    end
+end
+func loopCellWords() as generator<string>
+    yield "a"
+    yield "b"
+end
+
+export "loop_cell_range" func loopCell_range() as int
+    func() as int first = func() as int => 0
+    func() as int last = func() as int => 0
+    int visits = 0
+    for index, item in range(6, 8)
+        auto current = func() as int
+            index += 10
+            item += 1
+            return index * 100 + item
+        end
+        if visits == 0 then
+            first = current
+        else
+            last = current
+        end
+        visits += 1
+    end
+    assert(visits == 2)
+    return first() + last() + first()
+end
+
+export "loop_cell_array" func loopCell_array() as int
+    func() as int first = func() as int => 0
+    func() as int last = func() as int => 0
+    int visits = 0
+    for index, item in array[6, 7]
+        auto current = func() as int
+            index += 10
+            item += 1
+            return index * 100 + item
+        end
+        if visits == 0 then
+            first = current
+        else
+            last = current
+        end
+        visits += 1
+    end
+    assert(visits == 2)
+    return first() + last() + first()
+end
+
+export "loop_cell_string" func loopCell_string() as int
+    func() as int first = func() as int => 0
+    func() as int last = func() as int => 0
+    int visits = 0
+    for index, item in "ab"
+        auto current = func() as int
+            index += 10
+            item = item + "x"
+            return index * 100 + item.length
+        end
+        if visits == 0 then
+            first = current
+        else
+            last = current
+        end
+        visits += 1
+    end
+    assert(visits == 2)
+    return first() + last() + first()
+end
+
+export "loop_cell_list" func loopCell_list() as int
+    func() as int first = func() as int => 0
+    func() as int last = func() as int => 0
+    int visits = 0
+    for index, item in list[0: "a", 1: "b"]
+        auto current = func() as int
+            index += 10
+            item = item + "x"
+            return index * 100 + item.length
+        end
+        if visits == 0 then
+            first = current
+        else
+            last = current
+        end
+        visits += 1
+    end
+    assert(visits == 2)
+    return first() + last() + first()
+end
+
+export "loop_cell_dict" func loopCell_dict() as int
+    func() as int first = func() as int => 0
+    func() as int last = func() as int => 0
+    int visits = 0
+    for index, item in dict{"a": "a", "b": "b"}
+        auto current = func() as int
+            index = index + "k"
+            item = item + "x"
+            return index.length * 100 + item.length
+        end
+        if visits == 0 then
+            first = current
+        else
+            last = current
+        end
+        visits += 1
+    end
+    assert(visits == 2)
+    return first() + last() + first()
+end
+
+export "loop_cell_protocol" func loopCell_protocol() as int
+    func() as int first = func() as int => 0
+    func() as int last = func() as int => 0
+    int visits = 0
+    for index, item in LoopCellSequence()
+        auto current = func() as int
+            index += 10
+            item = item + "x"
+            return index * 100 + item.length
+        end
+        if visits == 0 then
+            first = current
+        else
+            last = current
+        end
+        visits += 1
+    end
+    assert(visits == 2)
+    return first() + last() + first()
+end
+
+export "loop_cell_generator" func loopCell_generator() as int
+    func() as int first = func() as int => 0
+    func() as int last = func() as int => 0
+    int visits = 0
+    for index, item in loopCellWords()
+        auto current = func() as int
+            index += 10
+            item = item + "x"
+            return index * 100 + item.length
+        end
+        if visits == 0 then
+            first = current
+        else
+            last = current
+        end
+        visits += 1
+    end
+    assert(visits == 2)
+    return first() + last() + first()
+end
+
+export "loop_cell_cursor" func loopCellCursor() as int
+    int visits = 0
+    int total = 0
+    for index, item in range(6, 8)
+        index += 10
+        item += 100
+        total += index + item
+        visits += 1
+    end
+    return visits * 1000 + total
+end
+
+export "loop_cell_exits" func loopCellExits() as int
+    func() as int selected = func() as int => 0
+    try
+        for item in array[6, 7, 8]
+            selected = func() as int
+                item += 1
+                return item
+            end
+            if item == 6 then
+                continue
+            end
+            throw ValueError "leave captured iteration"
+        end
+    catch ValueError ignored
+        return selected()
+    end
+    return 0
+end
+
+export "loop_cell_key" func loopCellKey() as int
+    int seen = 0
+    for key in dict{"a": 1, "b": 2}
+        seen += key.length
+    end
+    func() as int first = func() as int => 0
+    func() as int last = func() as int => 0
+    int visits = 0
+    for key in dict{"a": 1, "b": 2}
+        auto current = func() as int
+            key = key + "x"
+            return key.length
+        end
+        if visits == 0 then
+            first = current
+        else
+            last = current
+        end
+        visits += 1
+    end
+    assert(visits == 2)
+    return seen * 100 + first() + last() + first()
+end
+
+export "loop_cell_set" func loopCellSet() as int
+    func() as int first = func() as int => 0
+    func() as int last = func() as int => 0
+    int visits = 0
+    for item in set{6, 7}
+        auto current = func() as int
+            item += 1
+            return item
+        end
+        if visits == 0 then
+            first = current
+        else
+            last = current
+        end
+        visits += 1
+    end
+    assert(visits == 2)
+    return first() + last() + first() + last()
+end
+
+func main(...) as int
+    assert(loopCell_range() == 4123)
+    assert(loopCell_array() == 4123)
+    assert(loopCell_string() == 4107)
+    assert(loopCell_list() == 4107)
+    assert(loopCell_dict() == 707)
+    assert(loopCell_protocol() == 4107)
+    assert(loopCell_generator() == 4107)
+    assert(loopCellCursor() == 2234)
+    assert(loopCellExits() == 8)
+    assert(loopCellKey() == 207)
+    assert(loopCellSet() == 32)
+    return 0
+end

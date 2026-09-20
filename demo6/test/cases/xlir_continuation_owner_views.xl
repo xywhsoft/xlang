@@ -1,0 +1,13 @@
+// Source scaffolding for a lowered-IR owner-region regression. The contract
+// builds an explicit two-yield region with either one or two transparent views
+// of one owned string. This is not a source-level CSE optimization test.
+func ownerViews(string text) as generator<string>
+    yield text
+    yield text
+    yield text
+end
+export "owner_views_keep" func ownerViewsKeep()
+    for word in ownerViews("owner")
+        assert word == "owner"
+    end
+end

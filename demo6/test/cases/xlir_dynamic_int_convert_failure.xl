@@ -1,0 +1,8 @@
+export "xlir_test_invalid_dynamic_string_recovered" func invalid_dynamic_string_recovered() as int64
+    var value = "not-an-integer"
+    try
+        return int(value)
+    catch ValueError ignored
+        return 73
+    end
+end

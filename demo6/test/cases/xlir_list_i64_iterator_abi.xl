@@ -1,0 +1,110 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+list<int> snapshotValues = list[0: 2, 2: 4, 5: 6]
+int snapshotSum = 0
+int snapshotVisits = 0
+for value in snapshotValues
+    snapshotSum = snapshotSum + value
+    snapshotVisits = snapshotVisits + 1
+    if value == 2
+        snapshotValues = list[9: 100]
+    end
+end
+expect(snapshotSum, 12)
+expect(snapshotVisits, 3)
+expect(snapshotValues.length, 1)
+
+list<int> keyedValues = list[2: 3, 5: 7, 9: 11]
+int keyedTotal = 0
+for key, value in keyedValues
+    if key == 5
+        continue
+    end
+    keyedTotal = keyedTotal + key * 10 + value
+    if key == 9
+        break
+    end
+end
+expect(keyedTotal, 124)
+
+func sum_named_list(list<int> values) as int
+    int total = 0
+    for value in values
+        total = total + value
+    end
+    return total
+end
+
+func first_named_list(list<int> values) as int
+    for key, value in values
+        return key + value
+    end
+    return -1
+end
+
+func checked_list_value(int value) as int
+    if value == 5
+        throw ValueError "list loop sentinel"
+    end
+    return value
+end
+
+func sum_with_inner_catch(list<int> values) as int
+    int total = 0
+    for value in values
+        try
+            total = total + checked_list_value(value)
+        catch ValueError ignored
+            total = total + 50
+        end
+    end
+    return total
+end
+
+func sum_with_outer_catch(list<int> values) as int
+    int total = 0
+    try
+        for value in values
+            total = total + checked_list_value(value)
+        end
+    catch ValueError ignored
+        total = total + 100
+    end
+    return total
+end
+
+int listReturnFinallyTrace = 0
+func first_with_finally(list<int> values) as int
+    for value in values
+        try
+            return value
+        finally
+            listReturnFinallyTrace = listReturnFinallyTrace + 1
+        end
+    end
+    return -1
+end
+
+func make_owned_loop_values() as list<int>
+    return list[3: 6, 7: 8]
+end
+
+list<int> parameterValues = list[1: 3, 4: 5, 8: 7]
+expect(sum_named_list(parameterValues), 15)
+expect(first_named_list(parameterValues), 4)
+expect(sum_with_inner_catch(parameterValues), 60)
+expect(sum_with_outer_catch(parameterValues), 103)
+expect(first_with_finally(parameterValues), 3)
+expect(listReturnFinallyTrace, 1)
+
+int literalRvalueSum = 0
+for key, value in list[4: 1, 8: 2]
+    literalRvalueSum = literalRvalueSum + key + value
+end
+expect(literalRvalueSum, 15)
+
+int returnedRvalueSum = 0
+for key, value in make_owned_loop_values()
+    returnedRvalueSum = returnedRvalueSum + key + value
+end
+expect(returnedRvalueSum, 24)

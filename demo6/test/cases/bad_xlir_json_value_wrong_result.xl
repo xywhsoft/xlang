@@ -1,0 +1,2 @@
+extern "xl6_xrt_json_stringify" func malformed(var value, c_int pretty) as string
+println(malformed(null, c_int(0)))

@@ -167,7 +167,7 @@ static void xl6CgenClassCopyBuiltinExpr(
 static void xl6CgenXValueCopyBuiltinExpr(XL6_CgenContext* ctx, const XL6_AstNode* arg, int deep)
 {
     if ( xl6CgenExprIsXValueBorrow(ctx, arg) ) {
-        xl6OutputPuts(deep ? "xvoDeepCopy(" : "xvoCopy(", ctx->out);
+        xl6OutputPuts(deep ? "xrtValueDeepClone(" : "xrtValueClone(", ctx->out);
         xl6CgenExpr(ctx, arg);
         xl6OutputPutc(')', ctx->out);
         return;
@@ -177,6 +177,21 @@ static void xl6CgenXValueCopyBuiltinExpr(XL6_CgenContext* ctx, const XL6_AstNode
     xl6CgenExpr(ctx, arg);
     xl6OutputPuts(deep ? ", 1)" : ", 0)", ctx->out);
 }
+
+
+static void xl6CgenClassHandleCopyBuiltinExpr(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* arg,
+    int deep)
+{
+    xl6OutputPuts(
+        xl6CgenExprIsXValueBorrow(ctx, arg)
+            ? "xl6ValueRecordClone(" : "xl6ValueRecordCloneRelease(",
+        ctx->out);
+    xl6CgenExpr(ctx, arg);
+    xl6OutputPuts(deep ? ", true)" : ", false)", ctx->out);
+}
+
 
 static void xl6CgenFunctionCopyBuiltinExpr(XL6_CgenContext* ctx, const XL6_AstNode* arg)
 {
@@ -238,6 +253,11 @@ static int xl6CgenCopyBuiltinCall(XL6_CgenContext* ctx, const XL6_AstNode* node)
         return 1;
     }
 
+    if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
+        xl6CgenClassHandleCopyBuiltinExpr(ctx, arg, deep);
+        xl6AstFree(typeNode);
+        return 1;
+    }
     if ( xl6CgenIsXValueType(typeNode) ) {
         xl6CgenXValueCopyBuiltinExpr(ctx, arg, deep);
         xl6AstFree(typeNode);

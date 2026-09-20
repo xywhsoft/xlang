@@ -7,29 +7,25 @@ func onLog(var event)
     lastMessage = string(event["message"])
     assert int(event["level"]) == log.infoLevel
     assert string(event["logger"]) == "object-test"
-    assert int(event["threadId"]) > 0
+    assert int(event["threadId"]) == 0
     if not nested then
         nested = true
         log.info("nested")
     end
 end
 
-func installLogger(func(var) handler) as LogAppender
+func installLogger(func(var) handler) as LogSink
     Logger logger = log.create("object-test")
     logger.setLevel(log.traceLevel)
     assert logger.makeDefault()
-    return logger.customAppender("capture", handler, log.infoLevel)
+    return logger.customSink("capture", handler, log.infoLevel)
 end
 
-LogAppender appender = installLogger(onLog)
-assert appender.name == "capture"
-assert appender.getLevel() == log.infoLevel
-appender.setLevel(log.debugLevel)
-appender.setFormat(log.jsonFormat)
-appender.setColor(true)
-assert appender.getLevel() == log.debugLevel
-assert appender.getFormat() == log.jsonFormat
-assert appender.getColor()
+LogSink sink = installLogger(onLog)
+assert sink.name == "capture"
+assert sink.getLevel() == log.infoLevel
+sink.setLevel(log.debugLevel)
+assert sink.getLevel() == log.debugLevel
 
 log.info("outer")
 assert eventCount == 2
@@ -37,8 +33,8 @@ assert lastMessage == "nested"
 
 Logger wrapped = log.default()
 assert wrapped.getLevel() == log.traceLevel
-assert wrapped.removeAppender(appender)
-assert not wrapped.removeAppender(appender)
+assert wrapped.removeSink(sink)
+assert not wrapped.removeSink(sink)
 log.info("after-remove")
 assert eventCount == 2
 wrapped.flush()

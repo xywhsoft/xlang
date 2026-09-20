@@ -1,0 +1,22 @@
+class ReceiverFacts
+    create()
+    end
+
+    get constant() as int
+        return 11
+    end
+
+    let ignored(int value)
+    end
+
+    func constantMethod() as int
+        return 17
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+ReceiverFacts facts = ReceiverFacts()
+expect(facts.constant, 11)
+facts.ignored = 13
+expect(facts.constantMethod(), 17)

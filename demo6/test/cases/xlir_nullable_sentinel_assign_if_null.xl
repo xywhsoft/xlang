@@ -1,0 +1,59 @@
+class AssignNode
+    int value
+end
+
+int assignFallbackCount = 0
+
+func assignFallbackVar() as var
+    assignFallbackCount += 1
+    return 17
+end
+
+func assignFallbackInt() as int
+    assignFallbackCount += 1
+    return 29
+end
+
+func assignFallbackNode() as AssignNode
+    assignFallbackCount += 1
+    AssignNode value = AssignNode()
+    value.value = 41
+    return value
+end
+
+export "xlir_nullable_sentinel_var_assign" func probeVarAssign(bool present) as int
+    assignFallbackCount = 0
+    var candidate = null
+    if present then candidate = 8 end
+    candidate ?= assignFallbackVar()
+    return int(candidate) + assignFallbackCount * 100
+end
+
+export "xlir_nullable_sentinel_class_assign" func probeClassAssign(bool present) as int
+    assignFallbackCount = 0
+    AssignNode? candidate = null
+    if present then
+        AssignNode value = AssignNode()
+        value.value = 9
+        candidate = value
+    end
+    candidate ?= assignFallbackNode()
+    AssignNode selected = candidate ?? assignFallbackNode()
+    return selected.value + assignFallbackCount * 100
+end
+
+export "xlir_nonnull_assign_if_null" func probeNonNullAssign() as int
+    assignFallbackCount = 0
+    int value = 5
+    value ?= assignFallbackInt()
+    return value + assignFallbackCount * 100
+end
+
+func main(...) as int
+    assert(probeVarAssign(true) == 8)
+    assert(probeVarAssign(false) == 117)
+    assert(probeClassAssign(true) == 9)
+    assert(probeClassAssign(false) == 141)
+    assert(probeNonNullAssign() == 5)
+    return 0
+end

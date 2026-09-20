@@ -1,0 +1,6 @@
+extern "code_owner_probe" func ownerProbe() as bool
+assert ownerProbe()
+
+export "code_owner_step" func ownerStep(int value) as int
+    return value + 1
+end

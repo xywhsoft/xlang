@@ -1,0 +1,23 @@
+int nested_return_trace = 0
+
+func nested_return_through_finally() as int
+    try
+        try
+            return 47
+        finally
+            nested_return_trace = nested_return_trace * 10 + 1
+        end
+    finally
+        nested_return_trace = nested_return_trace * 10 + 2
+    end
+end
+
+func nested_return_trace_value() as int
+    return nested_return_trace
+end
+
+
+if false
+    nested_return_through_finally()
+    nested_return_trace_value()
+end

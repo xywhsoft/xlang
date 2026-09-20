@@ -1,0 +1,283 @@
+extern "protocol_outcome_raise" func protocolRaise(int code)
+int protocolDestroyed = 0
+bool protocolFail = false
+class ProtocolPayload
+    int number
+    bool fail
+    create(int number, bool fail)
+        self.number = number
+        self.fail = fail
+    end
+    destroy()
+        protocolDestroyed += 1
+        if self.fail then protocolRaise(74) end
+    end
+end
+protocol Outcome
+    func scalarOne() as int
+    func scalarTwo() as int
+    func text(string key) as string
+    func accept(byval ProtocolPayload value) as int
+    func observe(var value) as int
+    func change(byref int value, out int copy)
+    get amount() as int
+    let amount(int value)
+end
+class QuietOutcome
+    int stored = 1
+    func scalarOne() as int
+        return 1
+    end
+    func scalarTwo() as int
+        return 2
+    end
+    func text(string key) as string
+        return key
+    end
+    func accept(byval ProtocolPayload value) as int
+        return value.number
+    end
+    func observe(var value) as int
+        return 10
+    end
+    func change(byref int value, out int copy)
+        value += 1
+        copy = value
+    end
+    get amount() as int
+        return self.stored
+    end
+    let amount(int value)
+        self.stored = value
+    end
+end
+class RaisingOutcome
+    int stored = 2
+    func scalarOne() as int
+        if protocolFail then protocolRaise(71) end
+        return 11
+    end
+    func scalarTwo() as int
+        if protocolFail then protocolRaise(72) end
+        return 12
+    end
+    func text(string key) as string
+        if key == "fail" or protocolFail then protocolRaise(71) end
+        return "raising:" + key
+    end
+    func accept(byval ProtocolPayload value) as int
+        if value.number < 0 then protocolRaise(73) end
+        return value.number + 10
+    end
+    func observe(var value) as int
+        protocolRaise(73)
+        return 20
+    end
+    func change(byref int value, out int copy)
+        if value < 0 then protocolRaise(72) end
+        value += 2
+        copy = value
+    end
+    get amount() as int
+        if protocolFail then protocolRaise(75) end
+        return self.stored
+    end
+    let amount(int value)
+        if protocolFail then protocolRaise(76) end
+        self.stored = value + 10
+    end
+end
+func protocolForward(Outcome receiver, string key) as string
+    return receiver.text(key)
+end
+func protocolWords(Outcome receiver) as generator<string>
+    yield receiver.text("one")
+    yield receiver.text("two")
+    yield receiver.text("fail")
+end
+func protocolNumbers(Outcome receiver) as generator<int>
+    yield receiver.accept(ProtocolPayload(1, false))
+    yield receiver.accept(ProtocolPayload(-1, true))
+end
+export "protocol_outcome_check" func protocolCheck() as int
+    protocolDestroyed = 0
+    protocolFail = false
+    Outcome quiet = QuietOutcome()
+    Outcome raising = RaisingOutcome()
+    assert quiet.scalarOne() == 1 and quiet.scalarTwo() == 2
+    assert raising.scalarOne() == 11 and raising.scalarTwo() == 12
+    assert protocolForward(quiet, "fail") == "fail"
+    assert protocolForward(raising, "ok") == "raising:ok"
+    bool caught = false
+    try
+        protocolForward(raising, "fail")
+    catch failure
+        caught = true
+    end
+    assert caught
+    assert quiet.accept(ProtocolPayload(3, false)) == 3
+    assert raising.accept(ProtocolPayload(3, false)) == 13
+    assert protocolDestroyed == 2
+    caught = false
+    try
+        raising.accept(ProtocolPayload(-1, true))
+    catch failure
+        caught = true
+    end
+    assert caught and protocolDestroyed == 3
+    caught = false
+    try
+        raising.observe(ProtocolPayload(1, true))
+    catch failure
+        caught = true
+    end
+    assert caught and protocolDestroyed == 4
+    assert quiet.observe("boxed text") == 10
+    int value = 1
+    int copy = 0
+    quiet.change(byref value, out copy)
+    assert value == 2 and copy == 2
+    raising.change(byref value, out copy)
+    assert value == 4 and copy == 4
+    value = -1
+    caught = false
+    try
+        raising.change(byref value, out copy)
+    catch failure
+        caught = true
+    end
+    assert caught and value == -1
+    quiet.amount = 7
+    raising.amount = 8
+    assert quiet.amount == 7 and raising.amount == 18
+    protocolFail = true
+    caught = false
+    try
+        raising.amount = 9
+    catch failure
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        int ignored = raising.amount
+    catch failure
+        caught = true
+    end
+    assert caught
+    protocolFail = false
+    int count = 0
+    caught = false
+    try
+        for word in protocolWords(raising)
+            count += 1
+            assert word == (count == 1 ? "raising:one" : "raising:two")
+        end
+    catch failure
+        caught = true
+    end
+    assert caught and count == 2
+    count = 0
+    caught = false
+    try
+        for number in protocolNumbers(raising)
+            count += 1
+            assert number == 11
+        end
+    catch failure
+        caught = true
+    end
+    assert caught and count == 1 and protocolDestroyed == 6
+    for word in protocolWords(RaisingOutcome())
+        assert word == "raising:one"
+        break
+    end
+    return 0
+end
+export "protocol_outcome_uncaught" func protocolUncaught()
+    Outcome raising = RaisingOutcome()
+    raising.observe(ProtocolPayload(1, true))
+end
+extern "protocol_outcome_future" func protocolFuture() as future<int>
+future<int> protocolPending
+async func protocolAsync(Outcome receiver) as int
+    receiver.amount = 5
+    int before = receiver.amount
+    int ready = await protocolFuture()
+    receiver.amount = 7
+    return before + receiver.amount
+end
+protocol AsyncOutcome
+    async func waitValue() as int
+end
+class AwaitingOutcome
+    async func waitValue() as int
+        int ready = await protocolFuture()
+        if protocolFail then protocolRaise(79) end
+        return ready + 1
+    end
+end
+export "protocol_outcome_start" func protocolStart(bool witness)
+    protocolFail = false
+    if witness
+        AsyncOutcome receiver = AwaitingOutcome()
+        protocolPending = receiver.waitValue()
+    else
+        protocolPending = protocolAsync(RaisingOutcome())
+    end
+end
+export "protocol_outcome_fail" func protocolSetFail()
+    protocolFail = true
+end
+protocol NativeOutcome
+    func take(byval var value) as int
+    func nativeText() as string
+end
+class NativeOutcomeCounter
+    native point handle
+    extern "protocol_outcome_native_open" create()
+    extern "protocol_outcome_native_close" destroy()
+    extern "protocol_outcome_native_take" func take(byval var value) as int
+    extern "protocol_outcome_native_text" func nativeText() as string
+end
+extern "protocol_outcome_native_mode" func protocolNativeMode(int mode)
+extern "protocol_outcome_arm_scope_failure" func protocolArmScopeFailure()
+export "protocol_outcome_native_check" func protocolNativeCheck() as int
+    NativeOutcome receiver = NativeOutcomeCounter()
+    protocolNativeMode(0)
+    assert receiver.take(ProtocolPayload(1, false)) == 81
+    assert receiver.nativeText() == "native-text"
+    protocolNativeMode(1)
+    bool caught = false
+    try
+        receiver.take(ProtocolPayload(1, true))
+    catch failure
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        string ignored = receiver.nativeText()
+    catch failure
+        caught = true
+    end
+    assert caught
+    protocolNativeMode(0)
+    caught = false
+    try
+        ProtocolPayload input = ProtocolPayload(1, true)
+        protocolArmScopeFailure()
+        receiver.take(input)
+    catch failure
+        caught = true
+    end
+    assert caught
+    return 0
+end
+export "protocol_outcome_native_uncaught" func protocolNativeUncaught(bool scope)
+    NativeOutcome receiver = NativeOutcomeCounter()
+    protocolNativeMode(1)
+    ProtocolPayload input = ProtocolPayload(1, true)
+    if scope then protocolArmScopeFailure() end
+    receiver.take(input)
+end

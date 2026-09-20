@@ -1,0 +1,24 @@
+func recover_direct() as int
+    try
+        throw "direct failure"
+    catch ignored
+        return 41
+    end
+end
+
+func fail_inner() as int
+    throw "callee failure"
+end
+
+func recover_call() as int
+    try
+        return fail_inner()
+    catch ignored
+        return 43
+    end
+end
+
+// Root both checked paths for generated-C reachability; the strict host calls
+// their internal symbols directly to validate the carrier and cleanup ABI.
+recover_direct()
+recover_call()

@@ -1,0 +1,203 @@
+int created = 0
+int destroyed = 0
+int evaluations = 0
+
+class Marker
+    destroy()
+        destroyed += 1
+    end
+end
+
+func make(int digit) as var
+    created += 1
+    evaluations = evaluations * 10 + digit
+    return Marker()
+end
+
+func failingValue() as var
+    evaluations = evaluations * 10 + 2
+    throw "expected right operand failure"
+end
+
+func text(int digit) as string
+    evaluations = evaluations * 10 + digit
+    return "value" + string(digit)
+end
+
+func failingText() as string
+    evaluations = evaluations * 10 + 2
+    throw "expected right operand failure"
+end
+
+func boxedText(int digit) as var
+    return text(digit)
+end
+
+class Comparable
+    derive equals
+    int value = 7
+    destroy()
+        destroyed += 1
+    end
+end
+
+func comparable(int digit) as Comparable
+    created += 1
+    evaluations = evaluations * 10 + digit
+    return Comparable()
+end
+
+func failingComparable() as Comparable
+    evaluations = evaluations * 10 + 2
+    throw "expected right operand failure"
+end
+
+func failureScope(int mode)
+    bool caught = false
+    try
+        if mode == 0 then
+            bool ignored = make(1) == failingValue()
+        elseif mode == 1 then
+            bool ignored = make(1) < failingValue()
+        elseif mode == 2 then
+            var ignored = make(1) + failingValue()
+        elseif mode == 3 then
+            var ignored = make(1) / failingValue()
+        elseif mode == 4 then
+            bool ignored = text(1) == failingText()
+        elseif mode == 5 then
+            bool ignored = text(1) < failingText()
+        elseif mode == 6 then
+            string ignored = text(1) + failingText()
+        elseif mode == 7 then
+            bool ignored = text(1) ~= failingText()
+        elseif mode == 8 then
+            string ignored = text(1) + failingValue()
+        elseif mode == 9 then
+            string ignored = make(1) + failingText()
+        elseif mode == 10 then
+            bool ignored = comparable(1) == failingComparable()
+        elseif mode == 11 then
+            bool ignored = comparable(1) != failingComparable()
+        else
+            bool ignored = boxedText(1) == failingValue()
+        end
+        assert false, "binary operator ignored its right operand failure"
+    catch error
+        caught = true
+        assert error.message == "expected right operand failure", "unexpected binary error"
+        assert created == destroyed, "binary operator leaked its left operand on failure"
+    end
+    assert caught, "binary failure never reached its handler"
+end
+
+class Holder
+    var saved = null
+    func replace() as var
+        self.saved = make(2)
+        assert created - destroyed == 2, "right operand invalidated the pinned left value"
+        return self.saved
+    end
+end
+
+func borrowedScope()
+    Holder holder = Holder()
+    holder.saved = make(1)
+    assert holder.saved != holder.replace(), "binary comparison lost the original left value"
+    assert evaluations == 12, "borrowed binary operands were reordered"
+    assert created - destroyed == 1, "binary snapshot leaked after success"
+
+    string savedText = "before" + string(7)
+    func() as string replaceText = func() as string
+        savedText = "after"
+        return "before7"
+    end
+    assert savedText == replaceText(), "right operand invalidated the borrowed left string"
+    assert savedText == "after", "string anchor changed assignment semantics"
+
+    var savedValue = "before"
+    func() as var replaceValue = func() as var
+        savedValue = "after"
+        return "before"
+    end
+    assert savedValue == replaceValue(), "right operand invalidated the borrowed left xvalue"
+    assert savedValue == "after", "xvalue anchor changed assignment semantics"
+
+    string? present = "narrowed"
+    if present != null then
+        assert present == "narrowed", "nullable flow-narrowed equality lost its exact TypeId"
+        assert present + "!" == "narrowed!", "nullable flow-narrowed concat lost its exact TypeId"
+    end
+end
+
+func number(int digit, int value) as var
+    evaluations = evaluations * 10 + digit
+    return value
+end
+
+func checkedFailure()
+    bool caught = false
+    try
+        var ignored = number(1, 10) / number(2, 0)
+    catch ZeroDivisionError error
+        caught = true
+    end
+    assert caught, "checked binary failure was not propagated"
+    assert evaluations == 12, "checked binary operands were not evaluated once in order"
+end
+
+func successScope()
+    evaluations = 0
+    assert make(1) != make(2), "binary equality changed object identity"
+    assert evaluations == 12, "object operands were reordered"
+    assert created == destroyed, "successful dynamic comparison leaked operands"
+    evaluations = 0
+    assert comparable(1) == comparable(2), "derived equality changed value semantics"
+    assert evaluations == 12, "derived equality operands were reordered"
+    evaluations = 0
+    assert not (comparable(1) != comparable(2)), "derived inequality was not negated"
+    assert evaluations == 12, "derived inequality operands were reordered"
+    assert created == destroyed, "successful derived comparison leaked operands"
+    evaluations = 0
+    assert text(1) < text(2), "string ordering changed"
+    assert evaluations == 12, "string ordering operands were reordered"
+    evaluations = 0
+    assert text(1) + text(2) == "value1value2", "string concatenation changed"
+    assert evaluations == 12, "nested binary operands were reordered or repeated"
+    evaluations = 0
+    assert not (text(1) ~= text(2)), "string approximate comparison changed"
+    assert evaluations == 12, "string approximate operands were reordered"
+    var fortyTwo = 42
+    assert "pre" + fortyTwo == "pre42", "string-left coercion failed"
+    assert fortyTwo + "post" == "42post", "string-right coercion failed"
+    var eight = 8
+    var two = 2
+    assert int(eight + two) == 10 and int(eight - two) == 6, "dynamic add/subtract changed"
+    assert int(eight * two) == 16 and int(eight / two) == 4, "dynamic multiply/divide changed"
+    assert int(eight % two) == 0, "dynamic modulo changed"
+    assert int(eight | two) == 10 and int(eight & two) == 0, "dynamic bit operations changed"
+    assert int(eight ^ two) == 10, "dynamic xor changed"
+    assert int(eight << two) == 32 and int(eight >> two) == 2, "dynamic shifts changed"
+    assert two < eight and two <= eight and eight > two and eight >= two, "dynamic ordering changed"
+    assert eight ~= eight, "dynamic approximate comparison changed"
+    evaluations = 0
+    assert true or (make(1) == failingValue()), "logical or lost short-circuit semantics"
+    assert not (false and (make(1) == failingValue())), "logical and lost short-circuit semantics"
+    assert evaluations == 0, "short-circuit evaluated an unreachable managed binary"
+end
+
+for iteration in range(200)
+    for mode in range(13)
+        evaluations = 0
+        failureScope(mode)
+        assert evaluations == 12, "failed binary was not evaluated left to right once"
+        assert created == destroyed, "binary owner escaped a catch scope"
+    end
+    successScope()
+    evaluations = 0
+    borrowedScope()
+    assert created == destroyed, "borrowed binary scope leaked its owners"
+    evaluations = 0
+    checkedFailure()
+end
+assert created == 3000, "binary lifecycle coverage was not executed"

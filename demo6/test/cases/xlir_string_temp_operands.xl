@@ -1,0 +1,7 @@
+export "xlir_test_string_temp_operands" func string_temp_operands() as int
+    string expected = "ab"
+    if ("a" + "b") == expected then
+        return 41
+    end
+    return 0
+end

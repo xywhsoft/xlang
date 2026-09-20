@@ -1,0 +1,18 @@
+async func xlirWhenAnyArraySlow(int value) as int
+    time.sleep(40)
+    return value
+end
+
+async func xlirWhenAnyArrayFast(int value) as int
+    time.sleep(1)
+    return value
+end
+
+array<future<int>> jobs = array[
+    xlirWhenAnyArraySlow(11), xlirWhenAnyArrayFast(22)
+]
+future<int> selection = task.whenAny(jobs)
+assert selection.wait(), "task.whenAny array result should remain waitable"
+assert await selection == 1, "task.whenAny should project the winning typed-array index"
+
+println("xlir task whenAny array abi ok")

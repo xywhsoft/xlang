@@ -1,0 +1,5 @@
+{
+  "SchemaVersion": 1,
+  "Name": "instantiation-context",
+  "Gates": ["check_xlir_contract.ps1", "check_xlir_instantiation_context.ps1"]
+}

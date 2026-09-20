@@ -1,0 +1,11 @@
+extern "xlir_make_string_future" func makeFuture() as future<string>
+
+async func surroundMixed(future<string> source, string prefix, string suffix) as string
+    string middle = "-"
+    return prefix + await source + middle + suffix
+end
+
+future<string> source = makeFuture()
+future<string> pending = surroundMixed(source, "[", "]")
+string completed = await pending
+assert completed == "[hello-]"

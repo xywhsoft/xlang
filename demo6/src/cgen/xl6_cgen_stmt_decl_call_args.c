@@ -68,6 +68,7 @@ static int xl6CgenDeclCanEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode
 static int xl6CgenDeclEmitCallArgTemp(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* cType, const char* cName, const XL6_AstNode* expr);
 static int xl6CgenDeclCallExprArgsNeedCallArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* expr);
 static int xl6CgenDeclExprNeedsCallArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* expr);
+static int xl6CgenDeclExprHasReplacement(XL6_CgenContext* ctx, const XL6_AstNode* expr);
 static int xl6CgenDeclEmitXValueCallExprWithArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr, const char* valueName);
 static int xl6CgenDeclEmitScalarCallExprWithArgTemps(XL6_CgenContext* ctx, const XL6_AstNode* targetType, const XL6_AstNode* expr, const char* valueName);
 
@@ -82,6 +83,10 @@ static int xl6CgenDeclStringConvertNeedsCallValueTemp(XL6_CgenContext* ctx, cons
     }
 
     sourceExpr = xl6CgenTypeConvertArg(expr);
+    /* 内层表达式已经物化时，转换必须直接消费 replacement，不能再次求值。 */
+    if ( xl6CgenDeclExprHasReplacement(ctx, sourceExpr) ) {
+        return 0;
+    }
     return xl6CgenDeclCanEmitXValueCallValueTemp(ctx, sourceExpr);
 }
 
@@ -147,17 +152,17 @@ static int xl6CgenDeclEmitXValueCallValueTemp(
         const XL6_AstNode* rightExpr = expr->childCount > 1 ? expr->children[1] : NULL;
 
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue __xl6_nc_%d = ", id);
+        xl6OutputPrintf(ctx->out, "xvalue* __xl6_nc_%d = ", id);
         xl6CgenXValueFromExprForTarget(ctx, targetType, leftExpr);
         xl6OutputPuts(";\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (xvoIsNull(__xl6_nc_%d)) {\n", id);
+        xl6OutputPrintf(ctx->out, "if (xl6_xrt_value_is_null(__xl6_nc_%d)) {\n", id);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (__xl6_nc_%d != 0) {\n", id);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_nc_%d);\n", id);
+        xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_nc_%d);\n", id);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("}\n", ctx->out);
@@ -179,11 +184,11 @@ static int xl6CgenDeclEmitXValueCallValueTemp(
         const XL6_AstNode* rightExpr = expr->childCount > 1 ? expr->children[1] : NULL;
 
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue __xl6_bin_left_%d = ", id);
+        xl6OutputPrintf(ctx->out, "xvalue* __xl6_bin_left_%d = ", id);
         xl6CgenXValueFromExprForTarget(ctx, targetType, leftExpr);
         xl6OutputPuts(";\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue __xl6_bin_right_%d = ", id);
+        xl6OutputPrintf(ctx->out, "xvalue* __xl6_bin_right_%d = ", id);
         xl6CgenXValueFromExprForTarget(ctx, targetType, rightExpr);
         xl6OutputPuts(";\n", ctx->out);
         xl6CgenIndent(ctx);
@@ -288,7 +293,7 @@ static int xl6CgenDeclEmitStringExprTemp(XL6_CgenContext* ctx, const XL6_AstNode
         id = ctx->tempId++;
         snprintf(valueName, sizeof(valueName), "__xl6_call_value_%d", id);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", valueName);
+        xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", valueName);
         if ( !xl6CgenDeclEmitXValueCallValueTemp(ctx, targetType, sourceExpr, valueName) ) {
             return 0;
         }
@@ -362,7 +367,12 @@ static int xl6CgenDeclEmitStringCompareCallArgTemp(
         return 0;
     }
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "int __xl6_call_str_cmp_%d = xrtStrComp(%s, %s, 0, false);\n", id, leftName, rightName);
+    xl6OutputPrintf(
+        ctx->out,
+        "int __xl6_call_str_cmp_%d = xrtStrCompare(xrtStrView(%s), xrtStrView(%s));\n",
+        id,
+        leftName,
+        rightName);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s = (%s)(", cName, cType);
     if ( xl6CTextEquals(expr->text, "==") ) {
@@ -504,12 +514,12 @@ static int xl6CgenDeclTryTypeConvertCallArgTemp(
                                xl6CgenBinaryArithmeticIsXValue(ctx, sourceExpr);
         xl6AstFree(sourceType);
         if ( !sourceUsesXValue ) {
-            /* 静态标量 replacement 交回普通转换表达式，不能按 xvalue 解箱。 */
+            /* 静态标量 replacement 交回普通转换表达式，不能按 xvalue* 解箱。 */
             sourceReplacement = NULL;
         }
     }
     if ( sourceReplacement != NULL ) {
-        /* 内层 xvalue 已经物化，转换必须消费该临时量，不能再次求值原表达式。 */
+        /* 内层 xvalue* 已经物化，转换必须消费该临时量，不能再次求值原表达式。 */
         return xl6CgenDeclEmitScalarAssignFromXValueTemp(
             ctx,
             typeNode,
@@ -524,7 +534,7 @@ static int xl6CgenDeclTryTypeConvertCallArgTemp(
     id = ctx->tempId++;
     snprintf(valueName, sizeof(valueName), "__xl6_call_value_%d", id);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", valueName);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", valueName);
     if ( !xl6CgenDeclEmitXValueCallValueTemp(ctx, typeNode, sourceExpr, valueName) ) {
         return 0;
     }
@@ -559,7 +569,7 @@ static int xl6CgenDeclTryLogicalCallArgTemp(
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_logic_left_%d = ", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_logic_left_%d = ", id);
     xl6CgenXValueFromExpr(ctx, leftExpr);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -568,7 +578,7 @@ static int xl6CgenDeclTryLogicalCallArgTemp(
     xl6OutputPrintf(ctx->out, "if (__xl6_logic_left_%d != 0) {\n", id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_logic_left_%d);\n", id);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_logic_left_%d);\n", id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -578,7 +588,7 @@ static int xl6CgenDeclTryLogicalCallArgTemp(
     xl6OutputPrintf(ctx->out, "if (%s__xl6_logic_left_truth_%d) {\n", isOr ? "!" : "", id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_logic_right_%d = ", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_logic_right_%d = ", id);
     xl6CgenXValueFromExpr(ctx, rightExpr);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -587,7 +597,7 @@ static int xl6CgenDeclTryLogicalCallArgTemp(
     xl6OutputPrintf(ctx->out, "if (__xl6_logic_right_%d != 0) {\n", id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(__xl6_logic_right_%d);\n", id);
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(__xl6_logic_right_%d);\n", id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);

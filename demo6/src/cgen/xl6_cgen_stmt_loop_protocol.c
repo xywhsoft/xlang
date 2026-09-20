@@ -396,7 +396,7 @@ static void xl6CgenForClassProtocolIterable(XL6_CgenContext* ctx, const XL6_AstN
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s %s = ", itemCType, valueName);
         if ( xl6CgenIsStringTypeNode(ctx, itemType) ) {
-            xl6OutputPrintf(ctx->out, "xrtCopyStr(%s.value1, 0u)", nextName);
+            xl6OutputPrintf(ctx->out, "xl6_xrt_string_dup(%s.value1, 0u)", nextName);
         } else {
             xl6OutputPrintf(ctx->out, "%s.value1", nextName);
         }

@@ -1,0 +1,129 @@
+extern "cell_allocation_finally" func cellFinally()
+
+func cellInt() as func() as int
+    int value = 7
+    return func() as int
+        value += 1
+        return value
+    end
+end
+
+func cellString() as func() as int
+    string value = "value"
+    return func() as int
+        value += "!"
+        return value.length
+    end
+end
+
+func cellVar() as func() as int
+    var value = 7
+    return func() as int
+        value = 8
+        return int(value)
+    end
+end
+
+func cellNullable(bool present) as func() as int
+    int? value = null
+    if present then value = 7 end
+    return func() as int
+        value = (value ?? 0) + 1
+        return value ?? -1
+    end
+end
+
+func cellParameter(int value) as func() as int
+    return func() as int
+        value += 1
+        return value
+    end
+end
+
+func cellStringParameter(string value) as func() as int
+    return func() as int
+        value += "!"
+        return value.length
+    end
+end
+
+func cellVarParameter(var value) as func() as int
+    return func() as int
+        value = 8
+        return int(value)
+    end
+end
+
+func cellParameters(int first, string second, var third) as func() as int
+    return func() as int
+        first += 1
+        second += "!"
+        third = 8
+        return first + second.length + int(third)
+    end
+end
+
+func cellNullableStringParameter(string? value) as func() as int
+    return func() as int
+        value = (value ?? "") + "!"
+        return (value ?? "").length
+    end
+end
+
+enum CellPayload
+    item(int number, string text)
+end
+
+func cellPattern() as func() as int
+    return match CellPayload.item(7, "value")
+    case item(number, text) then func() as int
+        number += 1
+        text += "!"
+        return number + text.length
+    end
+    end
+end
+
+func cellCaught() as int
+    try
+        int value = 7
+        auto callback = func() as int
+            value += 1
+            return value
+        end
+        return callback()
+    catch error
+        return -7
+    finally
+        cellFinally()
+    end
+end
+
+export "cell_allocation_keep" func cellKeep(int shape) as int
+    if shape == 0
+        return cellInt()()
+    elseif shape == 1
+        return cellString()()
+    elseif shape == 2
+        return cellVar()()
+    elseif shape == 3
+        return cellNullable(false)()
+    elseif shape == 4
+        return cellNullable(true)()
+    elseif shape == 5
+        return cellParameter(7)()
+    elseif shape == 6
+        return cellStringParameter("value")()
+    elseif shape == 7
+        return cellVarParameter(7)()
+    elseif shape == 8
+        return cellParameters(7, "value", 7)()
+    elseif shape == 9
+        return cellNullableStringParameter(null)()
+    elseif shape == 10
+        return cellNullableStringParameter("value")()
+    elseif shape == 11
+        return cellPattern()()
+    end
+    return cellCaught()
+end

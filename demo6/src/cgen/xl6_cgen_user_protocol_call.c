@@ -245,7 +245,7 @@ static void xl6CgenUserGenericProtocolProtos(XL6_CgenContext* ctx)
             xl6CgenProtocolBody(instance->protocolNode);
         size_t requirementIndex;
 
-        xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
+        xl6OutputPuts("static const xl6_type_desc* ", ctx->out);
         xl6CgenGenericProtocolTypeDescSymbol(ctx, instance->typeNode);
         xl6OutputPuts("(void);\n", ctx->out);
         for ( requirementIndex = 0;
@@ -310,7 +310,7 @@ static void xl6CgenUserProtocolProtos(XL6_CgenContext* ctx)
              xl6CgenProtocolIsGeneric(protocolNode) ) {
             continue;
         }
-        xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
+        xl6OutputPuts("static const xl6_type_desc* ", ctx->out);
         xl6CgenProtocolTypeDescSymbol(ctx->out, protocolNode);
         xl6OutputPuts("(void);\n", ctx->out);
 
@@ -371,12 +371,12 @@ static void xl6CgenUserProtocolTypeProtos(XL6_CgenContext* ctx)
              xl6CgenProtocolIsGeneric(protocolNode) ) {
             continue;
         }
-        xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
+        xl6OutputPuts("static const xl6_type_desc* ", ctx->out);
         xl6CgenProtocolTypeDescSymbol(ctx->out, protocolNode);
         xl6OutputPuts("(void);\n", ctx->out);
     }
     for ( i = 0; i < ctx->genericProtocolInstanceCount; ++i ) {
-        xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
+        xl6OutputPuts("static const xl6_type_desc* ", ctx->out);
         xl6CgenGenericProtocolTypeDescSymbol(
             ctx,
             ctx->genericProtocolInstances[i].typeNode);

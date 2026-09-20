@@ -1,0 +1,16 @@
+func pointerIsNull(point value) as bool
+    return value == null
+end
+
+func pointerIdentity(point value) as point
+    return value
+end
+
+func(point) as bool predicate = pointerIsNull
+var dynamicPredicate = xcall(predicate)
+point empty = null
+assert bool(dynamicPredicate(empty))
+
+func(point) as point identity = pointerIdentity
+var dynamicIdentity = xcall(identity)
+assert point(dynamicIdentity(empty)) == null

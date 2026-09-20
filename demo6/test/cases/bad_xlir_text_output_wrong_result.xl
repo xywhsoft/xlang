@@ -1,0 +1,2 @@
+extern "xl6_xrt_writeln" func badWriteln(string text) as int
+int value = badWriteln("invalid")

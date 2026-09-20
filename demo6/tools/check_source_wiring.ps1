@@ -139,7 +139,18 @@ foreach ( $match in $directMatches ) {
 }
 
 $includedSources = New-Object System.Collections.Generic.HashSet[string]
+$embeddedSources = New-Object System.Collections.Generic.HashSet[string]
 $srcFiles = @(Get-ChildItem -LiteralPath $srcDir -File -Recurse -Filter "*.c" | Sort-Object FullName)
+
+$embeddedRuntimeText = Read-Utf8Text $embeddedRuntimeManifest
+$embeddedMatches = [regex]::Matches(
+	$embeddedRuntimeText,
+	'xlAddTccSourceFile\s*\([^;]+"(src[\\/][^"]+\.c)"\s*\)'
+)
+foreach ( $match in $embeddedMatches ) {
+	$relative = Normalize-RelativePath $match.Groups[1].Value
+	$embeddedSources.Add($relative) | Out-Null
+}
 
 foreach ( $file in $srcFiles ) {
     $text = Read-Utf8Text $file.FullName
@@ -164,7 +175,9 @@ foreach ( $file in $srcFiles ) {
 
 foreach ( $file in $srcFiles ) {
     $relative = Relative-From-Root $file
-    if ( ! $directSources.Contains($relative) -and ! $includedSources.Contains($relative) ) {
+    if ( ! $directSources.Contains($relative) -and
+         ! $includedSources.Contains($relative) -and
+         ! $embeddedSources.Contains($relative) ) {
         Add-Failure "source file is not wired: $relative"
     }
 }
@@ -200,5 +213,5 @@ if ( $failures.Count -gt 0 ) {
     exit 1
 }
 
-Write-Host "Source wiring ok: $($srcFiles.Count) source files, $($directSources.Count) direct, $($includedSources.Count) included, $generatedDirectCount generated direct."
+Write-Host "Source wiring ok: $($srcFiles.Count) source files, $($directSources.Count) direct, $($includedSources.Count) included, $($embeddedSources.Count) embedded, $generatedDirectCount generated direct."
 exit 0

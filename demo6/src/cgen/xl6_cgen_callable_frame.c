@@ -39,7 +39,7 @@ static void xl6CgenEmitVarInvokeValueExpr(XL6_CgenContext* ctx, const XL6_AstNod
     typeName = concreteType != NULL ? concreteType->text : NULL;
 
     if ( xl6CgenClassHandleTargetType(ctx, concreteType) != NULL ) {
-        /* class 参数在调用帧中就是带 TypeDesc 的 xvalue 对象句柄。 */
+        /* class 参数在调用帧中就是带 TypeDesc 的 xvalue* 对象句柄。 */
         xl6OutputPuts("xl6_xrt_retain(", ctx->out);
         xl6OutputPuts(valueExpr != NULL ? valueExpr : "0", ctx->out);
         xl6OutputPutc(')', ctx->out);
@@ -51,23 +51,23 @@ static void xl6CgenEmitVarInvokeValueExpr(XL6_CgenContext* ctx, const XL6_AstNod
         xl6OutputPuts(valueExpr != NULL ? valueExpr : "0", ctx->out);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CgenIsSpecialCollectionType(ctx, concreteType) ) {
-        xl6OutputPrintf(ctx->out, "((%s)xvoGetHandleData(%s))",
+        xl6OutputPrintf(ctx->out, "((%s)xl6ValueHandleData(%s))",
                         xl6CgenValueStorageCType(ctx, concreteType),
                         valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CTextEquals(typeName, "error") ) {
-        xl6OutputPrintf(ctx->out, "((XL6_Error*)xvoGetHandleData(%s))", valueExpr != NULL ? valueExpr : "0");
+        xl6OutputPrintf(ctx->out, "xl6_error_retain((XL6_Error*)xl6ValueHandleData(%s))", valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CgenIsIntegerTypeName(typeName) ) {
-        xl6OutputPrintf(ctx->out, "((%s)xvoGetInt(%s))", xl6CgenTypeName(ctx, concreteType), valueExpr != NULL ? valueExpr : "0");
+        xl6OutputPrintf(ctx->out, "((%s)xl6_xrt_value_int(%s))", xl6CgenTypeName(ctx, concreteType), valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CgenIsFloatTypeName(typeName) ) {
-        xl6OutputPrintf(ctx->out, "((%s)xvoGetFloat(%s))", xl6CgenTypeName(ctx, concreteType), valueExpr != NULL ? valueExpr : "0");
+        xl6OutputPrintf(ctx->out, "((%s)xl6_xrt_value_float(%s))", xl6CgenTypeName(ctx, concreteType), valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CgenIsBoolTypeName(typeName) ) {
-        xl6OutputPrintf(ctx->out, "xvoGetBool(%s)", valueExpr != NULL ? valueExpr : "0");
+        xl6OutputPrintf(ctx->out, "xl6_xrt_value_bool(%s)", valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CTextEquals(typeName, "string") ) {
-        xl6OutputPrintf(ctx->out, "xvoGetText(%s)", valueExpr != NULL ? valueExpr : "0");
+        xl6OutputPrintf(ctx->out, "xl6_xrt_value_text(%s)", valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CTextEquals(typeName, "time") ) {
-        xl6OutputPrintf(ctx->out, "xvoGetTime(%s)", valueExpr != NULL ? valueExpr : "0");
+        xl6OutputPrintf(ctx->out, "xl6_xrt_value_time(%s)", valueExpr != NULL ? valueExpr : "0");
     } else if ( xl6CTextEquals(typeName, "point") ) {
-        xl6OutputPrintf(ctx->out, "xvoGetPoint(%s)", valueExpr != NULL ? valueExpr : "0");
+        xl6OutputPrintf(ctx->out, "xl6_xrt_value_pointer(%s)", valueExpr != NULL ? valueExpr : "0");
     } else {
         xl6OutputPuts("0", ctx->out);
     }
@@ -144,7 +144,7 @@ static int xl6CgenAnonSupportsXCall(XL6_CgenContext* ctx, const XL6_CgenAnonFunc
 static void xl6CgenEmitVarInvokeLocals(XL6_CgenContext* ctx, int hasArrayVararg)
 {
     if ( hasArrayVararg ) {
-        xl6OutputPuts("    xvalue __xl6_vararg;\n", ctx->out);
+        xl6OutputPuts("    xvalue* __xl6_vararg;\n", ctx->out);
         xl6OutputPuts("    int __xl6_i;\n", ctx->out);
     }
 }
@@ -154,15 +154,15 @@ static void xl6CgenEmitXCallLocals(XL6_CgenContext* ctx, const XL6_AstNode* para
     int i;
 
     xl6OutputPuts("    int __xl6_argc;\n", ctx->out);
-    xl6OutputPuts("    xvalue* __xl6_argv;\n", ctx->out);
-    xl6OutputPuts("    xvalue __xl6_kwargs;\n", ctx->out);
-    xl6OutputPuts("    xvalue __xl6_kwrest;\n", ctx->out);
-    xl6OutputPuts("    xvalue __xl6_value;\n", ctx->out);
+    xl6OutputPuts("    xvalue** __xl6_argv;\n", ctx->out);
+    xl6OutputPuts("    xvalue* __xl6_kwargs;\n", ctx->out);
+    xl6OutputPuts("    xvalue* __xl6_kwrest;\n", ctx->out);
+    xl6OutputPuts("    xvalue* __xl6_value;\n", ctx->out);
     for ( i = 0; params != NULL && i < fixedCount; ++i ) {
-        xl6OutputPrintf(ctx->out, "    xvalue __xl6_arg_%d;\n", i);
+        xl6OutputPrintf(ctx->out, "    xvalue* __xl6_arg_%d;\n", i);
     }
     if ( hasArrayVararg || hasDictVararg ) {
-        xl6OutputPuts("    xvalue __xl6_vararg;\n", ctx->out);
+        xl6OutputPuts("    xvalue* __xl6_vararg;\n", ctx->out);
     }
     if ( hasArrayVararg ) {
         xl6OutputPuts("    int __xl6_i;\n", ctx->out);
@@ -180,10 +180,10 @@ static void xl6CgenEmitXCallSetup(XL6_CgenContext* ctx)
     xl6OutputPuts("        return false;\n", ctx->out);
     xl6OutputPuts("    }\n", ctx->out);
     xl6OutputPuts("    __xl6_kwargs = __xl6_frame->Kwargs;\n", ctx->out);
-    xl6OutputPuts("    if (__xl6_kwargs != 0 && xvoIsNull(__xl6_kwargs)) {\n", ctx->out);
+    xl6OutputPuts("    if (__xl6_kwargs != 0 && xl6_xrt_value_is_null(__xl6_kwargs)) {\n", ctx->out);
     xl6OutputPuts("        __xl6_kwargs = 0;\n", ctx->out);
     xl6OutputPuts("    }\n", ctx->out);
-    xl6OutputPuts("    if (__xl6_kwargs != 0 && xvoType(__xl6_kwargs) != XL6_XVO_DT_TABLE) {\n", ctx->out);
+    xl6OutputPuts("    if (__xl6_kwargs != 0 && xl6_xrt_value_kind(__xl6_kwargs) != XL6_XVO_DT_TABLE) {\n", ctx->out);
     xl6OutputPuts("        return false;\n", ctx->out);
     xl6OutputPuts("    }\n", ctx->out);
 }
@@ -195,14 +195,14 @@ static void xl6CgenEmitXCallParamSetup(XL6_CgenContext* ctx, const XL6_AstNode* 
     for ( i = 0; params != NULL && i < fixedCount; ++i ) {
         const XL6_AstNode* param = params->children[i];
         const char* name = param != NULL ? param->text : NULL;
-        xl6OutputPrintf(ctx->out, "    if (__xl6_argc > %d && __xl6_kwargs != 0 && xvoTableExists(__xl6_kwargs, ", i);
+        xl6OutputPrintf(ctx->out, "    if (__xl6_argc > %d && __xl6_kwargs != 0 && xl6_xrt_value_object_has(__xl6_kwargs, ", i);
         xl6CgenCStringLiteral(ctx->out, name != NULL ? name : "");
         xl6OutputPuts(", 0)) {\n", ctx->out);
         xl6OutputPuts("        return false;\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
-        xl6OutputPrintf(ctx->out, "    __xl6_arg_%d = (__xl6_argc > %d) ? __xl6_argv[%d] : ((__xl6_kwargs != 0 && xvoTableExists(__xl6_kwargs, ", i, i, i);
+        xl6OutputPrintf(ctx->out, "    __xl6_arg_%d = (__xl6_argc > %d) ? __xl6_argv[%d] : ((__xl6_kwargs != 0 && xl6_xrt_value_object_has(__xl6_kwargs, ", i, i, i);
         xl6CgenCStringLiteral(ctx->out, name != NULL ? name : "");
-        xl6OutputPuts(", 0)) ? xvoTableGetValue(__xl6_kwargs, ", ctx->out);
+        xl6OutputPuts(", 0)) ? xl6_xrt_value_object_get(__xl6_kwargs, ", ctx->out);
         xl6CgenCStringLiteral(ctx->out, name != NULL ? name : "");
         xl6OutputPuts(", 0) : 0);\n", ctx->out);
     }
@@ -215,7 +215,7 @@ static void xl6CgenEmitXCallRemoveFixedKwargs(XL6_CgenContext* ctx, const XL6_As
     for ( i = 0; params != NULL && i < fixedCount; ++i ) {
         const XL6_AstNode* param = params->children[i];
         const char* name = param != NULL ? param->text : NULL;
-        xl6OutputPrintf(ctx->out, "    (void)xvoTableRemove(%s, ", dictName != NULL ? dictName : "__xl6_kwrest");
+        xl6OutputPrintf(ctx->out, "    (void)xl6_xrt_value_object_remove(%s, ", dictName != NULL ? dictName : "__xl6_kwrest");
         xl6CgenCStringLiteral(ctx->out, name != NULL ? name : "");
         xl6OutputPuts(", 0);\n", ctx->out);
     }
@@ -239,16 +239,16 @@ static void xl6CgenEmitXCallArityCheck(XL6_CgenContext* ctx, const XL6_AstNode* 
     }
     if ( !hasDictVararg ) {
         xl6OutputPuts("    if (__xl6_kwargs != 0) {\n", ctx->out);
-        xl6OutputPuts("        __xl6_kwrest = xvoCopy(__xl6_kwargs);\n", ctx->out);
+        xl6OutputPuts("        __xl6_kwrest = xrtValueClone(__xl6_kwargs);\n", ctx->out);
         xl6OutputPuts("        if (__xl6_kwrest == 0) {\n", ctx->out);
         xl6OutputPuts("            return false;\n", ctx->out);
         xl6OutputPuts("        }\n", ctx->out);
         xl6CgenEmitXCallRemoveFixedKwargs(ctx, params, fixedCount, "__xl6_kwrest");
-        xl6OutputPuts("        if (xvoTableItemCount(__xl6_kwrest) != 0) {\n", ctx->out);
-        xl6OutputPuts("            xvoUnref(__xl6_kwrest);\n", ctx->out);
+        xl6OutputPuts("        if (xrtValueCount(__xl6_kwrest) != 0) {\n", ctx->out);
+        xl6OutputPuts("            xrtValueRelease(__xl6_kwrest);\n", ctx->out);
         xl6OutputPuts("            return false;\n", ctx->out);
         xl6OutputPuts("        }\n", ctx->out);
-        xl6OutputPuts("        xvoUnref(__xl6_kwrest);\n", ctx->out);
+        xl6OutputPuts("        xrtValueRelease(__xl6_kwrest);\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
     }
 }
@@ -263,7 +263,7 @@ static void xl6CgenEmitXCallTypeChecks(XL6_CgenContext* ctx, const XL6_AstNode* 
         const char* runtimeType = xl6CgenXValueRuntimeTypeConst(ctx, paramType);
         if ( xl6CgenClassHandleTargetType(ctx, paramType) != NULL ) {
             xl6OutputPrintf(ctx->out,
-                "    if (__xl6_arg_%u == 0 || !xrtTypeIsA(xvoTypeDesc(__xl6_arg_%u), ",
+                "    if (__xl6_arg_%u == 0 || !xl6TypeIsA(xl6ValueType(__xl6_arg_%u), ",
                 (unsigned)i, (unsigned)i);
             xl6CgenEmitXrtTypeDescRef(
                 ctx,
@@ -271,20 +271,20 @@ static void xl6CgenEmitXCallTypeChecks(XL6_CgenContext* ctx, const XL6_AstNode* 
             xl6OutputPuts(")) {\n        return false;\n    }\n", ctx->out);
         } else if ( xl6CTextEquals(paramType != NULL ? paramType->text : NULL, "error") ) {
             xl6OutputPrintf(ctx->out,
-                "    if (__xl6_arg_%u != 0 && (xvoType(__xl6_arg_%u) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_arg_%u) != xrtTypeHandle())) {\n",
-                (unsigned)i, (unsigned)i, (unsigned)i);
+                "    if (__xl6_arg_%u != 0 && !xl6_xrt_value_is_null(__xl6_arg_%u) && (xl6_xrt_value_kind(__xl6_arg_%u) != XL6_XVO_DT_NATIVE || !xl6TypeSame(xl6ValueType(__xl6_arg_%u), xl6TypeError()))) {\n",
+                (unsigned)i, (unsigned)i, (unsigned)i, (unsigned)i);
             xl6OutputPuts("        return false;\n", ctx->out);
             xl6OutputPuts("    }\n", ctx->out);
         } else if ( xl6CgenIsSpecialCollectionType(ctx, paramType) ) {
             xl6OutputPrintf(ctx->out,
-                "    if (__xl6_arg_%u != 0 && (xvoType(__xl6_arg_%u) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_arg_%u) != ",
+                "    if (__xl6_arg_%u != 0 && (xl6_xrt_value_kind(__xl6_arg_%u) != XL6_XVO_DT_NATIVE || xl6ValueType(__xl6_arg_%u) != ",
                 (unsigned)i, (unsigned)i, (unsigned)i);
             xl6CgenEmitXrtTypeDescRef(ctx, paramType);
             xl6OutputPuts(")) {\n", ctx->out);
             xl6OutputPuts("        return false;\n", ctx->out);
             xl6OutputPuts("    }\n", ctx->out);
         } else if ( runtimeType != NULL ) {
-            xl6OutputPrintf(ctx->out, "    if (__xl6_arg_%u != 0 && xvoType(__xl6_arg_%u) != %s) {\n", (unsigned)i, (unsigned)i, runtimeType);
+            xl6OutputPrintf(ctx->out, "    if (__xl6_arg_%u != 0 && xl6_xrt_value_kind(__xl6_arg_%u) != %s) {\n", (unsigned)i, (unsigned)i, runtimeType);
             xl6OutputPuts("        return false;\n", ctx->out);
             xl6OutputPuts("    }\n", ctx->out);
         }
@@ -298,26 +298,26 @@ static void xl6CgenEmitXCallVarargPack(XL6_CgenContext* ctx, const XL6_AstNode* 
     }
     if ( hasDictVararg ) {
         xl6OutputPuts("    if (__xl6_kwargs != 0) {\n", ctx->out);
-        xl6OutputPuts("        __xl6_vararg = xvoCopy(__xl6_kwargs);\n", ctx->out);
+        xl6OutputPuts("        __xl6_vararg = xrtValueClone(__xl6_kwargs);\n", ctx->out);
         xl6OutputPuts("    } else {\n", ctx->out);
-        xl6OutputPuts("        __xl6_vararg = xvoCreateTable();\n", ctx->out);
+        xl6OutputPuts("        __xl6_vararg = xrtValueObject();\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
-        xl6OutputPuts("    if (__xl6_vararg == 0 || xvoType(__xl6_vararg) != XL6_XVO_DT_TABLE) {\n", ctx->out);
+        xl6OutputPuts("    if (__xl6_vararg == 0 || xl6_xrt_value_kind(__xl6_vararg) != XL6_XVO_DT_TABLE) {\n", ctx->out);
         xl6OutputPuts("        if (__xl6_vararg != 0) {\n", ctx->out);
-        xl6OutputPuts("            xvoUnref(__xl6_vararg);\n", ctx->out);
+        xl6OutputPuts("            xrtValueRelease(__xl6_vararg);\n", ctx->out);
         xl6OutputPuts("        }\n", ctx->out);
         xl6OutputPuts("        return false;\n", ctx->out);
         xl6OutputPuts("    }\n", ctx->out);
         xl6CgenEmitXCallRemoveFixedKwargs(ctx, params, fixedCount, "__xl6_vararg");
         return;
     }
-    xl6OutputPuts("    __xl6_vararg = xvoCreateArray();\n", ctx->out);
+    xl6OutputPuts("    __xl6_vararg = xrtValueArray();\n", ctx->out);
     xl6OutputPuts("    if (__xl6_vararg == 0) {\n", ctx->out);
     xl6OutputPuts("        return false;\n", ctx->out);
     xl6OutputPuts("    }\n", ctx->out);
     xl6OutputPrintf(ctx->out, "    for (__xl6_i = %u; __xl6_i < __xl6_argc; ++__xl6_i) {\n", (unsigned)fixedCount);
-    xl6OutputPuts("        if (!xvoArrayAppendValue(__xl6_vararg, __xl6_argv[__xl6_i], false)) {\n", ctx->out);
-    xl6OutputPuts("            xvoUnref(__xl6_vararg);\n", ctx->out);
+    xl6OutputPuts("        if (!xl6_xrt_value_array_append(__xl6_vararg, __xl6_argv[__xl6_i], false)) {\n", ctx->out);
+    xl6OutputPuts("            xrtValueRelease(__xl6_vararg);\n", ctx->out);
     xl6OutputPuts("            return false;\n", ctx->out);
     xl6OutputPuts("        }\n", ctx->out);
     xl6OutputPuts("    }\n", ctx->out);
@@ -326,7 +326,7 @@ static void xl6CgenEmitXCallVarargPack(XL6_CgenContext* ctx, const XL6_AstNode* 
 static void xl6CgenEmitXCallVarargCleanup(XL6_CgenContext* ctx, int hasArrayVararg, int hasDictVararg)
 {
     if ( hasArrayVararg || hasDictVararg ) {
-        xl6OutputPuts("    xvoUnref(__xl6_vararg);\n", ctx->out);
+        xl6OutputPuts("    xrtValueRelease(__xl6_vararg);\n", ctx->out);
     }
 }
 
@@ -334,8 +334,9 @@ static void xl6CgenEmitCallableBridgeErrorReturn(XL6_CgenContext* ctx, int hasAr
 {
     xl6OutputPuts("    if ( xl6_error_has() ) {\n", ctx->out);
     if ( hasArrayVararg || hasDictVararg ) {
-        xl6OutputPuts("        if (__xl6_vararg != 0) { xvoUnref(__xl6_vararg); __xl6_vararg = 0; }\n", ctx->out);
+        xl6OutputPuts("        if (__xl6_vararg != 0) { xrtValueRelease(__xl6_vararg); __xl6_vararg = 0; }\n", ctx->out);
     }
+    xl6OutputPuts("        xl6_error_publish_xrt();\n", ctx->out);
     xl6OutputPuts("        return ", ctx->out);
     xl6OutputPuts(returnValue != NULL ? returnValue : "0", ctx->out);
     xl6OutputPuts(";\n", ctx->out);
@@ -347,9 +348,9 @@ static void xl6CgenEmitXCallSetResult(XL6_CgenContext* ctx, const XL6_AstNode* t
     xl6OutputPrintf(ctx->out, "    __xl6_value = ");
     xl6CgenXValueFromTypedCExpr(ctx, typeNode, exprText);
     xl6OutputPuts(";\n", ctx->out);
-    xl6OutputPrintf(ctx->out, "    if (__xl6_value == 0 || !xrtCallResultSetValue(__xl6_result, %uu, __xl6_value, true)) {\n", index);
+    xl6OutputPrintf(ctx->out, "    if (__xl6_value == 0 || !xl6CallResultSetValue(__xl6_result, %uu, __xl6_value, true)) {\n", index);
     xl6OutputPuts("        if (__xl6_value != 0) {\n", ctx->out);
-    xl6OutputPuts("            xvoUnref(__xl6_value);\n", ctx->out);
+    xl6OutputPuts("            xrtValueRelease(__xl6_value);\n", ctx->out);
     xl6OutputPuts("        }\n", ctx->out);
     (void)hasArrayVararg;
     (void)hasDictVararg;
@@ -387,11 +388,11 @@ static void xl6CgenEmitVarInvokeTypeChecks(XL6_CgenContext* ctx, const XL6_AstNo
         if ( xl6CgenClassHandleTargetType(ctx, paramType) != NULL ) {
             if ( (int)i >= requiredCount ) {
                 xl6OutputPrintf(ctx->out,
-                    "    if (__xl6_argc > %u && (__xl6_argv[%u] == 0 || !xrtTypeIsA(xvoTypeDesc(__xl6_argv[%u]), ",
+                    "    if (__xl6_argc > %u && (__xl6_argv[%u] == 0 || !xl6TypeIsA(xl6ValueType(__xl6_argv[%u]), ",
                     (unsigned)i, (unsigned)i, (unsigned)i);
             } else {
                 xl6OutputPrintf(ctx->out,
-                    "    if (__xl6_argv[%u] == 0 || !xrtTypeIsA(xvoTypeDesc(__xl6_argv[%u]), ",
+                    "    if (__xl6_argv[%u] == 0 || !xl6TypeIsA(xl6ValueType(__xl6_argv[%u]), ",
                     (unsigned)i, (unsigned)i);
             }
             xl6CgenEmitXrtTypeDescRef(
@@ -401,23 +402,23 @@ static void xl6CgenEmitVarInvokeTypeChecks(XL6_CgenContext* ctx, const XL6_AstNo
         } else if ( xl6CTextEquals(paramType != NULL ? paramType->text : NULL, "error") ) {
             if ( (int)i >= requiredCount ) {
                 xl6OutputPrintf(ctx->out,
-                    "    if (__xl6_argc > %u && (xvoType(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_argv[%u]) != xrtTypeHandle())) {\n",
-                    (unsigned)i, (unsigned)i, (unsigned)i);
+                    "    if (__xl6_argc > %u && !xl6_xrt_value_is_null(__xl6_argv[%u]) && (xl6_xrt_value_kind(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || !xl6TypeSame(xl6ValueType(__xl6_argv[%u]), xl6TypeError()))) {\n",
+                    (unsigned)i, (unsigned)i, (unsigned)i, (unsigned)i);
             } else {
                 xl6OutputPrintf(ctx->out,
-                    "    if ((xvoType(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_argv[%u]) != xrtTypeHandle())) {\n",
-                    (unsigned)i, (unsigned)i);
+                    "    if (!xl6_xrt_value_is_null(__xl6_argv[%u]) && (xl6_xrt_value_kind(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || !xl6TypeSame(xl6ValueType(__xl6_argv[%u]), xl6TypeError()))) {\n",
+                    (unsigned)i, (unsigned)i, (unsigned)i);
             }
             xl6OutputPuts("        xl6_function_fatal(3);\n", ctx->out);
             xl6OutputPuts("    }\n", ctx->out);
         } else if ( xl6CgenIsSpecialCollectionType(ctx, paramType) ) {
             if ( (int)i >= requiredCount ) {
                 xl6OutputPrintf(ctx->out,
-                    "    if (__xl6_argc > %u && (xvoType(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_argv[%u]) != ",
+                    "    if (__xl6_argc > %u && (xl6_xrt_value_kind(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || xl6ValueType(__xl6_argv[%u]) != ",
                     (unsigned)i, (unsigned)i, (unsigned)i);
             } else {
                 xl6OutputPrintf(ctx->out,
-                    "    if ((xvoType(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || xvoTypeDesc(__xl6_argv[%u]) != ",
+                    "    if ((xl6_xrt_value_kind(__xl6_argv[%u]) != XL6_XVO_DT_NATIVE || xl6ValueType(__xl6_argv[%u]) != ",
                     (unsigned)i, (unsigned)i);
             }
             xl6CgenEmitXrtTypeDescRef(ctx, paramType);
@@ -426,9 +427,9 @@ static void xl6CgenEmitVarInvokeTypeChecks(XL6_CgenContext* ctx, const XL6_AstNo
             xl6OutputPuts("    }\n", ctx->out);
         } else if ( runtimeType != NULL ) {
             if ( (int)i >= requiredCount ) {
-                xl6OutputPrintf(ctx->out, "    if (__xl6_argc > %u && xvoType(__xl6_argv[%u]) != %s) {\n", (unsigned)i, (unsigned)i, runtimeType);
+                xl6OutputPrintf(ctx->out, "    if (__xl6_argc > %u && xl6_xrt_value_kind(__xl6_argv[%u]) != %s) {\n", (unsigned)i, (unsigned)i, runtimeType);
             } else {
-                xl6OutputPrintf(ctx->out, "    if (xvoType(__xl6_argv[%u]) != %s) {\n", (unsigned)i, runtimeType);
+                xl6OutputPrintf(ctx->out, "    if (xl6_xrt_value_kind(__xl6_argv[%u]) != %s) {\n", (unsigned)i, runtimeType);
             }
             xl6OutputPuts("        xl6_function_fatal(3);\n", ctx->out);
             xl6OutputPuts("    }\n", ctx->out);
@@ -441,13 +442,13 @@ static void xl6CgenEmitVarInvokeArrayPack(XL6_CgenContext* ctx, int fixedCount, 
     if ( !hasArrayVararg ) {
         return;
     }
-    xl6OutputPuts("    __xl6_vararg = xvoCreateArray();\n", ctx->out);
+    xl6OutputPuts("    __xl6_vararg = xrtValueArray();\n", ctx->out);
     xl6OutputPuts("    if (__xl6_vararg == 0) {\n", ctx->out);
     xl6OutputPuts("        xl6_function_fatal(2);\n", ctx->out);
     xl6OutputPuts("    }\n", ctx->out);
     xl6OutputPrintf(ctx->out, "    for (__xl6_i = %u; __xl6_i < __xl6_argc; ++__xl6_i) {\n", (unsigned)fixedCount);
     /* xl6_function_call_var owns __xl6_argv; append by reference here. */
-    xl6OutputPuts("        if (!xvoArrayAppendValue(__xl6_vararg, __xl6_argv[__xl6_i], false)) {\n", ctx->out);
+    xl6OutputPuts("        if (!xl6_xrt_value_array_append(__xl6_vararg, __xl6_argv[__xl6_i], false)) {\n", ctx->out);
     xl6OutputPuts("            xl6_function_fatal(2);\n", ctx->out);
     xl6OutputPuts("        }\n", ctx->out);
     xl6OutputPuts("    }\n", ctx->out);
@@ -539,7 +540,7 @@ static void xl6CgenEmitAnonVarInvoke(XL6_CgenContext* ctx, const XL6_CgenAnonFun
     fixedCount = xl6CgenFixedParamCount(params);
     hasArrayVararg = xl6CgenParamListHasArrayVararg(params, fixedCount);
 
-    xl6OutputPrintf(ctx->out, "static xvalue xl6_anon_%d_invoke_var(void* __xl6_env, int __xl6_argc, xvalue* __xl6_argv)\n{\n", info->id);
+    xl6OutputPrintf(ctx->out, "static xvalue* xl6_anon_%d_invoke_var(void* __xl6_env, int __xl6_argc, xvalue** __xl6_argv)\n{\n", info->id);
     xl6CgenEmitVarInvokeLocals(ctx, hasArrayVararg);
     xl6CgenEmitVarInvokeArityCheck(ctx, params, fixedCount, hasArrayVararg);
     xl6CgenEmitVarInvokeTypeChecks(ctx, params, fixedCount, hasArrayVararg);
@@ -559,7 +560,7 @@ static void xl6CgenEmitAnonVarInvoke(XL6_CgenContext* ctx, const XL6_CgenAnonFun
 
     if ( returns != NULL && returns->childCount == 1 ) {
         if ( xl6CgenIsSpecialCollectionType(ctx, returns->children[0]) ) {
-            xl6OutputPuts("    xvalue __xl6_boxed = ", ctx->out);
+            xl6OutputPuts("    xvalue* __xl6_boxed = ", ctx->out);
             xl6CgenXValueFromTypedCExpr(ctx, returns->children[0], "__xl6_result");
             xl6OutputPuts(";\n    ", ctx->out);
             xl6CgenSpecialCollectionReleaseCExpr(ctx, returns->children[0], "__xl6_result");
@@ -570,7 +571,7 @@ static void xl6CgenEmitAnonVarInvoke(XL6_CgenContext* ctx, const XL6_CgenAnonFun
             xl6OutputPuts(";\n", ctx->out);
         }
     } else {
-        xl6OutputPuts("    return xvoCreateNull();\n", ctx->out);
+        xl6OutputPuts("    return xrtValueNull();\n", ctx->out);
     }
     xl6OutputPuts("}\n\n", ctx->out);
 }
@@ -594,7 +595,7 @@ static void xl6CgenEmitAnonXCall(XL6_CgenContext* ctx, const XL6_CgenAnonFunc* i
     hasArrayVararg = xl6CgenParamListHasArrayVararg(params, fixedCount);
     hasDictVararg = xl6CgenParamListHasDictVararg(params, fixedCount);
 
-    xl6OutputPrintf(ctx->out, "static bool xl6_anon_%d_xcall(void* __xl6_env, xrt_call_frame* __xl6_frame, xrt_call_result* __xl6_result)\n{\n", info->id);
+    xl6OutputPrintf(ctx->out, "static bool xl6_anon_%d_xcall(void* __xl6_env, xl6_call_frame* __xl6_frame, xl6_call_result* __xl6_result)\n{\n", info->id);
     xl6CgenEmitXCallLocals(ctx, params, fixedCount, hasArrayVararg, hasDictVararg);
     xl6CgenEmitXCallSetup(ctx);
     xl6CgenEmitXCallParamSetup(ctx, params, fixedCount);

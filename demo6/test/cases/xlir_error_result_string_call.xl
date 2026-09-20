@@ -1,0 +1,19 @@
+func maybeText(bool fail) as string
+    if fail then
+        throw "expected"
+    end
+    return "ok"
+end
+
+func recoverText() as string
+    try
+        return maybeText(true)
+    catch ignored
+        return "recovered"
+    end
+end
+
+string passed = maybeText(false)
+string recovered = recoverText()
+assert passed == "ok"
+assert recovered == "recovered"

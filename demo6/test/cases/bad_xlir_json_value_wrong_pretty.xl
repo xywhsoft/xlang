@@ -1,0 +1,2 @@
+extern "xl6_xrt_json_stringify" func malformed(var value, bool pretty) as point
+point result = malformed(null, false)

@@ -1,0 +1,15 @@
+func inner() as generator<int>
+    yield 7
+end
+func outer() as generator<generator<int>>
+    yield inner()
+end
+export "payload_probe" func probe() as int
+    int count = 0
+    for stream in outer()
+        for item in stream
+            count += item
+        end
+    end
+    return count
+end

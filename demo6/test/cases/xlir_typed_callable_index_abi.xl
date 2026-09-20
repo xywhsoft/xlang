@@ -1,0 +1,19 @@
+func xlirCallableIndexMakePlain(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+async func xlirCallableIndexMake(int base) as func(int) as int
+    return xlirCallableIndexMakePlain(base)
+end
+
+array<func(int) as int> operations = await task.all([
+    xlirCallableIndexMake(10), xlirCallableIndexMake(20)
+])
+func(int) as int first = operations[0]
+func(int) as int second = operations[1]
+assert first(1) == 11, "typed array callable index should return an owned exact closure"
+assert second(2) == 22, "typed array callable index should preserve each exact closure"
+
+println("xlir typed callable index abi ok")

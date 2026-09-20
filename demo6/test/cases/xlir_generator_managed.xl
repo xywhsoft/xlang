@@ -1,0 +1,20 @@
+extern "managed_generator_mark" func managedGeneratorMark(int step)
+extern "managed_generator_fail" func managedGeneratorFail()
+
+func managedGeneratorCycle(var capture) as generator<var>
+    try
+        yield capture
+    finally
+        managedGeneratorMark(1)
+        yield capture
+        managedGeneratorMark(2)
+        managedGeneratorFail()
+    end
+end
+
+export "managed_generator_consume" func managedGeneratorConsume(var value) as int
+    for item in managedGeneratorCycle(value)
+        break
+    end
+    return 1
+end

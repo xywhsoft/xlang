@@ -5,10 +5,12 @@ end
 
 func mutateDefault(PairValue value)
     value.integer = 20
+    assert value.integer == 20
 end
 
 func mutateByVal(byval PairValue value)
     value.integer = 30
+    assert value.integer == 30
 end
 
 func mutateByRef(byref PairValue value)

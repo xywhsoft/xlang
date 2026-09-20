@@ -1,0 +1,24 @@
+class NullToken
+    int value
+
+    create(int input)
+        self.value = input
+    end
+end
+
+func isEmpty(NullToken? value) as bool
+    return value == null
+end
+
+export "xlir_null_abi_probe" func probe() as int
+    NullToken? value = null
+    point raw = null
+    if value != null then return 1 end
+    if raw != null then return 2 end
+    if isEmpty(null) == false then return 3 end
+    value = NullToken(7)
+    if value == null then return 4 end
+    value = null
+    if value != null then return 5 end
+    return 0
+end

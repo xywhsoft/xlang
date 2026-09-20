@@ -1,0 +1,18 @@
+string binaryPath = "build/test/stdlib_file_bytes_only.bin"
+
+Buffer bytes = Buffer()
+assert bytes.appendByte(0)
+assert bytes.appendByte(65)
+assert file.writeBytes(binaryPath, bytes)
+
+Buffer suffix = Buffer()
+assert suffix.appendByte(66)
+assert file.appendBytes(binaryPath, suffix)
+
+Buffer result = file.readBytes(binaryPath)
+assert result.len() == 3
+assert result[0] == 0
+assert result[1] == 65
+assert result[2] == 66
+
+println("file byte bridge only ok")

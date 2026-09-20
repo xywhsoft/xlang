@@ -1,0 +1,11 @@
+{
+  "format": "xlang-package-1",
+  "name": "invalid_xrt_module",
+  "version": "1.0.0",
+  "abiVersion": "1",
+  "artifact": {
+    "cSources": [],
+    "xlSources": [],
+    "xrtModules": ["XRT_MODULE_STRING\n#define XRT_MODULE_ALL"]
+  }
+}

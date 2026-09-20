@@ -1,0 +1,10 @@
+export func add(int value) as int
+    return value + 1
+end
+
+export func add(bool value) as int
+    if value
+        return 42
+    end
+    return 0
+end

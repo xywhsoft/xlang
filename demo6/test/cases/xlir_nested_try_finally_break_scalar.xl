@@ -1,0 +1,17 @@
+export "xlir_test_nested_break_through_finally" func nested_break_through_finally() as int
+    int value = 0
+    int trace = 0
+    while value < 1
+        try
+            try
+                value = 1
+                break
+            finally
+                trace = trace * 10 + 1
+            end
+        finally
+            trace = trace * 10 + 2
+        end
+    end
+    return trace
+end

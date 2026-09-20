@@ -1,0 +1,15 @@
+int rethrow_finally_trace = 0
+
+export "xlir_test_rethrow_through_finally" func rethrow_through_finally() as int
+    try
+        throw "initial failure"
+    catch ignored
+        throw
+    finally
+        rethrow_finally_trace = rethrow_finally_trace + 1
+    end
+end
+
+export "xlir_test_rethrow_finally_trace_value" func rethrow_finally_trace_value() as int
+    return rethrow_finally_trace
+end

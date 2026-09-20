@@ -1,11 +1,9 @@
-#include "lib/xrt/xrt.h"
-
 int main(void)
 {
     XL_InitOptions options = xlInitOptions(0, 0);
-    xvalue value;
-    xvalue copied;
-    xvalue output;
+    xvalue* value;
+    xvalue* copied;
+    xvalue* output;
     int64_t number;
     int result;
 
@@ -13,41 +11,41 @@ int main(void)
         return 1;
     }
     value = xl6_class_make(41);
-    if ( value == NULL || xvoIsNull(value) ) {
+    if ( xlValueIsNull(value) ) {
         xlUnit();
         return 2;
     }
-    copied = xvoCopy(value);
-    if ( copied != NULL ) {
-        xvoUnref(copied);
-        xvoUnref(value);
+    copied = xlValueClone(value, false);
+    if ( copied == NULL || copied == value || xl6_class_read(copied) != 42 ) {
+        xlValueRelease(copied);
+        xlValueRelease(value);
         xlUnit();
         return 5;
     }
-    xvoAddRef(value);
-    copied = value;
+    xlValueRelease(copied);
+    copied = xlValueRetain(value);
     if ( xl6_class_read(copied) != 42 ) {
-        xvoUnref(copied);
-        xvoUnref(value);
+        xlValueRelease(copied);
+        xlValueRelease(value);
         xlUnit();
         return 6;
     }
-    xvoUnref(copied);
+    xlValueRelease(copied);
     result = (int)xl6_class_read(value);
     number = 1;
     xl6_mode_increment(&number);
     output = NULL;
     xl6_mode_make(&output);
     if ( number != 2 || output == NULL || xl6_class_read(output) != 10 ) {
-        xvoUnref(value);
+        xlValueRelease(value);
         if ( output != NULL ) {
-            xvoUnref(output);
+            xlValueRelease(output);
         }
         xlUnit();
         return 3;
     }
-    xvoUnref(value);
-    xvoUnref(output);
+    xlValueRelease(value);
+    xlValueRelease(output);
     xlUnit();
     return result == 42 ? 0 : 4;
 }

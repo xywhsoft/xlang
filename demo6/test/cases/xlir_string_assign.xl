@@ -1,0 +1,11 @@
+export "xlir_test_string_assign" func string_assign() as int
+    string source = "source"
+    string target = "initial"
+    string expected = "source"
+    target = source
+    source = "changed"
+    if target == expected then
+        return 23
+    end
+    return 0
+end

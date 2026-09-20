@@ -1,0 +1,10 @@
+int trace = 0
+try
+    throw RangeError "typed finally payload"
+catch ValueError e
+    assert e.kind == "RangeError"
+    trace = trace + 1
+finally
+    trace = trace + 10
+end
+assert trace == 11

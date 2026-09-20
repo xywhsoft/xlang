@@ -6,9 +6,9 @@ string filePath = "build/test/stdlib_xson_case.xson"
 file.delete(filePath)
 
 expect(xson.valid('{"name":"xlang","ok":true}'), 1)
-expect(xson.valid('{"keep":1,"skip":ptr(123),"after":2}'), 0)
+expect(xson.valid('{"keep":1,"skip":ptr("123"),"after":2}'), 0)
 XsonOptions decodeOptions = xson.options(ignoreUnsupportedDecode = true)
-expect(xson.valid('{"keep":1,"skip":ptr(123),"after":2}', decodeOptions), 1)
+expect(xson.valid('{"keep":1,"skip":ptr("123"),"after":2}', decodeOptions), 1)
 
 var values = xson.parse("[1,2,3]")
 string compactValues = xson.stringify(values)
@@ -36,10 +36,10 @@ expect(writer.endSet(), 1)
 expect(writer.writeTime("created", #2026-06-18 00:00:00#), 1)
 expect(writer.endDict(), 1)
 string writerText = writer.finish()
-expect(string.contains(writerText, "list["), 1)
-expect(string.contains(writerText, "set{"), 1)
+expect(string.contains(writerText, "intmap{"), 1)
+expect(string.contains(writerText, "set["), 1)
 expect(string.contains(writerText, "time("), 1)
-expect(string.contains(json.stringify(xson.parse(writerText)), '"name"'), 1)
+expect(string.contains(xson.stringify(xson.parse(writerText)), '"name"'), 1)
 
 XsonWriter prettyWriter = xson.writer(true)
 expect(prettyWriter.beginArray(), 1)
@@ -103,7 +103,7 @@ func stopXsonEvent(var event) as bool
     return int(event["depth"]) < 1
 end
 
-string xsonVisitSource = '{"items":list[2:"two"],"tags":set{1,2},"when":time(2026-06-18 00:00:00)}'
+string xsonVisitSource = '{"items":intmap{2:"two"},"tags":set[1,2],"when":time("2026-06-18T00:00:00Z")}'
 expect(xson.visit(xsonVisitSource, onXsonEvent), xson.visitComplete)
 expect(xsonEventCount >= 9, 1)
 expect(xsonStringIndex, 2)

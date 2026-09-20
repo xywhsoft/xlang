@@ -1,0 +1,2 @@
+bool invalid = xson.valid("{bad}")
+throw "script-boundary-sentinel"

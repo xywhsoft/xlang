@@ -1,0 +1,4 @@
+extern "xlir_pkg_bad_add" func nativeAdd(int a, int b) as int
+export func verify() as bool
+    return nativeAdd(20, 22) == 42
+end

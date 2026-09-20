@@ -15,14 +15,13 @@
 |---|---|---|---|
 | `CGEN-STD-001` wrapper 注入总规则 | `tools/check_stdlib_coverage.ps1`、`tools/check_stdlib_test_wiring.ps1`、`tools/check_stdlib_examples.ps1`、`stdlib_*.xl` | 覆盖脚本 + 运行行为检查 | 公开标准库函数必须同时出现在 docs/tests/examples 中，测试入口会先跑覆盖脚本。 |
 | `CGEN-STD-002` crypto SHA HEX | `stdlib_crypto.xl`、`release/examples/stdlib_crypto.xl`；`test.bat` 检查 `xrtSHA256`、`xl6_xrt_sha512_hex` | 直接生成检查 + 运行行为检查 | SHA wrapper 与 XRT 原型均有覆盖。 |
-| `CGEN-STD-003..005` url part/flag/port/resolve/normalizePath | `stdlib_url.xl`、`stdlib_error_paths.xl`、`release/examples/stdlib_url.xl`；`test.bat` 检查 `xrtUrlParseViewN`、`xrtUrlResolveTo`、`xl6_xrt_url_resolve`，并检查 invalid base fallback | 直接生成检查 + 运行行为检查 + 错误路径快照 | URL 解析、属性、resolve、路径规范化有覆盖；非法 URL、非法 base resolve、含空格 path normalize 的空串收束已有集中错误路径测试。 |
-| `CGEN-STD-006..007` query encode/decode/valid/pair/append | `stdlib_query.xl`、`stdlib_error_paths.xl`、`release/examples/stdlib_query.xl`；`test.bat` 检查 `xrtPercentEncodeTo`、`xrtFormUrlEncodedDecodeTo`、`xl6_xrt_query_append`，并检查 decode 失败释放 `outText` 后返回空串 | 直接生成检查 + 运行行为检查 + 错误路径快照 | query 编解码与拼接 wrapper 有覆盖；空 key invalid 与非法 percent decode 失败收束已有集中错误路径测试。 |
-| `CGEN-STD-008` regex wrapper | `stdlib_regex.xl`、`release/examples/stdlib_regex.xl`；`test.bat` 检查 `xrtRegexCreate`、`xl6_xrt_regex_find` | 直接生成检查 + 运行行为检查 | regex 创建、匹配、find helper 有覆盖。 |
+| `CGEN-STD-003..007` xhttp URL/Query 边界 | `dev/deferred/xhttp` 迁移资产；核心 percent codec 回归 | 产品边界检查 | 完整 URL、Query 和 form-urlencoded 不进入核心；迁移资产等待 xhttp 包接入。 |
+| `CGEN-STD-008` xregex 边界 | `dev/deferred/xregex` 适配器、测试与双语言示例 | 产品边界检查 | 核心不输出 Regex wrapper 或 `XRT_MODULE_REGEX`；后续由 xregex 包恢复完整对象抽象。 |
 | `CGEN-STD-009..010` process exec/success/exitCode | `stdlib_process.xl`、`stdlib_error_paths.xl`、`release/examples/stdlib_process.xl`；`test.bat` 检查 `xrtExecCapture`、`xl6_xrt_process_exec`、`xl6_xrt_process_exit_code`，并检查 exec/success 结果清理 | 直接生成检查 + 运行行为检查 + 错误路径快照 | 进程执行、输出、退出码 wrapper 有覆盖；非 0 exit code 的 success/exitCode/exec 行为和 result cleanup 已有集中错误路径测试。 |
 | `CGEN-STD-011` dir list/files/dirs | `stdlib_path_file.xl`；`test.bat` 检查 `xrtDirScanEx`、`xl6_xrt_dir_list`、`__xl_std_dir_files`、`__xl_std_dir_dirs` | 直接生成检查 + 运行行为检查 | 目录扫描和动态容器结果构造有覆盖。 |
 | `CGEN-STD-012..013` string startsWith/endsWith/split | `stdlib_string.xl`、`release/examples/stdlib_string.xl`、`cgen_string_*` | 直接生成检查 + 运行行为检查 | 字符串 wrapper 与基础字符串 runtime 组合有覆盖。 |
 | `CGEN-STD-014` path join | `stdlib_path_file.xl`、`release/examples/stdlib_path_file.xl`；`test.bat` 检查 `xrtPathJoin`、`xl6_xrt_path_join`、`__xl_std_path_join` | 直接生成检查 + 运行行为检查 | path.join runtime helper 和标准库 helper 均有覆盖。 |
-| `CGEN-STD-015..019` http.server 类型、route handler 生命周期、request bridge、create/route/static/start/port/stop/destroy | `stdlib_http_server.xl`、`stdlib_http_server_host.c`、`release/examples/stdlib_http_server.xl`；`test.bat` 检查 `xrtWebServerCreate`、`xl6_xrt_http_server_create`、`xl6_xrt_http_server_get/post/any/static` 并运行宿主请求 | 直接生成检查 + C 宿主运行 | HTTP server wrapper、function handler 桥接、GET/POST/ANY 路由、静态文件、端口读取和销毁有强覆盖。 |
+| `CGEN-STD-015..019` xhttp 高级服务端层 | 实现、测试和示例保存在 `dev/deferred/xhttp` | 核心边界检查 | 当前不属于核心标准库；待 xhttp 扩展包重新接入后恢复包级生成与运行验证。 |
 | `CGEN-STD-020` 标准库 wrapper 级联 runtime 依赖 | 全部 `stdlib_*.xl` cgen + 编译运行；覆盖脚本检查 DLL 符号 | 直接生成检查 + 运行行为检查 | wrapper 触发相关 runtime 原型与 helper 的路径有批量覆盖；缺少更细的一对一 needs 快照。 |
 
 ## Header 与 Needs

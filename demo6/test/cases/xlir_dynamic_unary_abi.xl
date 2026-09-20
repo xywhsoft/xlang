@@ -1,0 +1,10 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+var base = 100
+var positive = +base
+var negative = -base
+var inverted = ~base
+
+expect(int(positive), 100)
+expect(int(negative), -100)
+expect(int(inverted), -101)

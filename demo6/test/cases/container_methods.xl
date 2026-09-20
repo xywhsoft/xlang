@@ -57,21 +57,45 @@ assert typedArr.removeValue(1) == true, "typed array.removeValue should remove b
 assert typedArr.contains(1) == false, "typed array.removeValue should update membership"
 int typedPop = typedArr.pop()
 assert typedPop == 3, "typed array.pop should return element type"
+assert(typedArr.reserve(8))
+assert(typedArr.capacity() >= 8)
+assert(not typedArr.reserve(-1))
+assert(typedArr.resize(3))
+assert(typedArr.length == 3 and typedArr[0] == 0 and typedArr[2] == 0)
+typedArr[0] = 7
+typedArr[2] = 9
+assert(typedArr.swap(0, 2))
+assert(typedArr[0] == 9 and typedArr[2] == 7)
+assert(not typedArr.swap(-1, 0))
+assert(typedArr.trim())
+assert(typedArr.capacity() == typedArr.length)
 
 list<string> typedList = list[7: "keep", 9: "drop"]
 assert typedList.remove(9) == true, "typed list.remove should delete sparse key"
 assert typedList.length == 1, "typed list.remove should update length"
+assert typedList.trimTo(1) >= 0
+assert typedList.trim() >= 0
 
 set<int> typedSet = set{1}
+assert(typedSet.reserve(8))
+assert(typedSet.capacity() >= 8)
 assert typedSet.add(2) == true, "typed set.add should insert value"
 assert typedSet.contains(2) == true, "typed set.contains should find inserted value"
 assert typedSet.remove(1) == true, "typed set.remove should delete value"
 assert typedSet.contains(1) == false, "typed set.remove should update membership"
+set<int> disjointSet = set{7, 8}
+assert typedSet.isDisjoint(disjointSet)
+disjointSet.add(2)
+assert not typedSet.isDisjoint(disjointSet)
+assert typedSet.trim()
 
 dict<int> typedDict = dict{"x": 10, "y": 20}
+assert(typedDict.reserve(8))
+assert(typedDict.capacity() >= 8)
 assert typedDict.contains("x") == true, "typed dict.contains should check key"
 assert typedDict.remove("x") == true, "typed dict.remove should delete key"
 assert typedDict.contains("x") == false, "typed dict.remove should update membership"
+assert(typedDict.trim())
 
 var dynamicArray = [10, 20]
 assert dynamicArray.pop() == 20, "var.pop should dispatch to array pop"

@@ -1,0 +1,35 @@
+extern "await_status_input" func statusInput() as future<string>
+extern "await_status_expected" func statusExpected() as int
+extern "await_status_finally" func statusFinally()
+extern "await_status_acquired" func statusAcquired()
+
+int outcome = 0
+try
+    string text = await statusInput()
+    statusAcquired()
+    assert text == "await-owned"
+    outcome = 1
+catch failure
+    outcome = -1
+finally
+    statusFinally()
+end
+assert outcome == statusExpected()
+
+async func statusStream() as generator<int>
+    try
+        string text = await statusInput()
+        statusAcquired()
+        assert text == "await-owned"
+        yield 1
+    catch failure
+        yield -1
+    finally
+        statusFinally()
+    end
+end
+int seen = 0
+for await value in statusStream()
+    seen = value
+end
+assert seen == statusExpected()

@@ -1,0 +1,2 @@
+extern "xl6_xrt_dir_list" func bad(string path, bool recursive, c_int mode) as var
+bad(".", false, c_int(0))

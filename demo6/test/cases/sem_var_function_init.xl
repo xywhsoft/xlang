@@ -3,4 +3,4 @@ func add(int left, int right) as int
 end
 
 func(int, int) as int fn = add
-var boxed = fn
+var boxed = xcall(fn)

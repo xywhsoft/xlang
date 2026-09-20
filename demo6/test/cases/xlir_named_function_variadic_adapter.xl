@@ -1,0 +1,21 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func total(int base, ...) as int
+    return base + arg.length
+end
+
+func totalDefault(int base = 5, ...) as int
+    return base + arg.length
+end
+
+func optionCount(string path, ***) as int
+    return path.length + arg.length
+end
+
+func(int, ...) as int variadic = total
+func(...) as int variadicDefault = totalDefault
+func(string, ***) as int options = optionCount
+
+expect(variadic(10, 1, 2, 3), 13)
+expect(variadicDefault("a", "b"), 7)
+expect(options("demo", mode = "fast", retry = 3), 6)

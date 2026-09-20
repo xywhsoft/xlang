@@ -1,0 +1,10 @@
+extern "xlir_make_xvalue_future" func makeValueFuture() as future<var>
+
+async func addProducedValue(var supplied) as var
+    var copied = supplied
+    return await makeValueFuture() + copied
+end
+
+if false
+    future<var> pending = addProducedValue(1)
+end

@@ -152,7 +152,7 @@ static void xl6CgenEnumTypeDescProto(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode)
 {
-    xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
+    xl6OutputPuts("static const xl6_type_desc* ", ctx->out);
     xl6CgenEnumTypeDescRef(ctx, typeNode);
     xl6OutputPuts(";\n", ctx->out);
 }
@@ -247,7 +247,7 @@ static void xl6CgenEnumEmitFieldCopy(
         return;
     }
     if ( xl6CgenIsWeakType(fieldType) ) {
-        xl6OutputPuts("        xvoWeakCopy(", ctx->out);
+        xl6OutputPuts("        xl6WeakCopy(", ctx->out);
         xl6CgenEnumFieldPointer(ctx->out, dstRoot, variantName, fieldName);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenEnumFieldPointer(ctx->out, srcRoot, variantName, fieldName);
@@ -256,7 +256,7 @@ static void xl6CgenEnumEmitFieldCopy(
     }
 
     xl6OutputPuts("        {\n", ctx->out);
-    xl6OutputPuts("            const xrt_type_desc* fieldType = ", ctx->out);
+    xl6OutputPuts("            const xl6_type_desc* fieldType = ", ctx->out);
     xl6CgenEmitXrtTypeDescRef(ctx, fieldType);
     xl6OutputPuts(";\n", ctx->out);
     xl6OutputPuts("            if ( fieldType != 0 && fieldType->Ops != 0 && fieldType->Ops->copy != 0 ) {\n", ctx->out);
@@ -289,7 +289,7 @@ static void xl6CgenEnumEmitFieldDrop(
     if ( xl6CgenIsXValueType(fieldType) ) {
         xl6OutputPuts("        if (", ctx->out);
         xl6CgenEnumFieldPath(ctx->out, root, variantName, fieldName);
-        xl6OutputPuts(" != 0) { xvoUnref(", ctx->out);
+        xl6OutputPuts(" != 0) { xrtValueRelease(", ctx->out);
         xl6CgenEnumFieldPath(ctx->out, root, variantName, fieldName);
         xl6OutputPuts("); ", ctx->out);
         xl6CgenEnumFieldPath(ctx->out, root, variantName, fieldName);
@@ -315,14 +315,14 @@ static void xl6CgenEnumEmitFieldDrop(
         return;
     }
     if ( xl6CgenIsWeakType(fieldType) ) {
-        xl6OutputPuts("        xvoWeakUnit(", ctx->out);
+        xl6OutputPuts("        xl6WeakUnit(", ctx->out);
         xl6CgenEnumFieldPointer(ctx->out, root, variantName, fieldName);
         xl6OutputPuts(");\n", ctx->out);
         return;
     }
 
     xl6OutputPuts("        {\n", ctx->out);
-    xl6OutputPuts("            const xrt_type_desc* fieldType = ", ctx->out);
+    xl6OutputPuts("            const xl6_type_desc* fieldType = ", ctx->out);
     xl6CgenEmitXrtTypeDescRef(ctx, fieldType);
     xl6OutputPuts(";\n", ctx->out);
     xl6OutputPuts("            if ( fieldType != 0 && fieldType->Ops != 0 && fieldType->Ops->drop != 0 ) {\n", ctx->out);
@@ -431,7 +431,7 @@ static void xl6CgenEnumEmitTaggedOps(
                 NULL;
 
             if ( xl6CgenIsXValueType(fieldType) ) {
-                xl6OutputPuts("        if (!xvoBasicEqual(", ctx->out);
+                xl6OutputPuts("        if (!xrtValueEqual(", ctx->out);
                 xl6CgenEnumFieldPath(ctx->out, "(*a)", variant->text, param->text);
                 xl6OutputPuts(", ", ctx->out);
                 xl6CgenEnumFieldPath(ctx->out, "(*b)", variant->text, param->text);
@@ -441,7 +441,7 @@ static void xl6CgenEnumEmitTaggedOps(
                 xl6CgenEnumFieldPath(ctx->out, "(*b)", variant->text, param->text);
                 xl6OutputPuts(" ? -1 : 1; }\n", ctx->out);
             } else {
-                xl6OutputPuts("        {\n            const xrt_type_desc* fieldType = ", ctx->out);
+                xl6OutputPuts("        {\n            const xl6_type_desc* fieldType = ", ctx->out);
                 xl6CgenEmitXrtTypeDescRef(ctx, fieldType);
                 xl6OutputPuts(";\n            int result = fieldType != 0 && fieldType->Ops != 0 && fieldType->Ops->compare != 0 ? fieldType->Ops->compare(", ctx->out);
                 xl6CgenEnumFieldPointer(ctx->out, "(*a)", variant->text, param->text);
@@ -482,9 +482,9 @@ static void xl6CgenEnumEmitTaggedOps(
                     xl6CgenSubstituteGenericType(ctx, param->children[0]) :
                     NULL;
 
-            xl6OutputPuts("        {\n            const xrt_type_desc* fieldType = ", ctx->out);
+            xl6OutputPuts("        {\n            const xl6_type_desc* fieldType = ", ctx->out);
             xl6CgenEmitXrtTypeDescRef(ctx, fieldType);
-            xl6OutputPuts(";\n            uint64 fieldHash = xrtTypeHashValue(fieldType, ", ctx->out);
+            xl6OutputPuts(";\n            uint64 fieldHash = xl6TypeHashValue(fieldType, ", ctx->out);
             xl6CgenEnumFieldPointer(
                 ctx->out,
                 "(*value)",
@@ -496,15 +496,15 @@ static void xl6CgenEnumEmitTaggedOps(
     }
     xl6OutputPuts("    case 0: break;\n    default: xl6_runtime_fatal(3); break;\n    }\n    return result;\n}\n", ctx->out);
 
-    xl6OutputPuts("static xvalue ", ctx->out);
+    xl6OutputPuts("static xvalue* ", ctx->out);
     xl6CgenEnumOpsSymbol(ctx->out, typeNode, "box");
-    xl6OutputPuts("(const void* pObj, const xrt_type_desc* pType) { return pObj != 0 ? xvoCreateRecord(pType, pObj) : xvoCreateNull(); }\n", ctx->out);
+    xl6OutputPuts("(const void* pObj, const xl6_type_desc* pType) { return pObj != 0 ? xl6ValueRecord(pType, pObj) : xrtValueNull(); }\n", ctx->out);
 
     xl6OutputPuts("static bool ", ctx->out);
     xl6CgenEnumOpsSymbol(ctx->out, typeNode, "unbox");
-    xl6OutputPuts("(xvalue value, void* pOut, const xrt_type_desc* pType) { const xrt_type_desc* actual; const void* data; if (pOut == 0 || value == 0 || xvoIsNull(value)) { return false; } actual = xvoTypeDesc(value); if (actual == 0 || pType == 0 || !xrtTypeSame(actual, pType)) { return false; } data = xvoGetRecordData(value); if (data == 0) { return false; } pType->Ops->copy(pOut, data); return true; }\n", ctx->out);
+    xl6OutputPuts("(xvalue* value, void* pOut, const xl6_type_desc* pType) { const xl6_type_desc* actual; const void* data; if (pOut == 0 || value == 0 || xl6_xrt_value_is_null(value)) { return false; } actual = xl6ValueType(value); if (actual == 0 || pType == 0 || !xl6TypeSame(actual, pType)) { return false; } data = xl6ValueRecordData(value); if (data == 0) { return false; } pType->Ops->copy(pOut, data); return true; }\n", ctx->out);
 
-    xl6OutputPuts("static const xrt_type_ops ", ctx->out);
+    xl6OutputPuts("static const xl6_type_ops ", ctx->out);
     xl6CgenEnumOpsSymbol(ctx->out, typeNode, "ops");
     xl6OutputPuts(" = {\n    ", ctx->out);
     xl6CgenEnumOpsSymbol(ctx->out, typeNode, "init");
@@ -542,9 +542,9 @@ static void xl6CgenEnumEmitTaggedOps(
     xl6CgenEnumOpsSymbol(ctx->out, typeNode, "copy");
     xl6OutputPuts("(&result, &source);\n    return result;\n}\n\n", ctx->out);
 
-    xl6OutputPuts("static xvalue ", ctx->out);
+    xl6OutputPuts("static xvalue* ", ctx->out);
     xl6CgenEnumOpsSymbol(ctx->out, typeNode, "box_value");
-    xl6OutputPrintf(ctx->out, "(%s source) { return xrtTypeBoxValue(", dataTypeName);
+    xl6OutputPrintf(ctx->out, "(%s source) { return xl6TypeBoxValue(", dataTypeName);
     xl6CgenEnumTypeDescRef(ctx, typeNode);
     xl6OutputPuts(", &source); }\n\n", ctx->out);
 }
@@ -588,19 +588,15 @@ static void xl6CgenEnumEmitNumericOps(
     xl6CgenEnumOpsSymbol(ctx->out, typeNode, "hash");
     xl6OutputPrintf(ctx->out, "(const void* pObj) { return pObj != 0 ? xrtHash64(pObj, sizeof(%s)) : 0; }\n", cTypeName);
 
-    xl6OutputPuts("static xvalue ", ctx->out);
-    xl6CgenEnumOpsSymbol(ctx->out, typeNode, "box");
-    xl6OutputPuts("(const void* pObj, const xrt_type_desc* pType)\n{\n    xvalue result = xrtTypeBoxValue(", ctx->out);
-    xl6CgenEmitXrtTypeDescRef(ctx, backingType);
-    xl6OutputPuts(", pObj);\n    if (result != 0 && !xvoSetTypeDesc(result, pType)) { xvoUnref(result); return 0; }\n    return result;\n}\n", ctx->out);
+	xl6OutputPuts("static xvalue* ", ctx->out);
+	xl6CgenEnumOpsSymbol(ctx->out, typeNode, "box");
+	xl6OutputPuts("(const void* pObj, const xl6_type_desc* pType) { return pObj != 0 ? xl6ValueRecord(pType, pObj) : xrtValueNull(); }\n", ctx->out);
 
-    xl6OutputPuts("static bool ", ctx->out);
-    xl6CgenEnumOpsSymbol(ctx->out, typeNode, "unbox");
-    xl6OutputPuts("(xvalue value, void* pOut, const xrt_type_desc* pType) { const xrt_type_desc* actual = value != 0 ? xvoTypeDesc(value) : 0; if (pOut == 0 || actual == 0 || pType == 0 || !xrtTypeSame(actual, pType)) { return false; } return xrtTypeUnboxValue(", ctx->out);
-    xl6CgenEmitXrtTypeDescRef(ctx, backingType);
-    xl6OutputPuts(", value, pOut); }\n", ctx->out);
+	xl6OutputPuts("static bool ", ctx->out);
+	xl6CgenEnumOpsSymbol(ctx->out, typeNode, "unbox");
+	xl6OutputPuts("(xvalue* value, void* pOut, const xl6_type_desc* pType) { const xl6_type_desc* actual; const void* data; if (pOut == 0 || value == 0 || xl6_xrt_value_is_null(value)) { return false; } actual = xl6ValueType(value); if (actual == 0 || pType == 0 || !xl6TypeSame(actual, pType)) { return false; } data = xl6ValueRecordData(value); if (data == 0) { return false; } pType->Ops->copy(pOut, data); return true; }\n", ctx->out);
 
-    xl6OutputPuts("static const xrt_type_ops ", ctx->out);
+    xl6OutputPuts("static const xl6_type_ops ", ctx->out);
     xl6CgenEnumOpsSymbol(ctx->out, typeNode, "ops");
     xl6OutputPuts(" = {\n    ", ctx->out);
     xl6CgenEnumOpsSymbol(ctx->out, typeNode, "init");
@@ -622,9 +618,9 @@ static void xl6CgenEnumEmitNumericOps(
     xl6CgenEnumOpsSymbol(ctx->out, typeNode, "copy");
     xl6OutputPuts("\n};\n", ctx->out);
 
-    xl6OutputPuts("static xvalue ", ctx->out);
+    xl6OutputPuts("static xvalue* ", ctx->out);
     xl6CgenEnumOpsSymbol(ctx->out, typeNode, "box_value");
-    xl6OutputPrintf(ctx->out, "(%s source) { return xrtTypeBoxValue(", cTypeName);
+    xl6OutputPrintf(ctx->out, "(%s source) { return xl6TypeBoxValue(", cTypeName);
     xl6CgenEnumTypeDescRef(ctx, typeNode);
     xl6OutputPuts(", &source); }\n\n", ctx->out);
 }
@@ -679,12 +675,12 @@ static void xl6CgenEnumEmitMetadata(
         const XL6_AstNode* variant = variants->children[i];
         const XL6_AstNode* params = xl6CgenEnumVariantParams(variant);
         if ( params != NULL && params->childCount > 0 ) {
-            xl6OutputPrintf(ctx->out, "static xrtenumfield xl6_enum_fields_%s_%u[%uu];\n", cTypeName, (unsigned)i, (unsigned)params->childCount);
+            xl6OutputPrintf(ctx->out, "static xl6_enum_field xl6_enum_fields_%s_%u[%uu];\n", cTypeName, (unsigned)i, (unsigned)params->childCount);
         }
     }
-    xl6OutputPrintf(ctx->out, "static xrtenumvariant xl6_enum_variants_%s[%uu];\n", cTypeName, (unsigned)(variants != NULL ? variants->childCount : 0));
-    xl6OutputPrintf(ctx->out, "static xrtenum xl6_enum_info_%s;\n", cTypeName);
-    xl6OutputPrintf(ctx->out, "static xrt_type_desc xl6_enum_desc_%s = {\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "static xl6_enum_variant xl6_enum_variants_%s[%uu];\n", cTypeName, (unsigned)(variants != NULL ? variants->childCount : 0));
+    xl6OutputPrintf(ctx->out, "static xl6_enum_info xl6_enum_info_%s;\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "static xl6_type_desc xl6_enum_desc_%s = {\n", cTypeName);
     xl6OutputPrintf(ctx->out, "        0x%08XU,\n", (unsigned int)(typeId & 0xFFFFFFFFULL));
     xl6OutputPuts("        XL6_XRT_TYPE_KIND_ENUM,\n        ", ctx->out);
     xl6CgenCStringLiteral(ctx->out, typeText);
@@ -697,8 +693,8 @@ static void xl6CgenEnumEmitMetadata(
     xl6OutputPuts("&", ctx->out);
     xl6CgenEnumOpsSymbol(ctx->out, typeNode, "ops");
     xl6OutputPuts(",\n        0,\n        0,\n        0\n};\n", ctx->out);
-    xl6OutputPrintf(ctx->out, "static xrt_once xl6_enum_once_%s = XRT_ONCE_INIT;\n", cTypeName);
-    xl6OutputPrintf(ctx->out, "static void xl6_enum_init_metadata_%s(ptr pContext)\n{\n    (void)pContext;\n", cTypeName);
+    xl6OutputPrintf(ctx->out, "static xonce xl6_enum_once_%s = XRT_ONCE_INIT;\n", cTypeName);
+	xl6OutputPrintf(ctx->out, "static bool xl6_enum_init_metadata_%s(ptr pContext)\n{\n    (void)pContext;\n", cTypeName);
     for ( i = 0; variants != NULL && i < variants->childCount; ++i ) {
         const XL6_AstNode* variant = variants->children[i];
         const XL6_AstNode* params = tagged ? xl6CgenEnumVariantParams(variant) : NULL;
@@ -745,7 +741,7 @@ static void xl6CgenEnumEmitMetadata(
             xl6OutputPuts("0", ctx->out);
         }
         xl6OutputPuts(";\n", ctx->out);
-        xl6OutputPrintf(ctx->out, "    xl6_enum_variants_%s[%u].Flags = %s;\n", cTypeName, (unsigned)i, params != NULL && params->childCount > 0 ? "XRT_ENUM_VARIANT_HAS_PAYLOAD" : "0u");
+        xl6OutputPrintf(ctx->out, "    xl6_enum_variants_%s[%u].Flags = %s;\n", cTypeName, (unsigned)i, params != NULL && params->childCount > 0 ? "XL6_ENUM_VARIANT_HAS_PAYLOAD" : "0u");
     }
     xl6OutputPrintf(ctx->out, "    xl6_enum_info_%s.Type = &xl6_enum_desc_%s;\n", cTypeName, cTypeName);
     xl6OutputPrintf(ctx->out, "    xl6_enum_info_%s.BackingType = ", cTypeName);
@@ -757,13 +753,13 @@ static void xl6CgenEnumEmitMetadata(
     }
     xl6OutputPrintf(ctx->out, "    xl6_enum_info_%s.VariantCount = %uu;\n", cTypeName, (unsigned)(variants != NULL ? variants->childCount : 0));
     xl6OutputPrintf(ctx->out, "    xl6_enum_info_%s.Variants = xl6_enum_variants_%s;\n", cTypeName, cTypeName);
-    xl6OutputPrintf(ctx->out, "    xl6_enum_info_%s.Flags = %s;\n", cTypeName, tagged ? "XRT_ENUM_FLAG_TAGGED" : "XRT_ENUM_FLAG_NUMERIC");
-    xl6OutputPrintf(ctx->out, "    xl6_enum_desc_%s.Extra = &xl6_enum_info_%s;\n}\n", cTypeName, cTypeName);
-    xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
+    xl6OutputPrintf(ctx->out, "    xl6_enum_info_%s.Flags = %s;\n", cTypeName, tagged ? "XL6_ENUM_FLAG_TAGGED" : "XL6_ENUM_FLAG_NUMERIC");
+	xl6OutputPrintf(ctx->out, "    xl6_enum_desc_%s.Extra = &xl6_enum_info_%s;\n    return true;\n}\n", cTypeName, cTypeName);
+    xl6OutputPuts("static const xl6_type_desc* ", ctx->out);
     xl6CgenEnumTypeDescRef(ctx, typeNode);
     xl6OutputPrintf(
         ctx->out,
-        "\n{\n    xrtOnceRunGraph(&xl6_enum_once_%s, xl6_enum_init_metadata_%s, 0);\n    return &xl6_enum_desc_%s;\n}\n\n",
+		"\n{\n    (void)xrtOnce(&xl6_enum_once_%s, xl6_enum_init_metadata_%s, 0);\n    return &xl6_enum_desc_%s;\n}\n\n",
         cTypeName,
         cTypeName,
         cTypeName);
@@ -838,13 +834,13 @@ static void xl6CgenEnumEmitTaggedConstructors(
                 xl6CgenFputsCIdent(ctx->out, param->text);
                 xl6OutputPuts(");\n", ctx->out);
             } else if ( xl6CgenIsWeakType(fieldType) ) {
-                xl6OutputPuts("    xvoWeakCopy(", ctx->out);
+                xl6OutputPuts("    xl6WeakCopy(", ctx->out);
                 xl6CgenEnumFieldPointer(ctx->out, "data", variant->text, param->text);
                 xl6OutputPuts(", &", ctx->out);
                 xl6CgenFputsCIdent(ctx->out, param->text);
                 xl6OutputPuts(");\n", ctx->out);
             } else {
-                xl6OutputPuts("    {\n        const xrt_type_desc* fieldType = ", ctx->out);
+                xl6OutputPuts("    {\n        const xl6_type_desc* fieldType = ", ctx->out);
                 xl6CgenEmitXrtTypeDescRef(ctx, fieldType);
                 xl6OutputPuts(";\n        if (fieldType != 0 && fieldType->Ops != 0 && fieldType->Ops->copy != 0) { fieldType->Ops->copy(", ctx->out);
                 xl6CgenEnumFieldPointer(ctx->out, "data", variant->text, param->text);
@@ -882,7 +878,7 @@ static void xl6CgenEnumEmitPublicApi(
 
     xl6OutputPrintf(
         ctx->out,
-        "XL6_C_API const xrt_type_desc* xl6_enum_type_%s(void) { return ",
+        "XL6_C_API const xl6_type_desc* xl6_enum_type_%s(void) { return ",
         cTypeName);
     xl6CgenEnumTypeDescRef(ctx, typeNode);
     xl6OutputPuts("; }\n", ctx->out);
@@ -893,7 +889,7 @@ static void xl6CgenEnumEmitPublicApi(
 
     xl6OutputPrintf(
         ctx->out,
-        "XL6_C_API bool xl6_enum_copy_%s(%s* out, const %s* source) { if (out == 0 || source == 0) { return false; } memset(out, 0, sizeof(*out)); return xrtTypeCopyValue(",
+        "XL6_C_API bool xl6_enum_copy_%s(%s* out, const %s* source) { if (out == 0 || source == 0) { return false; } memset(out, 0, sizeof(*out)); return xl6TypeCopyValue(",
         cTypeName,
         cTypeName,
         cTypeName);
@@ -901,7 +897,7 @@ static void xl6CgenEnumEmitPublicApi(
     xl6OutputPuts(", out, source); }\n", ctx->out);
     xl6OutputPrintf(
         ctx->out,
-        "XL6_C_API bool xl6_enum_move_%s(%s* out, %s* source) { if (out == 0 || source == 0) { return false; } memset(out, 0, sizeof(*out)); return xrtTypeMoveValue(",
+        "XL6_C_API bool xl6_enum_move_%s(%s* out, %s* source) { if (out == 0 || source == 0) { return false; } memset(out, 0, sizeof(*out)); return xl6TypeMoveValue(",
         cTypeName,
         cTypeName,
         cTypeName);
@@ -909,7 +905,7 @@ static void xl6CgenEnumEmitPublicApi(
     xl6OutputPuts(", out, source); }\n", ctx->out);
     xl6OutputPrintf(
         ctx->out,
-        "XL6_C_API void xl6_enum_drop_%s(%s* value) { if (value != 0) { xrtTypeDropValue(",
+        "XL6_C_API void xl6_enum_drop_%s(%s* value) { if (value != 0) { xl6TypeDropValue(",
         cTypeName,
         cTypeName);
     xl6CgenEnumTypeDescRef(ctx, typeNode);

@@ -1,0 +1,1 @@
+extern "accept_callback" func accept(c_callback func(...) as c_int callback)

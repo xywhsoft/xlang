@@ -1,0 +1,252 @@
+extern "close_catch_raise" func catchRaise(int mode)
+extern "close_catch_mark" func catchMark(int id)
+
+func catchDispatch0(int mode) as generator<int>
+    try
+        try
+            yield 1
+        finally
+            catchMark(10)
+            catchRaise(mode)
+            catchMark(11)
+        end
+    catch RuntimeError failure
+        catchMark(20)
+        yield 2
+        catchMark(21)
+    end
+    catchMark(90)
+    yield 9
+end
+export "close_catch_consume_0" func consumeCatch0(int mode, int limit) as int
+    int count = 0
+    for value in catchDispatch0(mode)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end
+
+func catchDispatch1(int mode) as generator<int>
+    try
+        try
+            yield 1
+        finally
+            catchMark(10)
+            catchRaise(mode)
+            catchMark(11)
+        end
+    catch TypeError failure
+        catchMark(30)
+        yield 3
+        catchMark(31)
+    catch RuntimeError failure
+        catchMark(20)
+        yield 2
+        catchMark(21)
+    end
+    catchMark(90)
+    yield 9
+end
+export "close_catch_consume_1" func consumeCatch1(int mode, int limit) as int
+    int count = 0
+    for value in catchDispatch1(mode)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end
+
+func catchDispatch2(int mode) as generator<int>
+    try
+        try
+            yield 1
+        finally
+            catchMark(10)
+            catchRaise(mode)
+            catchMark(11)
+        end
+    catch RuntimeError failure
+        catchMark(20)
+        yield 2
+        catchMark(21)
+    finally
+        catchMark(40)
+        yield 4
+        catchMark(41)
+    end
+    catchMark(90)
+    yield 9
+end
+export "close_catch_consume_2" func consumeCatch2(int mode, int limit) as int
+    int count = 0
+    for value in catchDispatch2(mode)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end
+
+func catchDispatch3(int mode) as generator<int>
+    try
+        try
+            yield 1
+        finally
+            catchMark(10)
+            catchRaise(mode)
+            catchMark(11)
+        end
+    catch TypeError failure
+        catchMark(30)
+        yield 3
+        catchMark(31)
+    catch RuntimeError failure
+        catchMark(20)
+        yield 2
+        catchMark(21)
+    finally
+        catchMark(40)
+        yield 4
+        catchMark(41)
+    end
+    catchMark(90)
+    yield 9
+end
+export "close_catch_consume_3" func consumeCatch3(int mode, int limit) as int
+    int count = 0
+    for value in catchDispatch3(mode)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end
+
+func catchDispatch4(int mode) as generator<int>
+    try
+        try
+            yield 1
+        finally
+            catchMark(10)
+            catchRaise(mode)
+            catchMark(11)
+        end
+    catch RuntimeError failure
+        catchMark(20)
+        catchMark(21)
+    end
+    catchMark(90)
+    yield 9
+end
+export "close_catch_consume_4" func consumeCatch4(int mode, int limit) as int
+    int count = 0
+    for value in catchDispatch4(mode)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end
+
+func catchDispatch5(int mode) as generator<int>
+    try
+        try
+            yield 1
+        finally
+            catchMark(10)
+            catchRaise(mode)
+            catchMark(11)
+        end
+    catch TypeError failure
+        catchMark(30)
+        catchMark(31)
+    catch RuntimeError failure
+        catchMark(20)
+        catchMark(21)
+    end
+    catchMark(90)
+    yield 9
+end
+export "close_catch_consume_5" func consumeCatch5(int mode, int limit) as int
+    int count = 0
+    for value in catchDispatch5(mode)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end
+
+func catchDispatch6(int mode) as generator<int>
+    try
+        try
+            yield 1
+        finally
+            catchMark(10)
+            catchRaise(mode)
+            catchMark(11)
+        end
+    catch RuntimeError failure
+        catchMark(20)
+        catchMark(21)
+    finally
+        catchMark(40)
+        yield 4
+        catchMark(41)
+    end
+    catchMark(90)
+    yield 9
+end
+export "close_catch_consume_6" func consumeCatch6(int mode, int limit) as int
+    int count = 0
+    for value in catchDispatch6(mode)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end
+
+func catchDispatch7(int mode) as generator<int>
+    try
+        try
+            yield 1
+        finally
+            catchMark(10)
+            catchRaise(mode)
+            catchMark(11)
+        end
+    catch TypeError failure
+        catchMark(30)
+        catchMark(31)
+    catch RuntimeError failure
+        catchMark(20)
+        catchMark(21)
+    finally
+        catchMark(40)
+        yield 4
+        catchMark(41)
+    end
+    catchMark(90)
+    yield 9
+end
+export "close_catch_consume_7" func consumeCatch7(int mode, int limit) as int
+    int count = 0
+    for value in catchDispatch7(mode)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end

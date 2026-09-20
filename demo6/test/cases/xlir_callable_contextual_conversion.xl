@@ -1,0 +1,112 @@
+int contextEntered = 0
+int contextEvaluated = 0
+int contextFinally = 0
+
+func makeContextBox() as var
+    contextEvaluated += 1
+    int base = 40
+    return xcall(func() as int => base + 2)
+end
+
+func contextUse(func() as int callback) as int
+    contextEntered += 1
+    return callback()
+end
+
+func contextRestore(var boxed) as func() as int
+    return boxed
+end
+
+func contextDeferred(var boxed) as func() as int
+    try
+        return boxed
+    finally
+        contextFinally += 1
+    end
+end
+
+async func contextAsync(var boxed) as func() as int
+    return boxed
+end
+
+async func checkContextConversions() as int
+    func() as int first = makeContextBox()
+    assert first() == 42 and contextEvaluated == 1
+    var boxed = makeContextBox()
+    func() as int restored = boxed
+    assert restored() == 42
+    restored = makeContextBox()
+    assert restored() == 42 and contextEvaluated == 3
+    assert contextUse(makeContextBox()) == 42 and contextEvaluated == 4
+    assert contextUse(callback = boxed) == 42
+    auto invoke = contextUse
+    assert invoke(boxed) == 42
+    auto returned = contextRestore(makeContextBox())
+    assert returned() == 42 and contextEvaluated == 5
+    auto deferred = contextDeferred(boxed)
+    assert deferred() == 42 and contextFinally == 1
+    auto asynchronous = await contextAsync(boxed)
+    assert asynchronous() == 42
+
+    int rejected = 0
+    var bad = 17
+    try
+        func() as int wrong = bad
+        assert false, "invalid declaration was accepted"
+    catch TypeError ignored
+        rejected += 1
+    end
+    try
+        restored = bad
+        assert false, "invalid replacement was accepted"
+    catch TypeError ignored
+        rejected += 1
+    end
+    assert restored() == 42, "failed conversion destroyed prior storage"
+    int enteredBefore = contextEntered
+    try
+        contextUse(bad)
+        assert false, "invalid argument was accepted"
+    catch TypeError ignored
+        rejected += 1
+    end
+    assert contextEntered == enteredBefore, "callee entered before argument validation"
+    try
+        auto wrong = contextRestore(bad)
+        assert false, "invalid return was accepted"
+    catch TypeError ignored
+        rejected += 1
+    end
+    try
+        auto wrong = contextDeferred(bad)
+        assert false, "invalid deferred return was accepted"
+    catch TypeError ignored
+        rejected += 1
+    end
+    assert contextFinally == 2
+    try
+        auto wrong = await contextAsync(bad)
+        assert false, "invalid async return was accepted"
+    catch TypeError ignored
+        rejected += 1
+    end
+    var wrongSignature = xcall(func(int argument) as int => argument)
+    try
+        func() as int wrong = wrongSignature
+        assert false, "callable with mismatching signature was accepted"
+    catch TypeError ignored
+        rejected += 1
+    end
+    var missing = null
+    try
+        func() as int wrong = missing
+        assert false, "null callable was accepted as non-nullable"
+    catch TypeError ignored
+        rejected += 1
+    end
+    assert rejected == 8
+    return 0
+end
+
+int contextResult = await checkContextConversions()
+assert contextResult == 0

@@ -1,0 +1,24 @@
+class Counter
+    int value = 0
+end
+
+func readCounter(Counter counter) as int
+    return counter.value
+end
+
+func echoCounter(Counter counter) as Counter
+    return counter
+end
+
+Counter source = Counter()
+source.value = 42
+
+func(Counter) as int readFn = readCounter
+var dynamicRead = xcall(readFn)
+assert int(dynamicRead(source)) == 42
+
+func(Counter) as Counter echoFn = echoCounter
+var dynamicEcho = xcall(echoFn)
+Counter restored = dynamicEcho(source) as Counter
+assert restored == source
+assert restored.value == 42

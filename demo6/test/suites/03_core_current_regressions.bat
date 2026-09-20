@@ -4,6 +4,11 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: current core ownership regressions...
 
+rem Structural ownership assertions consume XLIR data; run/build below retain
+rem the original behavioral regression coverage for the same source programs.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_current_core_contract.ps1
+if errorlevel 1 exit /b 1
+
 for %%F in (test\cases\index_ownership*.xl) do (
     release\xl.exe check "%%F"
     if errorlevel 1 exit /b 1
@@ -17,36 +22,11 @@ for %%F in (test\cases\index_ownership*.xl) do (
 
 release\xl.exe cgen test\cases\index_ownership_top_level_var_return.xl --emit build\test\index_ownership_top_level_var_return.c
 if errorlevel 1 exit /b 1
-findstr /C:"static long long xl6_xrt_value_to_i64_release(xvalue value)" build\test\index_ownership_top_level_var_return.c >nul
-if errorlevel 1 (
-    echo index_ownership_top_level_var_return.c missing xvalue scalar bridge definition.
-    exit /b 1
-)
-findstr /C:"xl6_temp_managed_release((void*)value, (XL6_TempManagedDrop)xvoUnref);" build\test\index_ownership_top_level_var_return.c >nul
-if errorlevel 1 (
-    echo index_ownership_top_level_var_return.c bypassed unified temporary release.
-    exit /b 1
-)
-powershell.exe -NoProfile -Command "$count = (Select-String -Path 'build\test\index_ownership_top_level_var_return.c' -Pattern '^static long long xl6_xrt_value_to_i64_release\(').Count; if ($count -ne 1) { exit 1 }"
-if errorlevel 1 (
-    echo index_ownership_top_level_var_return.c emitted duplicate scalar bridge definitions.
-    exit /b 1
-)
 
 release\xl.exe check test\cases\hir_xvalue_scalar_bridge_matrix.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\hir_xvalue_scalar_bridge_matrix.xl --emit build\test\hir_xvalue_scalar_bridge_matrix.c
 if errorlevel 1 exit /b 1
-findstr /C:"xrtCopyStr(((const char*)xl6_runtime_value_as_string(value" build\test\hir_xvalue_scalar_bridge_matrix.c >nul
-if errorlevel 1 (
-    echo hir_xvalue_scalar_bridge_matrix.c missing single narrowed string conversion.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_value_to_string(((const char*)xl6_runtime_value_as_string" build\test\hir_xvalue_scalar_bridge_matrix.c >nul
-if not errorlevel 1 (
-    echo hir_xvalue_scalar_bridge_matrix.c emitted a double xvalue string conversion.
-    exit /b 1
-)
 release\xl.exe run test\cases\hir_xvalue_scalar_bridge_matrix.xl
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\hir_xvalue_scalar_bridge_matrix.xl -o build\test\hir_xvalue_scalar_bridge_matrix.exe
@@ -58,21 +38,6 @@ release\xl.exe check test\cases\cgen_global_identifier_collision.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_global_identifier_collision.xl --emit build\test\cgen_global_identifier_collision.c
 if errorlevel 1 exit /b 1
-findstr /C:"static void* __xl6_user_global_ptr;" build\test\cgen_global_identifier_collision.c >nul
-if errorlevel 1 (
-    echo cgen_global_identifier_collision.c missing internal point global symbol.
-    exit /b 1
-)
-findstr /C:"static XL6_Function __xl6_user_global_xrtCall;" build\test\cgen_global_identifier_collision.c >nul
-if errorlevel 1 (
-    echo cgen_global_identifier_collision.c missing internal function-value global symbol.
-    exit /b 1
-)
-findstr /C:"xl6_channel_send_value(__xl6_user_global_xrtChannelSend" build\test\cgen_global_identifier_collision.c >nul
-if errorlevel 1 (
-    echo cgen_global_identifier_collision.c did not escape the channel receiver global.
-    exit /b 1
-)
 release\xl.exe run test\cases\cgen_global_identifier_collision.xl
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_global_identifier_collision.xl -o build\test\cgen_global_identifier_collision.exe
@@ -86,11 +51,6 @@ release\xl.exe run test\cases\cgen_function_direct_owned_args.xl test\cases\cgen
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_function_direct_owned_args.xl --emit build\test\cgen_function_direct_owned_args.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_retain(value)" build\test\cgen_function_direct_owned_args.c >nul
-if errorlevel 1 (
-    echo cgen_function_direct_owned_args.c missing per-call ownership retain.
-    exit /b 1
-)
 release\xl.exe build test\cases\cgen_function_direct_owned_args.xl test\cases\cgen_class_host.c -o build\test\cgen_function_direct_owned_args.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_function_direct_owned_args.exe
@@ -222,16 +182,6 @@ release\xl.exe check test\cases\cgen_implicit_string_methods.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_implicit_string_methods.xl --emit build\test\cgen_implicit_string_methods.c
 if errorlevel 1 exit /b 1
-findstr /C:"__xl_std_string_trim(" build\test\cgen_implicit_string_methods.c >nul
-if errorlevel 1 (
-    echo cgen_implicit_string_methods.c missing implicit trim lowering.
-    exit /b 1
-)
-findstr /C:"__xl_std_string_lower(__xl_std_string_trim(" build\test\cgen_implicit_string_methods.c >nul
-if errorlevel 1 (
-    echo cgen_implicit_string_methods.c missing chained implicit string lowering.
-    exit /b 1
-)
 release\xl.exe run test\cases\cgen_implicit_string_methods.xl
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_implicit_string_methods.xl -o build\test\cgen_implicit_string_methods.exe
@@ -243,21 +193,6 @@ release\xl.exe check test\cases\cgen_generic_class_return_self.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_generic_class_return_self.xl --emit build\test\cgen_generic_class_return_self.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvoGetRecordOwner(self)" build\test\cgen_generic_class_return_self.c >nul
-if errorlevel 1 (
-    echo cgen_generic_class_return_self.c missing owned self return.
-    exit /b 1
-)
-findstr /C:"xvalue __xl6_call_receiver_" build\test\cgen_generic_class_return_self.c >nul
-if errorlevel 1 (
-    echo cgen_generic_class_return_self.c missing chained class receiver temporary.
-    exit /b 1
-)
-findstr /C:"xvoUnref(__xl6_call_receiver_" build\test\cgen_generic_class_return_self.c >nul
-if errorlevel 1 (
-    echo cgen_generic_class_return_self.c missing chained class receiver cleanup.
-    exit /b 1
-)
 release\xl.exe run test\cases\cgen_generic_class_return_self.xl test\cases\cgen_class_host.c
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\cgen_generic_class_return_self.xl test\cases\cgen_class_host.c -o build\test\cgen_generic_class_return_self.exe
@@ -285,16 +220,6 @@ for %%F in (
 
 release\xl.exe cgen test\cases\cgen_typed_container_var_identity.xl --emit build\test\cgen_typed_container_var_identity.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_xrt_typed_container_box_ref(" build\test\cgen_typed_container_var_identity.c >nul
-if errorlevel 1 (
-    echo cgen_typed_container_var_identity.c lost handle-preserving boxing.
-    exit /b 1
-)
-findstr /C:"xl6_xrt_typed_container_snapshot(" build\test\cgen_typed_container_var_identity.c >nul
-if errorlevel 1 (
-    echo cgen_typed_container_var_identity.c lost stable for-in snapshot lowering.
-    exit /b 1
-)
 
 echo DEMO6 suite ok: current core ownership regressions
 exit /b 0

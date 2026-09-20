@@ -1,0 +1,210 @@
+int setterCalls = 0
+int setterOrder = 0
+int setterFailureStage = 0
+int setterPayloadDestroyed = 0
+bool setterFail = false
+extern "dynamic_setter_raise" func setterRaise(int code)
+class SetterBase
+    int stored = 1
+    virtual get amount() as int
+        return self.stored
+    end
+    virtual let amount(int value)
+        setterCalls += 1
+        if setterFail or value < 0 then setterRaise(71) end
+        self.stored = value + 10
+    end
+end
+class SetterDerived extends SetterBase
+    override let amount(int value)
+        setterCalls += 1
+        if setterFail or value < 0 then setterRaise(72) end
+        self.stored = value + 20
+    end
+end
+class SetterInherited extends SetterDerived
+end
+class SetterReadOnly
+    get amount() as int
+        return 39
+    end
+end
+class SetterField
+    int amount = 2
+end
+class SetterIndexed
+    get amount(string key) as int
+        return string.len(key)
+    end
+    let amount(string key, int value)
+        assert false, "indexed setter must not be invoked without its key"
+    end
+end
+class SetterPayload
+    bool fail
+    create(bool fail)
+        self.fail = fail
+    end
+    destroy()
+        setterPayloadDestroyed += 1
+        if self.fail then setterRaise(74) end
+    end
+end
+class SetterSink
+    let payload(var value)
+        setterCalls += 1
+        if setterFail then setterRaise(73) end
+    end
+end
+func setterWrite(var receiver, var value)
+    receiver.amount = value
+end
+func setterPayloadWrite(var receiver, var value)
+    receiver.payload = value
+end
+func setterRead(var receiver) as int
+    return int(receiver.amount)
+end
+func setterRhs() as int
+    setterOrder = setterOrder * 10 + 1
+    if setterFailureStage == 1 then setterRaise(75) end
+    return 7
+end
+func setterIndex() as int
+    setterOrder = setterOrder * 10 + 2
+    if setterFailureStage == 2 then setterRaise(76) end
+    return 0
+end
+export "dynamic_setter_check" func setterCheck() as int
+    setterCalls = 0
+    setterFail = false
+    var first = SetterBase()
+    var second = SetterInherited()
+    setterWrite(first, 7)
+    setterWrite(second, 8)
+    assert setterRead(first) == 17 and setterRead(second) == 28 and setterCalls == 2
+    bool caught = false
+    try
+        setterWrite(second, -1)
+    catch failure
+        caught = true
+    end
+    assert caught and setterRead(second) == 28 and setterCalls == 3
+    caught = false
+    try
+        setterWrite(second, "bad")
+    catch failure
+        caught = true
+    end
+    assert caught and setterRead(second) == 28 and setterCalls == 3
+    caught = false
+    try
+        setterWrite(SetterReadOnly(), 1)
+    catch failure
+        caught = true
+    end
+    assert caught, "read-only getter must not turn into a raw field write"
+    caught = false
+    try
+        setterWrite(SetterIndexed(), 1)
+    catch failure
+        caught = true
+    end
+    assert caught, "unsupported setter must not turn into a raw field write"
+    caught = false
+    try
+        setterWrite(null, 1)
+    catch failure
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        setterWrite(12, 1)
+    catch failure
+        caught = true
+    end
+    assert caught
+    var record = {}
+    setterWrite(record, 19)
+    assert setterRead(record) == 19
+    setterWrite(record, 23)
+    assert setterRead(record) == 23
+    var field = SetterField()
+    setterWrite(field, 31)
+    assert setterRead(field) == 31
+    var receivers = array[SetterBase()]
+    setterOrder = 0
+    setterFailureStage = 0
+    receivers[setterIndex()].amount = setterRhs()
+    assert setterOrder == 12 and setterRead(receivers[0]) == 17
+    setterOrder = 0
+    setterFailureStage = 1
+    caught = false
+    try
+        receivers[setterIndex()].amount = setterRhs()
+    catch failure
+        caught = true
+    end
+    assert caught and setterOrder == 1 and setterRead(receivers[0]) == 17
+    setterOrder = 0
+    setterFailureStage = 2
+    caught = false
+    try
+        receivers[setterIndex()].amount = setterRhs()
+    catch failure
+        caught = true
+    end
+    assert caught and setterOrder == 12 and setterRead(receivers[0]) == 17
+    setterPayloadDestroyed = 0
+    caught = false
+    try
+        receivers[setterIndex()].payload = SetterPayload(false)
+    catch failure
+        caught = true
+    end
+    assert caught and setterPayloadDestroyed == 1, "owned RHS must roll back when receiver evaluation fails"
+    setterFailureStage = 0
+    setterPayloadDestroyed = 0
+    setterPayloadWrite(SetterSink(), SetterPayload(false))
+    assert setterPayloadDestroyed == 1
+    caught = false
+    try
+        setterPayloadWrite(SetterSink(), SetterPayload(true))
+    catch failure
+        caught = true
+    end
+    assert caught and setterPayloadDestroyed == 2, "raising argument cleanup must remain catchable"
+    setterFail = true
+    caught = false
+    try
+        setterPayloadWrite(SetterSink(), SetterPayload(true))
+    catch failure
+        caught = true
+    end
+    setterFail = false
+    assert caught and setterPayloadDestroyed == 3
+    return 0
+end
+export "dynamic_setter_uncaught" func setterUncaught()
+    setterFail = true
+    setterPayloadWrite(SetterSink(), SetterPayload(true))
+end
+extern "dynamic_setter_future" func setterFuture() as future<int>
+async func setterAsync(var receiver, future<int> pending) as int
+    receiver.amount = 3
+    int value = await pending
+    receiver.amount = value
+    return int(receiver.amount)
+end
+async func setterReady() as int
+    return 0
+end
+future<int> setterPending = setterReady()
+export "dynamic_setter_start" func setterStart()
+    setterFail = false
+    setterPending = setterAsync(SetterInherited(), setterFuture())
+end
+export "dynamic_setter_fail" func setterSetFailure()
+    setterFail = true
+end

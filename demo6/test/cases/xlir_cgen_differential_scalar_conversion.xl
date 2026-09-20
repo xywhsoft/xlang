@@ -1,0 +1,3 @@
+export "xl6_diff_converted" func converted() as int64
+    return int(12.75)
+end

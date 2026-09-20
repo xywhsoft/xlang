@@ -1,0 +1,4 @@
+func main(...) as int
+    var value = 42
+    return 0
+end

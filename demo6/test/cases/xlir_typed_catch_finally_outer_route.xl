@@ -1,0 +1,14 @@
+int trace = 0
+try
+    try
+        throw TypeError "typed finally miss"
+    catch ValueError ignored
+        trace = 100
+    finally
+        trace = trace + 10
+    end
+catch TypeError outer
+    assert outer.kind == "TypeError"
+    trace = trace + 1
+end
+assert trace == 11

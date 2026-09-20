@@ -1,0 +1,5 @@
+string key = "dGhlIHNhbXBsZSBub25jZQ=="
+
+assert WsHandshake.keyValid(key)
+assert WsHandshake.accept(key) == "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
+println("websocket-handshake-trim-ok")

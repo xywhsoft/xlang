@@ -1,6 +1,6 @@
 # DEMO6 功能清单
 
-> 更新日期：2026-08-02
+> 更新日期：2026-08-06
 >
 > 本清单用于快速核对当前 `demo6/release/xl.exe` 已实现能力、标准写法、测试入口和验收边界。DEMO6 不背负 demo3/demo4/demo5 的历史兼容口径；旧版本文档只能作为历史参考。
 
@@ -45,6 +45,8 @@ xl impdef <file.dll> -o <output.def>
 - 已移除旧口径：不支持 `0X`、`0O`、`0B`、`&H`、`&O`、`&B` 数字前缀；不支持 `->` 返回值语法。
 - 函数返回值统一使用 `as`：`func foo(int a) as int`；多返回值使用 `as (int, string)`。
 - 函数类型使用 `func`：`func(int) as int proc = foo`。
+- typed `func` 不会隐式进入 `var`；动态化必须显式写 `var f = xcall(proc)`。
+- `var` 恢复 typed func 使用精确签名转换：`func(int) as int p = f as func(int) as int`；签名不匹配抛 `TypeError`。
 - 可选参数使用默认值：`func foo(int a = 1)`。
 - xlang 可变参数：`...` 为数组可变参数，`***` 为字典可变参数；函数体通过 `arg` 访问。
 - C vararg 使用 `cvararg`：`extern "printf" func printf(string fmt, cvararg) as c_int`。
@@ -89,6 +91,8 @@ xl impdef <file.dll> -o <output.def>
 - 函数是一等公民，可赋值、传参、调用。
 - 函数签名可表达参数类型、返回类型和多返回值。
 - 闭包支持捕获外部变量。
+- 静态函数值保留 typed/native 直调；显式经过 `xcall` 的动态函数值通过 XRT call frame 调用。
+- XCall 可承载基础值、动态容器、专用 XRT 数据结构和 class 句柄；`byref/out`、C vararg、静态 typed container 和嵌套 func 参数暂不进入 XCall。
 - 泛型函数、泛型 class、静态泛型容器可用。
 - 泛型实例化调用采用 Rust 风格 turbofish：`max::<int>(a, b)`。
 - 泛型约束语法采用简化写法，例如 `func cloneAll<T is cloneable>(array<T> items) as array<T>`。
@@ -153,6 +157,10 @@ from geometry import Transform as Matrix
 - xlang 编译结果是 C 代码，可与 C 文件混合编译。
 - C 函数通过声明进入 xlang；xlang 导出给 C 通过 `export`、ABI 元数据、自动头文件实现。
 - C 可访问 xlang/XRT 数据结构；复杂 class/function/object 通过稳定 ABI 和 XRT 协议接口访问。
+- `extern` / `export` 的 `func(...)` 参数会生成普通 C 函数指针 typedef，支持 C 与 xlang 双向回调。
+- raw C 回调支持 bool/整数/浮点/point/string 参数和基础标量返回；字符串参数只在调用期间借用，字符串返回尚未声明所有权协议，因此禁止。
+- 具名函数与非捕获匿名函数可直接进入 C 回调；捕获闭包必须使用 `callback + userdata` API 或 XCall。
+- C 回调进入 xlang 后由原子引用计数对象托管，可以安全保存并在导出 wrapper 返回后调用。
 - `xl.dll` 面向内嵌运行；`xlc.dll` 面向编译能力；二者边界保持独立。
 - TCC API 通过 `tcc.Context` 和 `tcc.*` 标准库能力暴露；运行态默认注入 XRT 与 xlang 导出符号。
 - 内置 VFS 查询顺序：动态 VFS -> 外部文件系统 -> 静态 VFS。

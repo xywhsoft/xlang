@@ -1,0 +1,3 @@
+export "xlir_test_truncate_value" func truncate_value() as int64
+    return int(12.75)
+end

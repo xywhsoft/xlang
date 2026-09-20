@@ -1,0 +1,1 @@
+assert !dir.empty("build/test/xlir_absent_directory_probe")

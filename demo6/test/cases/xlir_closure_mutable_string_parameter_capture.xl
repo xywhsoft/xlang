@@ -1,0 +1,12 @@
+extern "expect_text" func expectText(string actual, string expected)
+
+func applySuffix(string initial) as string
+    auto next = func() as string
+        initial = initial + "!"
+        return initial
+    end
+    string first = next()
+    return next()
+end
+
+expectText(applySuffix("a"), "a!!")

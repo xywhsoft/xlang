@@ -1,6 +1,6 @@
 #include "src/sem/xl6_sem_docs.h"
 
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 
 #include <string.h>
 
@@ -492,4 +492,3 @@ int xl6SemCheckDocs(XL6_AstNode* root, XL6_DiagList* diags)
 {
     return xl6SemCheckDocsRecursive(diags, root);
 }
-

@@ -1,0 +1,7 @@
+async func add(int left, int right) as int
+    return left + right
+end
+
+future<int> pending = add(19, 23)
+int completed = await pending
+assert completed == 42

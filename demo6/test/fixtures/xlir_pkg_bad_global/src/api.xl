@@ -1,0 +1,4 @@
+extern "xlir_pkg_bad_count" int count
+export func verify() as bool
+    return count == 42
+end

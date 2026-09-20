@@ -1,0 +1,9 @@
+export "xlir_test_string_literal_forms" func string_literal_forms() as int
+    string single = 'hello "x"'
+    string rawPath = r"c:\tmp\file.txt"
+    string multi = """line1
+line2"""
+    string rawMulti = r'''a\b
+"q"'''
+    return 42
+end

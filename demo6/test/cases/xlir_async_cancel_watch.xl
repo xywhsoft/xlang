@@ -1,0 +1,42 @@
+extern "cancel_watch_drop" func cancelWatchDrop(int id)
+extern "cancel_watch_finally" func cancelWatchFinally()
+extern "cancel_watch_caught" func cancelWatchCaught()
+extern "cancel_watch_after" func cancelWatchAfter()
+extern "cancel_watch_input" func cancelWatchInput() as future<int>
+class CancelWatchValue
+    int id = 0
+    destroy()
+        cancelWatchDrop(self.id)
+    end
+end
+export "cancel_watch_new" func cancelWatchNew(int id) as CancelWatchValue
+    auto value = CancelWatchValue()
+    value.id = id
+    return value
+end
+async func cancelWatchRun(CancelWatchValue first, CancelWatchValue second, future<int> input, future<int> cleanup, int mode) as int
+    try
+        int number = await input
+        cancelWatchAfter()
+        return number + first.id + second.id
+    catch CancelledError error
+        cancelWatchCaught()
+        if mode == 1
+            return 37
+        end
+        throw
+    finally
+        if mode >= 2
+            int ignored = await cleanup
+        end
+        cancelWatchFinally()
+        if mode == 4
+            return 53
+        end
+    end
+end
+export "cancel_watch_keep" func cancelWatchKeep()
+    auto first = cancelWatchNew(1)
+    auto second = cancelWatchNew(2)
+    auto result = cancelWatchRun(first, second, cancelWatchInput(), cancelWatchInput(), 0)
+end

@@ -1,0 +1,13 @@
+func replaceParameter(var local) as var
+    auto next = func() as var
+        local = {"count": 42}
+        return local
+    end
+    return next()
+end
+
+func replaceParameterValue() as var
+    return replaceParameter({"count": 40})
+end
+
+var replacedParameter = replaceParameterValue()

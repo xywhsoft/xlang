@@ -1,0 +1,30 @@
+extern "payload_fault_started" func started()
+extern "payload_fault_finally" func finalized()
+extern "payload_fault_caught" func caughtTrace()
+func items() as generator<int>
+    started()
+    try
+        yield 7
+        yield 9
+    finally
+        finalized()
+    end
+end
+export "payload_fault_case" func probe(bool caught) as int
+    int total = 0
+    if caught then
+        try
+            for item in items()
+                total += int(item)
+            end
+        catch MemoryError
+            caughtTrace()
+            return 77
+        end
+    else
+        for item in items()
+            total += int(item)
+        end
+    end
+    return total
+end

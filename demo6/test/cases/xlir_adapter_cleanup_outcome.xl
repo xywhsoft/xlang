@@ -1,0 +1,59 @@
+extern "adapter_open" func opened(int id)
+extern "adapter_drop" func dropped(int id)
+extern "adapter_primary" func primary()
+
+class AdapterGuard
+    int id
+    create(int id)
+        self.id = id
+        opened(id)
+    end
+    destroy()
+        dropped(self.id)
+    end
+end
+
+func scalarDefault(AdapterGuard first = AdapterGuard(1), AdapterGuard last = AdapterGuard(2)) as int
+    return 17
+end
+
+func ownedDefault(AdapterGuard first = AdapterGuard(1), AdapterGuard last = AdapterGuard(2)) as AdapterGuard
+    return AdapterGuard(first.id + last.id)
+end
+
+func productDefault(AdapterGuard first = AdapterGuard(1), AdapterGuard last = AdapterGuard(2)) as (AdapterGuard, AdapterGuard)
+    return AdapterGuard(first.id + last.id), AdapterGuard(4)
+end
+
+func voidDefault(AdapterGuard first = AdapterGuard(1), AdapterGuard last = AdapterGuard(2))
+    return
+end
+
+func failingDefault(AdapterGuard first = AdapterGuard(1), AdapterGuard last = AdapterGuard(2)) as AdapterGuard
+    primary()
+    return AdapterGuard(first.id + last.id)
+end
+
+export "adapter_cleanup_keep" func keep(int shape) as int
+    try
+    if shape == 0 then
+        func() as int callback = scalarDefault
+        return callback()
+    elseif shape == 1 then
+        func() as AdapterGuard callback = ownedDefault
+        return callback().id
+    elseif shape == 2 then
+        func() as (AdapterGuard, AdapterGuard) callback = productDefault
+        auto first, last = callback()
+        return first.id + last.id
+    elseif shape == 3 then
+        func() callback = voidDefault
+        callback()
+        return 19
+    end
+    func() as AdapterGuard callback = failingDefault
+    return callback().id
+    catch error
+        return -77
+    end
+end

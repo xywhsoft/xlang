@@ -47,7 +47,10 @@ typedef struct XL6_PackageManifest {
     char* packageId;
     char* dir;
     XL6_PackageStringList cSources;
+    XL6_PackageStringList includeDirs;
     XL6_PackageStringList xlSources;
+    XL6_PackageStringList xrtModules;
+    int xrtModulesDeclared;
     XL6_PackageStringList links;
     XL6_PackageStringList loadlibs;
     XL6_PackageDependency* dependencies;

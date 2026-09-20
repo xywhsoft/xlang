@@ -48,7 +48,7 @@ if errorlevel 1 (
     echo cgen_async_param_ownership.c missing owned var argument frame copy.
     exit /b 1
 )
-findstr /C:"__xl6_args->values = xl6_xrt_typed_array_copy_mode(xrtTypeInt(), values, XRT_OBJMODE_SHARED);" build\test\cgen_async_param_ownership.c >nul
+findstr /C:"__xl6_args->values = xl6TypedArrayClone(values);" build\test\cgen_async_param_ownership.c >nul
 if errorlevel 1 (
     echo cgen_async_param_ownership.c missing owned typed-array argument frame copy.
     exit /b 1
@@ -58,7 +58,7 @@ if errorlevel 1 (
     echo cgen_async_param_ownership.c missing owned class-handle argument frame retain.
     exit /b 1
 )
-findstr /C:"xvalue box = __xl6_args->box;" build\test\cgen_async_param_ownership.c >nul
+findstr /C:"xvalue* box = __xl6_args->box;" build\test\cgen_async_param_ownership.c >nul
 if errorlevel 1 (
     echo cgen_async_param_ownership.c missing worker class-handle ownership transfer.
     exit /b 1
@@ -77,9 +77,9 @@ if errorlevel 1 (
 release\xl.exe cgen test\cases\cgen_async.xl --emit build\test\cgen_async.c
 if errorlevel 1 exit /b 1
 
-findstr /C:"xTaskRunThread" build\test\cgen_async.c >nul
+findstr /C:"xl6FutureRunThread" build\test\cgen_async.c >nul
 if errorlevel 1 (
-    echo cgen_async.c missing xTaskRunThread.
+    echo cgen_async.c missing xl6FutureRunThread.
     exit /b 1
 )
 findstr /C:"xl6_async_require_future(xl6_task_run_thread_tracked" build\test\cgen_async.c >nul

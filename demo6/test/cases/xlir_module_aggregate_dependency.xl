@@ -1,0 +1,85 @@
+extern "dependency_peer" func dependencyPeer(int id) as future<int>
+extern "dependency_caught" func dependencyCaught(int id)
+extern "dependency_finally" func dependencyFinally(int id)
+extern "dependency_after" func dependencyAfter(int id)
+extern "dependency_boot" func dependencyBoot() as future<int>
+extern "dependency_callback" func dependencyCallback(int id, int stage)
+extern "dependency_aggregate_mode" func aggregateMode() as int
+extern "dependency_aggregate_ready" func aggregateReady() as future<int>
+extern "module_executor_dropped" func moduleDropped()
+string moduleText = "mixed " + "alive"
+class ModuleMarker
+    destroy()
+        assert moduleText == "mixed alive", "Globals retired before aggregate finalization"
+        moduleDropped()
+    end
+end
+ModuleMarker marker = ModuleMarker()
+func leaf() as int
+    assert moduleText == "mixed alive", "Globals retired before accepted task"
+    return 19
+end
+func identity(int value) as int
+    return value
+end
+func preserve(error failure) as int
+    throw failure.message
+    return 0
+end
+async func moduleCycle(int id, future<int> boot, future<int> cleanup, bool waitCleanup) as int
+    try
+        int accepted = await task.spawn(leaf)
+        assert accepted == 19, "Accepted task lost its result"
+        int ignored = await boot
+        future<int> peer = dependencyPeer(id).then(identity).catch(preserve)
+        future<int> first = peer.finally(func()
+            assert moduleText == "mixed alive", "Globals retired before first callback"
+            dependencyCallback(id, 0)
+        end)
+        future<int> second = first.finally(func()
+            assert moduleText == "mixed alive", "Globals retired before second callback"
+            dependencyCallback(id, 1)
+        end)
+        int mode = aggregateMode()
+        int number = 0
+        if mode == 0
+            array<int> values = await task.all([second, aggregateReady(), second])
+            assert values.length == 3 and values[0] == 19 and values[1] == 19 and values[2] == 19, "All literal results lost order or aliases"
+            number = values[0]
+        elseif mode == 1
+            number = await task.race([second, second])
+        elseif mode == 2
+            int selected = await task.whenAny([second, second])
+            assert selected == 0 or selected == 1, "WhenAny literal lost index"
+            number = await second
+        elseif mode == 3
+            array<future<int>> inputs = [second, aggregateReady(), second]
+            array<int> values = await task.all(inputs)
+            assert values.length == 3 and values[0] == 19 and values[1] == 19 and values[2] == 19, "All array results lost order or aliases"
+            number = values[0]
+        elseif mode == 4
+            array<future<int>> inputs = [second, second]
+            number = await task.race(inputs)
+        else
+            array<future<int>> inputs = [second, second]
+            int selected = await task.whenAny(inputs)
+            assert selected == 0 or selected == 1, "WhenAny array lost index"
+            number = await second
+        end
+        dependencyAfter(id)
+        return number
+    catch CancelledError failure
+        assert moduleText == "mixed alive", "Globals retired before async catch"
+        dependencyCaught(id)
+        throw
+    finally
+        if waitCleanup
+            int ignored = await cleanup
+        end
+        assert moduleText == "mixed alive", "Globals retired before async finally"
+        dependencyFinally(id)
+    end
+end
+export "module_executor_keep" func keep()
+    auto output = moduleCycle(0, dependencyBoot(), dependencyBoot(), false)
+end

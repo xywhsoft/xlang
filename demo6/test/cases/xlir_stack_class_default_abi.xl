@@ -1,0 +1,5 @@
+class StackDefaultHolder
+    Stack<string> values
+end
+
+StackDefaultHolder stackDefaultHolder

@@ -4,34 +4,24 @@ func require(string name, bool ok)
 end
 
 func acceptedFirstSend()
-    point listenerHandle = tcp.listen(0, "127.0.0.1", 4)
-    TcpServer server = TcpServer(listenerHandle)
-    require("tcp_listener_transfer", listenerHandle == null)
-
-    point clientHandle = tcp.connect("127.0.0.1", int(server.port()), 3000)
-    TcpStream client = TcpStream(clientHandle)
-    require("tcp_client_transfer", clientHandle == null)
-
-    point peerHandle = server.accept(3000)
-    TcpStream peer = TcpStream(peerHandle)
-    require("tcp_accept_transfer", peerHandle == null)
+    TcpServer server = tcp.listen(0, "127.0.0.1", 4)
+    TcpStream client = tcp.connect("127.0.0.1", int(server.port()), 3000)
+    TcpStream peer = server.accept(3000)
 
     bool sent = peer.send("220 first\r\n")
     bool drained = peer.drain(3000)
     string received = client.recv(3000)
     require("tcp_accepted_first_send", sent and drained and received == "220 first\r\n")
 
-    peer.close()
-    client.close()
+	peer.close()
+	client.close()
+	require("tcp_listener_close", server.close())
 end
 
 func gracefulCloseKeepsPendingData()
-    point listenerHandle = tcp.listen(0, "127.0.0.1", 4)
-    TcpServer server = TcpServer(listenerHandle)
-    point clientHandle = tcp.connect("127.0.0.1", int(server.port()), 3000)
-    TcpStream client = TcpStream(clientHandle)
-    point peerHandle = server.accept(3000)
-    TcpStream peer = TcpStream(peerHandle)
+    TcpServer server = tcp.listen(0, "127.0.0.1", 4)
+    TcpStream client = tcp.connect("127.0.0.1", int(server.port()), 3000)
+    TcpStream peer = server.accept(3000)
 
     string payload = string.repeat("0123456789abcdef", 4096)
     bool sent = client.send(payload)
@@ -53,16 +43,13 @@ func gracefulCloseKeepsPendingData()
 end
 
 func gracefulCloseSurvivesDestroy()
-    point listenerHandle = tcp.listen(0, "127.0.0.1", 4)
-    TcpServer server = TcpServer(listenerHandle)
-    point clientHandle = tcp.connect("127.0.0.1", int(server.port()), 3000)
-    point peerHandle = server.accept(3000)
-    TcpStream peer = TcpStream(peerHandle)
+    TcpServer server = tcp.listen(0, "127.0.0.1", 4)
+    TcpStream client = tcp.connect("127.0.0.1", int(server.port()), 3000)
+    TcpStream peer = server.accept(3000)
     string payload = string.repeat("scope-close-", 4096)
     bool sent = false
 
     if true then
-        TcpStream client = TcpStream(clientHandle)
         sent = client.send(payload)
         client.close()
     end

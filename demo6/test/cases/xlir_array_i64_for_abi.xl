@@ -1,0 +1,153 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+array<int> snapshotValues = array[2, 4, 6, 8]
+int snapshotSum = 0
+int snapshotVisits = 0
+for value in snapshotValues
+    expect(value, value)
+    snapshotSum = snapshotSum + value
+    snapshotVisits = snapshotVisits + 1
+    if value == 2
+        snapshotValues = array[100]
+    end
+    if value == 4
+        continue
+    end
+    if value == 8
+        break
+    end
+end
+expect(snapshotSum, 20)
+expect(snapshotVisits, 4)
+expect(snapshotValues[0], 100)
+
+array<int> indexedValues = array[3, 5, 7, 9]
+int indexedSum = 0
+for index, value in indexedValues
+    if index == 1
+        continue
+    end
+    indexedSum = indexedSum + index * 10 + value
+    if index == 2
+        break
+    end
+end
+expect(indexedSum, 30)
+
+func sum_named_array(array<int> values) as int
+    int total = 0
+    for value in values
+        total = total + value
+    end
+    return total
+end
+
+func first_named_array(array<int> values) as int
+    for value in values
+        return value
+    end
+    return -1
+end
+
+func checked_array_value(int value) as int
+    if value == 5
+        throw ValueError "array loop sentinel"
+    end
+    return value
+end
+
+func sum_with_inner_catch(array<int> values) as int
+    int total = 0
+    for value in values
+        try
+            total = total + checked_array_value(value)
+        catch ValueError ignored
+            total = total + 50
+        end
+    end
+    return total
+end
+
+func sum_with_outer_catch(array<int> values) as int
+    int total = 0
+    try
+        for value in values
+            total = total + checked_array_value(value)
+        end
+    catch ValueError ignored
+        total = total + 100
+    end
+    return total
+end
+
+func sum_with_exception_finally(array<int> values) as int
+    int total = 0
+    int trace = 0
+    try
+        for value in values
+            try
+                total = total + checked_array_value(value)
+            finally
+                trace = trace + 1
+            end
+        end
+    catch ValueError ignored
+        total = total + 1000
+    end
+    return total + trace * 100
+end
+
+int arrayReturnFinallyTrace = 0
+func first_with_finally(array<int> values) as int
+    for value in values
+        try
+            return value
+        finally
+            arrayReturnFinallyTrace = arrayReturnFinallyTrace + 1
+        end
+    end
+    return -1
+end
+
+func break_with_finally(array<int> values) as int
+    int trace = 0
+    for value in values
+        try
+            trace = trace + value * 10
+            if value == 5
+                break
+            end
+        finally
+            trace = trace + 1
+        end
+    end
+    return trace
+end
+
+func make_owned_loop_values() as array<int>
+    return array[6, 7]
+end
+
+array<int> parameterValues = array[10, 20, 30]
+expect(sum_named_array(parameterValues), 60)
+expect(first_named_array(parameterValues), 10)
+
+array<int> effectValues = array[3, 5, 7]
+expect(sum_with_inner_catch(effectValues), 60)
+expect(sum_with_outer_catch(effectValues), 103)
+expect(sum_with_exception_finally(effectValues), 1203)
+expect(first_with_finally(effectValues), 3)
+expect(arrayReturnFinallyTrace, 1)
+expect(break_with_finally(effectValues), 82)
+
+int literalRvalueSum = 0
+for value in array[1, 2]
+    literalRvalueSum = literalRvalueSum + value
+end
+expect(literalRvalueSum, 3)
+
+int returnedRvalueSum = 0
+for value in make_owned_loop_values()
+    returnedRvalueSum = returnedRvalueSum + value
+end
+expect(returnedRvalueSum, 13)

@@ -1,0 +1,36 @@
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+
+
+class CallbackBox
+    func(int) as int callback
+end
+
+
+
+func(int) as int empty
+
+
+
+func main(...) as int
+    CallbackBox box = CallbackBox()
+
+    assert empty == null
+    assert null == empty
+    assert box.callback == null
+
+    box.callback = makeAdder(10)
+    assert box.callback != null
+    assert null != box.callback
+    assert box.callback(2) == 12
+
+    assert makeAdder(20) != null
+    assert null != makeAdder(30)
+    assert (true ? box.callback : makeAdder(40)) != null
+    assert (false ? box.callback : makeAdder(50)) != null
+    return 0
+end

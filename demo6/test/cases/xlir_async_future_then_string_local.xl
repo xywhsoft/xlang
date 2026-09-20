@@ -1,0 +1,11 @@
+extern "xlir_make_string_future" func makeText() as future<string>
+
+async func appendCopiedAfter(future<string> source, string suffix) as string
+    string copied = suffix
+    return await source + copied
+end
+
+future<string> source = makeText()
+future<string> pending = appendCopiedAfter(source, "!")
+string completed = await pending
+assert completed == "hello!"

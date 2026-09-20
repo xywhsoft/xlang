@@ -14,6 +14,14 @@ class DeriveRecord
     end
 end
 
+class ReferenceRecord
+    int id = 0
+
+    create(int id)
+        self.id = id
+    end
+end
+
 DeriveRecord left = DeriveRecord(7, "alpha", 1)
 DeriveRecord same = DeriveRecord(7, "alpha", 99)
 DeriveRecord other = DeriveRecord(8, "alpha", 1)
@@ -34,3 +42,10 @@ assert left != other, "derive equals should detect changed compared field"
 set<DeriveRecord> records = set{left, same, other}
 assert records.length == 2, "typed set should combine derive hash and equals"
 assert same in records, "typed set lookup should use derived value semantics"
+
+ReferenceRecord referenceLeft = ReferenceRecord(7)
+ReferenceRecord referenceSameValue = ReferenceRecord(7)
+set<ReferenceRecord> references = set{
+    referenceLeft, referenceLeft, referenceSameValue
+}
+assert references.length == 2, "plain class set identity should deduplicate only the same object"

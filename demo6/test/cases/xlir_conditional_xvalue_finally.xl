@@ -1,0 +1,20 @@
+int conditional_xvalue_finally_trace = 0
+
+func choose_conditional_xvalue_finally(bool enabled) as var
+    try
+        return enabled ? {"value": 41} : {"value": 42}
+    finally
+        conditional_xvalue_finally_trace = conditional_xvalue_finally_trace + 1
+    end
+end
+
+func conditional_xvalue_finally_check() as int
+    var yes = choose_conditional_xvalue_finally(true)
+    var no = choose_conditional_xvalue_finally(false)
+    return conditional_xvalue_finally_trace
+end
+
+
+if false
+    conditional_xvalue_finally_check()
+end

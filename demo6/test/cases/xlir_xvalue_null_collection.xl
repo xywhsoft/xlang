@@ -1,0 +1,9 @@
+func dynamic_null_collection() as var
+  var value = {"items": [null]}
+  return value.items[0]
+end
+
+export "xlir_test_xvalue_null_collection_root" func xlir_test_root() as int
+  var rootedValue = dynamic_null_collection()
+  return 0
+end

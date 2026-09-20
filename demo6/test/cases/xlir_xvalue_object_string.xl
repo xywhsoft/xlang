@@ -1,0 +1,9 @@
+func dynamic_object_string() as var
+  var value = {"label": "hello"}
+  return value["label"]
+end
+
+export "xlir_test_xvalue_object_string_root" func xlir_test_root() as int
+  var rootedValue = dynamic_object_string()
+  return 0
+end

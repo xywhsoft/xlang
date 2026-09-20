@@ -1,0 +1,27 @@
+async func run() as int
+    TcpServer server = tcp.listen(0, "127.0.0.1", 8)
+    future<TcpStream> accepted = server.acceptAsync()
+    TcpStream client = tcp.connect("127.0.0.1", int(server.port()), 8000)
+    TcpStream peer = await accepted
+    assert client.send("peek-consume")
+    int remaining = 8000
+    while peer.available() < 12 and remaining > 0
+        time.sleep(1)
+        remaining = remaining - 1
+    end
+    assert peer.available() >= 12
+    Buffer prefix = peer.peek(4)
+    assert prefix.text() == "peek"
+    Buffer all = peer.peek()
+    assert all.text() == "peek-consume"
+    assert not peer.consume(13)
+    assert peer.consume(4)
+    assert peer.recv(8000) == "-consume"
+    client.close()
+    peer.close()
+    server.close()
+    return 0
+end
+int exitCode = await run()
+assert exitCode == 0
+println("xlir net buffer command lifetime ok")

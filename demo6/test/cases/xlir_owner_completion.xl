@@ -1,0 +1,49 @@
+extern "owner_completion_fail" func completionFail()
+extern "owner_completion_drop" func completionDrop()
+extern "owner_completion_caught" func completionCaught(int code)
+extern "owner_completion_finally" func completionFinally()
+extern "owner_completion_string" func completionString() as string
+extern "owner_completion_future" func completionFuture() as future<int>
+extern "owner_completion_value" func completionValue() as var
+
+class CompletionGuard
+    destroy()
+        completionDrop()
+    end
+end
+
+func failedElement() as int
+    completionFail()
+    return 0
+end
+
+// The second element fails while the first element and the container already
+// exist. Neither a destination local nor Cgen may own the partial construction.
+export func owner_completion_case(int kind) as int
+    try
+        CompletionGuard guard = CompletionGuard()
+        if kind == 0
+            var partial = array[1, failedElement()]
+        elseif kind == 1
+            var partial = list[0: 1, 2: failedElement()]
+        elseif kind == 2
+            var partial = dict{"first": 1, "second": failedElement()}
+        elseif kind == 3
+            var partial = set{1, failedElement()}
+        elseif kind == 4
+            var partial = array[array[1], array[2, failedElement()]]
+        elseif kind == 5
+            string returned = completionString()
+        elseif kind == 6
+            future<int> returned = completionFuture()
+        else
+            var returned = completionValue()
+        end
+    catch error
+        completionCaught(error.code)
+        return 23
+    finally
+        completionFinally()
+    end
+    return 0
+end

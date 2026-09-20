@@ -1,0 +1,11 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func applyNested(int base) as int
+    auto outer = func(int extra) as func(int) as int
+        return func(int value) as int => base + extra + value
+    end
+    func(int) as int inner = outer(3)
+    return inner(4)
+end
+
+expect(applyNested(10), 17)

@@ -1,0 +1,12 @@
+func countArray<T>(array<T> values) as int
+    return values.length
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+int literalCount = countArray([1, 2, 3])
+array<int> stored = [4, 5]
+int storedCount = countArray(stored)
+
+expect(literalCount, 3)
+expect(storedCount, 2)

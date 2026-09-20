@@ -1,0 +1,25 @@
+export "xlir_u64_generic_literal" uint64 genericLiteralValue = 0
+export "xlir_u64_generic_bool" uint64 genericBoolValue = 0
+export "xlir_u64_generic_identity" uint64 genericIdentityValue = 0
+export "xlir_u64_generic_text" bool genericTextValue = false
+
+func genericLiteral<T>(T ignored) as uint64
+    return uint64(2026)
+end
+
+func genericBool<T>(T ignored, bool value) as uint64
+    return uint64(value)
+end
+
+func genericIdentity<T>(T ignored, uint64 value) as uint64
+    return uint64(value)
+end
+
+func genericText<T>(T ignored, uint64 value) as string
+    return string(value)
+end
+
+genericLiteralValue = genericLiteral::<bool>(false)
+genericBoolValue = genericBool::<bool>(false, true)
+genericIdentityValue = genericIdentity::<bool>(false, 18446744073709551615)
+genericTextValue = genericText::<bool>(false, 18446744073709551615) == "18446744073709551615"

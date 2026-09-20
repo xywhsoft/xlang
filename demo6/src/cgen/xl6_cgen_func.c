@@ -161,9 +161,10 @@ static void xl6CgenExportWrapper(XL6_CgenContext* ctx, const XL6_AstNode* node)
                 xl6OutputPutc(')', ctx->out);
             } else if ( param != NULL && param->childCount > 0 &&
                         xl6CgenIsFunctionType(param->children[0]) ) {
-                xl6OutputPuts("xl6_function_copy_value(", ctx->out);
-                xl6CgenFputsCIdent(ctx->out, param->text);
-                xl6OutputPutc(')', ctx->out);
+                xl6CgenEmitCAbiCallbackMakeExpr(
+                    ctx,
+                    param->children[0],
+                    param->text);
             } else if ( param != NULL && param->childCount > 0 &&
                         xl6CgenNullableHasManagedInner(
                             ctx,

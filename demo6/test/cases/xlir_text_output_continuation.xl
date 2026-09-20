@@ -1,0 +1,24 @@
+async func readyValue() as int
+    return 7
+end
+
+async func outputAsync(string text) as int
+    write("async:")
+    int value = await readyValue()
+    writeln(text)
+    return value
+end
+
+func outputGenerator() as generator<int>
+    write("gen:")
+    yield 1
+    writeln("done")
+    yield 2
+end
+
+assert await outputAsync("ok") == 7
+int total = 0
+for value in outputGenerator()
+    total = total + value
+end
+assert total == 3

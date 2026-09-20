@@ -1,0 +1,5 @@
+bool invalid = xson.valid("{bad}")
+throw "init-boundary-sentinel"
+func main(...) as int
+    return 7
+end

@@ -1,0 +1,45 @@
+extern "callback_boundary_drop" func callbackDrop()
+extern "callback_boundary_work" func callbackWork(int value) as int
+extern "callback_boundary_finally" func callbackFinally(int value)
+extern "callback_boundary_input" func callbackInput() as future<int>
+class CallbackOwner
+    string text = "hello"
+    destroy()
+        callbackDrop()
+    end
+end
+func callbackThen(future<int> input) as future<int>
+    CallbackOwner owner = CallbackOwner()
+    return input.then(func(int value) as int => callbackWork(value + owner.text.length))
+end
+func callbackCatch(future<int> input) as future<int>
+    CallbackOwner owner = CallbackOwner()
+    return input.catch(func(error reason) as int => callbackWork(owner.text.length))
+end
+func callbackFinal(future<int> input) as future<int>
+    CallbackOwner owner = CallbackOwner()
+    func() cleanup = func()
+        callbackFinally(owner.text.length)
+    end
+    return input.finally(cleanup)
+end
+func callbackTask(future<int> input) as future<int>
+    CallbackOwner owner = CallbackOwner()
+    return task.spawn(func(string text, int value, CallbackOwner other) as int => callbackWork(text.length + value + owner.text.length + other.text.length), "abc", 2, owner)
+end
+func callbackOwned(future<int> input) as future<CallbackOwner>
+    CallbackOwner owner = CallbackOwner()
+    func(int) as CallbackOwner transform = func(int value) as CallbackOwner
+        int observed = callbackWork(value + owner.text.length)
+        return CallbackOwner()
+    end
+    return input.then(transform)
+end
+export "callback_boundary_keep" func callbackKeep()
+    future<int> input = callbackInput()
+    future<int> first = callbackThen(input)
+    future<int> second = callbackCatch(input)
+    future<int> third = callbackFinal(input)
+    future<int> fourth = callbackTask(input)
+    future<CallbackOwner> fifth = callbackOwned(input)
+end

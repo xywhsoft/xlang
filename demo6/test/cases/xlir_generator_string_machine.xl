@@ -1,0 +1,14 @@
+func words() as generator<string>
+    yield "alpha"
+    yield "beta"
+end
+
+int count = 0
+string last = ""
+for item in words()
+    count = count + 1
+    last = item
+end
+
+assert count == 2, "managed generator item count failed"
+assert last == "beta", "managed generator item ownership failed"

@@ -1,0 +1,6 @@
+string text = "中文"
+write("")
+write("text:")
+write(text)
+write("|")
+write(text)

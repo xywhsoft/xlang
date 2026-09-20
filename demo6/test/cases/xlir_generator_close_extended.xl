@@ -1,0 +1,72 @@
+extern "close_extended_mark" func extendedMark(int id)
+extern "close_extended_raise" func extendedRaise(int mode)
+
+func neverStarted(string owner) as generator<int>
+    try
+        extendedMark(1)
+        yield 1
+    finally
+        extendedMark(2)
+    end
+end
+export "close_extended_unstarted" func consumeUnstarted() as int
+    auto values = neverStarted("never started")
+    return 42
+end
+func closeProtected(int mode) as generator<int>
+    try
+        extendedMark(10)
+        try
+            yield 1
+            extendedMark(11)
+        finally
+            extendedMark(20)
+            extendedRaise(mode)
+            yield 2
+            extendedMark(21)
+        end
+        extendedMark(30)
+    finally
+        extendedMark(40)
+        yield 4
+        extendedMark(41)
+    end
+    extendedMark(50)
+    yield 5
+end
+func closeCaught(int mode) as generator<int>
+    try
+        yield 1
+        extendedRaise(mode)
+    catch error
+        extendedMark(20)
+        yield 2
+        extendedMark(21)
+    finally
+        extendedMark(40)
+        yield 4
+        extendedMark(41)
+    end
+    extendedMark(50)
+    yield 5
+end
+export "close_extended_protected" func consumeProtected(int mode, int limit) as int
+    int count = 0
+    for value in closeProtected(mode)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end
+export "close_extended_caught" func consumeCaught(int mode, int limit) as int
+    int count = 0
+    for value in closeCaught(mode)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end

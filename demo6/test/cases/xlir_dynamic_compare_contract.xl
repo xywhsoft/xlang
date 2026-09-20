@@ -1,0 +1,92 @@
+// Comparisons are executed directly in all three physical execution modes.
+export "xlir_dynamic_compare_mask" func compareMask(var left, var right) as int
+    int mask = 0
+    if left == right then mask += 1 end
+    if left < right then mask += 2 end
+    if left <= right then mask += 4 end
+    if left > right then mask += 8 end
+    if left >= right then mask += 16 end
+    if left ~= right then mask += 32 end
+    return mask
+end
+
+async func ready() as int
+    return 1
+end
+
+async func asyncMask(var left, var right) as int
+    int marker = await ready()
+    float nanValue = math.nan
+    float infValue = math.inf
+    assert nanValue != nanValue, "async binary64 NaN"
+    assert infValue > 1.0 and infValue + 1.0 == infValue, "async binary64 infinity"
+    int mask = 0
+    if left == right then mask += 1 end
+    if left < right then mask += 2 end
+    if left <= right then mask += 4 end
+    if left > right then mask += 8 end
+    if left >= right then mask += 16 end
+    if left ~= right then mask += 32 end
+    return mask + marker - 1
+end
+
+func generatorMasks(int first, int second) as generator<int>
+    var left = first
+    var right = second
+    yield 0
+    float nanValue = math.nan
+    float infValue = math.inf
+    assert nanValue != nanValue, "generator binary64 NaN"
+    assert infValue > 1.0 and infValue + 1.0 == infValue, "generator binary64 infinity"
+    int mask = 0
+    if left == right then mask += 1 end
+    if left < right then mask += 2 end
+    if left <= right then mask += 4 end
+    if left > right then mask += 8 end
+    if left >= right then mask += 16 end
+    if left ~= right then mask += 32 end
+    yield mask
+end
+
+async func checkCase(var left, var right, int expected) as int
+    int actual = compareMask(left, right)
+    assert actual == expected, "sync dynamic compare " + string(left) + "/" + string(right) + ": " + string(actual) + " expected " + string(expected)
+    int asyncResult = await asyncMask(left, right)
+    assert asyncResult == expected, "async dynamic compare"
+    return 1
+end
+
+assert await checkCase(#2026-06-18#, #2026-06-19#, 6) == 1, "comparison case"
+assert await checkCase(#12:00:00#, #12:00:00#, 53) == 1, "comparison case"
+assert await checkCase(#12:00:01#, #12:00:00#, 56) == 1, "comparison case"
+assert await checkCase(#12:00:20#, #12:00:00#, 24) == 1, "comparison case"
+assert await checkCase(9007199254740992, 9007199254740993, 38) == 1, "comparison case"
+assert await checkCase(9007199254740993, 9007199254740992, 56) == 1, "comparison case"
+assert await checkCase(-9007199254740993, -9007199254740992, 38) == 1, "comparison case"
+uint64 maximum = 18446744073709551615
+uint64 beforeMaximum = 18446744073709551614
+assert await checkCase(beforeMaximum, maximum, 38) == 1, "comparison case"
+assert await checkCase(maximum, beforeMaximum, 56) == 1, "comparison case"
+uint64 zero = 0
+assert await checkCase(-1, zero, 6) == 1, "comparison case"
+assert await checkCase(zero, -1, 24) == 1, "comparison case"
+assert await checkCase(123, uint64(123), 53) == 1, "comparison case"
+assert await checkCase("abc", "abc", 53) == 1, "comparison case"
+assert await checkCase("abc", "xyz", 6) == 1, "comparison case"
+assert await checkCase(1.25, 2.5, 6) == 1, "comparison case"
+assert await checkCase(null, null, 21) == 1, "comparison case"
+assert await checkCase(#12:00:00#, 0, 0) == 1, "comparison case"
+var notNumber = math.nan
+assert await checkCase(notNumber, notNumber, 0) == 1, "NaN equality and ordering"
+assert await checkCase(notNumber, 1, 0) == 1, "NaN left operand"
+assert await checkCase(1, notNumber, 0) == 1, "NaN right operand"
+assert await checkCase(math.inf, 1, 24) == 1, "positive infinity"
+assert await checkCase(1, math.inf, 6) == 1, "infinity right operand"
+
+int generatorTotal = 0
+int generatorCount = 0
+for item in generatorMasks(9007199254740992, 9007199254740993)
+    generatorTotal += item
+    generatorCount += 1
+end
+assert generatorTotal == 38 and generatorCount == 2, "generator boxed comparison across yield"

@@ -111,15 +111,33 @@ static XL6_AstNode* xl6CgenSpecialCollectionMethodType(XL6_CgenContext* ctx, con
     }
     result = NULL;
     if ( xl6CTextEquals(member->text, "push") || xl6CTextEquals(member->text, "popInto") ||
-         xl6CTextEquals(member->text, "peekInto") || xl6CTextEquals(member->text, "set") ||
-         xl6CTextEquals(member->text, "getInto") || xl6CTextEquals(member->text, "contains") ||
-         xl6CTextEquals(member->text, "remove") || xl6CTextEquals(member->text, "tryPush") ||
+         xl6CTextEquals(member->text, "peekInto") || xl6CTextEquals(member->text, "peekAtInto") ||
+         xl6CTextEquals(member->text, "reserve") || xl6CTextEquals(member->text, "set") ||
+         xl6CTextEquals(member->text, "getInto") || xl6CTextEquals(member->text, "takeInto") ||
+         xl6CTextEquals(member->text, "contains") || xl6CTextEquals(member->text, "remove") ||
+         xl6CTextEquals(member->text, "firstInto") || xl6CTextEquals(member->text, "lastInto") ||
+         xl6CTextEquals(member->text, "lowerBoundInto") || xl6CTextEquals(member->text, "upperBoundInto") ||
+         xl6CTextEquals(member->text, "equals") || xl6CTextEquals(member->text, "merge") ||
+         xl6CTextEquals(member->text, "tryPush") || xl6CTextEquals(member->text, "reset") ||
          xl6CTextEquals(member->text, "tryPopInto") || xl6CTextEquals(member->text, "popInto") ||
          xl6CTextEquals(member->text, "popTimeoutInto") || xl6CTextEquals(member->text, "isClosed") ||
          xl6CTextEquals(member->text, "isDrained") ) {
         result = xl6CgenNewSimpleType("bool", member);
-    } else if ( xl6CTextEquals(member->text, "count") ) {
+    } else if ( xl6CTextEquals(member->text, "count") ||
+                xl6CTextEquals(member->text, "capacity") ||
+                xl6CTextEquals(member->text, "pushBatch") ||
+                xl6CTextEquals(member->text, "popBatchInto") ||
+                xl6CTextEquals(member->text, "trimTo") ||
+                (xl6CTextEquals(concreteType->text, "AvlTree") &&
+                 xl6CTextEquals(member->text, "trim")) ) {
         result = xl6CgenNewSimpleType("int", member);
+    } else if ( xl6CTextEquals(concreteType->text, "Stack") &&
+                xl6CTextEquals(member->text, "trim") ) {
+        result = xl6CgenNewSimpleType("bool", member);
+    } else if ( xl6CTextEquals(member->text, "clone") &&
+                (xl6CTextEquals(concreteType->text, "Stack") ||
+                 xl6CTextEquals(concreteType->text, "AvlTree")) ) {
+        result = xl6CgenCloneCanonicalTypeNode(ctx, receiverType);
     } else if ( xl6CTextEquals(concreteType->text, "AvlTree") &&
                 (xl6CTextEquals(member->text, "keys") || xl6CTextEquals(member->text, "values")) ) {
         XL6_AstNode* resultArgs;
@@ -186,11 +204,11 @@ static void xl6CgenSpecialCollectionRetainExpr(
     const XL6_AstNode* concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
 
     if ( concreteType != NULL && xl6CTextEquals(concreteType->text, "Stack") ) {
-        xl6OutputPuts("xrtTypedStackRetain(", ctx->out);
+        xl6OutputPuts("xl6SpecialStackRetain(", ctx->out);
     } else if ( concreteType != NULL && xl6CTextEquals(concreteType->text, "AvlTree") ) {
-        xl6OutputPuts("xrtTypedAvlTreeRetain(", ctx->out);
+        xl6OutputPuts("xl6SpecialTreeRetain(", ctx->out);
     } else {
-        xl6OutputPuts("xrtTypedQueueRetain(", ctx->out);
+        xl6OutputPuts("xl6SpecialQueueRetain(", ctx->out);
     }
     xl6CgenExpr(ctx, expr);
     xl6OutputPutc(')', ctx->out);
@@ -204,11 +222,11 @@ static void xl6CgenSpecialCollectionRetainCExpr(
     const XL6_AstNode* concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
 
     if ( concreteType != NULL && xl6CTextEquals(concreteType->text, "Stack") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedStackRetain(%s)", expr != NULL ? expr : "0");
+        xl6OutputPrintf(ctx->out, "xl6SpecialStackRetain(%s)", expr != NULL ? expr : "0");
     } else if ( concreteType != NULL && xl6CTextEquals(concreteType->text, "AvlTree") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedAvlTreeRetain(%s)", expr != NULL ? expr : "0");
+        xl6OutputPrintf(ctx->out, "xl6SpecialTreeRetain(%s)", expr != NULL ? expr : "0");
     } else {
-        xl6OutputPrintf(ctx->out, "xrtTypedQueueRetain(%s)", expr != NULL ? expr : "0");
+        xl6OutputPrintf(ctx->out, "xl6SpecialQueueRetain(%s)", expr != NULL ? expr : "0");
     }
 }
 
@@ -220,11 +238,11 @@ static void xl6CgenSpecialCollectionReleaseCExpr(
     const XL6_AstNode* concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
 
     if ( concreteType != NULL && xl6CTextEquals(concreteType->text, "Stack") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedStackRelease(%s)", expr != NULL ? expr : "0");
+        xl6OutputPrintf(ctx->out, "xl6SpecialStackRelease(%s)", expr != NULL ? expr : "0");
     } else if ( concreteType != NULL && xl6CTextEquals(concreteType->text, "AvlTree") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedAvlTreeRelease(%s)", expr != NULL ? expr : "0");
+        xl6OutputPrintf(ctx->out, "xl6SpecialTreeRelease(%s)", expr != NULL ? expr : "0");
     } else {
-        xl6OutputPrintf(ctx->out, "xrtTypedQueueRelease(%s)", expr != NULL ? expr : "0");
+        xl6OutputPrintf(ctx->out, "xl6SpecialQueueRelease(%s)", expr != NULL ? expr : "0");
     }
 }
 
@@ -269,11 +287,11 @@ static int xl6CgenSpecialCollectionCtorCall(
     capacity = xl6CgenSpecialCollectionCallArg(call, 0);
     xl6OutputPuts("xl6_special_collection_require(", ctx->out);
     if ( xl6CTextEquals(nameNode->text, "Stack") ) {
-        xl6OutputPuts("xrtTypedStackCreate(", ctx->out);
+        xl6OutputPuts("xl6SpecialStackCreate(", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, typeArgs->children[0]);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(nameNode->text, "AvlTree") ) {
-        xl6OutputPuts("xrtTypedAvlTreeCreate(", ctx->out);
+        xl6OutputPuts("xl6SpecialTreeCreate(", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, typeArgs->children[0]);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, typeArgs->children[1]);
@@ -282,7 +300,7 @@ static int xl6CgenSpecialCollectionCtorCall(
         int kind = xl6CTextEquals(nameNode->text, "SpscQueue") ? 1 :
                    (xl6CTextEquals(nameNode->text, "MpscQueue") ? 2 :
                     (xl6CTextEquals(nameNode->text, "MpmcQueue") ? 3 : 4));
-        xl6OutputPrintf(ctx->out, "xrtTypedQueueCreate(%dU, ", kind);
+        xl6OutputPrintf(ctx->out, "xl6SpecialQueueCreate(%dU, ", kind);
         xl6CgenEmitXrtTypeDescRef(ctx, typeArgs->children[0]);
         xl6OutputPuts(", ", ctx->out);
         if ( capacity != NULL ) {
@@ -304,11 +322,11 @@ static void xl6CgenSpecialCollectionDefaultCreateExpr(XL6_CgenContext* ctx, cons
 
     xl6OutputPuts("xl6_special_collection_require(", ctx->out);
     if ( xl6CTextEquals(name, "Stack") ) {
-        xl6OutputPuts("xrtTypedStackCreate(", ctx->out);
+        xl6OutputPuts("xl6SpecialStackCreate(", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, typeArgs != NULL && typeArgs->childCount > 0 ? typeArgs->children[0] : NULL);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(name, "AvlTree") ) {
-        xl6OutputPuts("xrtTypedAvlTreeCreate(", ctx->out);
+        xl6OutputPuts("xl6SpecialTreeCreate(", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, typeArgs != NULL && typeArgs->childCount > 0 ? typeArgs->children[0] : NULL);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, typeArgs != NULL && typeArgs->childCount > 1 ? typeArgs->children[1] : NULL);
@@ -317,7 +335,7 @@ static void xl6CgenSpecialCollectionDefaultCreateExpr(XL6_CgenContext* ctx, cons
         int kind = xl6CTextEquals(name, "SpscQueue") ? 1 :
                    (xl6CTextEquals(name, "MpscQueue") ? 2 :
                     (xl6CTextEquals(name, "MpmcQueue") ? 3 : 4));
-        xl6OutputPrintf(ctx->out, "xrtTypedQueueCreate(%dU, ", kind);
+        xl6OutputPrintf(ctx->out, "xl6SpecialQueueCreate(%dU, ", kind);
         xl6CgenEmitXrtTypeDescRef(ctx, typeArgs != NULL && typeArgs->childCount > 0 ? typeArgs->children[0] : NULL);
         xl6OutputPuts(", 64u)", ctx->out);
     }
@@ -337,6 +355,7 @@ static int xl6CgenSpecialCollectionMethodCall(
     const XL6_AstNode* keyType;
     const XL6_AstNode* arg0;
     const XL6_AstNode* arg1;
+    const XL6_AstNode* arg2;
     const char* typeName;
     const char* method;
 
@@ -358,28 +377,61 @@ static int xl6CgenSpecialCollectionMethodCall(
     keyType = typeArgs != NULL && typeArgs->childCount > 0 ? typeArgs->children[0] : NULL;
     arg0 = xl6CgenSpecialCollectionCallArg(call, 0);
     arg1 = xl6CgenSpecialCollectionCallArg(call, 1);
+    arg2 = xl6CgenSpecialCollectionCallArg(call, 2);
     method = member->text;
 
 #define XL6_SPECIAL_RECEIVER() xl6CgenExpr(ctx, receiver)
     if ( xl6CTextEquals(typeName, "Stack") ) {
         if ( xl6CTextEquals(method, "push") ) {
-            xl6OutputPuts("xrtTypedStackPush(", ctx->out);
+            xl6OutputPuts("xl6SpecialStackPush(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts(", ", ctx->out);
             xl6CgenSpecialCollectionValueAddress(ctx, itemType, arg0);
             xl6OutputPutc(')', ctx->out);
         } else if ( xl6CTextEquals(method, "popInto") || xl6CTextEquals(method, "peekInto") ) {
-            xl6OutputPuts(xl6CTextEquals(method, "popInto") ? "xrtTypedStackPop(" : "xrtTypedStackPeek(", ctx->out);
+            xl6OutputPuts(xl6CTextEquals(method, "popInto") ? "xl6SpecialStackPop(" : "xl6SpecialStackPeek(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts(", ", ctx->out);
             xl6CgenSpecialCollectionOutAddress(ctx, arg0);
             xl6OutputPutc(')', ctx->out);
+        } else if ( xl6CTextEquals(method, "peekAtInto") ) {
+            xl6OutputPuts("xl6SpecialStackPeekAt(", ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, arg0);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenSpecialCollectionOutAddress(ctx, arg1);
+            xl6OutputPutc(')', ctx->out);
+        } else if ( xl6CTextEquals(method, "reserve") ) {
+            xl6OutputPuts("xl6SpecialStackReserve(", ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, arg0);
+            xl6OutputPutc(')', ctx->out);
+        } else if ( xl6CTextEquals(method, "clone") || xl6CTextEquals(method, "equals") ) {
+            xl6OutputPuts(
+                xl6CTextEquals(method, "clone") ? "xl6SpecialStackClone(" : "xl6SpecialStackEquals(",
+                ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            if ( xl6CTextEquals(method, "equals") ) {
+                xl6OutputPuts(", ", ctx->out);
+                xl6CgenExpr(ctx, arg0);
+            }
+            xl6OutputPutc(')', ctx->out);
+        } else if ( xl6CTextEquals(method, "trim") ) {
+            xl6OutputPuts("xl6SpecialStackTrim(", ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            xl6OutputPutc(')', ctx->out);
         } else if ( xl6CTextEquals(method, "clear") ) {
-            xl6OutputPuts("(xrtTypedStackClear(", ctx->out);
+            xl6OutputPuts("(xl6SpecialStackClear(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts("), 0)", ctx->out);
         } else if ( xl6CTextEquals(method, "count") ) {
-            xl6OutputPuts("((long long)xrtTypedStackCount(", ctx->out);
+            xl6OutputPuts("((long long)xl6SpecialStackCount(", ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            xl6OutputPuts("))", ctx->out);
+        } else if ( xl6CTextEquals(method, "capacity") ) {
+            xl6OutputPuts("((long long)xl6SpecialStackCapacity(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts("))", ctx->out);
         } else {
@@ -388,15 +440,15 @@ static int xl6CgenSpecialCollectionMethodCall(
         }
     } else if ( xl6CTextEquals(typeName, "AvlTree") ) {
         if ( xl6CTextEquals(method, "set") ) {
-            xl6OutputPuts("xrtTypedAvlTreeSet(", ctx->out);
+            xl6OutputPuts("xl6SpecialTreeSet(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts(", ", ctx->out);
             xl6CgenSpecialCollectionValueAddress(ctx, keyType, arg0);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenSpecialCollectionValueAddress(ctx, itemType, arg1);
             xl6OutputPutc(')', ctx->out);
-        } else if ( xl6CTextEquals(method, "getInto") ) {
-            xl6OutputPuts("xrtTypedAvlTreeGet(", ctx->out);
+        } else if ( xl6CTextEquals(method, "getInto") || xl6CTextEquals(method, "takeInto") ) {
+            xl6OutputPuts(xl6CTextEquals(method, "getInto") ? "xl6SpecialTreeGet(" : "xl6SpecialTreeTake(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts(", ", ctx->out);
             xl6CgenSpecialCollectionValueAddress(ctx, keyType, arg0);
@@ -404,21 +456,76 @@ static int xl6CgenSpecialCollectionMethodCall(
             xl6CgenSpecialCollectionOutAddress(ctx, arg1);
             xl6OutputPutc(')', ctx->out);
         } else if ( xl6CTextEquals(method, "contains") || xl6CTextEquals(method, "remove") ) {
-            xl6OutputPuts(xl6CTextEquals(method, "contains") ? "xrtTypedAvlTreeContains(" : "xrtTypedAvlTreeRemove(", ctx->out);
+            xl6OutputPuts(xl6CTextEquals(method, "contains") ? "xl6SpecialTreeContains(" : "xl6SpecialTreeRemove(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts(", ", ctx->out);
             xl6CgenSpecialCollectionValueAddress(ctx, keyType, arg0);
             xl6OutputPutc(')', ctx->out);
+        } else if ( xl6CTextEquals(method, "firstInto") || xl6CTextEquals(method, "lastInto") ) {
+            xl6OutputPuts(xl6CTextEquals(method, "firstInto") ? "xl6SpecialTreeFirst(" : "xl6SpecialTreeLast(", ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenSpecialCollectionOutAddress(ctx, arg0);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenSpecialCollectionOutAddress(ctx, arg1);
+            xl6OutputPutc(')', ctx->out);
+        } else if ( xl6CTextEquals(method, "lowerBoundInto") ||
+                    xl6CTextEquals(method, "upperBoundInto") ) {
+            xl6OutputPuts(
+                xl6CTextEquals(method, "lowerBoundInto")
+                    ? "xl6SpecialTreeLowerBound("
+                    : "xl6SpecialTreeUpperBound(",
+                ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenSpecialCollectionValueAddress(ctx, keyType, arg0);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenSpecialCollectionOutAddress(ctx, arg1);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenSpecialCollectionOutAddress(ctx, arg2);
+            xl6OutputPutc(')', ctx->out);
+        } else if ( xl6CTextEquals(method, "trim") || xl6CTextEquals(method, "trimTo") ) {
+            xl6OutputPuts("((long long)xl6SpecialTreeTrim(", ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            xl6OutputPuts(", ", ctx->out);
+            if ( xl6CTextEquals(method, "trimTo") ) {
+                xl6CgenExpr(ctx, arg0);
+            } else {
+                xl6OutputPuts("0", ctx->out);
+            }
+            xl6OutputPuts("))", ctx->out);
+        } else if ( xl6CTextEquals(method, "clone") || xl6CTextEquals(method, "equals") ) {
+            xl6OutputPuts(
+                xl6CTextEquals(method, "clone") ? "xl6SpecialTreeClone(" : "xl6SpecialTreeEquals(",
+                ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            if ( xl6CTextEquals(method, "equals") ) {
+                xl6OutputPuts(", ", ctx->out);
+                xl6CgenExpr(ctx, arg0);
+            }
+            xl6OutputPutc(')', ctx->out);
+        } else if ( xl6CTextEquals(method, "merge") ) {
+            xl6OutputPuts("xl6SpecialTreeMerge(", ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, arg0);
+            xl6OutputPuts(", ", ctx->out);
+            if ( arg1 != NULL ) {
+                xl6CgenExpr(ctx, arg1);
+            } else {
+                xl6OutputPuts("true", ctx->out);
+            }
+            xl6OutputPutc(')', ctx->out);
         } else if ( xl6CTextEquals(method, "clear") ) {
-            xl6OutputPuts("(xrtTypedAvlTreeClear(", ctx->out);
+            xl6OutputPuts("(xl6SpecialTreeClear(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts("), 0)", ctx->out);
         } else if ( xl6CTextEquals(method, "count") ) {
-            xl6OutputPuts("((long long)xrtTypedAvlTreeCount(", ctx->out);
+            xl6OutputPuts("((long long)xl6SpecialTreeCount(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts("))", ctx->out);
         } else if ( xl6CTextEquals(method, "keys") || xl6CTextEquals(method, "values") ) {
-            xl6OutputPuts(xl6CTextEquals(method, "keys") ? "xrtTypedAvlTreeKeys(" : "xrtTypedAvlTreeValues(", ctx->out);
+            xl6OutputPuts(xl6CTextEquals(method, "keys") ? "xl6SpecialTreeKeys(" : "xl6SpecialTreeValues(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts(", 0u)", ctx->out);
         } else {
@@ -426,20 +533,34 @@ static int xl6CgenSpecialCollectionMethodCall(
             return 0;
         }
     } else {
-        if ( xl6CTextEquals(method, "tryPush") ) {
-            xl6OutputPuts("(xrtTypedQueueTryPush(", ctx->out);
+        if ( xl6CTextEquals(method, "pushBatch") ) {
+            xl6OutputPuts("xl6SpecialQueuePushBatch(", ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, arg0);
+            xl6OutputPutc(')', ctx->out);
+        } else if ( xl6CTextEquals(method, "popBatchInto") ) {
+            xl6OutputPuts("xl6SpecialQueuePopBatchInto(", ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, arg0);
+            xl6OutputPuts(", ", ctx->out);
+            xl6CgenExpr(ctx, arg1);
+            xl6OutputPutc(')', ctx->out);
+        } else if ( xl6CTextEquals(method, "tryPush") ) {
+            xl6OutputPuts("(xl6SpecialQueueTryPush(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts(", ", ctx->out);
             xl6CgenSpecialCollectionValueAddress(ctx, itemType, arg0);
             xl6OutputPuts(") == 0)", ctx->out);
         } else if ( xl6CTextEquals(method, "tryPopInto") || xl6CTextEquals(method, "popInto") ) {
-            xl6OutputPuts(xl6CTextEquals(method, "popInto") ? "(xrtTypedQueuePop(" : "(xrtTypedQueueTryPop(", ctx->out);
+            xl6OutputPuts(xl6CTextEquals(method, "popInto") ? "(xl6SpecialQueuePop(" : "(xl6SpecialQueueTryPop(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts(", ", ctx->out);
             xl6CgenSpecialCollectionOutAddress(ctx, arg0);
             xl6OutputPuts(") == 0)", ctx->out);
         } else if ( xl6CTextEquals(method, "popTimeoutInto") ) {
-            xl6OutputPuts("(xrtTypedQueuePopTimeout(", ctx->out);
+            xl6OutputPuts("(xl6SpecialQueuePopTimeout(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts(", ", ctx->out);
             xl6CgenSpecialCollectionOutAddress(ctx, arg0);
@@ -447,15 +568,23 @@ static int xl6CgenSpecialCollectionMethodCall(
             xl6CgenExpr(ctx, arg1);
             xl6OutputPuts(") == 0)", ctx->out);
         } else if ( xl6CTextEquals(method, "close") ) {
-            xl6OutputPuts("(xrtTypedQueueClose(", ctx->out);
+            xl6OutputPuts("(xl6SpecialQueueClose(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts("), 0)", ctx->out);
         } else if ( xl6CTextEquals(method, "count") ) {
-            xl6OutputPuts("((long long)xrtTypedQueueApproxCount(", ctx->out);
+            xl6OutputPuts("((long long)xl6SpecialQueueApproxCount(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPuts("))", ctx->out);
+        } else if ( xl6CTextEquals(method, "capacity") ) {
+            xl6OutputPuts("((long long)xl6SpecialQueueCapacity(", ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            xl6OutputPuts("))", ctx->out);
+        } else if ( xl6CTextEquals(method, "reset") ) {
+            xl6OutputPuts("xl6SpecialQueueReset(", ctx->out);
+            XL6_SPECIAL_RECEIVER();
+            xl6OutputPutc(')', ctx->out);
         } else if ( xl6CTextEquals(method, "isClosed") || xl6CTextEquals(method, "isDrained") ) {
-            xl6OutputPuts(xl6CTextEquals(method, "isClosed") ? "xrtTypedQueueIsClosed(" : "xrtTypedQueueIsDrained(", ctx->out);
+            xl6OutputPuts(xl6CTextEquals(method, "isClosed") ? "xl6SpecialQueueIsClosed(" : "xl6SpecialQueueIsDrained(", ctx->out);
             XL6_SPECIAL_RECEIVER();
             xl6OutputPutc(')', ctx->out);
         } else {
@@ -466,48 +595,4 @@ static int xl6CgenSpecialCollectionMethodCall(
 #undef XL6_SPECIAL_RECEIVER
     xl6AstFree(receiverType);
     return 1;
-}
-
-static void xl6CgenEmitSpecialCollectionRuntime(XL6_Output* out)
-{
-    xl6OutputPuts("/* XRT typed special collections. */\n", out);
-    xl6OutputPuts("typedef struct xrt_typed_stack_struct* xtstack;\n", out);
-    xl6OutputPuts("typedef struct xrt_typed_avl_tree_struct* xtavltree;\n", out);
-    xl6OutputPuts("typedef struct xrt_typed_queue_struct* xtqueue;\n", out);
-    xl6OutputPuts("xtstack xrtTypedStackCreate(const xrt_type_desc*);\n", out);
-    xl6OutputPuts("xtstack xrtTypedStackRetain(xtstack);\n", out);
-    xl6OutputPuts("void xrtTypedStackRelease(xtstack);\n", out);
-    xl6OutputPuts("bool xrtTypedStackPush(xtstack, const void*);\n", out);
-    xl6OutputPuts("bool xrtTypedStackPop(xtstack, void*);\n", out);
-    xl6OutputPuts("bool xrtTypedStackPeek(xtstack, void*);\n", out);
-    xl6OutputPuts("void xrtTypedStackClear(xtstack);\n", out);
-    xl6OutputPuts("uint32_t xrtTypedStackCount(xtstack);\n", out);
-    xl6OutputPuts("xtavltree xrtTypedAvlTreeCreate(const xrt_type_desc*, const xrt_type_desc*, uint32_t);\n", out);
-    xl6OutputPuts("xtavltree xrtTypedAvlTreeRetain(xtavltree);\n", out);
-    xl6OutputPuts("void xrtTypedAvlTreeRelease(xtavltree);\n", out);
-    xl6OutputPuts("bool xrtTypedAvlTreeSet(xtavltree, const void*, const void*);\n", out);
-    xl6OutputPuts("bool xrtTypedAvlTreeGet(xtavltree, const void*, void*);\n", out);
-    xl6OutputPuts("bool xrtTypedAvlTreeContains(xtavltree, const void*);\n", out);
-    xl6OutputPuts("bool xrtTypedAvlTreeRemove(xtavltree, const void*);\n", out);
-    xl6OutputPuts("void xrtTypedAvlTreeClear(xtavltree);\n", out);
-    xl6OutputPuts("uint32_t xrtTypedAvlTreeCount(xtavltree);\n", out);
-    xl6OutputPuts("xtarray xrtTypedAvlTreeKeys(xtavltree, uint32_t);\n", out);
-    xl6OutputPuts("xtarray xrtTypedAvlTreeValues(xtavltree, uint32_t);\n", out);
-    xl6OutputPuts("xtqueue xrtTypedQueueCreate(uint32_t, const xrt_type_desc*, uint32_t);\n", out);
-    xl6OutputPuts("xtqueue xrtTypedQueueRetain(xtqueue);\n", out);
-    xl6OutputPuts("void xrtTypedQueueRelease(xtqueue);\n", out);
-    xl6OutputPuts("int xrtTypedQueueTryPush(xtqueue, const void*);\n", out);
-    xl6OutputPuts("int xrtTypedQueueTryPop(xtqueue, void*);\n", out);
-    xl6OutputPuts("int xrtTypedQueuePop(xtqueue, void*);\n", out);
-    xl6OutputPuts("int xrtTypedQueuePopTimeout(xtqueue, void*, uint32_t);\n", out);
-    xl6OutputPuts("uint32_t xrtTypedQueueApproxCount(xtqueue);\n", out);
-    xl6OutputPuts("void xrtTypedQueueClose(xtqueue);\n", out);
-    xl6OutputPuts("bool xrtTypedQueueIsClosed(xtqueue);\n", out);
-    xl6OutputPuts("bool xrtTypedQueueIsDrained(xtqueue);\n", out);
-    xl6OutputPuts("static void* xl6_special_collection_require(void* handle, int line, int column)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    (void)line; (void)column;\n", out);
-    xl6OutputPuts("    if ( handle == 0 ) { xl6_runtime_fatal(3); }\n", out);
-    xl6OutputPuts("    return handle;\n", out);
-    xl6OutputPuts("}\n\n", out);
 }

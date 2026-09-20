@@ -1,0 +1,15 @@
+export "xlir_test_continue_through_finally" func continue_through_finally() as int
+    int value = 0
+    int trace = 0
+    while value < 3
+        value = value + 1
+        try
+            if value < 3 then
+                continue
+            end
+        finally
+            trace = trace * 10 + value
+        end
+    end
+    return trace
+end

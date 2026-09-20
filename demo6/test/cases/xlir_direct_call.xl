@@ -1,0 +1,7 @@
+func add(int64 left, int64 right) as int64
+    return left + right
+end
+
+export "xlir_test_call_answer" func call_answer() as int64
+    return add(19, 23)
+end

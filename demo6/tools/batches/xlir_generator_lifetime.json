@@ -1,0 +1,16 @@
+{
+  "SchemaVersion": 1,
+  "Name": "generator-lifetime",
+  "Gates": [
+    "check_xlir_contract.ps1",
+    "check_xlir_instantiation_context.ps1",
+    "check_xlir_generator_payload_values.ps1",
+    "check_xlir_generator_close_routes.ps1",
+    "check_xlir_dynamic_iteration_allocation.ps1",
+    "check_xlir_owner_consumption.ps1",
+    "check_xlir_generator_frame_loan.ps1",
+    "check_xlir_cell_loop_binding.ps1",
+    "check_xlir_cell_continuation_outcome.ps1",
+    "check_xlir_loop_cleanup_outcome.ps1"
+  ]
+}

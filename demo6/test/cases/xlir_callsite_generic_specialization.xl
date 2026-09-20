@@ -1,0 +1,12 @@
+func touch(int value) as int
+    return value + 1
+end
+
+func wrap<T>(T value) as T
+    touch(1)
+    return value
+end
+
+export "xlir_callsite_generic_specialization_probe" func probe() as int
+    return wrap(42)
+end

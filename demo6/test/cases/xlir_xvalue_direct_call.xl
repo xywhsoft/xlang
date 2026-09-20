@@ -1,0 +1,13 @@
+func dynamic_identity(var value) as var
+  return value
+end
+
+func dynamic_call_roundtrip() as var
+  var value = {"count": 42}
+  return dynamic_identity(value)
+end
+
+export "xlir_test_xvalue_direct_call_root" func xlir_test_root() as int
+  var rootedValue = dynamic_call_roundtrip()
+  return 0
+end

@@ -1,0 +1,72 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+class Pair
+    int left = 0
+    int right = 0
+end
+
+class Native
+    native point handle
+end
+
+union Payload
+    int i
+    c_double d
+end
+
+func integerPair() as (int, int)
+    return 7, 8
+end
+
+func managedPair() as (string, string)
+    return "left", "right"
+end
+
+func classUnionPair() as (Pair, Payload)
+    Pair pair = Pair()
+    pair.left = 4
+    pair.right = 5
+
+    Payload payload
+    payload.i = 9
+    return pair, payload
+end
+
+func nativePair(Native value) as (Native, int)
+    return value, 11
+end
+
+array<int> values = array[0]
+dict<int> scores = dict{"main": 0}
+values[0], scores["main"] = integerPair()
+expect(values[0], 7)
+expect(scores["main"], 8)
+
+array<string> labels = array[""]
+dict<string> names = dict{"main": ""}
+labels[0], names["main"] = managedPair()
+expectStr(labels[0], "left")
+expectStr(names["main"], "right")
+
+Pair emptyPair = Pair()
+Payload emptyPayload
+array<Pair> pairs = array[emptyPair]
+list<Payload> payloads = list[0: emptyPayload]
+pairs[0], payloads[3] = classUnionPair()
+
+Pair gotPair = pairs[0]
+Payload gotPayload = payloads[3]
+expect(gotPair.left + gotPair.right, 9)
+expect(gotPayload.i, 9)
+
+point raw
+Native nativeValue = Native(raw)
+dict<Native> natives = dict{"main": nativeValue}
+var dynamicKey = "dynamic"
+natives[dynamicKey], scores["native"] = nativePair(nativeValue)
+
+Native gotNative = natives[dynamicKey]
+var boxedNative = gotNative
+expect(type(boxedNative) == Native, 1)
+expect(scores["native"], 11)

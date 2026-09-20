@@ -1,0 +1,21 @@
+class ScalarInitializer
+    int value
+    create(int value)
+        self.value = value
+    end
+end
+func initializedScalarItems() as generator<int>
+    try
+        yield 1
+    finally
+        ScalarInitializer item = ScalarInitializer(7)
+        yield item.value
+    end
+end
+export "generator_initializer_scalar" func scalarInitializationTotal() as int
+    int total = 0
+    for item in initializedScalarItems()
+        total += item
+    end
+    return total
+end

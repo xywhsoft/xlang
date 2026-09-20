@@ -206,7 +206,7 @@ static XL6_HirTypeId xl6HirTypePoolIntern(
     item->kind = kind;
     item->sourceTypeId = sourceTypeId;
     item->abiId = abiId;
-    item->name = (char*)xrtCopyStr((str)name, strlen(name));
+    item->name = xrtStrDupN(name, strlen(name));
     if ( item->name == NULL ) {
         return XL6_HIR_TYPE_INVALID;
     }

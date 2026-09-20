@@ -1,0 +1,81 @@
+int created = 0
+int destroyed = 0
+
+class CaptureMarker
+    int value
+    create(int value)
+        self.value = value
+    end
+    destroy()
+        destroyed += 1
+    end
+end
+
+func empty() as int
+    return 0
+end
+
+func make(int value) as func() as int
+    created += 1
+    CaptureMarker marker = CaptureMarker(value)
+    return func() as int => marker.value
+end
+
+func() as int globalCallback = empty
+
+class CallbackSlot
+    static func() as int callback = empty
+end
+
+func localScope(int mode)
+    auto current = make(1)
+    current = make(2)
+    assert created - destroyed == 1, "owned assignment leaked old closure"
+    auto other = make(3)
+    current = other
+    assert created - destroyed == 1, "borrowed assignment leaked old closure"
+    current = current
+    other = empty
+    assert current() == 3, "alias or self-assignment lost a live closure"
+    if mode == 1 then
+        return
+    end
+    if mode == 2 then
+        throw "expected closure scope failure"
+    end
+end
+
+func globalScope()
+    auto source = make(4)
+    globalCallback = source
+    source = empty
+    globalCallback = globalCallback
+    assert globalCallback() == 4, "global alias assignment lost closure ownership"
+    globalCallback = empty
+    assert created == destroyed, "global replacement leaked captured resource"
+end
+
+func staticScope()
+    auto source = make(5)
+    CallbackSlot.callback = source
+    source = empty
+    CallbackSlot.callback = CallbackSlot.callback
+    assert CallbackSlot.callback() == 5, "static field alias assignment lost closure ownership"
+    CallbackSlot.callback = empty
+    assert created == destroyed, "static field replacement leaked captured resource"
+end
+
+for iteration in range(100)
+    localScope(0)
+    assert created == destroyed, "normal scope leaked reassigned closure"
+    localScope(1)
+    assert created == destroyed, "return leaked reassigned closure"
+    try
+        localScope(2)
+    catch ignored
+        assert created == destroyed, "exception leaked reassigned closure"
+    end
+    globalScope()
+    staticScope()
+end
+assert created == 1100 and destroyed == 1100, "closure storage destructor accounting"

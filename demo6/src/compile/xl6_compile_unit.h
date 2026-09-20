@@ -3,6 +3,7 @@
 
 #include "src/compile/xl6_imports.h"
 #include "src/ir/xl6_hir.h"
+#include "src/ir/xl6_ir.h"
 #include "src/parser/xl6_parser_api.h"
 
 typedef struct XL6_CompileUnit {
@@ -11,10 +12,13 @@ typedef struct XL6_CompileUnit {
     char moduleName[256];
     XL6_ParseResult parse;
     XL6_ImportDeps importDeps;
+    /* Built lazily only if a legacy Cgen entry point is selected. */
     XL6_HirModule hir;
+    XL6_IrModule ir;
     XL6_HirStats hirStats;
     int semChecked;
     int hirReady;
+    int irReady;
     int success;
 } XL6_CompileUnit;
 

@@ -1,0 +1,60 @@
+extern "result_commit_arm" func resultCommitArm()
+extern "result_commit_drop" func resultCommitDrop()
+extern "result_commit_input" func resultCommitInput() as future<int>
+class ResultCommitValue
+    int id = 7
+    destroy()
+        resultCommitDrop()
+    end
+end
+async func resultCommitInt(future<int> input, bool early) as int
+    if not early
+        int ignored = await input
+    end
+    resultCommitArm()
+    return 17
+end
+async func resultCommitString(future<int> input, bool early) as string
+    if not early
+        int ignored = await input
+    end
+    string value = "owned result"
+    resultCommitArm()
+    return value
+end
+async func resultCommitObject(future<int> input, bool early) as ResultCommitValue
+    if not early
+        int ignored = await input
+    end
+    ResultCommitValue value = ResultCommitValue()
+    resultCommitArm()
+    return value
+end
+async func resultCommitClosure(future<int> input, bool early) as func() as int
+    if not early
+        int ignored = await input
+    end
+    ResultCommitValue value = ResultCommitValue()
+    auto reader = func() as int => value.id
+    resultCommitArm()
+    return reader
+end
+async func resultCommitError(future<int> input, bool early, error value) as error
+    if not early
+        int ignored = await input
+    end
+    resultCommitArm()
+    return value
+end
+export "result_commit_keep" func resultCommitKeep()
+    future<int> input = resultCommitInput()
+    auto a = resultCommitInt(input, false)
+    auto b = resultCommitString(input, false)
+    auto c = resultCommitObject(input, false)
+    auto d = resultCommitClosure(input, false)
+    try
+        assert false, "seed error as data"
+    catch value
+        auto e = resultCommitError(input, false, value)
+    end
+end

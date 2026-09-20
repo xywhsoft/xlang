@@ -1,0 +1,17 @@
+import class_handle_api
+from class_handle_api import HandleApiBase, HandleFactory
+
+
+
+func read(HandleApiBase value) as int
+    return value.value()
+end
+
+
+
+func main(...) as int
+    HandleFactory factory = class_handle_api.factory()
+    assert read(factory.make(42)) == 42
+    assert read(HandleFactory.makeStatic(43)) == 43
+    return 0
+end

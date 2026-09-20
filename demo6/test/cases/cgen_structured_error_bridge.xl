@@ -1,0 +1,77 @@
+async func failStructuredAsync() as int
+    throw FileError "structured language failure"
+    return 0
+end
+
+
+
+// 语言异常跨过异步边界后，由 AsyncError 包装并保留原始原因。
+int languageState = 0
+try
+    int ignored = await failStructuredAsync()
+catch e
+    auto cause = e.cause
+    assert e.kind == "AsyncError"
+    assert e.message == "structured language failure"
+    assert e.domain == "xlang"
+    assert e.operation == "async"
+    assert e.code == 1
+    assert e.systemCode == 0
+    assert e.data == "AsyncError"
+    // The async wrapper has no native source position, so the language bridge
+    // records this await site.  Its cause retains the original throw site.
+    assert e.file == ""
+    assert e.line > 0
+    assert e.column > 0
+    assert e.cause.kind == "FileError"
+    assert cause != null
+    assert cause.kind == "FileError"
+    assert cause.message == "structured language failure"
+    assert cause.domain == "xlang"
+    assert cause.operation == "async"
+    assert cause.data == "FileError"
+    assert cause.file == ""
+    assert cause.line > 0
+    assert cause.column > 0
+    assert cause.line != e.line
+    languageState = 1
+end
+assert languageState == 1
+
+
+
+// XRT 原生错误进入 xlang 后，保留稳定域、操作、代码、系统码和原因链。
+string missingPath = "build/test/structured_error_bridge.missing.txt"
+file.delete(missingPath)
+
+int nativeState = 0
+try
+    string ignored = await file.readTextAsync(missingPath)
+catch FileError e
+    auto cause = e.cause
+    auto rootCause = cause.cause
+    assert string.contains(e.message, missingPath)
+    assert e.domain == "xrt.file.async"
+    assert e.operation != ""
+    assert e.code != 0
+    assert e.systemCode == 0
+    assert e.data == missingPath
+    // Native file errors do not yet carry a source position; the bridge uses
+    // the await expression as an all-or-nothing fallback location.
+    assert e.file == ""
+    assert e.line > 0
+    assert e.column > 0
+    assert e.cause.cause.domain == "xrt.file"
+    assert cause != null
+    assert string.contains(cause.domain, "file")
+    assert cause.operation != ""
+    assert cause.systemCode == e.systemCode
+    assert rootCause != null
+    assert rootCause.domain == "xrt.file"
+    assert rootCause.operation == "open"
+    assert rootCause.systemCode != 0
+    nativeState = 1
+end
+assert nativeState == 1
+
+println("structured error bridge ok")

@@ -1,0 +1,151 @@
+extern "evaluation_drop" func evaluationDrop()
+extern "evaluation_box_drop" func evaluationBoxDrop()
+extern "evaluation_after" func evaluationAfter(int count)
+extern "evaluation_primary" func evaluationPrimary()
+extern "evaluation_caught" func evaluationCaught()
+extern "evaluation_operand_arm" func evaluationOperandArm()
+
+enum EvaluationPair
+    pair(string first, string second)
+end
+
+func evaluationOperand() as string
+    evaluationOperandArm()
+    return "key"
+end
+
+func evaluationDict() as dict<int>
+    return dict<int>{"key": 17}
+end
+
+func evaluationReplaceDict(byref dict<int> target) as string
+    target = dict<int>{"other": 9}
+    return evaluationOperand()
+end
+
+// Arm only after the receiver/partial enum exists. This tests operand-failure
+// rollback, not yet the allocation-result ABI of every collection primitive.
+export func evaluation_operand_case(int kind) as int
+    if kind == 0
+        EvaluationPair value = EvaluationPair.pair("prefix", evaluationOperand())
+        string text = match value
+        case pair(first, second) then first + second
+        end
+        assert text == "prefixkey"
+    elseif kind == 1
+        assert evaluationDict().remove(evaluationOperand())
+    elseif kind == 2
+        assert int(evaluationDict().take(evaluationOperand())) == 17
+    elseif kind == 3
+        dict<int> rest = evaluationDict() - evaluationOperand()
+        assert rest.length == 0
+    elseif kind == 4
+        dict<int> original = evaluationDict()
+        dict<int> receiver = original
+        assert receiver.remove(evaluationReplaceDict(byref receiver))
+        assert original.length == 0
+        assert receiver["other"] == 9
+    elseif kind == 5
+        assert evaluationDict().contains(evaluationOperand())
+    elseif kind == 6
+        array<string> values = ["key"]
+        assert values.removeValue(evaluationOperand())
+    else
+        array<string> values = ["key"]
+        assert values.indexOf(evaluationOperand()) == 0
+    end
+    return 17
+end
+
+class EvaluationText
+    string text = "hello"
+    destroy()
+        evaluationDrop()
+    end
+end
+
+func makeEvaluationText() as EvaluationText
+    return EvaluationText()
+end
+
+class EvaluationBox
+    string text = makeEvaluationText().text
+    destroy()
+        evaluationBoxDrop()
+    end
+end
+
+func copyEvaluationText() as string
+    return makeEvaluationText().text
+end
+
+func readEvaluationText(EvaluationText value) as int
+    return value.text.length
+end
+
+func pendingEvaluationText() as string
+    try
+        return "saved"
+    finally
+        int count = makeEvaluationText().text.length
+        evaluationAfter(count)
+    end
+end
+
+export func evaluation_case(int kind) as int
+    if kind == 0
+        int count = makeEvaluationText().text.length
+        evaluationAfter(count)
+        return count
+    elseif kind == 1
+        string text = makeEvaluationText().text
+        evaluationAfter(text.length)
+        return text.length
+    elseif kind == 2
+        try
+            int count = makeEvaluationText().text.length
+            evaluationAfter(count)
+            return count
+        catch error
+            assert error.code == 77
+            evaluationCaught()
+            return 17
+        end
+    elseif kind == 3
+        string text = copyEvaluationText()
+        evaluationAfter(text.length)
+        return text.length
+    elseif kind == 4
+        int count = readEvaluationText(makeEvaluationText())
+        evaluationAfter(count)
+        return count
+    elseif kind == 5
+        try
+            evaluationPrimary()
+        finally
+            int count = makeEvaluationText().text.length
+            evaluationAfter(count)
+        end
+    elseif kind == 6
+        int count = EvaluationBox().text.length
+        evaluationAfter(count)
+        return count
+    elseif kind == 7
+        try
+            return 29
+        finally
+            int count = makeEvaluationText().text.length
+            evaluationAfter(count)
+        end
+    elseif kind == 8
+        return pendingEvaluationText().length
+    else
+        int count = 0
+        for character in makeEvaluationText().text
+            count += 1
+        end
+        evaluationAfter(count)
+        return count
+    end
+    return 0
+end

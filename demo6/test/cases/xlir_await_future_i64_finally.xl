@@ -1,0 +1,10 @@
+extern "xlir_make_i64_future" func makeI64Future() as future<int>
+
+int await_trace = 0
+future<int> pending = makeI64Future()
+
+try
+    await_trace = await pending
+finally
+    await_trace = await_trace + 100
+end

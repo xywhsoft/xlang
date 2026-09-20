@@ -1,0 +1,7 @@
+WebSocketConfig config = WebSocketConfig()
+
+assert config.limits(1048576, 65536, 262144)
+assert config.control(256, 5000)
+config.autoPong(true)
+
+println("websocket-stream-config-trim-ok")

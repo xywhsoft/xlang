@@ -1,0 +1,93 @@
+class StorageBox
+    array<int>? values = array[7, 8]
+end
+
+class StorageSpeaker
+    virtual func text() as string
+        return "virtual"
+    end
+end
+
+class StorageChild extends StorageSpeaker
+    override func text() as string
+        return "child"
+    end
+end
+
+enum StorageChoice
+    left(string text)
+    right(string text)
+end
+
+func objectValue() as var
+    return {"nested": {"number": 43}}
+end
+
+func stream(string text) as generator<string>
+    yield text
+    yield text + "!"
+end
+
+export "managed_storage_probe" func probe(bool choose) as int
+    string original = "owned"
+    auto optional = choose ? original : null
+    assert (optional ?? "absent") == (choose ? "owned" : "absent")
+    var nested = objectValue()?.nested
+    assert int(nested.number) == 43
+    assert int(objectValue()?.nested?.number) == 43
+    bool rejected = false
+    try
+        auto invalid = int(objectValue()?.nested)
+        assert false
+    catch e
+        rejected = true
+    end
+    assert rejected
+
+    StorageBox box = StorageBox()
+    array<int>? borrowedField = box.values
+    box.values = null
+    if borrowedField != null
+        assert borrowedField[1] == 8
+    else
+        assert false
+    end
+    StorageSpeaker speaker = StorageChild()
+    string spoken = speaker.text()
+    assert spoken == "child"
+
+    StorageChoice choice = StorageChoice.left(original)
+    if not choose
+        choice = StorageChoice.right("other")
+    end
+    string selected = match choice
+    case left(text) then text
+    case right(text) then text
+    end
+    assert selected == (choose ? "owned" : "other")
+    string scalarMatch = match choose
+    case true then original
+    case false then "other"
+    end
+    assert scalarMatch == selected
+
+    string captured = original
+    var capturedObject = nested
+    auto read = func(string value) as string
+        captured = value
+        return captured
+    end
+    auto readNumber = func(var value) as int
+        capturedObject = value
+        return int(capturedObject.number)
+    end
+    assert read(selected) == selected and readNumber(nested) == 43
+
+    generator<string> pending = stream(original)
+    string total = ""
+    for item in pending
+        total += item
+    end
+    assert total == "ownedowned!"
+    return 43
+end

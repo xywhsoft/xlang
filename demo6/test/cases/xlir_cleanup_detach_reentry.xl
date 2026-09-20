@@ -1,0 +1,15 @@
+export "xlir_cleanup_detach_observed" int observed = 0
+
+class Tracker
+    destroy()
+        if active == null then
+            observed = 1
+        else
+            observed = -1
+        end
+        // Re-enter the same owner slot while its old value is being destroyed.
+        active = null
+    end
+end
+
+Tracker? active = Tracker()

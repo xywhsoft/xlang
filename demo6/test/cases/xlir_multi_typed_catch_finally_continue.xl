@@ -1,0 +1,21 @@
+func multi_catch_finally_continue() as int
+    int value = 0
+    int trace = 0
+    while value < 1
+        try
+            throw RangeError "continue through multi handler finally"
+        catch TypeError ignored
+            value = 1
+            continue
+        catch ValueError e
+            assert e.kind == "RangeError"
+            value = value + 1
+            continue
+        finally
+            trace = trace + 10
+        end
+    end
+    return trace + value
+end
+
+assert multi_catch_finally_continue() == 11

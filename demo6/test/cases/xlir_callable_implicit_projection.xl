@@ -1,0 +1,9 @@
+// Positive regression: contextual var-to-callable conversion must use the
+// same checked, owned result ABI as an explicit callable cast.
+func main(...) as int
+    auto original = func() as int => 42
+    var boxed = xcall(original)
+    func() as int restored = boxed
+    assert restored() == 42
+    return 0
+end

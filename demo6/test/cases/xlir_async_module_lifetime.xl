@@ -1,0 +1,18 @@
+extern "joint_fail_init" func jointFailInit() as bool
+extern "joint_input" func jointInput(int index) as future<int>
+extern "joint_probe" func jointProbe(int value) as int
+extern "joint_finally" func jointFinally()
+
+async func jointRun(future<int> first, future<int> second) as int
+    try
+        int left = await first
+        int right = await second
+        return jointProbe(left + right)
+    finally
+        jointFinally()
+    end
+end
+if jointFailInit()
+    future<int> ignored = jointRun(jointInput(0), jointInput(1))
+    assert false
+end

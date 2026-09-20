@@ -16,7 +16,11 @@ void* native_property_open(long long value)
     return box;
 }
 
+#if defined(XLIR_NATIVE_PROPERTY_VOID_DESTROY)
+void native_property_close(void* self)
+#else
 long long native_property_close(void* self)
+#endif
 {
     NativePropertyBox* box = (NativePropertyBox*)self;
     if ( box == 0 ) {
@@ -24,7 +28,9 @@ long long native_property_close(void* self)
     }
     gClosedCount += 1;
     free(box);
+#if !defined(XLIR_NATIVE_PROPERTY_VOID_DESTROY)
     return 0;
+#endif
 }
 
 long long native_property_get_value(void* self)

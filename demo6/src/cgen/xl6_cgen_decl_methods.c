@@ -24,11 +24,15 @@ static void xl6CgenRegisterParamTypesEx(XL6_CgenContext* ctx, const XL6_AstNode*
             } else {
                 xl6CgenAddVarTypeWithFlags(ctx, param->text, param->children[0], modeFlags);
                 /*
-                    普通调用把 xvalue 实参的一个 owned 引用交给被调函数。
+                    普通调用把 xvalue* 实参的一个 owned 引用交给被调函数。
                     main 的 arg 由入口包装器持有，因此只在 borrowed 入口跳过释放。
                 */
                 if ( modeFlags == 0 && !borrowXValues && xl6CgenIsXValueType(param->children[0]) ) {
                     xl6CgenAddXValueCleanup(ctx, param->text, param->children[0]);
+                }
+                if ( modeFlags == 0 && !borrowXValues &&
+                     xl6CgenIsErrorType(ctx, param->children[0]) ) {
+                    xl6CgenAddErrorCleanup(ctx, param->text, param->children[0]);
                 }
                 if ( modeFlags == 0 && !borrowXValues && xl6CgenIsWeakType(param->children[0]) ) {
                     xl6CgenAddWeakCleanup(ctx, param->text, param->children[0]);
@@ -114,7 +118,7 @@ static void xl6CgenEmitManagedParamOwners(XL6_CgenContext* ctx, const XL6_AstNod
                     paramName);
             } else {
                 xl6OutputPrintf(ctx->out,
-                                "%s = xrtCopyStr(%s != 0 ? %s : \"\", 0u);\n",
+                                "%s = xl6_xrt_string_dup(%s != 0 ? %s : \"\", 0u);\n",
                                 paramName,
                                 paramName,
                                 paramName);
@@ -125,6 +129,10 @@ static void xl6CgenEmitManagedParamOwners(XL6_CgenContext* ctx, const XL6_AstNod
                     paramName);
             }
             xl6CgenAddStringCleanup(ctx, param->text, typeNode);
+            continue;
+        }
+        if ( xl6CgenIsErrorType(ctx, typeNode) ) {
+            /* error 的 owned 引用由调用边界传入，并由统一参数清理栈释放。 */
             continue;
         }
         if ( xl6CgenParamTypeUsesTypedContainerStorage(ctx, typeNode) ) {
@@ -259,7 +267,7 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
 
     if ( xl6CgenClassHasLocalVirtualSlots(classNode) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPuts("if (self->__xl6_self_ref != 0) { xvoUnref(self->__xl6_self_ref); self->__xl6_self_ref = 0; }\n", ctx->out);
+        xl6OutputPuts("if (self->__xl6_self_ref != 0) { xrtValueRelease(self->__xl6_self_ref); self->__xl6_self_ref = 0; }\n", ctx->out);
     }
 
     body = xl6CgenClassBody(classNode);
@@ -286,6 +294,11 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
             xl6OutputPrintf(ctx->out, "xrtFree((void*)self->%s); self->%s = 0;\n", cFieldName, cFieldName);
             continue;
         }
+        if ( xl6CgenIsErrorType(ctx, typeNode) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if (self->%s != 0) { xl6_error_free(self->%s); self->%s = 0; }\n", cFieldName, cFieldName, cFieldName);
+            continue;
+        }
         if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
             snprintf(path, sizeof(path), "self->%s", cFieldName);
             xl6CgenTypedContainerFieldRef(ctx, typeNode, path, 0);
@@ -293,12 +306,12 @@ static void xl6CgenEmitClassDirectFieldCleanups(XL6_CgenContext* ctx, const XL6_
         }
         if ( xl6CgenIsWeakType(typeNode) ) {
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoWeakUnit(&self->%s);\n", cFieldName);
+            xl6OutputPrintf(ctx->out, "xl6WeakUnit(&self->%s);\n", cFieldName);
             continue;
         }
         if ( xl6CgenIsXValueType(typeNode) ) {
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "if (self->%s != 0) { xvoUnref(self->%s); self->%s = 0; }\n", cFieldName, cFieldName, cFieldName);
+            xl6OutputPrintf(ctx->out, "if (self->%s != 0) { xrtValueRelease(self->%s); self->%s = 0; }\n", cFieldName, cFieldName, cFieldName);
             continue;
         }
         if ( xl6CgenIsFunctionType(typeNode) ) {
@@ -674,7 +687,11 @@ static void xl6CgenClassAutoCopyProtocol(XL6_CgenContext* ctx, const XL6_AstNode
     xl6OutputPuts("}\n\n", ctx->out);
 }
 
-static void xl6CgenEmitNativeExternArgNames(XL6_CgenContext* ctx, const XL6_AstNode* params, int wroteArg)
+static void xl6CgenEmitNativeExternArgNames(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* callable,
+    const XL6_AstNode* params,
+    int wroteArg)
 {
     size_t i;
 
@@ -683,7 +700,19 @@ static void xl6CgenEmitNativeExternArgNames(XL6_CgenContext* ctx, const XL6_AstN
         if ( wroteArg ) {
             xl6OutputPuts(", ", ctx->out);
         }
-        xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : "_");
+        if ( param != NULL && param->childCount > 0 &&
+             xl6CgenIsFunctionType(param->children[0]) &&
+             !xl6CgenIsInternalStdRuntimeExtern(callable) ) {
+            unsigned long long typeId = xl6CgenTypeIdForTypeNode(ctx, param->children[0]);
+
+            xl6OutputPutc('(', ctx->out);
+            xl6CgenCAbiCallbackTypeName(ctx, param->children[0]);
+            xl6OutputPuts(")xl6_function_take_c_entry(xl6_function_copy_value(", ctx->out);
+            xl6CgenFputsCIdent(ctx->out, param->text);
+            xl6OutputPrintf(ctx->out, "), 0x%016llXULL)", typeId);
+        } else {
+            xl6CgenFputsCIdent(ctx->out, param != NULL ? param->text : "_");
+        }
         wroteArg = 1;
     }
 }
@@ -692,6 +721,9 @@ static void xl6CgenClassExternFunc(XL6_CgenContext* ctx, const XL6_AstNode* clas
 {
     const XL6_AstNode* params;
     const XL6_AstNode* returns;
+    const XL6_AstNode* prevClass;
+    size_t varMark;
+    size_t cleanupMark;
     int hasReturn;
     int copyExternString;
 
@@ -703,22 +735,39 @@ static void xl6CgenClassExternFunc(XL6_CgenContext* ctx, const XL6_AstNode* clas
     xl6CgenClassFuncProto(ctx, classNode, funcNode);
     xl6OutputPuts("\n{\n", ctx->out);
     ctx->indent += 1;
+    varMark = ctx->varCount;
+    cleanupMark = ctx->cleanupCount;
+    prevClass = ctx->currentClass;
+    ctx->currentClass = classNode;
+    xl6CgenAddVarType(ctx, "self", classNode);
+    xl6CgenRegisterParamTypes(ctx, params);
+    xl6CgenEmitManagedParamOwners(ctx, params);
 
     xl6CgenIndent(ctx);
     if ( hasReturn ) {
-        xl6OutputPuts("return ", ctx->out);
+        xl6OutputPuts(xl6CgenFuncSingleReturnCType(ctx, funcNode), ctx->out);
+        xl6OutputPuts(" __xl6_return = ", ctx->out);
     }
     if ( copyExternString ) {
         xl6OutputPuts("xl6_xrt_external_string_copy(", ctx->out);
     }
     xl6CgenCStringSymbol(ctx->out, funcNode->text);
     xl6OutputPuts("(self->handle", ctx->out);
-    xl6CgenEmitNativeExternArgNames(ctx, params, 1);
+    xl6CgenEmitNativeExternArgNames(ctx, funcNode, params, 1);
     xl6OutputPutc(')', ctx->out);
     if ( copyExternString ) {
         xl6OutputPutc(')', ctx->out);
     }
     xl6OutputPuts(";\n", ctx->out);
+
+    xl6CgenEmitCleanupsSince(ctx, cleanupMark);
+    xl6CgenFreeCleanupsSince(ctx, cleanupMark);
+    if ( hasReturn ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("return __xl6_return;\n", ctx->out);
+    }
+    ctx->currentClass = prevClass;
+    xl6CgenFreeVarsSince(ctx, varMark);
 
     ctx->indent -= 1;
     xl6OutputPuts("}\n\n", ctx->out);
@@ -752,7 +801,7 @@ static void xl6CgenClassExternSpecial(XL6_CgenContext* ctx, const XL6_AstNode* c
         xl6OutputPuts("self->handle = ", ctx->out);
         xl6CgenCStringSymbol(ctx->out, specialNode->text);
         xl6OutputPutc('(', ctx->out);
-        xl6CgenEmitNativeExternArgNames(ctx, params, 0);
+        xl6CgenEmitNativeExternArgNames(ctx, specialNode, params, 0);
         xl6OutputPuts(");\n", ctx->out);
     } else if ( xl6CTextEquals(name, "destroy") ) {
         xl6CgenIndent(ctx);

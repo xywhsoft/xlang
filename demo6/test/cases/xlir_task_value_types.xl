@@ -1,0 +1,131 @@
+class TaskBox
+    int value = 41
+end
+class TaskOther
+    int value = 99
+end
+func echoBox(TaskBox value) as TaskBox
+    return value
+end
+func boxAsVar(TaskBox value) as var
+    return value
+end
+func echoVar(var value) as var
+    return value
+end
+func echoArray(array<int> value) as array<int>
+    return value
+end
+func echoList(list<int> value) as list<int>
+    return value
+end
+func echoSet(set<int> value) as set<int>
+    return value
+end
+func echoDict(dict<int> value) as dict<int>
+    return value
+end
+func add(int value) as int
+    return value + 1
+end
+func echoFunction(func(int) as int value) as func(int) as int
+    return value
+end
+func echoFuture(future<int> value) as future<int>
+    return value
+end
+func useSem(sem value) as int
+    assert value.post()
+    return 42
+end
+func useChannel(channel<int> value) as int
+    assert value.send(42)
+    return 42
+end
+func useThread(thread value) as int
+    assert value.waitTimeout(2000)
+    return value.exitCode()
+end
+func threadEntry() as int
+    return 42
+end
+async func ready() as int
+    return 42
+end
+func echoError(error value) as error
+    return value
+end
+func echoU64(uint64 value) as uint64
+    return value
+end
+func makeBox() as TaskBox
+    return TaskBox()
+end
+func makeClosure(int base) as func(int) as int
+    return func(int value) as int => base + value
+end
+func(TaskBox) as TaskBox boxJob = echoBox
+func(TaskBox) as var dynamicBoxJob = boxAsVar
+func(var) as var dynamicJob = echoVar
+func(array<int>) as array<int> arrayJob = echoArray
+func(list<int>) as list<int> listJob = echoList
+func(set<int>) as set<int> setJob = echoSet
+func(dict<int>) as dict<int> dictJob = echoDict
+func(func(int) as int) as func(int) as int callableJob = echoFunction
+func(future<int>) as future<int> futureJob = echoFuture
+func(sem) as int semJob = useSem
+func(channel<int>) as int channelJob = useChannel
+func(thread) as int threadJob = useThread
+func(error) as error errorJob = echoError
+func(uint64) as uint64 wideJob = echoU64
+func() as TaskBox constructorJob = makeBox
+func(int) as func(int) as int closureJob = makeClosure
+
+TaskBox box = TaskBox()
+TaskBox alias = await task.spawn(boxJob, box)
+alias.value = 42
+assert box.value == 42
+var dynamicBox = await task.spawn(dynamicBoxJob, box)
+assert int(dynamicBox.value) == 42
+var boxed = await task.spawn(dynamicJob, 42)
+assert int(boxed) == 42
+TaskBox built = await task.spawn(constructorJob)
+assert built.value == 41
+
+array<int> arrayValue = await task.spawn(arrayJob, array[1, 2, 3])
+assert arrayValue.length == 3 and arrayValue[2] == 3
+list<int> listValue = await task.spawn(listJob, list[2: 8, 4: 9])
+assert listValue.length == 2 and listValue[4] == 9
+set<int> setValue = await task.spawn(setJob, set{6, 7})
+assert setValue.length == 2 and 7 in setValue
+dict<int> dictValue = await task.spawn(dictJob, dict{"a": 11, "b": 12})
+assert dictValue.length == 2 and dictValue["b"] == 12
+
+func(int) as int addValue = add
+func(int) as int callableValue = await task.spawn(callableJob, addValue)
+assert callableValue(41) == 42
+func(int) as int captured = await task.spawn(closureJob, 40)
+assert captured(2) == 42
+future<int> nested = await task.spawn(futureJob, ready())
+assert await nested == 42
+
+sem gate = sem(0, 1)
+assert await task.spawn(semJob, gate) == 42
+assert gate.waitTimeout(1000)
+channel<int> messages = channel::<int>(1)
+assert await task.spawn(channelJob, messages) == 42
+int received = 0
+assert messages.recvInto(received) and received == 42
+func() as int entry = threadEntry
+thread worker = thread(entry)
+assert await task.spawn(threadJob, worker) == 42
+
+uint64 wide = 18446744073709551615
+uint64 wideValue = await task.spawn(wideJob, wide)
+assert wideValue == wide
+try
+    throw "typed task error"
+catch original
+    error copied = await task.spawn(errorJob, original)
+    assert copied.message == "typed task error"
+end

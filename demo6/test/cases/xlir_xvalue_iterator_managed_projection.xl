@@ -1,0 +1,145 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expect_string(string actual, string expected)
+
+list<string> snapshotValues = list[0: "a", 2: "bb", 5: "ccc"]
+string snapshotText = ""
+int snapshotVisits = 0
+for value in snapshotValues
+    snapshotText = snapshotText + value
+    snapshotVisits = snapshotVisits + 1
+    if value == "a"
+        snapshotValues = list[9: "replacement"]
+    end
+end
+expect_string(snapshotText, "abbccc")
+expect(snapshotVisits, 3)
+expect(snapshotValues.length, 1)
+
+list<string> keyedValues = list[2: "aa", 5: "skip", 9: "bbb"]
+int keyedTotal = 0
+for key, value in keyedValues
+    if value == "skip"
+        continue
+    end
+    keyedTotal = keyedTotal + key * 10 + value.length
+    if key == 9
+        break
+    end
+end
+expect(keyedTotal, 115)
+
+func first_name(list<string> values) as string
+    for value in values
+        return value
+    end
+    return ""
+end
+
+func checked_name(string value) as int
+    if value == "boom"
+        throw ValueError "managed iterator sentinel"
+    end
+    return value.length
+end
+
+func sum_with_inner_catch(list<string> values) as int
+    int total = 0
+    for value in values
+        try
+            total = total + checked_name(value)
+        catch ValueError ignored
+            total = total + value.length * 10
+        end
+    end
+    return total
+end
+
+func sum_with_outer_catch(list<string> values) as int
+    int total = 0
+    try
+        for value in values
+            total = total + checked_name(value)
+        end
+    catch ValueError ignored
+        total = total + 100
+    end
+    return total
+end
+
+int continueFinallyTrace = 0
+func continue_through_finally(list<string> values) as int
+    int total = 0
+    for value in values
+        try
+            if value == "skip"
+                continue
+            end
+            total = total + value.length
+        finally
+            continueFinallyTrace = continueFinallyTrace * 10 + value.length
+        end
+    end
+    return total
+end
+
+int breakFinallyTrace = 0
+func break_through_finally(list<string> values) as int
+    for value in values
+        try
+            if value == "stop"
+                break
+            end
+        finally
+            breakFinallyTrace = breakFinallyTrace * 10 + value.length
+        end
+    end
+    return breakFinallyTrace
+end
+
+int returnFinallyTrace = 0
+func return_through_finally(list<string> values) as string
+    for value in values
+        try
+            return value
+        finally
+            returnFinallyTrace = returnFinallyTrace + value.length
+        end
+    end
+    return ""
+end
+
+func make_owned_names() as list<string>
+    return list[4: "left", 8: "right"]
+end
+
+list<string> parameterValues = list[0: "a", 1: "boom", 2: "ccc"]
+expect_string(first_name(parameterValues), "a")
+expect(sum_with_inner_catch(parameterValues), 44)
+expect(sum_with_outer_catch(parameterValues), 101)
+
+list<string> finallyValues = list[0: "a", 1: "skip", 2: "ccc"]
+expect(continue_through_finally(finallyValues), 4)
+expect(continueFinallyTrace, 143)
+expect(break_through_finally(list[0: "a", 1: "stop", 2: "after"]), 14)
+expect(breakFinallyTrace, 14)
+expect_string(return_through_finally(list[0: "owned", 1: "later"]), "owned")
+expect(returnFinallyTrace, 5)
+
+int literalRvalueTotal = 0
+for key, value in list[4: "aa", 8: "bbb"]
+    literalRvalueTotal = literalRvalueTotal + key + value.length
+end
+expect(literalRvalueTotal, 17)
+
+string returnedRvalueText = ""
+for value in make_owned_names()
+    returnedRvalueText = returnedRvalueText + value
+end
+expect_string(returnedRvalueText, "leftright")
+
+set<string> stringSet = set{"aa", "bbb"}
+int setLengthTotal = 0
+for value in stringSet
+    setLengthTotal = setLengthTotal + value.length
+end
+expect(setLengthTotal, 5)

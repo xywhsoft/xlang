@@ -64,7 +64,7 @@ static void xl6CgenFStringValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* exp
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts(" ? \"true\" : \"false\")", ctx->out);
     } else if ( xl6CTextEquals(typeName, "time") ) {
-        xl6OutputPuts("xl6_xrt_take_cstr((char*)xrtTimeToStr((long long)(", ctx->out);
+        xl6OutputPuts("xl6_xrt_take_cstr((char*)xl6_xrt_time_string_owned((long long)(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts("), 0))", ctx->out);
     } else if ( xl6CTextEquals(typeName, "point") ) {

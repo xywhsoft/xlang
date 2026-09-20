@@ -1,0 +1,141 @@
+extern "control_open" func opened(int id)
+extern "control_drop" func dropped(int id)
+extern "control_primary" func primary()
+extern "control_secondary" func secondary()
+extern "control_observe" func observe(int code, int stage)
+extern "control_deferred" func deferred() as future<int>
+
+class ControlGuard
+    int id
+    create(int id)
+        self.id = id
+        opened(id)
+    end
+    destroy()
+        dropped(self.id)
+    end
+end
+
+export "control_return" func returnOverride() as int
+    ControlGuard outer = ControlGuard(1)
+    try
+        ControlGuard inner = ControlGuard(2)
+        primary()
+    finally
+        ControlGuard last = ControlGuard(3)
+        return 9
+    end
+end
+
+export "control_break" func breakOverride() as int
+    ControlGuard outer = ControlGuard(1)
+    while true
+        try
+            ControlGuard inner = ControlGuard(2)
+            primary()
+        finally
+            ControlGuard last = ControlGuard(3)
+            break
+        end
+    end
+    return 9
+end
+
+export "control_continue" func continueOverride() as int
+    ControlGuard outer = ControlGuard(1)
+    int count = 0
+    for index in range(2)
+        try
+            ControlGuard inner = ControlGuard(2)
+            primary()
+        finally
+            ControlGuard last = ControlGuard(3)
+            count += 1
+            continue
+        end
+    end
+    return count
+end
+
+export "control_caught" func caughtInsideFinally() as int
+    ControlGuard outer = ControlGuard(1)
+    try
+        ControlGuard inner = ControlGuard(2)
+        primary()
+    finally
+        ControlGuard last = ControlGuard(3)
+        try
+            secondary()
+        catch handled
+            observe(handled.code, 1)
+            assert outer.id == 1 and last.id == 3
+        end
+    end
+    return 9
+end
+
+export "control_nested" func nestedPendingFinally() as int
+    ControlGuard outer = ControlGuard(1)
+    try
+        ControlGuard inner = ControlGuard(2)
+        primary()
+    finally
+        ControlGuard last = ControlGuard(3)
+        try
+            secondary()
+        finally
+            ControlGuard leaf = ControlGuard(4)
+            assert outer.id == 1 and last.id == 3 and leaf.id == 4
+        end
+    end
+    return 9
+end
+
+async func asyncPendingFinally() as int
+    ControlGuard outer = ControlGuard(1)
+    try
+        try
+            ControlGuard inner = ControlGuard(2)
+            primary()
+        finally
+            ControlGuard last = ControlGuard(3)
+            int resumed = await deferred()
+            assert resumed == 7 and last.id == 3
+        end
+    catch handled
+        observe(handled.code, 2)
+        assert outer.id == 1
+        return 111
+    end
+    return 9
+end
+
+export "control_async_anchor" func asyncAnchor()
+    future<int> pending = asyncPendingFinally()
+end
+
+func pendingGenerator() as generator<int>
+    try
+        ControlGuard inner = ControlGuard(2)
+        primary()
+    finally
+        ControlGuard last = ControlGuard(3)
+        yield 7
+        assert last.id == 3
+    end
+    yield 9
+end
+
+export "control_generator" func generatorEntry() as int
+    ControlGuard outer = ControlGuard(1)
+    int count = 0
+    try
+        for item in pendingGenerator()
+            count += item
+        end
+    catch handled
+        observe(handled.code, 3)
+        assert outer.id == 1
+    end
+    return count
+end

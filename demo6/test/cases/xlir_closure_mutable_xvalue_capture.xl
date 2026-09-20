@@ -1,0 +1,10 @@
+func replaceValue() as var
+    var local = {"count": 40}
+    auto next = func() as var
+        local = {"count": 42}
+        return local
+    end
+    return next()
+end
+
+var replaced = replaceValue()

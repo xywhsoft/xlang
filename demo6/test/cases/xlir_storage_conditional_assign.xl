@@ -1,0 +1,312 @@
+// Storage nullability and storage ownership are independent contracts.
+extern "storage_fail" func storageFail()
+extern "storage_future" func storageFuture() as future<int>
+extern "storage_pointer" func storagePointer() as point
+int storageCalls = 0
+int storageCaught = 0
+int? storageNumber = null
+string? storageText = null
+var storageValue = null
+
+func storageStep(int stage)
+    storageCalls += 1
+    if stage == 1 then storageFail() end
+end
+func storageNumberRhs(int stage) as int?
+    storageStep(stage)
+    if stage == 2 then return null end
+    storageNumber = 29
+    return 17
+end
+func storageTextRhs(int stage) as string?
+    storageStep(stage)
+    if stage == 2 then return null end
+    storageText = string(17)
+    return storageText
+end
+func storageValueRhs(int stage) as var
+    storageStep(stage)
+    if stage == 2 then return null end
+    storageValue = 17
+    return storageValue
+end
+
+func storageInt(int? state, int stage, bool capture) as int
+    if capture
+        auto fill = func() as int
+            state ?= storageNumberRhs(stage)
+            return state ?? -1
+        end
+        try
+            int ignored = fill()
+            ignored = fill()
+        catch failure
+            assert failure.code == 73
+            storageCaught += 1
+        end
+    else
+        try
+            state ?= storageNumberRhs(stage)
+            state ?= storageNumberRhs(stage)
+        catch failure
+            assert failure.code == 73
+            storageCaught += 1
+        end
+    end
+    return state ?? -1
+end
+func storageString(string? state, int stage, bool capture) as int
+    if capture
+        auto fill = func() as int
+            state ?= storageTextRhs(stage)
+            return int(state ?? "-1")
+        end
+        try
+            int ignored = fill()
+            ignored = fill()
+        catch failure
+            assert failure.code == 73
+            storageCaught += 1
+        end
+    else
+        try
+            state ?= storageTextRhs(stage)
+            state ?= storageTextRhs(stage)
+        catch failure
+            assert failure.code == 73
+            storageCaught += 1
+        end
+    end
+    return int(state ?? "-1")
+end
+func storageErased(var state, int stage, bool capture) as int
+    if capture
+        auto fill = func() as int
+            state ?= storageValueRhs(stage)
+            return int(state ?? -1)
+        end
+        try
+            int ignored = fill()
+            ignored = fill()
+        catch failure
+            assert failure.code == 73
+            storageCaught += 1
+        end
+    else
+        try
+            state ?= storageValueRhs(stage)
+            state ?= storageValueRhs(stage)
+        catch failure
+            assert failure.code == 73
+            storageCaught += 1
+        end
+    end
+    return int(state ?? -1)
+end
+
+export "storage_reset" func storageReset(bool present)
+    storageCalls = 0
+    storageCaught = 0
+    storageNumber = null
+    storageText = null
+    storageValue = null
+    if present
+        storageNumber = 8
+        storageText = "8"
+        storageValue = 8
+    end
+end
+export "storage_sync" func storageSync(int mode, bool present, int stage) as int
+    storageReset(present)
+    int result = -1
+    if mode < 3
+        int? number = storageNumber
+        string? text = storageText
+        var value = storageValue
+        try
+            if mode == 0
+                number ?= storageNumberRhs(stage)
+                number ?= storageNumberRhs(stage)
+            elseif mode == 1
+                text ?= storageTextRhs(stage)
+                text ?= storageTextRhs(stage)
+            else
+                value ?= storageValueRhs(stage)
+                value ?= storageValueRhs(stage)
+            end
+        catch failure
+            assert failure.code == 73
+            storageCaught += 1
+        end
+        if mode == 0 then result = number ?? -1 end
+        if mode == 1 then result = int(text ?? "-1") end
+        if mode == 2 then result = int(value ?? -1) end
+    elseif mode == 3 or mode == 9
+        result = storageInt(storageNumber, stage, mode == 3)
+    elseif mode == 4 or mode == 10
+        result = storageString(storageText, stage, mode == 4)
+    elseif mode == 5 or mode == 11
+        result = storageErased(storageValue, stage, mode == 5)
+    else
+        try
+            if mode == 6
+                storageNumber ?= storageNumberRhs(stage)
+                storageNumber ?= storageNumberRhs(stage)
+            elseif mode == 7
+                storageText ?= storageTextRhs(stage)
+                storageText ?= storageTextRhs(stage)
+            else
+                storageValue ?= storageValueRhs(stage)
+                storageValue ?= storageValueRhs(stage)
+            end
+        catch failure
+            assert failure.code == 73
+            storageCaught += 1
+        end
+        if mode == 6 then result = storageNumber ?? -1 end
+        if mode == 7 then result = int(storageText ?? "-1") end
+        if mode == 8 then result = int(storageValue ?? -1) end
+    end
+    return result * 100 + storageCalls * 10 + storageCaught
+end
+
+// Local direct storage, non-null elimination and zero/false payloads.
+export "storage_scalars" func storageScalars() as int
+    int? number = null
+    uint64? wide = null
+    float? real = null
+    bool? flag = null
+    point pointer = null
+    number ?= 0
+    wide ?= uint64(18446744073709551615)
+    real ?= 0.0
+    flag ?= false
+    pointer ?= storagePointer()
+    assert (number ?? -1) == 0 and (wide ?? uint64(0)) == 18446744073709551615
+    assert (real ?? 1.0) == 0.0 and (flag ?? true) == false and pointer != null
+    number ?= 1
+    wide ?= uint64(1)
+    real ?= 1.0
+    flag ?= true
+    pointer ?= storagePointer()
+    assert (number ?? -1) == 0 and (wide ?? uint64(0)) == 18446744073709551615
+    assert (real ?? 1.0) == 0.0 and (flag ?? true) == false
+    int nonnull = 8
+    nonnull ?= int(storageNumberRhs(1) ?? -1)
+    return nonnull
+end
+
+async func storageAwait(future<int> pending, bool present, int mode) as int
+    int? number = null
+    string? text = null
+    var value = null
+    if present
+        number = 8
+        text = "8"
+        value = 8
+    end
+    // Captured locals are cells even when mutated in the enclosing frame.
+    auto readNumber = func() as int
+        number ?= null
+        return number ?? -1
+    end
+    auto readText = func() as int
+        text ?= null
+        return int(text ?? "-1")
+    end
+    auto readValue = func() as int
+        value ?= null
+        return int(value ?? -1)
+    end
+    int? directNumber = number
+    string? directText = text
+    var directValue = value
+    if mode == 0
+        number ?= await pending
+        return readNumber()
+    elseif mode == 1
+        text ?= string(await pending)
+        return readText()
+    elseif mode == 2
+        value ?= await pending
+        return readValue()
+    elseif mode == 3
+        storageNumber ?= await pending
+        return storageNumber ?? -1
+    elseif mode == 4
+        storageText ?= string(await pending)
+        return int(storageText ?? "-1")
+    elseif mode == 5
+        storageValue ?= await pending
+        return int(storageValue ?? -1)
+    elseif mode == 6
+        directNumber ?= await pending
+        return directNumber ?? -1
+    elseif mode == 7
+        directText ?= string(await pending)
+        return int(directText ?? "-1")
+    end
+    directValue ?= await pending
+    return int(directValue ?? -1)
+end
+async func storageReady() as int
+    return 0
+end
+future<int> storagePending = storageReady()
+export "storage_start" func storageStart(bool present, int mode)
+    storageReset(present)
+    storagePending = storageAwait(storageFuture(), present, mode)
+end
+export "storage_replace" func storageReplace()
+    storageNumber = 29
+    storageText = "29"
+    storageValue = 29
+end
+
+func storageSequence(bool present, int mode, int stage) as generator<int>
+    int? number = null
+    string? text = null
+    var value = null
+    if present
+        number = 8
+        text = "8"
+        value = 8
+    end
+    auto readNumber = func() as int
+        number ?= null
+        return number ?? -1
+    end
+    auto readText = func() as int
+        text ?= null
+        return int(text ?? "-1")
+    end
+    auto readValue = func() as int
+        value ?= null
+        return int(value ?? -1)
+    end
+    yield present ? 8 : -1
+    if mode == 0
+        number ?= storageNumberRhs(stage)
+        yield readNumber()
+    elseif mode == 1
+        text ?= storageTextRhs(stage)
+        yield readText()
+    else
+        value ?= storageValueRhs(stage)
+        yield readValue()
+    end
+end
+export "storage_generator" func storageGenerator(int mode, bool present, bool stop, int stage) as int
+    storageReset(present)
+    int result = 0
+    try
+        for item in storageSequence(present, mode, stage)
+            result = result * 100 + item + 1
+            if stop then break end
+        end
+    catch failure
+        assert failure.code == 73
+        storageCaught += 1
+    end
+    return result * 100 + storageCalls * 10 + storageCaught
+end

@@ -1,0 +1,9 @@
+extern "xrtEncodingUnitSize" func encodingUnit(c_int code) as c_size
+extern "xrtMathMax" func unusedMath(float left, float right) as float
+
+assert encodingUnit(0) == 0
+assert encodingUnit(1) == 1
+assert encodingUnit(2) == 2
+assert encodingUnit(4) == 4
+string unrelated = "xrtMathMax xrtEncodingUnitSizeAlmost"
+assert unrelated == "xrtMathMax xrtEncodingUnitSizeAlmost"

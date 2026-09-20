@@ -1,0 +1,176 @@
+extern "indexed_accessor_raise" func accessorRaise(int code)
+int accessorTrace = 0
+int accessorKeyDrops = 0
+int accessorValuesCreated = 0
+int accessorValuesDropped = 0
+int accessorFailure = 0
+class AccessorKey
+    int number
+    bool fail
+    create(int number, bool fail)
+        self.number = number
+        self.fail = fail
+    end
+    destroy()
+        accessorKeyDrops = (accessorKeyDrops % 100) * 10 + self.number
+        if self.fail then accessorRaise(100 + self.number) end
+    end
+end
+class AccessorValue
+    int number
+    create(int number)
+        self.number = number
+        accessorValuesCreated += 1
+    end
+    destroy()
+        accessorValuesDropped += 1
+    end
+end
+func accessorKey(int number, bool fail = false) as AccessorKey
+    accessorTrace = (accessorTrace % 100000000) * 10 + number
+    return AccessorKey(number, fail)
+end
+func accessorDigit(int number) as int
+    accessorTrace = (accessorTrace % 100000000) * 10 + number
+    return number
+end
+func accessorValue(int number) as AccessorValue
+    accessorTrace = (accessorTrace % 100000000) * 10 + number
+    return AccessorValue(number)
+end
+protocol IndexedAccessor<T>
+    get at(AccessorKey first, AccessorKey second) as T
+    let at(AccessorKey first, AccessorKey second, T value)
+    get items() as array<int>
+end
+class AccessorBox<T>
+    T stored
+    create(T stored)
+        self.stored = stored
+    end
+    get at(AccessorKey first, AccessorKey second) as T
+        accessorTrace = (accessorTrace % 100000000) * 10 + 4
+        assert first.number == 2 and second.number == 3
+        return self.stored
+    end
+    let at(AccessorKey first, AccessorKey second, T value)
+        accessorTrace = (accessorTrace % 100000000) * 10 + 5
+        assert first.number == 2 and second.number == 3
+        self.stored = value
+    end
+    get items() as array<int>
+        accessorTrace = (accessorTrace % 100000000) * 10 + 4
+        return array[10, 20, 30]
+    end
+end
+class AccessorFresh
+    get at(AccessorKey first, AccessorKey second) as AccessorValue
+        accessorTrace = (accessorTrace % 100000000) * 10 + 4
+        if accessorFailure == 1 then accessorRaise(70) end
+        return AccessorValue(first.number * 10 + second.number)
+    end
+    let at(AccessorKey first, AccessorKey second, AccessorValue value)
+        accessorTrace = (accessorTrace % 100000000) * 10 + 5
+        if accessorFailure == 2 then accessorRaise(71) end
+        assert value.number == 7
+    end
+    get items() as array<int>
+        accessorTrace = (accessorTrace % 100000000) * 10 + 4
+        return array[10, 20, 30]
+    end
+end
+protocol AccessorPairProtocol<T, U>
+    get second() as U
+    get first() as T
+    get constant() as int
+end
+class AccessorPair<T, U>
+    T firstValue
+    U secondValue
+    create(T firstValue, U secondValue)
+        self.firstValue = firstValue
+        self.secondValue = secondValue
+    end
+    get second() as U
+        return self.secondValue
+    end
+    get first() as T
+        return self.firstValue
+    end
+    get constant() as int
+        return 17
+    end
+end
+class AccessorEmpty<T>
+    get answer() as int
+        return 42
+    end
+end
+func accessorFresh() as IndexedAccessor<AccessorValue>
+    accessorTrace = (accessorTrace % 100000000) * 10 + 1
+    return AccessorFresh()
+end
+export "indexed_accessor_check" func accessorCheck() as int
+    accessorFailure = 0
+    accessorTrace = 0
+    accessorKeyDrops = 0
+    AccessorValue result = accessorFresh().at[accessorKey(2), accessorKey(3)]
+    assert result.number == 23 and accessorTrace == 1234 and accessorKeyDrops == 32
+    accessorTrace = 0
+    accessorKeyDrops = 0
+    accessorFresh().at[accessorKey(2), accessorKey(3)] = accessorValue(7)
+    assert accessorTrace == 71235 and accessorKeyDrops == 32
+    accessorTrace = 0
+    assert accessorFresh().items[accessorDigit(2)] == 30
+    assert accessorTrace == 142
+    AccessorBox<int> scalar = AccessorBox::<int>(11)
+    accessorTrace = 0
+    assert scalar.at[accessorKey(2), accessorKey(3)] == 11
+    assert accessorTrace == 234
+    scalar.at[accessorKey(2), accessorKey(3)] = 12
+    assert scalar.at[accessorKey(2), accessorKey(3)] == 12
+    IndexedAccessor<int> scalarProtocol = scalar
+    assert scalarProtocol.at[accessorKey(2), accessorKey(3)] == 12
+    scalarProtocol.at[accessorKey(2), accessorKey(3)] = 13
+    assert scalar.at[accessorKey(2), accessorKey(3)] == 13
+    assert scalarProtocol.at[accessorKey(2), accessorKey(3)] == 13
+    assert scalar.items[0] == 10 and scalarProtocol.items[1] == 20
+    AccessorBox<AccessorValue> managed = AccessorBox::<AccessorValue>(AccessorValue(8))
+    IndexedAccessor<AccessorValue> managedProtocol = managed
+    assert managed.at[accessorKey(2), accessorKey(3)].number == 8
+    assert managedProtocol.at[accessorKey(2), accessorKey(3)].number == 8
+    managedProtocol.at[accessorKey(2), accessorKey(3)] = AccessorValue(9)
+    assert managed.at[accessorKey(2), accessorKey(3)].number == 9
+    assert managedProtocol.at[accessorKey(2), accessorKey(3)].number == 9
+    assert managed.items[0] == 10 and managedProtocol.items[2] == 30
+    AccessorPairProtocol<int, AccessorValue> leftPair = AccessorPair::<int, AccessorValue>(5, AccessorValue(6))
+    AccessorPairProtocol<AccessorValue, int> rightPair = AccessorPair::<AccessorValue, int>(AccessorValue(7), 8)
+    assert leftPair.first == 5 and leftPair.second.number == 6 and leftPair.constant == 17
+    assert rightPair.first.number == 7 and rightPair.second == 8 and rightPair.constant == 17
+    AccessorEmpty<int> emptyInt = AccessorEmpty::<int>()
+    AccessorEmpty<AccessorValue> emptyObject = AccessorEmpty::<AccessorValue>()
+    assert emptyInt.answer == 42 and emptyObject.answer == 42
+    bool caught = false
+    accessorFailure = 1
+    try
+        accessorFresh().at[accessorKey(2), accessorKey(3)]
+    catch error
+        caught = true
+    end
+    assert caught
+    accessorFailure = 0
+    return 0
+end
+export "indexed_accessor_uncaught" func accessorUncaught(int stage)
+    accessorKeyDrops = 0
+    accessorTrace = 0
+    accessorFailure = stage == 0 ? 1 : (stage == 2 ? 2 : 0)
+    if stage == 2
+        accessorFresh().at[accessorKey(2, true), accessorKey(3, true)] = accessorValue(7)
+    else
+        accessorFresh().at[accessorKey(2, true), accessorKey(3, true)]
+    end
+end
+export "indexed_accessor_balanced" func accessorBalanced() as bool
+    return accessorValuesCreated == accessorValuesDropped
+end

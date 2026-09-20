@@ -1,0 +1,14 @@
+func main(...) as int
+    string? local = "alpha"
+    string first = local ?? ""
+    assert(first == "alpha")
+
+    local = null
+    string missing = local ?? "fallback"
+    assert(missing == "fallback")
+
+    local = "beta"
+    string second = local ?? ""
+    assert(second == "beta")
+    return 0
+end

@@ -1,0 +1,3 @@
+func(out int) job
+int value = 1
+task.spawn(job, value)

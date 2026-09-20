@@ -1,0 +1,2 @@
+// The factory overload family must bring its own type dependencies.
+assert xson.writer().writeInt(7)

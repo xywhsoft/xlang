@@ -6,6 +6,24 @@ static int xl6CgenIsBuiltinObjectClass(const XL6_AstNode* node)
            xl6CTextEquals(node->text, "object");
 }
 
+static int xl6CgenHasBuiltinDynamicFieldsClass(const XL6_AstNode* root)
+{
+    size_t i;
+
+    if ( root == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < root->childCount; ++i ) {
+        const XL6_AstNode* child = root->children[i];
+
+        if ( child != NULL && child->kind == XL6_AST_CLASS &&
+             child->text != NULL && xl6CTextEquals(child->text, "DynamicFields") ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int xl6CgenNodeNeedsBuiltinObjectClass(const XL6_AstNode* node)
 {
     size_t i;

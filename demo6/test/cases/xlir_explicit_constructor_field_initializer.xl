@@ -1,0 +1,16 @@
+class ExplicitDefaults
+    int declared = 7
+    int untouched
+    int assigned
+
+    create(int value)
+        self.assigned = value
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+ExplicitDefaults value = ExplicitDefaults(11)
+expect(value.declared, 7)
+expect(value.untouched, 0)
+expect(value.assigned, 11)

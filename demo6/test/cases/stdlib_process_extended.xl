@@ -1,8 +1,7 @@
 // 常量值是 XRT 进程 ABI 的稳定部分，状态和流编号可直接用于配置与诊断。
 assert process.stdin == 0 and process.stdout == 1 and process.stderr == 2
 assert process.stdioInherit == 0 and process.stdioPipe == 1 and process.stdioNull == 2
-assert process.stateFailed == -1 and process.stateInit == 0 and process.stateRunning == 1
-assert process.stateExited == 2 and process.stateClosed == 3
+assert process.stateRunning == 0 and process.stateExited == 1
 
 // ProcessCommand 应完整承接 XRT 的进程配置能力。
 ProcessCommand envCommand = process.shell("cmd /c echo %XL6_PROCESS_EXT%")

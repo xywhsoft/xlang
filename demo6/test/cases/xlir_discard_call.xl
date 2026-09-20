@@ -1,0 +1,12 @@
+int64 counter = 0
+
+func next_value() as int64
+    counter = counter + 1
+    return counter
+end
+
+export "xlir_test_discard_results" func discard_results() as int64
+    next_value()
+    next_value()
+    return counter
+end

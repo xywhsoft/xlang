@@ -1,4 +1,3 @@
-#include "../../lib/xrt/xrt.h"
 #include "export_class_method.h"
 
 int main(void)
@@ -6,7 +5,7 @@ int main(void)
     XL_InitOptions options = xlInitOptions(0, 0);
     int64_t x = 0;
     int64_t y = 0;
-    xvalue point;
+    xvalue* point;
     XL_Class_Point* data;
     int result = 0;
 
@@ -14,7 +13,7 @@ int main(void)
         return 1;
     }
     point = xl6_point_make_for_method(2, 3);
-    data = (XL_Class_Point*)xvoGetRecordData(point);
+    data = (XL_Class_Point*)xlValueData(point);
     if ( data == NULL || xl6_point_move(data, 5, 7) != 17 ) {
         result = 2;
         goto cleanup;
@@ -29,7 +28,7 @@ int main(void)
     }
 
 cleanup:
-    xvoUnref(point);
+    xlValueRelease(point);
     xlUnit();
     return result;
 }

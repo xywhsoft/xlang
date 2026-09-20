@@ -40,7 +40,7 @@ static void xl6CgenEmitXlangRuntime(XL6_Output* out)
     xl6OutputPuts("#define XL6_XLANG_EMBED_RUNTIME\n", out);
     xl6OutputPuts("#include <stddef.h>\n", out);
     xl6OutputPuts("#include <string.h>\n", out);
-    xl6OutputPuts("typedef struct xvalue_struct* xvalue;\n", out);
+    xl6OutputPuts("typedef struct xvalue xvalue;\n", out);
     xl6OutputPuts("void* xlCreateContext(const void* options);\n", out);
     xl6OutputPuts("void xlDestroyContext(void* ctx);\n", out);
     xl6OutputPuts("int xlSetWorkDir(void* ctx, const char* path);\n", out);
@@ -48,28 +48,15 @@ static void xl6CgenEmitXlangRuntime(XL6_Output* out)
     xl6OutputPuts("int xlSetSaveTemps(void* ctx, int enabled);\n", out);
     xl6OutputPuts("int xlRunScriptString(void* ctx, const char* source);\n", out);
     xl6OutputPuts("int xlRunScriptFile(void* ctx, const char* path);\n", out);
-    xl6OutputPuts("int xlRunScriptStringArg(void* ctx, const char* source, xvalue arg);\n", out);
-    xl6OutputPuts("int xlRunScriptFileArg(void* ctx, const char* path, xvalue arg);\n", out);
+    xl6OutputPuts("int xlRunScriptStringArg(void* ctx, const char* source, xvalue* arg);\n", out);
+    xl6OutputPuts("int xlRunScriptFileArg(void* ctx, const char* path, xvalue* arg);\n", out);
     xl6OutputPuts("void* xlCompileScriptFileToModule(void* ctx, const char* path);\n", out);
-    xl6OutputPuts("int xlRunModuleMain(void* ctx, void* module, xvalue arg);\n", out);
+    xl6OutputPuts("int xlRunModuleMain(void* ctx, void* module, xvalue* arg);\n", out);
     xl6OutputPuts("void xlDestroyModule(void* module);\n", out);
     xl6OutputPuts("const char* xlGetLastError(void* ctx);\n", out);
     xl6OutputPuts("void xlClearLastError(void* ctx);\n", out);
-    xl6OutputPuts("char* xrtCopyStr(const char* sText, size_t iSize);\n", out);
-    xl6OutputPuts("void xrtFree(void* pMem);\n\n", out);
-    xl6OutputPuts("unsigned long long xrtThreadGetCurrentId(void);\n", out);
-    xl6OutputPuts("void* xrtMutexCreate(void);\n", out);
-    xl6OutputPuts("void xrtMutexDestroy(void* pMutex);\n", out);
-    xl6OutputPuts("void xrtMutexLock(void* pMutex);\n", out);
-    xl6OutputPuts("void xrtMutexUnlock(void* pMutex);\n\n", out);
-    xl6OutputPuts("void* xrtCondCreate(void);\n", out);
-    xl6OutputPuts("void xrtCondDestroy(void* pCond);\n", out);
-    xl6OutputPuts("void xrtCondWait(void* pCond, void* pMutex);\n", out);
-    xl6OutputPuts("void xrtCondSignal(void* pCond);\n", out);
-    xl6OutputPuts("typedef unsigned int (*xl6_xrt_thread_fn)(void* pArg);\n", out);
-    xl6OutputPuts("void* xrtThreadCreate(xl6_xrt_thread_fn pProc, void* pParam, size_t iStackSize);\n", out);
-    xl6OutputPuts("void xrtThreadWait(void* pThread);\n", out);
-    xl6OutputPuts("void xrtThreadDestroy(void* pThread);\n\n", out);
+    xl6OutputPuts("static inline char* xl6_xrt_string_dup(const char* sText, size_t iSize);\n", out);
+    xl6OutputPuts("\n", out);
 
     xl6OutputPuts("void* xl6_xlang_context_create(void)\n", out);
     xl6OutputPuts("{\n", out);
@@ -85,10 +72,10 @@ static void xl6CgenEmitXlangRuntime(XL6_Output* out)
     xl6OutputPuts("void* xl6_xlang_context_last_error_copy(void* ctx)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    const char* text = ctx != 0 ? xlGetLastError(ctx) : \"\";\n", out);
-    xl6OutputPuts("    return xrtCopyStr(text != 0 ? text : \"\", 0u);\n", out);
+    xl6OutputPuts("    return xl6_xrt_string_dup(text != 0 ? text : \"\", 0u);\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("typedef struct xl6_xlang_handler { void* ctx; void* module; void* lock; } XL6_XlangHandler;\n\n", out);
+    xl6OutputPuts("typedef struct xl6_xlang_handler { void* ctx; void* module; xmutex* lock; } XL6_XlangHandler;\n\n", out);
 
     xl6OutputPuts("void* xl6_xlang_handler_wrap(void* value)\n", out);
     xl6OutputPuts("{\n", out);
@@ -133,7 +120,7 @@ static void xl6CgenEmitXlangRuntime(XL6_Output* out)
     xl6OutputPuts("    return 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("int xl6_xlang_handler_run_args(void* value, xvalue args)\n", out);
+    xl6OutputPuts("int xl6_xlang_handler_run_args(void* value, xvalue* args)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_XlangHandler* handler = (XL6_XlangHandler*)value;\n", out);
     xl6OutputPuts("    int result;\n", out);

@@ -2,6 +2,7 @@ param(
     [ValidateSet('check', 'build', 'all')]
     [string]$Mode = 'all',
     [string]$Project = '',
+    [string]$ExcludeProjects = '',
     [switch]$KeepGoing
 )
 
@@ -30,6 +31,13 @@ $linkLibraries = @{
     winui = @('User32', 'Gdi32')
 }
 $fixtureProjects = @('xanalyze')
+$excludedProjects = @{}
+foreach ($excludedName in ($ExcludeProjects -split '[,;]')) {
+    $excludedName = $excludedName.Trim()
+    if ($excludedName -ne '') {
+        $excludedProjects[$excludedName] = $true
+    }
+}
 
 $results = [System.Collections.Generic.List[object]]::new()
 $directories = @(Get-ChildItem -LiteralPath $devRoot -Directory | Sort-Object Name)
@@ -42,6 +50,11 @@ if ($Project -ne '') {
 
 foreach ($directory in $directories) {
     $name = $directory.Name
+    if ($excludedProjects.ContainsKey($name)) {
+        $results.Add([pscustomobject]@{ Project=$name; Check='deferred'; Build='deferred'; Detail='outside current integration scope' })
+        continue
+    }
+
     if ($fixtureProjects -contains $name) {
         $results.Add([pscustomobject]@{ Project=$name; Check='fixture'; Build='fixture'; Detail='analyzer probes' })
         continue
@@ -105,8 +118,8 @@ foreach ($directory in $directories) {
 
 $results | Format-Table -AutoSize
 $failed = @($results | Where-Object { $_.Check -eq 'fail' -or $_.Build -eq 'fail' })
-$applications = @($results | Where-Object { $_.Check -ne 'skip' -and $_.Check -ne 'fixture' })
-Write-Host "applications=$($applications.Count) failed=$($failed.Count) fixtures=$(@($results | Where-Object Check -EQ 'fixture').Count) skipped=$(@($results | Where-Object Check -EQ 'skip').Count)"
+$applications = @($results | Where-Object { $_.Check -ne 'skip' -and $_.Check -ne 'fixture' -and $_.Check -ne 'deferred' })
+Write-Host "applications=$($applications.Count) failed=$($failed.Count) fixtures=$(@($results | Where-Object Check -EQ 'fixture').Count) skipped=$(@($results | Where-Object Check -EQ 'skip').Count) deferred=$(@($results | Where-Object Check -EQ 'deferred').Count)"
 
 if ($failed.Count -ne 0) {
     exit 1

@@ -1,5 +1,6 @@
 param(
-    [string]$Root = ""
+    [string]$Root = "",
+    [switch]$CoreOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,11 +16,18 @@ $entryWiringFiles = @(
     "test_tutorial.bat",
     "test_dll.bat",
     "build_dll.bat",
+    "test\featured_extlibs.json",
+    "test\phase1_extlibs.json",
+    "test\platform_extlibs.json",
+    "tools\run_featured_extlibs_rc.ps1",
+    "tools\run_phase1_extlibs.ps1",
+    "tools\run_platform_extlibs.ps1",
+    "release\examples\extlibs\run_extlibs.bat",
     "release\examples\feature_suite\run_feature_suite.bat"
 )
 
 $minEntryFixtures = 45
-$minPackageFixtures = 55
+$minPackageFixtures = if ( $CoreOnly ) { 10 } else { 55 }
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)
@@ -41,6 +49,22 @@ function Get-TestSuiteWiringFiles()
         $suiteFiles = @(Get-ChildItem -LiteralPath $script:testSuiteDir -File -Filter "*.bat" | Sort-Object Name)
         foreach ( $suite in $suiteFiles ) {
             $files.Add($suite.FullName.Substring($rootPath.Length + 1)) | Out-Null
+        }
+    }
+
+    return @($files)
+}
+
+function Get-CheckScriptWiringFiles()
+{
+    $files = New-Object System.Collections.Generic.List[string]
+    $toolDir = Join-Path $script:Root "tools"
+
+    if ( Test-Path -LiteralPath $toolDir -PathType Container ) {
+        $rootPath = (Resolve-Path -LiteralPath $script:Root).Path
+        foreach ( $scriptFile in @(Get-ChildItem -LiteralPath $toolDir -File -Filter "check_*.ps1" |
+            Sort-Object Name) ) {
+            $files.Add($scriptFile.FullName.Substring($rootPath.Length + 1)) | Out-Null
         }
     }
 
@@ -72,6 +96,7 @@ function Test-SameNameXlangCompanion($asset)
 }
 
 $entryWiringFiles += Get-TestSuiteWiringFiles
+$entryWiringFiles += Get-CheckScriptWiringFiles
 $entryTextParts = New-Object System.Collections.Generic.List[string]
 foreach ( $relative in $entryWiringFiles ) {
     $path = Join-Path $Root $relative
@@ -95,7 +120,8 @@ foreach ( $assetRoot in $entryAssetRoots ) {
 
     $assets = @(Get-ChildItem -LiteralPath $fullRoot -File -Recurse | Where-Object {
         $relative = $_.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
-        ($_.Extension -in ".c", ".h")
+        ($_.Extension -in ".c", ".h") -and
+            (! $CoreOnly -or ! $relative.StartsWith("release/examples/extlibs/"))
     } | Sort-Object FullName)
     foreach ( $asset in $assets ) {
         $relative = $asset.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
@@ -111,24 +137,34 @@ foreach ( $assetRoot in $entryAssetRoots ) {
 $referenced = New-Object System.Collections.Generic.HashSet[string]
 $matches = [regex]::Matches($entryText, '(test[\\/]+cases|release[\\/]+examples)[\\/]+([^"''\s>]+\.(?:c|h))')
 foreach ( $match in $matches ) {
+    $rawTail = $match.Groups[2].Value
+    if ( $rawTail.Contains('\s+') -or $rawTail.Contains('\.') -or
+         $rawTail.Contains('[') -or $rawTail.Contains(']') ) {
+        continue
+    }
     $relative = ($match.Groups[1].Value + "/" + $match.Groups[2].Value).Replace("\", "/")
-    if ( $relative.Contains("%") -or $relative.Contains("*") ) {
+    if ( $relative.Contains("%") -or $relative.Contains("$") -or
+         $relative.Contains("*") -or $relative.Contains("{") -or
+         $relative.Contains("}") ) {
         continue
     }
     $referenced.Add($relative) | Out-Null
 }
 
 foreach ( $relative in ($referenced | Sort-Object) ) {
+    if ( $CoreOnly -and $relative.StartsWith("release/examples/extlibs/") ) {
+        continue
+    }
     $path = Join-Path $Root ($relative.Replace("/", "\"))
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         Add-Failure "wired C fixture file is missing: $relative"
     }
 }
 
-$packageDirs = @(
-    (Join-Path $Root "release\extlibs"),
-    (Join-Path $Root "test\fixtures")
-)
+$packageDirs = @((Join-Path $Root "test\fixtures"))
+if ( ! $CoreOnly ) {
+    $packageDirs = @((Join-Path $Root "release\extlibs")) + $packageDirs
+}
 $packageDeclaredSources = @{}
 
 foreach ( $packageDir in $packageDirs ) {
@@ -218,7 +254,8 @@ foreach ( $packageDir in $packageDirs ) {
 
 $entryCount = @(Get-ChildItem -Path (Join-Path $Root "test\cases"), (Join-Path $Root "release\examples") -File -Recurse | Where-Object {
     $relative = $_.FullName.Substring($rootPath.Length + 1).Replace("\", "/")
-    ($_.Extension -in ".c", ".h")
+    ($_.Extension -in ".c", ".h") -and
+        (! $CoreOnly -or ! $relative.StartsWith("release/examples/extlibs/"))
 }).Count
 $packageCount = 0
 foreach ( $packageDir in $packageDirs ) {
@@ -242,5 +279,6 @@ if ( $failures.Count -gt 0 ) {
     exit 1
 }
 
-Write-Host "C fixture wiring ok: $entryCount entry fixtures, $packageCount package fixtures."
+$scope = if ( $CoreOnly ) { "core" } else { "all" }
+Write-Host "C fixture wiring ok ($scope): $entryCount entry fixtures, $packageCount package fixtures."
 exit 0

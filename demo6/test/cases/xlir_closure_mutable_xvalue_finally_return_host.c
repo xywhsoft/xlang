@@ -1,0 +1,22 @@
+#include "../../build/test/xlir_closure_mutable_xvalue_finally_return_generated.c"
+
+extern bool xrtValueGetInt(const xvalue* value, int64_t* result);
+
+int main(void)
+{
+    int64_t result = 0;
+    xvalue* value;
+    xvalue* count;
+    xlir_result_xvalue returned;
+    if ( xlir_module_init() != 1 ) return 1;
+    returned = xlir_fn_1();
+    if ( !returned.ok || returned.value == NULL ) return 1;
+    value = returned.value;
+    count = xrtValueObjectGet(value, xrtStrView("count"));
+    if ( !xrtValueGetInt(count, &result) || result != 42 ) {
+        xrtValueRelease(value);
+        return 1;
+    }
+    xrtValueRelease(value);
+    return 0;
+}

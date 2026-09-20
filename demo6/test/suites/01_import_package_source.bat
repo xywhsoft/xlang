@@ -61,6 +61,13 @@ if errorlevel 1 exit /b 1
 build\test\import_source_native_use.exe
 if errorlevel 1 exit /b 1
 
+release\xl.exe run test\cases\import_package_include_dir.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\import_package_include_dir.xl -o build\test\import_package_include_dir.exe
+if errorlevel 1 exit /b 1
+build\test\import_package_include_dir.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe run test\cases\companion_entry.xl
 if errorlevel 1 exit /b 1
 release\xl.exe build test\cases\companion_entry.xl -o build\test\companion_entry.exe
@@ -159,13 +166,13 @@ release\xl.exe build test\cases\import_metadata_combo.xl -o build\test\import_me
 if errorlevel 1 exit /b 1
 build\test\import_metadata_combo.exe
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\import_deps_snapshot_host.c src\compile\xl6_imports.c src\package\xl6_package.c src\abi\xl6_abi_json.c src\abi\xl6_callable.c src\type\xl6_type_model.c src\sem\xl6_type_registry.c src\common\xl6_console.c src\common\xl6_output.c src\parser\xl6_parser_api.c src\parser\xl6_parser.c src\lexer\xl6_lexer_api.c src\lexer\xl6_lexer_gen.c src\lexer\xl6_token.c src\ast\xl6_ast.c src\diag\xl6_diag.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\import_deps_snapshot_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% test\cases\import_deps_snapshot_host.c src\compile\xl6_imports.c src\package\xl6_package.c src\abi\xl6_abi_json.c src\abi\xl6_callable.c src\type\xl6_type_model.c src\sem\xl6_type_registry.c src\common\xl6_console.c src\common\xl6_output.c src\parser\xl6_parser_api.c src\parser\xl6_parser.c src\lexer\xl6_lexer_api.c src\lexer\xl6_lexer_gen.c src\lexer\xl6_token.c src\ast\xl6_ast.c src\diag\xl6_diag.c %XL6_CGEN_LINKS% -o build\test\import_deps_snapshot_host.exe
 if errorlevel 1 exit /b 1
 build\test\import_deps_snapshot_host.exe test\cases\import_metadata_combo.xl
 if errorlevel 1 exit /b 1
 build\test\import_deps_snapshot_host.exe test\cases\import_builtin_features.xl 7
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\package_manifest_strict_host.c src\package\xl6_package.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\package_manifest_strict_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% test\cases\package_manifest_strict_host.c src\package\xl6_package.c %XL6_CGEN_LINKS% -o build\test\package_manifest_strict_host.exe
 if errorlevel 1 exit /b 1
 build\test\package_manifest_strict_host.exe
 if errorlevel 1 exit /b 1
@@ -195,12 +202,17 @@ release\xl.exe check test\cases\import_relative_scope\root\source\import_relativ
 if errorlevel 1 exit /b 1
 release\xl.exe ir test\cases\import_package_use.xl --emit build\test\import_package_use.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"extern \"xl6_import_counter_add\" func __xl6_import_counter___xl6_native_counter_counterAdd" build\test\import_package_use.xlir >nul
+findstr /C:"source=extern_func/" build\test\import_package_use.xlir >nul
+if errorlevel 1 (
+    echo import_package_use.xlir missing package extern declaration kind.
+    exit /b 1
+)
+findstr /C:"xl6_import_counter_add" build\test\import_package_use.xlir >nul
 if errorlevel 1 (
     echo import_package_use.xlir missing package extern.
     exit /b 1
 )
-findstr /C:"call __xl6_import_counter_counterAdd" build\test\import_package_use.xlir >nul
+findstr /C:"text=__xl6_import_counter_counterAdd" build\test\import_package_use.xlir >nul
 if errorlevel 1 (
     echo import_package_use.xlir missing namespace rewrite.
     exit /b 1
@@ -230,12 +242,12 @@ release\xl.exe run test\cases\import_export_overload_pkg.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\import_export_overload_pkg.xl --emit build\test\import_export_overload_pkg.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6_export_____xl6__import__export__overload__pkg__value__int" build\test\import_export_overload_pkg.c >nul
+findstr /C:"xl6_export___xl6_import_export_overload_pkg_value__i64" build\test\import_export_overload_pkg.c >nul
 if errorlevel 1 (
     echo import_export_overload_pkg.c missing int export overload symbol.
     exit /b 1
 )
-findstr /C:"xl6_export_____xl6__import__export__overload__pkg__value__string" build\test\import_export_overload_pkg.c >nul
+findstr /C:"xl6_export___xl6_import_export_overload_pkg_value__string" build\test\import_export_overload_pkg.c >nul
 if errorlevel 1 (
     echo import_export_overload_pkg.c missing string export overload symbol.
     exit /b 1
@@ -259,7 +271,17 @@ release\xl.exe check test\cases\import_package_var_use.xl
 if errorlevel 1 exit /b 1
 release\xl.exe ir test\cases\import_package_var_use.xl --emit build\test\import_package_var_use.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"export extern \"xl6_imported_counter\" int __xl6_import_settings_importedCounter" build\test\import_package_var_use.xlir >nul
+findstr /C:"source=extern_var/" build\test\import_package_var_use.xlir >nul
+if errorlevel 1 (
+    echo import_package_var_use.xlir missing package extern variable declaration kind.
+    exit /b 1
+)
+findstr /C:"xl6_imported_counter" build\test\import_package_var_use.xlir >nul
+if errorlevel 1 (
+    echo import_package_var_use.xlir missing package extern variable ABI name.
+    exit /b 1
+)
+findstr /C:"text=__xl6_import_settings_importedCounter" build\test\import_package_var_use.xlir >nul
 if errorlevel 1 (
     echo import_package_var_use.xlir missing package extern variable.
     exit /b 1
@@ -298,7 +320,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-"%XL6_TCC%" -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\import_expand_host.c src\compile\xl6_imports.c src\package\xl6_package.c src\abi\xl6_abi_json.c src\abi\xl6_callable.c src\type\xl6_type_model.c src\sem\xl6_type_registry.c src\common\xl6_console.c src\common\xl6_output.c src\parser\xl6_parser_api.c src\parser\xl6_parser.c src\lexer\xl6_lexer_api.c src\lexer\xl6_lexer_gen.c src\lexer\xl6_token.c src\ast\xl6_ast.c src\diag\xl6_diag.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\import_expand_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% test\cases\import_expand_host.c src\compile\xl6_imports.c src\package\xl6_package.c src\abi\xl6_abi_json.c src\abi\xl6_callable.c src\type\xl6_type_model.c src\sem\xl6_type_registry.c src\common\xl6_console.c src\common\xl6_output.c src\parser\xl6_parser_api.c src\parser\xl6_parser.c src\lexer\xl6_lexer_api.c src\lexer\xl6_lexer_gen.c src\lexer\xl6_token.c src\ast\xl6_ast.c src\diag\xl6_diag.c %XL6_CGEN_LINKS% -o build\test\import_expand_host.exe
 if errorlevel 1 exit /b 1
 build\test\import_expand_host.exe test\cases\import_public_types_namespace.xl test\cases\import_public_types_alias.xl test\cases\import_public_types_selective.xl test\cases\import_public_types_identity.xl test\cases\import_public_types_namespace_upgrade.xl test\cases\import_public_types_qualified_surfaces.xl test\cases\import_source_public_types.xl
 if errorlevel 1 exit /b 1

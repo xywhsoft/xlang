@@ -260,7 +260,7 @@
 |---|---|
 | xlang 写法 | `func f = ...` |
 | 生成规则描述 | 变量类型为 function 时注册 `XL6_CGEN_CLEANUP_FUNCTION`。非 func 类型不会进入该路径。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:608` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:8` |
 | 对应生成的 C 代码 | `if (f.release != 0 && f.env != 0) { f.release(f.env); f.env = 0; f.release = 0; }` |
 | 中间形态伪代码 | `if isFunctionType(type): add cleanup FUNCTION` |
 | 实现同等功能手写的 C 代码 | 手写 C 显式释放闭包环境。 |
@@ -272,7 +272,7 @@
 |---|---|
 | xlang 写法 | `future<int> f = asyncCall()`、`task<int> t = ...` |
 | 生成规则描述 | 类型是 future-like 时注册 `XL6_CGEN_CLEANUP_FUTURE`。这类对象按引用句柄释放，不按 xvalue 或 typed container 释放。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:616` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:16` |
 | 对应生成的 C 代码 | `if (f != 0) { xFutureRelease(f); f = 0; }` |
 | 中间形态伪代码 | `if isFutureLike(type): add cleanup FUTURE` |
 | 实现同等功能手写的 C 代码 | 手写 C 显式释放 future 句柄。 |
@@ -284,7 +284,7 @@
 |---|---|
 | xlang 写法 | `channel<int> ch = channel<int>()` |
 | 生成规则描述 | 类型是 channel 时注册 `XL6_CGEN_CLEANUP_CHANNEL`。channel 使用独立销毁函数，不参与 typed container cleanup。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:624` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:24` |
 | 对应生成的 C 代码 | `if (ch != 0) { xrtChannelDestroy(ch); ch = 0; }` |
 | 中间形态伪代码 | `if isChannel(type): add cleanup CHANNEL` |
 | 实现同等功能手写的 C 代码 | 手写 C 在作用域退出时销毁 channel。 |
@@ -296,7 +296,7 @@
 |---|---|
 | xlang 写法 | `thread th = thread(funcRef)` |
 | 生成规则描述 | 类型是 thread 时注册 `XL6_CGEN_CLEANUP_THREAD`。thread 使用 `xl6_thread_release`，因为它封装了线程句柄和可能的函数环境。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:632` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:32` |
 | 对应生成的 C 代码 | `if (th != 0) { xl6_thread_release(th); th = 0; }` |
 | 中间形态伪代码 | `if isThread(type): add cleanup THREAD` |
 | 实现同等功能手写的 C 代码 | 手写 C 要显式释放线程句柄/任务对象。 |
@@ -308,7 +308,7 @@
 |---|---|
 | xlang 写法 | `generator<int> g = make()` |
 | 生成规则描述 | 类型是 generator 时注册 `XL6_CGEN_CLEANUP_GENERATOR`。generator frame/worker 生命周期由专用销毁函数收束。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:640` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:40` |
 | 对应生成的 C 代码 | `if (g != 0) { xl6_generator_destroy(g); g = 0; }` |
 | 中间形态伪代码 | `if isGenerator(type): add cleanup GENERATOR` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要释放生成器状态机/frame。 |
@@ -320,7 +320,7 @@
 |---|---|
 | xlang 写法 | `mutex m = mutex()`、`sem s = sem()`、`cond c = cond()`、`rwlock r = rwlock()` |
 | 生成规则描述 | 类型是同步句柄时注册 `XL6_CGEN_CLEANUP_SYNC`。具体销毁函数在输出 cleanup 时按类型名选择。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:648` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:48` |
 | 对应生成的 C 代码 | `if (m != 0) { xrtMutexDestroy(m); m = 0; }` |
 | 中间形态伪代码 | `if isSyncHandle(type): add cleanup SYNC` |
 | 实现同等功能手写的 C 代码 | 手写 C 按 mutex/sem/cond/rwlock 类型显式销毁。 |
@@ -332,7 +332,7 @@
 |---|---|
 | xlang 写法 | `var v`、`array a`、`dict d` |
 | 生成规则描述 | 类型属于 xvalue 家族时注册 `XL6_CGEN_CLEANUP_XVALUE`。这与 typed container storage 区分开，释放时调用 xvalue 引用计数接口。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:656` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:56` |
 | 对应生成的 C 代码 | `if (v != 0) { xvoUnref(v); v = 0; }` |
 | 中间形态伪代码 | `if isXValueType(type): add cleanup XVALUE` |
 | 实现同等功能手写的 C 代码 | 手写 C 对动态值调用 unref。 |
@@ -344,7 +344,7 @@
 |---|---|
 | xlang 写法 | `array<int> a`、`list<string> l`、`set<int> s`、`dict<int> d` |
 | 生成规则描述 | 类型是 typed container storage 时注册 `XL6_CGEN_CLEANUP_TYPED_CONTAINER`。裸容器和 `<var>` 容器不走该路径，而是 xvalue cleanup。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:664` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:64` |
 | 对应生成的 C 代码 | `if (a != 0) { xrtTypedArrayDestroy(a); a = 0; }` |
 | 中间形态伪代码 | `if isTypedContainer(type): add cleanup TYPED_CONTAINER` |
 | 实现同等功能手写的 C 代码 | 手写 C 对对应 typed container 调用 destroy。 |
@@ -356,7 +356,7 @@
 |---|---|
 | xlang 写法 | `catch err` 或 try/catch 内部错误对象 |
 | 生成规则描述 | error cleanup 无条件注册指定名称为 `XL6_CGEN_CLEANUP_ERROR`。它不依赖类型判定，用于异常模型中的错误对象释放。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:672` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:72` |
 | 对应生成的 C 代码 | `if (err != 0) { xl6_error_free(err); err = 0; }` |
 | 中间形态伪代码 | `add cleanup ERROR` |
 | 实现同等功能手写的 C 代码 | 手写 C 在 catch 退出时释放错误对象。 |
@@ -368,7 +368,7 @@
 |---|---|
 | xlang 写法 | 作用域结束、生成器/函数生成结束 |
 | 生成规则描述 | `xl6CgenFreeCleanupsSince` 释放 mark 之后 cleanup 项保存的变量名并回退计数；`xl6CgenFreeCleanups` 释放整块 cleanup 数组并清空容量。它只释放 cgen 元数据，不生成目标 C 代码。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:677` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:77` |
 | 对应生成的 C 代码 | 不直接输出。 |
 | 中间形态伪代码 | `for i in mark..count: free(cleanups[i].name); count = mark` |
 | 实现同等功能手写的 C 代码 | 手写 C 不存在 cgen cleanup 元数据。 |
@@ -380,7 +380,7 @@
 |---|---|
 | xlang 写法 | `try ... catch err ... end` |
 | 生成规则描述 | cleanup kind 为 error 时输出空指针保护，调用 `xl6_error_free` 后把变量清零。该分支优先于类型节点判定，因此 typeNode 即使为空也能释放 error。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:701` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:101` |
 | 对应生成的 C 代码 | `if (err != 0) { xl6_error_free(err); err = 0; }` |
 | 中间形态伪代码 | `if kind ERROR: emit free error and clear` |
 | 实现同等功能手写的 C 代码 | 手写 C 在每个异常出口释放错误对象。 |
@@ -392,7 +392,7 @@
 |---|---|
 | xlang 写法 | 动态 list/dict 遍历内部 snapshot |
 | 生成规则描述 | cleanup kind 为 iter snapshot 时输出空指针保护，调用 `xl6_xrt_iter_snapshot_free` 并把变量清零。该分支用于动态 list/dict 遍历产生的稳定快照；动态 set 当前按位置下标遍历，不走 snapshot cleanup。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:735`、`demo6/src/cgen/xl6_cgen_expr_support_base.c:740` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:135`、`demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:140` |
 | 对应生成的 C 代码 | `if (snapshot != 0) { xl6_xrt_iter_snapshot_free(snapshot); snapshot = 0; }` |
 | 中间形态伪代码 | `if kind ITER_SNAPSHOT: free snapshot and clear` |
 | 实现同等功能手写的 C 代码 | 手写 C 在遍历结束时释放 snapshot 数组、key 拷贝和 retained value。 |
@@ -404,7 +404,7 @@
 |---|---|
 | xlang 写法 | `future<T> f` 或 `task<T> t` 作用域结束 |
 | 生成规则描述 | cleanup kind 为 future 时输出空指针保护，调用 `xFutureRelease` 并把句柄清零。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:735` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:135` |
 | 对应生成的 C 代码 | `if (f != 0) { xFutureRelease(f); f = 0; }` |
 | 中间形态伪代码 | `if future != 0: release; clear` |
 | 实现同等功能手写的 C 代码 | 手写 C 对 future 句柄 release。 |
@@ -416,7 +416,7 @@
 |---|---|
 | xlang 写法 | `channel<T> ch` 作用域结束 |
 | 生成规则描述 | cleanup kind 为 channel 时输出空指针保护，调用 channel destroy 并清零。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:748` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:148` |
 | 对应生成的 C 代码 | `if (ch != 0) { xrtChannelDestroy(ch); ch = 0; }` |
 | 中间形态伪代码 | `if channel != 0: destroy; clear` |
 | 实现同等功能手写的 C 代码 | 手写 C 在作用域退出时销毁 channel。 |
@@ -428,7 +428,7 @@
 |---|---|
 | xlang 写法 | `thread th` 作用域结束 |
 | 生成规则描述 | cleanup kind 为 thread 时输出空指针保护，调用 `xl6_thread_release` 并清零。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:761` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:161` |
 | 对应生成的 C 代码 | `if (th != 0) { xl6_thread_release(th); th = 0; }` |
 | 中间形态伪代码 | `if thread != 0: release; clear` |
 | 实现同等功能手写的 C 代码 | 手写 C 释放线程对象或 join/release 约定。 |
@@ -440,7 +440,7 @@
 |---|---|
 | xlang 写法 | `generator<T> g` 作用域结束 |
 | 生成规则描述 | cleanup kind 为 generator 时输出空指针保护，调用 `xl6_generator_destroy` 并清零。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_base.c:774` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_expr_support_lifecycle.c:174` |
 | 对应生成的 C 代码 | `if (g != 0) { xl6_generator_destroy(g); g = 0; }` |
 | 中间形态伪代码 | `if generator != 0: destroy; clear` |
 | 实现同等功能手写的 C 代码 | 手写 C 释放生成器 frame/状态机。 |

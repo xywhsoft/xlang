@@ -1,6 +1,7 @@
 #include "src/common/xl6_console.h"
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #define XL6_CONSOLE_STACK_BUFFER 1024u
@@ -29,11 +30,12 @@ int xl6ConsoleWrite(XL6_ConsoleStream stream, const char* text, size_t size)
         return 1;
     }
 
-    return xrtConsoleWrite(stream == XL6_CONSOLE_STDERR
-                               ? XRT_CONSOLE_STDERR
-                               : XRT_CONSOLE_STDOUT,
-                           text,
-                           size)
+    return xrtConsoleWrite(
+        stream == XL6_CONSOLE_STDERR
+            ? XCONSOLE_STDERR
+            : XCONSOLE_STDOUT,
+        xrtStrViewN(text, size)
+    )
                ? 1
                : 0;
 }

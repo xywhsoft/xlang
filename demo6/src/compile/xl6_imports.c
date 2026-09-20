@@ -50,7 +50,7 @@ static int xl6ImportsTextEquals(const char* a, const char* b)
 static char* xl6ImportsDupText(const char* text)
 {
     const char* src = text != NULL ? text : "";
-    return xrtCopyStr((char*)src, strlen(src));
+    return xrtStrDupN(src, strlen(src));
 }
 
 static void xl6ImportsBuilderInit(XL6_ImportTextBuilder* builder)
@@ -136,7 +136,7 @@ static char* xl6ImportsBuilderTake(XL6_ImportTextBuilder* builder)
         return NULL;
     }
     if ( builder->data == NULL ) {
-        builder->data = xrtCopyStr((char*)"", 0);
+        builder->data = xrtStrDup("");
     }
     out = builder->data;
     builder->data = NULL;
@@ -150,14 +150,14 @@ static char* xl6ImportsDupImportTarget(const char* text)
     size_t len;
 
     if ( text == NULL ) {
-        return xrtCopyStr((char*)"", 0);
+        return xrtStrDup("");
     }
     len = strlen(text);
     if ( len >= 2 && ((text[0] == '"' && text[len - 1] == '"') ||
                       (text[0] == '\'' && text[len - 1] == '\'')) ) {
-        return xrtCopyStr((char*)text + 1, len - 2);
+        return xrtStrDupN(text + 1, len - 2);
     }
-    return xrtCopyStr((char*)text, len);
+    return xrtStrDupN(text, len);
 }
 
 static int xl6ImportsTryBuiltinFeatureImport(const char* target, XL6_ImportDeps* deps)
@@ -192,6 +192,8 @@ void xl6ImportDepsInit(XL6_ImportDeps* deps)
     }
     memset(deps, 0, sizeof(*deps));
     xl6PackageStringListInit(&deps->cSources);
+    xl6PackageStringListInit(&deps->includeDirs);
+    xl6PackageStringListInit(&deps->xrtModules);
     xl6PackageStringListInit(&deps->links);
     xl6PackageStringListInit(&deps->loadlibs);
     xl6PackageStringListInit(&deps->activeSources);
@@ -205,6 +207,8 @@ void xl6ImportDepsFree(XL6_ImportDeps* deps)
         return;
     }
     xl6PackageStringListFree(&deps->cSources);
+    xl6PackageStringListFree(&deps->includeDirs);
+    xl6PackageStringListFree(&deps->xrtModules);
     xl6PackageStringListFree(&deps->links);
     xl6PackageStringListFree(&deps->loadlibs);
     xl6PackageStringListFree(&deps->activeSources);
@@ -394,6 +398,7 @@ static void xl6ImportsAddSourceCompanionC(const char* sourcePath, XL6_ImportDeps
     cPath[len - 1] = '\0';
     if ( xrtFileExists((char*)cPath) ) {
         (void)xl6ImportsStringListAppendUnique(&deps->cSources, cPath);
+        deps->hasUndeclaredCSourceModules = 1;
     }
 }
 
@@ -525,6 +530,19 @@ static int xl6ImportsCollectManifestDeps(
     }
     for ( i = 0; i < manifest->cSources.count; ++i ) {
         if ( !xl6ImportsAppendPackagePath(&deps->cSources, manifest->dir, manifest->cSources.items[i], 1) ) {
+            return 0;
+        }
+    }
+    for ( i = 0; i < manifest->includeDirs.count; ++i ) {
+        if ( !xl6ImportsAppendPackagePath(&deps->includeDirs, manifest->dir, manifest->includeDirs.items[i], 1) ) {
+            return 0;
+        }
+    }
+    if ( manifest->cSources.count > 0 && !manifest->xrtModulesDeclared ) {
+        deps->hasUndeclaredCSourceModules = 1;
+    }
+    for ( i = 0; i < manifest->xrtModules.count; ++i ) {
+        if ( !xl6ImportsStringListAppendUnique(&deps->xrtModules, manifest->xrtModules.items[i]) ) {
             return 0;
         }
     }
@@ -1100,7 +1118,7 @@ static char* xl6ImportsPublicNameFromInternal(const char* ns, const char* intern
     if ( len == 0 ) {
         return NULL;
     }
-    return xrtCopyStr((char*)publicName, len);
+    return xrtStrDupN(publicName, len);
 }
 
 static XL6_AstNode* xl6ImportsDeclNameNode(XL6_AstNode* node)
@@ -2350,10 +2368,22 @@ static int xl6ImportsLoadOne(
     }
 
     if ( diags != NULL ) {
+        char message[1024];
+
+        /*
+            import 失败必须同时给出导入者与目标。嵌入式宿主通常会在独立
+            工作目录中编译脚本，只有这两个信息才能可靠地区分路径、包和
+            VFS 边界问题。
+        */
+        snprintf(message,
+                 sizeof(message),
+                 "cannot resolve import '%s' from '%s'",
+                 target,
+                 sourcePath != NULL && sourcePath[0] != '\0' ? sourcePath : "<source>");
         xl6DiagAdd(diags,
                    importNode != NULL ? importNode->line : 1,
                    importNode != NULL ? importNode->column : 1,
-                   "cannot resolve import");
+                   message);
     }
     xrtFree(target);
     return 0;
@@ -2472,7 +2502,7 @@ static int xl6ImportsTryRewriteQualifiedTypeRef(
     if ( dot == NULL || dot == node->text || dot[1] == '\0' ) {
         return 1;
     }
-    ns = xrtCopyStr(node->text, (size_t)(dot - node->text));
+    ns = xrtStrDupN(node->text, (size_t)(dot - node->text));
     if ( ns == NULL ) {
         return 0;
     }
@@ -2849,7 +2879,7 @@ int xl6ImportsExpandModule(XL6_AstNode* root, const char* sourcePath, XL6_DiagLi
         ownsDeps = 1;
     }
     if ( sourcePath != NULL && sourcePath[0] != '\0' ) {
-        activeSource = (char*)xrtPathAbs((str)sourcePath, strlen(sourcePath));
+        activeSource = xrtPathAbs(sourcePath);
         if ( activeSource == NULL ) {
             if ( diags != NULL ) {
                 xl6DiagAdd(diags, 1, 1, "cannot normalize source import path");

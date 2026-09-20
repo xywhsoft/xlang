@@ -103,12 +103,12 @@
 | 项目 | 内容 |
 |---|---|
 | xlang 写法 | `xlRunScriptString(ctx, "print(1)")` |
-| 生成规则描述 | 内存执行时，API 把当前进程里的 XRT、xvalue、typed container、callable、并发、HTTP server 等符号逐个 `tcc_add_symbol` 到 TCC。还注入负零常量 `__mzerosf`、`__mzerodf`。 |
-| 生成器文件名和行号 | `demo6/src/api/xl_api.c:761`、`demo6/src/api/xl_api.c:773` |
+| 生成规则描述 | 内存执行时，API 把当前进程里的完整 XRT 符号表逐个 `tcc_add_symbol` 到 TCC，并注入负零常量 `__mzerosf`、`__mzerodf`。仅导入 `tcc` 的独立产物编入 `xl_tcc_standalone_env.c`；导入 `xlang` 的产物复用完整运行时中的同名注册 API，不能同时编入两份实现。 |
+| 生成器文件名和行号 | 宿主环境由 `demo6/src/api/xl_api_symbols.c` 与 `demo6/src/api/xl_api.c` 注册；独立产物由 `demo6/src/api/xl_tcc_standalone_env.c` 注册；两条路径共用 `demo6/src/api/xl_xrt_symbols.inc`。 |
 | 对应生成的 C 代码 | 生成 C 可以直接引用 `xrtMalloc`、`xvoCreateInt`、`xrtTypedArrayCreate` 等符号，无需链接外部 xrt.o。 |
 | 中间形态伪代码 | `for each required runtime symbol: tcc_add_symbol(name, address)` |
 | 实现同等功能手写的 C 代码 | 手写 JIT 宿主需要把运行库函数地址注入编译器。 |
-| 额外依赖的封装代码 | 当前进程内 XRT。 |
+| 额外依赖的封装代码 | 自动生成的 XRT 符号表、当前进程内 XRT、静态 libtcc 与内置 VFS。 |
 
 ## CGEN-API-010 context C 符号注入
 

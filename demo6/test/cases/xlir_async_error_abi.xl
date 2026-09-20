@@ -1,0 +1,22 @@
+async func preserveAsyncError(error value) as error
+    time.sleep(1)
+    return value
+end
+
+
+try
+    throw ValueError "async error payload"
+catch captured
+    future<error> pending = preserveAsyncError(captured)
+    error first = await pending
+    error second = await pending
+    assert first.kind == "ValueError"
+    assert first.message == "async error payload"
+    assert second.kind == "ValueError"
+    assert second.message == "async error payload"
+
+    error temporary = await preserveAsyncError(captured)
+    assert temporary.message == "async error payload"
+end
+
+println("xlir async error abi ok")

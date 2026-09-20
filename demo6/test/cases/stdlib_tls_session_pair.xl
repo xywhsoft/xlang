@@ -62,7 +62,7 @@ func makeServerConfig() as TlsConfig
     assert config.certificate("release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem")
     assert config.alpn("http/1.1")
     config.verifyPeer(false)
-    config.maxVersion(0x0303)
+    config.maxVersion(0x0304)
     return config
 end
 
@@ -72,7 +72,7 @@ func makeClientConfig() as TlsConfig
     assert config.alpn("h2,http/1.1")
     config.verifyPeer(false)
     assert config.verifyCallback(acceptVerify)
-    config.maxVersion(0x0303)
+    config.maxVersion(0x0304)
     return config
 end
 
@@ -84,6 +84,10 @@ TlsSession client = clientConfig.session()
 TlsSession server = serverConfig.session(true)
 assert server.certificate("release/examples/fixtures/tls_cert.pem", "release/examples/fixtures/tls_key.pem")
 assert handshakeTlsPair(client, server)
+assert client.version == 0x0304
+assert server.version == 0x0304
+assert client.cipher == 0x1301
+assert server.cipher == 0x1301
 assert server.sni() == "localhost"
 assert client.alpn() == "http/1.1"
 assert server.alpn() == "http/1.1"
@@ -109,7 +113,7 @@ assert tlsStatusOk(closeSecond)
 assert client.pendingCipher == closeBytes
 
 TlsSession resumedClient = clientConfig.session(resume)
-TlsSession resumedServer = serverConfig.session(true)
+TlsSession resumedServer = serverConfig.session(resume, true)
 assert handshakeTlsPair(resumedClient, resumedServer)
 assert resumedClient.resumed
 assert resumedServer.resumed
@@ -138,7 +142,7 @@ TlsConfig rejectClientConfig = TlsConfig()
 assert rejectClientConfig.host("localhost")
 rejectClientConfig.verifyPeer(false)
 assert rejectClientConfig.verifyCallback(rejectVerify)
-rejectClientConfig.maxVersion(0x0303)
+rejectClientConfig.maxVersion(0x0304)
 TlsSession rejectClient = rejectClientConfig.session()
 TlsSession rejectServer = serverConfig.session(true)
 tlsHandshakeTrace = false

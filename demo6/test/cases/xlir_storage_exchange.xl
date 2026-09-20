@@ -1,0 +1,85 @@
+extern "exchange_drop" func exchangeDrop(int id)
+extern "exchange_observe" func exchangeObserve(int id)
+extern "exchange_caught" func exchangeCaught(int code)
+
+func exchangeIdle() as int
+    return -1
+end
+func() as int exchangeCallback = exchangeIdle
+
+class ExchangeOwner
+    int id
+    create(int id)
+        self.id = id
+    end
+    destroy()
+        if self.id == 10 then exchangeObserve(exchangeCallback()) end
+        exchangeDrop(self.id)
+    end
+end
+
+var exchangeShared = null
+
+func exchangeIndirect(byref var target)
+    target = ExchangeOwner(1)
+end
+
+func exchangeSequence() as generator<int>
+    yield 0
+    exchangeShared = ExchangeOwner(1)
+    yield int(exchangeShared.id)
+end
+
+// The old destructor sees the newly committed value, then replaces it itself.
+// The outer replacement must never overwrite that reentrant write afterward.
+export "exchange_case" func exchangeCase(int kind) as int
+    int result = 0
+    if kind == 0
+        var current = ExchangeOwner(10)
+        exchangeCallback = func() as int
+            int seen = int(current.id)
+            current = ExchangeOwner(3)
+            return seen
+        end
+        try
+            current = ExchangeOwner(1)
+            assert int(current.id) == 3
+        catch failure
+            exchangeCaught(failure.code)
+            assert int(current.id) == 3
+            result = 23
+        finally
+            exchangeCallback = exchangeIdle
+        end
+    else
+        exchangeShared = ExchangeOwner(10)
+        exchangeCallback = func() as int
+            int seen = int(exchangeShared.id)
+            exchangeShared = ExchangeOwner(3)
+            return seen
+        end
+        try
+            if kind == 1
+                exchangeShared = ExchangeOwner(1)
+            elseif kind == 2
+                exchangeIndirect(byref exchangeShared)
+            else
+                int count = 0
+                for item in exchangeSequence()
+                    assert item == (count == 0 ? 0 : 3)
+                    count += 1
+                end
+                assert count == 2
+            end
+            assert int(exchangeShared.id) == 3
+        catch failure
+            exchangeCaught(failure.code)
+            assert int(exchangeShared.id) == 3
+            result = 23
+        finally
+            exchangeCallback = exchangeIdle
+            exchangeShared = null
+        end
+    end
+    return result
+end

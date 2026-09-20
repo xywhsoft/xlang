@@ -1,0 +1,18 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+export "xlir_typed_dict_literal_set" func typedDictLiteralSet() as int
+    dict<int> values = dict{"answer": 42}
+    values["answer"] = 81
+    return values["answer"]
+end
+
+export "xlir_typed_dict_string_set" func typedDictStringSet() as int
+    dict<int> values = dict{"answer": 42}
+    string key = "answer"
+    values[key] = 82
+    return values["answer"]
+end
+
+
+expect(typedDictLiteralSet(), 81)
+expect(typedDictStringSet(), 82)

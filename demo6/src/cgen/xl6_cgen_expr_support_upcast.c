@@ -171,7 +171,7 @@ static int xl6CgenClassUpcastStmt(
     xl6OutputPrintf(ctx->out, "%s %s = {0};\n", xl6CgenTypeName(ctx, exprType), tempName);
     if ( targetHasVirtualSlots ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", refName);
+        xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", refName);
     }
     if ( expr->kind == XL6_AST_CALL ) {
         if ( !xl6CgenEmitClassCtorInto(ctx, expr, tempName) ) {
@@ -201,7 +201,7 @@ static int xl6CgenClassUpcastStmt(
         xl6OutputPrintf(ctx->out, "(%s);\n", tempName);
         xl6CgenClassAssignVirtualSelfRefs(ctx, targetClass, targetName, refName);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", refName, refName);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtValueRelease(%s); }\n", refName, refName);
     }
     if ( fromNeedsDestroy ) {
         xl6CgenIndent(ctx);

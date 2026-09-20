@@ -1,0 +1,50 @@
+class Methods
+    func add(int left, int right = 2) as int
+        return left + right
+    end
+    func count(int first, ...) as int
+        return first + arg.length
+    end
+    func choose(int value) as int
+        return value
+    end
+    func choose(string value) as int
+        return string.len(value)
+    end
+    async func check(int value) as bool
+        return value == 7
+    end
+end
+class Child extends Methods
+end
+class Box<T>
+    T value
+    func get() as T
+        return self.value
+    end
+end
+func positive(int value) as bool
+    return value > 0
+end
+class Field
+    func(int) as bool predicate
+end
+Methods item = Methods()
+assert item.add(3) == 5
+assert item.add(right = 4, left = 3) == 7
+assert item.count(10, 1, 2, 3) == 13
+assert item.choose(8) == 8
+assert item.choose("test") == 4
+Child child = Child()
+assert child.add(4) == 6
+Box<int> box = Box::<int>()
+box.value = 9
+assert box.get() == 9
+Field field = Field()
+field.predicate = positive
+assert field.predicate(1)
+var dynamicItem = item
+assert int(dynamicItem.add(4)) == 6
+bool checked = await item.check(7)
+assert checked
+println("xlir member call resolution ok")

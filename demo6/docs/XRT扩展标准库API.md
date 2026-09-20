@@ -106,58 +106,56 @@ XsonOptions options = xson.options(true, false, false)
 TemplateEngine engine = template.engine()
 Template compiled = engine.compile(source)
 Template loaded = template.load(path)
+Template fileCompiled = template.compileFile(path)
 ```
 
 JSON 访问状态为 `json.visitComplete`、`json.visitStopped`、`json.visitInvalid`。`visitor` 返回 `false` 时得到 `visitStopped`；输入非法时得到 `visitInvalid`。`JsonWriter` 必须成对结束对象和数组后再调用 `finish()`。
 
-## URL、Query 与 XID
+## XID
 
 ```xlang
-string built = url.build("https", "example.com", 443, "/api", "a=1")
-int port = url.defaultPort("https")
-bool defaultPort = url.isDefaultPort(built)
-string hostHeader = url.hostHeader(built)
-
-int pairCount = query.count("a=1&a=2")
-var first = query.find("a=1&a=2", "a")
-array pairs = query.items("a=1&a=2")
-dict values = query.toDict("a=1&b=2")
-string encoded = query.fromDict(values)
-
 Xid value = id.make()
 string xidText = id.encode(value)
 Xid decoded = id.decode(xidText)
 bool same = id.compare(value, decoded)
 ```
 
-`query.items` 保留重复键和原始顺序；`query.toDict` 采用字典语义，重复键只保留最终值。需要无损往返时使用 `items`。
+完整 URL、Query 参数和表单编码属于 xhttp 扩展产品，不在核心标准库注册。核心保留 `xrtHttpTarget*`、`xrtHttpHost*` 的 HTTP 线路底座，以及 `codec.percentEncode/Decode` 的 RFC 3986 百分号编解码。
 
 ## 正则表达式
 
-```xlang
-RegexBuilder builder = regex.builder(pattern)
-bool patternOk = regex.valid(pattern)
-string message = regex.error(pattern)
-int charPosition = regex.errorPos(pattern)
-int bytePosition = regex.errorBytePos(pattern)
-```
-
-`errorPos` 使用 UTF-8 字符索引，`errorBytePos` 使用字节偏移；只有需要向底层字节协议报告位置时才应使用后者。
+Regex 属于 xregex 扩展产品，不在裁剪后的 XRT 核心标准库中隐式注册。当前新 ABI 适配器、对象模型、错误位置语义和回归资产保存在 `dev/deferred/xregex`；正式接入后必须通过显式 `import regex` 获得 `Regex`、`RegexMatch`、`RegexSet` 与 `RegexBuilder`，并由包元数据闭合 xregex 源码和链接依赖。
 
 ## 网络配置对象
 
 ```xlang
 NetAddress address = net.resolve("localhost", 443)
+NetAddressList addresses = net.resolveAll("localhost", 443, net.familyAny)
+future<NetAddressList> resolving = net.resolveAsync("localhost", 443, net.familyIPv4)
+NetResolverStats resolverStats = net.resolverStats()
+NetEngineStats runtimeStats = net.stats()
 NetProxy proxy = net.proxy(net.proxySocks5, "127.0.0.1", 1080)
-NetEngine engine = net.engine(0, net.engineAutoWorkers)
+NetEngine engine = net.engine(0)
 TcpConnectConfig connect = tcp.connectConfig("example.com", 443)
 TcpListenConfig listen = tcp.listenConfig(8080, "0.0.0.0")
 UdpConfig datagram = udp.config(9000, "0.0.0.0")
 ```
 
-代理类型为 `net.proxyNone`、`net.proxySocks5`、`net.proxyHttpConnect`。关闭策略为 `net.closeAbort`、`net.closeGraceful`、`net.closeWaitPeer`，可按底层 API 要求组合。
+地址族常量为 `net.familyAny`、`net.familyIPv4`、`net.familyIPv6`。网络结果使用
+`net.resultError`、`net.resultOk`、`net.resultAgain`、`net.resultClosed`、
+`net.resultTruncated`、`net.resultTimeout`、`net.resultCancelled`，适合不抛出异常的快速路径。
 
-TCP 连接标志为 `tcp.connectNoDelay`、`tcp.connectKeepAlive`；监听标志为 `tcp.listenReuseAddr`、`tcp.listenReusePort`、`tcp.listenNoDelay`、`tcp.listenKeepAlive`。UDP 标志为 `udp.reuseAddr`、`udp.reusePort`。
+TLS 传输直接建立在 TCP 与 TLS 会话底座之上：
+
+```xlang
+TlsStream stream = tls.connect(host, port, config, timeout)
+future<TlsStream> connecting = tls.connectAsync(host, port, config, timeout)
+TlsServer server = tls.listen(port, serverConfig)
+```
+
+代理类型为 `net.proxyNone`、`net.proxySocks5`、`net.proxyHttpConnect`。`NetEngine` 的工作线程数为零时由 XRT 自动选择。
+
+连接配置可设置超时、发送水位、接收上限和代理；监听配置可设置 backlog、发送水位和接收上限；UDP 配置可设置批量接收数及发送、接收队列上限。正常关闭、写半关闭和异常关闭分别由 `TcpStream.close()`、`shutdownWrite()`、`abort()` 明确表达，不再使用位标志组合。
 
 ## 任务组
 
@@ -229,4 +227,4 @@ signal.reset()
 
 `process.terminalSupported()` 查询当前平台是否能创建伪终端。标准流编号为 `process.stdin`、`process.stdout`、`process.stderr`；重定向模式为 `process.stdioInherit`、`process.stdioPipe`、`process.stdioNull`。
 
-进程状态为 `process.stateFailed`、`process.stateInit`、`process.stateRunning`、`process.stateExited`、`process.stateClosed`。状态只用于观察，不替代 `wait`、`close` 等生命周期操作。
+进程状态直接对应 XRT：`process.stateRunning` 表示正在运行，`process.stateExited` 表示已经退出。状态只用于观察，不替代 `wait`、`close` 等生命周期操作。

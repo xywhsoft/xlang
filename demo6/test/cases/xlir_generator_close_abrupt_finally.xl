@@ -1,0 +1,111 @@
+extern "close_abrupt_mark" func abruptMark(int id)
+func abruptFinally(bool repeat) as generator<int>
+    int iteration = 0
+    while iteration < 2
+        try
+            abruptMark(10 + iteration)
+        finally
+            abruptMark(20 + iteration)
+            yield iteration
+            abruptMark(30 + iteration)
+            iteration += 1
+            if repeat then
+                continue
+            else
+                break
+            end
+        end
+    end
+    abruptMark(90)
+    yield 9
+end
+export "close_abrupt_consume" func abruptConsume(bool repeat, int limit) as int
+    int count = 0
+    for value in abruptFinally(repeat)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end
+
+// These exits stay inside the outer finally: closing must drain its loop,
+// subsequent yield and tail instead of treating an internal break as return.
+func internalFinallyLoop(bool repeat) as generator<int>
+    try
+        abruptMark(1)
+    finally
+        int iteration = 0
+        while iteration < 2
+            try
+                abruptMark(10 + iteration)
+            finally
+                abruptMark(20 + iteration)
+                yield iteration
+                abruptMark(30 + iteration)
+                iteration += 1
+                if repeat then
+                    continue
+                else
+                    break
+                end
+            end
+        end
+        abruptMark(50)
+        yield 5
+        abruptMark(51)
+    end
+    abruptMark(90)
+    yield 9
+end
+export "close_abrupt_internal" func consumeInternal(bool repeat, int limit) as int
+    int count = 0
+    for value in internalFinallyLoop(repeat)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end
+
+// Leaving the inner finally still owes the outer finally. Its managed
+// continuation must not run the ordinary post-loop statement on close.
+func outerFinallyLoop(bool repeat) as generator<int>
+    try
+        int iteration = 0
+        while iteration < 2
+            try
+                abruptMark(10 + iteration)
+            finally
+                abruptMark(20 + iteration)
+                yield iteration
+                abruptMark(30 + iteration)
+                iteration += 1
+                if repeat then
+                    continue
+                else
+                    break
+                end
+            end
+        end
+        abruptMark(80)
+    finally
+        abruptMark(40)
+        yield 4
+        abruptMark(41)
+    end
+    abruptMark(90)
+    yield 9
+end
+export "close_abrupt_outer" func consumeOuter(bool repeat, int limit) as int
+    int count = 0
+    for value in outerFinallyLoop(repeat)
+        count += 1
+        if count == limit then
+            break
+        end
+    end
+    return count
+end

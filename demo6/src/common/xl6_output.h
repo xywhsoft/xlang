@@ -1,7 +1,7 @@
 #ifndef XL6_OUTPUT_H
 #define XL6_OUTPUT_H
 
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -19,7 +19,8 @@ typedef struct XL6_Output {
     FILE* stdFile;
     char* path;
     xbuffer buffer;
-    const char* error;
+    char error[256];
+    int bufferActive;
     int failed;
 } XL6_Output;
 

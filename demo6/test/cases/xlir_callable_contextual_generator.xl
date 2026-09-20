@@ -1,0 +1,18 @@
+func generatorBox() as var
+    int answer = 42
+    return xcall(func() as int => answer)
+end
+
+func projectedValues() as generator<int>
+    func() as int restored = generatorBox()
+    yield restored()
+    var another = generatorBox()
+    restored = another
+    yield restored()
+end
+
+int projectedTotal = 0
+for item in projectedValues()
+    projectedTotal += item
+end
+assert projectedTotal == 84

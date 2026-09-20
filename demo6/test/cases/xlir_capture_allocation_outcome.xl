@@ -1,0 +1,64 @@
+func captureConstant() as int
+    return 7
+end
+
+func captureNamed() as func() as int
+    return captureConstant
+end
+
+func captureAnonymous() as func() as int
+    return func() as int
+        return 7
+    end
+end
+
+func captureString(byval string input) as func() as int
+    return func() as int
+        return input.length
+    end
+end
+
+func captureCellInt() as func() as int
+    int value = 7
+    return func() as int
+        value += 1
+        return value
+    end
+end
+
+func captureCellString() as func() as int
+    string value = "value"
+    return func() as int
+        value += "!"
+        return value.length
+    end
+end
+
+func captureCellVar() as func() as int
+    var value = 7
+    return func() as int
+        value = 8
+        return int(value)
+    end
+end
+
+export "capture_allocation_keep" func keep(int shape) as int
+    if shape == 0
+        auto callback = captureNamed()
+        return callback()
+    elseif shape == 1
+        auto callback = captureAnonymous()
+        return callback()
+    elseif shape == 2
+        auto callback = captureString("value")
+        return callback()
+    elseif shape == 3
+        auto callback = captureCellInt()
+        return callback()
+    elseif shape == 4
+        auto callback = captureCellString()
+        return callback()
+    end
+    auto callback = captureCellVar()
+    return callback()
+end

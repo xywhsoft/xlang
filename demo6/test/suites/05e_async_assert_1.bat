@@ -21,7 +21,7 @@ if errorlevel 1 (
     echo cgen_async.c missing await helper.
     exit /b 1
 )
-findstr /C:"xFutureRelease" build\test\cgen_async.assert.c >nul
+findstr /C:"xl6FutureDestroy" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing future cleanup.
     exit /b 1
@@ -29,16 +29,6 @@ if errorlevel 1 (
 findstr /C:"__xl6_async_return_" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing async return temporary.
-    exit /b 1
-)
-findstr /C:"xvoGetRecordData(__xl6_async_return_" build\test\cgen_async.assert.c >nul
-if errorlevel 1 (
-    echo cgen_async.c missing async class payload publication.
-    exit /b 1
-)
-findstr /C:"= xl6_xrt_move_to_shared(__xl6_async_return_" build\test\cgen_async.assert.c >nul
-if errorlevel 1 (
-    echo cgen_async.c missing async class managed-handle publication.
     exit /b 1
 )
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_async.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'xl_async_worker_xl_fn_makeBoxAsync[\s\S]*?pOut->pfnFreeValue = xl6_async_free_xvalue_value'){ exit 1 }"
@@ -81,17 +71,17 @@ if errorlevel 1 (
     echo cgen_async.c missing await function retain.
     exit /b 1
 )
-findstr /C:"secondBox = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(sharedBoxFuture" build\test\cgen_async.assert.c >nul
+findstr /C:"secondBox = xl6_future_await_xvalue_copy(sharedBoxFuture" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing repeated await class-handle retain.
     exit /b 1
 )
-findstr /C:"autoBox = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(autoBoxFuture" build\test\cgen_async.assert.c >nul
+findstr /C:"autoBox = xl6_future_await_xvalue_copy(autoBoxFuture" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing auto await class-handle retain.
     exit /b 1
 )
-findstr /C:"xvoUnref(autoBox);" build\test\cgen_async.assert.c >nul
+findstr /C:"xrtValueRelease(autoBox);" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing auto await class-handle cleanup.
     exit /b 1
@@ -111,17 +101,17 @@ if errorlevel 1 (
     echo cgen_async.c missing temporary await function release helper.
     exit /b 1
 )
-findstr /C:"static xvalue xl6_future_await_xvalue_release" build\test\cgen_async.assert.c >nul
+findstr /C:"static xvalue* xl6_future_await_xvalue_release" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await xvalue release helper.
     exit /b 1
 )
-findstr /C:"awaitedVar = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(varFuture" build\test\cgen_async.assert.c >nul
+findstr /C:"awaitedVar = xl6_future_await_xvalue_copy(varFuture" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing borrowed await xvalue retain.
     exit /b 1
 )
-findstr /C:"temporaryVar = xl6_xrt_move_to_shared(xl6_future_await_xvalue_release(xl_fn_makeVarAsync(130LL)" build\test\cgen_async.assert.c >nul
+findstr /C:"temporaryVar = xl6_future_await_xvalue_release(xl_fn_makeVarAsync(130LL)" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await xvalue helper call.
     exit /b 1
@@ -146,7 +136,7 @@ if errorlevel 1 (
     echo cgen_async.c missing conditional await void normalization.
     exit /b 1
 )
-findstr /C:"conditionalVarBorrowed = xl6_xrt_move_to_shared(xl6_future_await_xvalue_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalVarSource) : xl_fn_makeVarAsync(340LL))" build\test\cgen_async.assert.c >nul
+findstr /C:"conditionalVarBorrowed = xl6_future_await_xvalue_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalVarSource) : xl_fn_makeVarAsync(340LL))" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed var normalization.
     exit /b 1
@@ -156,17 +146,17 @@ if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed function normalization.
     exit /b 1
 )
-findstr /C:"conditionalBoxBorrowed = xl6_xrt_move_to_shared(xl6_future_await_xvalue_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalBoxSource)" build\test\cgen_async.assert.c >nul
+findstr /C:"conditionalBoxBorrowed = xl6_future_await_xvalue_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalBoxSource)" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed class-handle release helper.
     exit /b 1
 )
-findstr /C:"conditionalBoxOwned = xl6_xrt_move_to_shared(xl6_future_await_xvalue_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalBoxSource) : xl_fn_makeBoxAsync(395LL))" build\test\cgen_async.assert.c >nul
+findstr /C:"conditionalBoxOwned = xl6_future_await_xvalue_release((chooseConditionalAwait ? xl6_future_add_ref_if_needed(conditionalBoxSource) : xl_fn_makeBoxAsync(395LL))" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await owned class-handle release helper.
     exit /b 1
 )
-findstr /C:"conditionalGreetingBorrowed = xrtCopyStr((chooseConditionalGreeting ? xl6_future_await_cstr_copy(conditionalGreetingSource" build\test\cgen_async.assert.c >nul
+findstr /C:"conditionalGreetingBorrowed = xl6_xrt_string_dup((chooseConditionalGreeting ? xl6_future_await_cstr_copy(conditionalGreetingSource" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed string copy.
     exit /b 1
@@ -176,7 +166,7 @@ if errorlevel 1 (
     echo cgen_async.c missing conditional await owned string release.
     exit /b 1
 )
-findstr /C:"chooseConditionalItems ? xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(conditionalItemsSource" build\test\cgen_async.assert.c >nul
+findstr /C:"chooseConditionalItems ? xl6_xrt_typed_array_copy(xl6TypeInt64(), (*(xtarray*)xl6_future_await_value(conditionalItemsSource" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed typed array copy.
     exit /b 1
@@ -186,7 +176,7 @@ if errorlevel 1 (
     echo cgen_async.c missing conditional await owned typed array release.
     exit /b 1
 )
-findstr /C:"chooseConditionalList ? xl6_xrt_typed_list_copy_mode(xrtTypeInt(), (*(xtlist*)xl6_future_await_value(conditionalListSource" build\test\cgen_async.assert.c >nul
+findstr /C:"chooseConditionalList ? xl6_xrt_typed_list_copy(xl6TypeInt64(), (*(xtlist*)xl6_future_await_value(conditionalListSource" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed typed list copy.
     exit /b 1
@@ -196,7 +186,7 @@ if errorlevel 1 (
     echo cgen_async.c missing conditional await owned typed list release.
     exit /b 1
 )
-findstr /C:"chooseConditionalSet ? xl6_xrt_typed_set_copy_mode(xrtTypeInt(), (*(xtset*)xl6_future_await_value(conditionalSetSource" build\test\cgen_async.assert.c >nul
+findstr /C:"chooseConditionalSet ? xl6_xrt_typed_set_copy(xl6TypeInt64(), (*(xtset*)xl6_future_await_value(conditionalSetSource" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed typed set copy.
     exit /b 1
@@ -206,7 +196,7 @@ if errorlevel 1 (
     echo cgen_async.c missing conditional await owned typed set release.
     exit /b 1
 )
-findstr /C:"chooseConditionalDict ? xl6_xrt_typed_dict_copy_mode(xrtTypeInt(), (*(xtdict*)xl6_future_await_value(conditionalDictSource" build\test\cgen_async.assert.c >nul
+findstr /C:"chooseConditionalDict ? xl6_xrt_typed_dict_copy(xl6TypeInt64(), (*(xtdict*)xl6_future_await_value(conditionalDictSource" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing conditional await borrowed typed dict copy.
     exit /b 1
@@ -226,17 +216,17 @@ if errorlevel 1 (
     echo cgen_async.c missing named string await copy helper.
     exit /b 1
 )
-findstr /C:"temporaryGreeting = xrtCopyStr(xl6_future_await_cstr_release(xl_fn_greetAsync(" build\test\cgen_async.assert.c >nul
+findstr /C:"temporaryGreeting = xl6_xrt_string_dup(xl6_future_await_cstr_release(xl_fn_greetAsync(" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing temporary await string release helper call.
     exit /b 1
 )
-findstr /C:"namedGreetingA = xrtCopyStr(xl6_future_await_cstr_copy(greetingFuture" build\test\cgen_async.assert.c >nul
+findstr /C:"namedGreetingA = xl6_xrt_string_dup(xl6_future_await_cstr_copy(greetingFuture" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing first named future string copy.
     exit /b 1
 )
-findstr /C:"namedGreetingB = xrtCopyStr(xl6_future_await_cstr_copy(greetingFuture" build\test\cgen_async.assert.c >nul
+findstr /C:"namedGreetingB = xl6_xrt_string_dup(xl6_future_await_cstr_copy(greetingFuture" build\test\cgen_async.assert.c >nul
 if errorlevel 1 (
     echo cgen_async.c missing second named future string copy.
     exit /b 1

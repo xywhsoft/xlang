@@ -1,0 +1,19 @@
+func maybeText(bool fail) as string
+    if fail then
+        string message = "expected"
+        throw message
+    end
+    return "ok"
+end
+
+func recoverText() as string
+    try
+        return maybeText(true)
+    catch ignored
+        return "recovered"
+    end
+end
+
+export "xl6_diff_recover_ok" func recoverOk() as int
+    return recoverText() == "recovered" ? 0 : 1
+end

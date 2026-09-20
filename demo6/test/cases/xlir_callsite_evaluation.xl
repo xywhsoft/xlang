@@ -1,0 +1,260 @@
+extern "callsite_evaluation_raise" func evaluationRaise(int code)
+int evaluationTrace = 0
+int evaluationDrops = 0
+int evaluationLastSet = 0
+class EvaluationItem
+    int number
+    bool fail
+    create(int number, bool fail)
+        self.number = number
+        self.fail = fail
+    end
+    destroy()
+        evaluationDrops = evaluationDrops * 10 + self.number
+        if self.fail then evaluationRaise(100 + self.number) end
+    end
+end
+func evaluationDigit(int value) as int
+    evaluationTrace = evaluationTrace * 10 + value
+    return value
+end
+func evaluationItem(int value, bool fail = false) as EvaluationItem
+    evaluationTrace = evaluationTrace * 10 + value
+    return EvaluationItem(value, fail)
+end
+func evaluationFailItem(int value) as EvaluationItem
+    evaluationTrace = evaluationTrace * 10 + value
+    evaluationRaise(91)
+    return EvaluationItem(value, false)
+end
+func evaluationCombine(EvaluationItem first, EvaluationItem second) as int
+    return first.number * 10 + second.number
+end
+func evaluationModes(byref int first, out int second)
+    first += 1
+    second = first + 1
+end
+func evaluationDefaults(int first = evaluationDigit(1), int second = evaluationDigit(2)) as int
+    return first * 10 + second
+end
+func evaluationKeywords(int head = evaluationDigit(1), ***) as int
+    return head + arg.length
+end
+class EvaluationBox
+    int number
+    create(EvaluationItem first, EvaluationItem second)
+        self.number = first.number * 10 + second.number
+    end
+end
+protocol EvaluationProtocol
+    func combine(EvaluationItem first, EvaluationItem second) as int
+    func modes(byref int first, out int second)
+    get amount() as int
+    let amount(int value)
+end
+class EvaluationReceiver
+    func modes(byref int first, out int second)
+        evaluationModes(byref first, out second)
+    end
+    func combine(EvaluationItem first, EvaluationItem second) as int
+        return first.number * 10 + second.number
+    end
+    get amount() as int
+        return 9
+    end
+    let amount(int value)
+        evaluationLastSet = value
+    end
+end
+class EvaluationRaisingReceiver
+    func modes(byref int first, out int second)
+        evaluationModes(byref first, out second)
+    end
+    func combine(EvaluationItem first, EvaluationItem second) as int
+        evaluationRaise(90)
+        return 0
+    end
+    get amount() as int
+        return 8
+    end
+    let amount(int value)
+        evaluationLastSet = value
+    end
+end
+func evaluationReceiver() as EvaluationProtocol
+    evaluationTrace = evaluationTrace * 10 + 3
+    return EvaluationReceiver()
+end
+class EvaluationSyntax
+    bool callFail
+    bool dropFail
+    create(bool callFail, bool dropFail)
+        self.callFail = callFail
+        self.dropFail = dropFail
+    end
+    destroy()
+        evaluationDrops = evaluationDrops * 10 + 3
+        if self.dropFail then evaluationRaise(103) end
+    end
+    func __contains__(EvaluationItem key) as bool
+        if self.callFail then evaluationRaise(90) end
+        return key.number == 1
+    end
+    func __item__(EvaluationItem key) as int
+        if self.callFail then evaluationRaise(90) end
+        return key.number
+    end
+    func __setItem__(EvaluationItem key, EvaluationItem value)
+        if self.callFail then evaluationRaise(90) end
+        evaluationLastSet = key.number * 10 + value.number
+    end
+    func __setItem__(EvaluationItem first, EvaluationItem second, EvaluationItem value)
+        if self.callFail then evaluationRaise(90) end
+        evaluationLastSet = first.number * 100 + second.number * 10 + value.number
+    end
+end
+func evaluationSyntax(bool callFail = false, bool dropFail = false, bool createFail = false) as EvaluationSyntax
+    evaluationTrace = evaluationTrace * 10 + 3
+    if createFail then evaluationRaise(92) end
+    return EvaluationSyntax(callFail, dropFail)
+end
+export "callsite_evaluation_check" func evaluationCheck() as int
+    int modeFirst = 0
+    int modeSecond = 0
+    evaluationModes(byref modeFirst, out modeSecond)
+    assert modeFirst == 1 and modeSecond == 2
+    EvaluationProtocol modeReceiver = EvaluationReceiver()
+    modeReceiver.modes(byref modeFirst, out modeSecond)
+    assert modeFirst == 2 and modeSecond == 3
+    evaluationTrace = 0
+    evaluationDrops = 0
+    assert evaluationCombine(second = evaluationItem(2), first = evaluationItem(1)) == 12
+    assert evaluationTrace == 21 and evaluationDrops == 12
+    evaluationTrace = 0
+    evaluationDrops = 0
+    assert evaluationReceiver().combine(second = evaluationItem(2), first = evaluationItem(1)) == 12
+    assert evaluationTrace == 321 and evaluationDrops == 12
+    evaluationTrace = 0
+    evaluationDrops = 0
+    EvaluationBox box = EvaluationBox(second = evaluationItem(2), first = evaluationItem(1))
+    assert box.number == 12 and evaluationTrace == 21 and evaluationDrops == 12
+    evaluationTrace = 0
+    evaluationDrops = 0
+    bool caught = false
+    try
+        evaluationCombine(second = evaluationItem(2), first = evaluationFailItem(1))
+    catch failure
+        caught = true
+    end
+    assert caught and evaluationTrace == 21 and evaluationDrops == 2
+    evaluationTrace = 0
+    evaluationDrops = 0
+    caught = false
+    try
+        evaluationReceiver().combine(second = evaluationItem(2), first = evaluationFailItem(1))
+    catch failure
+        caught = true
+    end
+    assert caught and evaluationTrace == 321 and evaluationDrops == 2
+    evaluationTrace = 0
+    assert evaluationDefaults(second = evaluationDigit(3)) == 13
+    assert evaluationTrace == 31
+    evaluationTrace = 0
+    assert evaluationDefaults() == 12 and evaluationTrace == 12
+    evaluationTrace = 0
+    assert evaluationKeywords(extra = evaluationDigit(2), head = evaluationDigit(3)) == 4
+    assert evaluationTrace == 23
+    evaluationTrace = 0
+    assert evaluationKeywords(extra = evaluationDigit(2)) == 2
+    assert evaluationTrace == 21
+    evaluationTrace = 0
+    evaluationDrops = 0
+    caught = false
+    try
+        evaluationKeywords(extra = evaluationItem(2), head = int(evaluationFailItem(1).number))
+    catch failure
+        caught = true
+    end
+    assert caught and evaluationTrace == 21 and evaluationDrops == 2
+    evaluationTrace = 0
+    evaluationReceiver().amount = evaluationDigit(4)
+    assert evaluationTrace == 43 and evaluationLastSet == 4
+    evaluationTrace = 0
+    assert evaluationReceiver().amount == 9 and evaluationTrace == 3
+    evaluationTrace = 0
+    evaluationDrops = 0
+    assert evaluationItem(1) in evaluationSyntax()
+    assert evaluationTrace == 13 and evaluationDrops == 31
+    evaluationTrace = 0
+    evaluationDrops = 0
+    assert evaluationSyntax()[evaluationItem(1)] == 1
+    assert evaluationTrace == 31 and evaluationDrops == 13
+    evaluationTrace = 0
+    evaluationDrops = 0
+    evaluationSyntax()[evaluationItem(1)] = evaluationItem(2)
+    assert evaluationTrace == 231 and evaluationDrops == 132 and evaluationLastSet == 12
+    evaluationTrace = 0
+    evaluationDrops = 0
+    evaluationSyntax()[evaluationItem(1), evaluationItem(4)] = evaluationItem(2)
+    assert evaluationTrace == 2314 and evaluationDrops == 4132 and evaluationLastSet == 142
+    evaluationTrace = 0
+    evaluationDrops = 0
+    caught = false
+    try
+        evaluationSyntax()[evaluationItem(1)] = evaluationFailItem(2)
+    catch failure
+        caught = true
+    end
+    assert caught and evaluationTrace == 2 and evaluationDrops == 0
+    evaluationTrace = 0
+    evaluationDrops = 0
+    caught = false
+    try
+        evaluationSyntax(createFail = true)[evaluationItem(1)] = evaluationItem(2)
+    catch failure
+        caught = true
+    end
+    assert caught and evaluationTrace == 23 and evaluationDrops == 2
+    evaluationTrace = 0
+    evaluationDrops = 0
+    caught = false
+    try
+        evaluationSyntax()[evaluationFailItem(1)] = evaluationItem(2)
+    catch failure
+        caught = true
+    end
+    assert caught and evaluationTrace == 231 and evaluationDrops == 32
+    evaluationTrace = 0
+    evaluationDrops = 0
+    caught = false
+    try
+        evaluationSyntax()[evaluationItem(1), evaluationFailItem(4)] = evaluationItem(2)
+    catch failure
+        caught = true
+    end
+    assert caught and evaluationTrace == 2314 and evaluationDrops == 132
+    return 0
+end
+export "callsite_evaluation_uncaught" func evaluationUncaught(bool callee)
+    evaluationTrace = 0
+    evaluationDrops = 0
+    if callee
+        EvaluationProtocol receiver = EvaluationRaisingReceiver()
+        receiver.combine(second = evaluationItem(2, true), first = evaluationItem(1, true))
+    else
+        evaluationCombine(second = evaluationItem(2, true), first = evaluationItem(1, true))
+    end
+end
+export "callsite_evaluation_syntax_uncaught" func evaluationSyntaxUncaught(int stage)
+    evaluationTrace = 0
+    evaluationDrops = 0
+    if stage == 0
+        assert evaluationItem(1, true) in evaluationSyntax(dropFail = true)
+    elseif stage == 1
+        evaluationSyntax(dropFail = true)[evaluationItem(1, true)] = evaluationItem(2, true)
+    elseif stage == 2
+        evaluationSyntax(callFail = true, dropFail = true)[evaluationItem(1, true)] = evaluationItem(2, true)
+    else
+        evaluationSyntax(dropFail = true)[evaluationFailItem(1)] = evaluationItem(2, true)
+    end
+end

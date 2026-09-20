@@ -93,13 +93,13 @@ static void xl6CgenTypedLoopValueBegin(XL6_CgenContext* ctx, const XL6_AstNode* 
     concreteType = xl6CgenTypedContainerConcreteType(ctx, itemType);
     if ( concreteType != NULL ) {
         if ( xl6CTextEquals(concreteType->text, "array") ) {
-            xl6OutputPuts("xrtTypedArrayRetain(*(xtarray*)", ctx->out);
+            xl6OutputPuts("xl6TypedArrayRetain(*(xtarray*)", ctx->out);
         } else if ( xl6CTextEquals(concreteType->text, "list") ) {
-            xl6OutputPuts("xrtTypedListRetain(*(xtlist*)", ctx->out);
+            xl6OutputPuts("xl6TypedListRetain(*(xtlist*)", ctx->out);
         } else if ( xl6CTextEquals(concreteType->text, "set") ) {
-            xl6OutputPuts("xrtTypedSetRetain(*(xtset*)", ctx->out);
+            xl6OutputPuts("xl6TypedSetRetain(*(xtset*)", ctx->out);
         } else {
-            xl6OutputPuts("xrtTypedDictRetain(*(xtdict*)", ctx->out);
+            xl6OutputPuts("xl6TypedDictRetain(*(xtdict*)", ctx->out);
         }
         return;
     }
@@ -116,7 +116,7 @@ static void xl6CgenTypedLoopValueBegin(XL6_CgenContext* ctx, const XL6_AstNode* 
         return;
     }
     if ( xl6CgenTypeContainsFunctionType(itemType) ) {
-        xl6OutputPuts("xl6_function_from_callable(*(xrt_callable**)", ctx->out);
+        xl6OutputPuts("xl6_function_from_callable(*(xrtcallable**)", ctx->out);
         return;
     }
     if ( xl6CgenIsLanguageBoolType(ctx, itemType) ) {
@@ -124,11 +124,11 @@ static void xl6CgenTypedLoopValueBegin(XL6_CgenContext* ctx, const XL6_AstNode* 
         return;
     }
     if ( xl6CgenIsStringTypeNode(ctx, itemType) ) {
-        xl6OutputPuts("xrtCopyStr((*(const char**)", ctx->out);
+        xl6OutputPuts("xl6_xrt_string_dup((*(const char**)", ctx->out);
         return;
     }
     xl6OutputPuts("(*(", ctx->out);
-    xl6OutputPuts(itemType != NULL ? xl6CgenTypeName(ctx, itemType) : "xvalue", ctx->out);
+    xl6OutputPuts(itemType != NULL ? xl6CgenTypeName(ctx, itemType) : "xvalue*", ctx->out);
     xl6OutputPuts("*)", ctx->out);
 }
 
@@ -158,9 +158,9 @@ static void xl6CgenEmitTypedLoopItemGuard(XL6_CgenContext* ctx, int continueId)
 /*
     for 目标的语义类型和实际 C 存储类型可能不同。
 
-    例如 array[42] 能推断出元素为 int，但非静态泛型容器仍以 xvalue
+    例如 array[42] 能推断出元素为 int，但非静态泛型容器仍以 xvalue*
     保存元素，循环体入口也先得到 var。闭包环境和预扫描必须记录实际
-    存储类型，否则会把 xvalue 指针按整数复制。
+    存储类型，否则会把 xvalue* 指针按整数复制。
 */
 static const XL6_AstNode* xl6CgenForTargetStorageType(
     XL6_CgenContext* ctx,
@@ -228,7 +228,7 @@ static const XL6_AstNode* xl6CgenForTargetStorageType(
 
     /*
         var 迭代器运行时可能落到任意容器分支，所有目标都统一装箱。
-        XValue 容器的值目标同样保持 xvalue；索引和 dict 键由 lowering
+        XValue 容器的值目标同样保持 xvalue*；索引和 dict 键由 lowering
         直接生成 int/string，和循环实现保持一致。
     */
     if ( xl6CTextEquals(typeName, "var") ) {
@@ -293,7 +293,13 @@ static void xl6CgenFinishLoopIteration(XL6_CgenContext* ctx, size_t cleanupMark,
 
 static void xl6CgenForLoopBody(XL6_CgenContext* ctx, const XL6_AstNode* node, size_t breakCleanupMark, size_t continueCleanupMark, size_t varMark, int breakId, int continueId)
 {
+    /*
+        每轮 for 都有独立临时作用域。异常若直接跳到函数级清理，会越过
+        该作用域，导致运行时的临时作用域栈失序。把迭代体纳入错误作用域，
+        使传播错误先释放本轮创建的值和临时作用域，再交给外层处理。
+    */
     xl6CgenBeginTempScope(ctx, node);
+    xl6CgenPushErrorScope(ctx, continueCleanupMark);
     xl6CgenPushLoopTarget(
         ctx,
         breakCleanupMark,
@@ -306,7 +312,13 @@ static void xl6CgenForLoopBody(XL6_CgenContext* ctx, const XL6_AstNode* node, si
         xl6CgenBlock(ctx, node->children[2]);
     }
     xl6CgenPopLoopTarget(ctx);
-    xl6CgenFinishLoopIteration(ctx, continueCleanupMark, varMark, continueId);
+    xl6CgenCloseErrorScope(ctx, continueCleanupMark);
+    xl6CgenFreeVarsSince(ctx, varMark);
+
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "__xl6_continue_%d:\n", continueId);
+    xl6CgenIndent(ctx);
+    xl6OutputPuts(";\n", ctx->out);
 }
 
 static void xl6CgenForArrayLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, const XL6_AstNode* targets, const char* iterName, size_t breakCleanupMark, int breakId, int continueId, int forceVarTargets)
@@ -315,9 +327,9 @@ static void xl6CgenForArrayLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, c
     size_t loopMark;
 
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "unsigned int __xl6_count_%d = xvoArrayItemCount(%s);\n", continueId, iterName);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "for (unsigned int __xl6_index_%d = 0; __xl6_index_%d < __xl6_count_%d; ++__xl6_index_%d) {\n",
+	xl6OutputPrintf(ctx->out, "size_t __xl6_count_%d = xrtValueCount(%s);\n", continueId, iterName);
+	xl6CgenIndent(ctx);
+	xl6OutputPrintf(ctx->out, "for (size_t __xl6_index_%d = 0; __xl6_index_%d < __xl6_count_%d; ++__xl6_index_%d) {\n",
             continueId, continueId, continueId, continueId);
     ctx->indent += 1;
 
@@ -329,7 +341,7 @@ static void xl6CgenForArrayLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, c
 
         xl6CgenForTargetCName(valueName, sizeof(valueName), targets, 0);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = xl6_xrt_retain(xvoArrayGetValue(%s, __xl6_index_%d));\n",
+        xl6OutputPrintf(ctx->out, "xvalue* %s = xl6_xrt_retain(xrtValueArrayGet(%s, __xl6_index_%d));\n",
                 valueName, iterName, continueId);
         xl6CgenRegisterLoopTargetType(ctx, valueTarget, "var");
     } else {
@@ -342,14 +354,14 @@ static void xl6CgenForArrayLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, c
         xl6CgenForTargetCName(valueName, sizeof(valueName), targets, 1);
         xl6CgenIndent(ctx);
         if ( forceVarTargets ) {
-            xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateInt((long long)__xl6_index_%d);\n", indexName, continueId);
+            xl6OutputPrintf(ctx->out, "xvalue* %s = xrtValueInt((long long)__xl6_index_%d);\n", indexName, continueId);
             xl6CgenRegisterLoopTargetType(ctx, indexTarget, "var");
         } else {
             xl6OutputPrintf(ctx->out, "long long %s = (long long)__xl6_index_%d;\n", indexName, continueId);
             xl6CgenRegisterLoopTargetType(ctx, indexTarget, "int");
         }
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = xl6_xrt_retain(xvoArrayGetValue(%s, __xl6_index_%d));\n",
+        xl6OutputPrintf(ctx->out, "xvalue* %s = xl6_xrt_retain(xrtValueArrayGet(%s, __xl6_index_%d));\n",
                 valueName, iterName, continueId);
         xl6CgenRegisterLoopTargetType(ctx, valueTarget, "var");
     }
@@ -360,17 +372,27 @@ static void xl6CgenForArrayLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, c
     xl6OutputPuts("}\n", ctx->out);
 }
 
-static void xl6CgenForListLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, const XL6_AstNode* targets, const char* iterName, size_t breakCleanupMark, int breakId, int continueId, int forceVarTargets)
+static void xl6CgenForIndexedSnapshotLoop(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* node,
+    const XL6_AstNode* targets,
+    const char* iterName,
+    const char* snapshotKind,
+    const char* snapshotHelper,
+    size_t breakCleanupMark,
+    int breakId,
+    int continueId,
+    int forceVarTargets)
 {
     size_t iterCleanupMark;
     size_t varMark;
     size_t loopMark;
     char snapshotName[64];
 
-    snprintf(snapshotName, sizeof(snapshotName), "__xl6_list_snapshot_%d", continueId);
+    snprintf(snapshotName, sizeof(snapshotName), "__xl6_%s_snapshot_%d", snapshotKind, continueId);
     iterCleanupMark = ctx->cleanupCount;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "XL6_XrtIterSnapshot* %s = xl6_xrt_list_snapshot(%s);\n", snapshotName, iterName);
+    xl6OutputPrintf(ctx->out, "XL6_XrtIterSnapshot* %s = %s(%s);\n", snapshotName, snapshotHelper, iterName);
     xl6CgenAddIterSnapshotCleanup(ctx, snapshotName, node);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (%s == 0) {\n", snapshotName);
@@ -382,12 +404,12 @@ static void xl6CgenForListLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, co
     xl6OutputPuts("}\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out,
-            "for (unsigned int __xl6_list_pos_%d = 0; __xl6_list_pos_%d < %s->count; ++__xl6_list_pos_%d) {\n",
-            continueId, continueId, snapshotName, continueId);
+            "for (unsigned int __xl6_%s_pos_%d = 0; __xl6_%s_pos_%d < %s->count; ++__xl6_%s_pos_%d) {\n",
+            snapshotKind, continueId, snapshotKind, continueId, snapshotName, snapshotKind, continueId);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "XL6_XrtIterItem* __xl6_list_item_%d = &%s->items[__xl6_list_pos_%d];\n",
-            continueId, snapshotName, continueId);
+    xl6OutputPrintf(ctx->out, "XL6_XrtIterItem* __xl6_%s_item_%d = &%s->items[__xl6_%s_pos_%d];\n",
+            snapshotKind, continueId, snapshotName, snapshotKind, continueId);
 
     varMark = ctx->varCount;
     loopMark = ctx->cleanupCount;
@@ -397,8 +419,8 @@ static void xl6CgenForListLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, co
 
         xl6CgenForTargetCName(valueName, sizeof(valueName), targets, 0);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = xl6_xrt_retain(__xl6_list_item_%d->value);\n",
-                valueName, continueId);
+        xl6OutputPrintf(ctx->out, "xvalue* %s = xl6_xrt_retain(__xl6_%s_item_%d->value);\n",
+                valueName, snapshotKind, continueId);
         xl6CgenRegisterLoopTargetType(ctx, valueTarget, "var");
     } else {
         const XL6_AstNode* indexTarget = targets->children[0];
@@ -410,15 +432,17 @@ static void xl6CgenForListLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, co
         xl6CgenForTargetCName(valueName, sizeof(valueName), targets, 1);
         xl6CgenIndent(ctx);
         if ( forceVarTargets ) {
-            xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateInt(__xl6_list_item_%d->index);\n", indexName, continueId);
+            xl6OutputPrintf(ctx->out, "xvalue* %s = xrtValueInt(__xl6_%s_item_%d->index);\n",
+                    indexName, snapshotKind, continueId);
             xl6CgenRegisterLoopTargetType(ctx, indexTarget, "var");
         } else {
-            xl6OutputPrintf(ctx->out, "long long %s = __xl6_list_item_%d->index;\n", indexName, continueId);
+            xl6OutputPrintf(ctx->out, "long long %s = __xl6_%s_item_%d->index;\n",
+                    indexName, snapshotKind, continueId);
             xl6CgenRegisterLoopTargetType(ctx, indexTarget, "int");
         }
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = xl6_xrt_retain(__xl6_list_item_%d->value);\n",
-                valueName, continueId);
+        xl6OutputPrintf(ctx->out, "xvalue* %s = xl6_xrt_retain(__xl6_%s_item_%d->value);\n",
+                valueName, snapshotKind, continueId);
         xl6CgenRegisterLoopTargetType(ctx, valueTarget, "var");
     }
 
@@ -429,62 +453,20 @@ static void xl6CgenForListLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, co
     xl6CgenCloseScope(ctx, iterCleanupMark);
 }
 
+static void xl6CgenForListLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, const XL6_AstNode* targets, const char* iterName, size_t breakCleanupMark, int breakId, int continueId, int forceVarTargets)
+{
+    xl6CgenForIndexedSnapshotLoop(
+        ctx, node, targets, iterName,
+        "list", "xl6_xrt_list_snapshot",
+        breakCleanupMark, breakId, continueId, forceVarTargets);
+}
+
 static void xl6CgenForSetLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, const XL6_AstNode* targets, const char* iterName, size_t breakCleanupMark, int breakId, int continueId, int forceVarTargets)
 {
-    size_t iterCleanupMark;
-    size_t varMark;
-    size_t loopMark;
-    char countName[64];
-    char indexVarName[64];
-
-    snprintf(countName, sizeof(countName), "__xl6_set_count_%d", continueId);
-    snprintf(indexVarName, sizeof(indexVarName), "__xl6_set_index_%d", continueId);
-    iterCleanupMark = ctx->cleanupCount;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "unsigned int %s = xvoSetItemCount(%s);\n", countName, iterName);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "for (unsigned int %s = 0; %s < %s; ++%s) {\n",
-            indexVarName, indexVarName, countName, indexVarName);
-    ctx->indent += 1;
-
-    varMark = ctx->varCount;
-    loopMark = ctx->cleanupCount;
-    if ( targets->childCount == 1 ) {
-        const XL6_AstNode* valueTarget = targets->children[0];
-        char valueName[512];
-
-        xl6CgenForTargetCName(valueName, sizeof(valueName), targets, 0);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = xl6_xrt_retain(xvoSetGetValueAt(%s, %s));\n",
-                valueName, iterName, indexVarName);
-        xl6CgenRegisterLoopTargetType(ctx, valueTarget, "var");
-    } else {
-        const XL6_AstNode* indexTarget = targets->children[0];
-        const XL6_AstNode* valueTarget = targets->children[1];
-        char indexName[512];
-        char valueName[512];
-
-        xl6CgenForTargetCName(indexName, sizeof(indexName), targets, 0);
-        xl6CgenForTargetCName(valueName, sizeof(valueName), targets, 1);
-        xl6CgenIndent(ctx);
-        if ( forceVarTargets ) {
-            xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateInt((long long)%s);\n", indexName, indexVarName);
-            xl6CgenRegisterLoopTargetType(ctx, indexTarget, "var");
-        } else {
-            xl6OutputPrintf(ctx->out, "long long %s = (long long)%s;\n", indexName, indexVarName);
-            xl6CgenRegisterLoopTargetType(ctx, indexTarget, "int");
-        }
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = xl6_xrt_retain(xvoSetGetValueAt(%s, %s));\n",
-                valueName, iterName, indexVarName);
-        xl6CgenRegisterLoopTargetType(ctx, valueTarget, "var");
-    }
-
-    xl6CgenForLoopBody(ctx, node, breakCleanupMark, loopMark, varMark, breakId, continueId);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    xl6CgenCloseScope(ctx, iterCleanupMark);
+    xl6CgenForIndexedSnapshotLoop(
+        ctx, node, targets, iterName,
+        "set", "xl6_xrt_set_snapshot",
+        breakCleanupMark, breakId, continueId, forceVarTargets);
 }
 
 static void xl6CgenForDictLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, const XL6_AstNode* targets, const char* iterName, size_t breakCleanupMark, int breakId, int continueId, int forceVarTargets)
@@ -525,12 +507,12 @@ static void xl6CgenForDictLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, co
         xl6CgenForTargetCName(keyName, sizeof(keyName), targets, 0);
         xl6CgenIndent(ctx);
         if ( forceVarTargets ) {
-            xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateText((void*)__xl6_dict_item_%d->key, __xl6_dict_item_%d->keyLen, false);\n",
+            xl6OutputPrintf(ctx->out, "xvalue* %s = xl6_xrt_value_text_create((void*)__xl6_dict_item_%d->key, __xl6_dict_item_%d->keyLen, false);\n",
                     keyName, continueId, continueId);
             xl6CgenRegisterLoopTargetType(ctx, keyTarget, "var");
         } else {
             xl6OutputPrintf(ctx->out,
-                            "const char* %s = xrtCopyStr(__xl6_dict_item_%d->key, __xl6_dict_item_%d->keyLen);\n",
+                            "const char* %s = xl6_xrt_string_dup(__xl6_dict_item_%d->key, __xl6_dict_item_%d->keyLen);\n",
                             keyName,
                             continueId,
                             continueId);
@@ -548,12 +530,12 @@ static void xl6CgenForDictLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, co
         xl6CgenForTargetCName(valueName, sizeof(valueName), targets, 1);
         xl6CgenIndent(ctx);
         if ( forceVarTargets ) {
-            xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateText((void*)__xl6_dict_item_%d->key, __xl6_dict_item_%d->keyLen, false);\n",
+            xl6OutputPrintf(ctx->out, "xvalue* %s = xl6_xrt_value_text_create((void*)__xl6_dict_item_%d->key, __xl6_dict_item_%d->keyLen, false);\n",
                     keyName, continueId, continueId);
             xl6CgenRegisterLoopTargetType(ctx, keyTarget, "var");
         } else {
             xl6OutputPrintf(ctx->out,
-                            "const char* %s = xrtCopyStr(__xl6_dict_item_%d->key, __xl6_dict_item_%d->keyLen);\n",
+                            "const char* %s = xl6_xrt_string_dup(__xl6_dict_item_%d->key, __xl6_dict_item_%d->keyLen);\n",
                             keyName,
                             continueId,
                             continueId);
@@ -562,7 +544,7 @@ static void xl6CgenForDictLoop(XL6_CgenContext* ctx, const XL6_AstNode* node, co
             xl6CgenRegisterLoopTargetType(ctx, keyTarget, "string");
         }
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = xl6_xrt_retain(__xl6_dict_item_%d->value);\n",
+        xl6OutputPrintf(ctx->out, "xvalue* %s = xl6_xrt_retain(__xl6_dict_item_%d->value);\n",
                 valueName, continueId);
         xl6CgenRegisterLoopTargetType(ctx, valueTarget, "var");
     }
@@ -651,15 +633,48 @@ static void xl6CgenForRange(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6OutputPuts("}\n", ctx->out);
     }
 
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "long long __xl6_range_index_%d = 0;\n", id);
+	if ( targets->childCount == 2 ) {
+		xl6CgenIndent(ctx);
+		xl6OutputPrintf(ctx->out, "long long __xl6_range_index_%d = 0;\n", id);
+	}
 
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out,
-            "for (long long __xl6_range_value_%d = __xl6_range_start_%d; "
-            "(__xl6_range_step_%d > 0) ? (__xl6_range_value_%d < __xl6_range_stop_%d) : (__xl6_range_value_%d > __xl6_range_stop_%d); "
-            "__xl6_range_value_%d += __xl6_range_step_%d, ++__xl6_range_index_%d) {\n",
-            id, id, id, id, id, id, id, id, id, id);
+	xl6CgenIndent(ctx);
+	if ( targets->childCount == 2 ) {
+		xl6OutputPrintf(
+			ctx->out,
+			"for (long long __xl6_range_value_%d = __xl6_range_start_%d; "
+			"(__xl6_range_step_%d > 0) ? (__xl6_range_value_%d < __xl6_range_stop_%d) : "
+			"(__xl6_range_value_%d > __xl6_range_stop_%d); "
+			"__xl6_range_value_%d += __xl6_range_step_%d, ++__xl6_range_index_%d) {\n",
+			id,
+			id,
+			id,
+			id,
+			id,
+			id,
+			id,
+			id,
+			id,
+			id
+		);
+	} else {
+		xl6OutputPrintf(
+			ctx->out,
+			"for (long long __xl6_range_value_%d = __xl6_range_start_%d; "
+			"(__xl6_range_step_%d > 0) ? (__xl6_range_value_%d < __xl6_range_stop_%d) : "
+			"(__xl6_range_value_%d > __xl6_range_stop_%d); "
+			"__xl6_range_value_%d += __xl6_range_step_%d) {\n",
+			id,
+			id,
+			id,
+			id,
+			id,
+			id,
+			id,
+			id,
+			id
+		);
+	}
 
     ctx->indent += 1;
     varMark = ctx->varCount;
@@ -729,7 +744,7 @@ static void xl6CgenForXValueIterable(XL6_CgenContext* ctx, const XL6_AstNode* no
     iterMark = ctx->cleanupCount;
     tempType = xl6CgenOwnSimpleType(ctx, "var", iterable);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue %s = xl6_xrt_typed_container_snapshot(", iterName);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = xl6_xrt_typed_container_snapshot(", iterName);
     xl6CgenXValueFromExpr(ctx, iterable);
     xl6OutputPuts(");\n", ctx->out);
     xl6CgenAddXValueCleanup(ctx, iterName, tempType);
@@ -749,7 +764,7 @@ static void xl6CgenForXValueIterable(XL6_CgenContext* ctx, const XL6_AstNode* no
         int dictId = ctx->tempId++;
 
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "int __xl6_iter_type_%d = xvoType(%s);\n", id, iterName);
+        xl6OutputPrintf(ctx->out, "int __xl6_iter_type_%d = xl6_xrt_value_kind(%s);\n", id, iterName);
 
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (__xl6_iter_type_%d == XL6_XVO_DT_ARRAY) {\n", id);
@@ -894,7 +909,7 @@ static void xl6CgenForGeneratorIterable(XL6_CgenContext* ctx, const XL6_AstNode*
                 iterName, valueName, itemCType, node->line, node->column);
         if ( xl6CgenIsStringTypeNode(ctx, itemType) ) {
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = xrtCopyStr(%s, 0u);\n", valueName, valueName);
+            xl6OutputPrintf(ctx->out, "%s = xl6_xrt_string_dup(%s, 0u);\n", valueName, valueName);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_runtime_fatal(3); }\n", valueName);
         }
@@ -933,7 +948,7 @@ static void xl6CgenForTypedArrayLoop(XL6_CgenContext* ctx, const XL6_AstNode* no
 
     itemType = xl6CgenTypedContainerItemType(ctx, iterableType);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "unsigned int __xl6_typed_count_%d = xrtTypedArrayCount(%s);\n", continueId, iterName);
+    xl6OutputPrintf(ctx->out, "unsigned int __xl6_typed_count_%d = xl6TypedArrayCount(%s);\n", continueId, iterName);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "for (unsigned int __xl6_typed_index_%d = 0; __xl6_typed_index_%d < __xl6_typed_count_%d; ++__xl6_typed_index_%d) {\n",
             continueId, continueId, continueId, continueId);
@@ -950,7 +965,7 @@ static void xl6CgenForTypedArrayLoop(XL6_CgenContext* ctx, const XL6_AstNode* no
 
         xl6CgenForTargetCName(valueName, sizeof(valueName), targets, 0);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue", valueName);
+        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue*", valueName);
         xl6CgenTypedLoopValueBegin(ctx, itemType);
         xl6OutputPrintf(ctx->out, "__xl6_typed_item_%d", continueId);
         xl6CgenTypedLoopValueEnd(ctx, itemType);
@@ -967,7 +982,7 @@ static void xl6CgenForTypedArrayLoop(XL6_CgenContext* ctx, const XL6_AstNode* no
         xl6OutputPrintf(ctx->out, "long long %s = (long long)__xl6_typed_index_%d;\n", indexName, continueId);
         xl6CgenRegisterLoopTargetType(ctx, targets->children[0], "int");
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue", valueName);
+        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue*", valueName);
         xl6CgenTypedLoopValueBegin(ctx, itemType);
         xl6OutputPrintf(ctx->out, "__xl6_typed_item_%d", continueId);
         xl6CgenTypedLoopValueEnd(ctx, itemType);
@@ -990,7 +1005,7 @@ static void xl6CgenForTypedListLoop(XL6_CgenContext* ctx, const XL6_AstNode* nod
 
     itemType = xl6CgenTypedContainerItemType(ctx, iterableType);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "unsigned int __xl6_typed_count_%d = xrtTypedListCount(%s);\n", continueId, iterName);
+    xl6OutputPrintf(ctx->out, "unsigned int __xl6_typed_count_%d = xl6TypedListCount(%s);\n", continueId, iterName);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "for (unsigned int __xl6_typed_pos_%d = 0; __xl6_typed_pos_%d < __xl6_typed_count_%d; ++__xl6_typed_pos_%d) {\n",
             continueId, continueId, continueId, continueId);
@@ -998,7 +1013,7 @@ static void xl6CgenForTypedListLoop(XL6_CgenContext* ctx, const XL6_AstNode* nod
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "long long __xl6_typed_key_%d = 0;\n", continueId);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "void* __xl6_typed_item_%d = xrtTypedListItemAt(%s, __xl6_typed_pos_%d, &__xl6_typed_key_%d);\n",
+    xl6OutputPrintf(ctx->out, "void* __xl6_typed_item_%d = xl6TypedListItemAt(%s, __xl6_typed_pos_%d, &__xl6_typed_key_%d);\n",
             continueId, iterName, continueId, continueId);
     xl6CgenEmitTypedLoopItemGuard(ctx, continueId);
 
@@ -1009,7 +1024,7 @@ static void xl6CgenForTypedListLoop(XL6_CgenContext* ctx, const XL6_AstNode* nod
 
         xl6CgenForTargetCName(valueName, sizeof(valueName), targets, 0);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue", valueName);
+        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue*", valueName);
         xl6CgenTypedLoopValueBegin(ctx, itemType);
         xl6OutputPrintf(ctx->out, "__xl6_typed_item_%d", continueId);
         xl6CgenTypedLoopValueEnd(ctx, itemType);
@@ -1026,7 +1041,7 @@ static void xl6CgenForTypedListLoop(XL6_CgenContext* ctx, const XL6_AstNode* nod
         xl6OutputPrintf(ctx->out, "long long %s = __xl6_typed_key_%d;\n", indexName, continueId);
         xl6CgenRegisterLoopTargetType(ctx, targets->children[0], "int");
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue", valueName);
+        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue*", valueName);
         xl6CgenTypedLoopValueBegin(ctx, itemType);
         xl6OutputPrintf(ctx->out, "__xl6_typed_item_%d", continueId);
         xl6CgenTypedLoopValueEnd(ctx, itemType);
@@ -1049,13 +1064,13 @@ static void xl6CgenForTypedSetLoop(XL6_CgenContext* ctx, const XL6_AstNode* node
 
     itemType = xl6CgenTypedContainerItemType(ctx, iterableType);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "unsigned int __xl6_typed_count_%d = xrtTypedSetCount(%s);\n", continueId, iterName);
+    xl6OutputPrintf(ctx->out, "unsigned int __xl6_typed_count_%d = xl6TypedSetCount(%s);\n", continueId, iterName);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "for (unsigned int __xl6_typed_index_%d = 0; __xl6_typed_index_%d < __xl6_typed_count_%d; ++__xl6_typed_index_%d) {\n",
             continueId, continueId, continueId, continueId);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "void* __xl6_typed_item_%d = xrtTypedSetItemAt(%s, __xl6_typed_index_%d);\n",
+    xl6OutputPrintf(ctx->out, "void* __xl6_typed_item_%d = xl6TypedSetItemAt(%s, __xl6_typed_index_%d);\n",
             continueId, iterName, continueId);
     xl6CgenEmitTypedLoopItemGuard(ctx, continueId);
 
@@ -1066,7 +1081,7 @@ static void xl6CgenForTypedSetLoop(XL6_CgenContext* ctx, const XL6_AstNode* node
 
         xl6CgenForTargetCName(valueName, sizeof(valueName), targets, 0);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue", valueName);
+        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue*", valueName);
         xl6CgenTypedLoopValueBegin(ctx, itemType);
         xl6OutputPrintf(ctx->out, "__xl6_typed_item_%d", continueId);
         xl6CgenTypedLoopValueEnd(ctx, itemType);
@@ -1083,7 +1098,7 @@ static void xl6CgenForTypedSetLoop(XL6_CgenContext* ctx, const XL6_AstNode* node
         xl6OutputPrintf(ctx->out, "long long %s = (long long)__xl6_typed_index_%d;\n", indexName, continueId);
         xl6CgenRegisterLoopTargetType(ctx, targets->children[0], "int");
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue", valueName);
+        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue*", valueName);
         xl6CgenTypedLoopValueBegin(ctx, itemType);
         xl6OutputPrintf(ctx->out, "__xl6_typed_item_%d", continueId);
         xl6CgenTypedLoopValueEnd(ctx, itemType);
@@ -1108,12 +1123,12 @@ static void xl6CgenForTypedDictLoop(XL6_CgenContext* ctx, const XL6_AstNode* nod
     itemType = xl6CgenTypedContainerItemType(ctx, iterableType);
     snprintf(snapshotName, sizeof(snapshotName), "__xl6_typed_dict_snapshot_%d", continueId);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xtdict %s = xrtTypedDictClone(%s);\n", snapshotName, iterName);
+    xl6OutputPrintf(ctx->out, "xtdict %s = xl6TypedDictClone(%s);\n", snapshotName, iterName);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_runtime_fatal(3); }\n", snapshotName);
     xl6CgenAddTypedContainerCleanup(ctx, snapshotName, iterableType);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "unsigned int __xl6_typed_count_%d = xrtTypedDictCount(%s);\n", continueId, snapshotName);
+    xl6OutputPrintf(ctx->out, "unsigned int __xl6_typed_count_%d = xl6TypedDictCount(%s);\n", continueId, snapshotName);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "for (unsigned int __xl6_typed_pos_%d = 0; __xl6_typed_pos_%d < __xl6_typed_count_%d; ++__xl6_typed_pos_%d) {\n",
             continueId, continueId, continueId, continueId);
@@ -1123,7 +1138,7 @@ static void xl6CgenForTypedDictLoop(XL6_CgenContext* ctx, const XL6_AstNode* nod
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "unsigned int __xl6_typed_key_len_%d = 0;\n", continueId);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "void* __xl6_typed_item_%d = xrtTypedDictItemAt(%s, __xl6_typed_pos_%d, &__xl6_typed_key_%d, &__xl6_typed_key_len_%d);\n",
+    xl6OutputPrintf(ctx->out, "void* __xl6_typed_item_%d = xl6TypedDictItemAt(%s, __xl6_typed_pos_%d, &__xl6_typed_key_%d, &__xl6_typed_key_len_%d);\n",
             continueId, snapshotName, continueId, continueId, continueId);
     xl6CgenEmitTypedLoopItemGuard(ctx, continueId);
 
@@ -1135,7 +1150,7 @@ static void xl6CgenForTypedDictLoop(XL6_CgenContext* ctx, const XL6_AstNode* nod
         xl6CgenForTargetCName(keyName, sizeof(keyName), targets, 0);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out,
-                        "const char* %s = xrtCopyStr(__xl6_typed_key_%d != 0 ? __xl6_typed_key_%d : \"\", __xl6_typed_key_%d != 0 ? __xl6_typed_key_len_%d : 0u);\n",
+                        "const char* %s = xl6_xrt_string_dup(__xl6_typed_key_%d != 0 ? __xl6_typed_key_%d : \"\", __xl6_typed_key_%d != 0 ? __xl6_typed_key_len_%d : 0u);\n",
                         keyName,
                         continueId,
                         continueId,
@@ -1152,7 +1167,7 @@ static void xl6CgenForTypedDictLoop(XL6_CgenContext* ctx, const XL6_AstNode* nod
         xl6CgenForTargetCName(valueName, sizeof(valueName), targets, 1);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out,
-                        "const char* %s = xrtCopyStr(__xl6_typed_key_%d != 0 ? __xl6_typed_key_%d : \"\", __xl6_typed_key_%d != 0 ? __xl6_typed_key_len_%d : 0u);\n",
+                        "const char* %s = xl6_xrt_string_dup(__xl6_typed_key_%d != 0 ? __xl6_typed_key_%d : \"\", __xl6_typed_key_%d != 0 ? __xl6_typed_key_len_%d : 0u);\n",
                         keyName,
                         continueId,
                         continueId,
@@ -1162,7 +1177,7 @@ static void xl6CgenForTypedDictLoop(XL6_CgenContext* ctx, const XL6_AstNode* nod
         xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_runtime_fatal(3); }\n", keyName);
         xl6CgenRegisterLoopTargetType(ctx, targets->children[0], "string");
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue", valueName);
+        xl6OutputPrintf(ctx->out, "%s %s = ", itemType != NULL ? xl6CgenValueStorageCType(ctx, itemType) : "xvalue*", valueName);
         xl6CgenTypedLoopValueBegin(ctx, itemType);
         xl6OutputPrintf(ctx->out, "__xl6_typed_item_%d", continueId);
         xl6CgenTypedLoopValueEnd(ctx, itemType);

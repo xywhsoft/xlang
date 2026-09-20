@@ -81,9 +81,9 @@ static void xl6CgenProtocolDispatchFunction(
     xl6CgenProtocolParamDecls(ctx, params, 1, 1);
     xl6OutputPuts(")\n{\n", ctx->out);
     xl6OutputPuts(
-        "    const xrt_type_desc* concrete = self != 0 ? xvoTypeDesc(self) : 0;\n"
-        "    const xrtprotocolwitness* witness = concrete != 0\n"
-        "        ? xrtProtocolLookup(",
+        "    const xl6_type_desc* concrete = self != 0 ? xl6ValueType(self) : 0;\n"
+        "    const xl6_protocol_witness* witness = concrete != 0\n"
+        "        ? xl6ProtocolLookup(",
         ctx->out);
     xl6OutputPrintf(
         ctx->out,
@@ -91,8 +91,8 @@ static void xl6CgenProtocolDispatchFunction(
         "        : 0;\n",
         (unsigned int)(protocolTypeId & 0xFFFFFFFFULL));
     xl6OutputPuts(
-        "    const xrtprotocolentry* entry = witness != 0\n"
-        "        ? xrtProtocolWitnessFind(witness, ",
+        "    const xl6_protocol_entry* entry = witness != 0\n"
+        "        ? xl6ProtocolWitnessFind(witness, ",
         ctx->out);
     xl6CgenCStringLiteral(
         ctx->out,
@@ -108,12 +108,12 @@ static void xl6CgenProtocolDispatchFunction(
         signatureId);
     xl6OutputPuts("    if ( entry == 0 || entry->Entry == 0 ) {\n", ctx->out);
     xl6OutputPuts(
-        "        xl6_error_raise(self == 0 || xvoIsNull(self) "
+        "        xl6_error_raise(self == 0 || xl6_xrt_value_is_null(self) "
         "? \"NullReferenceError\" : \"TypeError\",\n"
-        "                        self == 0 || xvoIsNull(self) "
+        "                        self == 0 || xl6_xrt_value_is_null(self) "
         "? \"null protocol receiver\" : \"protocol witness not found\",\n"
         "                        file, line, column);\n"
-        "        if ( releaseSelf && self != 0 ) { xvoUnref(self); }\n",
+        "        if ( releaseSelf && self != 0 ) { xrtValueRelease(self); }\n",
         ctx->out);
     xl6CgenProtocolDefaultReturn(ctx, requirement);
     xl6OutputPuts("    }\n", ctx->out);
@@ -131,7 +131,7 @@ static void xl6CgenProtocolDispatchFunction(
     xl6CgenProtocolParamNames(ctx, params, 1);
     xl6OutputPuts(");\n", ctx->out);
     xl6OutputPuts(
-        "    if ( releaseSelf && self != 0 ) { xvoUnref(self); }\n",
+        "    if ( releaseSelf && self != 0 ) { xrtValueRelease(self); }\n",
         ctx->out);
     if ( hasReturn ) {
         xl6OutputPuts("    return result;\n", ctx->out);
@@ -237,9 +237,9 @@ static void xl6CgenGenericProtocolDispatchFunction(
     xl6CgenProtocolParamDecls(ctx, params, 1, 1);
     xl6OutputPuts(")\n{\n", ctx->out);
     xl6OutputPuts(
-        "    const xrt_type_desc* concrete = self != 0 ? xvoTypeDesc(self) : 0;\n"
-        "    const xrtprotocolwitness* witness = concrete != 0\n"
-        "        ? xrtProtocolLookup(",
+        "    const xl6_type_desc* concrete = self != 0 ? xl6ValueType(self) : 0;\n"
+        "    const xl6_protocol_witness* witness = concrete != 0\n"
+        "        ? xl6ProtocolLookup(",
         ctx->out);
     xl6OutputPrintf(
         ctx->out,
@@ -247,8 +247,8 @@ static void xl6CgenGenericProtocolDispatchFunction(
         "        : 0;\n",
         (unsigned int)(protocolTypeId & 0xFFFFFFFFULL));
     xl6OutputPuts(
-        "    const xrtprotocolentry* entry = witness != 0\n"
-        "        ? xrtProtocolWitnessFind(witness, ",
+        "    const xl6_protocol_entry* entry = witness != 0\n"
+        "        ? xl6ProtocolWitnessFind(witness, ",
         ctx->out);
     xl6CgenCStringLiteral(
         ctx->out,
@@ -264,12 +264,12 @@ static void xl6CgenGenericProtocolDispatchFunction(
         signatureId);
     xl6OutputPuts("    if (entry == 0 || entry->Entry == 0) {\n", ctx->out);
     xl6OutputPuts(
-        "        xl6_error_raise(self == 0 || xvoIsNull(self) "
+        "        xl6_error_raise(self == 0 || xl6_xrt_value_is_null(self) "
         "? \"NullReferenceError\" : \"TypeError\",\n"
-        "                        self == 0 || xvoIsNull(self) "
+        "                        self == 0 || xl6_xrt_value_is_null(self) "
         "? \"null protocol receiver\" : \"protocol witness not found\",\n"
         "                        file, line, column);\n"
-        "        if (releaseSelf && self != 0) { xvoUnref(self); }\n",
+        "        if (releaseSelf && self != 0) { xrtValueRelease(self); }\n",
         ctx->out);
     xl6CgenProtocolDefaultReturn(ctx, requirement);
     xl6OutputPuts("    }\n", ctx->out);
@@ -287,7 +287,7 @@ static void xl6CgenGenericProtocolDispatchFunction(
     xl6CgenProtocolParamNames(ctx, params, 1);
     xl6OutputPuts(");\n", ctx->out);
     xl6OutputPuts(
-        "    if (releaseSelf && self != 0) { xvoUnref(self); }\n",
+        "    if (releaseSelf && self != 0) { xrtValueRelease(self); }\n",
         ctx->out);
     if ( hasReturn ) {
         xl6OutputPuts("    return result;\n", ctx->out);
@@ -328,10 +328,10 @@ static void xl6CgenGenericProtocolDescriptor(
     typeText[0] = '\0';
     xl6CgenTypeText(ctx, protocolType, typeText, sizeof(typeText));
     typeId = xl6CgenTypeIdForTypeNode(ctx, protocolType);
-    xl6OutputPuts("static const xrt_type_desc* ", ctx->out);
+    xl6OutputPuts("static const xl6_type_desc* ", ctx->out);
     xl6CgenGenericProtocolTypeDescSymbol(ctx, protocolType);
     xl6OutputPuts("(void)\n{\n", ctx->out);
-    xl6OutputPuts("    static xrt_type_desc desc = {\n", ctx->out);
+    xl6OutputPuts("    static xl6_type_desc desc = {\n", ctx->out);
     xl6OutputPrintf(
         ctx->out,
         "        0x%08XU, XL6_XRT_TYPE_KIND_PROTOCOL,\n        ",
@@ -339,13 +339,11 @@ static void xl6CgenGenericProtocolDescriptor(
     xl6CgenCStringLiteral(ctx->out, typeText);
     xl6OutputPrintf(
         ctx->out,
-        ", %uu,\n"
-        "        \"xvalue\", 6u, sizeof(void*), sizeof(void*),\n"
-        "        0, 0, 0, 0\n"
-        "    };\n"
-        "    const xrt_type_desc* valueType = xrtTypeValue();\n"
-        "    if (desc.Ops == 0 && valueType != 0) { desc.Ops = valueType->Ops; }\n"
-        "    return &desc;\n"
+		", %uu,\n"
+		"        \"xvalue*\", 6u, sizeof(void*), sizeof(void*),\n"
+		"        &xl6_runtime_xvalue_ops, 0, 0, 0\n"
+		"    };\n"
+		"    return &desc;\n"
         "}\n\n",
         (unsigned)strlen(typeText));
 }

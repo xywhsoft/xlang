@@ -1,0 +1,7 @@
+export "xlir_test_overflow_recovered" func overflow_recovered() as int64
+    try
+        return int(1e30)
+    catch RangeError ignored
+        return 77
+    end
+end

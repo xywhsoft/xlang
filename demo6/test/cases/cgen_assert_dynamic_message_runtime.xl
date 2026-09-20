@@ -1,0 +1,9 @@
+func assert_dynamic_message(bool flag) as int
+    string message = "dynamic assertion message"
+    assert flag, message
+    return 23
+end
+
+// Preserve the checked function in the executable reachability closure; the
+// strict C host invokes its internal result-carrier ABI directly.
+assert_dynamic_message(true)

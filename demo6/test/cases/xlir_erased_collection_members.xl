@@ -1,0 +1,41 @@
+array values = [1, "two"]
+assert values.append(3)
+assert values.push("four")
+assert values.insert(1, "inserted")
+assert values.contains("inserted")
+assert values.removeValue("inserted")
+assert values.remove(0)
+assert values.swap(0, 2)
+assert values.reserve(16)
+assert string(values.take(0)) == "four"
+assert string(values.pop()) == "two"
+assert int(values.pop()) == 3
+assert values.pop() == null
+assert values.take(9) == null
+assert values.clear()
+assert values.length == 0
+
+list sparse = [3: "three", 7: 9]
+assert sparse.contains("three")
+assert string(sparse.take(3)) == "three"
+assert sparse.take(3) == null
+assert sparse.remove(7)
+assert sparse.clear()
+
+set unique = {1, "two"}
+assert unique.add(3)
+assert unique.contains("two")
+assert unique.remove("two")
+assert !unique.contains("two")
+assert unique.clear()
+assert unique.length == 0
+
+dict named = {"text": "owned", "number": 42}
+assert named.contains("text")
+assert string(named.take("text")) == "owned"
+assert named.take("text") == null
+assert named.remove("number")
+assert named.clear()
+assert named.length == 0
+
+println("xlir erased collection members ok")

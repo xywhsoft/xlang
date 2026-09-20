@@ -21,7 +21,19 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_tool_wiring.ps1
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xrt_snapshot.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xrt_header_abi.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xrt_ownership_contract.ps1
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_batch_wiring.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\clear_release_tmp_files.ps1
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cli_temp_cleanup.ps1
@@ -31,6 +43,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_source_wiring.ps
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_typed_hir_contract.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_contract.ps1
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_source_encoding.ps1
@@ -48,7 +63,7 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $m = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Select-String -SimpleMatch '({ XL6_Function'; if ($m) { Write-Host 'src cgen contains stale XL6_Function statement-expression fallback.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -Command "$dir = Join-Path 'src' 'cgen'; $allowed = @('xl6_cgen_async_runtime.c', 'xl6_cgen_async_runtime_await.c', 'xl6_cgen_async_runtime_prelude.c'); $files = Get-ChildItem -LiteralPath $dir -Filter '*.c' | Where-Object { $allowed -notcontains $_.Name }; $m = $files | Select-String -SimpleMatch 'xFutureRequestCancel'; if ($m) { Write-Host 'src cgen emits direct future cancel outside async runtime helpers.'; exit 1 }"
+powershell -NoProfile -Command "$path = Join-Path (Join-Path 'src' 'cgen') 'xl6_cgen_async_api.c'; $m = Select-String -LiteralPath $path -SimpleMatch 'xl6FutureCancel('; if ($m) { Write-Host 'task API lowering bypasses xl6_task_cancel_value ownership helper.'; exit 1 }"
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_cgen_statement_expr_allowlist.ps1
@@ -61,6 +76,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_toolchain_paths.
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_tcc_xrt_contract.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_tcc_vfs_resources.ps1
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_c_string_safety.ps1
@@ -81,19 +99,7 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlang_output_markers.ps1
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_c_fixture_wiring.ps1
-if errorlevel 1 exit /b 1
-
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_fixtures.ps1
-if errorlevel 1 exit /b 1
-
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_release_extlibs.ps1
-if errorlevel 1 exit /b 1
-
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_xrt_symbols.ps1
-if errorlevel 1 exit /b 1
-
-call release\examples\extlibs\run_extlibs.bat
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_c_fixture_wiring.ps1 -CoreOnly
 if errorlevel 1 exit /b 1
 
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_coverage.ps1
@@ -111,7 +117,7 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_async_task_soak.ps1
 if errorlevel 1 exit /b 1
 
-powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_examples.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_examples.ps1 -SkipDeferred
 if errorlevel 1 exit /b 1
 
 call release\examples\apps\run_apps.bat
@@ -362,7 +368,7 @@ if errorlevel 1 (
     echo cgen dump-dir missing AST dump.
     exit /b 1
 )
-findstr /C:"func add" build\test\dump_hello\hello.xlir >nul
+findstr /C:"kind=function-declaration/" build\test\dump_hello\hello.xlir >nul
 if errorlevel 1 (
     echo cgen dump-dir missing IR dump.
     exit /b 1

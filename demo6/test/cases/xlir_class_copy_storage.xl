@@ -1,0 +1,29 @@
+extern "class_copy_storage_capture" func capture(var value)
+class CopyStorage
+    derive copy
+    derive clone
+    int amount = 42
+    var values = [42]
+end
+export "class_copy_storage_start" func start(int mode) as int
+    auto original = CopyStorage()
+    if mode < 3
+        auto value = copy(original)
+        original.amount = 99
+        original.values[0] = 91
+        assert value.amount == 42
+        assert int(value.values[0]) == 91
+        capture(value)
+    else
+        auto value = clone(original)
+        original.amount = 99
+        original.values[0] = 91
+        assert value.amount == 42
+        assert int(value.values[0]) == 42
+        capture(value)
+    end
+    return 42
+end
+func main(...) as int
+    return 0
+end

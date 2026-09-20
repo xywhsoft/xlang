@@ -1,0 +1,9 @@
+int observed = 0
+try
+    throw "payload code"
+catch e
+    int code = e.code
+    assert code == 0
+    observed = 1
+end
+assert observed == 1

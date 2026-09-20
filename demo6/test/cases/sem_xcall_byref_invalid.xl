@@ -1,0 +1,6 @@
+func increment(byref int value)
+    value += 1
+end
+
+func(byref int) callback = increment
+var dynamic = xcall(callback)

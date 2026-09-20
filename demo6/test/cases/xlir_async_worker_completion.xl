@@ -1,0 +1,53 @@
+extern "worker_completion_body" func workerBody(bool fail)
+extern "worker_completion_drop" func workerDrop(int id)
+class WorkerCompletionOwner
+    int id
+    create(int id)
+        self.id = id
+    end
+    destroy()
+        workerDrop(self.id)
+    end
+end
+export "worker_completion_new" func workerNew(int id) as WorkerCompletionOwner
+    return WorkerCompletionOwner(id)
+end
+async func workerScalar(WorkerCompletionOwner first, WorkerCompletionOwner unused, bool fail) as int
+    workerBody(fail)
+    return first.id
+end
+async func workerVoid(WorkerCompletionOwner first, WorkerCompletionOwner unused, bool fail)
+    workerBody(fail)
+    assert first.id == 7
+end
+async func workerString(WorkerCompletionOwner first, WorkerCompletionOwner unused, bool fail) as string
+    workerBody(fail)
+    assert first.id == 7
+    return "worker-result"
+end
+async func workerObject(WorkerCompletionOwner first, WorkerCompletionOwner unused, bool fail) as WorkerCompletionOwner
+    workerBody(fail)
+    assert first.id == 7
+    return workerNew(17)
+end
+async func workerClosure(WorkerCompletionOwner first, WorkerCompletionOwner unused, bool fail) as func() as int
+    workerBody(fail)
+    assert first.id == 7
+    auto result = workerNew(17)
+    return func() as int
+        return result.id
+    end
+end
+async func workerTake(WorkerCompletionOwner first, byval WorkerCompletionOwner unused, bool fail) as int
+    workerBody(fail)
+    assert first.id == 7
+    return first.id
+end
+export "worker_completion_keep" func workerKeep()
+    future<int> output = workerScalar(workerNew(7), workerNew(9), false)
+    auto empty = workerVoid(workerNew(7), workerNew(9), false)
+    auto text = workerString(workerNew(7), workerNew(9), false)
+    auto object = workerObject(workerNew(7), workerNew(9), false)
+    auto closure = workerClosure(workerNew(7), workerNew(9), false)
+    auto taken = workerTake(workerNew(7), workerNew(9), false)
+end

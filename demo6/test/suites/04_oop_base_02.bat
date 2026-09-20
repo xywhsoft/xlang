@@ -21,12 +21,12 @@ if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing nested temporary dynamic member retain-release helper.
     exit /b 1
 )
-findstr /C:"({ xvalue __xl6_member_values_" build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"({ xvalue* __xl6_member_values_" build\test\cgen_dynamic_member_access.c >nul
 if not errorlevel 1 (
     echo cgen_dynamic_member_access.c should not use GNU statement expressions for temporary dynamic members.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_member_assign_" build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"xvalue* __xl6_member_assign_" build\test\cgen_dynamic_member_access.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing dynamic member assignment temporary.
     exit /b 1
@@ -41,7 +41,7 @@ if errorlevel 1 (
     echo cgen_dynamic_member_access.c missing nested dynamic member reference assignment lowering.
     exit /b 1
 )
-findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue __xl6_nc_" build\test\cgen_dynamic_member_access.c >nul
+findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue* __xl6_nc_" build\test\cgen_dynamic_member_access.c >nul
 if not errorlevel 1 (
     echo cgen_dynamic_member_access.c should pre-evaluate null coalesce scalar arguments.
     exit /b 1
@@ -66,7 +66,7 @@ if not errorlevel 1 (
     echo cgen_dynamic_member_access.c should not use statement expressions for declaration-level dynamic member fallback.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_dynamic_member_access.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_dynamic_member_access.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_dynamic_member_access.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_dynamic_member_access.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_dynamic_member_access.exe
 if errorlevel 1 exit /b 1
@@ -75,17 +75,17 @@ release\xl.exe check test\cases\cgen_dynamic_container_param.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_dynamic_container_param.xl --emit build\test\cgen_dynamic_container_param.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue xl_fn_take(xvalue values)" build\test\cgen_dynamic_container_param.c >nul
+findstr /C:"xvalue* xl_fn_take(xvalue* values)" build\test\cgen_dynamic_container_param.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_container_param.c missing dynamic array parameter lowering.
     exit /b 1
 )
-findstr /C:"xvalue xl_fn_choose(xvalue values)" build\test\cgen_dynamic_container_param.c >nul
+findstr /C:"xvalue* xl_fn_choose(xvalue* values)" build\test\cgen_dynamic_container_param.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_container_param.c missing dynamic dict parameter lowering.
     exit /b 1
 )
-findstr /C:"xvoIndexGetI64(values, (long long)(0LL))" build\test\cgen_dynamic_container_param.c >nul
+findstr /C:"xl6_xrt_index_get_i64(values, (long long)(0LL))" build\test\cgen_dynamic_container_param.c >nul
 if errorlevel 1 (
     echo cgen_dynamic_container_param.c missing dynamic array index return.
     exit /b 1
@@ -107,12 +107,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_safe_member.xl --emit build\test\cgen_safe_member.c
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_safe_member.c' -Raw; if($t -notmatch '__xl6_user_global_valuesLength = xl6_xrt_move_to_shared\(xl6_nullable_box_[0-9a-f]+\(.*xrtTypedArrayCount\('){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_safe_member.c' -Raw; if($t -notmatch '__xl6_user_global_valuesLength = xl6_nullable_box_[0-9a-f]+\(.*xl6TypedArrayCount\('){exit 1}"
 if errorlevel 1 (
     echo cgen_safe_member.c missing typed array safe member lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_safe_member.c' -Raw; if($t -notmatch '__xl6_user_global_tableLength = xl6_xrt_move_to_shared\(xl6_nullable_box_[0-9a-f]+\(.*xrtTypedDictCount\('){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_safe_member.c' -Raw; if($t -notmatch '__xl6_user_global_tableLength = xl6_nullable_box_[0-9a-f]+\(.*xl6TypedDictCount\('){exit 1}"
 if errorlevel 1 (
     echo cgen_safe_member.c missing typed dict safe member lowering.
     exit /b 1
@@ -137,12 +137,12 @@ if errorlevel 1 (
     echo cgen_safe_member.c missing temporary dynamic safe member release helper.
     exit /b 1
 )
-findstr /C:"({ xvalue __xl6_member_values_" build\test\cgen_safe_member.c >nul
+findstr /C:"({ xvalue* __xl6_member_values_" build\test\cgen_safe_member.c >nul
 if not errorlevel 1 (
     echo cgen_safe_member.c should not use GNU statement expressions for temporary safe members.
     exit /b 1
 )
-findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue __xl6_nc_" build\test\cgen_safe_member.c >nul
+findstr /C:"expect_i64(((long long)xl6_xrt_value_to_i64_release(({ xvalue* __xl6_nc_" build\test\cgen_safe_member.c >nul
 if not errorlevel 1 (
     echo cgen_safe_member.c should pre-evaluate null coalesce scalar arguments.
     exit /b 1
@@ -167,7 +167,7 @@ if not errorlevel 1 (
     echo cgen_safe_member.c should not use statement expressions for declaration-level safe member fallback.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_safe_member.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_safe_member.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_safe_member.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_safe_member.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_safe_member.exe
 if errorlevel 1 exit /b 1
@@ -189,7 +189,7 @@ if errorlevel 1 (
     echo cgen_overload_varargs.c missing dict vararg overload call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_overload_varargs.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_overload_varargs.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_overload_varargs.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_overload_varargs.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_overload_varargs.exe
 if errorlevel 1 exit /b 1
@@ -206,7 +206,7 @@ if errorlevel 1 (
     echo control_flow_inline_if.c missing inline else.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\control_flow_inline_if.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\control_flow_inline_if.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\control_flow_inline_if.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\control_flow_inline_if.exe
 if errorlevel 1 exit /b 1
 build\test\control_flow_inline_if.exe
 if errorlevel 1 exit /b 1
@@ -228,19 +228,19 @@ if errorlevel 1 (
     echo cgen_assign_ops.c missing logical expression.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_assign_ops.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_assign_ops.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_assign_ops.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_assign_ops.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_assign_ops.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_null_coalesce.xl --emit build\test\cgen_null_coalesce.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue __xl6_global_init_" build\test\cgen_null_coalesce.c >nul
+findstr /C:"xvalue* __xl6_global_init_" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing var null coalesce statement lowering.
     exit /b 1
 )
-findstr /C:"__xl6_global_init_" build\test\cgen_null_coalesce.c | findstr /C:"xvoCreateInt((long long)(9LL));" >nul
+findstr /C:"__xl6_global_init_" build\test\cgen_null_coalesce.c | findstr /C:"xrtValueInt((long long)(9LL));" >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing var null coalesce fallback assignment.
     exit /b 1
@@ -250,7 +250,7 @@ if errorlevel 1 (
     echo cgen_null_coalesce.c missing single-evaluation null coalesce lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -LiteralPath 'build\test\cgen_null_coalesce.c' -Raw -Encoding UTF8; if($t -notmatch 'xvalue __xl6_nc_\d+ = 0;' -or ([regex]::Matches($t, '__xl6_nc_\d+ = nc_probe_next_var\(\);')).Count -ne 1){exit 1}"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content -LiteralPath 'build\test\cgen_null_coalesce.c' -Raw -Encoding UTF8; if($t -notmatch 'xvalue\* __xl6_nc_\d+ = 0;' -or ([regex]::Matches($t, '__xl6_nc_\d+ = nc_probe_next_var\(\);')).Count -ne 1){exit 1}"
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing var null coalesce left temporary.
     exit /b 1
@@ -280,12 +280,12 @@ if errorlevel 1 (
     echo cgen_null_coalesce.c missing static null coalesce value branch.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_fallback = ({ xvalue __xl6_nc_" build\test\cgen_null_coalesce.c >nul
+findstr /C:"__xl6_user_global_fallback = ({ xvalue* __xl6_nc_" build\test\cgen_null_coalesce.c >nul
 if not errorlevel 1 (
     echo cgen_null_coalesce.c still uses var null coalesce statement expression.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_probed = ({ xvalue __xl6_nc_" build\test\cgen_null_coalesce.c >nul
+findstr /C:"__xl6_user_global_probed = ({ xvalue* __xl6_nc_" build\test\cgen_null_coalesce.c >nul
 if not errorlevel 1 (
     echo cgen_null_coalesce.c still uses probed null coalesce statement expression.
     exit /b 1
@@ -300,7 +300,7 @@ if not errorlevel 1 (
     echo cgen_null_coalesce.c still uses call argument null coalesce statement expression.
     exit /b 1
 )
-findstr /C:"__xl6_user_global_literal = xl6_xrt_move_to_shared(xvoCreateInt((long long)(7LL)));" build\test\cgen_null_coalesce.c >nul
+findstr /C:"__xl6_user_global_literal = xrtValueInt((long long)(7LL));" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing literal null coalesce boxing.
     exit /b 1
@@ -310,12 +310,12 @@ if errorlevel 1 (
     echo cgen_null_coalesce.c missing static null coalesce inference.
     exit /b 1
 )
-findstr /C:"if (xvoIsNull(__xl6_user_global_assigned))" build\test\cgen_null_coalesce.c >nul
+findstr /C:"if (xl6_xrt_value_is_null(__xl6_user_global_assigned))" build\test\cgen_null_coalesce.c >nul
 if errorlevel 1 (
     echo cgen_null_coalesce.c missing var null assignment lowering.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_null_coalesce.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_null_coalesce.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_null_coalesce.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_null_coalesce.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_null_coalesce.exe
 if errorlevel 1 exit /b 1
@@ -337,7 +337,7 @@ if errorlevel 1 (
     echo cgen_pow.c missing pow assignment lowering.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_pow.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_pow.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_pow.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_pow.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_pow.exe
 if errorlevel 1 exit /b 1
@@ -369,7 +369,7 @@ if errorlevel 1 (
     echo cgen_native_class_lifecycle.c missing native-backed class direct destroy call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_lifecycle.c test\cases\cgen_native_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_lifecycle.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_native_class_lifecycle.c test\cases\cgen_native_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_native_class_lifecycle.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_native_class_lifecycle.exe
 if errorlevel 1 exit /b 1
@@ -386,7 +386,7 @@ if errorlevel 1 (
     echo cgen_native_class.c missing native create wrapper.
     exit /b 1
 )
-findstr /C:"return counter_add(self->handle, value);" build\test\cgen_native_class.c >nul
+findstr /C:"long long __xl6_return = counter_add(self->handle, value);" build\test\cgen_native_class.c >nul
 if errorlevel 1 (
     echo cgen_native_class.c missing native method wrapper.
     exit /b 1
@@ -396,7 +396,7 @@ if errorlevel 1 (
     echo cgen_native_class.c missing native destroy wrapper.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class.c test\cases\cgen_native_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_native_class.c test\cases\cgen_native_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_native_class.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_native_class.exe
 if errorlevel 1 exit /b 1
@@ -443,7 +443,7 @@ if errorlevel 1 (
     echo cgen_native_class_bind_point.c missing native destroy wrapper.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_bind_point.c test\cases\cgen_native_class_bind_point_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_bind_point.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_native_class_bind_point.c test\cases\cgen_native_class_bind_point_host.c %XL6_CGEN_LINKS% -o build\test\cgen_native_class_bind_point.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_native_class_bind_point.exe
 if errorlevel 1 exit /b 1
@@ -455,19 +455,19 @@ if errorlevel 1 (
     echo cgen_native_class_field.c missing managed native class field method call.
     exit /b 1
 )
-findstr /C:"if (self->box != 0) { xvoUnref(self->box); self->box = 0; }" build\test\cgen_native_class_field.c >nul
+findstr /C:"if (self->box != 0) { xrtValueRelease(self->box); self->box = 0; }" build\test\cgen_native_class_field.c >nul
 if errorlevel 1 (
     echo cgen_native_class_field.c missing managed native class field cleanup.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_field.c test\cases\cgen_class_native_field_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_field.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_native_class_field.c test\cases\cgen_class_native_field_host.c %XL6_CGEN_LINKS% -o build\test\cgen_native_class_field.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_native_class_field.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_native_class_return_move.xl --emit build\test\cgen_native_class_return_move.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue __xl6_return_" build\test\cgen_native_class_return_move.c >nul
+findstr /C:"xvalue* __xl6_return_" build\test\cgen_native_class_return_move.c >nul
 if errorlevel 1 (
     echo cgen_native_class_return_move.c missing managed class return value.
     exit /b 1
@@ -477,7 +477,7 @@ if errorlevel 1 (
     echo cgen_native_class_return_move.c missing retained managed class return.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_return_move.c test\cases\cgen_class_native_field_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_return_move.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_native_class_return_move.c test\cases\cgen_class_native_field_host.c %XL6_CGEN_LINKS% -o build\test\cgen_native_class_return_move.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_native_class_return_move.exe
 if errorlevel 1 exit /b 1

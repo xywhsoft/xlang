@@ -127,7 +127,7 @@ static void xl6CgenAddVarTypeWithFlags(XL6_CgenContext* ctx, const char* name, c
         ctx->vars = newItems;
         ctx->varCapacity = newCapacity;
     }
-    ctx->vars[ctx->varCount].name = xrtCopyStr((char*)name, strlen(name));
+    ctx->vars[ctx->varCount].name = xrtStrDupN(name, strlen(name));
     ctx->vars[ctx->varCount].type = type;
     ctx->vars[ctx->varCount].narrowType = NULL;
     ctx->vars[ctx->varCount].flags = flags;
@@ -212,7 +212,7 @@ static void xl6CgenMarkClassEmitted(XL6_CgenContext* ctx, const char* name)
         ctx->emittedClasses = newItems;
         ctx->emittedClassCapacity = newCapacity;
     }
-    ctx->emittedClasses[ctx->emittedClassCount] = xrtCopyStr((char*)name, strlen(name));
+    ctx->emittedClasses[ctx->emittedClassCount] = xrtStrDupN(name, strlen(name));
     ctx->emittedClassCount += 1;
 }
 
@@ -265,7 +265,7 @@ static void xl6CgenMarkUnionEmitted(XL6_CgenContext* ctx, const char* name)
         ctx->emittedUnions = newItems;
         ctx->emittedUnionCapacity = newCapacity;
     }
-    ctx->emittedUnions[ctx->emittedUnionCount] = xrtCopyStr((char*)name, strlen(name));
+    ctx->emittedUnions[ctx->emittedUnionCount] = xrtStrDupN(name, strlen(name));
     ctx->emittedUnionCount += 1;
 }
 

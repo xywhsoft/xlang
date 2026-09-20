@@ -1,0 +1,11 @@
+Buffer decoded = codec.base64DecodeBytes("AP9BWg==")
+assert decoded.len() == 4
+assert decoded[0] == 0
+assert decoded[1] == 255
+assert decoded[2] == 65
+assert decoded[3] == 90
+assert codec.base64EncodeBytes(decoded.data(), c_size(decoded.len())) == "AP9BWg=="
+assert codec.base64EncodeBytes(decoded.data(), c_size(0)) == ""
+Buffer empty = codec.base64DecodeBytes("")
+assert empty.len() == 0
+println("base64 byte trim ok")

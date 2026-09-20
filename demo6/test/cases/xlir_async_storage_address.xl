@@ -1,0 +1,19 @@
+async func seed(int value) as int
+    return value
+end
+
+async func receiveAfterAwait() as int
+    int prefix = await seed(5)
+    channel<int> values = channel::<int>(1)
+    if not values.send(37) then
+        return -1
+    end
+    int received = 0
+    if not values.recvInto(received) then
+        return -2
+    end
+    return prefix + received
+end
+
+assert await receiveAfterAwait() == 42, "async storage-address ABI failed"
+println("xlir async storage address ok")

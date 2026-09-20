@@ -39,12 +39,6 @@ static void xl6CgenForStringIterable(XL6_CgenContext* ctx, const XL6_AstNode* no
     xl6CgenIndent(ctx);
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("extern void xrtFree(void* p);\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("extern char* xrtCopyStr(const char* sText, size_t iSize);\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("extern size_t xrtStrUtf8CharSize(const char* sText, size_t iSize, size_t iPos);\n", ctx->out);
 
     iterCleanupMark = ctx->cleanupCount;
     hasTaskScope = iterable != NULL && xl6CgenTaskSpawnArgTempScopeBegin(ctx, iterable, &taskScope);
@@ -54,7 +48,7 @@ static void xl6CgenForStringIterable(XL6_CgenContext* ctx, const XL6_AstNode* no
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out,
-                    "char* %s = xrtCopyStr(%s != 0 ? %s : \"\", 0u);\n",
+                    "char* %s = xl6_xrt_string_dup(%s != 0 ? %s : \"\", 0u);\n",
                     iterName,
                     sourceName,
                     sourceName);
@@ -68,14 +62,16 @@ static void xl6CgenForStringIterable(XL6_CgenContext* ctx, const XL6_AstNode* no
     xl6OutputPrintf(ctx->out, "size_t %s = strlen(%s);\n", lenName, iterName);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "size_t %s = 0;\n", posName);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "long long %s = 0;\n", indexName);
+    if ( targets->childCount == 2 ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "long long %s = 0;\n", indexName);
+    }
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "while (%s < %s) {\n", posName, lenName);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "size_t %s = xrtStrUtf8CharSize(%s, %s, %s);\n",
-            charSizeName, iterName, lenName, posName);
+    xl6OutputPrintf(ctx->out, "size_t %s = xl6_xrt_utf8_char_size(%s + %s, %s - %s);\n",
+            charSizeName, iterName, posName, lenName, posName);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "if (%s == 0) { break; }\n", charSizeName);
 
@@ -86,7 +82,7 @@ static void xl6CgenForStringIterable(XL6_CgenContext* ctx, const XL6_AstNode* no
 
         xl6CgenForTargetCName(valueName, sizeof(valueName), targets, 0);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "char* %s = xrtCopyStr(%s + %s, %s);\n",
+        xl6OutputPrintf(ctx->out, "char* %s = xl6_xrt_string_dup(%s + %s, %s);\n",
                 valueName, iterName, posName, charSizeName);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (%s == 0 && %s != 0) { xl6_runtime_fatal(3); }\n", valueName, charSizeName);
@@ -101,7 +97,7 @@ static void xl6CgenForStringIterable(XL6_CgenContext* ctx, const XL6_AstNode* no
         xl6OutputPrintf(ctx->out, "long long %s = %s;\n", userIndexName, indexName);
         xl6CgenRegisterLoopTargetType(ctx, targets->children[0], "int");
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "char* %s = xrtCopyStr(%s + %s, %s);\n",
+        xl6OutputPrintf(ctx->out, "char* %s = xl6_xrt_string_dup(%s + %s, %s);\n",
                 valueName, iterName, posName, charSizeName);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (%s == 0 && %s != 0) { xl6_runtime_fatal(3); }\n", valueName, charSizeName);
@@ -111,8 +107,10 @@ static void xl6CgenForStringIterable(XL6_CgenContext* ctx, const XL6_AstNode* no
     xl6CgenForLoopBody(ctx, node, loopMark, loopMark, varMark, id, id);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s += %s;\n", posName, charSizeName);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "++%s;\n", indexName);
+    if ( targets->childCount == 2 ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "++%s;\n", indexName);
+    }
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);

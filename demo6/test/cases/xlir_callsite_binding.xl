@@ -1,0 +1,20 @@
+func combine(int a, int b = 10, int c = 100) as int
+    return a + b + c
+end
+
+class Box
+    int value
+
+    create(int start = 5, int step = 2)
+        self.value = start + step
+    end
+end
+
+export "xlir_callsite_binding_probe" func probe() as int
+    int first = combine(1)
+    int second = combine(1, c = 3)
+    int third = combine(c = 3, a = 1, b = 2)
+    auto explicitBox = Box(step = 4, start = 6)
+    auto defaultBox = Box(step = 4)
+    return first + second + third + explicitBox.value + defaultBox.value
+end

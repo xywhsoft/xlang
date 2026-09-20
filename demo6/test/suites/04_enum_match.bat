@@ -76,10 +76,10 @@ findstr /C:"typedef struct XL_Enum_Packet__int" build\test\export_enum_abi.h >nu
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_enum_make_XL_Enum_Packet__string__failure" build\test\export_enum_abi.h >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xtarray __xl6_cabi_arg_0 = xrtTypedArrayClone(values);" build\test\export_enum_abi.c >nul
+findstr /C:"xtarray __xl6_cabi_arg_0 = xl6TypedArrayClone(values);" build\test\export_enum_abi.c >nul
 if errorlevel 1 exit /b 1
 
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_enum_abi.c test\cases\export_enum_abi_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_enum_abi_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_enum_abi.c test\cases\export_enum_abi_host.c %XL6_CGEN_LINKS% -o build\test\export_enum_abi_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_enum_abi_host.exe
 if errorlevel 1 exit /b 1

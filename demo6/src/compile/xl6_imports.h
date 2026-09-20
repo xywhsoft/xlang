@@ -20,6 +20,8 @@ enum {
 
 typedef struct XL6_ImportDeps {
     XL6_PackageStringList cSources;
+    XL6_PackageStringList includeDirs;
+    XL6_PackageStringList xrtModules;
     XL6_PackageStringList links;
     XL6_PackageStringList loadlibs;
     /*
@@ -32,6 +34,7 @@ typedef struct XL6_ImportDeps {
     size_t packageCount;
     XL6_ImportNativeItem* natives;
     size_t nativeCount;
+    int hasUndeclaredCSourceModules;
     unsigned int features;
 } XL6_ImportDeps;
 

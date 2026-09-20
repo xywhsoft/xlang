@@ -1,0 +1,9 @@
+export "xlir_test_string_self_assign" func string_self_assign() as int
+    string value = "same"
+    string expected = "same"
+    value = value
+    if value == expected then
+        return 31
+    end
+    return 0
+end

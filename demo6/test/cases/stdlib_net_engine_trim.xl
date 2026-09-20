@@ -1,0 +1,20 @@
+func require(string name, bool condition)
+    if not condition then
+        println("FAILED: " + name)
+        assert false
+    end
+end
+
+func main(...) as int
+    // 仅使用显式引擎及其统计，验证网络运行时不会带出解析器或传输层。
+    NetEngine engine = net.engine(1)
+    require("engine_start", engine.start())
+    require("engine_workers", engine.workerCount == 1)
+
+    NetEngineStats stats = engine.stats()
+    require("stats_workers", stats.workers == 1)
+
+    engine.stop()
+    println("stdlib net engine trim ok")
+    return 0
+end

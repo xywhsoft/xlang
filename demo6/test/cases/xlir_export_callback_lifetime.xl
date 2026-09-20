@@ -1,0 +1,76 @@
+func identity(c_int value) as c_int
+    return value
+end
+
+func(c_int) as c_int saved = identity
+int entered = 0
+
+extern "callback_marker_destroyed" func markerDestroyed(int id)
+class CallbackMarker
+    int id
+    create(int value)
+        self.id = value
+    end
+    destroy()
+        markerDestroyed(self.id)
+    end
+end
+
+// Language exports can carry managed callback values with explicit transfer.
+export func makeCallbackMarker(int id) as CallbackMarker
+    return CallbackMarker(id)
+end
+
+export func callbackObject(func(CallbackMarker) as CallbackMarker callback) as int
+    CallbackMarker input = CallbackMarker(41)
+    CallbackMarker result = callback(input)
+    return result.id
+end
+
+export func callbackText(func(string) as string callback) as string
+    return callback("payload")
+end
+
+export "callback_pair" func pair(func(c_int) as c_int xlir_export_arg_0, func(c_int) as c_int result, c_int value) as c_int
+    entered += 1
+    return xlir_export_arg_0(value) + result(value)
+end
+
+export "callback_entered" func getEntered() as int
+    return entered
+end
+
+export "callback_product" func product(func(c_int) as c_int callback) as (int, int)
+    return 41, 42
+end
+
+export "callback_optional" func optional((func(c_int) as c_int)? callback) as c_int
+    if callback == null
+        return 13
+    end
+    return callback(c_int(14))
+end
+
+export "callback_save" func save(func(c_int) as c_int callback)
+    saved = callback
+end
+
+export "callback_saved" func invokeSaved(c_int value) as c_int
+    if saved == null
+        return -1
+    end
+    return saved(value)
+end
+
+export "callback_throw" func saveAndThrow(func(c_int) as c_int callback)
+    saved = callback
+    throw RuntimeError "export-callback-failure-sentinel"
+end
+
+export "callback_catch_native" func catchNative(func(c_int) as c_int callback) as c_int
+    try
+        return callback(c_int(1))
+    catch RuntimeError
+        return 42
+    end
+end

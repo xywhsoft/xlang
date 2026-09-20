@@ -310,6 +310,47 @@ C 与 xlang 的 class 混编采用以下原则：
 - 多返回值使用 out 参数或 xcall wrapper。
 - 重载成员函数必须为每个 C 导出指定不同符号。
 
+## 8.2 C 回调与 xlang func
+
+普通 C 函数指针与 xlang `func` 采用双向、显式签名桥接。
+
+```xlang
+extern "c_apply" func cApply(func(c_int) as c_int callback, c_int value) as c_int
+
+func twice(c_int value) as c_int
+    return value * 2
+end
+
+export "xl_apply" func xlApply(func(c_int) as c_int callback, c_int value) as c_int
+    return callback(value)
+end
+```
+
+生成头文件中的回调是普通 C 函数指针：
+
+```c
+typedef int (*XL6_C_Callback_xxx)(int);
+int xl_apply(XL6_C_Callback_xxx callback, int value);
+```
+
+当前 raw C callback 支持范围：
+
+- 参数：`bool`、所有固定宽度整数、所有 `c_*` 整数、浮点、`point`、`string`。
+- 返回：无返回值、`bool`、整数、浮点、`point`。
+- `string` 参数在回调期间是只读借用；C 不得在回调返回后继续保存该指针。
+- C 回调进入 xlang 后由独立堆对象保存函数指针，并使用 XRT 原子引用计数管理；func 被复制、保存到全局或跨导出 wrapper 生命周期后仍然有效。
+- xlang 具名函数和非捕获匿名函数可直接生成 raw C callback 入口，不经过 `var` 或 XCall 装箱。
+- 捕获闭包没有单个 C 函数指针能够携带的环境，不能传给只接收 callback 的 C API；此类 API 应显式接收 `callback + userdata`，或改用 XCall。
+- 通过变量间接传出捕获闭包时，如果运行期不存在 `c_entry`，边界检查会立即失败，不会把环境指针伪装成函数指针。
+- 多返回值、`byref`、`out`、xlang `...` / `***`、C `c_vararg` 和字符串返回不映射为 raw C callback。
+- 必选 callback 的 C 参数不得传 `NULL`；可空回调需要在 API 中显式设计为 nullable/handle 语义，不能隐式猜测。
+
+可选参数的默认值属于 xlang 实现，不进入 C 函数指针类型。导出到 C 的回调签名总是完整固定参数表；可选函数可以先适配成某个明确的 `func(...)` 签名，再跨 C 边界。
+
+`__xl_std_runtime_*` 等编译器内部运行时入口仍使用 `XL6_Function` / XCall，不伪装成公开 raw C ABI。
+
+完整双向范例位于 `release/projects/function_interop`。
+
 ## 9. 与 DEMO5 的关系
 
 DEMO5 有可参考的部分，但没有形成完整的 xlang -> C 声明方案。

@@ -1,0 +1,6 @@
+func add(int left, int right) as int
+    return left + right
+end
+
+func(int, int) as int typed = add
+var dynamic = typed

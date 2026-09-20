@@ -10,30 +10,36 @@ if ( $Root -eq "" ) {
     $Root = Split-Path -Parent $PSScriptRoot
 }
 
-$tmpDir = Join-Path $Root "build\test"
+$tmpDir = Join-Path $Root "release\tmp"
 if ( ! (Test-Path -LiteralPath $tmpDir -PathType Container) ) {
     Write-Host "release tmp cleanup ok: directory absent."
     exit 0
 }
 
 $failures = New-Object System.Collections.Generic.List[string]
-$files = @(Get-ChildItem -LiteralPath $tmpDir -File -Force)
+$resolvedTmpDir = (Resolve-Path -LiteralPath $tmpDir).Path
+$items = @(Get-ChildItem -LiteralPath $tmpDir -Force)
 
-foreach ( $file in $files ) {
+foreach ( $item in $items ) {
+    $resolvedItem = $item.FullName
+    if ( ! $resolvedItem.StartsWith($resolvedTmpDir + "\", [System.StringComparison]::OrdinalIgnoreCase) ) {
+        $failures.Add("cleanup target is outside release tmp: $resolvedItem") | Out-Null
+        continue
+    }
     $removed = $false
     for ( $attempt = 1; $attempt -le $Retries; $attempt++ ) {
-        if ( ! (Test-Path -LiteralPath $file.FullName -PathType Leaf) ) {
+        if ( ! (Test-Path -LiteralPath $resolvedItem) ) {
             $removed = $true
             break
         }
 
         try {
-            Remove-Item -LiteralPath $file.FullName -Force -ErrorAction Stop
+            Remove-Item -LiteralPath $resolvedItem -Recurse -Force -ErrorAction Stop
             $removed = $true
             break
         } catch {
             if ( $attempt -ge $Retries ) {
-                $failures.Add(("$($file.FullName): " + $_.Exception.Message)) | Out-Null
+                $failures.Add(("${resolvedItem}: " + $_.Exception.Message)) | Out-Null
             } else {
                 Start-Sleep -Milliseconds $DelayMs
             }
@@ -41,7 +47,7 @@ foreach ( $file in $files ) {
     }
 
     if ( ! $removed ) {
-        $failures.Add("$($file.FullName): not removed") | Out-Null
+        $failures.Add("${resolvedItem}: not removed") | Out-Null
     }
 }
 
@@ -52,4 +58,4 @@ if ( $failures.Count -gt 0 ) {
     exit 1
 }
 
-Write-Host "release tmp cleanup ok: $($files.Count) files scanned."
+Write-Host "release tmp cleanup ok: $($items.Count) entries scanned."

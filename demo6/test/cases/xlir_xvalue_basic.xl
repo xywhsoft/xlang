@@ -1,0 +1,14 @@
+func boxed_integer() as var
+    var value = 41
+    return value
+end
+
+func boxed_temporary() as int
+    var value = true
+    return 29
+end
+
+export "xlir_test_xvalue_basic_root" func xlir_test_root() as int
+    var rootedValue = boxed_integer()
+    return boxed_temporary()
+end

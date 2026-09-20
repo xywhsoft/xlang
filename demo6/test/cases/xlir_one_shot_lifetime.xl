@@ -1,0 +1,39 @@
+extern "joint_fail_init" func jointFailInit() as bool
+extern "joint_fail_main" func jointFailMain() as bool
+extern "joint_skip_async" func jointSkipAsync() as bool
+extern "joint_input" func jointInput(int index) as future<int>
+extern "joint_probe" func jointProbe(int value) as int
+extern "joint_finally" func jointFinally()
+extern "joint_global_drop" func jointGlobalDrop()
+
+string sharedText = "lifetime" + " state"
+class Lifetime
+    destroy()
+        jointGlobalDrop()
+    end
+end
+Lifetime lifetime = Lifetime()
+
+async func jointRun(future<int> first, future<int> second) as int
+    try
+        int left = await first
+        int right = await second
+        assert sharedText == "lifetime state"
+        return jointProbe(left + right)
+    finally
+        jointFinally()
+    end
+end
+if jointFailInit()
+    future<int> ignored = jointRun(jointInput(0), jointInput(1))
+    assert false
+end
+func main(...) as int
+    if not jointSkipAsync()
+        future<int> ignored = jointRun(jointInput(0), jointInput(1))
+    end
+    if jointFailMain()
+        assert false
+    end
+    return 42
+end

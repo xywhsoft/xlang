@@ -1,0 +1,43 @@
+extern "xlir_json_observe_lifetime" func observeLifetime(var target) as var
+extern "xlir_json_lifetime_expired" func expired(var witness) as c_bool
+extern "xrtClearError" func clearNativeError()
+
+func capturedVisitor(var state) as func(var) as bool
+    return func(var event) as bool
+        return bool(state["continue"])
+    end
+end
+
+func visitScope()
+    array<var> saved = []
+    array<var> witnesses = []
+    func(var) as bool visitor = func(var event) as bool
+        witnesses.append(observeLifetime(event))
+        if event["type"] == "string" then
+            saved.append(event)
+        end
+        return true
+    end
+    assert json.visit('{"name":"中文","items":[1,true,null]}', visitor) == json.visitComplete
+    assert witnesses.length == 8
+    assert saved.length == 1
+    assert saved[0]["key"] == "name"
+    assert saved[0]["value"] == "中文"
+    for i in range(witnesses.length)
+        assert bool(expired(witnesses[i])) == (i != 1)
+    end
+    saved.clear()
+    assert expired(witnesses[1])
+    // Borrowing the same closure for another visit must not consume it.
+    assert json.visit("[]", visitor) == json.visitComplete
+    assert witnesses.length == 10
+    assert expired(witnesses[8])
+    assert expired(witnesses[9])
+    assert json.visit("null", capturedVisitor({"continue": false})) == json.visitStopped
+    assert json.visit("{bad}", visitor) == json.visitInvalid
+    clearNativeError()
+end
+
+for i in range(30)
+    visitScope()
+end

@@ -1,0 +1,7 @@
+func main(...) as int
+    NetAddress address = net.resolve("localhost", 80)
+    if address.port != 80 then
+        return 1
+    end
+    return 0
+end

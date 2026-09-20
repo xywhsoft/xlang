@@ -1,0 +1,87 @@
+// Topology fixture. Runtime cleanup-failure coverage is a separate contract.
+extern "exit_route_observe" func observe(string value)
+
+func routeReturn() as int
+    string outer = "outer"
+    try
+        string middle = "middle"
+        try
+            string inner = "inner"
+            return 17
+            string never = "not initialized"
+        finally
+            observe(middle)
+        end
+    finally
+        observe(outer)
+    end
+end
+
+func routeBreak() as int
+    string outer = "outer"
+    while true
+        string middle = "middle"
+        while true
+            try
+                string inner = "inner"
+                break 2
+            finally
+                observe(middle)
+            end
+        end
+    end
+    return 0
+end
+
+func routeContinue() as int
+    string outer = "outer"
+    int count = 0
+    while count < 1
+        count += 1
+        string middle = "middle"
+        while true
+            try
+                string inner = "inner"
+                continue 2
+            finally
+                observe(middle)
+            end
+        end
+    end
+    return 0
+end
+
+func routeCatch() as int
+    string outer = "outer"
+    try
+        throw "caught"
+    catch error
+        string inner = "inner"
+        return 19
+    finally
+        observe(outer)
+    end
+end
+
+func routeOverride() as int
+    string outer = "outer"
+    try
+        return 1
+    finally
+        string inner = "inner"
+        return 2
+    end
+end
+
+func routeClosure() as string
+    string outer = "outer"
+    func() as string read = func() as string
+        string inner = "inner"
+        return outer
+    end
+    return read()
+end
+
+func main(...) as int
+    return 0
+end

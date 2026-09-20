@@ -1,0 +1,63 @@
+enum AllocationRecord
+    empty
+    scalar(int value)
+    pair(string first, string second)
+    mixed(bool enabled, uint64 count, float amount)
+end
+
+enum AllocationEnvelope<T>
+    item(T value)
+end
+
+export func enum_allocation_case(int kind) as int
+    if kind == 0
+        AllocationRecord value = AllocationRecord.pair("left", "right")
+        return match value
+        case pair(first, second) then first.length + second.length
+        else then -1
+        end
+    elseif kind == 1
+        AllocationRecord value = AllocationRecord.empty()
+        return match value
+        case empty then 9
+        else then -1
+        end
+    elseif kind == 2
+        AllocationRecord value = AllocationRecord.scalar(9)
+        return match value
+        case scalar(number) then number
+        else then -1
+        end
+    elseif kind == 3
+        AllocationRecord value = AllocationRecord.mixed(true, uint64(4), 5.0)
+        return match value
+        case mixed(enabled, count, amount) then int(count) + int(amount)
+        else then -1
+        end
+    elseif kind == 4
+        string text = "borrowed"
+        AllocationRecord value = AllocationRecord.pair(text, text)
+        return match value
+        case pair(first, second) then first.length + second.length
+        else then -1
+        end
+    else
+        AllocationEnvelope<AllocationRecord> outer = AllocationEnvelope::<AllocationRecord>.item(
+            AllocationRecord.pair("left", "right"))
+        AllocationRecord value = match outer
+        case item(inner) then inner
+        end
+        return match value
+        case pair(first, second) then first.length + second.length
+        else then -1
+        end
+    end
+end
+
+export func enum_allocation_caught(int kind) as int
+    try
+        return enum_allocation_case(kind)
+    catch error
+        return 77
+    end
+end

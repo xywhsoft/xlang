@@ -235,10 +235,10 @@ static void xl6CgenNullCoalesceExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
         if ( left == NULL || leftType == NULL ||
              !xl6CTextEquals(leftType->text, "var") ) {
             xl6CgenError(ctx, node, "null coalesce with var result requires the left operand to be var or null");
-            xl6OutputPuts("xvoCreateNull()", ctx->out);
+            xl6OutputPuts("xrtValueNull()", ctx->out);
         } else {
             xl6CgenError(ctx, node, "dynamic var null coalesce requires statement-level lowering");
-            xl6OutputPuts("xvoCreateNull()", ctx->out);
+            xl6OutputPuts("xrtValueNull()", ctx->out);
         }
         xl6AstFree(leftType);
         xl6AstFree(rightType);

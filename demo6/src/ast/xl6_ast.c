@@ -106,7 +106,7 @@ XL6_AstNode* xl6AstNew(XL6_AstKind kind, const XL6_Token* token)
         node->line = token->startLine;
         node->column = token->startColumn;
         if ( token->text != NULL && token->len > 0 ) {
-            node->text = xrtCopyStr((char*)token->text, token->len);
+    node->text = xrtStrDupN(token->text, token->len);
         }
     }
     return node;
@@ -121,7 +121,7 @@ XL6_AstNode* xl6AstNewText(XL6_AstKind kind, const char* text, size_t len, const
         return NULL;
     }
     xrtFree(node->text);
-    node->text = xrtCopyStr((char*)(text != NULL ? text : ""), len);
+    node->text = xrtStrDupN(text != NULL ? text : "", len);
     return node;
 }
 
@@ -169,7 +169,7 @@ void xl6AstSetDoc(XL6_AstNode* node, const XL6_Token* token)
         return;
     }
     xrtFree(node->doc);
-    node->doc = xrtCopyStr((char*)(token->text != NULL ? token->text : ""), token->len);
+    node->doc = xrtStrDupN(token->text != NULL ? token->text : "", token->len);
 }
 
 void xl6AstAddChild(XL6_AstNode* parent, XL6_AstNode* child)

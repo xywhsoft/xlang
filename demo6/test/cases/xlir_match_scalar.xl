@@ -1,0 +1,10 @@
+export "xlir_test_match_scalar" func classify(int64 value) as int64
+    match value
+    case 0
+        return 10
+    case 1
+        return 20
+    else
+        return 30
+    end
+end

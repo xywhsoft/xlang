@@ -1,0 +1,70 @@
+DynamicFields fields = DynamicFields()
+
+assert fields.length == 0, "new dynamic fields should be empty"
+assert fields.capacity == 0, "new dynamic fields should not preallocate storage"
+assert fields.reserve(8), "reserve should preallocate dynamic field storage"
+assert fields.capacity >= 8, "reserve should expose the resulting capacity"
+
+var values = [1]
+
+assert fields.set("items", values), "set should store a field"
+assert fields.has("items"), "stored field should be visible"
+assert fields.length == 1, "stored field should update length"
+
+values.push(2)
+assert fields.get("items").length == 2, "set should preserve the exact value identity"
+
+var alias = fields["items"]
+
+alias.push(3)
+assert values.length == 3, "index lookup should preserve the exact value identity"
+
+var isolated = fields.copy("items")
+
+isolated.push(4)
+assert values.length == 3, "copy should isolate mutable descendants"
+assert isolated.length == 4, "copy should preserve the source content"
+
+var snapshot = fields.toValue()
+
+snapshot["items"].push(5)
+assert values.length == 3, "toValue should create an independent value object"
+
+DynamicFields restored = DynamicFields(snapshot)
+
+assert restored.length == 1, "value constructor should restore every field"
+assert restored.get("items").length == 4, "value constructor should copy the snapshot content"
+
+snapshot["items"].push(6)
+assert restored.get("items").length == 4, "value constructor should isolate its source graph"
+
+DynamicFields cloned = fields.clone()
+
+cloned.get("items").push(7)
+assert values.length == 3, "clone should isolate mutable descendants"
+assert cloned.get("items").length == 4, "clone should preserve the source content"
+
+DynamicFields source = DynamicFields()
+
+source["items"] = [9]
+source["name"] = "xlang"
+assert fields.merge(source, false), "merge should accept a source object"
+assert fields.get("items").length == 3, "merge without replace should keep existing fields"
+assert string(fields.get("name")) == "xlang", "merge should add missing fields"
+assert fields.merge(source), "merge should replace fields by default"
+assert int(fields.get("items")[0]) == 9, "merge with replace should overwrite existing fields"
+
+var taken = fields.take("name")
+
+assert string(taken) == "xlang", "take should return the removed value"
+assert not fields.has("name"), "take should remove the field"
+assert fields.remove("missing") == false, "remove should report a missing field"
+int capacityBeforeTrim = fields.capacity
+
+assert fields.trim(), "trim should release unused capacity"
+assert fields.capacity >= fields.length, "trim should preserve enough capacity"
+assert fields.capacity <= capacityBeforeTrim, "trim should not increase capacity"
+assert fields.clear(), "clear should remove all fields"
+assert fields.length == 0, "clear should leave an empty object"
+
+println("xruntime dynamic fields ok")

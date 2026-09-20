@@ -1,0 +1,6 @@
+export "xlir_artifact_counter" int counter = 41
+export "xlir_artifact_offset" const int offset = 1
+export "xlir_artifact_check" func check() as int
+    counter = counter + offset
+    return counter
+end

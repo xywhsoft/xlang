@@ -1,0 +1,15 @@
+extern "callback_boundary_drop" func callbackDrop()
+extern "callback_boundary_input" func callbackInput() as future<int>
+class ProbeOwner
+    string text = "hello"
+    destroy()
+        callbackDrop()
+    end
+end
+func callbackThen(future<int> input) as future<int>
+    ProbeOwner owner = ProbeOwner()
+    return input.then(func(int value) as int => value + owner.text.length)
+end
+export "callback_probe_keep" func probeKeep()
+    future<int> result = callbackThen(callbackInput())
+end

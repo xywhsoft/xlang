@@ -11,6 +11,22 @@ $capacity = 2048
 
 $data = [System.IO.File]::ReadAllText($dataPath, [System.Text.Encoding]::UTF8)
 $header = [System.IO.File]::ReadAllText($headerPath, [System.Text.Encoding]::UTF8)
+$constStartText = 'const XL6_StdlibConst xl6StdlibConsts[] = {'
+$constStart = $data.IndexOf($constStartText, [System.StringComparison]::Ordinal)
+if ($constStart -lt 0) {
+    throw 'cannot find xl6StdlibConsts table'
+}
+$constEnd = $data.IndexOf("`n};", $constStart, [System.StringComparison]::Ordinal)
+if ($constEnd -lt 0) {
+    throw 'cannot find xl6StdlibConsts table end'
+}
+
+$constSection = $data.Substring($constStart, $constEnd - $constStart)
+$constCount = [regex]::Matches($constSection, '(?m)^\s*\{"').Count
+if ($constCount -eq 0) {
+    throw 'stdlib constant table is empty'
+}
+
 $startText = 'const XL6_StdlibFunc xl6StdlibFuncs[] = {'
 $start = $data.IndexOf($startText, [System.StringComparison]::Ordinal)
 if ($start -lt 0) {
@@ -31,9 +47,27 @@ $countMatch = [regex]::Match($header, '#define\s+XL6_STDLIB_FUNC_COUNT\s+(\d+)u?
 if (-not $countMatch.Success) {
     throw 'cannot find XL6_STDLIB_FUNC_COUNT'
 }
-$expectedCount = [int]$countMatch.Groups[1].Value
-if ($entries.Count -ne $expectedCount) {
-    throw "stdlib function count mismatch: parsed $($entries.Count), expected $expectedCount"
+$constCountMatch = [regex]::Match($header, '#define\s+XL6_STDLIB_CONST_COUNT\s+(\d+)u?')
+if (-not $constCountMatch.Success) {
+    throw 'cannot find XL6_STDLIB_CONST_COUNT'
+}
+if ($entries.Count -eq 0 -or $entries.Count -ge 65535) {
+    throw "stdlib function count $($entries.Count) is outside the uint16 index range"
+}
+$updatedHeader = $header.Remove(
+    $countMatch.Groups[1].Index,
+    $countMatch.Groups[1].Length
+).Insert($countMatch.Groups[1].Index, [string]$entries.Count)
+$updatedHeader = $updatedHeader.Remove(
+    $constCountMatch.Groups[1].Index,
+    $constCountMatch.Groups[1].Length
+).Insert($constCountMatch.Groups[1].Index, [string]$constCount)
+if ($updatedHeader -ne $header) {
+    [System.IO.File]::WriteAllText(
+        $headerPath,
+        $updatedHeader,
+        [System.Text.UTF8Encoding]::new($false)
+    )
 }
 if ($entries.Count * 2 -gt $capacity) {
     throw "stdlib function index capacity $capacity is too small"
@@ -79,4 +113,4 @@ for ($i = 0; $i -lt $capacity; $i += 16) {
 
 $content = $builder.ToString().Replace("`r`n", "`n")
 [System.IO.File]::WriteAllText($outputPath, $content, [System.Text.UTF8Encoding]::new($false))
-Write-Host "generated $capacity stdlib index slots for $($entries.Count) functions -> $outputPath"
+Write-Host "generated $capacity stdlib index slots for $($entries.Count) functions and $constCount constants -> $outputPath"

@@ -1,0 +1,56 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+list<uint64> unsignedList = list[2: uint64(4), 9: uint64(7)]
+uint64 unsignedListTotal = uint64(0)
+int unsignedListKeyTotal = 0
+for key, value in unsignedList
+    unsignedListKeyTotal = unsignedListKeyTotal + key
+    unsignedListTotal = unsignedListTotal + value
+end
+expect(unsignedListKeyTotal, 11)
+if unsignedListTotal != uint64(11)
+    expect(1, 0)
+end
+
+list<bool> boolList = list[3: false, 7: true, 11: true]
+int boolListKeyTotal = 0
+int boolListTrueCount = 0
+for key, value in boolList
+    boolListKeyTotal = boolListKeyTotal + key
+    if value
+        boolListTrueCount = boolListTrueCount + 1
+    end
+end
+expect(boolListKeyTotal, 21)
+expect(boolListTrueCount, 2)
+
+int boolSetTrueCount = 0
+int boolSetVisits = 0
+for value in set<bool>{false, true}
+    boolSetVisits = boolSetVisits + 1
+    if value
+        boolSetTrueCount = boolSetTrueCount + 1
+    end
+end
+expect(boolSetVisits, 2)
+expect(boolSetTrueCount, 1)
+
+list<float> floatList = list[1: 1.5, 4: 2.5]
+float floatListTotal = 0.0
+int floatListKeyTotal = 0
+for key, value in floatList
+    floatListKeyTotal = floatListKeyTotal + key
+    floatListTotal = floatListTotal + value
+end
+expect(floatListKeyTotal, 5)
+if floatListTotal != 4.0
+    expect(1, 0)
+end
+
+float floatSetTotal = 0.0
+for value in set<float>{1.25, 2.75}
+    floatSetTotal = floatSetTotal + value
+end
+if floatSetTotal != 4.0
+    expect(1, 0)
+end

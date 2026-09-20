@@ -1,0 +1,6 @@
+async func makeBoxedAsync() as var
+    var value = 41
+    return value
+end
+
+future<var> pending = makeBoxedAsync()

@@ -1,0 +1,2 @@
+extern "xl6_xrt_process_exec" func bad(string command, c_int timeout) as string
+bad("exit 0", c_int(0))

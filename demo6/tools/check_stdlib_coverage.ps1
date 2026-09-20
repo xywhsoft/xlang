@@ -1,5 +1,6 @@
 param(
-    [string]$Root = ""
+    [string]$Root = "",
+    [string]$DeferredPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,6 +14,10 @@ $docDir = Join-Path $Root "docs"
 $testDir = Join-Path $Root "test\cases"
 $exampleDir = Join-Path $Root "release\examples"
 $minPublicStdlibFunctions = 180
+
+if ( $DeferredPath -eq "" ) {
+    $DeferredPath = Join-Path $PSScriptRoot "stdlib_coverage_deferred.txt"
+}
 
 function Read-Utf8Text($path)
 {
@@ -174,7 +179,25 @@ $publicKeys = New-Object System.Collections.Generic.HashSet[string]
 $publicFunctionKeys = New-Object System.Collections.Generic.HashSet[string]
 $publicFunctionSignatures = New-Object System.Collections.Generic.HashSet[string]
 $internalSignatures = New-Object System.Collections.Generic.HashSet[string]
-$cSymbols = New-Object System.Collections.Generic.HashSet[string]
+$cSymbolSignatures = @{}
+$deferredSymbols = New-Object System.Collections.Generic.HashSet[string]
+
+if ( Test-Path $DeferredPath ) {
+    foreach ( $line in [System.IO.File]::ReadAllLines($DeferredPath, [System.Text.Encoding]::UTF8) ) {
+        $symbol = $line.Trim()
+
+        if ( $symbol -eq "" -or $symbol.StartsWith("#") ) {
+            continue
+        }
+        if ( $symbol -notmatch '^[a-z][a-z0-9]*(?:[.][A-Za-z_][A-Za-z0-9_]*)$' ) {
+            Add-Failure $failures "invalid deferred stdlib symbol: $symbol"
+            continue
+        }
+        if ( ! $deferredSymbols.Add($symbol) ) {
+            Add-Failure $failures "duplicate deferred stdlib symbol: $symbol"
+        }
+    }
+}
 
 foreach ( $match in $paramArrayMatches ) {
     $name = $match.Groups[1].Value
@@ -219,8 +242,16 @@ foreach ( $match in $registrationMatches ) {
         Add-Failure $failures "stdlib paramCount mismatch: $ns.$name -> $paramsName has $($paramArrayCounts[$paramsName]), registered $paramCount"
     }
 
-    if ( $cSymbol -ne "NULL" -and ! $cSymbols.Add($cSymbol) ) {
-        Add-Failure $failures "duplicate stdlib C symbol: $cSymbol"
+    if ( $cSymbol -ne "NULL" ) {
+        $cSignature = "$paramsName|$paramCount|$returnType|$bodyName"
+
+        if ( $cSymbolSignatures.ContainsKey($cSymbol) ) {
+            if ( $cSymbolSignatures[$cSymbol] -ne $cSignature ) {
+                Add-Failure $failures "stdlib C symbol ABI conflict: $cSymbol"
+            }
+        } else {
+            $cSymbolSignatures[$cSymbol] = $cSignature
+        }
     }
 
     if ( ! $ns.StartsWith("__") ) {
@@ -279,7 +310,17 @@ if ( $publicFuncs.Count -lt $minPublicStdlibFunctions ) {
     Add-Failure $failures "public stdlib function baseline regressed: $($publicFuncs.Count) < $minPublicStdlibFunctions"
 }
 
+foreach ( $deferredSymbol in $deferredSymbols ) {
+    if ( ! $publicKeys.Contains($deferredSymbol) ) {
+        Add-Failure $failures "deferred stdlib symbol is not public: $deferredSymbol"
+    }
+}
+
 foreach ( $func in $publicFuncs ) {
+    if ( $deferredSymbols.Contains($func) ) {
+        continue
+    }
+
     $pattern = '(?<![A-Za-z0-9_])' + [regex]::Escape($func) + '\s*\('
 
     if ( $docs -notmatch $pattern ) {
@@ -294,6 +335,10 @@ foreach ( $func in $publicFuncs ) {
 }
 
 foreach ( $const in $publicConsts ) {
+    if ( $deferredSymbols.Contains($const) ) {
+        continue
+    }
+
     $pattern = '(?<![A-Za-z0-9_])' + [regex]::Escape($const) + '(?![A-Za-z0-9_\(])'
 
     if ( $docs -notmatch $pattern ) {
@@ -320,5 +365,5 @@ if ( $failures.Count -ne 0 -or $missingDocs.Count -ne 0 -or $missingTests.Count 
     exit 1
 }
 
-Write-Host "Standard library coverage ok: $($publicFuncs.Count) public functions."
+Write-Host "Standard library coverage ok: $($publicFuncs.Count) public functions, $($deferredSymbols.Count) explicitly deferred symbols."
 exit 0

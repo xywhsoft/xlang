@@ -1,0 +1,23 @@
+array<int> values = array[70, 80, 90]
+assert (values?[-1] ?? 0) == 90, "safe array index should preserve negative sequence indexing"
+assert values?[-4] == null, "safe array index should return null before the negative bound"
+
+list<string> names = list[2: "two"]
+string? presentName = names?[2]
+assert presentName != null, "safe list index should preserve a present string"
+if presentName != null then
+    assert presentName == "two", "safe list index should copy the present string value"
+end
+assert names?[9] == null, "safe list index should preserve a missing string"
+
+array<int>? maybeValues = array[3, 5]
+assert (maybeValues?[1] ?? -1) == 5, "safe index should accept a present nullable collection"
+array<int>? absentValues = null
+assert absentValues?[0] == null, "safe index should observe an absent nullable collection"
+
+array<int>? narrowedValues = array[23]
+if narrowedValues != null then
+    assert narrowedValues[0] == 23, "ordinary index should consume the explicit flow-narrowed collection TypeId"
+end
+
+println("xlir safe index nullable collection abi ok")

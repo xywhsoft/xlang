@@ -1,0 +1,18 @@
+{
+    "format": "xlang-package-1",
+    "name": "include_dir_pkg",
+    "version": "1.0.0",
+    "abiVersion": "1",
+    "kind": "demo6-test-package",
+    "artifact": {
+        "kind": "source",
+        "cSources": ["include_dir_native.c"],
+        "includeDirs": ["include"],
+        "xlSources": ["src/include_dir_pkg.xl"],
+        "xrtModules": []
+    },
+    "links": [],
+    "loadlibs": [],
+    "dependencies": [],
+    "native": { "singleton": false }
+}

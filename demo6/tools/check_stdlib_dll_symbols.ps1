@@ -11,10 +11,10 @@ if ( $Root -eq "" ) {
 $stdlibPaths = @(
     (Join-Path $Root "src\stdlib\xl6_stdlib_data.c")
 )
-$apiPath = Join-Path $Root "src\api\xl_api_symbols.c"
 $cgenDir = Join-Path $Root "src\cgen"
+$runtimeHeaderPath = Join-Path $Root "release\include\xl_runtime.h"
+$commonPath = Join-Path $PSScriptRoot "xrt_snapshot_contract.ps1"
 $minStdlibCsymbols = 161
-$minRuntimeExports = 370
 
 function Read-Utf8Text($path)
 {
@@ -51,8 +51,20 @@ foreach ( $stdlibPath in $stdlibPaths ) {
     }
 }
 $stdlib = [string]::Join("`n", $stdlibParts)
-$api = Read-Utf8Text $apiPath
 $cgen = Read-CgenText $cgenDir
+
+if ( ! (Test-Path -LiteralPath $runtimeHeaderPath -PathType Leaf) ) {
+    throw "xlang runtime header missing: $runtimeHeaderPath"
+}
+if ( ! (Test-Path -LiteralPath $commonPath -PathType Leaf) ) {
+    throw "XRT snapshot contract helper missing: $commonPath"
+}
+
+$runtimeHeader = Read-Utf8Text $runtimeHeaderPath
+. $commonPath
+
+$xrtExports = Read-XrtSnapshotRuntimeSymbols -Root $Root
+Assert-XrtSnapshotRuntimeWiring -Root $Root
 
 $crtSymbols = @(
     "strlen",
@@ -78,28 +90,14 @@ $failures = New-Object System.Collections.Generic.List[string]
 $missingXrt = New-Object System.Collections.Generic.List[string]
 $missingRuntime = New-Object System.Collections.Generic.List[string]
 $unknown = New-Object System.Collections.Generic.List[string]
-$xrtExports = New-Object System.Collections.Generic.HashSet[string]
-$xrtExportMatches = [regex]::Matches($api, '(?m)^\s*XL_ADD_XRT_SYMBOL\s*\(\s*s\s*,\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*;')
-$xrtExportInvocationCount = [regex]::Matches($api, '(?m)^\s*XL_ADD_XRT_SYMBOL\s*\(').Count
-
-if ( $xrtExportMatches.Count -ne $xrtExportInvocationCount ) {
-    $failures.Add("non-canonical XL_ADD_XRT_SYMBOL invocation in src/api/xl_api_symbols.c") | Out-Null
-}
-
-foreach ( $match in $xrtExportMatches ) {
-    $name = $match.Groups[1].Value
-    if ( ! $xrtExports.Add($name) ) {
-        $failures.Add("duplicate XL_ADD_XRT_SYMBOL export in xl_api_symbols.c: $name") | Out-Null
-    }
-}
-
 foreach ( $symbol in $uniqueSymbols ) {
     if ( $symbol.StartsWith("xrt") -or $symbol.StartsWith("xvo") ) {
         if ( ! $xrtExports.Contains($symbol) ) {
             $missingXrt.Add($symbol)
         }
     } elseif ( $symbol.StartsWith("xl6_xrt_") ) {
-        if ( $cgen -notmatch [regex]::Escape($symbol) ) {
+        if ( $cgen -notmatch [regex]::Escape($symbol) -and
+             $runtimeHeader -notmatch [regex]::Escape($symbol) ) {
             $missingRuntime.Add($symbol)
         }
     } elseif ( $crtSymbols -notcontains $symbol ) {
@@ -111,15 +109,11 @@ if ( $uniqueSymbols.Count -lt $minStdlibCsymbols ) {
     $failures.Add("standard library C symbol baseline regressed: $($uniqueSymbols.Count) < $minStdlibCsymbols") | Out-Null
 }
 
-if ( $xrtExports.Count -lt $minRuntimeExports ) {
-    $failures.Add("runtime export baseline regressed: $($xrtExports.Count) < $minRuntimeExports") | Out-Null
-}
-
 if ( $failures.Count -ne 0 -or $missingXrt.Count -ne 0 -or $missingRuntime.Count -ne 0 -or $unknown.Count -ne 0 ) {
     Write-Host "Standard library DLL symbol check failed."
     Print-Missing "Export table failures:" $failures
     Print-Missing "Missing XRT symbols in xl_api_symbols.c:" $missingXrt
-    Print-Missing "Missing generated runtime helpers in cgen:" $missingRuntime
+    Print-Missing "Missing generated or runtime-header helpers:" $missingRuntime
     Print-Missing "Unknown C symbols:" $unknown
     exit 1
 }

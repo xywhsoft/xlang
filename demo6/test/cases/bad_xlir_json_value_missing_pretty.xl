@@ -1,0 +1,2 @@
+extern "xl6_xrt_json_write_file" func malformed(string path, var value) as c_bool
+assert malformed("unused.json", null)

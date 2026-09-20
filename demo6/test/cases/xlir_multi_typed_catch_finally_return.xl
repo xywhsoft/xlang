@@ -1,0 +1,17 @@
+int trace = 0
+
+func multi_catch_finally_return() as int
+    try
+        throw RangeError "return through multi handler finally"
+    catch TypeError ignored
+        return 1
+    catch ValueError e
+        assert e.kind == "RangeError"
+        return 7
+    finally
+        trace = trace + 1
+    end
+end
+
+assert multi_catch_finally_return() == 7
+assert trace == 1

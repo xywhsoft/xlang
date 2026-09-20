@@ -1,0 +1,12 @@
+extern "xlir_make_i64_future" func makeFuture() as future<int>
+
+async func combineOffsets(future<int> source, int delta) as int
+    int copied = delta
+    int literal = 1
+    return await source - copied + literal
+end
+
+future<int> source = makeFuture()
+future<int> pending = combineOffsets(source, 1)
+int completed = await pending
+assert completed == 41

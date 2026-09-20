@@ -2,7 +2,7 @@
  * class 运行时方法元数据与 XCall 桥。
  *
  * 静态调用仍走 typed HIR 选定的直接/虚调用路径；只有接收者静态类型为 var 时，
- * 才通过这里生成的 xrt_method_table 完成运行时重载选择。两条路径共享同一方法签名。
+ * 才通过这里生成的 xl6_method_table 完成运行时重载选择。两条路径共享同一方法签名。
  */
 
 static int xl6CgenDynamicMethodEligible(const XL6_AstNode* method)
@@ -77,7 +77,7 @@ static void xl6CgenEmitDynamicMethodXCallProtos(
         }
         xl6OutputPuts("static bool ", ctx->out);
         xl6CgenDynamicMethodXCallSymbol(ctx, classNode, typeNode, method);
-        xl6OutputPuts("(xrt_call_frame* frame, xrt_call_result* result);\n", ctx->out);
+        xl6OutputPuts("(xl6_call_frame* frame, xl6_call_result* result);\n", ctx->out);
     }
 }
 
@@ -88,7 +88,7 @@ static void xl6CgenEmitDynamicMethodTableProto(
     if ( ctx == NULL || cTypeName == NULL ) {
         return;
     }
-    xl6OutputPuts("static const xrt_method_table* ", ctx->out);
+    xl6OutputPuts("static const xl6_method_table* ", ctx->out);
     xl6CgenDynamicMethodTableSymbol(ctx, cTypeName);
     xl6OutputPuts("(void);\n", ctx->out);
 }
@@ -111,25 +111,25 @@ static void xl6CgenEmitDynamicMethodTable(
     body = xl6CgenClassBody(classNode);
 
     if ( methodCount == 0 ) {
-        xl6OutputPuts("static const xrt_method_table* ", ctx->out);
+        xl6OutputPuts("static const xl6_method_table* ", ctx->out);
         xl6CgenDynamicMethodTableSymbol(ctx, cTypeName);
         xl6OutputPuts("(void) { return 0; }\n\n", ctx->out);
         return;
     }
 
-    xl6OutputPuts("static xrt_method_desc xl6_methods_", ctx->out);
+    xl6OutputPuts("static xl6_method_desc xl6_methods_", ctx->out);
     xl6CgenFputsCIdent(ctx->out, cTypeName);
     xl6OutputPrintf(ctx->out, "[%uu];\n", (unsigned)methodCount);
-    xl6OutputPuts("static xrt_method_table xl6_methods_table_", ctx->out);
+    xl6OutputPuts("static xl6_method_table xl6_methods_table_", ctx->out);
     xl6CgenFputsCIdent(ctx->out, cTypeName);
     xl6OutputPrintf(ctx->out, " = { %uu, xl6_methods_", (unsigned)methodCount);
     xl6CgenFputsCIdent(ctx->out, cTypeName);
     xl6OutputPuts(" };\n", ctx->out);
-    xl6OutputPuts("static xrt_once xl6_methods_once_", ctx->out);
+    xl6OutputPuts("static xonce xl6_methods_once_", ctx->out);
     xl6CgenFputsCIdent(ctx->out, cTypeName);
     xl6OutputPuts(" = XRT_ONCE_INIT;\n", ctx->out);
 
-    xl6OutputPuts("static void xl6_methods_init_", ctx->out);
+	xl6OutputPuts("static bool xl6_methods_init_", ctx->out);
     xl6CgenFputsCIdent(ctx->out, cTypeName);
     xl6OutputPuts("(void* context)\n{\n    (void)context;\n", ctx->out);
     methodIndex = 0;
@@ -188,11 +188,11 @@ static void xl6CgenEmitDynamicMethodTable(
         xl6OutputPuts(";\n", ctx->out);
         methodIndex += 1;
     }
-    xl6OutputPuts("}\n\n", ctx->out);
+	xl6OutputPuts("    return true;\n}\n\n", ctx->out);
 
-    xl6OutputPuts("static const xrt_method_table* ", ctx->out);
+    xl6OutputPuts("static const xl6_method_table* ", ctx->out);
     xl6CgenDynamicMethodTableSymbol(ctx, cTypeName);
-    xl6OutputPuts("(void)\n{\n    xrtOnceRunGraph(&xl6_methods_once_", ctx->out);
+	xl6OutputPuts("(void)\n{\n    (void)xrtOnce(&xl6_methods_once_", ctx->out);
     xl6CgenFputsCIdent(ctx->out, cTypeName);
     xl6OutputPuts(", xl6_methods_init_", ctx->out);
     xl6CgenFputsCIdent(ctx->out, cTypeName);
@@ -213,7 +213,7 @@ static void xl6CgenEmitDynamicMethodSelf(
     } else {
         xl6CgenClassTypeTextName(cTypeName, sizeof(cTypeName), classNode->text);
     }
-    xl6OutputPuts("    xvalue __xl6_self_value;\n", ctx->out);
+    xl6OutputPuts("    xvalue* __xl6_self_value;\n", ctx->out);
     if ( xl6CgenClassIsPureNativeHandle(classNode) ) {
         xl6OutputPrintf(ctx->out, "    %s __xl6_self_storage;\n", cTypeName);
         xl6OutputPrintf(ctx->out, "    %s* self;\n", cTypeName);
@@ -221,15 +221,15 @@ static void xl6CgenEmitDynamicMethodSelf(
         xl6OutputPrintf(ctx->out, "    %s* self;\n", cTypeName);
     }
     xl6OutputPuts("    if ( frame == 0 || result == 0 || frame->Self == 0 ||\n", ctx->out);
-    xl6OutputPuts("         !xrtTypeIsA(xvoTypeDesc(frame->Self), ", ctx->out);
+    xl6OutputPuts("         !xl6TypeIsA(xl6ValueType(frame->Self), ", ctx->out);
     xl6CgenTypeDescSymbol(ctx->out, cTypeName);
     xl6OutputPuts("()) ) { return false; }\n", ctx->out);
     xl6OutputPuts("    __xl6_self_value = frame->Self;\n", ctx->out);
     if ( xl6CgenClassIsPureNativeHandle(classNode) ) {
-        xl6OutputPuts("    __xl6_self_storage.handle = xvoGetHandleData(__xl6_self_value);\n", ctx->out);
+        xl6OutputPuts("    __xl6_self_storage.handle = xl6ValueHandleData(__xl6_self_value);\n", ctx->out);
         xl6OutputPuts("    self = &__xl6_self_storage;\n", ctx->out);
     } else {
-        xl6OutputPrintf(ctx->out, "    self = (%s*)xvoGetRecordData(__xl6_self_value);\n", cTypeName);
+        xl6OutputPrintf(ctx->out, "    self = (%s*)xl6ValueRecordData(__xl6_self_value);\n", cTypeName);
         xl6OutputPuts("    if ( self == 0 ) { return false; }\n", ctx->out);
     }
 }
@@ -249,11 +249,11 @@ static void xl6CgenEmitDynamicMethodDefinition(
 
     xl6OutputPuts("static bool ", ctx->out);
     xl6CgenDynamicMethodXCallSymbol(ctx, classNode, typeNode, method);
-    xl6OutputPuts("(xrt_call_frame* frame, xrt_call_result* result)\n{\n", ctx->out);
+    xl6OutputPuts("(xl6_call_frame* frame, xl6_call_result* result)\n{\n", ctx->out);
     xl6CgenEmitXCallLocals(ctx, params, fixedCount, hasArrayVararg, hasDictVararg);
     xl6CgenEmitDynamicMethodSelf(ctx, classNode, typeNode);
-    xl6OutputPuts("    xrt_call_frame* __xl6_frame = frame;\n", ctx->out);
-    xl6OutputPuts("    xrt_call_result* __xl6_result = result;\n", ctx->out);
+    xl6OutputPuts("    xl6_call_frame* __xl6_frame = frame;\n", ctx->out);
+    xl6OutputPuts("    xl6_call_result* __xl6_result = result;\n", ctx->out);
     xl6CgenEmitXCallSetup(ctx);
     xl6CgenEmitXCallParamSetup(ctx, params, fixedCount);
     xl6CgenEmitXCallArityCheck(ctx, params, fixedCount, hasArrayVararg, hasDictVararg);

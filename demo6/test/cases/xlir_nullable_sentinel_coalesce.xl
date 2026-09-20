@@ -1,0 +1,50 @@
+class CoalesceNode
+    int value
+end
+
+int coalesceFallbackCount = 0
+
+func fallbackVar() as var
+    coalesceFallbackCount += 1
+    return 17
+end
+
+func fallbackNode() as CoalesceNode
+    coalesceFallbackCount += 1
+    CoalesceNode value = CoalesceNode()
+    value.value = 41
+    return value
+end
+
+export "xlir_nullable_sentinel_var" func probeVar(bool present) as int
+    coalesceFallbackCount = 0
+    var candidate = null
+    if present then candidate = 8 end
+    var selected = candidate ?? fallbackVar()
+    return int(selected) + coalesceFallbackCount * 100
+end
+
+export "xlir_nullable_sentinel_class" func probeClass(bool present) as int
+    coalesceFallbackCount = 0
+    CoalesceNode? candidate = null
+    if present then
+        CoalesceNode value = CoalesceNode()
+        value.value = 9
+        candidate = value
+    end
+    CoalesceNode selected = candidate ?? fallbackNode()
+    return selected.value + coalesceFallbackCount * 100
+end
+
+export "xlir_nullable_literal_coalesce" func literalFallback() as int
+    return null ?? 23
+end
+
+func main(...) as int
+    assert(probeVar(true) == 8)
+    assert(probeVar(false) == 117)
+    assert(probeClass(true) == 9)
+    assert(probeClass(false) == 141)
+    assert(literalFallback() == 23)
+    return 0
+end

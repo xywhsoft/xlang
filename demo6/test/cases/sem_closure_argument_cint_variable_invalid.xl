@@ -1,0 +1,8 @@
+func identity(c_int value) as c_int
+    return value
+end
+
+func(c_int) as c_int callback = identity
+int value = 1
+callback(value)
+identity(value)

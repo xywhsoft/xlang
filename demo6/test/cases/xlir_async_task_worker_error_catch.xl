@@ -1,0 +1,17 @@
+int observed = 0
+
+async func failWorker() as int
+    assert false
+    return 1
+end
+
+try
+    future<int> pending = failWorker()
+    int completed = await pending
+    observed = completed
+catch AssertionError error
+    assert error.kind == "AssertionError"
+    observed = 7
+end
+
+assert observed == 7

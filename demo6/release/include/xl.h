@@ -26,7 +26,7 @@ extern "C" {
 typedef struct XL_Context XL_Context;
 typedef struct XL_Module XL_Module;
 typedef struct TCCState TCCState;
-typedef struct xvalue_struct* xvalue;
+typedef struct xvalue xvalue;
 
 typedef struct XL_ContextOptions {
     unsigned int size;
@@ -58,8 +58,8 @@ XL_API int xlRegisterCFunction(XL_Context* ctx, const char* symbolName, void* fn
 
 XL_API int xlRunScriptString(XL_Context* ctx, const char* source);
 XL_API int xlRunScriptFile(XL_Context* ctx, const char* path);
-XL_API int xlRunScriptStringArg(XL_Context* ctx, const char* source, xvalue arg);
-XL_API int xlRunScriptFileArg(XL_Context* ctx, const char* path, xvalue arg);
+XL_API int xlRunScriptStringArg(XL_Context* ctx, const char* source, xvalue* arg);
+XL_API int xlRunScriptFileArg(XL_Context* ctx, const char* path, xvalue* arg);
 XL_API XL_Module* xlCompileScriptStringToModule(XL_Context* ctx, const char* source);
 XL_API XL_Module* xlCompileScriptFileToModule(XL_Context* ctx, const char* path);
 XL_API XL_Module* xlCompileCSourceStringToModule(XL_Context* ctx, const char* source);
@@ -68,13 +68,13 @@ XL_API XL_Module* xlCompileCSourceFilesToModule(XL_Context* ctx, const char** pa
 XL_API int xlRunCSourceString(XL_Context* ctx, const char* source, int argc, char** argv);
 XL_API int xlRunCSourceFile(XL_Context* ctx, const char* path, int argc, char** argv);
 XL_API int xlRunCSourceFiles(XL_Context* ctx, const char** paths, int pathCount, int argc, char** argv);
-XL_API int xlActivateModule(XL_Context* ctx, XL_Module* module, xvalue arg);
+XL_API int xlActivateModule(XL_Context* ctx, XL_Module* module, xvalue* arg);
 XL_API int xlDeactivateModule(XL_Context* ctx, XL_Module* module);
-XL_API int xlRunModuleMain(XL_Context* ctx, XL_Module* module, xvalue arg);
+XL_API int xlRunModuleMain(XL_Context* ctx, XL_Module* module, xvalue* arg);
 XL_API void* xlModuleGetSymbol(XL_Module* module, const char* symbolName);
 XL_API void xlDestroyModule(XL_Module* module);
-XL_API int xlTccRegisterXrtEnvironment(TCCState* state);
-XL_API int xlTccRegisterContextEnvironment(XL_Context* ctx, TCCState* state);
+XL_API int xlTccRegisterXrtEnvironment(TCCState* state, int outputType);
+XL_API int xlTccRegisterContextEnvironment(XL_Context* ctx, TCCState* state, int outputType);
 XL_API int xlTccImpdef(const char* dllPath, const char* outputDef);
 #if !defined(XL_RUNTIME_ONLY_API)
 XL_API int xlCompileScriptStringToExe(XL_Context* ctx, const char* source, const char* outputExe);

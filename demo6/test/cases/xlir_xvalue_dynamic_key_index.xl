@@ -1,0 +1,41 @@
+var dynamicObject = {"answer": 42}
+var dynamicObjectKey = "answer"
+var dynamicMissingKey = "missing"
+var dynamicArray = [10, 20]
+var dynamicArrayKey = 1
+var dynamicList = [0: 11, 2: 33]
+var dynamicListKey = 2
+var dynamicInvalidKey = true
+
+extern "expect_i64" func expect(int actual, int expected)
+
+export "xlir_dynamic_key_object" func dynamicKeyObject() as int
+    return int(dynamicObject[dynamicObjectKey])
+end
+
+export "xlir_dynamic_key_safe_object" func dynamicKeySafeObject() as int
+    return int(dynamicObject?[dynamicObjectKey])
+end
+
+export "xlir_dynamic_key_array" func dynamicKeyArray() as int
+    return int(dynamicArray[dynamicArrayKey])
+end
+
+export "xlir_dynamic_key_list" func dynamicKeyList() as int
+    return int(dynamicList[dynamicListKey])
+end
+
+export "xlir_dynamic_key_missing" func dynamicKeyMissing() as int
+    return int(dynamicObject[dynamicMissingKey] ?? 71)
+end
+
+export "xlir_dynamic_key_invalid" func dynamicKeyInvalid() as int
+    return int(dynamicObject[dynamicInvalidKey] ?? 73)
+end
+
+expect(dynamicKeyObject(), 42)
+expect(dynamicKeySafeObject(), 42)
+expect(dynamicKeyArray(), 20)
+expect(dynamicKeyList(), 33)
+expect(dynamicKeyMissing(), 71)
+expect(dynamicKeyInvalid(), 73)

@@ -1,0 +1,112 @@
+// Direct callable isolation for task BYVAL ownership. The full companion
+// xlir_task_byval.xl also requires boxed callable/container round trips.
+extern "task_byval_enter" func enterJob()
+extern "task_byval_release" func releaseJob()
+class TaskByvalBox
+    int value = 41
+end
+func byvalString(byval string value) as int
+    enterJob()
+    value = "changed"
+    return value.length
+end
+func byvalBox(byval TaskByvalBox value) as int
+    enterJob()
+    value = TaskByvalBox()
+    value.value = 7
+    return value.value
+end
+func byvalArray(byval array<int> value) as int
+    enterJob()
+    value.append(7)
+    value = array[9]
+    return value[0]
+end
+func plusOne(int value) as int
+    return value + 1
+end
+func byvalFunction(byval func(int) as int value) as int
+    enterJob()
+    value = func(int n) as int => n + 2
+    return value(40)
+end
+async func readyValue() as int
+    return 42
+end
+func byvalFuture(byval future<int> value) as int
+    enterJob()
+    value = readyValue()
+    assert value.wait()
+    return 42
+end
+func byvalError(byval error value) as int
+    enterJob()
+    return value.message.length
+end
+func byvalScalar(byval bool flag, byval uint64 value) as bool
+    enterJob()
+    return flag and value == 18446744073709551615
+end
+func byvalFailure(byval string text, byval TaskByvalBox value) as int
+    enterJob()
+    text = "rebound"
+    value = TaskByvalBox()
+    throw "owned task failure"
+end
+
+func(byval string) as int stringJob = byvalString
+func(byval TaskByvalBox) as int boxJob = byvalBox
+func(byval array<int>) as int arrayJob = byvalArray
+func(byval func(int) as int) as int callableJob = byvalFunction
+func(byval future<int>) as int futureJob = byvalFuture
+func(byval error) as int errorJob = byvalError
+func(byval bool, byval uint64) as bool scalarJob = byvalScalar
+func(byval string, byval TaskByvalBox) as int failureJob = byvalFailure
+string text = "original"
+TaskByvalBox box = TaskByvalBox()
+array<int> values = array[1]
+func(int) as int callback = plusOne
+future<int> pending = readyValue()
+future<int> first = task.spawn(stringJob, text)
+releaseJob()
+assert await first == 7 and text == "original"
+future<int> second = task.spawn(boxJob, box)
+releaseJob()
+assert await second == 7 and box.value == 41
+future<int> third = task.spawn(arrayJob, values)
+releaseJob()
+assert await third == 9 and values.length == 2 and values[1] == 7
+future<int> fourth = task.spawn(callableJob, callback)
+releaseJob()
+assert await fourth == 42 and callback(41) == 42
+future<int> fifth = task.spawn(futureJob, pending)
+releaseJob()
+assert await fifth == 42 and await pending == 42
+try
+    throw "byval error"
+catch original
+    future<int> sixth = task.spawn(errorJob, original)
+    releaseJob()
+    assert await sixth == 11 and original.message == "byval error"
+end
+future<bool> seventh = task.spawn(scalarJob, true, uint64(18446744073709551615))
+releaseJob()
+assert await seventh
+try
+    future<int> eighth = task.spawn(failureJob, text, box)
+    releaseJob()
+    int impossible = await eighth
+    assert false
+catch error
+    assert error.cause.message == "owned task failure"
+end
+assert text == "original" and box.value == 41
+
+// A named adapter with an omitted consuming default transfers its temporary
+// exactly like an incoming BYVAL slot, without a second cleanup after invoke.
+func byvalDefault(byval string value = "default") as int
+    value = value + "!"
+    return value.length
+end
+func() as int defaultJob = byvalDefault
+assert defaultJob() == 8

@@ -1,0 +1,4 @@
+extern "xlir_make_i64_future" func makeI64Future() as future<int>
+
+int completed = await makeI64Future()
+assert completed == 41

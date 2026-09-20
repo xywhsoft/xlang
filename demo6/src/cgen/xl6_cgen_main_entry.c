@@ -40,10 +40,12 @@ static int xl6CgenEmitModuleGlobalClassArgTempInit(
     ctx->exprReplacementCount = (size_t)exprTempCount;
     if ( xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
         if ( !xl6CgenTryClassCtorBoxXValueStmt(ctx, typeNode, initExpr, cName) ) {
-            xl6CgenError(ctx, initExpr, "module global class constructor boxing failed");
+            /* 链式方法和普通函数也可以返回 class；内部含临时值不代表根表达式是构造器。 */
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "%s = ", cName);
+            xl6CgenXValueFromExprForTarget(ctx, typeNode, initExpr);
+            xl6OutputPuts(";\n", ctx->out);
         }
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_move_to_shared(%s);\n", cName, cName);
     } else {
         xl6CgenIndent(ctx);
         xl6OutputPuts(cName, ctx->out);
@@ -346,7 +348,6 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
         return;
     }
     if ( xl6CgenEmitModuleGlobalClassInit(ctx, node, typeNode, initExpr, cName) ) {
-        xl6CgenClassValuePublishShared(ctx, typeNode, cName);
         return;
     }
     if ( initExpr == NULL && !xl6CgenModuleGlobalNeedsDefaultInit(ctx, node, typeNode) ) {
@@ -361,7 +362,7 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
     }
     if ( initExpr == NULL && xl6CgenClassHandleTargetType(ctx, typeNode) != NULL ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xvoCreateNull();\n", cName);
+        xl6OutputPrintf(ctx->out, "%s = xrtValueNull();\n", cName);
         return;
     }
     if ( xl6CgenIsNullableStringTypeNode(ctx, typeNode) ) {
@@ -379,7 +380,7 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
     if ( xl6CgenIsStringTypeNode(ctx, typeNode) ) {
         xl6CgenIndent(ctx);
         xl6CgenFputsValueStorageName(ctx, name);
-        xl6OutputPuts(" = xrtCopyStr(", ctx->out);
+        xl6OutputPuts(" = xl6_xrt_string_dup(", ctx->out);
         if ( initExpr != NULL ) {
             xl6CgenStringSourceExpr(ctx, typeNode, initExpr);
         } else {
@@ -390,13 +391,21 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
         xl6OutputPrintf(ctx->out, "if (%s == 0) { xl6_runtime_fatal(3); }\n", cName);
         return;
     }
+    if ( xl6CgenIsErrorType(ctx, typeNode) ) {
+        xl6CgenIndent(ctx);
+        xl6CgenFputsValueStorageName(ctx, name);
+        xl6OutputPuts(" = ", ctx->out);
+        xl6CgenErrorOwnedExpr(ctx, initExpr);
+        xl6OutputPuts(";\n", ctx->out);
+        return;
+    }
 
     xl6CgenIndent(ctx);
     xl6CgenFputsValueStorageName(ctx, name);
     xl6OutputPuts(" = ", ctx->out);
     if ( initExpr == NULL ) {
         if ( xl6CgenModuleGlobalUsesTypedContainerStorage(ctx, node, typeNode) ) {
-            xl6CgenTypedContainerCreateExprMode(ctx, typeNode, "XRT_OBJMODE_SHARED");
+            xl6CgenTypedContainerCreateExpr(ctx, typeNode);
         } else if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
             xl6CgenSpecialCollectionDefaultCreateExpr(ctx, typeNode);
         } else if ( xl6CgenIsSyncHandleType(typeNode) ) {
@@ -407,9 +416,7 @@ static void xl6CgenEmitModuleGlobalInit(XL6_CgenContext* ctx, const XL6_AstNode*
             xl6CgenDefaultValue(ctx, typeNode);
         }
     } else if ( xl6CgenIsXValueType(typeNode) ) {
-        xl6OutputPuts("xl6_xrt_move_to_shared(", ctx->out);
         xl6CgenXValueFromExprForTarget(ctx, typeNode, initExpr);
-        xl6OutputPutc(')', ctx->out);
     } else if ( xl6CgenIsFunctionType(typeNode) ) {
         xl6CgenFunctionValueExpr(ctx, initExpr, typeNode);
     } else {
@@ -464,7 +471,7 @@ static void xl6CgenCloseModuleInitErrorScope(
 
         lowerMark = i > 1 ? scope.checkpoints[i - 2].cleanupCount : cleanupMark;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "__xl6_cleanup_error_%d:\n", checkpoint->id);
+        xl6OutputPrintf(ctx->out, "__xl6_cleanup_error_%d: ;\n", checkpoint->id);
         xl6CgenEmitCleanupRange(ctx, lowerMark, checkpoint->cleanupCount);
         xl6CgenIndent(ctx);
         if ( i > 1 ) {
@@ -475,7 +482,7 @@ static void xl6CgenCloseModuleInitErrorScope(
     }
 
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "__xl6_cleanup_done_%d:\n", scope.checkpoints[scope.checkpointCount - 1].id);
+    xl6OutputPrintf(ctx->out, "__xl6_cleanup_done_%d: ;\n", scope.checkpoints[scope.checkpointCount - 1].id);
     xrtFree(scope.checkpoints);
 }
 
@@ -494,11 +501,14 @@ static void xl6CgenEmitTopLevelXlangMain(
     oldErrorExitLabel = ctx->currentErrorExitLabel;
     cleanupMark = ctx->cleanupCount;
     xl6OutputPuts("static int __xl6_module_initialized = 0;\n\n", ctx->out);
-    xl6OutputPuts("int xl_script_module_init(xvalue arg)\n{\n", ctx->out);
+    xl6OutputPuts("int xl_script_module_init(xvalue* arg)\n{\n", ctx->out);
     xl6OutputPuts("    if ( __xl6_module_initialized ) {\n", ctx->out);
     xl6OutputPuts("        return 1;\n", ctx->out);
     xl6OutputPuts("    }\n", ctx->out);
     xl6OutputPuts("    (void)arg;\n", ctx->out);
+    xl6OutputPuts("    if ( !xl6_temp_managed_runtime_init() ) {\n", ctx->out);
+    xl6OutputPuts("        return 0;\n", ctx->out);
+    xl6OutputPuts("    }\n", ctx->out);
     xl6OutputPuts("    XL6_TempScope __xl6_temp_scope_module = xl6_temp_scope_begin();\n", ctx->out);
     if ( hasOsRuntime ) {
         xl6OutputPuts("    xl6_xrt_os_set_args(arg);\n", ctx->out);
@@ -551,6 +561,7 @@ static void xl6CgenEmitTopLevelXlangMain(
         xl6OutputPuts("    xl6_xrt_os_clear_args();\n", ctx->out);
     }
     xl6OutputPuts("    xl6_temp_scope_end(&__xl6_temp_scope_module);\n", ctx->out);
+    xl6OutputPuts("    xl6_temp_managed_runtime_unit();\n", ctx->out);
     xl6OutputPuts("    return 0;\n", ctx->out);
     xl6OutputPuts("}\n\n", ctx->out);
 
@@ -569,9 +580,10 @@ static void xl6CgenEmitTopLevelXlangMain(
     if ( hasOsRuntime ) {
         xl6OutputPuts("    xl6_xrt_os_clear_args();\n", ctx->out);
     }
+    xl6OutputPuts("    xl6_temp_managed_runtime_unit();\n", ctx->out);
     xl6OutputPuts("}\n\n", ctx->out);
 
-    xl6OutputPuts("int xlang_main(xvalue arg)\n{\n", ctx->out);
+    xl6OutputPuts("int xlang_main(xvalue* arg)\n{\n", ctx->out);
     if ( mainFunc != NULL ) {
         xl6OutputPuts("    int __xl6_main_code = 0;\n", ctx->out);
     }

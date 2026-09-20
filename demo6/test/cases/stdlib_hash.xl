@@ -11,15 +11,6 @@ uint64 h64c = hash.u64("xlang!")
 uint64 h64s1 = hash.u64WithSeed("xlang", uint64(123))
 uint64 h64s2 = hash.u64WithSeed("xlang", uint64(123))
 uint64 h64s3 = hash.u64WithSeed("xlang", uint64(124))
-uint64 h64m1 = hash.u64Micro("xlang")
-uint64 h64m2 = hash.u64Micro("xlang")
-uint64 h64ms1 = hash.u64MicroWithSeed("xlang", uint64(123))
-uint64 h64ms2 = hash.u64MicroWithSeed("xlang", uint64(123))
-uint64 h64n1 = hash.u64Nano("xlang")
-uint64 h64n2 = hash.u64Nano("xlang")
-uint64 h64ns1 = hash.u64NanoWithSeed("xlang", uint64(123))
-uint64 h64ns2 = hash.u64NanoWithSeed("xlang", uint64(123))
-
 assert h32a == h32b, "hash.u32 should be stable"
 assert h32a != h32c, "hash.u32 should depend on bytes"
 assert h32s1 == h32s2, "hash.u32WithSeed should be stable"
@@ -29,12 +20,5 @@ assert h64a == h64b, "hash.u64 should be stable"
 assert h64a != h64c, "hash.u64 should depend on bytes"
 assert h64s1 == h64s2, "hash.u64WithSeed should be stable"
 assert h64s1 != h64s3, "hash.u64WithSeed should depend on seed"
-assert h64m1 == h64m2, "hash.u64Micro should be stable"
-assert h64ms1 == h64ms2, "hash.u64MicroWithSeed should be stable"
-assert h64n1 == h64n2, "hash.u64Nano should be stable"
-assert h64ns1 == h64ns2, "hash.u64NanoWithSeed should be stable"
-
 assert hash.u32("") == hash.u32(""), "empty u32 hash should be stable"
 assert hash.u64("") == hash.u64(""), "empty u64 hash should be stable"
-assert hash.u64Micro("") == hash.u64Micro(""), "empty micro hash should be stable"
-assert hash.u64Nano("") == hash.u64Nano(""), "empty nano hash should be stable"

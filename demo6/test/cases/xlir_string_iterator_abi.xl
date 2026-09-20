@@ -1,0 +1,84 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expectStr(string actual, string expected)
+
+func makeText() as string
+    return "甲😀乙"
+end
+
+string literalJoined = ""
+for character in "A你B"
+    literalJoined = literalJoined + character
+end
+expectStr(literalJoined, "A你B")
+
+string namedSource = "甲😀乙"
+string namedJoined = ""
+int ordinalSum = 0
+for ordinal, character in namedSource
+    ordinalSum += ordinal
+    namedJoined = namedJoined + character
+    if ordinal == 0
+        namedSource = "changed"
+    end
+end
+expect(ordinalSum, 3)
+expectStr(namedJoined, "甲😀乙")
+expectStr(namedSource, "changed")
+
+string returnedJoined = ""
+for character in makeText()
+    returnedJoined = returnedJoined + character
+end
+expectStr(returnedJoined, "甲😀乙")
+
+int emptyVisits = 0
+for character in ""
+    emptyVisits += 1
+end
+expect(emptyVisits, 0)
+
+string controlJoined = ""
+for character in "abcd"
+    if character == "b"
+        continue
+    elseif character == "d"
+        break
+    end
+    controlJoined = controlJoined + character
+end
+expectStr(controlJoined, "ac")
+
+int stringReturnFinallyTrace = 0
+func firstCharacter(string text) as string
+    for character in text
+        try
+            return character
+        finally
+            stringReturnFinallyTrace += 1
+        end
+    end
+    return ""
+end
+expectStr(firstCharacter(makeText()), "甲")
+expect(stringReturnFinallyTrace, 1)
+
+func checkedCharacter(string character) as int
+    if character == "你"
+        throw ValueError "string loop sentinel"
+    end
+    return 1
+end
+
+func countUntilError(string text) as int
+    int visits = 0
+    int caught = 0
+    try
+        for character in text
+            visits += checkedCharacter(character)
+        end
+    catch ValueError ignored
+        caught = 1
+    end
+    return visits * 10 + caught
+end
+expect(countUntilError("A你B"), 11)

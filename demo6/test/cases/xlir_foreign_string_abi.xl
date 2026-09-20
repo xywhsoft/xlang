@@ -1,0 +1,86 @@
+extern "xext_text_static" func staticText(int version) as string
+extern "xext_text_null" func nullText() as string
+extern "xext_text_alias" func aliasText(string text) as string
+extern "xext_text_join" func joinText(string left, string right) as string
+extern "xext_text_alive" func liveHosts() as int
+
+protocol TextReadable
+    func read() as string
+end
+
+class BorrowedTextHost
+    native point handle
+    extern "xext_text_create" create()
+    extern "xext_text_destroy" destroy()
+    extern "xext_text_get" get text() as string
+    extern "xext_text_read" func read() as string
+end
+
+func throughFunction(func(int) as string getter) as string
+    return getter(1)
+end
+
+func fromTemporaryHost() as string
+    return BorrowedTextHost().text
+end
+
+func fromProtocol(TextReadable source) as string
+    return source.read()
+end
+
+async func readAsync() as string
+    return staticText(2)
+end
+
+func readGenerator() as generator<string>
+    yield staticText(1)
+    yield staticText(2)
+end
+
+func borrowedRoundtrip()
+    // C 的单个静态缓冲会被下一次调用覆盖，语言字符串必须独立拥有内容。
+    string first = staticText(1)
+    string second = staticText(2)
+    assert first == "first"
+    assert second == "second"
+    assert joinText(staticText(1), staticText(2)) == "first:second"
+
+    // 返回参数内部地址时，必须在参数临时值释放之前完成复制。
+    assert aliasText("prefix." + "suffix") == "prefix.suffix"
+    assert aliasText("") == ""
+    assert nullText() == ""
+    string? present = staticText(1)
+    assert (present ?? "missing") == "first"
+
+    // 具名 extern 函数值、native 属性和成员函数走相同的返回合同。
+    assert throughFunction(staticText) == "first"
+    assert fromTemporaryHost() == "native"
+    assert liveHosts() == 0
+    BorrowedTextHost host = BorrowedTextHost()
+    assert host.text == "native"
+    assert host.read() == "native"
+    assert fromProtocol(host) == "native"
+    assert fromProtocol(BorrowedTextHost()) == "native"
+end
+
+assert await readAsync() == "second"
+
+func main(...) as int
+    assert string(42) == "42"
+    int yielded = 0
+    for text in readGenerator()
+        if yielded == 0 then
+            assert text == "first"
+        else
+            assert text == "second"
+        end
+        yielded += 1
+    end
+    assert yielded == 2
+    for i in range(200)
+        borrowedRoundtrip()
+        assert liveHosts() == 0
+    end
+    println("foreign string ownership ok")
+    return 0
+end

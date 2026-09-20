@@ -1,0 +1,7 @@
+async func compute() as int
+    return 41 + 1
+end
+
+future<int> pending = compute()
+int completed = await pending
+assert completed == 42

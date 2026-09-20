@@ -1,0 +1,21 @@
+func identity<T>(T value) as T
+    return value
+end
+
+func choose<T>(T left, T right) as T
+    return right
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_text" func expectText(string actual, string expected)
+
+int number = identity(41)
+string text = identity("ok")
+int selected = choose(1, 2)
+auto seed = 7
+int copied = identity(seed)
+
+expect(number, 41)
+expect(selected, 2)
+expect(copied, 7)
+expectText(text, "ok")

@@ -11,14 +11,16 @@ if ( $Root -eq "" ) {
 $headerPath = Join-Path $Root "release\include\xl.h"
 $xlcHeaderPath = Join-Path $Root "release\include\xlc.h"
 $runtimeHeaderPath = Join-Path $Root "release\include\xl_runtime.h"
+$extlibAbiHeaderPath = Join-Path $Root "release\include\xl_extlib_abi.h"
 $apiPath = Join-Path $Root "src\api\xl_api.c"
 $apiSymbolsPath = Join-Path $Root "src\api\xl_api_symbols.c"
+$xrtSymbolsPath = Join-Path $Root "src\api\xl_xrt_symbols.inc"
 $cgenRuntimePath = Join-Path $Root "src\cgen\xl6_cgen_runtime.c"
 $cgenModulePath = Join-Path $Root "src\cgen\xl6_cgen_module.c"
 $cgenCallableRuntimePath = Join-Path $Root "src\cgen\xl6_cgen_callable_runtime.c"
 $cgenXValueRuntimePath = Join-Path $Root "src\cgen\xl6_cgen_xvalue_runtime.c"
 $cgenRuntimeTypePath = Join-Path $Root "src\cgen\xl6_cgen_runtime_type.c"
-$cgenIndexOpsPath = Join-Path $Root "src\cgen\xl6_cgen_xvalue_runtime_index_ops.c"
+$cgenTccPath = Join-Path $Root "src\cgen\xl6_cgen_tcc.c"
 $docName = "DLL" + ([char]0x5D4C) + ([char]0x5165) + ([char]0x5F0F) + ([char]0x8FD0) + ([char]0x884C) + ([char]0x5E93) + ([char]0x8BBE) + ([char]0x8BA1) + ".md"
 $docPath = Join-Path (Join-Path $Root "docs") $docName
 $buildDllPath = Join-Path $Root "build_dll.bat"
@@ -109,6 +111,21 @@ function Test-ManifestVirtual($entries, $virtual)
     $normalized = Normalize-VfsName $virtual
     foreach ( $entry in $entries ) {
         if ( $entry.Virtual -eq $normalized ) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Test-ManifestFileSourceSuffix($entries, $virtual, $suffix)
+{
+    $normalized = Normalize-VfsName $virtual
+    $normalizedSuffix = $suffix.Replace("\", "/").ToLowerInvariant()
+    foreach ( $entry in $entries ) {
+        $source = $entry.Source.Replace("\", "/").ToLowerInvariant()
+        if ( $entry.Kind -eq "file" -and
+             $entry.Virtual -eq $normalized -and
+             $source.EndsWith($normalizedSuffix) ) {
             return $true
         }
     }
@@ -227,14 +244,16 @@ foreach ( $path in @(
     $headerPath,
     $xlcHeaderPath,
     $runtimeHeaderPath,
+    $extlibAbiHeaderPath,
     $apiPath,
     $apiSymbolsPath,
+    $xrtSymbolsPath,
     $cgenRuntimePath,
     $cgenModulePath,
     $cgenCallableRuntimePath,
     $cgenXValueRuntimePath,
     $cgenRuntimeTypePath,
-    $cgenIndexOpsPath,
+    $cgenTccPath,
     $docPath,
     $buildDllPath,
     $buildXrtPath,
@@ -252,15 +271,17 @@ if ( $failures.Count -eq 0 ) {
     $header = Read-Utf8Text $headerPath
     $xlcHeader = Read-Utf8Text $xlcHeaderPath
     $runtimeHeader = Read-Utf8Text $runtimeHeaderPath
+    $extlibAbiHeader = Read-Utf8Text $extlibAbiHeaderPath
     $publicHeaders = $header + "`n" + $xlcHeader
     $api = Read-Utf8Text $apiPath
     $apiSymbols = Read-Utf8Text $apiSymbolsPath
+    $xrtSymbols = Read-Utf8Text $xrtSymbolsPath
     $cgenRuntime = Read-Utf8Text $cgenRuntimePath
     $cgenModule = Read-Utf8Text $cgenModulePath
     $cgenCallableRuntime = Read-Utf8Text $cgenCallableRuntimePath
     $cgenXValueRuntime = Read-Utf8Text $cgenXValueRuntimePath
     $cgenRuntimeType = Read-Utf8Text $cgenRuntimeTypePath
-    $cgenIndexOps = Read-Utf8Text $cgenIndexOpsPath
+    $cgenTcc = Read-Utf8Text $cgenTccPath
     $doc = Read-Utf8Text $docPath
     $buildDll = Read-Utf8Text $buildDllPath
     $buildXrt = Read-Utf8Text $buildXrtPath
@@ -272,19 +293,31 @@ if ( $failures.Count -eq 0 ) {
     $xlRuntimeBuildBlock = Get-BuildBlock $buildDll "Building DEMO6 xl.dll runtime"
     $xlcBuildBlock = Get-BuildBlock $buildDll "Building DEMO6 xlc.dll compiler runtime"
 
-    # Generated code uses the compact runtime header, while in-memory execution
-    # resolves the same APIs through host symbol injection. Keep both in sync.
-    if ( $runtimeHeader -notmatch '(?m)^\s*const\s+xrt_type_desc\s*\*\s*xrtTypeValue\s*\(\s*void\s*\)\s*;' ) {
-        Add-Failure "release/include/xl_runtime.h must declare xrtTypeValue(void)"
+    # XRT/xruntime declarations have one generated product source. The runtime
+    # header may only include that SDK header and must not mirror prototypes.
+    if ( $runtimeHeader -notmatch '(?m)^\s*#include\s+"xruntime_decl[.]h"\s*$' ) {
+        Add-Failure "release/include/xl_runtime.h must include the generated xruntime declaration header"
     }
-    if ( $apiSymbols -notmatch 'XL_ADD_XRT_SYMBOL\s*\(\s*s\s*,\s*xrtTypeValue\s*\)\s*;' ) {
-        Add-Failure "runtime TCC symbol injection must register xrtTypeValue"
+    if ( $runtimeHeader -notmatch '(?m)^\s*#include\s+"xl_extlib_abi[.]h"\s*$' -or
+         $runtimeHeader -match '(?m)^\s*struct\s+xl6_typed_container\s*\{' ) {
+        Add-Failure "xl_runtime.h must reuse the single native extension typed-container ABI"
     }
-    if ( $runtimeHeader -notmatch '(?m)^\s*xvalue\s+xvoGetHandleOwner\s*\(\s*const\s+ptr\s*\*\s*\w+\s*\)\s*;' ) {
-        Add-Failure "release/include/xl_runtime.h must declare xvoGetHandleOwner"
+    if ( $extlibAbiHeader -notmatch '(?m)^\s*struct\s+xl6_typed_container\s*\{' -or
+         $extlibAbiHeader -notmatch '(?m)^\s*typedef\s+struct\s+xl6_typed_container\s*\*\s*xtarray\s*;' ) {
+        Add-Failure "xl_extlib_abi.h must define the shared typed-container handle layout"
     }
-    if ( $apiSymbols -notmatch 'XL_ADD_XRT_SYMBOL\s*\(\s*s\s*,\s*xvoGetHandleOwner\s*\)\s*;' ) {
-        Add-Failure "runtime TCC symbol injection must register xvoGetHandleOwner"
+    if ( $runtimeHeader -match '(?m)^\s*(?!return\b)(?!if\b)(?!while\b)(?!for\b)(?!switch\b)(?:[A-Za-z_][A-Za-z0-9_]*[\s*]+)+xrt[A-Z][A-Za-z0-9_]*\s*\(' ) {
+        Add-Failure "release/include/xl_runtime.h must not mirror XRT function declarations"
+    }
+    if ( ! $cgenTcc.Contains("int xlTccRegisterXrtEnvironment(void* state, int outputType);") -or
+         ! $cgenTcc.Contains("xlTccRegisterXrtEnvironment(state, outputType)") -or
+         $apiSymbols -notmatch '#include\s+"xl_xrt_symbols[.]inc"' -or
+         $apiSymbols -notmatch 'xlApiAddDefaultRuntimeSymbols\s*\(' -or
+         $xrtSymbols -notmatch 'XL_XRT_SYMBOL\s*\(\s*xrtTypeValue\s*\)' ) {
+        Add-Failure "generated runtime TCC environment must register xrtTypeValue through the centralized XRT symbol table"
+    }
+    if ( $runtimeHeader -notmatch '(?m)^\s*static\s+inline\s+xvalue\s*\*\s*xl6ValueHandleOwner\s*\(\s*const\s+ptr\s*\*\s*\w+\s*\)' ) {
+        Add-Failure "release/include/xl_runtime.h must provide inline xl6ValueHandleOwner"
     }
     foreach ( $compilerOwnedHelper in @(
         "XL6_XRT_VALUE_STRING_HELPERS",
@@ -300,8 +333,7 @@ if ( $failures.Count -eq 0 ) {
     foreach ( $consumer in @(
         [pscustomobject]@{ Name = "callable runtime"; Text = $cgenCallableRuntime },
         [pscustomobject]@{ Name = "xvalue runtime"; Text = $cgenXValueRuntime },
-        [pscustomobject]@{ Name = "runtime type"; Text = $cgenRuntimeType },
-        [pscustomobject]@{ Name = "xvalue index ops"; Text = $cgenIndexOps }
+        [pscustomobject]@{ Name = "runtime type"; Text = $cgenRuntimeType }
     ) ) {
         if ( $consumer.Text -notmatch 'xl6_temp_managed_release' ) {
             Add-Failure "$($consumer.Name) must consume temporary xvalue ownership through xl6_temp_managed_release"
@@ -314,18 +346,15 @@ if ( $failures.Count -eq 0 ) {
         Add-Failure "function-var runtime needs closure must include type-convert runtime"
     }
     foreach ( $enumApi in @(
-        "xrtEnumInfo",
-        "xrtEnumVariantAt",
-        "xrtEnumFindVariant",
-        "xrtEnumFindValue",
-        "xrtEnumFieldAt",
-        "xrtEnumFindField"
+        "xl6EnumInfo",
+        "xl6EnumVariantAt",
+        "xl6EnumFindVariant",
+        "xl6EnumFindValue",
+        "xl6EnumFieldAt",
+        "xl6EnumFindField"
     ) ) {
-        if ( $runtimeHeader -notmatch ('(?m)^\s*[^;]*\b' + $enumApi + '\s*\([^;]*\)\s*;') ) {
-            Add-Failure "release/include/xl_runtime.h must declare $enumApi"
-        }
-        if ( $apiSymbols -notmatch ('XL_ADD_XRT_SYMBOL\s*\(\s*s\s*,\s*' + $enumApi + '\s*\)\s*;') ) {
-            Add-Failure "runtime TCC symbol injection must register $enumApi"
+        if ( $runtimeHeader -notmatch ('(?m)^\s*static\s+inline\s+[^;]*\b' + $enumApi + '\s*\(') ) {
+            Add-Failure "release/include/xl_runtime.h must provide inline enum reflection helper $enumApi"
         }
     }
     $headerMatches = New-Object System.Collections.Generic.List[object]
@@ -476,8 +505,9 @@ if ( $failures.Count -eq 0 ) {
         }
     }
 
-    if ( $api -notmatch 'XRT_IMPLEMENTATION' -or $api -notmatch 'lib/xrt/xrt[.]h' ) {
-        Add-Failure "xlc.dll exe compiler path must provide XRT through the single-header implementation"
+    if ( $api -notmatch 'XL_TCC_VFS_XRT_C' -or
+         $api -notmatch '(?s)#define XRT_MODULE_ALL.*#define XRUNTIME_MODULE_ALL.*#define XRUNTIME_IMPLEMENTATION.*#include \\"xruntime[.]h\\"' ) {
+        Add-Failure "xlc.dll exe compiler path must compile the vendored XRT/xruntime product"
     }
 
     foreach ( $name in @(
@@ -544,8 +574,8 @@ if ( $failures.Count -eq 0 ) {
     if ( $buildXrt -notmatch 'tools\\xrt_single_header_impl[.]c' ) {
         Add-Failure "tools\\build_xrt_obj.bat must compile tools\\xrt_single_header_impl.c"
     }
-    if ( $xrtImpl -notmatch '#include\s+"lib/xrt/xrt[.]h"' ) {
-        Add-Failure "tools\\xrt_single_header_impl.c must include the vendored lib/xrt/xrt.h snapshot"
+    if ( $xrtImpl -notmatch '#include\s+"lib/xruntime/xruntime[.]h"' ) {
+        Add-Failure "tools\\xrt_single_header_impl.c must include the vendored xruntime product snapshot"
     }
 
     # Release builds must not follow an external, potentially unstable XRT tree.
@@ -591,11 +621,20 @@ if ( $failures.Count -eq 0 ) {
     if ( ! (Test-ManifestEntry $runtimeManifestEntries "file" "include/xl.h") ) {
         Add-Failure "runtime VFS manifest must expose the public xl.h header"
     }
-    if ( ! (Test-ManifestEntry $runtimeManifestEntries "file" "lib/xrt/xrt.h") ) {
-        Add-Failure "runtime VFS manifest must expose XRT declarations for C scripts"
+    if ( ! (Test-ManifestFileSourceSuffix $runtimeManifestEntries "lib/xrt/xrt.h" "release/include/xrt_decl.h") ) {
+        Add-Failure "runtime VFS xrt.h compatibility path must use the XRT declaration SDK"
+    }
+    if ( ! (Test-ManifestFileSourceSuffix $runtimeManifestEntries "lib/xruntime/xruntime.h" "release/include/xruntime_decl.h") ) {
+        Add-Failure "runtime VFS xruntime.h compatibility path must use the xruntime declaration SDK"
+    }
+    if ( ! (Test-ManifestEntry $runtimeManifestEntries "file" "include/__xl_runtime/xruntime_decl.h") ) {
+        Add-Failure "runtime VFS manifest must expose the private xruntime declaration SDK"
     }
     if ( ! (Test-ManifestEntry $runtimeManifestEntries "file" "include/__xl_runtime/xl_runtime.h") ) {
         Add-Failure "runtime VFS manifest must include xl_runtime.h under the private __xl_runtime path"
+    }
+    if ( ! (Test-ManifestEntry $runtimeManifestEntries "file" "include/__xl_runtime/xl_extlib_abi.h") ) {
+        Add-Failure "runtime VFS manifest must include the shared native extension ABI header"
     }
     if ( Test-ManifestVirtual $runtimeManifestEntries "include/xl_runtime.h" ) {
         Add-Failure "runtime VFS manifest must not expose xl_runtime.h under the public include path"
@@ -606,10 +645,16 @@ if ( $failures.Count -eq 0 ) {
         }
     }
 
-    foreach ( $required in @("include", "include/xl.h", "include/xlc.h", "include/__xl_runtime/xl_runtime.h", "lib/libtcc1.a", "lib/kernel32.def", "lib/msvcrt.def", "lib/user32.def", "lib/gdi32.def", "lib/ws2_32.def", "lib/shell32.def", "lib/xrt/xrt.h", "__xl_compiler/src", "__xl_compiler/lib/tcc", "__xl_compiler/lib/tcc/libtcc.c", "__xl_compiler/lib/tcc/stab.def", "__xl_compiler/lib/lzma", "__xl_compiler/lib/lzma/lzmadec.c", "__xl_compiler/build/tmp/tcc_builtin_resources_runtime.c") ) {
-        if ( ! (Test-ManifestVirtual $compilerManifestEntries $required) ) {
-            Add-Failure "compiler VFS manifest missing required resource: $required"
-        }
+foreach ( $required in @("include", "include/xl.h", "include/xlc.h", "include/__xl_runtime/xl_runtime.h", "include/__xl_runtime/xl_extlib_abi.h", "include/__xl_runtime/xruntime_decl.h", "lib/libtcc1.a", "lib/kernel32.def", "lib/msvcrt.def", "lib/user32.def", "lib/gdi32.def", "lib/ws2_32.def", "lib/shell32.def", "lib/xrt/xrt.h", "lib/xruntime/xruntime.h", "__xl_compiler/include/xl.h", "__xl_compiler/include/xl_runtime.h", "__xl_compiler/include/xl_extlib_abi.h", "__xl_compiler/include/xruntime_decl.h", "__xl_compiler/src", "__xl_compiler/lib/tcc", "__xl_compiler/lib/tcc/libtcc.c", "__xl_compiler/lib/tcc/stab.def", "__xl_compiler/lib/lzma", "__xl_compiler/lib/lzma/lzmadec.c", "__xl_compiler/build/tmp/tcc_builtin_resources_runtime.c") ) {
+    if ( ! (Test-ManifestVirtual $compilerManifestEntries $required) ) {
+        Add-Failure "compiler VFS manifest missing required resource: $required"
+    }
+}
+    if ( ! (Test-ManifestFileSourceSuffix $compilerManifestEntries "lib/xrt/xrt.h" "release/include/xrt_decl.h") ) {
+        Add-Failure "compiler VFS xrt.h compatibility path must use the XRT declaration SDK"
+    }
+    if ( ! (Test-ManifestFileSourceSuffix $compilerManifestEntries "lib/xruntime/xruntime.h" "lib/xruntime/xruntime.h") ) {
+        Add-Failure "compiler VFS xruntime.h path must retain the complete xruntime implementation product"
     }
     if ( Test-ManifestVirtual $compilerManifestEntries "include/xl_runtime.h" ) {
         Add-Failure "compiler VFS manifest must not expose xl_runtime.h under the public include path"
@@ -617,11 +662,11 @@ if ( $failures.Count -eq 0 ) {
     if ( Test-ManifestVirtual $compilerManifestEntries "lib/xrt/xrt.o" ) {
         Add-Failure "compiler VFS manifest must use xrt.h and must not embed xrt.o"
     }
-    if ( $runtimeManifest -notmatch 'XRT functions are provided by tcc_add_symbol' ) {
-        Add-Failure "runtime VFS manifest must document that XRT is provided by symbols, not xrt.h/xrt.o"
+    if ( $runtimeManifest -notmatch 'XRT/xruntime functions are provided by tcc_add_symbol' ) {
+        Add-Failure "runtime VFS manifest must document that XRT/xruntime is provided by symbols"
     }
-    if ( $compilerManifest -notmatch 'XRT single-header implementation' ) {
-        Add-Failure "compiler VFS manifest must document the xrt.h single-header model"
+    if ( $compilerManifest -notmatch 'complete xruntime single-header' ) {
+        Add-Failure "compiler VFS manifest must document the XRT/xruntime product model"
     }
 }
 

@@ -1,0 +1,9 @@
+export "xlir_test_elseif_scalar" func classify(int64 value) as int64
+    if value < 0
+        return -1
+    elseif value == 0
+        return 0
+    else
+        return 1
+    end
+end

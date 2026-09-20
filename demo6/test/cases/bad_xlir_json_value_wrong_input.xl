@@ -1,0 +1,2 @@
+extern "xl6_xrt_json_valid" func malformed(point text) as c_bool
+assert malformed(null)

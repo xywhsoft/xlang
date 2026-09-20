@@ -36,6 +36,132 @@ for %%F in (
     if errorlevel 1 exit /b 1
 )
 
+rem XLIR must carry ordinary class values as xvalue objects, while native
+rem standard-library construction stays an explicit C-linkage boundary.
+release\xl.exe cgen test\cases\cgen_typed_array_class_return.xl --backend xlir --emit build\test\xlir_typed_array_class_return_generated.c
+if errorlevel 1 exit /b 1
+findstr /C:"xrtValueObject()" build\test\xlir_typed_array_class_return_generated.c >nul
+if errorlevel 1 (
+    echo XLIR class construction did not materialize an xvalue object.
+    exit /b 1
+)
+findstr /C:"xrtDynamicFieldsCreate" build\test\xlir_typed_array_class_return_generated.c >nul
+if errorlevel 1 (
+    echo XLIR standard-library native factory did not resolve to its XRT ABI.
+    exit /b 1
+)
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_typed_array_class_return_host.c %XL6_CGEN_LINKS% -o build\test\xlir_typed_array_class_return.exe
+if errorlevel 1 exit /b 1
+build\test\xlir_typed_array_class_return.exe
+if errorlevel 1 exit /b 1
+
+rem Class property and native method calls use the same explicit receiver slot
+rem in XLIR.  The generated unit must remain independently C-syntax-valid.
+release\xl.exe cgen test\cases\xlir_native_dynamic_fields_receiver.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_receiver.c
+if errorlevel 1 exit /b 1
+findstr /C:"xrtDynamicFieldsCreate" build\test\xlir_native_dynamic_fields_receiver.c >nul
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_dynamic_fields_reserve" build\test\xlir_native_dynamic_fields_receiver.c >nul
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_native_dynamic_fields_receiver_host.c %XL6_CGEN_LINKS% -o build\test\xlir_native_dynamic_fields_receiver.exe
+if errorlevel 1 exit /b 1
+build\test\xlir_native_dynamic_fields_receiver.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\xlir_native_dynamic_fields_values.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_values.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_native_dynamic_fields_values_host.c %XL6_CGEN_LINKS% -o build\test\xlir_native_dynamic_fields_values.exe
+if errorlevel 1 exit /b 1
+build\test\xlir_native_dynamic_fields_values.exe
+if errorlevel 1 exit /b 1
+
+rem Native lifecycle specials are explicit void extern C calls with a borrowed
+rem handle receiver, never a late Cgen-specific destructor rewrite.
+release\xl.exe cgen test\cases\xlir_native_dynamic_fields_destroy.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_destroy.c
+if errorlevel 1 exit /b 1
+findstr /C:"extern void xl6_xrt_dynamic_fields_destroy(void*);" build\test\xlir_native_dynamic_fields_destroy.c >nul
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_dynamic_fields_destroy(v" build\test\xlir_native_dynamic_fields_destroy.c >nul
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_native_dynamic_fields_destroy_host.c %XL6_CGEN_LINKS% -o build\test\xlir_native_dynamic_fields_destroy.exe
+if errorlevel 1 exit /b 1
+build\test\xlir_native_dynamic_fields_destroy.exe
+if errorlevel 1 exit /b 1
+
+rem Native handles acquire their lifecycle cleanup from typed XLIR exit plans.
+rem On normal scope exit lowering must materialize the same destructor target.
+release\xl.exe cgen test\cases\xlir_native_dynamic_fields_auto_destroy.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_auto_destroy.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_dynamic_fields_destroy(v" build\test\xlir_native_dynamic_fields_auto_destroy.c >nul
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_native_dynamic_fields_auto_destroy_host.c %XL6_CGEN_LINKS% -o build\test\xlir_native_dynamic_fields_auto_destroy.exe
+if errorlevel 1 exit /b 1
+build\test\xlir_native_dynamic_fields_auto_destroy.exe
+if errorlevel 1 exit /b 1
+
+rem An explicit lifecycle call consumes the matching owned local cleanup.
+release\xl.exe cgen test\cases\xlir_native_dynamic_fields_explicit_destroy.xl --backend xlir --emit build\test\xlir_native_dynamic_fields_explicit_destroy.c
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$t=[IO.File]::ReadAllText('build/test/xlir_native_dynamic_fields_explicit_destroy.c');if(([regex]::Matches($t,'xl6_xrt_dynamic_fields_destroy\(v[0-9]+\)')).Count -ne 1){exit 1}"
+if errorlevel 1 (
+    echo explicit native destroy did not consume its scope cleanup.
+    exit /b 1
+)
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_native_dynamic_fields_explicit_destroy_host.c %XL6_CGEN_LINKS% -o build\test\xlir_native_dynamic_fields_explicit_destroy.exe
+if errorlevel 1 exit /b 1
+build\test\xlir_native_dynamic_fields_explicit_destroy.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe cgen test\cases\hir_nullable_parse_probe.xl --emit build\test\hir_nullable_parse_probe.c
+if errorlevel 1 exit /b 1
+findstr /C:"#define XL_RUNTIME_NEED_TYPE_STRING_VALUE 1" build\test\hir_nullable_parse_probe.c >nul
+if errorlevel 1 (
+    echo nullable type descriptors did not request the type string-value runtime.
+    exit /b 1
+)
+findstr /C:"#define XL_RUNTIME_NEED_TYPED_CONTAINER 1" build\test\hir_nullable_parse_probe.c >nul
+if not errorlevel 1 (
+    echo scalar nullable types unexpectedly retained the typed-container runtime.
+    exit /b 1
+)
+
+release\xl.exe cgen test\cases\typed_container_iteration_ownership.xl --emit build\test\typed_container_iteration_ownership.c
+if errorlevel 1 exit /b 1
+findstr /C:"xl6_xrt_retain(0)" build\test\typed_container_iteration_ownership.c >nul
+if not errorlevel 1 (
+    echo nullable typed-container literals emitted a retained C null pointer.
+    exit /b 1
+)
+findstr /C:"= xrtValueNull();" build\test\typed_container_iteration_ownership.c >nul
+if errorlevel 1 (
+    echo nullable typed-container literals did not emit an explicit xvalue null.
+    exit /b 1
+)
+
+release\xl.exe cgen test\cases\weak_async_lifecycle.xl --emit build\test\weak_async_lifecycle.c
+if errorlevel 1 exit /b 1
+findstr /C:"= xl6_future_await_weak_copy(__xl6_user_global_aliveFuture" build\test\weak_async_lifecycle.c >nul
+if errorlevel 1 (
+    echo repeated await of a weak result did not clone the future value.
+    exit /b 1
+)
+for %%M in (
+    XRUNTIME_MODULE_RUNTIME_VALUE_OBJECT
+    XRUNTIME_MODULE_RUNTIME_VALUE_WEAK
+    XRT_MODULE_ATOMIC
+) do (
+    findstr /C:"#define %%M 1" build\test\weak_async_lifecycle.c >nul
+    if errorlevel 1 (
+        echo weak_async_lifecycle.c missing %%M trim closure.
+        exit /b 1
+    )
+)
+findstr /C:"#define XRT_MODULE_MUTEX 1" build\test\weak_async_lifecycle.c >nul
+if not errorlevel 1 (
+    echo weak_async_lifecycle.c retained the removed private weak mutex.
+    exit /b 1
+)
+
 release\xl.exe check test\cases\cgen_threaded_context_matrix.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_threaded_context_matrix.xl --emit build\test\cgen_threaded_context_matrix.c
@@ -98,7 +224,7 @@ if errorlevel 1 (
 )
 findstr /C:"firstProtocol = xl6_nullable_ops_" build\test\typed_nullable_container_matrix.c >nul
 if errorlevel 1 exit /b 1
-findstr /C:"owned_copy(*(xvalue*)xl6_xrt_typed_require_item" build\test\typed_nullable_container_matrix.c >nul
+findstr /C:"owned_copy(*(xvalue**)xl6_xrt_typed_require_item" build\test\typed_nullable_container_matrix.c >nul
 if errorlevel 1 (
     echo nullable protocol container item did not use xvalue storage.
     exit /b 1
@@ -112,7 +238,7 @@ if errorlevel 1 (
     echo generic enum was not boxed through its runtime type operation.
     exit /b 1
 )
-findstr /C:"copied = xrtTypedArrayRetain(" build\test\hir_flow_value_ownership_matrix.c >nul
+findstr /C:"xtarray copied = xl6TypedArrayRetain(" build\test\hir_flow_value_ownership_matrix.c >nul
 if errorlevel 1 (
     echo nested typed array read did not retain its managed handle.
     exit /b 1

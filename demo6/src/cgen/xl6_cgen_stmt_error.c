@@ -1,9 +1,39 @@
-static int xl6CgenNodeNeedsErrorRuntime(const XL6_AstNode* node)
+/* 只从 typed HIR 查询源码表达式类型，语句节点和后端合成节点不参与。 */
+static int xl6CgenNodeHasErrorType(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* node)
+{
+    XL6_AstNode* typeNode;
+    int result;
+
+    if ( node == NULL ) {
+        return 0;
+    }
+    if ( node->kind == XL6_AST_TYPE && xl6CTextEquals(node->text, "error") ) {
+        return 1;
+    }
+    if ( xl6CgenHirNode(ctx, node) == NULL ||
+         !xl6CgenExprHasStaticValueType(ctx, node) ) {
+        return 0;
+    }
+
+    typeNode = xl6CgenCloneExprTypeForInference(ctx, node);
+    result = typeNode != NULL && xl6CTextEquals(typeNode->text, "error");
+    xl6AstFree(typeNode);
+    return result;
+}
+
+static int xl6CgenNodeNeedsErrorRuntime(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* node)
 {
     size_t i;
 
     if ( node == NULL ) {
         return 0;
+    }
+    if ( xl6CgenNodeHasErrorType(ctx, node) ) {
+        return 1;
     }
     if ( node->kind == XL6_AST_CALL &&
          node->childCount > 0 &&
@@ -44,94 +74,76 @@ static int xl6CgenNodeNeedsErrorRuntime(const XL6_AstNode* node)
         return 1;
     }
     for ( i = 0; i < node->childCount; ++i ) {
-        if ( xl6CgenNodeNeedsErrorRuntime(node->children[i]) ) {
+        if ( xl6CgenNodeNeedsErrorRuntime(ctx, node->children[i]) ) {
             return 1;
         }
     }
     return 0;
 }
 
-static void xl6CgenEmitErrorRuntime(XL6_Output* out)
+static void xl6CgenEmitErrorRuntime(XL6_Output* out, int hasXValueRuntime)
 {
-    xl6OutputPuts("#include <stddef.h>\n", out);
-    xl6OutputPuts("#include <stdio.h>\n", out);
-    xl6OutputPuts("#include <string.h>\n", out);
-    xl6OutputPuts("void* xrtMalloc(size_t iSize);\n", out);
-    xl6OutputPuts("void xrtFree(void* pMem);\n\n", out);
-    xl6OutputPuts("void* xrtTempMemory(size_t iSize);\n\n", out);
-    xl6OutputPuts("#ifndef XL6_ERROR_TYPEDEF\n", out);
+	xl6OutputPuts("#include <stddef.h>\n", out);
+	xl6OutputPuts("#include <stdio.h>\n", out);
+	xl6OutputPuts("#include <string.h>\n", out);
+	xl6OutputPuts("#ifndef XL6_ERROR_TYPEDEF\n", out);
     xl6OutputPuts("#define XL6_ERROR_TYPEDEF\n", out);
     xl6OutputPuts("typedef struct XL6_Error XL6_Error;\n", out);
     xl6OutputPuts("struct XL6_Error {\n", out);
-    xl6OutputPuts("    int refCount;\n", out);
+    xl6OutputPuts("    volatile int32 refCount;\n", out);
     xl6OutputPuts("    char* kind;\n", out);
     xl6OutputPuts("    char* message;\n", out);
     xl6OutputPuts("    char* file;\n", out);
     xl6OutputPuts("    int line;\n", out);
     xl6OutputPuts("    int column;\n", out);
+    xl6OutputPuts("    xerrkind xrtKind;\n", out);
+    xl6OutputPuts("    int code;\n", out);
+    xl6OutputPuts("    int systemCode;\n", out);
+    xl6OutputPuts("    char* domain;\n", out);
+    xl6OutputPuts("    char* operation;\n", out);
+    xl6OutputPuts("    char* data;\n", out);
     xl6OutputPuts("    XL6_Error* cause;\n", out);
     xl6OutputPuts("};\n", out);
     xl6OutputPuts("#endif\n\n", out);
-    xl6OutputPuts("#if defined(_WIN32) || defined(_WIN64)\n", out);
-    xl6OutputPuts("#include <windows.h>\n", out);
-    xl6OutputPuts("static DWORD xl6__active_error_tls_index = TLS_OUT_OF_INDEXES;\n", out);
-    xl6OutputPuts("static volatile LONG xl6__active_error_tls_state = 0;\n", out);
-    xl6OutputPuts("\n", out);
+    xl6OutputPuts("static void xl6_error_free(XL6_Error* error);\n", out);
+    xl6OutputPuts("static xonce xl6__active_error_once = XRT_ONCE_INIT;\n", out);
+    xl6OutputPuts("static xthreadkey* xl6__active_error_key = 0;\n\n", out);
+    xl6OutputPuts("static void xl6_error_key_destroy(void* value)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xl6_error_free((XL6_Error*)value);\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static bool xl6_error_key_init(void* unused)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    (void)unused;\n", out);
+    xl6OutputPuts("    xl6__active_error_key = xrtThreadKeyCreate(xl6_error_key_destroy);\n", out);
+    xl6OutputPuts("    return xl6__active_error_key != 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("static int xl6_error_tls_ensure(void)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    LONG state = InterlockedCompareExchange(&xl6__active_error_tls_state, 1, 0);\n", out);
-    xl6OutputPuts("    if ( state == 0 ) {\n", out);
-    xl6OutputPuts("        DWORD index = TlsAlloc();\n", out);
-    xl6OutputPuts("        if ( index == TLS_OUT_OF_INDEXES ) {\n", out);
-    xl6OutputPuts("            InterlockedCompareExchange(&xl6__active_error_tls_state, 3, 1);\n", out);
-    xl6OutputPuts("            return 0;\n", out);
-    xl6OutputPuts("        }\n", out);
-    xl6OutputPuts("        xl6__active_error_tls_index = index;\n", out);
-    xl6OutputPuts("        InterlockedCompareExchange(&xl6__active_error_tls_state, 2, 1);\n", out);
-    xl6OutputPuts("        return 1;\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    while ( state == 1 ) {\n", out);
-    xl6OutputPuts("        state = InterlockedCompareExchange(&xl6__active_error_tls_state, 1, 1);\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    return state == 2;\n", out);
+    xl6OutputPuts("    return xrtOnce(&xl6__active_error_once, xl6_error_key_init, 0);\n", out);
     xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("static XL6_Error* xl6_error_active_get(void)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    if ( !xl6_error_tls_ensure() ) {\n", out);
-    xl6OutputPuts("        return 0;\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    return (XL6_Error*)TlsGetValue(xl6__active_error_tls_index);\n", out);
+    xl6OutputPuts("    return xl6_error_tls_ensure() ? (XL6_Error*)xrtThreadKeyGet(xl6__active_error_key) : 0;\n", out);
+    xl6OutputPuts("}\n\n", out);
+    xl6OutputPuts("static XL6_Error* xl6_error_active_take(void)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xl6_error_tls_ensure() ? (XL6_Error*)xrtThreadKeyTake(xl6__active_error_key) : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("static void xl6_error_active_set(XL6_Error* error)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    if ( xl6_error_tls_ensure() ) {\n", out);
-    xl6OutputPuts("        TlsSetValue(xl6__active_error_tls_index, error);\n", out);
+    xl6OutputPuts("    if ( !xl6_error_tls_ensure() || !xrtThreadKeySet(xl6__active_error_key, error) ) {\n", out);
+    xl6OutputPuts("        xl6_error_free(error);\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("}\n", out);
-    xl6OutputPuts("\nstatic void xl6_error_tls_unit(void)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    if ( InterlockedCompareExchange(&xl6__active_error_tls_state, 3, 2) == 2 ) {\n", out);
-    xl6OutputPuts("        TlsFree(xl6__active_error_tls_index);\n", out);
-    xl6OutputPuts("        xl6__active_error_tls_index = TLS_OUT_OF_INDEXES;\n", out);
-    xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("}\n", out);
-    xl6OutputPuts("#else\n", out);
-    xl6OutputPuts("#ifndef XL6_THREAD_LOCAL\n", out);
-    xl6OutputPuts("#define XL6_THREAD_LOCAL __thread\n", out);
-    xl6OutputPuts("#endif\n", out);
-    xl6OutputPuts("static XL6_THREAD_LOCAL XL6_Error* xl6__active_error = 0;\n\n", out);
-    xl6OutputPuts("static XL6_Error* xl6_error_active_get(void)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    return xl6__active_error;\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("static void xl6_error_active_set(XL6_Error* error)\n", out);
+    xl6OutputPuts("static void xl6_error_tls_unit(void)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xl6__active_error = error;\n", out);
-    xl6OutputPuts("}\n", out);
-    xl6OutputPuts("\nstatic void xl6_error_tls_unit(void)\n", out);
-    xl6OutputPuts("{\n", out);
-    xl6OutputPuts("}\n", out);
-    xl6OutputPuts("#endif\n\n", out);
+    xl6OutputPuts("    if ( xl6__active_error_key != 0 ) {\n", out);
+    xl6OutputPuts("        (void)xrtThreadKeyDestroy(xl6__active_error_key);\n", out);
+    xl6OutputPuts("        xl6__active_error_key = 0;\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    memset(&xl6__active_error_once, 0, sizeof(xl6__active_error_once));\n", out);
+    xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static char* xl6_error_dup(const char* text)\n", out);
     xl6OutputPuts("{\n", out);
@@ -147,11 +159,9 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("    return copy;\n", out);
     xl6OutputPuts("}\n\n", out);
 
-    xl6OutputPuts("static void xl6_error_retain(XL6_Error* error)\n", out);
+    xl6OutputPuts("static XL6_Error* xl6_error_retain(XL6_Error* error)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    if ( error != 0 ) {\n", out);
-    xl6OutputPuts("        error->refCount += 1;\n", out);
-    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return error != 0 && xrtRefRetain(&error->refCount) > 0 ? error : 0;\n", out);
     xl6OutputPuts("}\n\n", out);
 
     xl6OutputPuts("static void xl6_error_free(XL6_Error* error)\n", out);
@@ -159,14 +169,16 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("    if ( error == 0 ) {\n", out);
     xl6OutputPuts("        return;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    error->refCount -= 1;\n", out);
-    xl6OutputPuts("    if ( error->refCount > 0 ) {\n", out);
+    xl6OutputPuts("    if ( xrtRefRelease(&error->refCount) != 0 ) {\n", out);
     xl6OutputPuts("        return;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    xl6_error_free(error->cause);\n", out);
     xl6OutputPuts("    xrtFree(error->kind);\n", out);
     xl6OutputPuts("    xrtFree(error->message);\n", out);
     xl6OutputPuts("    xrtFree(error->file);\n", out);
+    xl6OutputPuts("    xrtFree(error->domain);\n", out);
+    xl6OutputPuts("    xrtFree(error->operation);\n", out);
+    xl6OutputPuts("    xrtFree(error->data);\n", out);
     xl6OutputPuts("    xrtFree(error);\n", out);
     xl6OutputPuts("}\n\n", out);
 
@@ -174,6 +186,7 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    XL6_Error* error = (XL6_Error*)xrtMalloc(sizeof(XL6_Error));\n", out);
     xl6OutputPuts("    if ( error == 0 ) {\n", out);
+    xl6OutputPuts("        xl6_error_free(cause);\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    error->refCount = 1;\n", out);
@@ -182,6 +195,12 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("    error->file = xl6_error_dup(file != 0 ? file : \"\");\n", out);
     xl6OutputPuts("    error->line = line;\n", out);
     xl6OutputPuts("    error->column = column;\n", out);
+    xl6OutputPuts("    error->xrtKind = XERR_STATE;\n", out);
+    xl6OutputPuts("    error->code = 1;\n", out);
+    xl6OutputPuts("    error->systemCode = 0;\n", out);
+    xl6OutputPuts("    error->domain = 0;\n", out);
+    xl6OutputPuts("    error->operation = 0;\n", out);
+    xl6OutputPuts("    error->data = 0;\n", out);
     xl6OutputPuts("    error->cause = cause;\n", out);
     xl6OutputPuts("    if ( error->kind == 0 || error->message == 0 || error->file == 0 ) {\n", out);
     xl6OutputPuts("        xl6_error_free(error);\n", out);
@@ -190,14 +209,45 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("    return error;\n", out);
     xl6OutputPuts("}\n\n", out);
 
+    /* error 是一等托管句柄；静态 ABI 与动态 var ABI 共用同一 TypeDesc。 */
+    xl6OutputPuts("static void xl6_error_type_init(void* pObj)\n", out);
+    xl6OutputPuts("{\n    if ( pObj != 0 ) { *(XL6_Error**)pObj = 0; }\n}\n\n", out);
+    xl6OutputPuts("static void xl6_error_type_copy(void* pDst, const void* pSrc)\n", out);
+    xl6OutputPuts("{\n    XL6_Error* error = pSrc != 0 ? *(XL6_Error* const*)pSrc : 0;\n    if ( pDst != 0 ) { *(XL6_Error**)pDst = xl6_error_retain(error); }\n}\n\n", out);
+    xl6OutputPuts("static void xl6_error_type_move(void* pDst, void* pSrc)\n", out);
+    xl6OutputPuts("{\n    if ( pDst != 0 ) { *(XL6_Error**)pDst = pSrc != 0 ? *(XL6_Error**)pSrc : 0; }\n    if ( pSrc != 0 ) { *(XL6_Error**)pSrc = 0; }\n}\n\n", out);
+    xl6OutputPuts("static void xl6_error_type_drop(void* pObj)\n", out);
+    xl6OutputPuts("{\n    if ( pObj != 0 ) { xl6_error_free(*(XL6_Error**)pObj); *(XL6_Error**)pObj = 0; }\n}\n\n", out);
+    xl6OutputPuts("static int xl6_error_type_compare(const void* pA, const void* pB)\n", out);
+    xl6OutputPuts("{\n    XL6_Error* left = pA != 0 ? *(XL6_Error* const*)pA : 0;\n    XL6_Error* right = pB != 0 ? *(XL6_Error* const*)pB : 0;\n    return left == right ? 0 : ((uintptr_t)left < (uintptr_t)right ? -1 : 1);\n}\n\n", out);
+    xl6OutputPuts("static uint64 xl6_error_type_hash(const void* pObj)\n", out);
+    xl6OutputPuts("{\n    return (uint64)(uintptr_t)(pObj != 0 ? *(XL6_Error* const*)pObj : 0);\n}\n\n", out);
+    if ( hasXValueRuntime ) {
+        xl6OutputPuts("static const xl6_type_desc* xl6TypeError(void);\n\n", out);
+        xl6OutputPuts("static xvalue* xl6_error_box_take(XL6_Error* error)\n", out);
+        xl6OutputPuts("{\n    xvalue* value;\n    if ( error == 0 ) { return xrtValueNull(); }\n    value = xl6ValueHandle(xl6TypeError(), error, XL6_XRT_HANDLE_FLAG_OWNED | XL6_XRT_HANDLE_FLAG_NULLABLE);\n    if ( value == 0 ) { xl6_error_free(error); }\n    return value;\n}\n\n", out);
+        xl6OutputPuts("static xvalue* xl6_error_box_ref(XL6_Error* error)\n", out);
+        xl6OutputPuts("{\n    return xl6_error_box_take(xl6_error_retain(error));\n}\n\n", out);
+        xl6OutputPuts("static xvalue* xl6_error_type_box(const void* pObj, const xl6_type_desc* pType)\n", out);
+        xl6OutputPuts("{\n    (void)pType;\n    return xl6_error_box_ref(pObj != 0 ? *(XL6_Error* const*)pObj : 0);\n}\n\n", out);
+        xl6OutputPuts("static bool xl6_error_type_unbox(xvalue* value, void* pOut, const xl6_type_desc* pType)\n", out);
+        xl6OutputPuts("{\n    XL6_Error* error;\n    if ( pOut == 0 ) { return false; }\n    if ( value == 0 || xl6_xrt_value_is_null(value) ) { *(XL6_Error**)pOut = 0; return true; }\n    if ( !xl6TypeSame(xl6ValueType(value), pType) ) { return false; }\n    error = (XL6_Error*)xl6ValueHandleData(value);\n    *(XL6_Error**)pOut = xl6_error_retain(error);\n    return error == 0 || *(XL6_Error**)pOut != 0;\n}\n\n", out);
+    }
+    xl6OutputPuts("static const xl6_type_ops xl6_error_type_ops = {\n", out);
+    xl6OutputPuts("    xl6_error_type_init, xl6_error_type_copy, xl6_error_type_move, xl6_error_type_drop,\n", out);
+    xl6OutputPuts("    xl6_error_type_compare, xl6_error_type_hash, 0, ", out);
+    xl6OutputPuts(hasXValueRuntime ? "xl6_error_type_box, xl6_error_type_unbox, " : "0, 0, ", out);
+    xl6OutputPuts("xl6_error_type_copy\n};\n\n", out);
+    xl6OutputPuts("static const xl6_type_desc* xl6TypeError(void)\n", out);
+    xl6OutputPuts("{\n    static const xl6_type_desc type = {\n        0x00010031u, XL6_XRT_TYPE_KIND_HANDLE, \"error\", 5u, \"XL6_Error*\", 10u,\n        sizeof(XL6_Error*), sizeof(void*), &xl6_error_type_ops, 0, 0, 0\n    };\n    return &type;\n}\n\n", out);
+
     xl6OutputPuts("static int xl6_error_has(void)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    return xl6_error_active_get() != 0;\n", out);
     xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("static XL6_Error* xl6_error_take(void)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    XL6_Error* error = xl6_error_active_get();\n", out);
-    xl6OutputPuts("    xl6_error_active_set(0);\n", out);
+    xl6OutputPuts("    XL6_Error* error = xl6_error_active_take();\n", out);
     xl6OutputPuts("    return error;\n", out);
     xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("static void xl6_error_clear(void)\n", out);
@@ -210,6 +260,139 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("    xl6_error_clear();\n", out);
     xl6OutputPuts("    xl6_error_active_set(error);\n", out);
     xl6OutputPuts("}\n\n", out);
+
+    /* 把语言异常映射到 XRT 通用错误类别，供 Native 回调保留原始失败原因。 */
+	xl6OutputPuts("static xerrkind xl6_error_xrt_kind(const char* kind)\n", out);
+	xl6OutputPuts("{\n", out);
+	xl6OutputPuts("    if ( kind == 0 ) { return XERR_STATE; }\n", out);
+	xl6OutputPuts("    if ( strcmp(kind, \"TypeError\") == 0 ) { return XERR_TYPE; }\n", out);
+	xl6OutputPuts("    if ( strcmp(kind, \"RangeError\") == 0 || strcmp(kind, \"IndexError\") == 0 || strcmp(kind, \"OverflowError\") == 0 ) { return XERR_RANGE; }\n", out);
+	xl6OutputPuts("    if ( strcmp(kind, \"MemoryError\") == 0 ) { return XERR_MEMORY; }\n", out);
+	xl6OutputPuts("    if ( strcmp(kind, \"FileError\") == 0 || strcmp(kind, \"IOError\") == 0 || strcmp(kind, \"NetworkError\") == 0 || strcmp(kind, \"EncodingError\") == 0 || strcmp(kind, \"CompressionError\") == 0 || strcmp(kind, \"ArchiveError\") == 0 ) { return XERR_IO; }\n", out);
+	xl6OutputPuts("    if ( strcmp(kind, \"TimeoutError\") == 0 ) { return XERR_TIMEOUT; }\n", out);
+	xl6OutputPuts("    if ( strcmp(kind, \"CancelledError\") == 0 ) { return XERR_CANCELLED; }\n", out);
+	xl6OutputPuts("    if ( strcmp(kind, \"NotImplementedError\") == 0 ) { return XERR_UNSUPPORTED; }\n", out);
+	xl6OutputPuts("    if ( strcmp(kind, \"ValueError\") == 0 || strcmp(kind, \"LookupError\") == 0 || strcmp(kind, \"KeyError\") == 0 || strcmp(kind, \"AttributeError\") == 0 || strcmp(kind, \"NameError\") == 0 || strcmp(kind, \"ArithmeticError\") == 0 || strcmp(kind, \"ZeroDivisionError\") == 0 ) { return XERR_VALUE; }\n", out);
+	xl6OutputPuts("    return XERR_STATE;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static const char* xl6_error_kind_from_xrt(const xerror* nativeError)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    const char* domain = nativeError != 0 ? xrtErrorDomain(nativeError) : 0;\n", out);
+    xl6OutputPuts("    const char* data = nativeError != 0 ? xrtErrorData(nativeError) : 0;\n", out);
+    xl6OutputPuts("    xerrkind kind = nativeError != 0 ? xrtErrorKind(nativeError) : XERR_INTERNAL;\n", out);
+    xl6OutputPuts("    if ( domain != 0 && strcmp(domain, \"xlang\") == 0 && data != 0 && data[0] != 0 ) { return data; }\n", out);
+    xl6OutputPuts("    if ( kind == XERR_ARGUMENT || kind == XERR_VALUE || kind == XERR_EXISTS ) { return \"ValueError\"; }\n", out);
+    xl6OutputPuts("    if ( kind == XERR_TYPE ) { return \"TypeError\"; }\n", out);
+    xl6OutputPuts("    if ( kind == XERR_RANGE ) { return \"RangeError\"; }\n", out);
+    xl6OutputPuts("    if ( kind == XERR_MEMORY ) { return \"MemoryError\"; }\n", out);
+    xl6OutputPuts("    if ( kind == XERR_TIMEOUT ) { return \"TimeoutError\"; }\n", out);
+    xl6OutputPuts("    if ( kind == XERR_CANCELLED ) { return \"CancelledError\"; }\n", out);
+    xl6OutputPuts("    if ( kind == XERR_UNSUPPORTED ) { return \"NotImplementedError\"; }\n", out);
+    xl6OutputPuts("    if ( kind == XERR_NOT_FOUND && domain != 0 && strstr(domain, \"file\") != 0 ) { return \"FileError\"; }\n", out);
+    xl6OutputPuts("    if ( kind == XERR_NOT_FOUND ) { return \"LookupError\"; }\n", out);
+    xl6OutputPuts("    if ( kind == XERR_IO || kind == XERR_PERMISSION || kind == XERR_PROTOCOL ) {\n", out);
+    xl6OutputPuts("        if ( domain != 0 && strstr(domain, \"file\") != 0 ) { return \"FileError\"; }\n", out);
+    xl6OutputPuts("        if ( domain != 0 && (strstr(domain, \"net\") != 0 || strstr(domain, \"tls\") != 0) ) { return \"NetworkError\"; }\n", out);
+    xl6OutputPuts("        return \"IOError\";\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    return \"RuntimeError\";\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static XL6_Error* xl6_error_from_xrt_depth(const xerror* nativeError, const char* file, int line, int column, int depth)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    const xerror* nativeCause;\n", out);
+    xl6OutputPuts("    const char* nativeFile;\n", out);
+    xl6OutputPuts("    int nativeLine;\n", out);
+    xl6OutputPuts("    int nativeColumn;\n", out);
+    xl6OutputPuts("    int hasNativeLocation;\n", out);
+    xl6OutputPuts("    XL6_Error* cause;\n", out);
+    xl6OutputPuts("    XL6_Error* error;\n", out);
+    xl6OutputPuts("    if ( nativeError == 0 || depth >= 64 ) { return 0; }\n", out);
+    xl6OutputPuts("    nativeFile = xrtErrorFile(nativeError);\n", out);
+    xl6OutputPuts("    nativeLine = (int)xrtErrorLine(nativeError);\n", out);
+    xl6OutputPuts("    nativeColumn = (int)xrtErrorColumn(nativeError);\n", out);
+    xl6OutputPuts("    hasNativeLocation = (nativeFile != 0 && nativeFile[0] != '\\0') || nativeLine > 0 || nativeColumn > 0;\n", out);
+    xl6OutputPuts("    nativeCause = xrtErrorCause(nativeError);\n", out);
+    xl6OutputPuts("    cause = xl6_error_from_xrt_depth(nativeCause, \"\", 0, 0, depth + 1);\n", out);
+    xl6OutputPuts("    if ( nativeCause != 0 && cause == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    error = xl6_error_new(xl6_error_kind_from_xrt(nativeError), xrtErrorMessage(nativeError),\n", out);
+    xl6OutputPuts("        hasNativeLocation ? (nativeFile != 0 ? nativeFile : \"\") : file,\n", out);
+    xl6OutputPuts("        hasNativeLocation ? nativeLine : line,\n", out);
+    xl6OutputPuts("        hasNativeLocation ? nativeColumn : column, cause);\n", out);
+    xl6OutputPuts("    if ( error == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    error->xrtKind = xrtErrorKind(nativeError);\n", out);
+    xl6OutputPuts("    error->code = xrtErrorCode(nativeError);\n", out);
+    xl6OutputPuts("    error->systemCode = xrtErrorSystemCode(nativeError);\n", out);
+    xl6OutputPuts("    error->domain = xl6_error_dup(xrtErrorDomain(nativeError));\n", out);
+    xl6OutputPuts("    error->operation = xl6_error_dup(xrtErrorOperation(nativeError));\n", out);
+    xl6OutputPuts("    error->data = xl6_error_dup(xrtErrorData(nativeError));\n", out);
+    xl6OutputPuts("    if ( error->domain == 0 || error->operation == 0 || error->data == 0 ) { xl6_error_free(error); return 0; }\n", out);
+    xl6OutputPuts("    return error;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static XL6_Error* xl6_error_from_xrt(const xerror* nativeError, const char* file, int line, int column)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xl6_error_from_xrt_depth(nativeError, file, line, column, 0);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static xerror* xl6_error_to_xrt_depth(const XL6_Error* error, const char* defaultOperation, int depth)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    xerrordesc desc;\n", out);
+    xl6OutputPuts("    xerrorlocation location;\n", out);
+    xl6OutputPuts("    xerror* cause;\n", out);
+    xl6OutputPuts("    xerror* nativeError;\n", out);
+    xl6OutputPuts("    if ( error == 0 || depth >= 64 ) { return 0; }\n", out);
+    xl6OutputPuts("    cause = xl6_error_to_xrt_depth(error->cause, defaultOperation, depth + 1);\n", out);
+    xl6OutputPuts("    if ( error->cause != 0 && cause == 0 ) { return 0; }\n", out);
+    xl6OutputPuts("    memset(&desc, 0, sizeof(desc));\n", out);
+    xl6OutputPuts("    desc.Kind = error->xrtKind != XERR_NONE ? error->xrtKind : xl6_error_xrt_kind(error->kind);\n", out);
+    xl6OutputPuts("    desc.Code = error->code;\n", out);
+    xl6OutputPuts("    desc.SystemCode = error->systemCode;\n", out);
+    xl6OutputPuts("    desc.Domain = error->domain != 0 ? error->domain : \"xlang\";\n", out);
+    xl6OutputPuts("    desc.Operation = error->operation != 0 ? error->operation : defaultOperation;\n", out);
+    xl6OutputPuts("    desc.Message = error->message != 0 ? error->message : error->kind;\n", out);
+    xl6OutputPuts("    desc.Data = error->data != 0 ? error->data : error->kind;\n", out);
+    xl6OutputPuts("    desc.Cause = cause;\n", out);
+    xl6OutputPuts("    location.File = error->file != 0 ? error->file : \"\";\n", out);
+    xl6OutputPuts("    location.Line = (int32_t)error->line;\n", out);
+    xl6OutputPuts("    location.Column = (int32_t)error->column;\n", out);
+    xl6OutputPuts("    nativeError = xrtErrorBuildAt(&desc, &location);\n", out);
+    xl6OutputPuts("    xrtErrorFree(cause);\n", out);
+    xl6OutputPuts("    return nativeError;\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static xerror* xl6_error_to_xrt(const XL6_Error* error, const char* defaultOperation)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    return xl6_error_to_xrt_depth(error, defaultOperation != 0 ? defaultOperation : \"throw\", 0);\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+    xl6OutputPuts("static void xl6_error_publish_xrt(void)\n", out);
+    xl6OutputPuts("{\n", out);
+    xl6OutputPuts("    XL6_Error* error = xl6_error_active_get();\n", out);
+    xl6OutputPuts("    if ( error != 0 ) {\n", out);
+    xl6OutputPuts("        xerror* nativeError = xl6_error_to_xrt(error, \"callback\");\n", out);
+    xl6OutputPuts("        if ( nativeError != 0 ) { xrtSetError(nativeError); xrtErrorFree(nativeError); }\n", out);
+    xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("}\n\n", out);
+
+	/* 扩展库只看到稳定 ABI，不直接依赖错误运行时的私有线程状态。 */
+	xl6OutputPuts("int xl6ExtlibErrorPending(void)\n", out);
+	xl6OutputPuts("{\n", out);
+	xl6OutputPuts("    return xl6_error_has();\n", out);
+	xl6OutputPuts("}\n\n", out);
+
+	xl6OutputPuts("void xl6ExtlibErrorPublishXrt(void)\n", out);
+	xl6OutputPuts("{\n", out);
+	xl6OutputPuts("    xl6_error_publish_xrt();\n", out);
+	xl6OutputPuts("}\n\n", out);
+
+	xl6OutputPuts("void xl6ExtlibErrorClear(void)\n", out);
+	xl6OutputPuts("{\n", out);
+	xl6OutputPuts("    XL6_Error* error = xl6_error_take();\n", out);
+	xl6OutputPuts("    xl6_error_free(error);\n", out);
+	xl6OutputPuts("}\n\n", out);
+
     xl6OutputPuts("static void xl6_error_reraise(XL6_Error* error)\n", out);
     xl6OutputPuts("{\n", out);
     xl6OutputPuts("    xl6_error_retain(error);\n", out);
@@ -250,26 +433,26 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("    if ( width == 0u || width > 64u || right < 0 || (unsigned long long)right >= (unsigned long long)width ) { xl6_error_raise(\"RangeError\", \"shift count is outside the left operand width\", \"\", line, column); return 0; }\n", out);
     xl6OutputPuts("    return left >> (unsigned int)right;\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("#ifdef XL_RUNTIME_NEED_XVALUE\n", out);
-    xl6OutputPuts("static xvalue xl6_xrt_basic_binary_checked(xvalue left, xvalue right, int op, int line, int column)\n", out);
+    xl6OutputPuts("#ifdef XL_RUNTIME_NEED_XVALUE_BINARY\n", out);
+    xl6OutputPuts("static xvalue* xl6_xrt_basic_binary_checked(xvalue* left, xvalue* right, int op, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    int leftType = xvoType(left);\n", out);
-    xl6OutputPuts("    int rightType = xvoType(right);\n", out);
+    xl6OutputPuts("    int leftType = xl6_xrt_value_kind(left);\n", out);
+    xl6OutputPuts("    int rightType = xl6_xrt_value_kind(right);\n", out);
     xl6OutputPuts("    if ( (op == 3 || op == 4 || op == 8 || op == 9) && leftType == XL6_XVO_DT_INT && rightType == XL6_XVO_DT_INT ) {\n", out);
-    xl6OutputPuts("        long long l = xvoGetInt(left);\n", out);
-    xl6OutputPuts("        long long r = xvoGetInt(right);\n", out);
-    xl6OutputPuts("        if ( op == 3 ) { long long value = xl6_i64_div_checked(l, r, line, column); return xl6_error_has() ? xvoCreateNull() : xvoCreateInt(value); }\n", out);
-    xl6OutputPuts("        if ( op == 4 ) { long long value = xl6_i64_mod_checked(l, r, line, column); return xl6_error_has() ? xvoCreateNull() : xvoCreateInt(value); }\n", out);
-    xl6OutputPuts("        if ( op == 8 ) { unsigned long long value = xl6_u64_shl_checked((unsigned long long)l, r, 64u, line, column); return xl6_error_has() ? xvoCreateNull() : xvoCreateInt((long long)value); }\n", out);
-    xl6OutputPuts("        { unsigned long long value = xl6_u64_shr_checked((unsigned long long)l, r, 64u, line, column); return xl6_error_has() ? xvoCreateNull() : xvoCreateInt((long long)value); }\n", out);
+    xl6OutputPuts("        long long l = xl6_xrt_value_int(left);\n", out);
+    xl6OutputPuts("        long long r = xl6_xrt_value_int(right);\n", out);
+    xl6OutputPuts("        if ( op == 3 ) { long long value = xl6_i64_div_checked(l, r, line, column); return xl6_error_has() ? xrtValueNull() : xrtValueInt(value); }\n", out);
+    xl6OutputPuts("        if ( op == 4 ) { long long value = xl6_i64_mod_checked(l, r, line, column); return xl6_error_has() ? xrtValueNull() : xrtValueInt(value); }\n", out);
+    xl6OutputPuts("        if ( op == 8 ) { unsigned long long value = xl6_u64_shl_checked((unsigned long long)l, r, 64u, line, column); return xl6_error_has() ? xrtValueNull() : xrtValueInt((long long)value); }\n", out);
+    xl6OutputPuts("        { unsigned long long value = xl6_u64_shr_checked((unsigned long long)l, r, 64u, line, column); return xl6_error_has() ? xrtValueNull() : xrtValueInt((long long)value); }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    return xl6_xrt_basic_binary(left, right, op);\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("static xvalue xl6_xrt_basic_binary_release_checked(xvalue left, xvalue right, int op, int line, int column)\n", out);
+    xl6OutputPuts("static xvalue* xl6_xrt_basic_binary_release_checked(xvalue* left, xvalue* right, int op, int line, int column)\n", out);
     xl6OutputPuts("{\n", out);
-    xl6OutputPuts("    xvalue result = (left != 0 && right != 0) ? xl6_xrt_basic_binary_checked(left, right, op, line, column) : xvoCreateNull();\n", out);
-    xl6OutputPuts("    if ( left != 0 ) { xvoUnref(left); }\n", out);
-    xl6OutputPuts("    if ( right != 0 ) { xvoUnref(right); }\n", out);
+    xl6OutputPuts("    xvalue* result = (left != 0 && right != 0) ? xl6_xrt_basic_binary_checked(left, right, op, line, column) : xrtValueNull();\n", out);
+    xl6OutputPuts("    if ( left != 0 ) { xrtValueRelease(left); }\n", out);
+    xl6OutputPuts("    if ( right != 0 ) { xrtValueRelease(right); }\n", out);
     xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("#endif\n\n", out);
@@ -278,9 +461,9 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("    XL6_Error* cause = xl6_error_take();\n", out);
     xl6OutputPuts("    XL6_Error* error = xl6_error_new(kind, message, file, line, column, cause);\n", out);
     xl6OutputPuts("    if ( error == 0 ) {\n", out);
-    xl6OutputPuts("        xl6_error_free(cause);\n", out);
     xl6OutputPuts("        error = xl6_error_new(\"Error\", \"out of memory while creating error\", file, line, column, 0);\n", out);
     xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    if ( error != 0 ) { error->xrtKind = xl6_error_xrt_kind(kind); }\n", out);
     xl6OutputPuts("    xl6_error_set_active(error);\n", out);
     xl6OutputPuts("}\n\n", out);
     xl6OutputPuts("static void* xl6_nullable_require_pointer(void* value, const char* file, int line, int column)\n", out);
@@ -297,18 +480,27 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("    if ( len == 0 ) {\n", out);
     xl6OutputPuts("        return \"\";\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    copy = (char*)xrtTempMemory(len + 1);\n", out);
+    xl6OutputPuts("    copy = (char*)xrtTemp(len + 1);\n", out);
     xl6OutputPuts("    if ( copy == 0 ) {\n", out);
     xl6OutputPuts("        return \"\";\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    memcpy(copy, text, len + 1);\n", out);
     xl6OutputPuts("    return copy;\n", out);
     xl6OutputPuts("}\n\n", out);
-    xl6OutputPuts("static const char* xl6_error_kind(XL6_Error* error) { return xl6_error_text_copy(error != 0 ? error->kind : 0); }\n", out);
-    xl6OutputPuts("static const char* xl6_error_message(XL6_Error* error) { return xl6_error_text_copy(error != 0 ? error->message : 0); }\n", out);
-    xl6OutputPuts("static const char* xl6_error_file(XL6_Error* error) { return xl6_error_text_copy(error != 0 ? error->file : 0); }\n", out);
-    xl6OutputPuts("static int xl6_error_line(XL6_Error* error) { return error != 0 ? error->line : 0; }\n", out);
-    xl6OutputPuts("static int xl6_error_column(XL6_Error* error) { return error != 0 ? error->column : 0; }\n\n", out);
+    /* 成员访问可接收借用值或临时值；先复制结果，再按需释放接收者。 */
+    xl6OutputPuts("static const char* xl6_error_text_member(XL6_Error* error, const char* text, int release) { const char* result = xl6_error_text_copy(text); if ( release ) { xl6_error_free(error); } return result; }\n", out);
+    xl6OutputPuts("static int xl6_error_int_member(XL6_Error* error, int value, int release) { if ( release ) { xl6_error_free(error); } return value; }\n", out);
+    xl6OutputPuts("static const char* xl6_error_kind(XL6_Error* error, int release) { return xl6_error_text_member(error, error != 0 ? error->kind : 0, release); }\n", out);
+    xl6OutputPuts("static const char* xl6_error_message(XL6_Error* error, int release) { return xl6_error_text_member(error, error != 0 ? error->message : 0, release); }\n", out);
+    xl6OutputPuts("static const char* xl6_error_file(XL6_Error* error, int release) { return xl6_error_text_member(error, error != 0 ? error->file : 0, release); }\n", out);
+    xl6OutputPuts("static const char* xl6_error_domain(XL6_Error* error, int release) { return xl6_error_text_member(error, error != 0 && error->domain != 0 ? error->domain : \"xlang\", release); }\n", out);
+    xl6OutputPuts("static const char* xl6_error_operation(XL6_Error* error, int release) { return xl6_error_text_member(error, error != 0 && error->operation != 0 ? error->operation : \"throw\", release); }\n", out);
+    xl6OutputPuts("static const char* xl6_error_data(XL6_Error* error, int release) { return xl6_error_text_member(error, error != 0 && error->data != 0 ? error->data : (error != 0 ? error->kind : 0), release); }\n", out);
+    xl6OutputPuts("static int xl6_error_line(XL6_Error* error, int release) { return xl6_error_int_member(error, error != 0 ? error->line : 0, release); }\n", out);
+    xl6OutputPuts("static int xl6_error_column(XL6_Error* error, int release) { return xl6_error_int_member(error, error != 0 ? error->column : 0, release); }\n", out);
+    xl6OutputPuts("static int xl6_error_code(XL6_Error* error, int release) { return xl6_error_int_member(error, error != 0 ? error->code : 0, release); }\n", out);
+    xl6OutputPuts("static int xl6_error_system_code(XL6_Error* error, int release) { return xl6_error_int_member(error, error != 0 ? error->systemCode : 0, release); }\n", out);
+    xl6OutputPuts("static XL6_Error* xl6_error_cause(XL6_Error* error, int release) { XL6_Error* cause = xl6_error_retain(error != 0 ? error->cause : 0); if ( release ) { xl6_error_free(error); } return cause; }\n\n", out);
 
     xl6OutputPuts("static const char* xl6_error_parent_kind(const char* kind)\n", out);
     xl6OutputPuts("{\n", out);
@@ -352,8 +544,8 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("    kind = error->kind;\n", out);
     xl6OutputPuts("    message = error->message;\n", out);
     xl6OutputPuts("    file = error->file;\n", out);
-    xl6OutputPuts("    line = xl6_error_line(error);\n", out);
-    xl6OutputPuts("    column = xl6_error_column(error);\n", out);
+    xl6OutputPuts("    line = error->line;\n", out);
+    xl6OutputPuts("    column = error->column;\n", out);
     xl6OutputPuts("    if ( kind == 0 || kind[0] == 0 ) {\n", out);
     xl6OutputPuts("        kind = \"Error\";\n", out);
     xl6OutputPuts("    }\n", out);
@@ -379,651 +571,4 @@ static void xl6CgenEmitErrorRuntime(XL6_Output* out)
     xl6OutputPuts("}\n\n", out);
 }
 
-static void xl6CgenEmitDefaultErrorReturn(XL6_CgenContext* ctx)
-{
-    int returnId;
-
-    if ( ctx->currentReturns == NULL || ctx->currentReturns->childCount == 0 ) {
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("return;\n", ctx->out);
-        return;
-    }
-
-    returnId = ctx->tempId++;
-    xl6CgenIndent(ctx);
-    if ( ctx->currentReturns->childCount > 1 ) {
-        if ( ctx->currentReturnFunc != NULL ) {
-            xl6CgenFuncReturnStructName(ctx, ctx->currentReturnFunc);
-        } else {
-            xl6CgenFunctionReturnStructName(ctx, ctx->currentReturnParams, ctx->currentReturns);
-        }
-    } else {
-        const XL6_AstNode* returnType = ctx->currentReturns->children[0];
-        if ( xl6CgenIsTypedContainerType(ctx, returnType) ) {
-            xl6OutputPuts(xl6CgenTypedContainerCType(ctx, returnType), ctx->out);
-        } else {
-            xl6OutputPuts(xl6CgenTypeName(ctx, returnType), ctx->out);
-        }
-    }
-    xl6OutputPrintf(ctx->out, " __xl6_error_return_%d;\n", returnId);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out,
-                    "memset(&__xl6_error_return_%d, 0, sizeof(__xl6_error_return_%d));\n",
-                    returnId,
-                    returnId);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "return __xl6_error_return_%d;\n", returnId);
-}
-
-static void xl6CgenEmitExceptionPropagate(XL6_CgenContext* ctx, const XL6_AstNode* at)
-{
-    XL6_CgenTryTarget* target;
-    XL6_CgenFinallyTarget* finallyTarget;
-
-    (void)at;
-    if ( ctx == NULL || !ctx->needsErrorRuntime ) {
-        return;
-    }
-
-    target = xl6CgenCurrentTryTarget(ctx);
-    finallyTarget = xl6CgenCurrentFinallyTarget(ctx);
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("if ( xl6_error_has() ) {\n", ctx->out);
-    ctx->indent += 1;
-    if ( finallyTarget != NULL && finallyTarget->inFinally ) {
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (__xl6_pending_kind_%d == 1) {\n", finallyTarget->id);
-        ctx->indent += 1;
-        xl6CgenDiscardPendingFinallyReturn(ctx, finallyTarget->id);
-        ctx->indent -= 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("}\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "__xl6_pending_kind_%d = 0;\n", finallyTarget->id);
-    }
-    if ( xl6CgenEmitCurrentErrorScopeJump(ctx) ) {
-        ;
-    } else if ( target != NULL ) {
-        xl6CgenEmitCleanupsSince(ctx, target->cleanupMark);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out,
-                "goto __xl6_try_%s_%d;\n",
-                target->targetFinally ? "finally" : "catch",
-                target->id);
-    } else {
-        xl6CgenEmitCleanupsSince(ctx, 0);
-        if ( ctx->currentErrorExitLabel != NULL ) {
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "goto %s;\n", ctx->currentErrorExitLabel);
-        } else {
-            xl6CgenEmitDefaultErrorReturn(ctx);
-        }
-    }
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-}
-
-static void xl6CgenEmitGotoIfError(XL6_CgenContext* ctx, const char* label)
-{
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("if ( xl6_error_has() ) {\n", ctx->out);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "goto %s;\n", label);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-}
-
-static void xl6CgenThrowStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* kindNode;
-    const XL6_AstNode* expr;
-    XL6_CgenTryTarget* target;
-    XL6_CgenTaskSpawnArgTempScope taskScope;
-    int hasTaskScope;
-
-    target = xl6CgenCurrentTryTarget(ctx);
-    if ( !xl6CgenValidateExitPlan(
-            ctx,
-            node,
-            XL6_SEM_EXIT_THROW,
-            target != NULL ? target->region : xl6CgenCurrentCallableRegion(ctx)
-        ) ) {
-        return;
-    }
-    kindNode = node != NULL && node->childCount == 2 ? node->children[0] : NULL;
-    expr = node != NULL && node->childCount > 0 ? node->children[node->childCount == 2 ? 1 : 0] : NULL;
-    hasTaskScope = expr != NULL && xl6CgenTaskSpawnArgTempScopeBegin(ctx, expr, &taskScope);
-    xl6CgenIndent(ctx);
-    if ( expr == NULL ) {
-        if ( ctx->currentCatchErrorName != NULL ) {
-            xl6OutputPrintf(ctx->out, "xl6_error_reraise(%s);\n", ctx->currentCatchErrorName);
-        } else {
-            xl6OutputPuts("xl6_error_raise(\"Error\", \"rethrow without active catch\", \"\", 0, 0);\n", ctx->out);
-        }
-    } else {
-        xl6OutputPrintf(ctx->out, "xl6_error_raise(\"%s\", ", kindNode != NULL && kindNode->text != NULL ? kindNode->text : "Error");
-        xl6CgenExpr(ctx, expr);
-        xl6OutputPrintf(ctx->out, ", \"\", %d, %d);\n", node != NULL ? node->line : 0, node != NULL ? node->column : 0);
-    }
-    if ( hasTaskScope ) {
-        xl6CgenTaskSpawnArgTempScopeEnd(ctx, &taskScope);
-    }
-    xl6CgenEmitExceptionPropagate(ctx, node);
-}
-
-static void xl6CgenAssertStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* cond;
-    const XL6_AstNode* message;
-    char conditionName[64];
-    int hasConditionTemp;
-    int hasConditionTaskScope;
-    int hasMessageTaskScope;
-    XL6_CgenTaskSpawnArgTempScope conditionTaskScope;
-    XL6_CgenTaskSpawnArgTempScope messageTaskScope;
-
-    cond = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
-    message = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
-    conditionName[0] = '\0';
-    hasConditionTemp = cond != NULL &&
-                       xl6CgenTryConditionTemp(ctx, cond, "__xl6_assert_cond_", conditionName, sizeof(conditionName));
-    hasConditionTaskScope = 0;
-    hasMessageTaskScope = 0;
-    if ( cond != NULL && !hasConditionTemp ) {
-        hasConditionTaskScope = xl6CgenTaskSpawnArgTempScopeBegin(ctx, cond, &conditionTaskScope);
-    }
-
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("if ( !(", ctx->out);
-    if ( hasConditionTemp ) {
-        xl6OutputPuts(conditionName, ctx->out);
-    } else {
-        xl6CgenConditionExpr(ctx, cond);
-    }
-    xl6OutputPuts(") ) {\n", ctx->out);
-    if ( hasConditionTaskScope ) {
-        xl6CgenTaskSpawnArgTempScopeEnd(ctx, &conditionTaskScope);
-    }
-    ctx->indent += 1;
-    if ( message != NULL ) {
-        hasMessageTaskScope = xl6CgenTaskSpawnArgTempScopeBegin(ctx, message, &messageTaskScope);
-    }
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("xl6_error_raise(\"AssertionError\", ", ctx->out);
-    if ( message != NULL ) {
-        xl6CgenExpr(ctx, message);
-    } else {
-        xl6OutputPuts("\"assert failed\"", ctx->out);
-    }
-    xl6OutputPrintf(ctx->out, ", \"\", %d, %d);\n", node != NULL ? node->line : 0, node != NULL ? node->column : 0);
-    if ( hasMessageTaskScope ) {
-        xl6CgenTaskSpawnArgTempScopeEnd(ctx, &messageTaskScope);
-    }
-    xl6CgenEmitExceptionPropagate(ctx, node);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-}
-
-static int xl6CgenTryHasCatch(const XL6_AstNode* node)
-{
-    const XL6_AstNode* catchList = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
-    return catchList != NULL && catchList->kind == XL6_AST_LIST && catchList->childCount > 0;
-}
-
-static int xl6CgenTryHasFinally(const XL6_AstNode* node)
-{
-    const XL6_AstNode* finallyBlock = node != NULL && node->childCount > 2 ? node->children[2] : NULL;
-    return finallyBlock != NULL && finallyBlock->childCount > 0;
-}
-
-static int xl6CgenFunctionHasReturnValue(XL6_CgenContext* ctx)
-{
-    return ctx != NULL && ctx->currentReturns != NULL && ctx->currentReturns->childCount > 0;
-}
-
-static void xl6CgenPendingReturnType(XL6_CgenContext* ctx)
-{
-    if ( ctx->currentReturns != NULL && ctx->currentReturns->childCount > 1 ) {
-        if ( ctx->currentReturnFunc != NULL ) {
-            xl6CgenFuncReturnStructName(ctx, ctx->currentReturnFunc);
-        } else {
-            xl6CgenFunctionReturnStructName(ctx, ctx->currentReturnParams, ctx->currentReturns);
-        }
-    } else {
-        if ( ctx->currentReturnFunc != NULL ) {
-            xl6OutputPuts(xl6CgenFuncSingleReturnCType(ctx, ctx->currentReturnFunc), ctx->out);
-        } else if ( xl6CgenIsTypedContainerType(ctx, ctx->currentReturnType) ) {
-            xl6OutputPuts(xl6CgenTypedContainerCType(ctx, ctx->currentReturnType), ctx->out);
-        } else {
-            xl6OutputPuts(xl6CgenTypeName(ctx, ctx->currentReturnType), ctx->out);
-        }
-    }
-}
-
-static void xl6CgenDeclarePendingFinallyControl(XL6_CgenContext* ctx, int targetId)
-{
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "int __xl6_pending_kind_%d = 0;\n", targetId);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "int __xl6_pending_target_%d = 0;\n", targetId);
-    if ( xl6CgenFunctionHasReturnValue(ctx) ) {
-        xl6CgenIndent(ctx);
-        xl6CgenPendingReturnType(ctx);
-        xl6OutputPrintf(ctx->out, " __xl6_pending_return_%d;\n", targetId);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "memset(&__xl6_pending_return_%d, 0, sizeof(__xl6_pending_return_%d));\n", targetId, targetId);
-    }
-}
-
-static void xl6CgenDiscardPendingFinallyReturn(XL6_CgenContext* ctx, int targetId)
-{
-    char name[96];
-
-    if ( !xl6CgenFunctionHasReturnValue(ctx) ) {
-        return;
-    }
-    snprintf(name, sizeof(name), "__xl6_pending_return_%d", targetId);
-    if ( ctx->currentReturns->childCount > 1 ) {
-        xl6CgenDiscardTemporaryMultiResultByTypes(ctx, ctx->currentReturns, name);
-    } else {
-        xl6CgenDiscardTemporaryResultByType(ctx, ctx->currentReturnType, name);
-    }
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "memset(&%s, 0, sizeof(%s));\n", name, name);
-}
-
-static int xl6CgenEmitPendingFinallyReturn(
-    XL6_CgenContext* ctx,
-    const char* returnTempName,
-    const char* movedCleanupName)
-{
-    XL6_CgenFinallyTarget* target;
-
-    target = xl6CgenCurrentFinallyTarget(ctx);
-    if ( target == NULL ) {
-        return 0;
-    }
-    xl6CgenEmitCleanupsSinceExcept(
-        ctx,
-        target->cleanupMark,
-        movedCleanupName != NULL && movedCleanupName[0] != '\0' ? movedCleanupName : NULL);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (__xl6_pending_kind_%d == 1) {\n", target->id);
-    ctx->indent += 1;
-    xl6CgenDiscardPendingFinallyReturn(ctx, target->id);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(
-        ctx->out,
-        "__xl6_pending_return_%d = %s;\n",
-        target->id,
-        returnTempName);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "__xl6_pending_kind_%d = 1;\n", target->id);
-    xl6CgenIndent(ctx);
-    if ( target->inFinally ) {
-        xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_dispatch_%d;\n", target->id);
-    } else {
-        xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_%d;\n", target->id);
-    }
-    return 1;
-}
-
-static int xl6CgenEmitPendingFinallyVoidReturn(XL6_CgenContext* ctx)
-{
-    XL6_CgenFinallyTarget* target = xl6CgenCurrentFinallyTarget(ctx);
-
-    if ( target == NULL ) {
-        return 0;
-    }
-    xl6CgenEmitCleanupsSince(ctx, target->cleanupMark);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (__xl6_pending_kind_%d == 1) {\n", target->id);
-    ctx->indent += 1;
-    xl6CgenDiscardPendingFinallyReturn(ctx, target->id);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "__xl6_pending_kind_%d = 1;\n", target->id);
-    xl6CgenIndent(ctx);
-    if ( target->inFinally ) {
-        xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_dispatch_%d;\n", target->id);
-    } else {
-        xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_%d;\n", target->id);
-    }
-    return 1;
-}
-
-static void xl6CgenGotoPendingFinallyTarget(XL6_CgenContext* ctx, const XL6_CgenFinallyTarget* target)
-{
-    if ( target->inFinally ) {
-        xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_dispatch_%d;\n", target->id);
-    } else {
-        xl6OutputPrintf(ctx->out, "goto __xl6_try_finally_%d;\n", target->id);
-    }
-}
-
-static void xl6CgenEmitPendingFinallyReturnDispatch(
-    XL6_CgenContext* ctx,
-    const XL6_CgenFinallyTarget* target)
-{
-    XL6_CgenFinallyTarget* parent = xl6CgenCurrentFinallyTarget(ctx);
-
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (__xl6_pending_kind_%d == 1) {\n", target->id);
-    ctx->indent += 1;
-    if ( parent != NULL ) {
-        if ( xl6CgenFunctionHasReturnValue(ctx) ) {
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "if (__xl6_pending_kind_%d == 1) {\n", parent->id);
-            ctx->indent += 1;
-            xl6CgenDiscardPendingFinallyReturn(ctx, parent->id);
-            ctx->indent -= 1;
-            xl6CgenIndent(ctx);
-            xl6OutputPuts("}\n", ctx->out);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(
-                ctx->out,
-                "__xl6_pending_return_%d = __xl6_pending_return_%d;\n",
-                parent->id,
-                target->id);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(
-                ctx->out,
-                "memset(&__xl6_pending_return_%d, 0, sizeof(__xl6_pending_return_%d));\n",
-                target->id,
-                target->id);
-        }
-        xl6CgenEmitCleanupsSince(ctx, parent->cleanupMark);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "__xl6_pending_kind_%d = 1;\n", parent->id);
-        xl6CgenIndent(ctx);
-        xl6CgenGotoPendingFinallyTarget(ctx, parent);
-    } else {
-        if ( ctx->currentAsyncWorker ) {
-            xl6CgenAsyncPendingResultCompletion(ctx, target->id);
-        } else if ( !xl6CgenFunctionHasReturnValue(ctx) ) {
-            xl6CgenEmitCleanupsSince(ctx, 0);
-            xl6CgenIndent(ctx);
-            xl6OutputPuts("return;\n", ctx->out);
-        } else if ( ctx->currentReturns->childCount > 1 ) {
-            xl6CgenEmitCleanupsSince(ctx, 0);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "return __xl6_pending_return_%d;\n", target->id);
-        } else if ( xl6CgenIsOwnedStringTypeNode(ctx, ctx->currentReturnType) ) {
-            xl6CgenEmitCleanupsSince(ctx, 0);
-            xl6CgenIndent(ctx);
-            if ( xl6CgenIsNullableStringTypeNode(ctx, ctx->currentReturnType) ) {
-                xl6OutputPrintf(
-                    ctx->out,
-                    "return __xl6_pending_return_%d != 0 ? xrtTempStringTake((char*)__xl6_pending_return_%d, 0u) : 0;\n",
-                    target->id,
-                    target->id);
-            } else {
-                xl6OutputPrintf(ctx->out, "return xrtTempStringTake((char*)__xl6_pending_return_%d, 0u);\n", target->id);
-            }
-        } else {
-            xl6CgenEmitCleanupsSince(ctx, 0);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "return __xl6_pending_return_%d;\n", target->id);
-        }
-    }
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-}
-
-static void xl6CgenEmitPendingFinallyLoopDispatch(
-    XL6_CgenContext* ctx,
-    const XL6_CgenFinallyTarget* target,
-    int kind)
-{
-    XL6_CgenFinallyTarget* parent = xl6CgenCurrentFinallyTarget(ctx);
-    size_t i;
-
-    for ( i = 0; i < target->loopTargetCount && i < ctx->loopTargetCount; ++i ) {
-        XL6_CgenLoopTarget* loop = &ctx->loopTargets[i];
-        int labelId = kind == 3 ? loop->continueId : loop->breakId;
-
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(
-            ctx->out,
-            "if (__xl6_pending_kind_%d == %d && __xl6_pending_target_%d == %d) {\n",
-            target->id,
-            kind,
-            target->id,
-            labelId);
-        ctx->indent += 1;
-        if ( parent != NULL && i < parent->loopTargetCount ) {
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "if (__xl6_pending_kind_%d == 1) {\n", parent->id);
-            ctx->indent += 1;
-            xl6CgenDiscardPendingFinallyReturn(ctx, parent->id);
-            ctx->indent -= 1;
-            xl6CgenIndent(ctx);
-            xl6OutputPuts("}\n", ctx->out);
-            xl6CgenEmitCleanupsSince(ctx, parent->cleanupMark);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "__xl6_pending_kind_%d = %d;\n", parent->id, kind);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "__xl6_pending_target_%d = %d;\n", parent->id, labelId);
-            xl6CgenIndent(ctx);
-            xl6CgenGotoPendingFinallyTarget(ctx, parent);
-        } else {
-            xl6CgenEmitCleanupsSince(
-                ctx,
-                kind == 3 ? loop->continueCleanupMark : loop->breakCleanupMark);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "goto __xl6_%s_%d;\n", kind == 3 ? "continue" : "break", labelId);
-        }
-        ctx->indent -= 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("}\n", ctx->out);
-    }
-}
-
-static void xl6CgenTryStmt(XL6_CgenContext* ctx, const XL6_AstNode* node)
-{
-    const XL6_AstNode* tryBlock;
-    const XL6_AstNode* catchList;
-    const XL6_AstNode* finallyBlock;
-    char caughtName[64];
-    char catchLabel[64];
-    char finallyLabel[64];
-    char endLabel[64];
-    int id;
-    int hasCatch;
-    int hasFinally;
-    int hasFinallyTarget;
-    XL6_CgenFinallyTarget finallyTarget;
-    size_t tryCleanupMark;
-    size_t tryVarMark;
-
-    tryBlock = node != NULL && node->childCount > 0 ? node->children[0] : NULL;
-    catchList = node != NULL && node->childCount > 1 ? node->children[1] : NULL;
-    finallyBlock = node != NULL && node->childCount > 2 ? node->children[2] : NULL;
-    hasCatch = xl6CgenTryHasCatch(node);
-    hasFinally = xl6CgenTryHasFinally(node);
-    id = ctx->tempId++;
-
-    snprintf(catchLabel, sizeof(catchLabel), "__xl6_try_catch_%d", id);
-    snprintf(finallyLabel, sizeof(finallyLabel), "__xl6_try_finally_%d", id);
-    snprintf(endLabel, sizeof(endLabel), "__xl6_try_end_%d", id);
-    snprintf(caughtName, sizeof(caughtName), "__xl6_caught_error_%d", id);
-
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("{\n", ctx->out);
-    ctx->indent += 1;
-
-    tryCleanupMark = ctx->cleanupCount;
-    tryVarMark = ctx->varCount;
-    hasFinallyTarget = 0;
-    memset(&finallyTarget, 0, sizeof(finallyTarget));
-    if ( hasFinally ) {
-        xl6CgenDeclarePendingFinallyControl(ctx, id);
-        hasFinallyTarget = xl6CgenPushFinallyTarget(ctx, tryCleanupMark, id);
-    }
-    xl6CgenPushTryTarget(
-        ctx,
-        tryCleanupMark,
-        xl6CgenHirRegion(ctx, node),
-        id,
-        hasCatch ? 0 : 1
-    );
-    xl6CgenBlock(ctx, tryBlock);
-    xl6CgenFreeVarsSince(ctx, tryVarMark);
-    xl6CgenPopTryTarget(ctx);
-    xl6CgenEmitGotoIfError(ctx, hasCatch ? catchLabel : finallyLabel);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "goto %s;\n", hasFinally ? finallyLabel : endLabel);
-
-    if ( hasCatch ) {
-        size_t catchIndex;
-
-        ctx->indent -= 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s:\n", catchLabel);
-        ctx->indent += 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "XL6_Error* %s = xl6_error_take();\n", caughtName);
-
-        for ( catchIndex = 0; catchList != NULL && catchIndex < catchList->childCount; ++catchIndex ) {
-            const XL6_AstNode* catchNode = catchList->children[catchIndex];
-            const XL6_AstNode* catchKind = NULL;
-            const XL6_AstNode* catchName = NULL;
-            const XL6_AstNode* catchBlock = NULL;
-            const XL6_AstNode* errorType;
-            const char* prevCatchErrorName;
-            char catchCName[512];
-            size_t catchCleanupMark;
-            size_t catchVarMark;
-
-            if ( catchNode == NULL || catchNode->kind != XL6_AST_CATCH ) {
-                continue;
-            }
-            if ( catchNode->childCount == 3 ) {
-                catchKind = catchNode->children[0];
-                catchName = catchNode->children[1];
-                catchBlock = catchNode->children[2];
-            } else {
-                catchName = catchNode->childCount > 0 ? catchNode->children[0] : NULL;
-                catchBlock = catchNode->childCount > 1 ? catchNode->children[1] : NULL;
-            }
-            xl6CgenIndent(ctx);
-            if ( catchKind != NULL && catchKind->text != NULL ) {
-                xl6OutputPrintf(ctx->out, "if (%s != 0 && xl6_error_is(%s, \"%s\")) {\n", caughtName, caughtName, catchKind->text);
-            } else {
-                xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", caughtName);
-            }
-            ctx->indent += 1;
-            xl6CgenCIdentText(catchCName, sizeof(catchCName), catchName != NULL ? catchName->text : "__xl6_error");
-            catchVarMark = ctx->varCount;
-            catchCleanupMark = ctx->cleanupCount;
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "XL6_Error* %s = %s;\n", catchCName, caughtName);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = 0;\n", caughtName);
-            errorType = xl6CgenOwnSimpleType(ctx, "error", catchName != NULL ? catchName : catchNode);
-            xl6CgenAddVarType(ctx, catchName != NULL ? catchName->text : "__xl6_error", errorType);
-            xl6CgenAddErrorCleanup(ctx, catchName != NULL ? catchName->text : "__xl6_error", errorType);
-
-            prevCatchErrorName = ctx->currentCatchErrorName;
-            ctx->currentCatchErrorName = catchCName;
-            if ( hasFinally ) {
-                xl6CgenPushTryTarget(
-                    ctx,
-                    catchCleanupMark,
-                    xl6CgenHirRegion(ctx, node),
-                    id,
-                    1
-                );
-            }
-            xl6CgenBlock(ctx, catchBlock);
-            if ( hasFinally ) {
-                xl6CgenPopTryTarget(ctx);
-            }
-            ctx->currentCatchErrorName = prevCatchErrorName;
-            xl6CgenCloseScope(ctx, catchCleanupMark);
-            xl6CgenFreeVarsSince(ctx, catchVarMark);
-            xl6CgenEmitGotoIfError(ctx, hasFinally ? finallyLabel : endLabel);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "goto %s;\n", hasFinally ? finallyLabel : endLabel);
-            ctx->indent -= 1;
-            xl6CgenIndent(ctx);
-            xl6OutputPuts("}\n", ctx->out);
-        }
-
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s != 0) {\n", caughtName);
-        ctx->indent += 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xl6_error_set_active(%s);\n", caughtName);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = 0;\n", caughtName);
-        if ( hasFinally ) {
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "goto %s;\n", finallyLabel);
-        } else {
-            xl6CgenEmitExceptionPropagate(ctx, node);
-        }
-        ctx->indent -= 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("}\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "goto %s;\n", hasFinally ? finallyLabel : endLabel);
-    }
-
-    if ( hasFinally ) {
-        ctx->indent -= 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s:\n", finallyLabel);
-        ctx->indent += 1;
-        if ( hasFinallyTarget && xl6CgenCurrentFinallyTarget(ctx) != NULL ) {
-            xl6CgenCurrentFinallyTarget(ctx)->inFinally = 1;
-        }
-        xl6CgenBlock(ctx, finallyBlock);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (xl6_error_has() && __xl6_pending_kind_%d == 1) {\n", id);
-        ctx->indent += 1;
-        xl6CgenDiscardPendingFinallyReturn(ctx, id);
-        ctx->indent -= 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("}\n", ctx->out);
-        xl6CgenEmitExceptionPropagate(ctx, node);
-        ctx->indent -= 1;
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "__xl6_try_finally_dispatch_%d:\n", id);
-        ctx->indent += 1;
-        if ( hasFinallyTarget && xl6CgenCurrentFinallyTarget(ctx) != NULL ) {
-            finallyTarget = *xl6CgenCurrentFinallyTarget(ctx);
-            xl6CgenPopFinallyTarget(ctx);
-            hasFinallyTarget = 0;
-            xl6CgenEmitPendingFinallyReturnDispatch(ctx, &finallyTarget);
-            xl6CgenEmitPendingFinallyLoopDispatch(ctx, &finallyTarget, 2);
-            xl6CgenEmitPendingFinallyLoopDispatch(ctx, &finallyTarget, 3);
-        }
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "goto %s;\n", endLabel);
-    }
-
-    if ( hasFinallyTarget ) {
-        xl6CgenPopFinallyTarget(ctx);
-    }
-
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s:\n", endLabel);
-    ctx->indent += 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts(";\n", ctx->out);
-    ctx->indent -= 1;
-    xl6CgenIndent(ctx);
-    xl6OutputPuts("}\n", ctx->out);
-}
+#include "xl6_cgen_stmt_error_control.c"

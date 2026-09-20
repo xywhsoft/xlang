@@ -23,6 +23,13 @@ extern "C" {
 typedef struct XLC_Context XLC_Context;
 typedef XL_ContextOptions XLC_ContextOptions;
 
+/* XLIR is the production backend.  LEGACY remains available only as an
+ * explicit compatibility/debugging boundary while old baselines are retired. */
+typedef enum XLC_Backend {
+    XLC_BACKEND_XLIR = 0,
+    XLC_BACKEND_LEGACY = 1
+} XLC_Backend;
+
 XLC_API XLC_ContextOptions xlcDefaultContextOptions(void);
 XLC_API XLC_Context* xlcCreateContext(const XLC_ContextOptions* options);
 XLC_API void xlcDestroyContext(XLC_Context* ctx);
@@ -30,6 +37,7 @@ XLC_API void xlcDestroyContext(XLC_Context* ctx);
 XLC_API int xlcSetWorkDir(XLC_Context* ctx, const char* path);
 XLC_API int xlcSetTempDir(XLC_Context* ctx, const char* path);
 XLC_API int xlcSetSaveTemps(XLC_Context* ctx, int enabled);
+XLC_API int xlcSetBackend(XLC_Context* ctx, XLC_Backend backend);
 XLC_API int xlcAddIncludePath(XLC_Context* ctx, const char* path);
 XLC_API int xlcAddLibraryPath(XLC_Context* ctx, const char* path);
 XLC_API int xlcAddLinkLibrary(XLC_Context* ctx, const char* nameOrPath);
@@ -45,7 +53,14 @@ XLC_API int xlcCheck(XLC_Context* ctx, const char* outputPath, int jsonOutput);
 XLC_API int xlcEmitTokens(XLC_Context* ctx, const char* outputPath, int jsonOutput);
 XLC_API int xlcEmitAst(XLC_Context* ctx, const char* outputPath, int jsonOutput);
 XLC_API int xlcEmitIr(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+/* Emits only verified CFG-lowered XLIR; useful for inspecting the Cgen input. */
+XLC_API int xlcEmitLoweredIr(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+/* Emits with the selected backend; a new context defaults to verified XLIR. */
 XLC_API int xlcEmitC(XLC_Context* ctx, const char* outputPath);
+/* Explicit module-form XLIR output (no process main wrapper). */
+XLC_API int xlcEmitXlirC(XLC_Context* ctx, const char* outputPath);
+/* Emits only lowered XLIR export declarations; no legacy AST header model. */
+XLC_API int xlcEmitXlirHeader(XLC_Context* ctx, const char* outputPath, const char* guardName);
 XLC_API int xlcEmitDebugC(XLC_Context* ctx, const char* outputPath, const char* debugSourcePath);
 XLC_API int xlcEmitHeader(XLC_Context* ctx, const char* outputPath, const char* guardName);
 XLC_API int xlcEmitAbi(XLC_Context* ctx, const char* outputPath, int jsonOutput);

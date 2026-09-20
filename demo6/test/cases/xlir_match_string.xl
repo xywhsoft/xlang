@@ -1,0 +1,10 @@
+export "xlir_test_match_string" func classifyText(string value) as int64
+    match value
+    case "yes"
+        return 10
+    case "no"
+        return 20
+    else
+        return 30
+    end
+end

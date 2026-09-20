@@ -1,0 +1,12 @@
+extern "xlir_make_i64_future" func makeFuture() as future<int>
+
+async func addAround(future<int> source, int delta) as int
+    int copied = delta
+    int literal = 1
+    return copied + await source + literal
+end
+
+future<int> source = makeFuture()
+future<int> pending = addAround(source, 1)
+int completed = await pending
+assert completed == 43

@@ -1,0 +1,7 @@
+export "xlir_test_select_value" func select_value(bool condition) as int64
+    if condition
+        return 7
+    else
+        return 9
+    end
+end

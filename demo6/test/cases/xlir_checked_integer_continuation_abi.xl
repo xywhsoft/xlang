@@ -1,0 +1,30 @@
+async func checkedReady(int value) as int
+    return value
+end
+
+async func checkedAsync(int left, int right) as int
+    int resumed = await checkedReady(left)
+    int quotient = resumed / right
+    return quotient
+end
+
+func checkedGenerator(int seed) as generator<int>
+    int divisor = 2
+    yield seed / divisor
+    int shift = 1
+    yield seed << shift
+end
+
+future<int> pending = checkedAsync(42, 5)
+assert await pending == 8, "async checked integer result failed"
+
+int count = 0
+int total = 0
+for value in checkedGenerator(6)
+    count = count + 1
+    total = total + value
+end
+assert count == 2, "generator checked integer item count failed"
+assert total == 15, "generator checked integer result failed"
+
+println("xlir_checked_integer_continuation_abi ok")

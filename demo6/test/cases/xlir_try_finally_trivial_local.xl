@@ -1,0 +1,26 @@
+func finally_trivial_local_normal() as int
+    int value = 0
+    try
+        value = 1
+    finally
+        int delta = 2
+        value = value + delta
+    end
+    return value
+end
+
+func finally_trivial_local_return() as int
+    int trace = 0
+    try
+        return 7
+    finally
+        int delta = 2
+        trace = trace + delta
+    end
+end
+
+
+if false
+    finally_trivial_local_normal()
+    finally_trivial_local_return()
+end

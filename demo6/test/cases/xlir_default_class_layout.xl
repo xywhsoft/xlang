@@ -1,0 +1,21 @@
+class Point
+    int x = 3
+    int y = 4
+end
+
+class Point3 extends Point
+    int z = 5
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+Point point = Point()
+Point3 point3 = Point3()
+point3.x = 10
+point3.y = 20
+point3.z = 30
+
+expect(point.x, 3)
+expect(point.y, 4)
+expect(point3.x + point3.y + point3.z, 60)
+expect(Point().x + Point().y, 7)

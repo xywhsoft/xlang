@@ -1,0 +1,86 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+array emptyArray
+list emptyList
+set emptySet
+dict emptyDict
+
+int emptyVisits = 0
+for value in emptyArray
+    emptyVisits = emptyVisits + 1
+end
+for key, value in emptyList
+    emptyVisits = emptyVisits + 1
+end
+for value in emptySet
+    emptyVisits = emptyVisits + 1
+end
+for key, value in emptyDict
+    emptyVisits = emptyVisits + 1
+end
+expect(emptyVisits, 0)
+
+array arrayValues = [1, 2, 3]
+int arraySum = 0
+for index, value in arrayValues
+    arraySum = arraySum + int(value)
+    if index == 0
+        arrayValues[0] = 99
+    end
+end
+expect(arraySum, 6)
+expect(int(arrayValues[0]), 99)
+
+list listValues = [2: 4, 5: 7, 9: 11]
+int listSum = 0
+for key, value in listValues
+    if key == 5
+        continue
+    end
+    listSum = listSum + key + int(value)
+    if key == 9
+        break
+    end
+end
+expect(listSum, 26)
+
+set setValues = {3, 5, 7}
+int setSum = 0
+for value in setValues
+    setSum = setSum + int(value)
+end
+expect(setSum, 15)
+
+dict dictValues = {"a": 10, "b": 20}
+int dictSum = 0
+for key, value in dictValues
+    if key == "a"
+        dictSum = dictSum + int(value)
+    else
+        dictSum = dictSum + int(value) * 2
+    end
+end
+expect(dictSum, 50)
+
+int keyVisits = 0
+for key in dictValues
+    if key == "a" or key == "b"
+        keyVisits = keyVisits + 1
+    end
+end
+expect(keyVisits, 2)
+
+int finallyTrace = 0
+func firstValue(array values) as int
+    for value in values
+        try
+            return int(value)
+        finally
+            finallyTrace = finallyTrace + 1
+        end
+    end
+    return -1
+end
+
+expect(firstValue([41, 42]), 41)
+expect(finallyTrace, 1)

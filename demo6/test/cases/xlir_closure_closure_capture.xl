@@ -1,0 +1,9 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func applyTwice(int input) as int
+    auto increment = func(int value) as int => value + 1
+    auto twice = func(int value) as int => increment(increment(value))
+    return twice(input)
+end
+
+expect(applyTwice(40), 42)

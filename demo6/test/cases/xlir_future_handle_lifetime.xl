@@ -1,0 +1,11 @@
+extern "xlir_make_future" func makeFuture() as future<int>
+
+func future_handle_lifetime() as int
+    future<int> pending = makeFuture()
+    return 7
+end
+
+
+if false
+    future_handle_lifetime()
+end

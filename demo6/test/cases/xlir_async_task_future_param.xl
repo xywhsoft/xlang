@@ -1,0 +1,10 @@
+extern "xlir_make_i64_future" func makeFuture() as future<int>
+
+async func completeAfter(future<int> dependency) as int
+    return 42
+end
+
+future<int> dependency = makeFuture()
+future<int> pending = completeAfter(dependency)
+int completed = await pending
+assert completed == 42

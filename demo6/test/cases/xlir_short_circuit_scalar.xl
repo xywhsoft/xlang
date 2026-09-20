@@ -1,0 +1,7 @@
+export "xlir_test_short_circuit_both" func both(bool left, bool right) as bool
+    return left and right
+end
+
+export "xlir_test_short_circuit_either" func either(bool left, bool right) as bool
+    return left or right
+end

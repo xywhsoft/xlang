@@ -109,6 +109,11 @@ Compiler library header:
 
 `xlc.dll` compiler library API:
 ```c
+typedef enum XLC_Backend {
+    XLC_BACKEND_XLIR = 0,
+    XLC_BACKEND_LEGACY = 1
+} XLC_Backend;
+
 XLC_ContextOptions xlcDefaultContextOptions(void);
 XLC_Context* xlcCreateContext(const XLC_ContextOptions* options);
 void xlcDestroyContext(XLC_Context* ctx);
@@ -116,6 +121,7 @@ void xlcDestroyContext(XLC_Context* ctx);
 int xlcSetWorkDir(XLC_Context* ctx, const char* path);
 int xlcSetTempDir(XLC_Context* ctx, const char* path);
 int xlcSetSaveTemps(XLC_Context* ctx, int enabled);
+int xlcSetBackend(XLC_Context* ctx, XLC_Backend backend);
 int xlcAddIncludePath(XLC_Context* ctx, const char* path);
 int xlcAddLibraryPath(XLC_Context* ctx, const char* path);
 int xlcAddLinkLibrary(XLC_Context* ctx, const char* nameOrPath);
@@ -131,9 +137,12 @@ int xlcCheck(XLC_Context* ctx, const char* outputPath, int jsonOutput);
 int xlcEmitTokens(XLC_Context* ctx, const char* outputPath, int jsonOutput);
 int xlcEmitAst(XLC_Context* ctx, const char* outputPath, int jsonOutput);
 int xlcEmitIr(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+int xlcEmitLoweredIr(XLC_Context* ctx, const char* outputPath, int jsonOutput);
 int xlcEmitC(XLC_Context* ctx, const char* outputPath);
+int xlcEmitXlirC(XLC_Context* ctx, const char* outputPath);
 int xlcEmitDebugC(XLC_Context* ctx, const char* outputPath, const char* debugSourcePath);
 int xlcEmitHeader(XLC_Context* ctx, const char* outputPath, const char* guardName);
+int xlcEmitXlirHeader(XLC_Context* ctx, const char* outputPath, const char* guardName);
 int xlcEmitAbi(XLC_Context* ctx, const char* outputPath, int jsonOutput);
 int xlcEmitExe(XLC_Context* ctx, const char* outputExe);
 int xlcEmitDebugExe(XLC_Context* ctx, const char* outputExe, const char* debugSourcePath);
@@ -148,6 +157,10 @@ int xlcGetLastExitCode(XLC_Context* ctx);
 ```
 
 `xlc.dll` owns compiler-library operations that are useful without CLI argument parsing: checking, token/AST/IR/ABI emission, C/header/debug-C emission, executable/debug-executable/shared-library output, in-process relocation, and direct run. `xl.exe` is responsible for command-line parsing and maps those commands onto these APIs.
+
+新建 compiler context 默认选择 `XLC_BACKEND_XLIR`。`xlcSetBackend` 修改该 context 后续 `xlcEmitC`、可执行/共享库输出、重定位与运行所使用的后端；仅接受 `XLC_BACKEND_XLIR` 或显式兼容值 `XLC_BACKEND_LEGACY`，非法枚举返回 `0` 并写入 context 诊断。设置是 context 局部状态，公开调用仍受 DLL API 的全局串行锁保护；宿主不应并发修改同一 context 的配置和执行编译。
+
+`xlcEmitIr` 输出语义检查后的 typed XLIR，`xlcEmitLoweredIr` 则先完成显式 lowering，再以文本或 JSON 输出可供后端消费的 lowered XLIR。默认 `xlcEmitC` 服从 context 的后端选择；`xlcEmitXlirC` 和 `xlcEmitXlirHeader` 始终只走统一 XLIR 后端。XLIR 路径都会完成编译及 lowering，并由 verifier 拒绝未确定的 C ABI、所有权或控制流语义。`xlcEmitXlirHeader` 要求非空 include guard。上述函数在上下文、路径、lowering、验证或文件读写失败时返回 `0`，具体诊断由 `xlcGetLastError` 提供。
 
 命名说明：
 

@@ -1,0 +1,21 @@
+export "xlir_nullable_closure_present" int nullableClosurePresent = 0
+export "xlir_nullable_closure_missing" int nullableClosureMissing = 0
+
+func makeNullableReader(int? candidate) as func() as int?
+    return func() as int? => candidate
+end
+
+func applyNullableReader(int? candidate, int fallback) as int
+    func() as int? reader = makeNullableReader(candidate)
+    int? result = reader()
+    return result ?? fallback
+end
+
+nullableClosurePresent = applyNullableReader(52, 6)
+nullableClosureMissing = applyNullableReader(null, 12)
+
+func main(...) as int
+    assert(nullableClosurePresent == 52)
+    assert(nullableClosureMissing == 12)
+    return 0
+end

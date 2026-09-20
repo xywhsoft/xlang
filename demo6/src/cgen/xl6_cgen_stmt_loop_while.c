@@ -16,6 +16,7 @@ static void xl6CgenWhile(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     iterationMark = ctx->cleanupCount;
     xl6CgenBeginTempScope(ctx, node);
+    xl6CgenPushErrorScope(ctx, iterationMark);
     hasConditionTemp = node->childCount > 0 &&
                        xl6CgenTryConditionTemp(ctx, node->children[0], "__xl6_while_cond_", conditionName, sizeof(conditionName));
     hasTaskScope = 0;
@@ -56,8 +57,7 @@ static void xl6CgenWhile(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenBlock(ctx, node->children[1]);
     }
     xl6CgenPopLoopTarget(ctx);
-    xl6CgenEmitCleanupsSince(ctx, iterationMark);
-    xl6CgenFreeCleanupsSince(ctx, iterationMark);
+    xl6CgenCloseErrorScope(ctx, iterationMark);
 
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "__xl6_continue_%d:\n", id);
@@ -92,6 +92,7 @@ static void xl6CgenDoWhile(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     bodyMark = ctx->cleanupCount;
     xl6CgenBeginTempScope(ctx, node);
+    xl6CgenPushErrorScope(ctx, bodyMark);
     xl6CgenPushLoopTarget(
         ctx,
         bodyMark,
@@ -104,8 +105,7 @@ static void xl6CgenDoWhile(XL6_CgenContext* ctx, const XL6_AstNode* node)
         xl6CgenBlock(ctx, node->children[0]);
     }
     xl6CgenPopLoopTarget(ctx);
-    xl6CgenEmitCleanupsSince(ctx, bodyMark);
-    xl6CgenFreeCleanupsSince(ctx, bodyMark);
+    xl6CgenCloseErrorScope(ctx, bodyMark);
 
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "__xl6_continue_%d:\n", id);
@@ -114,6 +114,7 @@ static void xl6CgenDoWhile(XL6_CgenContext* ctx, const XL6_AstNode* node)
 
     conditionMark = ctx->cleanupCount;
     xl6CgenBeginTempScope(ctx, node);
+    xl6CgenPushErrorScope(ctx, conditionMark);
     hasConditionTemp = node->childCount > 1 &&
                        xl6CgenTryConditionTemp(ctx, node->children[1], "__xl6_do_cond_", conditionName, sizeof(conditionName));
     hasTaskScope = 0;
@@ -141,8 +142,7 @@ static void xl6CgenDoWhile(XL6_CgenContext* ctx, const XL6_AstNode* node)
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
-    xl6CgenEmitCleanupsSince(ctx, conditionMark);
-    xl6CgenFreeCleanupsSince(ctx, conditionMark);
+    xl6CgenCloseErrorScope(ctx, conditionMark);
 
     ctx->indent -= 1;
     xl6CgenIndent(ctx);

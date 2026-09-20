@@ -1,0 +1,11 @@
+func arrayItems() as generator<array<int>>
+    yield array[7, 9]
+    yield array[11]
+end
+export "generator_item_array" func arrayTotal() as int
+    int total = 0
+    for item in arrayItems()
+        total += item[0]
+    end
+    return total
+end

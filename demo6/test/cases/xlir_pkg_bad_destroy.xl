@@ -1,0 +1,2 @@
+import xlir_pkg_bad_destroy
+assert xlir_pkg_bad_destroy.verify()

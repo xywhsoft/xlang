@@ -1,0 +1,11 @@
+int count
+bool flag
+float ratio
+string name
+point handle
+
+assert count == 0
+assert flag == false
+assert ratio == 0.0
+assert name == ""
+assert handle == null

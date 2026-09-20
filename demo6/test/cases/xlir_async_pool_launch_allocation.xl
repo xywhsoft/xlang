@@ -1,0 +1,24 @@
+extern "payload_fault_started" func started()
+extern "payload_fault_finally" func finalized()
+extern "payload_fault_caught" func caughtTrace()
+async func item() as int
+    started()
+    try
+        return 16
+    finally
+        finalized()
+    end
+end
+export "payload_fault_case" func probe(bool caught) as int
+    if caught then
+        try
+            future<int> value = item()
+        catch MemoryError
+            caughtTrace()
+            return 77
+        end
+    else
+        future<int> value = item()
+    end
+    return 16
+end

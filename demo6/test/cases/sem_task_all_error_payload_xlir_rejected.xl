@@ -1,0 +1,13 @@
+async func aggregateAsyncError(error value) as error
+    return value
+end
+
+try
+    throw ValueError "async error all payload"
+catch captured
+    future<array<error>> combined = task.all([
+        aggregateAsyncError(captured), aggregateAsyncError(captured)
+    ])
+    array<error> values = await combined
+    assert values.length == 2
+end

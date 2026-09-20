@@ -117,7 +117,7 @@ static void xl6CgenHeaderEnumDecl(
         return;
     }
     emittedEnums[*emittedEnumCount] =
-        (const char*)xrtCopyStr((str)typeName, strlen(typeName));
+        xrtStrDupN(typeName, strlen(typeName));
     if ( emittedEnums[*emittedEnumCount] == NULL ) {
         return;
     }
@@ -203,7 +203,7 @@ static void xl6CgenHeaderEnumDecl(
         if ( (node->flags & XL6_AST_FLAG_PUBLIC) != 0 ) {
             xl6OutputPrintf(
                 out,
-                "XL6_C_API const xrt_type_desc* xl6_enum_type_%s(void);\n\n",
+                "XL6_C_API const xl6_type_desc* xl6_enum_type_%s(void);\n\n",
                 typeName);
         }
         return;
@@ -265,7 +265,7 @@ static void xl6CgenHeaderEnumDecl(
     if ( (node->flags & XL6_AST_FLAG_PUBLIC) != 0 ) {
         xl6OutputPrintf(
             out,
-            "XL6_C_API const xrt_type_desc* xl6_enum_type_%s(void);\n",
+            "XL6_C_API const xl6_type_desc* xl6_enum_type_%s(void);\n",
             typeName);
         xl6OutputPrintf(
             out,
@@ -690,29 +690,39 @@ int xl6CgenEmitHeader(XL6_Output* out, XL6_AstNode* root, const char* guardName,
     xl6OutputPuts("#endif\n", out);
     xl6OutputPuts("#endif\n\n", out);
     xl6OutputPuts("typedef intptr_t xl6_ssize_t;\n\n", out);
-    xl6OutputPuts("typedef struct xvalue_struct xvalue_struct;\n", out);
-    xl6OutputPuts("typedef xvalue_struct* xvalue;\n", out);
-    xl6OutputPuts("typedef struct xrt_typed_array_struct* xtarray;\n", out);
-    xl6OutputPuts("typedef struct xrt_typed_list_struct* xtlist;\n", out);
-    xl6OutputPuts("typedef struct xrt_typed_set_struct* xtset;\n", out);
-    xl6OutputPuts("typedef struct xrt_typed_dict_struct* xtdict;\n", out);
-    xl6OutputPuts("typedef struct xrt_func_sig xrt_func_sig;\n", out);
-    xl6OutputPuts("typedef struct xrt_type_desc xrt_type_desc;\n", out);
-    xl6OutputPuts("typedef struct xrt_call_frame xrt_call_frame;\n", out);
-    xl6OutputPuts("typedef struct xrt_call_result xrt_call_result;\n\n", out);
-    xl6OutputPuts("#ifndef XL6_FUNCTION_DEFINED\n", out);
+	xl6OutputPuts("typedef struct xvalue xvalue;\n", out);
+    xl6OutputPuts("#ifndef XL6_XRT_TYPED_CONTAINER_TYPEDEF\n", out);
+    xl6OutputPuts("#define XL6_XRT_TYPED_CONTAINER_TYPEDEF\n", out);
+    xl6OutputPuts("typedef struct xl6_typed_container* xtarray;\n", out);
+    xl6OutputPuts("typedef struct xl6_typed_container* xtlist;\n", out);
+    xl6OutputPuts("typedef struct xl6_typed_container* xtset;\n", out);
+    xl6OutputPuts("typedef struct xl6_typed_container* xtdict;\n", out);
+    xl6OutputPuts("#endif\n", out);
+    xl6OutputPuts("typedef struct xl6_func_sig xl6_func_sig;\n", out);
+    xl6OutputPuts("typedef struct xl6_type_desc xl6_type_desc;\n", out);
+    xl6OutputPuts("typedef struct xl6_call_frame xl6_call_frame;\n", out);
+    xl6OutputPuts("typedef struct xl6_call_result xl6_call_result;\n\n", out);
+    xl6OutputPuts("#ifndef XL6_FUNCTION_TYPEDEF\n", out);
+    xl6OutputPuts("#define XL6_FUNCTION_TYPEDEF\n", out);
     xl6OutputPuts("#define XL6_FUNCTION_DEFINED\n", out);
+    xl6OutputPuts("typedef void (*XL6_NativeFunction)(void);\n", out);
     xl6OutputPuts("typedef struct XL6_Function {\n", out);
     xl6OutputPuts("    unsigned long long signature;\n", out);
-    xl6OutputPuts("    const struct xrt_func_sig* sig;\n", out);
+    xl6OutputPuts("    const struct xl6_func_sig* sig;\n", out);
     xl6OutputPuts("    void* env;\n", out);
-    xl6OutputPuts("    void* invoke;\n", out);
-    xl6OutputPuts("    xvalue (*invoke_var)(void* env, int argc, xvalue* argv);\n", out);
-    xl6OutputPuts("    bool (*invoke_xcall)(void* env, xrt_call_frame* frame, xrt_call_result* result);\n", out);
+    xl6OutputPuts("    void* invoke_env;\n", out);
+    xl6OutputPuts("    XL6_NativeFunction invoke;\n", out);
+    xl6OutputPuts("    XL6_NativeFunction c_entry;\n", out);
+    xl6OutputPuts("    xvalue* (*invoke_var)(void* env, int argc, xvalue** argv);\n", out);
+    xl6OutputPuts("    bool (*invoke_xcall)(void* env, xl6_call_frame* frame, xl6_call_result* result);\n", out);
     xl6OutputPuts("    void (*retain)(void* env);\n", out);
     xl6OutputPuts("    void (*release)(void* env);\n", out);
     xl6OutputPuts("} XL6_Function;\n", out);
     xl6OutputPuts("#endif\n\n", out);
+    if ( !xl6CgenHeaderEmitCallbackTypedefs(out, root) ) {
+        return 0;
+    }
+    xl6OutputPutc('\n', out);
     xl6OutputPuts("#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n", out);
     xl6CgenHeaderLifecycleDecls(out);
 

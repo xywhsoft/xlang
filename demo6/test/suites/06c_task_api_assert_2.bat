@@ -114,7 +114,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing late temporary duplicate task.race source await.
     exit /b 1
 )
-findstr /C:"cancelTypedAllGroup = xl6_task_all_from_array((xtarray)(cancelTypedAllJobs), xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"cancelTypedAllGroup = xl6_task_all_from_array((xtarray)(cancelTypedAllJobs), xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing cancelable typed-array task.all group fixture.
     exit /b 1
@@ -164,7 +164,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array task.all right source await.
     exit /b 1
 )
-findstr /C:"cancelDuplicateTypedAllGroup = xl6_task_all_from_array((xtarray)(cancelDuplicateTypedAllJobs), xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"cancelDuplicateTypedAllGroup = xl6_task_all_from_array((xtarray)(cancelDuplicateTypedAllJobs), xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing cancelable typed-array duplicate task.all group fixture.
     exit /b 1
@@ -179,7 +179,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing late typed-array duplicate task.all source await after group cancel.
     exit /b 1
 )
-findstr /C:"= xrtTypedArrayRetain(temporaryDuplicateTypedAllJobs);" build\test\cgen_task_api.assert.c >nul
+findstr /C:"= xl6TypedArrayRetain(temporaryDuplicateTypedAllJobs);" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should retain the temporary typed-array duplicate task.all input exactly once.
     exit /b 1
@@ -259,7 +259,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing late typed-array duplicate task.race source await after group cancel.
     exit /b 1
 )
-findstr /C:"= xrtTypedArrayRetain(temporaryDuplicateTypedRaceJobs);" build\test\cgen_task_api.assert.c >nul
+findstr /C:"= xl6TypedArrayRetain(temporaryDuplicateTypedRaceJobs);" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should retain the temporary typed-array duplicate task.race input exactly once.
     exit /b 1
@@ -274,7 +274,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing late temporary typed-array duplicate task.race source await.
     exit /b 1
 )
-findstr /C:"pendingStringAllGroup = xl6_task_all_from_array((xtarray)(pendingStringAllJobs), xrtTypeString()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"pendingStringAllGroup = xl6_task_all_from_array((xtarray)(pendingStringAllJobs), xl6TypeString()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing cancelable typed-array string task.all group fixture.
     exit /b 1
@@ -284,17 +284,17 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel named pending typed-array string task.all group as borrowed.
     exit /b 1
 )
-findstr /C:"pendingStringAllLeftValue = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringAllLeft" build\test\cgen_task_api.assert.c >nul
+findstr /C:"pendingStringAllLeftValue = xl6_xrt_string_dup(xl6_future_await_cstr_copy(pendingStringAllLeft" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array string task.all left source await.
     exit /b 1
 )
-findstr /C:"pendingStringAllRightValue = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringAllRight" build\test\cgen_task_api.assert.c >nul
+findstr /C:"pendingStringAllRightValue = xl6_xrt_string_dup(xl6_future_await_cstr_copy(pendingStringAllRight" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array string task.all right source await.
     exit /b 1
 )
-findstr /C:"pendingStringAllLateValue = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringAllLeft" build\test\cgen_task_api.assert.c >nul
+findstr /C:"pendingStringAllLateValue = xl6_xrt_string_dup(xl6_future_await_cstr_copy(pendingStringAllLeft" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing late canceled typed-array string task.all source await.
     exit /b 1
@@ -314,17 +314,17 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel named pending typed-array string task.race group as borrowed.
     exit /b 1
 )
-findstr /C:"pendingStringRaceLeftValue = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringRaceLeft" build\test\cgen_task_api.assert.c >nul
+findstr /C:"pendingStringRaceLeftValue = xl6_xrt_string_dup(xl6_future_await_cstr_copy(pendingStringRaceLeft" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array string task.race left source await.
     exit /b 1
 )
-findstr /C:"pendingStringRaceRightValue = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringRaceRight" build\test\cgen_task_api.assert.c >nul
+findstr /C:"pendingStringRaceRightValue = xl6_xrt_string_dup(xl6_future_await_cstr_copy(pendingStringRaceRight" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing canceled typed-array string task.race right source await.
     exit /b 1
 )
-findstr /C:"pendingStringRaceLateValue = xrtCopyStr(xl6_future_await_cstr_copy(pendingStringRaceLeft" build\test\cgen_task_api.assert.c >nul
+findstr /C:"pendingStringRaceLateValue = xl6_xrt_string_dup(xl6_future_await_cstr_copy(pendingStringRaceLeft" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing late canceled typed-array string task.race source await.
     exit /b 1
@@ -334,7 +334,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep late typed-array string task.race source canceled.
     exit /b 1
 )
-findstr /C:"pendingBoolAllGroup = xl6_task_all_from_array((xtarray)(pendingBoolAllJobs), xrtTypeBool32()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"pendingBoolAllGroup = xl6_task_all_from_array((xtarray)(pendingBoolAllJobs), xl6TypeBool32()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing cancelable typed-array bool task.all group fixture.
     exit /b 1
@@ -384,7 +384,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should keep late typed-array bool task.race source canceled.
     exit /b 1
 )
-findstr /C:"pendingFloatAllGroup = xl6_task_all_from_array((xtarray)(pendingFloatAllJobs), xrtTypeFloat()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"pendingFloatAllGroup = xl6_task_all_from_array((xtarray)(pendingFloatAllJobs), xl6TypeFloat64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing cancelable typed-array float task.all group fixture.
     exit /b 1
@@ -469,17 +469,17 @@ if errorlevel 1 (
     echo cgen_task_api.c missing named task.race class future path.
     exit /b 1
 )
-findstr /C:"xl6_task_all_values(xrtTypeFunction()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_task_all_values(xl6TypeFunction()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all function completion path.
     exit /b 1
 )
-findstr /C:"xvalue fnValue = xl6_function_to_xvalue(*(XL6_Function*)item);" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xvalue* fnValue = xl6_function_to_xvalue(*(XL6_Function*)item);" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all function xvalue bridge.
     exit /b 1
 )
-findstr /C:"taskFuncA = xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item" build\test\cgen_task_api.assert.c >nul
+findstr /C:"taskFuncA = xl6_function_from_callable(*(xrtcallable**)xl6_xrt_typed_require_item" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing task.all function callable extraction.
     exit /b 1
@@ -494,7 +494,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing completed named class task.all future.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xl6_runtime_type_desc_" build\test\cgen_task_api.assert.c | findstr /C:"xl6_future_await_value(namedTaskBoxAllFuture" >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6_runtime_type_desc_" build\test\cgen_task_api.assert.c | findstr /C:"xl6_future_await_value(namedTaskBoxAllFuture" >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing repeated await for completed class task.all future.
     exit /b 1
@@ -504,7 +504,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should pass completed class task.all cancel as borrowed.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xl6_runtime_type_desc_" build\test\cgen_task_api.assert.c | findstr /C:"xl6_future_await_value(namedTaskBoxAllFuture" >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6_runtime_type_desc_" build\test\cgen_task_api.assert.c | findstr /C:"xl6_future_await_value(namedTaskBoxAllFuture" >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep completed class task.all awaitable after cancel.
     exit /b 1
@@ -514,7 +514,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing completed named class task.race future.
     exit /b 1
 )
-findstr /C:"namedTaskBoxRaceB = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(namedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
+findstr /C:"namedTaskBoxRaceB = xl6_future_await_xvalue_copy(namedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing repeated await for completed class task.race future.
     exit /b 1
@@ -524,17 +524,17 @@ if errorlevel 1 (
     echo cgen_task_api.c should pass completed class task.race cancel as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelNamedTaskBoxRace = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(namedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
+findstr /C:"postCancelNamedTaskBoxRace = xl6_future_await_xvalue_copy(namedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep completed class task.race awaitable after cancel.
     exit /b 1
 )
-findstr /C:"namedTaskFuncAllFuture = xl6_task_all_values(xrtTypeFunction()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"namedTaskFuncAllFuture = xl6_task_all_values(xl6TypeFunction()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing completed named function task.all future.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeFunction(), (*(xtarray*)xl6_future_await_value(namedTaskFuncAllFuture" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6TypeFunction(), (*(xtarray*)xl6_future_await_value(namedTaskFuncAllFuture" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing repeated await for completed function task.all future.
     exit /b 1
@@ -544,7 +544,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should pass completed function task.all cancel as borrowed.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeFunction(), (*(xtarray*)xl6_future_await_value(namedTaskFuncAllFuture" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6TypeFunction(), (*(xtarray*)xl6_future_await_value(namedTaskFuncAllFuture" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep completed function task.all awaitable after cancel.
     exit /b 1
@@ -579,12 +579,12 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array task.race class future path.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(typedTaskFuncJobs), xrtTypeFunction()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(typedTaskFuncJobs), xl6TypeFunction()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array task.all function completion path.
     exit /b 1
 )
-findstr /C:"typedTaskFuncA = xl6_function_from_callable(*(xrt_callable**)xl6_xrt_typed_require_item" build\test\cgen_task_api.assert.c >nul
+findstr /C:"typedTaskFuncA = xl6_function_from_callable(*(xrtcallable**)xl6_xrt_typed_require_item" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array task.all function callable extraction.
     exit /b 1
@@ -604,7 +604,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array completed class task.all future path.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xl6_runtime_type_desc_" build\test\cgen_task_api.assert.c | findstr /C:"xl6_future_await_value(typedTaskBoxAllCompletedFuture" >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6_runtime_type_desc_" build\test\cgen_task_api.assert.c | findstr /C:"xl6_future_await_value(typedTaskBoxAllCompletedFuture" >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing repeated await for typed-array completed class task.all future.
     exit /b 1
@@ -614,7 +614,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel typed-array completed class task.all future as borrowed.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xl6_runtime_type_desc_" build\test\cgen_task_api.assert.c | findstr /C:"xl6_future_await_value(typedTaskBoxAllCompletedFuture" >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6_runtime_type_desc_" build\test\cgen_task_api.assert.c | findstr /C:"xl6_future_await_value(typedTaskBoxAllCompletedFuture" >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep typed-array completed class task.all awaitable after cancel.
     exit /b 1
@@ -624,7 +624,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing typed-array completed class task.race future path.
     exit /b 1
 )
-findstr /C:"typedTaskBoxRaceCompletedB = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(typedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
+findstr /C:"typedTaskBoxRaceCompletedB = xl6_future_await_xvalue_copy(typedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing repeated await for typed-array completed class task.race future.
     exit /b 1
@@ -634,17 +634,17 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel typed-array completed class task.race future as borrowed.
     exit /b 1
 )
-findstr /C:"postCancelTypedTaskBoxRaceCompleted = xl6_xrt_move_to_shared(xl6_future_await_xvalue_copy(typedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
+findstr /C:"postCancelTypedTaskBoxRaceCompleted = xl6_future_await_xvalue_copy(typedTaskBoxRaceCompletedFuture" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep typed-array completed class task.race awaitable after cancel.
     exit /b 1
 )
-findstr /C:"typedTaskFuncAllCompletedFuture = xl6_task_all_from_array((xtarray)(typedTaskFuncAllCompletedJobs), xrtTypeFunction()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"typedTaskFuncAllCompletedFuture = xl6_task_all_from_array((xtarray)(typedTaskFuncAllCompletedJobs), xl6TypeFunction()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing typed-array completed function task.all future path.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeFunction(), (*(xtarray*)xl6_future_await_value(typedTaskFuncAllCompletedFuture" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6TypeFunction(), (*(xtarray*)xl6_future_await_value(typedTaskFuncAllCompletedFuture" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing repeated await for typed-array completed function task.all future.
     exit /b 1
@@ -654,7 +654,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should cancel typed-array completed function task.all future as borrowed.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeFunction(), (*(xtarray*)xl6_future_await_value(typedTaskFuncAllCompletedFuture" build\test\cgen_task_api.assert.c >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6TypeFunction(), (*(xtarray*)xl6_future_await_value(typedTaskFuncAllCompletedFuture" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should keep typed-array completed function task.all awaitable after cancel.
     exit /b 1
@@ -709,7 +709,7 @@ if errorlevel 1 (
     echo cgen_task_api.c missing late canceled typed-array class task.race source await.
     exit /b 1
 )
-findstr /C:"pendingTaskFuncAllGroup = xl6_task_all_from_array((xtarray)(pendingTaskFuncAllJobs), xrtTypeFunction()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"pendingTaskFuncAllGroup = xl6_task_all_from_array((xtarray)(pendingTaskFuncAllJobs), xl6TypeFunction()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c missing pending typed-array function task.all group.
     exit /b 1
@@ -759,7 +759,7 @@ if errorlevel 1 (
     echo cgen_task_api.c should release temporary async future after task.cancel.
     exit /b 1
 )
-findstr /C:"= xl6_task_cancel_value(xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"= xl6_task_cancel_value(xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should cancel temporary task.all future through ownership helper.
     exit /b 1
@@ -779,27 +779,27 @@ if errorlevel 1 (
     echo cgen_task_api.c should release temporary task.race future after task.cancel.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xrtTypedArrayRetain\(cancelAllJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(\1\),\s*xrtTypeInt\(\),.*?\),\s*1\);\s*xrtTypedArrayDestroy\(\1\);\s*cancelTypedAll\s*=\s*\2;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xl6TypedArrayRetain\(cancelAllJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(\1\),\s*xl6TypeInt64\(\),.*?\),\s*1\);\s*xl6TypedArrayRelease\(\1\);\s*cancelTypedAll\s*=\s*\2;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c should materialize, transfer, release, and assign the temporary typed-array task.all call exactly once.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xrtTypedArrayRetain\(cancelRaceJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_race_from_array\(\(xtarray\)\(\1\),.*?\),\s*1\);\s*xrtTypedArrayDestroy\(\1\);\s*cancelTypedRace\s*=\s*\2;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xl6TypedArrayRetain\(cancelRaceJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_race_from_array\(\(xtarray\)\(\1\),.*?\),\s*1\);\s*xl6TypedArrayRelease\(\1\);\s*cancelTypedRace\s*=\s*\2;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c should materialize, transfer, release, and assign the temporary typed-array task.race call exactly once.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xrtTypedArrayRetain\(cancelStringAllJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(\1\),\s*xrtTypeString\(\),.*?\),\s*1\);\s*xrtTypedArrayDestroy\(\1\);\s*cancelTypedStringAll\s*=\s*\2;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xl6TypedArrayRetain\(cancelStringAllJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_all_from_array\(\(xtarray\)\(\1\),\s*xl6TypeString\(\),.*?\),\s*1\);\s*xl6TypedArrayRelease\(\1\);\s*cancelTypedStringAll\s*=\s*\2;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c should materialize, transfer, release, and assign the temporary typed-array string task.all call exactly once.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xrtTypedArrayRetain\(cancelStringRaceJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_race_from_array\(\(xtarray\)\(\1\),.*?\),\s*1\);\s*xrtTypedArrayDestroy\(\1\);\s*cancelTypedStringRace\s*=\s*\2;'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_api.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch '(?s)(__xl6_call_arg_\d+)\s*=\s*xl6TypedArrayRetain\(cancelStringRaceJobs\);\s*(__xl6_global_init_\d+)\s*=\s*xl6_task_cancel_value\(xl6_task_race_from_array\(\(xtarray\)\(\1\),.*?\),\s*1\);\s*xl6TypedArrayRelease\(\1\);\s*cancelTypedStringRace\s*=\s*\2;'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_api.c should materialize, transfer, release, and assign the temporary typed-array string task.race call exactly once.
     exit /b 1
 )
-findstr /C:"= xl6_task_cancel_value(xl6_task_all_values(xrtTypeBool32()" build\test\cgen_task_api.assert.c >nul
+findstr /C:"= xl6_task_cancel_value(xl6_task_all_values(xl6TypeBool32()" build\test\cgen_task_api.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_api.c should cancel temporary bool task.all future through ownership helper.
     exit /b 1

@@ -71,7 +71,7 @@ expect(type(boxedPayload) == Payload, 1)
 
 func(int) as int fn = inc
 type fnType = type(fn)
-var boxedFn = fn
+var boxedFn = xcall(fn)
 
 expect(type(boxedFn) == fnType, 1)
 expect(type(boxedFn) == func, 0)

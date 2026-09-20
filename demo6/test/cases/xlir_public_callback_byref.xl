@@ -1,0 +1,13 @@
+extern "xlir_public_apply" func apply(c_callback func(c_int) as c_int callback, c_int value) as c_int
+extern "xlir_public_change" func change(byref int value, out int doubled)
+
+func twice(c_int value) as c_int
+    return value * 2
+end
+
+assert apply(twice, 21) == 42
+int value = 40
+int doubled = 0
+change(byref value, out doubled)
+assert value == 41
+assert doubled == 82

@@ -1455,24 +1455,25 @@ param_mode(A) ::= . { A = 0; }
 param_mode(A) ::= KW_BYVAL. { A = XL6_AST_FLAG_BYVAL; }
 param_mode(A) ::= KW_BYREF. { A = XL6_AST_FLAG_BYREF; }
 param_mode(A) ::= KW_OUT. { A = XL6_AST_FLAG_OUT; }
+param_mode(A) ::= KW_C_CALLBACK. { A = XL6_AST_FLAG_C_CALLBACK; }
 
 param(A) ::= param_mode(M) param_type_ref(T) name_tok(N). {
     A = xl6AstNew(XL6_AST_PARAM, &N);
     A->flags |= M;
-    T->flags |= M;
+    T->flags |= M & (XL6_AST_FLAG_BYVAL | XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT);
     xl6AstAddChild(A, T);
 }
 param(A) ::= param_mode(M) param_type_ref(T) name_tok(N) ASSIGN expr(E). {
     A = xl6AstNew(XL6_AST_PARAM, &N);
     A->flags |= M;
-    T->flags |= M;
+    T->flags |= M & (XL6_AST_FLAG_BYVAL | XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT);
     xl6AstAddChild(A, T);
     xl6AstAddChild(A, E);
 }
 param(A) ::= param_mode(M) qualified_type_ref(T) name_tok(N). {
     A = xl6AstNew(XL6_AST_PARAM, &N);
     A->flags |= M;
-    T->flags |= M;
+    T->flags |= M & (XL6_AST_FLAG_BYVAL | XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT);
     xl6AstAddChild(A, T);
 }
 param(A) ::= param_mode(M) qualified_type_ref(T) TYPE_QUESTION(Q) name_tok(N). {
@@ -1480,14 +1481,14 @@ param(A) ::= param_mode(M) qualified_type_ref(T) TYPE_QUESTION(Q) name_tok(N). {
     A->flags |= M;
     T = xl6PNullableType(ctx, T, &Q);
     if ( T != NULL ) {
-        T->flags |= M;
+        T->flags |= M & (XL6_AST_FLAG_BYVAL | XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT);
     }
     xl6AstAddChild(A, T);
 }
 param(A) ::= param_mode(M) qualified_type_ref(T) name_tok(N) ASSIGN expr(E). {
     A = xl6AstNew(XL6_AST_PARAM, &N);
     A->flags |= M;
-    T->flags |= M;
+    T->flags |= M & (XL6_AST_FLAG_BYVAL | XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT);
     xl6AstAddChild(A, T);
     xl6AstAddChild(A, E);
 }
@@ -1496,7 +1497,7 @@ param(A) ::= param_mode(M) qualified_type_ref(T) TYPE_QUESTION(Q) name_tok(N) AS
     A->flags |= M;
     T = xl6PNullableType(ctx, T, &Q);
     if ( T != NULL ) {
-        T->flags |= M;
+        T->flags |= M & (XL6_AST_FLAG_BYVAL | XL6_AST_FLAG_BYREF | XL6_AST_FLAG_OUT);
     }
     xl6AstAddChild(A, T);
     xl6AstAddChild(A, E);

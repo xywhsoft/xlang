@@ -1,0 +1,65 @@
+func throwVisit(var event) as bool
+    throw ValueError "async-serialization-callback"
+    return true
+end
+
+async func readyValue() as int
+    return 7
+end
+
+async func escapingVisit(bool useXson) as int
+    int resumed = await readyValue()
+    try
+        if useXson then
+            return resumed + xson.visit("null", throwVisit)
+        end
+        return resumed + json.visit("null", throwVisit)
+    catch TypeError ignored
+        return -1
+    end
+end
+
+async func recoveringVisit() as int
+    int resumed = await readyValue()
+    try
+        return json.visit("null", throwVisit)
+    catch ValueError e
+        assert e.message == "async-serialization-callback"
+        assert e.kind == "ValueError"
+        assert e.message > "a" and e.message >= "a"
+        assert e.message < "z" and e.message <= "z"
+        assert e.file == ""
+        assert e.line > 0 and e.column > 0
+        assert e.code >= 0 and e.systemCode == 0
+        assert e.domain == "xlang" and e.operation == "throw"
+        assert e.data == "ValueError"
+        assert e.cause == null
+        return resumed
+    end
+end
+
+async func recoveringEarly() as int
+    int value = 0
+    try
+        value = xson.visit("null", throwVisit)
+    catch ValueError e
+        assert e.message == "async-serialization-callback"
+        value = 7
+    end
+    int resumed = await readyValue()
+    return value + resumed
+end
+
+int caught = 0
+for i in range(2)
+    try
+        int status = await escapingVisit(i != 0)
+    catch e
+        assert e.kind == "ValueError"
+        assert e.message == "async-serialization-callback"
+        caught = caught + 1
+    end
+end
+assert caught == 2
+assert await recoveringVisit() == 7
+assert await recoveringEarly() == 14

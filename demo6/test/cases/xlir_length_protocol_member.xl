@@ -1,0 +1,30 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+class SizedValue
+    int count
+
+    create(int value)
+        self.count = value
+    end
+
+    func __len__() as int
+        return self.count
+    end
+end
+
+SizedValue sized = SizedValue(7)
+expect(sized.length, 7)
+
+class NativeSizedValue
+    native point handle
+    extern "native_sized_open" create(int value)
+    extern "native_sized_close" destroy()
+    extern "native_sized_count" func countNative() as int
+
+    func __len__() as int
+        return self.countNative()
+    end
+end
+
+NativeSizedValue nativeSized = NativeSizedValue(11)
+expect(nativeSized.length, 11)

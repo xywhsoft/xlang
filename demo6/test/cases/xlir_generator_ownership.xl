@@ -1,0 +1,106 @@
+extern "generator_graph_source" func generatorGraphSource(int stage) as future<int>
+extern "generator_graph_capture" func generatorGraphCapture(var value)
+extern "generator_graph_mark" func generatorGraphMark(int kind)
+
+func generatorGraphValues(var shared) as generator<var>
+    array<var> items = [shared, shared]
+    try
+        for item in items
+            generatorGraphMark(1)
+            yield item
+        end
+    finally
+        generatorGraphMark(0)
+    end
+end
+
+func generatorGraphClosures(var shared) as generator<func() as int>
+    auto callback = func() as int => int(shared[0])
+    yield callback
+    yield callback
+end
+
+func generatorGraphFutures() as generator<future<int>>
+    auto source = generatorGraphSource(0)
+    yield source
+    yield source
+end
+
+func generatorGraphErrors() as generator<error>
+    try
+        throw RuntimeError "generator owned error"
+    catch reason
+        yield reason
+        yield reason
+    end
+end
+
+func generatorGraphNested(var shared) as generator<generator<var>>
+    yield generatorGraphForward(shared)
+    yield generatorGraphForward(shared)
+end
+
+func generatorGraphForward(var shared) as generator<var>
+    for item in generatorGraphValues(shared)
+        yield item
+    end
+end
+
+func generatorGraphStrings() as generator<string>
+    yield "owned string"
+    yield "second string"
+end
+
+func generatorGraphScalars() as generator<int>
+    yield 41
+    yield 42
+end
+
+async func generatorGraphArrayLoop(var shared) as int
+    array<var> items = [shared, shared]
+    int total = 0
+    int stage = 0
+    for item in items
+        total += await generatorGraphSource(stage)
+        total += int(item[0])
+        stage += 1
+    end
+    return total
+end
+
+async func generatorGraphNestedLoop(var shared) as int
+    int total = 0
+    int stage = 0
+    for item in generatorGraphValues(shared)
+        total += await generatorGraphSource(stage)
+        total += int(item[0])
+        stage += 1
+    end
+    return total
+end
+
+export "generator_graph_build" func generatorGraphBuild(int mode)
+    var shared = [41]
+    if mode == 0 then
+        generatorGraphCapture(generatorGraphArrayLoop(shared))
+    else
+        generatorGraphCapture(generatorGraphNestedLoop(shared))
+    end
+end
+
+// Keep all physical item ABIs reachable without starting their source bodies.
+export "generator_graph_keep" func generatorGraphKeep()
+    var shared = [41]
+    auto values = generatorGraphValues(shared)
+    auto closures = generatorGraphClosures(shared)
+    auto futures = generatorGraphFutures()
+    auto errors = generatorGraphErrors()
+    auto nested = generatorGraphNested(shared)
+    auto strings = generatorGraphStrings()
+    auto scalars = generatorGraphScalars()
+    auto forward = generatorGraphForward(shared)
+end
+
+func main(...) as int
+    return 0
+end

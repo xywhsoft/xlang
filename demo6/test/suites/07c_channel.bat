@@ -40,12 +40,12 @@ for /L %%I in (1,1,5) do (
 release\xl.exe cgen test\cases\cgen_channel.xl --emit build\test\cgen_channel.c
 if errorlevel 1 exit /b 1
 
-findstr /C:"xrtChannelCreate" build\test\cgen_channel.c >nul
+findstr /C:"xl6ChannelCreate" build\test\cgen_channel.c >nul
 if errorlevel 1 (
-    echo cgen_channel.c missing xrtChannelCreate.
+    echo cgen_channel.c missing xl6ChannelCreate.
     exit /b 1
 )
-findstr /C:"xl6_channel_require_handle(xrtChannelCreate" build\test\cgen_channel.c >nul
+findstr /C:"xl6_channel_require_handle(xl6ChannelCreate" build\test\cgen_channel.c >nul
 if errorlevel 1 (
     echo cgen_channel.c missing channel constructor error guard.
     exit /b 1
@@ -70,7 +70,7 @@ if errorlevel 1 (
     echo cgen_channel.c missing var channel recv helper.
     exit /b 1
 )
-findstr /C:"xrtChannelTryRecv" build\test\cgen_channel.c >nul
+findstr /C:"xl6ChannelRecv(pChannel, &pBox, bWait != 0)" build\test\cgen_channel.c >nul
 if errorlevel 1 (
     echo cgen_channel.c missing try recv path.
     exit /b 1
@@ -85,22 +85,22 @@ if errorlevel 1 (
     echo cgen_channel.c missing closed channel send assertion.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_channel.c',[System.Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); $checks=@('defaultCh = xl6_channel_require_handle(xrtChannelCreate(0)','xrtChannelCount(defaultCh) == 2LL','xl6_channel_recv_into(defaultCh, &defaultFirst, sizeof(long long), 0','xrtChannelClose(defaultCh)','xrtChannelIsClosed(defaultCh)','xl6_channel_recv_into(defaultCh, &defaultSecond, sizeof(long long), 1','!xl6_channel_recv_into(defaultCh, &defaultSecond, sizeof(long long), 0','!xl6_channel_send_value(defaultCh, &(long long){3LL}, sizeof(long long)','fullCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','xl6_channel_send_value(fullCh, &(long long){10LL}, sizeof(long long)','xl6_channel_send_value(fullCh, &(long long){11LL}, sizeof(long long)','!xl6_channel_send_value(fullCh, &(long long){12LL}, sizeof(long long)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_channel.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_channel.c',[System.Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); $checks=@('defaultCh = xl6_channel_require_handle(xl6ChannelCreate(0)','xl6ChannelCount(defaultCh) == 2LL','xl6_channel_recv_into(defaultCh, &defaultFirst, sizeof(long long), 0','xl6ChannelClose(defaultCh)','xl6ChannelIsClosed(defaultCh)','xl6_channel_recv_into(defaultCh, &defaultSecond, sizeof(long long), 1','!xl6_channel_recv_into(defaultCh, &defaultSecond, sizeof(long long), 0','!xl6_channel_send_value(defaultCh, &(long long){3LL}, sizeof(long long)','fullCh = xl6_channel_require_handle(xl6ChannelCreate(1LL)','xl6_channel_send_value(fullCh, &(long long){10LL}, sizeof(long long)','xl6_channel_send_value(fullCh, &(long long){11LL}, sizeof(long long)','!xl6_channel_send_value(fullCh, &(long long){12LL}, sizeof(long long)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_channel.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_channel.c missing channel close-drain or capacity guard lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_channel.c',[System.Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); $checks=@('crossThreadCh = xl6_channel_require_handle(xrtChannelCreate(4LL)','xchannel crossThreadCh;','xl6_channel_send_value(crossThreadCh, &(long long){314LL}','xl6_channel_send_value(crossThreadCh, &(long long){159LL}','xrtChannelClose(crossThreadCh)','channelProducer = xl6_anon_','_make()','producerThread = xl6_thread_require_handle(xl6_thread_start(channelProducer, 1','xrtThreadWaitTimeout(producerThread, 2000LL) == 0','(int)xrtThreadGetExitCode(producerThread) == 17LL','xrtChannelIsClosed(crossThreadCh)','xl6_channel_recv_into(crossThreadCh, &crossFirst, sizeof(long long), 1','xl6_channel_recv_into(crossThreadCh, &crossSecond, sizeof(long long), 1','!xl6_channel_recv_into(crossThreadCh, &crossSecond, sizeof(long long), 0','!xl6_channel_send_value(crossThreadCh, &(long long){265LL}, sizeof(long long)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_channel.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_channel.c',[System.Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); $checks=@('crossThreadCh = xl6_channel_require_handle(xl6ChannelCreate(4LL)','xl6_channel crossThreadCh;','xl6_channel_send_value(crossThreadCh, &(long long){314LL}','xl6_channel_send_value(crossThreadCh, &(long long){159LL}','xl6ChannelClose(crossThreadCh)','channelProducer = xl6_anon_','_make()','producerThread = xl6_thread_require_handle(xl6_thread_start(channelProducer, 1','xrtThreadWaitFor(producerThread, xl6_timeout_ms_to_us(2000LL)) == 0','(int)xrtThreadExitCode(producerThread) == 17LL','xl6ChannelIsClosed(crossThreadCh)','xl6_channel_recv_into(crossThreadCh, &crossFirst, sizeof(long long), 1','xl6_channel_recv_into(crossThreadCh, &crossSecond, sizeof(long long), 1','!xl6_channel_recv_into(crossThreadCh, &crossSecond, sizeof(long long), 0','!xl6_channel_send_value(crossThreadCh, &(long long){265LL}, sizeof(long long)'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_channel.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_channel.c missing cross-thread captured channel guard lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_channel.c',[System.Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); $checks=@('delayedRecvCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','xl6_channel_send_value(delayedRecvCh, &(long long){271LL}','xl6_channel_recv_into(delayedRecvCh, &delayedRecvValue, sizeof(long long), 1','xrtThreadWaitTimeout(delayedRecvThread, 2000LL) == 0','(int)xrtThreadGetExitCode(delayedRecvThread) == 19LL','delayedConsumerCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','xl6_channel_recv_into(delayedConsumerCh, &got, sizeof(long long), 1','xl6_channel_send_value(delayedConsumerCh, &(long long){2718LL}','xrtThreadWaitTimeout(delayedConsumerThread, 2000LL) == 0','(int)xrtThreadGetExitCode(delayedConsumerThread) == 2718LL'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_channel.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_channel.c',[System.Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); $checks=@('delayedRecvCh = xl6_channel_require_handle(xl6ChannelCreate(1LL)','xl6_channel_send_value(delayedRecvCh, &(long long){271LL}','xl6_channel_recv_into(delayedRecvCh, &delayedRecvValue, sizeof(long long), 1','xrtThreadWaitFor(delayedRecvThread, xl6_timeout_ms_to_us(2000LL)) == 0','(int)xrtThreadExitCode(delayedRecvThread) == 19LL','delayedConsumerCh = xl6_channel_require_handle(xl6ChannelCreate(1LL)','xl6_channel_recv_into(delayedConsumerCh, &got, sizeof(long long), 1','xl6_channel_send_value(delayedConsumerCh, &(long long){2718LL}','xrtThreadWaitFor(delayedConsumerThread, xl6_timeout_ms_to_us(2000LL)) == 0','(int)xrtThreadExitCode(delayedConsumerThread) == 2718LL'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_channel.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_channel.c missing blocking channel wakeup guard lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_channel.c',[System.Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); $checks=@('nonblockingTryThreadCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','xl6_channel_recv_into(nonblockingTryThreadCh, &got, sizeof(long long), 0','(int)xrtThreadGetExitCode(nonblockingTryThread) == 31LL','xl6_channel_send_value(nonblockingTryThreadCh, &(long long){42LL}, sizeof(long long)','xl6_channel_recv_into(nonblockingTryThreadCh, &nonblockingTryLater, sizeof(long long), 1','xrtChannelClose(nonblockingTryThreadCh)','timeoutCh = xl6_channel_require_handle(xrtChannelCreate(1LL)','xl6_channel_recv_into_timeout(timeoutCh, &timeoutValue, sizeof(long long), 10LL','xl6_channel_recv_into_timeout(timeoutCh, &timeoutValue, sizeof(long long), 100LL','xl6_channel_recv_into_timeout(timeoutCh, &timeoutValue, sizeof(long long), 0LL'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_channel.c missing '+$p); exit 1 } }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_channel.c',[System.Text.Encoding]::UTF8).Replace('__xl6_user_global_',''); $checks=@('nonblockingTryThreadCh = xl6_channel_require_handle(xl6ChannelCreate(1LL)','xl6_channel_recv_into(nonblockingTryThreadCh, &got, sizeof(long long), 0','(int)xrtThreadExitCode(nonblockingTryThread) == 31LL','xl6_channel_send_value(nonblockingTryThreadCh, &(long long){42LL}, sizeof(long long)','xl6_channel_recv_into(nonblockingTryThreadCh, &nonblockingTryLater, sizeof(long long), 1','xl6ChannelClose(nonblockingTryThreadCh)','timeoutCh = xl6_channel_require_handle(xl6ChannelCreate(1LL)','xl6_channel_recv_into_timeout(timeoutCh, &timeoutValue, sizeof(long long), 10LL','xl6_channel_recv_into_timeout(timeoutCh, &timeoutValue, sizeof(long long), 100LL','xl6_channel_recv_into_timeout(timeoutCh, &timeoutValue, sizeof(long long), 0LL'); foreach($p in $checks){ if($text.IndexOf($p) -lt 0){ Write-Host ('cgen_channel.c missing '+$p); exit 1 } }"
 if errorlevel 1 (
     echo cgen_channel.c missing captured tryRecvInto nonblocking guard lowering.
     exit /b 1

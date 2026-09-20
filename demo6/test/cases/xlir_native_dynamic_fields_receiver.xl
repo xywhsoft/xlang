@@ -1,0 +1,13 @@
+DynamicFields fields = DynamicFields()
+
+assert fields.length == 0
+assert fields.capacity == 0
+assert fields.reserve(4)
+assert fields.capacity >= 4
+assert fields.clear()
+assert fields.length == 0
+
+func main(...) as int
+    println("xlir native dynamic-fields receiver ok")
+    return 0
+end

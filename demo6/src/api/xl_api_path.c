@@ -1,6 +1,6 @@
 #include "src/api/xl_api_path.h"
 
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 #include "src/backend/xl6_toolchain.h"
 
 #include <stdio.h>
@@ -28,7 +28,7 @@
 char* xlDupText(const char* text)
 {
     const char* src = text != NULL ? text : "";
-    return xrtCopyStr((char*)src, strlen(src));
+    return xrtStrDupN(src, strlen(src));
 }
 
 int xlPathIsAbsolute(const char* path)
@@ -36,7 +36,7 @@ int xlPathIsAbsolute(const char* path)
     if ( path == NULL || path[0] == '\0' ) {
         return 0;
     }
-    if ( xrtPathIsAbs((str)path, 0) ) {
+    if ( xrtPathIsAbs(path) ) {
         return 1;
     }
 #ifdef _WIN32
@@ -231,7 +231,7 @@ char* xlPathSnapshot(const char* baseDir, const char* path)
     if ( xlPathIsAbsolute(path) || baseDir == NULL || baseDir[0] == '\0' ) {
         return xlDupText(path);
     }
-    joined = xrtPathJoin(2, (str)baseDir, (str)path);
+    joined = xrtPathJoin(baseDir, path);
     return joined != NULL ? (char*)joined : NULL;
 }
 

@@ -10,7 +10,7 @@ list<func(int, int) as int> listed = list[0: fn]
 set<func(int, int) as int> unique = set{fn}
 dict<func(int, int) as int> named = dict{"add": fn}
 func(int, int) as int first = funcs[0]
-var boxed = first
+var boxed = xcall(first)
 var dynamic = boxed(20, 22)
 var loopValue = null
 

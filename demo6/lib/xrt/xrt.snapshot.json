@@ -1,0 +1,15 @@
+{
+  "schema": 3,
+  "product": "xrt",
+  "implementation": {
+    "source": "xrt/single/xrt.h",
+    "sha256": "1A071DC113805CE1C457778D9982CBCCE9415A2470B06C6C30AFBEFD9CD14855",
+    "bytes": 7831380
+  },
+  "declarations": {
+    "source": "xrt/single/xrt_decl.h",
+    "sha256": "C217757A2D3AB90448C2142A7CC9B65E92E65D37436322AF49382E31DDDBFBAE",
+    "bytes": 1190184
+  },
+  "publicApiCount": 3035
+}

@@ -1,0 +1,3 @@
+export "xlir_test_conditional_scalar" func choose(bool condition) as int64
+    return condition ? 4 : 9
+end

@@ -41,6 +41,32 @@ static int xl6CgenEmitClassFieldSuffix(XL6_CgenContext* ctx, const XL6_AstNode* 
     return xl6CgenEmitClassFieldSuffixWithSep(ctx, classNode, fieldName, ".");
 }
 
+/* 已物化的 class receiver 仍是 xvalue* 句柄，字段访问必须先取得 payload。 */
+static int xl6CgenEmitClassFieldFromNamedReceiver(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* receiverType,
+    const XL6_AstNode* classNode,
+    const char* receiverName,
+    const char* fieldName,
+    const XL6_AstNode* at)
+{
+    const XL6_AstNode* recordType;
+
+    recordType = xl6CgenClassHandleTargetType(ctx, receiverType);
+    if ( recordType != NULL ) {
+        xl6OutputPrintf(
+            ctx->out,
+            "(*((%s*)xl6_class_data(%s, \"\", %d, %d)))",
+            xl6CgenTypeName(ctx, recordType),
+            receiverName != NULL ? receiverName : "0",
+            at != NULL ? at->line : 0,
+            at != NULL ? at->column : 0);
+    } else {
+        xl6OutputPuts(receiverName != NULL ? receiverName : "0", ctx->out);
+    }
+    return xl6CgenEmitClassFieldSuffix(ctx, classNode, fieldName);
+}
+
 static const XL6_AstNode* xl6CgenMemberFieldType(XL6_CgenContext* ctx, const XL6_AstNode* member)
 {
     const XL6_AstNode* receiver;
@@ -322,7 +348,7 @@ static int xl6CgenSafeClassFieldAccess(
     xl6CgenCoalesceSlotName(slotName, sizeof(slotName), slot);
     xl6OutputPrintf(ctx->out, "((%s = ", slotName);
     xl6CgenExpr(ctx, receiver);
-    xl6OutputPrintf(ctx->out, "), !xvoIsNull(%s) ? ", slotName);
+    xl6OutputPrintf(ctx->out, "), !xl6_xrt_value_is_null(%s) ? ", slotName);
     if ( xl6CgenNullableUsesTaggedValue(resultType) &&
          !xl6CgenIsNullableType(fieldType) ) {
         xl6CgenNullableCTypeName(resultCType, sizeof(resultCType), resultType);

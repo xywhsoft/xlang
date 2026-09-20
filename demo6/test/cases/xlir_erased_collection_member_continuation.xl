@@ -1,0 +1,55 @@
+async func ready() as int
+    return 7
+end
+
+async func arrayWorker(array values) as int
+    assert values.insert(0, "owned")
+    var first = values.take(0)
+    int result = await ready()
+    assert string(first) == "owned"
+    bool conversionCaught = false
+    try
+        int invalid = int(first)
+    catch ValueError ignored
+        conversionCaught = true
+    end
+    assert conversionCaught
+    assert values.contains(result)
+    assert int(values.pop()) == result
+    assert values.clear()
+    return result
+end
+
+func arrayGenerator() as generator<int>
+    array values = [5, 9]
+    assert values.insert(0, "owned")
+    var first = values.take(0)
+    yield 1
+    assert string(first) == "owned"
+    bool conversionCaught = false
+    try
+        int invalid = int(first)
+    catch ValueError ignored
+        conversionCaught = true
+    end
+    assert conversionCaught
+    assert values.removeValue(5)
+    assert int(values.pop()) == 9
+    assert values.clear()
+    yield 2
+end
+
+array captured = [7]
+func() as int capturedMember = func() as int
+    assert captured.contains(7)
+    return int(captured.take(0))
+end
+assert capturedMember() == 7
+assert captured.length == 0
+assert await arrayWorker([7]) == 7
+int sum = 0
+for value in arrayGenerator()
+    sum = sum + value
+end
+assert sum == 3
+println("xlir erased collection continuation ok")

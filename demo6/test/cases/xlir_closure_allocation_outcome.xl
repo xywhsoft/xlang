@@ -1,0 +1,102 @@
+func closureConstant() as int
+    return 7
+end
+
+func closureNamed() as func() as int
+    return closureConstant
+end
+
+func closureEmpty() as func() as int
+    return func() as int => 7
+end
+
+func closureString() as func() as int
+    string text = "capture"
+    return func() as int => text.length
+end
+
+func closureMixed() as func() as int
+    string first = "ab"
+    string second = "cde"
+    var item = 9
+    auto nested = closureNamed()
+    return func() as int => first.length + second.length + int(item) + nested()
+end
+
+func defaultNamed(func() as int callback = closureConstant) as func() as int
+    return callback
+end
+
+func closureDefaultNamed() as func() as int
+    return defaultNamed()
+end
+
+func defaultAnonymous(func() as int callback = func() as int => 7) as func() as int
+    return callback
+end
+
+func closureDefaultAnonymous() as func() as int
+    return defaultAnonymous()
+end
+
+func closureConditional(bool choose) as func() as int
+    return choose ? closureConstant : func() as int => 7
+end
+
+func closureNullable() as func() as int
+    int? candidate = 7
+    return func() as int => candidate ?? 0
+end
+
+func closureNullableString(bool present) as func() as int
+    string? text = present ? "capture" : null
+    return func() as int => text == null ? 7 : text.length
+end
+
+class ClosureBox
+    func() as int callback = closureConstant
+end
+
+func closureField() as func() as int
+    auto box = ClosureBox()
+    return box.callback
+end
+
+func closureCaught() as int
+    try
+        string text = "capture"
+        auto callback = func() as int => text.length
+        return callback()
+    catch error
+        return -7
+    end
+end
+
+export "closure_allocation_keep" func keep(int shape) as int
+    if shape == 0
+        return closureNamed()()
+    elseif shape == 1
+        return closureEmpty()()
+    elseif shape == 2
+        return closureString()()
+    elseif shape == 3
+        return closureMixed()()
+    elseif shape == 4
+        return closureDefaultNamed()()
+    elseif shape == 5
+        return closureDefaultAnonymous()()
+    elseif shape == 6
+        return closureConditional(false)()
+    elseif shape == 7
+        return closureNullable()()
+    elseif shape == 8
+        return closureField()()
+    elseif shape == 10
+        return closureConditional(true)()
+    elseif shape == 11
+        return closureNullableString(false)()
+    elseif shape == 12
+        return closureNullableString(true)()
+    end
+    return closureCaught()
+end

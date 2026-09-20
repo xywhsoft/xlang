@@ -1,0 +1,13 @@
+func itemAnswer() as int
+    return 7
+end
+func callableItems() as generator<func() as int>
+    yield itemAnswer
+end
+export "generator_item_callable" func callableTotal() as int
+    int total = 0
+    for item in callableItems()
+        total += item()
+    end
+    return total
+end

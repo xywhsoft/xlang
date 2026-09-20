@@ -1,0 +1,19 @@
+func capture() as error
+    try
+        throw ValueError "payload"
+    catch e
+        return e
+    end
+    return null
+end
+func items(error input) as generator<error>
+    yield input
+    yield capture()
+end
+export "payload_probe" func probe() as int
+    int count = 0
+    for item in items(capture())
+        count += 1
+    end
+    return count
+end

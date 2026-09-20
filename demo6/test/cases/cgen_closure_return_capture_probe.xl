@@ -1,0 +1,3 @@
+func makeAdder(int base) as func(int) as int
+    return func(int value) as int => base + value
+end

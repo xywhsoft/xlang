@@ -1,0 +1,33 @@
+int finally_trace = 0
+
+func finally_normal() as int
+    int value = 0
+    try
+        value = 1
+    finally
+        finally_trace = finally_trace + 1
+        value = value + 2
+    end
+    return value
+end
+
+func finally_failure() as int
+    try
+        throw "finally failure"
+    finally
+        finally_trace = finally_trace + 10
+    end
+    return 0
+end
+
+func finally_trace_value() as int
+    return finally_trace
+end
+
+// Preserve the internal targets for the generated-C host without executing
+// the failure path during module initialization.
+if false
+    finally_normal()
+    finally_failure()
+    finally_trace_value()
+end

@@ -4,6 +4,15 @@ call "%~dp0common.bat"
 if errorlevel 1 exit /b 1
 echo Running DEMO6 suite: task API prepare and execution...
 
+release\xl.exe check test\cases\future_duplicate_cancel.xl
+if errorlevel 1 exit /b 1
+release\xl.exe run test\cases\future_duplicate_cancel.xl
+if errorlevel 1 exit /b 1
+release\xl.exe build test\cases\future_duplicate_cancel.xl -o build\test\future_duplicate_cancel.exe
+if errorlevel 1 exit /b 1
+build\test\future_duplicate_cancel.exe
+if errorlevel 1 exit /b 1
+
 release\xl.exe check test\cases\cgen_task_api.xl
 if errorlevel 1 exit /b 1
 

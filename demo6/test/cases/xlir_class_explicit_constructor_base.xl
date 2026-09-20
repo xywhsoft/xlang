@@ -1,0 +1,15 @@
+class TaggedBase
+    int tag = 3
+end
+
+class TaggedDerived extends TaggedBase
+    int extra
+    create(int value)
+        self.extra = value
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+TaggedDerived value = TaggedDerived(42)
+expect(value.tag, 3)
+expect(value.extra, 42)

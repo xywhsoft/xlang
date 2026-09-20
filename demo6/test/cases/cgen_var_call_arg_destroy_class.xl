@@ -12,7 +12,7 @@ func count(...) as int
     return arg.length
 end
 
-var fn = count
+var fn = xcall(count)
 var result = fn(Resource())
 
 assert int(result) == 1

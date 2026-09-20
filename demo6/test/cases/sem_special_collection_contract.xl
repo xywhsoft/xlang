@@ -1,0 +1,9 @@
+func main(...) as int
+    Stack<int> values = Stack::<int>()
+    values.push()
+
+    WaitQueue<int> waits = WaitQueue::<int>(4)
+    waits.reset()
+    waits.pushBatch(array[1, 2])
+    return 0
+end

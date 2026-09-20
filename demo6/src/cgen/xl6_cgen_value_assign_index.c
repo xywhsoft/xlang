@@ -62,13 +62,13 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
             xl6CgenExpr(ctx, index);
             xl6OutputPrintf(ctx->out, "), %s)", tempName != NULL ? tempName : "0");
         } else if ( xl6CTextEquals(typeName, "list") ) {
-            xl6OutputPuts("xrtTypedListSetValue(", ctx->out);
+            xl6OutputPuts("xl6TypedListSetValue(", ctx->out);
             xl6CgenExpr(ctx, receiver);
             xl6OutputPuts(", (long long)(", ctx->out);
             xl6CgenExpr(ctx, index);
             xl6OutputPrintf(ctx->out, "), %s)", tempName != NULL ? tempName : "0");
         } else if ( xl6CTextEquals(typeName, "dict") ) {
-            xl6OutputPuts("xrtTypedDictSetValue(", ctx->out);
+            xl6OutputPuts("xl6TypedDictSetValue(", ctx->out);
             xl6CgenExpr(ctx, receiver);
             xl6OutputPuts(", ", ctx->out);
             xl6CgenExpr(ctx, index);
@@ -85,7 +85,7 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
         xl6OutputPuts("}\n", ctx->out);
         if ( tempName != NULL ) {
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName);
+            xl6OutputPrintf(ctx->out, "xrtValueRelease(%s);\n", tempName);
         }
         xl6AstFree(receiverType);
         return;
@@ -100,7 +100,7 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
             xl6OutputPuts("if (false) {\n", ctx->out);
             ctx->indent += 1;
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName != NULL ? tempName : "0");
+            xl6OutputPrintf(ctx->out, "xrtValueRelease(%s);\n", tempName != NULL ? tempName : "0");
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
@@ -119,13 +119,13 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
             xl6OutputPrintf(ctx->out, ", %s) ) {\n", tempName != NULL ? tempName : "0");
             ctx->indent += 1;
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "if ( %s != 0 ) { xvoUnref(%s); }\n", tempName != NULL ? tempName : "0", tempName != NULL ? tempName : "0");
+            xl6OutputPrintf(ctx->out, "if ( %s != 0 ) { xrtValueRelease(%s); }\n", tempName != NULL ? tempName : "0", tempName != NULL ? tempName : "0");
             xl6CgenIndexAssignRaiseFailure(ctx, left, "container index assignment failed");
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "else if ( %s != 0 ) { xvoUnref(%s); }\n", tempName != NULL ? tempName : "0", tempName != NULL ? tempName : "0");
+            xl6OutputPrintf(ctx->out, "else if ( %s != 0 ) { xrtValueRelease(%s); }\n", tempName != NULL ? tempName : "0", tempName != NULL ? tempName : "0");
         } else if ( xl6CgenIndexKeyIsXValue(ctx, index) ) {
             xl6CgenXValueIndexSetDynamicKeyStmt(ctx, receiver, index, tempName);
         } else if ( xl6CgenIndexKeyIsInteger(ctx, index) ) {
@@ -136,7 +136,7 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
             xl6OutputPuts("if (false) {\n", ctx->out);
             ctx->indent += 1;
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName != NULL ? tempName : "0");
+            xl6OutputPrintf(ctx->out, "xrtValueRelease(%s);\n", tempName != NULL ? tempName : "0");
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
@@ -146,20 +146,15 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
     }
     xl6CgenIndent(ctx);
     xl6OutputPuts("if ( !", ctx->out);
-    if ( xl6CgenIsArrayXValueType(receiverType) ) {
-        xl6OutputPuts("xvoIndexSetI64(", ctx->out);
+    if ( xl6CgenIsArrayXValueType(receiverType) ||
+         xl6CgenIsListXValueType(receiverType) ) {
+        xl6OutputPuts("xl6_xrt_index_set_i64_owned(", ctx->out);
         xl6CgenExpr(ctx, receiver);
         xl6OutputPuts(", (long long)(", ctx->out);
         xl6CgenExpr(ctx, index);
-        xl6OutputPrintf(ctx->out, "), %s, true)", tempName != NULL ? tempName : "0");
-    } else if ( xl6CgenIsListXValueType(receiverType) ) {
-        xl6OutputPuts("xvoListSetValue(", ctx->out);
-        xl6CgenExpr(ctx, receiver);
-        xl6OutputPuts(", (long long)(", ctx->out);
-        xl6CgenExpr(ctx, index);
-        xl6OutputPrintf(ctx->out, "), %s, true)", tempName != NULL ? tempName : "0");
+        xl6OutputPrintf(ctx->out, "), %s)", tempName != NULL ? tempName : "0");
     } else if ( xl6CgenIsDictXValueType(receiverType) ) {
-        xl6OutputPuts("xvoTableSetValue(", ctx->out);
+        xl6OutputPuts("xl6_xrt_value_object_set(", ctx->out);
         xl6CgenExpr(ctx, receiver);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenExpr(ctx, index);
@@ -171,7 +166,7 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
     xl6OutputPrintf(ctx->out, " && %s != 0 ) {\n", tempName != NULL ? tempName : "0");
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", tempName != NULL ? tempName : "0");
+    xl6OutputPrintf(ctx->out, "xrtValueRelease(%s);\n", tempName != NULL ? tempName : "0");
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -180,16 +175,33 @@ static void xl6CgenIndexAssignTemp(XL6_CgenContext* ctx, const XL6_AstNode* left
 }
 static void xl6CgenIndexAssignStmt(XL6_CgenContext* ctx, const XL6_AstNode* left, const XL6_AstNode* right)
 {
+    const XL6_AstNode* receiver;
+    XL6_AstNode* receiverType;
+    const XL6_AstNode* itemType;
     int id;
     char tempName[64];
 
     id = ctx->tempId++;
     snprintf(tempName, sizeof(tempName), "__xl6_index_assign_%d", id);
 
+    receiver = left != NULL && left->childCount > 0 ? left->children[0] : NULL;
+    receiverType = xl6CgenCloneExprStorageType(ctx, receiver);
+    itemType = xl6CgenTypedContainerItemType(ctx, receiverType);
+
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue %s = ", tempName);
-    xl6CgenXValueFromExpr(ctx, right);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = ", tempName);
+    /*
+        null 写入静态 point 容器时直接生成 pointer xvalue。这样运行时不必
+        猜测 null 的目标类型，array/list/dict 与回调返回路径也保持同一 ABI。
+    */
+    if ( right != NULL && right->kind == XL6_AST_NULL &&
+         itemType != NULL && xl6CTextEquals(itemType->text, "point") ) {
+        xl6OutputPuts("xrtValuePointer(0)", ctx->out);
+    } else {
+        xl6CgenXValueFromExpr(ctx, right);
+    }
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndexAssignTemp(ctx, left, tempName);
+    xl6AstFree(receiverType);
 }
 

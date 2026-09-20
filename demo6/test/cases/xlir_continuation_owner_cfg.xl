@@ -1,0 +1,47 @@
+// Lowered-IR scaffolding. The contract removes the first yield of each
+// owner region, retains that owned copy, and creates transparent views.
+func ownerCfgBranch(string text, bool left) as generator<string>
+    yield text
+    yield text
+    if left
+        yield text
+    else
+        yield text
+    end
+end
+func ownerCfgSkip(string text, bool first) as generator<string>
+    yield text
+    if first
+        yield text
+    end
+    yield text
+    yield text
+end
+func ownerCfgLoop(string text, int count) as generator<string>
+    while count > 0
+        yield text
+        yield text
+        yield text
+        count -= 1
+    end
+end
+func ownerCfgStore(string text, int unused) as generator<string>
+    yield text
+    yield text
+    string owned = text
+    yield owned
+end
+export "owner_cfg_keep" func ownerCfgKeep()
+    for word in ownerCfgBranch("owner", true)
+        assert word == "owner"
+    end
+    for word in ownerCfgSkip("owner", false)
+        assert word == "owner"
+    end
+    for word in ownerCfgLoop("owner", 3)
+        assert word == "owner"
+    end
+    for word in ownerCfgStore("owner", 0)
+        assert word == "owner"
+    end
+end

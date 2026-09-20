@@ -1,0 +1,58 @@
+func throwVisit(var event) as bool
+    throw ValueError "generator-serialization-callback"
+    return true
+end
+
+func escapingVisit(bool useXson) as generator<int>
+    yield 1
+    try
+        if useXson then
+            yield xson.visit("null", throwVisit)
+        else
+            yield json.visit("null", throwVisit)
+        end
+    catch TypeError ignored
+        yield -1
+    end
+end
+
+func recoveringVisit() as generator<int>
+    yield 1
+    int value = 0
+    try
+        value = xson.visit("null", throwVisit)
+    catch ValueError e
+        assert e.message == "generator-serialization-callback"
+        assert e.kind == "ValueError"
+        assert e.message > "a" and e.message >= "a"
+        assert e.message < "z" and e.message <= "z"
+        assert e.file == ""
+        assert e.line > 0 and e.column > 0
+        assert e.code >= 0 and e.systemCode == 0
+        assert e.domain == "xlang" and e.operation == "throw"
+        assert e.data == "ValueError"
+        assert e.cause == null
+        value = 7
+    end
+    yield value
+end
+
+int caught = 0
+int total = 0
+for i in range(2)
+    try
+        for value in escapingVisit(i != 0)
+            total = total + value
+        end
+    catch e
+        assert e.kind == "ValueError"
+        assert e.message == "generator-serialization-callback"
+        caught = caught + 1
+    end
+end
+assert caught == 2
+assert total == 2
+for value in recoveringVisit()
+    total = total + value
+end
+assert total == 10

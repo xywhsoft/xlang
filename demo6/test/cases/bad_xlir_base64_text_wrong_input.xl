@@ -1,0 +1,2 @@
+extern "xl6_xrt_base64_decode_text" func decode(point text, c_size size, point table) as point
+point result = decode(null, c_size(0), null)

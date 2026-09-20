@@ -1,0 +1,169 @@
+extern "activation_fail" func activationFail(int code)
+extern "activation_future" func activationFuture() as future<int>
+int activationBodies = 0
+int activationDrops = 0
+
+protocol ActivationContract
+    func numbers(string key, bool fail) as generator<int>
+    async func read(future<int> pending, bool fail) as int
+    async func delayed(future<int> pending) as generator<int>
+end
+
+class ActivationBase
+    int stored = 20
+    virtual func numbers(string key, bool fail) as generator<int>
+        activationBodies += 1
+        yield 1
+    end
+    virtual async func read(future<int> pending, bool fail) as int
+        return await pending
+    end
+    virtual async func delayed(future<int> pending) as generator<int>
+        yield await pending
+    end
+end
+class ActivationDerived extends ActivationBase
+    override func numbers(string key, bool fail) as generator<int>
+        activationBodies += 1
+        yield self.stored + key.length
+        if fail then activationFail(81) end
+        yield self.stored + 2
+    end
+    override async func read(future<int> pending, bool fail) as int
+        int value = await pending
+        if fail then activationFail(82) end
+        return self.stored + value
+    end
+    override async func delayed(future<int> pending) as generator<int>
+        yield self.stored + await pending
+    end
+    func original() as int
+        for value in base.numbers("base", false)
+            assert value == 1
+        end
+        return 0
+    end
+    destroy()
+        activationDrops += 1
+    end
+end
+
+func activationNew() as ActivationDerived
+    return ActivationDerived()
+end
+func activationNewBase() as ActivationBase
+    return ActivationDerived()
+end
+func activationNewProtocol() as ActivationContract
+    return ActivationDerived()
+end
+export "activation_generators" func activationGenerators() as int
+    for exitMode in range(0, 3)
+        int beforeDrops = activationDrops
+        int beforeBodies = activationBodies
+        generator<int> sequence = activationNew().numbers("x", exitMode == 1)
+        assert activationDrops == beforeDrops and activationBodies == beforeBodies
+        int count = 0
+        bool caught = false
+        try
+            for value in sequence
+                count += 1
+                assert value == (count == 1 ? 21 : 22)
+                if exitMode == 2 then break end
+            end
+        catch failure
+            assert failure.code == 81
+            caught = true
+        end
+        assert caught == (exitMode == 1)
+        assert count == (exitMode == 0 ? 2 : 1)
+        assert activationDrops == beforeDrops + 1
+        assert activationBodies == beforeBodies + 1
+    end
+    for exitMode in range(0, 3)
+        int beforeDrops = activationDrops
+        int beforeBodies = activationBodies
+        generator<int> sequence = activationNewBase().numbers("x", exitMode == 1)
+        assert activationDrops == beforeDrops and activationBodies == beforeBodies
+        int count = 0
+        bool caught = false
+        try
+            for value in sequence
+                count += 1
+                assert value == (count == 1 ? 21 : 22)
+                if exitMode == 2 then break end
+            end
+        catch failure
+            assert failure.code == 81
+            caught = true
+        end
+        assert caught == (exitMode == 1)
+        assert count == (exitMode == 0 ? 2 : 1)
+        assert activationDrops == beforeDrops + 1
+        assert activationBodies == beforeBodies + 1
+    end
+    for exitMode in range(0, 3)
+        int beforeDrops = activationDrops
+        int beforeBodies = activationBodies
+        generator<int> sequence = activationNewProtocol().numbers("x", exitMode == 1)
+        assert activationDrops == beforeDrops and activationBodies == beforeBodies
+        int count = 0
+        bool caught = false
+        try
+            for value in sequence
+                count += 1
+                assert value == (count == 1 ? 21 : 22)
+                if exitMode == 2 then break end
+            end
+        catch failure
+            assert failure.code == 81
+            caught = true
+        end
+        assert caught == (exitMode == 1)
+        assert count == (exitMode == 0 ? 2 : 1)
+        assert activationDrops == beforeDrops + 1
+        assert activationBodies == beforeBodies + 1
+    end
+    assert ActivationDerived().original() == 0
+    ActivationBase baseValue = ActivationBase()
+    for value in baseValue.numbers("x", true)
+        assert value == 1
+    end
+    return 0
+end
+
+async func activationReady() as int
+    return 3
+end
+future<int> activationPending = activationReady()
+ActivationBase activationReceiver = ActivationDerived()
+
+export "activation_start" func activationStart(int mode, bool fail)
+    ActivationDerived local = ActivationDerived()
+    future<int> source = activationFuture()
+    if mode == 0
+        activationPending = local.read(source, fail)
+    elseif mode == 1
+        ActivationBase erased = local
+        activationPending = erased.read(source, fail)
+    else
+        ActivationContract witness = local
+        activationPending = witness.read(source, fail)
+    end
+end
+export "activation_delayed" func activationDelayed() as int
+    ActivationBase erased = ActivationDerived()
+    int count = 0
+    for value in erased.delayed(activationReady())
+        assert value == 23
+        count += 1
+    end
+    assert count == 1
+    ActivationContract witness = ActivationDerived()
+    for value in witness.delayed(activationReady())
+        assert value == 23
+        count += 1
+    end
+    assert count == 2
+    return 0
+end

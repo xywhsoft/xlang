@@ -1,0 +1,7 @@
+async func failTextWorker() as string
+    assert false
+    return "unreachable"
+end
+
+future<string> pending = failTextWorker()
+string completed = await pending

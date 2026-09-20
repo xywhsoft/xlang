@@ -64,7 +64,7 @@ static int xl6CgenTaggedEnumCtorExpr(
     }
     if ( variant == NULL ) {
         xl6CgenError(ctx, member, "tagged enum variant target is missing");
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         xl6AstFree(resultType);
         return 1;
     }
@@ -153,8 +153,6 @@ static void xl6CgenMatchCondition(
     }
     if ( enumNode != NULL ) {
         xl6CgenMatchDataRef(ctx, typeNode, valueName, dataName);
-        xl6OutputPuts(" != 0 && ", ctx->out);
-        xl6CgenMatchDataRef(ctx, typeNode, valueName, dataName);
         xl6OutputPuts("->tag == ", ctx->out);
         xl6CgenEnumTagSymbol(ctx->out, typeNode, pattern->text);
         return;
@@ -185,14 +183,14 @@ static void xl6CgenMatchCondition(
             }
         }
         if ( xl6CgenIsOwnedStringTypeNode(ctx, compareType) ) {
-            xl6OutputPuts("xrtStrComp(", ctx->out);
+            xl6OutputPuts("xrtStrCaseCompare(xrtStrView(", ctx->out);
             xl6OutputPuts(valueName, ctx->out);
             if ( nullableTagged ) {
                 xl6OutputPuts(".value", ctx->out);
             }
-            xl6OutputPuts(", ", ctx->out);
+            xl6OutputPuts("), xrtStrView(", ctx->out);
             xl6CgenExpr(ctx, literal);
-            xl6OutputPuts(", 0u, true) == 0", ctx->out);
+            xl6OutputPuts(")) == 0", ctx->out);
             return;
         }
         xl6OutputPuts(valueName, ctx->out);
@@ -266,7 +264,7 @@ static void xl6CgenMatchBindingInit(
         xl6OutputPuts(");\n", ctx->out);
     } else if ( xl6CgenIsWeakType(fieldType) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvoWeakCopy(&%s, &(", cName);
+        xl6OutputPrintf(ctx->out, "xl6WeakCopy(&%s, &(", cName);
         xl6OutputPuts(dataName, ctx->out);
         xl6OutputPuts("->payload.", ctx->out);
         xl6CgenFputsCIdent(ctx->out, variantName);
@@ -278,7 +276,7 @@ static void xl6CgenMatchBindingInit(
         xl6OutputPuts("{\n", ctx->out);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPuts("const xrt_type_desc* fieldType = ", ctx->out);
+        xl6OutputPuts("const xl6_type_desc* fieldType = ", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, fieldType);
         xl6OutputPuts(";\n", ctx->out);
         xl6CgenIndent(ctx);
@@ -389,7 +387,7 @@ static char* xl6CgenMatchBindingPath(
         valueName,
         variantIdent,
         fieldIdent);
-    return (char*)xrtCopyStr((str)path, strlen(path));
+    return xrtStrDupN(path, strlen(path));
 }
 
 static void xl6CgenMatchArmExpr(
@@ -530,7 +528,7 @@ static void xl6CgenMatchExprAssignValue(
     char dropName[80];
 
     if ( xl6CgenIsTaggedEnumType(ctx, typeNode) ) {
-        xl6OutputPuts("xrtTypeDropValue(", ctx->out);
+        xl6OutputPuts("xl6TypeDropValue(", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, typeNode);
         xl6OutputPuts(", &", ctx->out);
         xl6OutputPuts(valueName, ctx->out);
@@ -541,7 +539,7 @@ static void xl6CgenMatchExprAssignValue(
         return;
     }
     if ( xl6CgenIsXValueType(typeNode) ) {
-        xl6OutputPuts("xvoUnref(", ctx->out);
+        xl6OutputPuts("xrtValueRelease(", ctx->out);
         xl6OutputPuts(valueName, ctx->out);
         xl6OutputPuts("), ", ctx->out);
         xl6OutputPuts(valueName, ctx->out);
@@ -560,7 +558,7 @@ static void xl6CgenMatchExprAssignValue(
             xl6CgenExpr(ctx, value);
             xl6OutputPutc(')', ctx->out);
         } else {
-            xl6OutputPuts("xrtCopyStr((str)(", ctx->out);
+            xl6OutputPuts("xl6_xrt_string_dup((str)(", ctx->out);
             xl6CgenExpr(ctx, value);
             xl6OutputPuts("), 0u)", ctx->out);
         }
@@ -575,9 +573,9 @@ static void xl6CgenMatchExprAssignValue(
         return;
     }
     if ( xl6CgenIsWeakType(typeNode) ) {
-        xl6OutputPuts("xvoWeakUnit(&", ctx->out);
+        xl6OutputPuts("xl6WeakUnit(&", ctx->out);
         xl6OutputPuts(valueName, ctx->out);
-        xl6OutputPuts("), xvoWeakCopy(&", ctx->out);
+        xl6OutputPuts("), xl6WeakCopy(&", ctx->out);
         xl6OutputPuts(valueName, ctx->out);
         xl6OutputPuts(", &(", ctx->out);
         xl6CgenExpr(ctx, value);

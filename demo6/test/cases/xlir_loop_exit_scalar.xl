@@ -1,0 +1,15 @@
+export "xlir_test_loop_exit_answer" func loop_exit_answer() as int64
+    int total = 0
+    int i = 0
+    while i < 8
+        i = i + 1
+        if i == 3
+            continue
+        end
+        if i == 6
+            break
+        end
+        total = total + i
+    end
+    return total
+end

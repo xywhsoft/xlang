@@ -105,7 +105,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe ir test\cases\extern_puts.xl --emit build\test\extern_puts.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"extern \"puts\" func puts(text: string) as int32" build\test\extern_puts.xlir >nul
+findstr /C:"source=extern_func/6" build\test\extern_puts.xlir | findstr /C:"text=\"puts\"" >nul
 if errorlevel 1 (
     echo extern_puts.xlir missing extern declaration.
     exit /b 1
@@ -147,7 +147,7 @@ if errorlevel 1 (
     echo extern_bool.c missing C bool expect prototype.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\extern_bool.c test\cases\extern_bool_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\extern_bool.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\extern_bool.c test\cases\extern_bool_host.c %XL6_CGEN_LINKS% -o build\test\extern_bool.exe
 if errorlevel 1 exit /b 1
 build\test\extern_bool.exe
 if errorlevel 1 exit /b 1
@@ -186,7 +186,7 @@ if errorlevel 1 (
     echo c_abi_types.c missing c_wchar prototype.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\c_abi_types.c test\cases\c_abi_types_host.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\c_abi_types.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\c_abi_types.c test\cases\c_abi_types_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\c_abi_types.exe
 if errorlevel 1 exit /b 1
 build\test\c_abi_types.exe
 if errorlevel 1 exit /b 1
@@ -216,14 +216,14 @@ if errorlevel 1 (
     echo cgen_extern_string_return.c missing string return extern prototype.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_extern_string_return.c test\cases\cgen_extern_string_return_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_extern_string_return.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_extern_string_return.c test\cases\cgen_extern_string_return_host.c %XL6_CGEN_LINKS% -o build\test\cgen_extern_string_return.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_extern_string_return.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe ir test\cases\extern_var.xl --emit build\test\extern_var.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"extern \"host_counter\" int counter" build\test\extern_var.xlir >nul
+findstr /C:"source=extern_var/8" build\test\extern_var.xlir | findstr /C:"text=\"host_counter\"" >nul
 if errorlevel 1 (
     echo extern_var.xlir missing extern var declaration.
     exit /b 1
@@ -241,14 +241,14 @@ if errorlevel 1 (
     echo extern_var.c missing extern C variable assignment.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\extern_var.c test\cases\extern_var_host.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\extern_var.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\extern_var.c test\cases\extern_var_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\extern_var.exe
 if errorlevel 1 exit /b 1
 build\test\extern_var.exe
 if errorlevel 1 exit /b 1
 
-release\xl.exe ir test\cases\export_add.xl --emit build\test\export_add.xlir
+release\xl.exe ir test\cases\export_add.xl --lowered --emit build\test\export_add.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"export \"xl6_add_i64\" func add_i64(a: int, b: int) as int" build\test\export_add.xlir >nul
+findstr /C:"cname=xl6_add_i64 return=t3/value/type params=[a:t3/value/type,b:t3/value/type]" build\test\export_add.xlir >nul
 if errorlevel 1 (
     echo export_add.xlir missing export declaration.
     exit /b 1
@@ -279,7 +279,7 @@ if errorlevel 1 (
     echo export_add.c missing C export wrapper prototype.
     exit /b 1
 )
-"%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_add.c test\cases\export_add_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_add_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_add.c test\cases\export_add_host.c %XL6_CGEN_LINKS% -o build\test\export_add_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_add_host.exe
 if errorlevel 1 exit /b 1
@@ -296,7 +296,7 @@ if errorlevel 1 (
     echo export_add.h missing C export declaration.
     exit /b 1
 )
-"%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_add_header.c test\cases\export_add_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_add_header_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_add_header.c test\cases\export_add_header_host.c %XL6_CGEN_LINKS% -o build\test\export_add_header_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_add_header_host.exe
 if errorlevel 1 exit /b 1
@@ -308,17 +308,17 @@ if errorlevel 1 (
     echo export_class.h missing class typedef.
     exit /b 1
 )
-findstr /C:"xvalue xl6_point_make(int64_t x, int64_t y);" build\test\export_class.h >nul
+findstr /C:"xvalue* xl6_point_make(int64_t x, int64_t y);" build\test\export_class.h >nul
 if errorlevel 1 (
     echo export_class.h missing class return export declaration.
     exit /b 1
 )
-findstr /C:"int64_t xl6_point_sum(xvalue point);" build\test\export_class.h >nul
+findstr /C:"int64_t xl6_point_sum(xvalue* point);" build\test\export_class.h >nul
 if errorlevel 1 (
     echo export_class.h missing class parameter export declaration.
     exit /b 1
 )
-"%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_class.c test\cases\export_class_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_class_header_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_class.c test\cases\export_class_header_host.c %XL6_CGEN_LINKS% -o build\test\export_class_header_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_class_header_host.exe
 if errorlevel 1 exit /b 1
@@ -340,7 +340,7 @@ if errorlevel 1 (
     echo export_class_method.c missing class export wrapper call.
     exit /b 1
 )
-"%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_class_method.c test\cases\export_class_method_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_class_method_header_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_class_method.c test\cases\export_class_method_header_host.c %XL6_CGEN_LINKS% -o build\test\export_class_method_header_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_class_method_header_host.exe
 if errorlevel 1 exit /b 1
@@ -371,12 +371,12 @@ if errorlevel 1 (
     echo export_class_inherit.h missing inherited base field.
     exit /b 1
 )
-findstr /C:"xvalue xl6_named_point_make(int64_t id, int64_t x, int64_t y);" build\test\export_class_inherit.h >nul
+findstr /C:"xvalue* xl6_named_point_make(int64_t id, int64_t x, int64_t y);" build\test\export_class_inherit.h >nul
 if errorlevel 1 (
     echo export_class_inherit.h missing inherited class return export declaration.
     exit /b 1
 )
-"%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_class_inherit.c test\cases\export_class_inherit_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_class_inherit_header_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_class_inherit.c test\cases\export_class_inherit_header_host.c %XL6_CGEN_LINKS% -o build\test\export_class_inherit_header_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_class_inherit_header_host.exe
 if errorlevel 1 exit /b 1
@@ -393,12 +393,12 @@ if errorlevel 1 (
     echo export_class_union_field.h missing class union field.
     exit /b 1
 )
-findstr /C:"xvalue xl6_box_make(int64_t value);" build\test\export_class_union_field.h >nul
+findstr /C:"xvalue* xl6_box_make(int64_t value);" build\test\export_class_union_field.h >nul
 if errorlevel 1 (
     echo export_class_union_field.h missing class-with-union export declaration.
     exit /b 1
 )
-"%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_class_union_field.c test\cases\export_class_union_field_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_class_union_field_header_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_class_union_field.c test\cases\export_class_union_field_header_host.c %XL6_CGEN_LINKS% -o build\test\export_class_union_field_header_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_class_union_field_header_host.exe
 if errorlevel 1 exit /b 1
@@ -420,7 +420,7 @@ if errorlevel 1 (
     echo export_union_class_field.h missing union export declaration.
     exit /b 1
 )
-"%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_union_class_field.c test\cases\export_union_class_field_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_union_class_field_header_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_union_class_field.c test\cases\export_union_class_field_header_host.c %XL6_CGEN_LINKS% -o build\test\export_union_class_field_header_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_union_class_field_header_host.exe
 if errorlevel 1 exit /b 1
@@ -466,7 +466,7 @@ if errorlevel 1 (
     echo export_multi_return.c missing out-param assignment.
     exit /b 1
 )
-"%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_multi_return.c test\cases\export_multi_return_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_multi_return_header_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_multi_return.c test\cases\export_multi_return_header_host.c %XL6_CGEN_LINKS% -o build\test\export_multi_return_header_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_multi_return_header_host.exe
 if errorlevel 1 exit /b 1
@@ -488,7 +488,7 @@ if errorlevel 1 (
     echo export_bool.h missing C bool wrapper declaration.
     exit /b 1
 )
-"%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_bool.c test\cases\export_bool_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_bool_header_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_bool.c test\cases\export_bool_header_host.c %XL6_CGEN_LINKS% -o build\test\export_bool_header_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_bool_header_host.exe
 if errorlevel 1 exit /b 1

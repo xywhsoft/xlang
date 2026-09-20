@@ -1,0 +1,234 @@
+enum BoxingCode as int
+    ready = 9
+end
+
+enum BoxingEnvelope
+    item(BoxingCode code)
+end
+
+union BoxingPayload
+    int number
+    c_double decimal
+end
+
+class BoxingDefaults
+    int number
+    string text
+end
+
+class BoxingPacket<T>
+    derive copy
+    derive clone
+    T id
+    var values = [0]
+    create(T id)
+        self.id = id
+        self.values = [id]
+    end
+end
+
+class BoxingSetItem
+    derive hash
+    derive equals
+    int id
+    bool fail @compare(skip)
+    create(int id, bool fail)
+        self.id = id
+        self.fail = fail
+    end
+    destroy()
+        if self.fail
+            boxing_raise_insertion_error()
+        end
+    end
+end
+
+func boxing_generic<T>(T value) as var
+    var boxed = value
+    return boxed
+end
+
+func boxing_return(int value) as var
+    return value
+end
+
+func boxing_generic_return<T>(T value) as var
+    return value
+end
+
+func boxing_argument(var value) as int
+    return int(value)
+end
+
+func boxing_pair() as (int, int)
+    return 4, 5
+end
+
+func boxing_strings() as (string, string)
+    return "four", "fives"
+end
+
+export func boxing_allocation_case(int kind) as int
+    if kind == 0
+        var boxed = 9
+        return int(boxed)
+    elseif kind == 1
+        var boxed = uint64(9)
+        return int(boxed)
+    elseif kind == 2
+        var boxed = 9.0
+        return int(boxed)
+    elseif kind == 3
+        var boxed = c_float(9.0)
+        assert type(boxed) == c_float
+        return int(boxed)
+    elseif kind == 4
+        var boxed = time(9)
+        assert type(boxed) == time
+        return 9
+    elseif kind == 5
+        string value = "ninebytes"
+        var boxed = value
+        return string(boxed).length
+    elseif kind == 6
+        string? value = "ninebytes"
+        var boxed = value
+        return string(boxed).length
+    elseif kind == 7
+        int? value = 9
+        var boxed = value
+        return int(boxed)
+    elseif kind == 8
+        BoxingPayload value
+        value.number = 9
+        var boxed = value
+        assert type(boxed) == BoxingPayload
+        array<BoxingPayload> values = array[value]
+        return values[0].number
+    elseif kind == 9
+        int? value = null
+        var boxed = value
+        assert boxed == null
+        return 9
+    elseif kind == 10
+        string? value = null
+        var boxed = value
+        assert boxed == null
+        return 9
+    elseif kind == 11
+        BoxingEnvelope value = BoxingEnvelope.item(BoxingCode.ready)
+        return match value
+        case item(code) then int(code)
+        end
+    elseif kind == 12
+        return int(boxing_generic::<int>(9))
+    elseif kind == 13
+        return boxing_argument(9)
+    elseif kind == 14
+        return int(boxing_return(9))
+    elseif kind == 15
+        var values = [4, 5]
+        return int(values[0]) + int(values[1])
+    elseif kind == 16
+        var values = dict{"first": 4, "second": 5}
+        return int(values["first"]) + int(values["second"])
+    elseif kind == 17
+        var first = null
+        var second = null
+        first, second = boxing_pair()
+        return int(first) + int(second)
+    elseif kind == 18
+        auto value = BoxingDefaults()
+        return value.number + value.text.length + 9
+    elseif kind == 19
+        auto value = BoxingPacket::<int>(9)
+        auto copied = copy(value)
+        auto cloned = clone(value)
+        assert copied.id == 9
+        assert int(cloned.values[0]) == 9
+        return int(copied.values[0])
+    elseif kind == 20
+        var value = null
+        value = c_double(9.0)
+        assert type(value) == c_double
+        return int(value)
+    elseif kind == 21
+        var first = null
+        var second = null
+        first, second = boxing_strings()
+        return string(first).length + string(second).length
+    elseif kind == 22
+        var values = [0, 0]
+        values[0], values[1] = boxing_pair()
+        return int(values[0]) + int(values[1])
+    elseif kind == 23
+        return int(boxing_generic_return::<int>(9))
+    elseif kind == 24
+        array<int> values
+        values.append(9)
+        return values[0]
+    elseif kind == 25
+        list<int> values
+        values[0] = 9
+        return values[0]
+    elseif kind == 26
+        dict<int> values
+        values["n"] = 9
+        return values["n"]
+    elseif kind == 27
+        set<int> values
+        values.add(9)
+        assert 9 in values
+        return 9
+    elseif kind == 28
+        set<int> values = set{9, 9}
+        assert values.length == 1
+        return 9
+    elseif kind == 29
+        auto value = copy(BoxingPacket::<int>(9))
+        return value.id
+    elseif kind == 30
+        auto values = clone(array[9])
+        return int(values[0])
+    else
+        var values = array[]
+        return values.length + 9
+    end
+end
+
+export func boxing_allocation_caught(int kind) as int
+    try
+        return boxing_allocation_case(kind)
+    catch error
+        return 77
+    end
+end
+
+// Duplicate insertion returns native true but can destroy the incoming item.
+// Its destructor failure must remain an independent failed operation outcome.
+export func boxing_insertion_callback() as int
+    set<BoxingSetItem> values = set{BoxingSetItem(9, false)}
+    try
+        values.add(BoxingSetItem(9, true))
+    catch ValueError error
+        return 77
+    end
+    return -1
+end
+
+extern "boxing_arm_insertion_fault" func boxing_arm_insertion_fault()
+extern "boxing_raise_insertion_error" func boxing_raise_insertion_error()
+
+func boxing_fault_item() as BoxingSetItem
+    auto value = BoxingSetItem(9, true)
+    boxing_arm_insertion_fault()
+    return value
+end
+
+// Arm allocation failure only after constructing a destructor-raising item.
+// The insertion failure is primary; rollback destruction must not replace it.
+export func boxing_insertion_failure() as int
+    array<BoxingSetItem> values = array[]
+    values.append(boxing_fault_item())
+    return -1
+end

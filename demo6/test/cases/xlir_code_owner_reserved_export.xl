@@ -1,0 +1,3 @@
+export "xl_script_bind_code_owner" func invalidBinding(int value) as int
+    return value
+end

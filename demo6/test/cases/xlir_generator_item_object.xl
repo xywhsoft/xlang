@@ -1,0 +1,17 @@
+class ItemObject
+    int value
+    create(int value)
+        self.value = value
+    end
+end
+func objectItems() as generator<ItemObject>
+    yield ItemObject(7)
+    yield ItemObject(9)
+end
+export "generator_item_object" func objectTotal() as int
+    int total = 0
+    for item in objectItems()
+        total += item.value
+    end
+    return total
+end

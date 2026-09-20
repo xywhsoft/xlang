@@ -1,0 +1,24 @@
+extern "dependency_peer" func dependencyPeer(int id) as future<int>
+extern "dependency_caught" func dependencyCaught(int id)
+extern "dependency_finally" func dependencyFinally(int id)
+extern "dependency_after" func dependencyAfter(int id)
+extern "dependency_boot" func dependencyBoot() as future<int>
+async func dependencyCycle(int id, future<int> boot, future<int> cleanup, bool waitCleanup) as int
+    try
+        int ignored = await boot
+        int number = await dependencyPeer(id)
+        dependencyAfter(id)
+        return number
+    catch CancelledError error
+        dependencyCaught(id)
+        throw
+    finally
+        if waitCleanup
+            int ignored = await cleanup
+        end
+        dependencyFinally(id)
+    end
+end
+export "dependency_keep" func dependencyKeep()
+    auto output = dependencyCycle(0, dependencyBoot(), dependencyBoot(), false)
+end

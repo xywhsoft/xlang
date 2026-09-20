@@ -1,0 +1,24 @@
+export "xlir_nullable_continuation_present" int nullableContinuationPresent = 0
+export "xlir_nullable_continuation_missing" int nullableContinuationMissing = 0
+
+async func makeNullable(bool present, int candidate) as int?
+    if present then return candidate end
+    return null
+end
+
+async func coalesceAfter(future<int?> source, int fallback) as int
+    return await source ?? fallback
+end
+
+future<int?> presentSource = makeNullable(true, 38)
+future<int?> missingSource = makeNullable(false, 71)
+future<int> presentFuture = coalesceAfter(presentSource, 4)
+future<int> missingFuture = coalesceAfter(missingSource, 9)
+nullableContinuationPresent = await presentFuture
+nullableContinuationMissing = await missingFuture
+
+func main(...) as int
+    assert(nullableContinuationPresent == 38)
+    assert(nullableContinuationMissing == 9)
+    return 0
+end

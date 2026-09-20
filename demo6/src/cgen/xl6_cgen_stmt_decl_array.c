@@ -48,7 +48,7 @@ static int xl6CgenDeclTryXValueArrayLiteralItemInit(
         return 1;
     }
 
-    xl6OutputPrintf(ctx->out, "xvalue %s = ", itemName);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = ", itemName);
     xl6CgenXValueFromExprForTarget(ctx, &valueType, itemExpr);
     xl6OutputPuts(";\n", ctx->out);
     return 1;
@@ -70,9 +70,9 @@ static int xl6CgenDeclTryXValueArrayLiteralInit(
         return 0;
     }
 
-    xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateArray();\n", cName);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = xrtValueArray();\n", cName);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (%s == 0) { %s = xvoCreateNull(); }\n", cName, cName);
+    xl6OutputPrintf(ctx->out, "if (%s == 0) { %s = xrtValueNull(); }\n", cName, cName);
     if ( xl6CgenIsRuntimeContainerTypeDesc(ctx, typeNode) ) {
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = xl6_xrt_bind_type(%s, ", cName, cName);
@@ -87,13 +87,13 @@ static int xl6CgenDeclTryXValueArrayLiteralInit(
         xl6CgenIndent(ctx);
         xl6CgenDeclTryXValueArrayLiteralItemInit(ctx, itemName, literal->children[i]);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (!xvoArrayAppendValue(%s, %s, true) && %s != 0) {\n",
+        xl6OutputPrintf(ctx->out, "if (!xl6_xrt_value_array_append(%s, %s, true) && %s != 0) {\n",
                         cName,
                         itemName,
                         itemName);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", itemName);
+        xl6OutputPrintf(ctx->out, "xrtValueRelease(%s);\n", itemName);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("}\n", ctx->out);

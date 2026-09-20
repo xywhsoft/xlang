@@ -1,0 +1,21 @@
+extern "xlir_json_observe_lifetime" func observeLifetime(var target) as var
+extern "xlir_json_lifetime_expired" func expired(var witness) as c_bool
+
+func capturedVisitor(var state) as func(var) as bool
+    return func(var event) as bool
+        return bool(state["continue"])
+    end
+end
+
+func temporaryVisitorScope() as var
+    var state = {"continue": true}
+    var witness = observeLifetime(state)
+    assert json.visit("null", capturedVisitor(state)) == json.visitComplete
+    return witness
+end
+
+for i in range(30)
+    // A temporary borrowed callback must be destroyed after the native call.
+    // Legacy leaks this capture; it is not the ownership oracle for XLIR.
+    assert expired(temporaryVisitorScope())
+end

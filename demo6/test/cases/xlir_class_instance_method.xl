@@ -1,0 +1,18 @@
+class Point
+    int x = 0
+    int y = 0
+
+    create(int x, int y)
+        self.x = x
+        self.y = y
+    end
+
+    func length2() as int
+        return self.x * self.x + self.y * self.y
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+Point point = Point(3, 4)
+expect(point.length2(), 25)

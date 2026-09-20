@@ -1,0 +1,11 @@
+func remember(var source) as func() as var
+    return func() as var => source
+end
+
+func closure_xvalue_capture() as var
+    var original = {"count": 42}
+    auto get = remember(original)
+    return get()
+end
+
+var capturedXvalue = closure_xvalue_capture()

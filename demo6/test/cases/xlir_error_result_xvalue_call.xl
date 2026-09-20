@@ -1,0 +1,19 @@
+func maybeBoxed(bool fail) as var
+    if fail then
+        throw "expected"
+    end
+    var value = 41
+    return value
+end
+
+func recoverBoxed() as var
+    try
+        return maybeBoxed(true)
+    catch ignored
+        var fallback = 99
+        return fallback
+    end
+end
+
+var passed = maybeBoxed(false)
+var recovered = recoverBoxed()

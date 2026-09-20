@@ -1,0 +1,152 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expect_string(string actual, string expected)
+
+dict<int> snapshotValues = dict{"a": 1, "bb": 2, "ccc": 3}
+int snapshotValueTotal = 0
+int snapshotKeyLength = 0
+for key, value in snapshotValues
+    snapshotValueTotal = snapshotValueTotal + value
+    snapshotKeyLength = snapshotKeyLength + key.length
+    if key == "a"
+        snapshotValues = dict{"replacement": 100}
+    end
+end
+expect(snapshotValueTotal, 6)
+expect(snapshotKeyLength, 6)
+expect(snapshotValues.length, 1)
+
+func first_key(dict<int> values) as string
+    for key, value in values
+        return key
+    end
+    return ""
+end
+
+func checked_value(string key, int value) as int
+    if key == "boom"
+        throw ValueError "dict iterator sentinel"
+    end
+    return value
+end
+
+func sum_with_inner_catch(dict<int> values) as int
+    int total = 0
+    for key, value in values
+        try
+            total = total + checked_value(key, value)
+        catch ValueError ignored
+            total = total + key.length * 10
+        end
+    end
+    return total
+end
+
+func sum_with_outer_catch(dict<int> values) as int
+    int total = 0
+    try
+        for key, value in values
+            total = total + checked_value(key, value)
+        end
+    catch ValueError ignored
+        total = total + 100
+    end
+    return total
+end
+
+int continueFinallyTrace = 0
+func continue_through_finally(dict<string> values) as int
+    int total = 0
+    for key, value in values
+        try
+            if key == "skip"
+                continue
+            end
+            total = total + value.length
+        finally
+            continueFinallyTrace = continueFinallyTrace + key.length + value.length
+        end
+    end
+    return total
+end
+
+int breakFinallyTrace = 0
+func break_through_finally(dict<string> values) as int
+    for key, value in values
+        try
+            break
+        finally
+            breakFinallyTrace = key.length + value.length
+        end
+    end
+    return breakFinallyTrace
+end
+
+int returnFinallyTrace = 0
+func return_item_through_finally(dict<string> values) as string
+    for key, value in values
+        try
+            return value
+        finally
+            returnFinallyTrace = key.length + value.length
+        end
+    end
+    return ""
+end
+
+func make_owned_scores() as dict<int>
+    return dict{"left": 4, "right": 8}
+end
+
+dict<int> checkedValues = dict{"a": 1, "boom": 2, "ccc": 3}
+expect_string(first_key(dict{"alpha": 7}), "alpha")
+expect(sum_with_inner_catch(checkedValues), 44)
+int outerCatch = sum_with_outer_catch(checkedValues)
+if outerCatch < 100 or outerCatch > 104
+    expect(outerCatch, -1)
+end
+
+expect(continue_through_finally(dict{"skip": "x", "take": "yy"}), 2)
+expect(continueFinallyTrace, 11)
+expect(break_through_finally(dict{"stop": "vvv"}), 7)
+expect(breakFinallyTrace, 7)
+expect_string(return_item_through_finally(dict{"name": "owned"}), "owned")
+expect(returnFinallyTrace, 9)
+
+int literalRvalueTotal = 0
+for key, value in dict{"aa": 2, "bbb": 3}
+    literalRvalueTotal = literalRvalueTotal + key.length + value
+end
+expect(literalRvalueTotal, 10)
+
+int returnedRvalueTotal = 0
+for key, value in make_owned_scores()
+    returnedRvalueTotal = returnedRvalueTotal + key.length + value
+end
+expect(returnedRvalueTotal, 21)
+
+dict<uint64> unsignedValues = dict{"maximum": uint64(18446744073709551615)}
+uint64 unsignedTotal = uint64(0)
+for key, value in unsignedValues
+    unsignedTotal = unsignedTotal + value - uint64(key.length)
+end
+if unsignedTotal != uint64(18446744073709551608)
+    expect(0, 1)
+end
+
+dict<bool> boolValues = dict{"off": false, "on": true}
+int boolTotal = 0
+for key, value in boolValues
+    if value
+        boolTotal = boolTotal + key.length
+    end
+end
+expect(boolTotal, 2)
+
+dict<float> floatValues = dict{"left": 1.5, "right": 2.5}
+float floatTotal = 0.0
+for key, value in floatValues
+    floatTotal = floatTotal + value
+end
+if floatTotal < 3.99 or floatTotal > 4.01
+    expect(0, 1)
+end

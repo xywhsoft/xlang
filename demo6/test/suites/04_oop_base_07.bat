@@ -36,9 +36,23 @@ if errorlevel 1 (
     echo export_c_abi_types.h missing c_wchar export declaration.
     exit /b 1
 )
-"%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_c_abi_types.c test\cases\export_c_abi_types_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_c_abi_types_header_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_c_abi_types.c test\cases\export_c_abi_types_header_host.c %XL6_CGEN_LINKS% -o build\test\export_c_abi_types_header_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_c_abi_types_header_host.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe ir test\cases\export_c_abi_types.xl --lowered --emit build\test\xlir_export_c_abi_types.xlir
+if errorlevel 1 exit /b 1
+findstr /C:"scalar-convert" build\test\xlir_export_c_abi_types.xlir >nul
+if errorlevel 1 (
+    echo xlir_export_c_abi_types.xlir missing explicit c_bool normalization.
+    exit /b 1
+)
+release\xl.exe cgen test\cases\export_c_abi_types.xl --backend xlir --emit build\test\xlir_export_c_abi_types_generated.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_export_c_abi_types_host.c %XL6_CGEN_LINKS% -o build\test\xlir_export_c_abi_types_host.exe
+if errorlevel 1 exit /b 1
+build\test\xlir_export_c_abi_types_host.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe abi test\cases\export_alias.xl --emit build\test\export_alias.abi.txt
@@ -89,7 +103,7 @@ if errorlevel 1 (
     echo export_alias.h missing expanded alias header declaration.
     exit /b 1
 )
-"%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_alias.c test\cases\export_alias_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_alias_header_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_alias.c test\cases\export_alias_header_host.c %XL6_CGEN_LINKS% -o build\test\export_alias_header_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_alias_header_host.exe
 if errorlevel 1 exit /b 1
@@ -97,16 +111,16 @@ if errorlevel 1 exit /b 1
 release\xl.exe check release\examples\c_variables.xl
 if errorlevel 1 exit /b 1
 
-release\xl.exe ir test\cases\export_vars.xl --emit build\test\export_vars.xlir
+release\xl.exe ir test\cases\export_vars.xl --lowered --emit build\test\export_vars.xlir
 if errorlevel 1 exit /b 1
-findstr /C:"export \"xl6_counter\" int counter = 1" build\test\export_vars.xlir >nul
+findstr /C:"mutability=mutable cname=xl6_counter value=1LL" build\test\export_vars.xlir >nul
 if errorlevel 1 (
-    echo export_vars.xlir missing export var declaration.
+    echo export_vars.xlir missing canonical mutable global-export ABI.
     exit /b 1
 )
-findstr /C:"export \"xl6_version\" const int version = 7" build\test\export_vars.xlir >nul
+findstr /C:"mutability=const cname=xl6_version value=7LL" build\test\export_vars.xlir >nul
 if errorlevel 1 (
-    echo export_vars.xlir missing export const declaration.
+    echo export_vars.xlir missing canonical const global-export ABI.
     exit /b 1
 )
 
@@ -150,7 +164,7 @@ if errorlevel 1 (
     echo export_vars.h missing export const declaration.
     exit /b 1
 )
-"%XL6_TCC%" -Ibuild\test %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_vars.c test\cases\export_vars_header_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_vars_header_host.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_vars.c test\cases\export_vars_header_host.c %XL6_CGEN_LINKS% -o build\test\export_vars_header_host.exe
 if errorlevel 1 exit /b 1
 build\test\export_vars_header_host.exe
 if errorlevel 1 exit /b 1
@@ -185,7 +199,7 @@ if errorlevel 1 (
     echo export_call.c did not use internal ABI symbol.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\export_call.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\export_call.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\export_call.c %XL6_CGEN_LINKS% -o build\test\export_call.exe
 if errorlevel 1 exit /b 1
 build\test\export_call.exe
 if errorlevel 1 exit /b 1
@@ -468,6 +482,10 @@ if errorlevel 1 (
 release\xl.exe run test\cases\cgen_class_implicit_upcast.xl
 if errorlevel 1 exit /b 1
 
+release\xl.exe ir test\cases\cgen_class_virtual_return_move.xl --emit build\test\cgen_class_virtual_return_move.xlir
+if errorlevel 1 exit /b 1
+powershell -NoProfile -Command "$lines=Get-Content 'build\test\cgen_class_virtual_return_move.xlir'; $slots=@($lines | Where-Object { $_ -match '^  class-dispatch-slot .* name=value$' }); $impls=@($lines | Where-Object { $_ -match '^  class-dispatch-impl ' }); if($slots.Count -ne 1 -or $impls.Count -ne 2){ Write-Host 'cgen_class_virtual_return_move.xlir missing exact base/derived dispatch rows.'; exit 1 }"
+if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_class_virtual_return_move.xl --emit build\test\cgen_class_virtual_return_move.c
 if errorlevel 1 exit /b 1
 findstr /C:"return __xl6_return_" build\test\cgen_class_virtual_return_move.c >nul
@@ -475,9 +493,18 @@ if errorlevel 1 (
     echo cgen_class_virtual_return_move.c missing materialized class return.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_virtual_return_move.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_virtual_return_move.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_class_virtual_return_move.c %XL6_CGEN_LINKS% -o build\test\cgen_class_virtual_return_move.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_virtual_return_move.exe
+if errorlevel 1 exit /b 1
+
+release\xl.exe ir test\cases\cgen_class_virtual_return_move.xl --lowered --emit build\test\xlir_class_virtual_return_move.xlir
+if errorlevel 1 exit /b 1
+release\xl.exe cgen test\cases\cgen_class_virtual_return_move.xl --backend xlir --emit build\test\xlir_class_virtual_return_move_generated.c
+if errorlevel 1 exit /b 1
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_class_virtual_return_move_host.c %XL6_CGEN_LINKS% -o build\test\xlir_class_virtual_return_move_host.exe
+if errorlevel 1 exit /b 1
+build\test\xlir_class_virtual_return_move_host.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe run test\cases\cgen_class_identity_equality.xl

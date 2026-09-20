@@ -1,0 +1,8 @@
+func dynamic_array() as int
+    var values = [1, 2, 3]
+    return 47
+end
+
+export "xlir_test_xvalue_array_literal_root" func xlir_test_root() as int
+    return dynamic_array()
+end

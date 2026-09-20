@@ -9,8 +9,7 @@ if ( $Root -eq "" ) {
 }
 
 $packageDir = Join-Path $Root "release\extlibs"
-$xrtPath = Join-Path $Root "lib\xrt\xrt.h"
-$apiPath = Join-Path $Root "src\api\xl_api_symbols.c"
+$commonPath = Join-Path $PSScriptRoot "xrt_snapshot_contract.ps1"
 $failures = New-Object System.Collections.Generic.List[string]
 
 function Add-Failure($message)
@@ -38,55 +37,19 @@ function Strip-CText($text)
     return $text
 }
 
-function Read-PublicXrtSymbols($path)
-{
-    $symbols = New-StringSet
-    $text = Read-Utf8Text $path
-    $matches = [regex]::Matches(
-        $text,
-        '(?m)^\s*(?!#)\s*XXAPI\s+[^;{]+?\b([A-Za-z_][A-Za-z0-9_]*)\s*\(')
-
-    foreach ( $match in $matches ) {
-        $symbols.Add($match.Groups[1].Value) | Out-Null
-    }
-    return ,$symbols
-}
-
-function Read-InjectedXrtSymbols($path)
-{
-    $symbols = New-StringSet
-    $text = Read-Utf8Text $path
-    $matches = [regex]::Matches($text, '(?m)^\s*XL_ADD_XRT_SYMBOL\s*\(\s*s\s*,\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*;')
-    $invocations = [regex]::Matches($text, '(?m)^\s*XL_ADD_XRT_SYMBOL\s*\(').Count
-
-    if ( $matches.Count -ne $invocations ) {
-        Add-Failure "non-canonical XL_ADD_XRT_SYMBOL invocation in src/api/xl_api_symbols.c"
-    }
-
-    foreach ( $match in $matches ) {
-        $name = $match.Groups[1].Value
-        if ( ! $symbols.Add($name) ) {
-            Add-Failure "duplicate XRT runtime symbol injection: $name"
-        }
-    }
-    return ,$symbols
-}
-
 if ( ! (Test-Path -LiteralPath $packageDir -PathType Container) ) {
     Write-Host "release extlibs directory missing: $packageDir"
     exit 1
 }
-if ( ! (Test-Path -LiteralPath $xrtPath -PathType Leaf) ) {
-    Write-Host "XRT single header missing: $xrtPath"
-    exit 1
-}
-if ( ! (Test-Path -LiteralPath $apiPath -PathType Leaf) ) {
-    Write-Host "xl API source missing: $apiPath"
+if ( ! (Test-Path -LiteralPath $commonPath -PathType Leaf) ) {
+    Write-Host "XRT snapshot contract helper missing: $commonPath"
     exit 1
 }
 
-$publicXrt = Read-PublicXrtSymbols $xrtPath
-$injectedXrt = Read-InjectedXrtSymbols $apiPath
+. $commonPath
+
+$publicXrt = Read-XrtSnapshotRuntimeSymbols -Root $Root
+Assert-XrtSnapshotRuntimeWiring -Root $Root
 $usedSymbols = New-StringSet
 $files = @(Get-ChildItem -LiteralPath $packageDir -Recurse -File -Include "*.c", "*.h" | Sort-Object FullName)
 
@@ -101,7 +64,7 @@ foreach ( $file in $files ) {
             continue
         }
         $usedSymbols.Add($symbol) | Out-Null
-        if ( ! $injectedXrt.Contains($symbol) ) {
+        if ( ! $publicXrt.Contains($symbol) ) {
             $fileMissing.Add($symbol) | Out-Null
         }
     }
@@ -119,5 +82,5 @@ if ( $failures.Count -gt 0 ) {
     exit 1
 }
 
-Write-Host "Package XRT symbol boundary ok: $($files.Count) package C/H files, $($usedSymbols.Count) public XRT symbols used, $($injectedXrt.Count) runtime exports."
+Write-Host "Package XRT symbol boundary ok: $($files.Count) package C/H files, $($usedSymbols.Count) public XRT symbols used, $($publicXrt.Count) runtime exports."
 exit 0

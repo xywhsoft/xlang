@@ -1,0 +1,15 @@
+int catch_finally_return_trace = 0
+
+export "xlir_test_return_from_catch_through_finally" func return_from_catch_through_finally() as int
+    try
+        throw "caught"
+    catch ignored
+        return 43
+    finally
+        catch_finally_return_trace = catch_finally_return_trace + 1
+    end
+end
+
+export "xlir_test_catch_finally_return_trace_value" func catch_finally_return_trace_value() as int
+    return catch_finally_return_trace
+end

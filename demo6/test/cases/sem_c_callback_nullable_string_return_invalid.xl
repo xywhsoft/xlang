@@ -1,0 +1,2 @@
+export "bad_nullable_callback" func rejected((func() as string)? callback)
+end

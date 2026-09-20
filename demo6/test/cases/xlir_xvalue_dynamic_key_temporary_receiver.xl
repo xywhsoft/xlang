@@ -1,0 +1,9 @@
+func makeDynamicObject() as var
+    return {"answer": 42}
+end
+
+var dynamicKey = "answer"
+
+export "xlir_dynamic_key_temporary_receiver" func dynamicKeyTemporaryReceiver() as int
+    return int(makeDynamicObject()[dynamicKey])
+end

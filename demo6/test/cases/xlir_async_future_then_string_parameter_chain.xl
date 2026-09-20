@@ -1,0 +1,10 @@
+extern "xlir_make_string_future" func makeFuture() as future<string>
+
+async func appendParameters(future<string> source, string first, string second) as string
+    return await source + first + second
+end
+
+future<string> source = makeFuture()
+future<string> pending = appendParameters(source, "-", "done")
+string completed = await pending
+assert completed == "hello-done"

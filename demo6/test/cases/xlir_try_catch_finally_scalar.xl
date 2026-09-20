@@ -1,0 +1,27 @@
+int combined_trace = 0
+
+export "xlir_test_recover_through_finally" func recover_through_finally() as int
+    try
+        throw "protected failure"
+    catch ignored
+        combined_trace = 1
+    finally
+        combined_trace = combined_trace + 10
+    end
+    return combined_trace
+end
+
+export "xlir_test_escape_through_finally" func escape_through_finally() as int
+    try
+        throw "protected failure"
+    catch ignored
+        throw "handler failure"
+    finally
+        combined_trace = combined_trace + 100
+    end
+    return 0
+end
+
+export "xlir_test_combined_trace_value" func combined_trace_value() as int
+    return combined_trace
+end

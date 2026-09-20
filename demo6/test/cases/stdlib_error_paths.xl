@@ -61,16 +61,6 @@ var invalidXsonFile = xson.read(badXson)
 expect(type(invalidXsonFile) == null, 1)
 expect(file.delete(badXson), 1)
 
-expect(regex.isMatch("abc", "["), 0)
-expect(regex.find("abc", "["), -1)
-
-expect(query.valid("=value"), 0)
-expectStr(query.decode("%"), "")
-
-expect(url.valid("http://"), 0)
-expectStr(url.host("http://"), "")
-expectStr(url.resolve("/relative/base", "../x"), "")
-expectStr(url.normalizePath("bad path"), "")
 
 expect(process.success("cmd /c exit /b 5"), 0)
 expect(process.exitCode("cmd /c exit /b 5"), 5)

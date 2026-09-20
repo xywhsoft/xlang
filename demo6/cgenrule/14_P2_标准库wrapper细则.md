@@ -6,9 +6,9 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `crypto.sha256(s)`、`url.host(s)`、`process.exec(cmd)` 等 |
+| xlang 写法 | `crypto.sha256(s)`、`process.exec(cmd)` 等 |
 | 生成规则描述 | 标准库 wrapper 不总是输出，只有 needs 扫描发现对应 `__xl_std_runtime_*` 调用时才注入。每个 wrapper 文件用 `#ifndef XL6_*_RUNTIME` 包裹，避免同一 C 输出中重复定义。 |
-| 生成器文件名和行号 | `xl6_cgen_module.c:44`、`xl6_cgen_module.c:104`、`xl6_cgen_crypto.c:7`、`xl6_cgen_url.c:7` |
+| 生成器文件名和行号 | `xl6_cgen_module.c:44`、`xl6_cgen_module.c:104`、`xl6_cgen_crypto.c:7` |
 | 对应生成的 C 代码 | `#ifndef XL6_CRYPTO_RUNTIME ... void* xl6_xrt_sha256_hex(...); #endif` |
 | 中间形态伪代码 | `if hasCryptoRuntime: emitCryptoRuntime()` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自己包含 XRT 原型并实现空值、分配和错误路径。 |
@@ -31,8 +31,8 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `url.scheme(text)`、`url.host(text)`、`url.path(text)`、`url.query(text)` |
-| 生成规则描述 | URL part wrapper 调用 `xrtUrlParseViewN` 得到 `xrturlview`，再按 part 编号选择 scheme/authority/userInfo/host/path/query/fragment/target，最后复制成 XRT 分配的 C 字符串。解析失败返回空字符串。 |
-| 生成器文件名和行号 | `xl6_cgen_url.c:13`、`xl6_cgen_url.c:47`、`xl6_cgen_url.c:57` |
+| 生成规则描述 | 完整 URL wrapper 已从核心移入 xhttp 产品；历史实现只作为扩展迁移资产保存在 `dev/deferred/xhttp/src/xl6_cgen_url.c`，核心不得注入 `xrtUrl*`。 |
+| 生成器文件名和行号 | 扩展迁移资产 `dev/deferred/xhttp/src/xl6_cgen_url.c` |
 | 对应生成的 C 代码 | `view = url.tHost; return xl6_url_copy_text(view.sPtr, view.iLen);` |
 | 中间形态伪代码 | `parse(url); switch(part); copy(view)` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要调用 `xrtUrlParseViewN` 并复制 view。 |
@@ -43,8 +43,8 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `url.valid(text)` / `url.isAbsolute(text)` / `url.isSecure(text)` / `url.port(text)` |
-| 生成规则描述 | `url_flag` 解析 URL 后按 flag 编号返回 valid/absolute/secure；flag 为 0 表示只检查解析是否成功。`url_port` 解析失败返回 0，成功返回 `iPort`。 |
-| 生成器文件名和行号 | `xl6_cgen_url.c:78`、`xl6_cgen_url.c:88` |
+| 生成规则描述 | URL flag 与 port wrapper 属于 xhttp 扩展，不参与核心 needs 扫描或 C 输出。XRT 核心的 HTTP target/Host 能力应由独立轻量类型绑定。 |
+| 生成器文件名和行号 | 扩展迁移资产 `dev/deferred/xhttp/src/xl6_cgen_url.c` |
 | 对应生成的 C 代码 | `return (url.iFlags & XL6_URL_F_SECURE) != 0u;` / `return (int)url.iPort;` |
 | 中间形态伪代码 | `parse(url); flag switch -> bool/int` |
 | 实现同等功能手写的 C 代码 | 手写 C 直接读取 `xrturlview.iFlags/iPort`。 |
@@ -55,8 +55,8 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `url.resolve(base, ref)` / `url.normalizePath(path)` |
-| 生成规则描述 | resolve 先解析 base，再调用 `xrtUrlResolveTo` 写入 8192 字节临时缓冲区；normalizePath 调用 `xrtUrlNormalizePathTo`。失败统一返回空字符串，成功复制输出缓冲区。 |
-| 生成器文件名和行号 | `xl6_cgen_url.c:95`、`xl6_cgen_url.c:106` |
+| 生成规则描述 | URL resolve 与 path normalize 属于 xhttp 完整 URL 产品，不进入核心标准库或核心生成代码。 |
+| 生成器文件名和行号 | 扩展迁移资产 `dev/deferred/xhttp/src/xl6_cgen_url.c` |
 | 对应生成的 C 代码 | `xrtUrlResolveTo(&baseUrl, ref, refSize, buffer, sizeof(buffer), &outLen)` |
 | 中间形态伪代码 | `fixedBuffer[8192]; if xrtOk -> copy(buffer,outLen) else ""` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要准备缓冲区和失败路径。 |
@@ -67,8 +67,8 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `query.encode(text)` / `query.decode(text)` / `query.valid(text)` |
-| 生成规则描述 | encode 按最坏情况 `size * 3 + 1` 分配输出，调用 `xrtPercentEncodeTo` 且空格转 `+`；decode 分配 `size + 1`，调用 `xrtFormUrlEncodedDecodeTo`；valid 调用 `xrtFormUrlEncodedValidateN`。失败返回空字符串或 false。 |
-| 生成器文件名和行号 | `xl6_cgen_query.c:13`、`xl6_cgen_query.c:22`、`xl6_cgen_query.c:35`、`xl6_cgen_query.c:52`、`xl6_cgen_query.c:67` |
+| 生成规则描述 | Query 与 form-urlencoded wrapper 属于 xhttp 扩展，不参与核心 needs 扫描或 C 输出；核心只保留严格 RFC 3986 percent codec。 |
+| 生成器文件名和行号 | 扩展迁移资产 `dev/deferred/xhttp/src/xl6_cgen_query.c` |
 | 对应生成的 C 代码 | `xrtPercentEncodeTo(text, size, outText, cap, &outLen, true);` |
 | 中间形态伪代码 | `allocate; call XRT encoder/decoder; nul terminate` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要做容量计算和失败释放。 |
@@ -79,8 +79,8 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `query.pair(name, value)` / `query.append(query, name, value)` |
-| 生成规则描述 | pair 创建单个 form-url-encoded 字段；append 先复制原 query，再追加字段。两者都通过最坏情况容量计算防止 size_t 溢出，并调用 `xrtFormUrlEncodedAppendFieldTo`。 |
-| 生成器文件名和行号 | `xl6_cgen_query.c:73`、`xl6_cgen_query.c:92` |
+| 生成规则描述 | Query pair/append 属于 xhttp 扩展；历史容量与溢出边界测试随迁移资产保留，接入扩展时必须继续使用 xhttp 公共 API。 |
+| 生成器文件名和行号 | 扩展迁移资产 `dev/deferred/xhttp/src/xl6_cgen_query.c` |
 | 对应生成的 C 代码 | `xrtFormUrlEncodedAppendFieldTo(outText, cap, &off, name, nameSize, value, valueSize, true);` |
 | 中间形态伪代码 | `cap = querySize + encodedPairWorstCase; append field` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自己计算容量、复制旧 query、追加字段。 |
@@ -91,12 +91,12 @@
 | 字段 | 内容 |
 | --- | --- |
 | xlang 写法 | `regex.isMatch(text, pattern)` / `regex.find(text, pattern)` |
-| 生成规则描述 | 每次调用创建 XRT regex 对象，执行匹配或查找，然后销毁 regex。`find` 成功返回起始位置，失败或创建失败返回 `-1`。 |
-| 生成器文件名和行号 | `xl6_cgen_regex.c:7`、`xl6_cgen_regex.c:16`、`xl6_cgen_regex.c:29` |
-| 对应生成的 C 代码 | `regex = xrtRegexCreate(pattern); found = xrtRegexFind(regex, text, size, &span); xrtRegexDestroy(regex);` |
-| 中间形态伪代码 | `create regex; call; destroy; return bool/index` |
-| 实现同等功能手写的 C 代码 | 手写 C 同样需要保证 regex 对象销毁。 |
-| 额外依赖的封装代码 | `xregex` 和 `xregexspan` 本地 typedef。 |
+| 生成规则描述 | Regex 已从 XRT 核心拆为 xregex 产品，核心编译器不得输出 `XRT_MODULE_REGEX` 或隐式链接正则实现。语言对象适配器随 xregex 包显式导入。 |
+| 生成器文件名和行号 | 扩展迁移资产 `dev/deferred/xregex/src/xl6_cgen_regex.c` |
+| 对应生成的 C 代码 | xregex 包调用公开的 `xrtRegexCompileConfig`、matcher 与 set API。 |
+| 中间形态伪代码 | `import regex -> package source/link closure -> Regex object adapter` |
+| 实现同等功能手写的 C 代码 | C 用户显式包含并链接 xregex。 |
+| 额外依赖的封装代码 | xregex 公共声明和包级 native adapter。 |
 
 ## CGEN-STD-009 process exec wrapper
 
@@ -170,74 +170,39 @@
 | 实现同等功能手写的 C 代码 | 手写 C 直接调用 `xrtPathJoin(count, ...)`。 |
 | 额外依赖的封装代码 | 无。 |
 
-## CGEN-STD-015 http.server runtime 类型
+## CGEN-STD-015 xhttp 服务端类型已迁出
 
-| 字段 | 内容 |
-| --- | --- |
-| xlang 写法 | `http.server.create(port)` |
-| 生成规则描述 | http server wrapper 生成 XRT `xweb` 公共 typedef，并定义 `XL6_Http_Server` 与 `XL6_Http_Route`。server 只保存 `xwebserver*`、已注册 route 链表和 running 状态；每条 route 单独保存被 retain 的 `XL6_Function`。 |
-| 生成器文件名和行号 | `xl6_cgen_http_server.c:12`、`xl6_cgen_http_server.c:52`、`xl6_cgen_http_server.c:57` |
-| 对应生成的 C 代码 | `typedef struct XL6_Http_Server { xwebserver* server; XL6_Http_Route* routes; int running; } XL6_Http_Server;` |
-| 中间形态伪代码 | `HttpServerHandle = {xwebserver, route_list, running}` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要创建 xwebserver，并在销毁 server 时遍历释放所有 route handler。 |
-| 额外依赖的封装代码 | HTTP server runtime typedef、XRT xweb 原型、function runtime。 |
+高级 HTTP 服务端类型不再属于 xlang 核心标准库。实现与完整规则已保存到
+`dev/deferred/xhttp`，等待以 xhttp 扩展包重新接入。
 
-## CGEN-STD-016 http handler function 生命周期
+## CGEN-STD-016 xhttp handler 生命周期已迁出
 
-| 字段 | 内容 |
-| --- | --- |
-| xlang 写法 | `http.server.get(server, "/users/{id}", handler)` / `http.server.post(...)` / `http.server.any(...)` |
-| 生成规则描述 | 注册路由时为 handler 分配 `XL6_Http_Route`，把 function value 保存到 route 并 retain。若 `xrtWebServerRoute` 注册失败，立即 release handler 并释放 route；server destroy 时遍历 route 链表统一 release。 |
-| 生成器文件名和行号 | `xl6_cgen_http_server.c:83`、`xl6_cgen_http_server.c:88`、`xl6_cgen_http_server.c:142`、`xl6_cgen_http_server.c:150`、`xl6_cgen_http_server.c:210` |
-| 对应生成的 C 代码 | `route->handler = handler; xl6_http_server_retain_function(&route->handler); ... xl6_http_server_release_function(&route->handler);` |
-| 中间形态伪代码 | `retain handler on route register; release handler on route register fail or server destroy` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要遵守 `XL6_Function` retain/release ABI。 |
-| 额外依赖的封装代码 | function runtime / function-var runtime / route 链表释放 helper。 |
+HTTP route handler 的 retain/release 桥接已从核心移出，迁移资产位于
+`dev/deferred/xhttp`。
 
-## CGEN-STD-017 http request 到 function value 调用桥
+## CGEN-STD-017 xhttp request 调用桥已迁出
 
-| 字段 | 内容 |
-| --- | --- |
-| xlang 写法 | handler 接收 `method, path, query, body` 并返回响应文本 |
-| 生成规则描述 | XRT `xweb` 回调中，生成器把 method/path/query/body 创建为 xvalue text，然后调用 `xl6_function_call_var(route->handler, 4, ...)`。返回值按 xvalue text 读取，作为 `text/plain; charset=utf-8` 响应体；handler 不存在时返回 500 空响应。 |
-| 生成器文件名和行号 | `xl6_cgen_http_server.c:99`、`xl6_cgen_http_server.c:111`、`xl6_cgen_http_server.c:113`、`xl6_cgen_http_server.c:122` |
-| 对应生成的 C 代码 | `result = xl6_function_call_var(route->handler, 4, method, path, query, body); xrtWebResponseText(resp, text, "text/plain; charset=utf-8");` |
-| 中间形态伪代码 | `request -> xvalue args -> handler(args) -> text response` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要自己构造 xvalue 参数并调用 function value。 |
-| 额外依赖的封装代码 | `xl6_http_server_text_value`、function-var runtime、xvalue runtime。 |
+请求对象到 function value 的高级桥接已从核心移出，迁移资产位于
+`dev/deferred/xhttp`。
 
-## CGEN-STD-018 http.server create/route/static 失败收束
+## CGEN-STD-018 xhttp 服务端生命周期已迁出
 
-| 字段 | 内容 |
-| --- | --- |
-| xlang 写法 | `http.server.create(port)` / `http.server.get(server, pattern, handler)` / `http.server.static(server, mount, root)` |
-| 生成规则描述 | create 检查端口范围并分配 `XL6_Http_Server`，随后把全部标量配置交给 XRT 的 `xrtWebServerCreateHostFullEx`；TLS 版本使用 `xrtWebServerCreateHostTlsFullEx`。生成代码不复制 `xwebconfig`、`xtlsconfig` 等 XRT 结构体布局，避免单头文件字段扩展造成 ABI 错位。route 注册检查 server、pattern 和 handler，可调用时才 retain；注册失败会释放 route。static 注册委托 XRT 的稳定 helper。 |
-| 生成器文件名和行号 | XRT 标量构造原型 `xl6_cgen_http_server.c:51-52`，普通/TLS 创建 `xl6_cgen_http_server.c:728-751`，运行时类型前置声明 `xl6_cgen_http_server_types.c:1` |
-| 对应生成的 C 代码 | `self->server = xrtWebServerCreateHostFullEx(0, host, port, backlog, recvLimit, ...);` / `xrtWebServerCreateHostTlsFullEx(0, certFile, keyFile, host, port, ...);` |
-| 中间形态伪代码 | `validate scalars; XRT full constructor owns config layout; route register owns function; static register delegates to XRT` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要维护 xweb server 创建失败、route retain/release 和静态目录注册失败路径。 |
-| 额外依赖的封装代码 | XRT 标量构造 API、route callback、function retain/release helper；不生成 XRT 配置结构体副本。 |
+高级 create/route/static/start 流程已从核心移出，迁移资产位于
+`dev/deferred/xhttp`。
 
-## CGEN-STD-019 http.server start/port/stop/destroy
+## CGEN-STD-019 xhttp 服务端控制 API 已迁出
 
-| 字段 | 内容 |
-| --- | --- |
-| xlang 写法 | `http.server.start(h)` / `http.server.port(h)` / `http.server.stop(h)` / `http.server.destroy(h)` |
-| 生成规则描述 | start 检查 handle/server 并调用 `xrtWebServerStart`，成功设置 running。port 返回 xweb bound port，空句柄返回 0。stop 调用 `xrtWebServerStop` 并清 running。destroy 调用 `xrtWebServerDestroy`，然后遍历 route 链表 release handler，最后释放 self。 |
-| 生成器文件名和行号 | `xl6_cgen_http_server.c:186`、`xl6_cgen_http_server.c:195`、`xl6_cgen_http_server.c:202`、`xl6_cgen_http_server.c:210` |
-| 对应生成的 C 代码 | `xrtWebServerStart(self->server); xrtWebServerStop(self->server); xrtWebServerDestroy(self->server);` |
-| 中间形态伪代码 | `server lifecycle methods operate on opaque handle` |
-| 实现同等功能手写的 C 代码 | 手写 C 需要按 xweb server、route handler、server handle 顺序释放。 |
-| 额外依赖的封装代码 | HTTP server runtime 类型和 route 链表释放 helper。 |
+高级 start/port/stop/destroy 包装已从核心移出，迁移资产位于
+`dev/deferred/xhttp`。
 
 ## CGEN-STD-020 标准库 wrapper 的级联 runtime 依赖
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `string.split` / `dir.list` / `http.server.create` |
-| 生成规则描述 | 某些 wrapper 会强制打开其他 runtime：`string.split` 和 `dir.list` 需要 xvalue runtime；http server 需要 function-var runtime 和 xvalue runtime。模块生成在 needs 阶段设置这些级联 flag。 |
-| 生成器文件名和行号 | `xl6_cgen_module.c:41`、`xl6_cgen_module.c:57`、`xl6_cgen_module.c:60` |
-| 对应生成的 C 代码 | `if (hasStdStringRuntime || hasDirRuntime) hasXValueRuntime = 1; if (hasHttpServerRuntime) { hasFunctionVarRuntime = 1; hasXValueRuntime = 1; }` |
+| xlang 写法 | `string.split` / `dir.list` |
+| 生成规则描述 | 某些 wrapper 会强制打开其他 runtime：`string.split` 和 `dir.list` 需要 xvalue runtime。模块生成在 needs 阶段设置这些级联 flag。 |
+| 生成器文件名和行号 | `xl6_cgen_module.c:41`、`xl6_cgen_module.c:57` |
+| 对应生成的 C 代码 | `if (hasStdStringRuntime || hasDirRuntime) hasXValueRuntime = 1;` |
 | 中间形态伪代码 | `stdlib runtime may imply xvalue/function runtime` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自己保证依赖 helper 在使用前定义。 |
-| 额外依赖的封装代码 | xvalue runtime、function-var runtime。 |
+| 额外依赖的封装代码 | xvalue runtime。 |

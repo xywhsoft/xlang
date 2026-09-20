@@ -1,0 +1,7 @@
+/* A callable declaration is part of XLIR's canonical type graph even when no
+ * call expression happens to intern its multi-result tuple first. */
+func unused_pair(bool enabled, int value) as (bool, int)
+    return enabled, value
+end
+
+assert true

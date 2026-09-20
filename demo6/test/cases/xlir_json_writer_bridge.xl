@@ -1,0 +1,47 @@
+extern "xlir_json_observe_lifetime" func observeLifetime(var target) as var
+extern "xlir_json_lifetime_expired" func expired(var witness) as c_bool
+extern "xrtClearError" func clearNativeError()
+
+func writerScope() as var
+    JsonWriter writer = JsonWriter()
+    JsonWriter alias = writer
+    var payload = {"a": 9}
+    assert writer.beginObject()
+    assert writer.beginObject("nested")
+    assert writer.writeNull("null")
+    assert writer.writeBool("bool", true)
+    assert writer.writeInt("int", -9223372036854775807)
+    assert writer.writeFloat("float", 2.5)
+    assert writer.writeString("string", "中文")
+    assert writer.writeValue("value", payload)
+    assert writer.endObject()
+    assert alias.beginArray("items")
+    assert alias.writeNull()
+    assert alias.writeBool(false)
+    assert alias.writeInt(9223372036854775807)
+    assert alias.writeFloat(3.5)
+    assert alias.writeString("tail")
+    assert alias.writeValue(payload)
+    assert alias.endArray()
+    assert alias.endObject()
+    assert alias.finish() == '{"nested":{"null":null,"bool":true,"int":-9223372036854775807,"float":2.5,"string":"中文","value":{"a":9}},"items":[null,false,9223372036854775807,3.5,"tail",{"a":9}]}'
+    assert payload["a"] == 9
+    return observeLifetime(writer)
+end
+
+for i in range(30)
+    // The shared native wrapper must be released after both aliases leave.
+    assert expired(writerScope())
+end
+
+JsonWriter pretty = json.writer(true)
+assert pretty.beginArray()
+assert pretty.writeInt(1)
+assert pretty.endArray()
+assert string.contains(pretty.finish(), "\n")
+
+JsonWriter invalid = JsonWriter()
+assert invalid.beginArray()
+assert !invalid.writeInt("key", 1)
+assert invalid.finish() == ""
+clearNativeError()

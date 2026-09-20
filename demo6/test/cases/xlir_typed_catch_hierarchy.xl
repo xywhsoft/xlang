@@ -1,0 +1,9 @@
+int observed = 0
+try
+    throw RangeError "hierarchy payload"
+catch ValueError e
+    assert e.kind == "RangeError"
+    assert e.message == "hierarchy payload"
+    observed = 1
+end
+assert observed == 1

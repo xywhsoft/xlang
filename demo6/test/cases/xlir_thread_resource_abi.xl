@@ -1,0 +1,57 @@
+func makeThreadWorker(int code) as func() as int
+    return func() as int
+        return code
+    end
+end
+
+func exerciseThreadResource(int base) as int
+    func() as int left = makeThreadWorker(base)
+    func() as int right = makeThreadWorker(base + 1)
+    bool choose = false
+    thread selected = thread(choose ? left : right)
+    if not selected.wait() then
+        return -1
+    end
+    if selected.exitCode() != base + 1 then
+        return -2
+    end
+    if right() != base + 1 then
+        return -3
+    end
+
+    thread localThread = thread(makeThreadWorker(base + 2))
+    auto observer = func() as int
+        int snapshot = localThread.state()
+        if snapshot < 0 then
+            return -4
+        end
+        if not localThread.waitTimeout(2000) then
+            return -5
+        end
+        return localThread.exitCode()
+    end
+    int observed = observer()
+
+    thread stopped = thread(makeThreadWorker(0))
+    if not stopped.stop() then
+        return -6
+    end
+    if not stopped.wait() then
+        return -7
+    end
+    return observed
+end
+
+assert exerciseThreadResource(5) == 7, "thread resource operations and captured receiver ABI failed"
+
+func() as int missingWorker
+int missingThreadState = 0
+try
+    thread invalid = thread(missingWorker)
+    missingThreadState = 2
+catch e
+    if e.message == "thread requires a callable func value" then
+        missingThreadState = 1
+    end
+end
+assert missingThreadState == 1, "thread constructor must preserve its recoverable error ABI"

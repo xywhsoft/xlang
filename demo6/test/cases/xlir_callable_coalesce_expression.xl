@@ -1,0 +1,10 @@
+func makeCallback() as func() as int
+    return func() as int
+        return 42
+    end
+end
+func makeNullable() as (func() as int)?
+    return makeCallback()
+end
+var callable = xcall(makeNullable() ?? makeCallback())
+assert int(callable()) == 42

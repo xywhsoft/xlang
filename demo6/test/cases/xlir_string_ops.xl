@@ -1,0 +1,13 @@
+export "xlir_test_string_ops" func string_ops() as int
+    string left = "hello"
+    string right = " world"
+    string expected = "hello world"
+    string joined = left + right
+    if joined != expected then
+        return 0
+    end
+    if joined == expected then
+        return 17
+    end
+    return 0
+end

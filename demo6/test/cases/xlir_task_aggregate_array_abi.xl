@@ -1,0 +1,28 @@
+async func xlirTaskAggregateArraySlow(int value) as int
+    time.sleep(40)
+    return value
+end
+
+async func xlirTaskAggregateArrayFast(int value) as int
+    time.sleep(1)
+    return value
+end
+
+array<future<int>> allJobs = array[
+    xlirTaskAggregateArraySlow(11), xlirTaskAggregateArrayFast(22)
+]
+future<array<int>> allResult = task.all(allJobs)
+assert allResult.wait(), "task.all array result should remain waitable"
+array<int> values = await allResult
+assert values.length == 2, "task.all should preserve the typed-array length"
+assert values[0] == 11, "task.all should preserve the first typed-array value"
+assert values[1] == 22, "task.all should preserve the second typed-array value"
+
+array<future<int>> raceJobs = array[
+    xlirTaskAggregateArraySlow(33), xlirTaskAggregateArrayFast(44)
+]
+future<int> raceResult = task.race(raceJobs)
+assert raceResult.wait(), "task.race array result should remain waitable"
+assert await raceResult == 44, "task.race should project the first completed typed-array value"
+
+println("xlir task aggregate array abi ok")

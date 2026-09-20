@@ -1,0 +1,6 @@
+func main(...) as int
+    var textValue = "18088"
+    var intValue = 42
+    var boolValue = true
+    return 0
+end

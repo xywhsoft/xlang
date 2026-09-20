@@ -16,7 +16,7 @@ if errorlevel 1 (
     echo cgen_native_class_property.c missing extern let C prototype.
     exit /b 1
 )
-findstr /C:"return native_property_get_value(self->handle);" build\test\cgen_native_class_property.c >nul
+findstr /C:"long long __xl6_return = native_property_get_value(self->handle);" build\test\cgen_native_class_property.c >nul
 if errorlevel 1 (
     echo cgen_native_class_property.c missing extern get wrapper.
     exit /b 1
@@ -26,7 +26,7 @@ if errorlevel 1 (
     echo cgen_native_class_property.c missing extern let wrapper.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_property.c test\cases\cgen_native_class_property_host.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_property.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_native_class_property.c test\cases\cgen_native_class_property_host.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_native_class_property.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_native_class_property.exe
 if errorlevel 1 exit /b 1
@@ -53,7 +53,7 @@ if errorlevel 1 (
     echo cgen_native_class_helper.c missing native-backed class helper call args.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_helper.c test\cases\cgen_native_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_helper.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_native_class_helper.c test\cases\cgen_native_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_native_class_helper.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_native_class_helper.exe
 if errorlevel 1 exit /b 1
@@ -70,7 +70,7 @@ if errorlevel 1 (
     echo cgen_native_class_bind_point_basic.c missing managed native-backed cleanup.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_bind_point_basic.c test\cases\cgen_native_class_bind_point_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_bind_point_basic.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_native_class_bind_point_basic.c test\cases\cgen_native_class_bind_point_host.c %XL6_CGEN_LINKS% -o build\test\cgen_native_class_bind_point_basic.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_native_class_bind_point_basic.exe
 if errorlevel 1 exit /b 1
@@ -97,7 +97,7 @@ if not errorlevel 1 (
     echo cgen_native_class_ownership.c should not emit destroy without destroy mapping.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_ownership.c test\cases\cgen_native_class_bind_point_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_ownership.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_native_class_ownership.c test\cases\cgen_native_class_bind_point_host.c %XL6_CGEN_LINKS% -o build\test\cgen_native_class_ownership.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_native_class_ownership.exe
 if errorlevel 1 exit /b 1
@@ -109,7 +109,7 @@ if errorlevel 1 (
     echo cgen_native_class_null_destroy.c missing null-handle destroy guard.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_native_class_null_destroy.c test\cases\cgen_native_class_bind_point_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_native_class_null_destroy.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_native_class_null_destroy.c test\cases\cgen_native_class_bind_point_host.c %XL6_CGEN_LINKS% -o build\test\cgen_native_class_null_destroy.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_native_class_null_destroy.exe
 if errorlevel 1 exit /b 1
@@ -126,12 +126,12 @@ if errorlevel 1 (
     echo cgen_class.c missing base field.
     exit /b 1
 )
-findstr /C:"xvoCreateObject(xl6_type_desc_XL_Class_Point())" build\test\cgen_class.c >nul
+findstr /C:"xl6ValueObject(xl6_type_desc_XL_Class_Point())" build\test\cgen_class.c >nul
 if errorlevel 1 (
     echo cgen_class.c missing managed Point construction.
     exit /b 1
 )
-findstr /C:"xvoCreateObject(xl6_type_desc_XL_Class_Point3())" build\test\cgen_class.c >nul
+findstr /C:"xl6ValueObject(xl6_type_desc_XL_Class_Point3())" build\test\cgen_class.c >nul
 if errorlevel 1 (
     echo cgen_class.c missing managed derived class construction.
     exit /b 1
@@ -141,7 +141,7 @@ if errorlevel 1 (
     echo cgen_class.c missing managed inherited field assignment.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_class.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_class.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class.exe
 if errorlevel 1 exit /b 1
@@ -158,7 +158,7 @@ if errorlevel 1 (
     echo cgen_base_create.c missing auto base create call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_base_create.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_base_create.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_base_create.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_base_create.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_base_create.exe
 if errorlevel 1 exit /b 1
@@ -170,7 +170,7 @@ if errorlevel 1 (
     echo cgen_base_create_overloads.c missing auto no-arg base create overload call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_base_create_overloads.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_base_create_overloads.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_base_create_overloads.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_base_create_overloads.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_base_create_overloads.exe
 if errorlevel 1 exit /b 1
@@ -197,7 +197,7 @@ if errorlevel 1 (
     echo cgen_class_methods.c missing method call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_methods.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_methods.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_class_methods.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_class_methods.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_methods.exe
 if errorlevel 1 exit /b 1
@@ -216,7 +216,7 @@ if errorlevel 1 (
     echo cgen_class_method_multi_return.c missing class method multi-return call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_method_multi_return.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_method_multi_return.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_class_method_multi_return.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_class_method_multi_return.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_method_multi_return.exe
 if errorlevel 1 exit /b 1
@@ -233,17 +233,17 @@ if errorlevel 1 (
     echo cgen_object_protocol.c missing object item protocol setter call.
     exit /b 1
 )
-findstr /C:"xvoUnref(value);" build\test\cgen_object_protocol.c >nul
+findstr /C:"xrtValueRelease(value);" build\test\cgen_object_protocol.c >nul
 if errorlevel 1 (
     echo cgen_object_protocol.c missing callee-owned protocol value cleanup.
     exit /b 1
 )
-findstr /C:"xvoUnref(__xl6_protocol_value_" build\test\cgen_object_protocol.c >nul
+findstr /C:"xrtValueRelease(__xl6_protocol_value_" build\test\cgen_object_protocol.c >nul
 if not errorlevel 1 (
     echo cgen_object_protocol.c releases a transferred protocol value twice.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_object_protocol.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_object_protocol.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_object_protocol.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_object_protocol.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_object_protocol.exe
 if errorlevel 1 exit /b 1
@@ -265,7 +265,7 @@ if errorlevel 1 (
     echo cgen_protocol_ops.c missing call protocol call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_protocol_ops.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_protocol_ops.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_protocol_ops.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_protocol_ops.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_protocol_ops.exe
 if errorlevel 1 exit /b 1
@@ -277,7 +277,7 @@ if errorlevel 1 (
     echo cgen_protocol_compound_assign.c missing class += protocol call.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_class_arg_" build\test\cgen_protocol_compound_assign.c >nul
+findstr /C:"xvalue* __xl6_class_arg_" build\test\cgen_protocol_compound_assign.c >nul
 if errorlevel 1 (
     echo cgen_protocol_compound_assign.c missing inline class argument temporary.
     exit /b 1
@@ -287,14 +287,14 @@ if errorlevel 1 (
     echo cgen_protocol_compound_assign.c missing inline class += overload call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_protocol_compound_assign.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_protocol_compound_assign.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_protocol_compound_assign.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_protocol_compound_assign.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_protocol_compound_assign.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_protocol_item_typed_array_return.xl --emit build\test\cgen_protocol_item_typed_array_return.c
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_protocol_item_typed_array_return.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_protocol_item_typed_array_return.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_protocol_item_typed_array_return.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_protocol_item_typed_array_return.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_protocol_item_typed_array_return.exe
 if errorlevel 1 exit /b 1
@@ -311,7 +311,7 @@ if errorlevel 1 (
     echo cgen_derive_string_hash_equals.c missing derived hash protocol.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_derive_string_hash_equals.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_derive_string_hash_equals.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_derive_string_hash_equals.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_derive_string_hash_equals.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_derive_string_hash_equals.exe
 if errorlevel 1 exit /b 1
@@ -343,7 +343,7 @@ if errorlevel 1 (
     echo cgen_protocol_overload_index.c missing string add overload symbol.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_protocol_overload_index.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_protocol_overload_index.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_protocol_overload_index.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_protocol_overload_index.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_protocol_overload_index.exe
 if errorlevel 1 exit /b 1
@@ -365,7 +365,7 @@ if errorlevel 1 (
     echo cgen_class_property_get_let.c missing multi-dimensional property getter call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_property_get_let.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_property_get_let.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_class_property_get_let.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_class_property_get_let.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_property_get_let.exe
 if errorlevel 1 exit /b 1
@@ -387,7 +387,7 @@ if not errorlevel 1 (
     echo cgen_class_property_compound_managed.c retained an owned class getter result twice.
     exit /b 1
 )
-findstr /C:"itemView = xrtTypedArrayRetain(" build\test\cgen_class_property_compound_managed.c >nul
+findstr /C:"itemView = xl6TypedArrayRetain(" build\test\cgen_class_property_compound_managed.c >nul
 if not errorlevel 1 (
     echo cgen_class_property_compound_managed.c retained an owned container getter result twice.
     exit /b 1
@@ -404,39 +404,39 @@ if errorlevel 1 (
 )
 "%XL6_BOOTSTRAP_CC%" -std=c11 -Werror=incompatible-pointer-types -Ibuild\test -fsyntax-only build\test\cgen_class_property_compound_managed.c
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_property_compound_managed.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_property_compound_managed.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_class_property_compound_managed.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_class_property_compound_managed.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_property_compound_managed.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_nested_class_constructor.xl --emit build\test\cgen_nested_class_constructor.c
 if errorlevel 1 exit /b 1
-findstr /C:"direct = xvoCreateObject(xl6_type_desc_XL_Class_Ray()" build\test\cgen_nested_class_constructor.c >nul
+findstr /C:"direct = xl6ValueObject(xl6_type_desc_XL_Class_Ray()" build\test\cgen_nested_class_constructor.c >nul
 if errorlevel 1 (
     echo cgen_nested_class_constructor.c missing managed nested global construction.
     exit /b 1
 )
-findstr /C:".value1 = xvoCreateObject(xl6_type_desc_XL_Class_Ray()" build\test\cgen_nested_class_constructor.c >nul
+findstr /C:".value1 = xl6ValueObject(xl6_type_desc_XL_Class_Ray()" build\test\cgen_nested_class_constructor.c >nul
 if errorlevel 1 (
     echo cgen_nested_class_constructor.c missing managed multi-return class construction.
     exit /b 1
 )
-findstr /C:"boxed = xvoCreateObject(xl6_type_desc_XL_Class_Box" build\test\cgen_nested_class_constructor.c >nul
+findstr /C:"boxed = xl6ValueObject(xl6_type_desc_XL_Class_Box" build\test\cgen_nested_class_constructor.c >nul
 if errorlevel 1 (
     echo cgen_nested_class_constructor.c missing managed generic class nested construction.
     exit /b 1
 )
-findstr /C:"xvalue __xl6_async_return_" build\test\cgen_nested_class_constructor.c >nul
+findstr /C:"xvalue* __xl6_async_return_" build\test\cgen_nested_class_constructor.c >nul
 if errorlevel 1 (
     echo cgen_nested_class_constructor.c missing managed async class return storage.
     exit /b 1
 )
-findstr /R /C:"__xl6_async_return_[0-9][0-9]* = xl6_xrt_move_to_shared(__xl6_async_return_" build\test\cgen_nested_class_constructor.c >nul
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$t=Get-Content 'build\test\cgen_nested_class_constructor.c' -Raw; if($t -notmatch '\*__xl6_async_box_([0-9]+) = __xl6_async_return_\1;' -or $t -notmatch 'pOut->pfnFreeValue = xl6_async_free_xvalue_value;'){exit 1}"
 if errorlevel 1 (
     echo cgen_nested_class_constructor.c missing shared async class publication.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_nested_class_constructor.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_nested_class_constructor.exe
+release\xl.exe build test\cases\cgen_nested_class_constructor.xl test\cases\cgen_class_host.c -o build\test\cgen_nested_class_constructor.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_nested_class_constructor.exe
 if errorlevel 1 exit /b 1
@@ -453,7 +453,7 @@ if errorlevel 1 (
     echo cgen_stdlib_namespace_shadow.c lost the unshadowed stdlib namespace call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_stdlib_namespace_shadow.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_stdlib_namespace_shadow.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_stdlib_namespace_shadow.c %XL6_CGEN_LINKS% -o build\test\cgen_stdlib_namespace_shadow.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_stdlib_namespace_shadow.exe
 if errorlevel 1 exit /b 1
@@ -475,7 +475,7 @@ if errorlevel 1 (
     echo cgen_protocol_complex_receiver.c missing item protocol wrapper.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_protocol_complex_receiver.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_protocol_complex_receiver.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_protocol_complex_receiver.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_protocol_complex_receiver.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_protocol_complex_receiver.exe
 if errorlevel 1 exit /b 1
@@ -497,7 +497,7 @@ if errorlevel 1 (
     echo cgen_protocol_len.c missing static length field assignment.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_protocol_len.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_protocol_len.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_protocol_len.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_protocol_len.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_protocol_len.exe
 if errorlevel 1 exit /b 1
@@ -516,7 +516,7 @@ if errorlevel 1 (
     echo cgen_protocol_iter.c missing iterator next protocol call.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_protocol_iter.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_protocol_iter.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_protocol_iter.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_protocol_iter.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_protocol_iter.exe
 if errorlevel 1 exit /b 1
@@ -543,12 +543,12 @@ if errorlevel 1 (
     echo cgen_copy_clone.c does not register the class clone adapter.
     exit /b 1
 )
-findstr /C:"xvoDeepCopy(value.values)" build\test\cgen_copy_clone.c >nul
+findstr /C:"xrtValueDeepClone(value.values)" build\test\cgen_copy_clone.c >nul
 if errorlevel 1 (
     echo cgen_copy_clone.c missing deep xvalue field copy.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_copy_clone.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_copy_clone.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_copy_clone.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_copy_clone.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_copy_clone.exe
 if errorlevel 1 exit /b 1
@@ -560,19 +560,19 @@ if errorlevel 1 (
     echo cgen_generic_class_copy_clone.c missing generic XRT class clone adapter.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_copy_clone.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_copy_clone.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class_copy_clone.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class_copy_clone.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_copy_clone.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_class_custom_copy_clone.xl --emit build\test\cgen_class_custom_copy_clone.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue protocolValue = xl_class_Packet______copy____" build\test\cgen_class_custom_copy_clone.c >nul
+findstr /C:"xvalue* protocolValue = xl_class_Packet______copy____" build\test\cgen_class_custom_copy_clone.c >nul
 if errorlevel 1 (
     echo cgen_class_custom_copy_clone.c does not dispatch custom copy through XRT.
     exit /b 1
 )
-findstr /C:"xvalue protocolValue = xl_class_Packet______clone____" build\test\cgen_class_custom_copy_clone.c >nul
+findstr /C:"xvalue* protocolValue = xl_class_Packet______clone____" build\test\cgen_class_custom_copy_clone.c >nul
 if errorlevel 1 (
     echo cgen_class_custom_copy_clone.c does not dispatch custom clone through XRT.
     exit /b 1
@@ -582,29 +582,29 @@ if not errorlevel 1 (
     echo cgen_class_custom_copy_clone.c still emits the removed payload-value copy helper.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_custom_copy_clone.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_custom_copy_clone.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_class_custom_copy_clone.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_class_custom_copy_clone.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_custom_copy_clone.exe
 if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_generic_class_custom_copy_clone.xl --emit build\test\cgen_generic_class_custom_copy_clone.c
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue xl_class_Packet__int______copy____" build\test\cgen_generic_class_custom_copy_clone.c >nul
+findstr /C:"xvalue* xl_class_Packet__int______copy____" build\test\cgen_generic_class_custom_copy_clone.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_custom_copy_clone.c missing generic custom copy prototype.
     exit /b 1
 )
-findstr /C:"xvalue protocolValue = xl_class_Packet__int______clone____" build\test\cgen_generic_class_custom_copy_clone.c >nul
+findstr /C:"xvalue* protocolValue = xl_class_Packet__int______clone____" build\test\cgen_generic_class_custom_copy_clone.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_custom_copy_clone.c does not dispatch generic custom clone.
     exit /b 1
 )
-findstr /C:"xvoShare(xvoGetRecordOwner(self))" build\test\cgen_generic_class_custom_copy_clone.c >nul
+findstr /C:"xl6ValueRecordOwnerRef(self)" build\test\cgen_generic_class_custom_copy_clone.c >nul
 if errorlevel 1 (
     echo cgen_generic_class_custom_copy_clone.c cannot recover the managed self handle.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_generic_class_custom_copy_clone.c test\cases\cgen_class_host.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generic_class_custom_copy_clone.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_generic_class_custom_copy_clone.c test\cases\cgen_class_host.c %XL6_CGEN_LINKS% -o build\test\cgen_generic_class_custom_copy_clone.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generic_class_custom_copy_clone.exe
 if errorlevel 1 exit /b 1
@@ -634,7 +634,7 @@ if errorlevel 1 (
 
 release\xl.exe cgen test\cases\cgen_object_var_field_lifetime.xl --emit build\test\cgen_object_var_field_lifetime.c
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_object_var_field_lifetime.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_object_var_field_lifetime.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_object_var_field_lifetime.c %XL6_CGEN_LINKS% -o build\test\cgen_object_var_field_lifetime.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_object_var_field_lifetime.exe
 if errorlevel 1 exit /b 1

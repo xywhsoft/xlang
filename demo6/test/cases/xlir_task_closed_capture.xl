@@ -1,0 +1,16 @@
+extern "closed_capture_touch" func closedCaptureTouch(int mode) as int
+extern "closed_capture_source" func closedCaptureSource() as future<int>
+async func closedCapture(int mode, string text, var value, future<int> source, func() as int callback, error diagnostic) as int
+    assert text == "capture"
+    assert value == 42
+    assert callback() == 7
+    return closedCaptureTouch(mode)
+end
+export "closed_capture_keep" func closedCaptureKeep()
+    try
+        throw RuntimeError "capture input"
+    catch diagnostic
+        auto callback = func() as int => 7
+        future<int> result = closedCapture(0, "capture", 42, closedCaptureSource(), callback, diagnostic)
+    end
+end

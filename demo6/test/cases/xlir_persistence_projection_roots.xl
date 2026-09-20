@@ -1,0 +1,46 @@
+class ProjectionItem
+    derive value
+    derive json
+    derive xson
+    derive hash
+    derive equals
+
+    int id = 0
+    string name = ""
+end
+
+array<int> numbers = [1, 2, 3]
+list<string> names = list[0: "alpha", 1: "beta"]
+set<int> unique = set{1, 2, 3}
+dict<int> scores = dict{"alice": 10, "bob": 20}
+
+ProjectionItem first = ProjectionItem()
+first.id = 1
+first.name = "first"
+ProjectionItem second = ProjectionItem()
+second.id = 2
+second.name = "second"
+array<ProjectionItem> items = [first, second]
+list<ProjectionItem> itemList = list[0: first, 1: second]
+set<ProjectionItem> itemSet = set{first, second}
+dict<ProjectionItem> itemDict = dict{"first": first, "second": second}
+
+assert json.stringify(numbers) == "[1,2,3]"
+assert json.stringify(names) == "[\"alpha\",\"beta\"]"
+assert json.stringify(unique) == "[1,2,3]"
+assert json.stringify(scores) == "{\"alice\":10,\"bob\":20}"
+assert json.stringify(items) == "[{\"id\":1,\"name\":\"first\"},{\"id\":2,\"name\":\"second\"}]"
+assert json.stringify(itemList) == "[{\"id\":1,\"name\":\"first\"},{\"id\":2,\"name\":\"second\"}]"
+assert json.stringify(itemSet) == "[{\"id\":1,\"name\":\"first\"},{\"id\":2,\"name\":\"second\"}]"
+assert json.stringify(itemDict) == "{\"first\":{\"id\":1,\"name\":\"first\"},\"second\":{\"id\":2,\"name\":\"second\"}}"
+
+assert xson.stringify(numbers).length > 0
+assert xson.stringify(names).length > 0
+assert xson.stringify(unique).length > 0
+assert xson.stringify(scores).length > 0
+assert xson.stringify(items).length > 0
+assert xson.stringify(itemList).length > 0
+assert xson.stringify(itemSet).length > 0
+assert xson.stringify(itemDict).length > 0
+
+println("xlir_persistence_projection_roots ok")

@@ -1,0 +1,44 @@
+extern "foreign_scope_invoke" func invoke(var callback)
+extern "foreign_scope_save" func save(var callback)
+extern "foreign_scope_run_saved" func runSaved()
+extern "foreign_scope_clear_saved" func clearSaved()
+extern "foreign_scope_native_error" func nativeError() as int
+
+func failing() as bool
+    throw RuntimeError "foreign scope original"
+    return false
+end
+
+func handled() as bool
+    bool caught = false
+    try
+        invoke(xcall(failing))
+    catch RuntimeError error
+        caught = error.message == "foreign scope original"
+    end
+    assert caught
+    return true
+end
+
+func main(...) as int
+    invoke(xcall(handled))
+    save(xcall(failing))
+    bool caught = false
+    try
+        // The foreign signature contains no callback parameter at this call.
+        runSaved()
+    catch RuntimeError error
+        caught = error.message == "foreign scope original"
+    end
+    clearSaved()
+    assert caught
+    caught = false
+    try
+        int unused = nativeError()
+    catch RuntimeError error
+        caught = error.message == "foreign native error"
+    end
+    assert caught
+    invoke(xcall(handled))
+    return 0
+end

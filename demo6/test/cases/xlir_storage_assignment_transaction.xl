@@ -1,0 +1,264 @@
+// Each RHS replaces its own destination. A successful compound operation
+// uses the value read before that replacement; a failure does not commit.
+extern "storage_transaction_fail" func transactionFail()
+extern "storage_transaction_future" func transactionFuture() as future<int>
+
+class TransactionScore
+    int value
+    create(int value)
+        self.value = value
+    end
+    func __add__(int delta) as TransactionScore
+        if delta < 0 then transactionFail() end
+        return TransactionScore(self.value + delta)
+    end
+end
+class TransactionStatic
+    static int number = 3
+    static string text = "a"
+    static array<int> items = array[1]
+    static TransactionScore score = TransactionScore(3)
+end
+int transactionNumber = 3
+string transactionText = "a"
+array<int> transactionItems = array[1]
+TransactionScore transactionScore = TransactionScore(3)
+
+func replaceNumber(byref int value, int stage) as int
+    value = 29
+    if stage == 1 then transactionFail() end
+    return 4
+end
+func replaceText(byref string value, int stage) as string
+    value = string(29)
+    if stage == 1 then transactionFail() end
+    return "b"
+end
+func replaceItems(byref array<int> value, int stage) as array<int>
+    value = array[29]
+    if stage == 1 then transactionFail() end
+    return array[4]
+end
+func replaceScore(byref TransactionScore value, int stage) as int
+    value = TransactionScore(29)
+    if stage == 1 then transactionFail() end
+    return stage == 2 ? -4 : 4
+end
+func checkValues(int number, string text, array<int> items, TransactionScore score, int stage)
+    assert number == (stage == 1 ? 29 : 7)
+    assert text == (stage == 1 ? "29" : "ab")
+    assert items.length == (stage == 1 ? 1 : 2)
+    assert items[0] == (stage == 1 ? 29 : 1)
+    if stage != 1 then assert items[1] == 4 end
+    assert score.value == (stage == 0 ? 7 : 29)
+end
+
+// Uncaptured local storage, including out/ref aliases used by the RHS.
+export "transaction_local" func transactionLocal(int stage) as int
+    int number = 3
+    string text = "a"
+    array<int> items = array[1]
+    TransactionScore score = TransactionScore(3)
+    int caught = 0
+    try
+        number += replaceNumber(byref number, stage)
+    catch failure
+        assert failure.code == 73
+        caught += 1
+    end
+    try
+        text += replaceText(byref text, stage)
+    catch failure
+        assert failure.code == 73
+        caught += 1
+    end
+    try
+        items += replaceItems(byref items, stage)
+    catch failure
+        assert failure.code == 73
+        caught += 1
+    end
+    try
+        score += replaceScore(byref score, stage)
+    catch failure
+        assert failure.code == 73
+        caught += 1
+    end
+    checkValues(number, text, items, score, stage)
+    assert caught == (stage == 0 ? 0 : stage == 1 ? 4 : 1)
+    text = text
+    items = items
+    score = score
+    checkValues(number, text, items, score, stage)
+    return 0
+end
+
+// Mutable typed collection/class captures remain a frontend rejection; the
+// supported int/string cell payloads use this same storage transaction.
+func capturedTransaction(int number, string text, int stage) as int
+    auto run = func() as int
+        int caught = 0
+        auto numberRhs = func() as int
+            number = 29
+            if stage == 1 then transactionFail() end
+            return 4
+        end
+        auto textRhs = func() as string
+            text = string(29)
+            if stage == 1 then transactionFail() end
+            return "b"
+        end
+        try
+            number += numberRhs()
+        catch failure
+            assert failure.code == 73
+            caught += 1
+        end
+        try
+            text += textRhs()
+        catch failure
+            assert failure.code == 73
+            caught += 1
+        end
+        assert number == (stage == 1 ? 29 : 7)
+        assert text == (stage == 1 ? "29" : "ab")
+        assert caught == (stage == 1 ? 2 : 0)
+        text = text
+        return 0
+    end
+    int result = run()
+    assert number == (stage == 1 ? 29 : 7)
+    assert text == (stage == 1 ? "29" : "ab")
+    return result
+end
+export "transaction_cell" func transactionCell(int stage) as int
+    return capturedTransaction(3, "a", stage)
+end
+
+func staticNumberRhs(int stage) as int
+    TransactionStatic.number = 29
+    if stage == 1 then transactionFail() end
+    return 4
+end
+func staticTextRhs(int stage) as string
+    TransactionStatic.text = string(29)
+    if stage == 1 then transactionFail() end
+    return "b"
+end
+func staticItemsRhs(int stage) as array<int>
+    TransactionStatic.items = array[29]
+    if stage == 1 then transactionFail() end
+    return array[4]
+end
+func staticScoreRhs(int stage) as int
+    TransactionStatic.score = TransactionScore(29)
+    if stage == 1 then transactionFail() end
+    return stage == 2 ? -4 : 4
+end
+export "transaction_static" func transactionStatic(int stage) as int
+    TransactionStatic.number = 3
+    TransactionStatic.text = "a"
+    TransactionStatic.items = array[1]
+    TransactionStatic.score = TransactionScore(3)
+    int caught = 0
+    try
+        TransactionStatic.number += staticNumberRhs(stage)
+    catch failure
+        assert failure.code == 73
+        caught += 1
+    end
+    try
+        TransactionStatic.text += staticTextRhs(stage)
+    catch failure
+        assert failure.code == 73
+        caught += 1
+    end
+    try
+        TransactionStatic.items += staticItemsRhs(stage)
+    catch failure
+        assert failure.code == 73
+        caught += 1
+    end
+    try
+        TransactionStatic.score += staticScoreRhs(stage)
+    catch failure
+        assert failure.code == 73
+        caught += 1
+    end
+    checkValues(TransactionStatic.number, TransactionStatic.text, TransactionStatic.items, TransactionStatic.score, stage)
+    assert caught == (stage == 0 ? 0 : stage == 1 ? 4 : 1)
+    TransactionStatic.text = TransactionStatic.text
+    TransactionStatic.items = TransactionStatic.items
+    TransactionStatic.score = TransactionStatic.score
+    checkValues(TransactionStatic.number, TransactionStatic.text, TransactionStatic.items, TransactionStatic.score, stage)
+    return 0
+end
+
+export "transaction_global" func transactionGlobal(int stage) as int
+    transactionNumber = 3
+    transactionText = "a"
+    transactionItems = array[1]
+    transactionScore = TransactionScore(3)
+    int caught = 0
+    try
+        transactionNumber += replaceNumber(byref transactionNumber, stage)
+    catch failure
+        assert failure.code == 73
+        caught += 1
+    end
+    try
+        transactionText += replaceText(byref transactionText, stage)
+    catch failure
+        assert failure.code == 73
+        caught += 1
+    end
+    try
+        transactionItems += replaceItems(byref transactionItems, stage)
+    catch failure
+        assert failure.code == 73
+        caught += 1
+    end
+    try
+        transactionScore += replaceScore(byref transactionScore, stage)
+    catch failure
+        assert failure.code == 73
+        caught += 1
+    end
+    checkValues(transactionNumber, transactionText, transactionItems, transactionScore, stage)
+    assert caught == (stage == 0 ? 0 : stage == 1 ? 4 : 1)
+    return 0
+end
+
+async func transactionAwait(future<int> pending, int mode) as int
+    if mode == 0
+        TransactionStatic.number += await pending
+        return TransactionStatic.number
+    elseif mode == 1
+        TransactionStatic.text += string(await pending)
+        assert TransactionStatic.text == "a4"
+        return 7
+    elseif mode == 2
+        TransactionStatic.items += array[await pending]
+        assert TransactionStatic.items.length == 2 and TransactionStatic.items[0] == 1
+        return TransactionStatic.items[1] + 3
+    end
+    TransactionStatic.score += await pending
+    return TransactionStatic.score.value
+end
+async func transactionReady() as int
+    return 0
+end
+future<int> transactionPending = transactionReady()
+export "transaction_start" func transactionStart(int mode)
+    TransactionStatic.number = 3
+    TransactionStatic.text = "a"
+    TransactionStatic.items = array[1]
+    TransactionStatic.score = TransactionScore(3)
+    transactionPending = transactionAwait(transactionFuture(), mode)
+end
+export "transaction_replace" func transactionReplace()
+    TransactionStatic.number = 29
+    TransactionStatic.text = "29"
+    TransactionStatic.items = array[29]
+    TransactionStatic.score = TransactionScore(29)
+end

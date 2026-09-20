@@ -17,7 +17,8 @@ static void xl6CgenTypedContainerToXValueExpr(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode,
     const char* storageName,
-    const XL6_AstNode* valueExpr
+    const XL6_AstNode* valueExpr,
+    const char* format
 )
 {
     const XL6_AstNode* concreteType;
@@ -34,14 +35,46 @@ static void xl6CgenTypedContainerToXValueExpr(
                 (itemType != NULL && itemType->text != NULL ? xl6CgenFindClass(ctx, itemType->text) : NULL);
     typeName = concreteType != NULL ? concreteType->text : NULL;
 
-    xl6OutputPuts("xl6_xrt_bind_type(", ctx->out);
+    if ( format == NULL ) {
+        xl6OutputPuts("xl6_xrt_bind_type(", ctx->out);
+    }
     if ( xl6CTextEquals(typeName, "array") &&
          itemClass != NULL &&
          xl6CgenClassHasValueDerive(itemClass) ) {
         xl6OutputPuts("xl6_xrt_typed_array_to_xvalue_map(", ctx->out);
         xl6CgenTypedContainerValueSourceExpr(ctx, storageName, valueExpr);
         xl6OutputPuts(", (xl6_xrt_typed_item_box_fn)", ctx->out);
-        xl6CgenClassAutoToValueFormatSymbol(ctx->out, itemClass, NULL);
+        xl6CgenClassAutoToValueFormatSymbol(ctx->out, itemClass, format);
+        xl6OutputPuts(itemRecordType != NULL ? ", true" : ", false", ctx->out);
+        xl6OutputPutc(')', ctx->out);
+    } else if ( format != NULL &&
+                xl6CTextEquals(typeName, "list") &&
+                itemClass != NULL &&
+                xl6CgenClassHasValueDerive(itemClass) ) {
+        xl6OutputPuts("xl6_xrt_typed_list_to_sequence_map(", ctx->out);
+        xl6CgenTypedContainerValueSourceExpr(ctx, storageName, valueExpr);
+        xl6OutputPuts(", (xl6_xrt_typed_item_box_fn)", ctx->out);
+        xl6CgenClassAutoToValueFormatSymbol(ctx->out, itemClass, format);
+        xl6OutputPuts(itemRecordType != NULL ? ", true" : ", false", ctx->out);
+        xl6OutputPutc(')', ctx->out);
+    } else if ( format != NULL &&
+                xl6CTextEquals(typeName, "set") &&
+                itemClass != NULL &&
+                xl6CgenClassHasValueDerive(itemClass) ) {
+        xl6OutputPuts("xl6_xrt_typed_set_to_sequence_map(", ctx->out);
+        xl6CgenTypedContainerValueSourceExpr(ctx, storageName, valueExpr);
+        xl6OutputPuts(", (xl6_xrt_typed_item_box_fn)", ctx->out);
+        xl6CgenClassAutoToValueFormatSymbol(ctx->out, itemClass, format);
+        xl6OutputPuts(itemRecordType != NULL ? ", true" : ", false", ctx->out);
+        xl6OutputPutc(')', ctx->out);
+    } else if ( format != NULL &&
+                xl6CTextEquals(typeName, "dict") &&
+                itemClass != NULL &&
+                xl6CgenClassHasValueDerive(itemClass) ) {
+        xl6OutputPuts("xl6_xrt_typed_dict_to_xvalue_map(", ctx->out);
+        xl6CgenTypedContainerValueSourceExpr(ctx, storageName, valueExpr);
+        xl6OutputPuts(", (xl6_xrt_typed_item_box_fn)", ctx->out);
+        xl6CgenClassAutoToValueFormatSymbol(ctx->out, itemClass, format);
         xl6OutputPuts(itemRecordType != NULL ? ", true" : ", false", ctx->out);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(typeName, "array") ) {
@@ -51,13 +84,21 @@ static void xl6CgenTypedContainerToXValueExpr(
         xl6CgenTypedContainerValueSourceExpr(ctx, storageName, valueExpr);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(typeName, "list") ) {
-        xl6OutputPuts("xl6_xrt_typed_list_to_xvalue(", ctx->out);
+        xl6OutputPuts(
+            format != NULL ?
+                "xl6_xrt_typed_list_to_sequence_value(" :
+                "xl6_xrt_typed_list_to_xvalue(",
+            ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, itemType);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenTypedContainerValueSourceExpr(ctx, storageName, valueExpr);
         xl6OutputPutc(')', ctx->out);
     } else if ( xl6CTextEquals(typeName, "set") ) {
-        xl6OutputPuts("xl6_xrt_typed_set_to_xvalue(", ctx->out);
+        xl6OutputPuts(
+            format != NULL ?
+                "xl6_xrt_typed_set_to_sequence_value(" :
+                "xl6_xrt_typed_set_to_xvalue(",
+            ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, itemType);
         xl6OutputPuts(", ", ctx->out);
         xl6CgenTypedContainerValueSourceExpr(ctx, storageName, valueExpr);
@@ -70,12 +111,14 @@ static void xl6CgenTypedContainerToXValueExpr(
         xl6OutputPutc(')', ctx->out);
     } else {
         xl6CgenError(ctx, typeNode, "typed container boxing requires array/list/set/dict");
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         return;
     }
-    xl6OutputPuts(", ", ctx->out);
-    xl6CgenEmitRuntimeTypeDescRef(ctx, typeNode);
-    xl6OutputPutc(')', ctx->out);
+    if ( format == NULL ) {
+        xl6OutputPuts(", ", ctx->out);
+        xl6CgenEmitRuntimeTypeDescRef(ctx, typeNode);
+        xl6OutputPutc(')', ctx->out);
+    }
 }
 
 static void xl6CgenTypedContainerStorageToXValueExpr(
@@ -84,16 +127,17 @@ static void xl6CgenTypedContainerStorageToXValueExpr(
     const char* storageName
 )
 {
-    xl6CgenTypedContainerToXValueExpr(ctx, typeNode, storageName, NULL);
+    xl6CgenTypedContainerToXValueExpr(ctx, typeNode, storageName, NULL, NULL);
 }
 
 static void xl6CgenTypedContainerExprToXValueExpr(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode,
-    const XL6_AstNode* valueExpr
+    const XL6_AstNode* valueExpr,
+    const char* format
 )
 {
-    xl6CgenTypedContainerToXValueExpr(ctx, typeNode, NULL, valueExpr);
+    xl6CgenTypedContainerToXValueExpr(ctx, typeNode, NULL, valueExpr, format);
 }
 
 static void xl6CgenTypedContainerLocalDestroyStmt(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* storageName)
@@ -105,13 +149,13 @@ static void xl6CgenTypedContainerLocalDestroyStmt(XL6_CgenContext* ctx, const XL
     typeName = concreteType != NULL ? concreteType->text : NULL;
     xl6CgenIndent(ctx);
     if ( xl6CTextEquals(typeName, "array") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedArrayDestroy(%s);\n", storageName);
+        xl6OutputPrintf(ctx->out, "xl6TypedArrayRelease(%s);\n", storageName);
     } else if ( xl6CTextEquals(typeName, "list") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedListDestroy(%s);\n", storageName);
+        xl6OutputPrintf(ctx->out, "xl6TypedListRelease(%s);\n", storageName);
     } else if ( xl6CTextEquals(typeName, "set") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedSetDestroy(%s);\n", storageName);
+        xl6OutputPrintf(ctx->out, "xl6TypedSetRelease(%s);\n", storageName);
     } else if ( xl6CTextEquals(typeName, "dict") ) {
-        xl6OutputPrintf(ctx->out, "xrtTypedDictDestroy(%s);\n", storageName);
+        xl6OutputPrintf(ctx->out, "xl6TypedDictRelease(%s);\n", storageName);
     } else {
         xl6CgenError(ctx, typeNode, "typed container destroy requires array/list/set/dict");
     }
@@ -168,11 +212,11 @@ static void xl6CgenTypedArrayFutureStmt(XL6_CgenContext* ctx, const char* cName,
     }
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (!xrtTypedArrayAppend(%s, &__xl6_typed_future_%d)) {\n", cName, id);
+    xl6OutputPrintf(ctx->out, "if (!xl6TypedArrayAppend(%s, &__xl6_typed_future_%d)) {\n", cName, id);
     ctx->indent += 1;
     if ( shouldRelease ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xFutureRelease(__xl6_typed_future_%d);\n", id);
+        xl6OutputPrintf(ctx->out, "xl6FutureDestroy(__xl6_typed_future_%d);\n", id);
     }
     xl6CgenIndent(ctx);
     xl6OutputPuts("xl6_runtime_fatal(3);\n", ctx->out);
@@ -182,7 +226,7 @@ static void xl6CgenTypedArrayFutureStmt(XL6_CgenContext* ctx, const char* cName,
         xl6OutputPuts("} else {\n", ctx->out);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xFutureRelease(__xl6_typed_future_%d);\n", id);
+        xl6OutputPrintf(ctx->out, "xl6FutureDestroy(__xl6_typed_future_%d);\n", id);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("}\n", ctx->out);
@@ -220,7 +264,7 @@ static void xl6CgenTypedContainerFillFromLiteral(XL6_CgenContext* ctx, const cha
             if ( xl6CgenIsFutureLikeType(itemType) ) {
                 xl6CgenTypedArrayFutureStmt(ctx, cName, literal->children[i]);
             } else {
-                xl6CgenTypedContainerValueStmt(ctx, cName, "xrtTypedArrayAppendValue(", itemType, literal->children[i]);
+                xl6CgenTypedContainerValueStmt(ctx, cName, "xl6TypedArrayAppendValue(", itemType, literal->children[i]);
             }
         }
         return;
@@ -228,7 +272,7 @@ static void xl6CgenTypedContainerFillFromLiteral(XL6_CgenContext* ctx, const cha
 
     if ( xl6CTextEquals(typeName, "set") ) {
         for ( i = 0; i < literal->childCount; ++i ) {
-            xl6CgenTypedContainerValueStmt(ctx, cName, "xrtTypedSetAddValue(", itemType, literal->children[i]);
+            xl6CgenTypedContainerValueStmt(ctx, cName, "xl6TypedSetAddValue(", itemType, literal->children[i]);
         }
         return;
     }
@@ -246,12 +290,12 @@ static void xl6CgenTypedContainerFillFromLiteral(XL6_CgenContext* ctx, const cha
             xl6OutputPuts("{\n", ctx->out);
             ctx->indent += 1;
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", valueName);
+            xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", valueName);
             if ( !xl6CgenTypedContainerNestedLiteralValueStmt(ctx, itemType, valueName, value) ) {
                 xl6CgenXValueAssignStmt(ctx, itemType, valueName, value);
             }
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "if (!xrtTypedListSetValue(%s, (long long)(", cName);
+            xl6OutputPrintf(ctx->out, "if (!xl6TypedListSetValue(%s, (long long)(", cName);
             xl6CgenExpr(ctx, key);
             xl6OutputPrintf(ctx->out, "), %s)) {\n", valueName);
             ctx->indent += 1;
@@ -261,7 +305,7 @@ static void xl6CgenTypedContainerFillFromLiteral(XL6_CgenContext* ctx, const cha
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", valueName);
+            xl6OutputPrintf(ctx->out, "xrtValueRelease(%s);\n", valueName);
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
@@ -287,12 +331,12 @@ static void xl6CgenTypedContainerFillFromLiteral(XL6_CgenContext* ctx, const cha
             xl6OutputPuts("{\n", ctx->out);
             ctx->indent += 1;
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", valueName);
+            xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", valueName);
             if ( !xl6CgenTypedContainerNestedLiteralValueStmt(ctx, itemType, valueName, value) ) {
                 xl6CgenXValueAssignStmt(ctx, itemType, valueName, value);
             }
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "if (!xrtTypedDictSetValue(%s, ", cName);
+            xl6OutputPrintf(ctx->out, "if (!xl6TypedDictSetValue(%s, ", cName);
             xl6CgenExpr(ctx, key);
             xl6OutputPrintf(ctx->out, ", 0, %s)) {\n", valueName);
             ctx->indent += 1;
@@ -302,7 +346,7 @@ static void xl6CgenTypedContainerFillFromLiteral(XL6_CgenContext* ctx, const cha
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", valueName);
+            xl6OutputPrintf(ctx->out, "xrtValueRelease(%s);\n", valueName);
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
@@ -328,7 +372,7 @@ static int xl6CgenFuncSingleReturnUsesTypedContainerStorage(XL6_CgenContext* ctx
 
     /*
         泛型实例化时，T 可能已经替换成 array<int> 这类静态容器。
-        判断返回 ABI 前必须使用具体类型，否则声明会退回 xvalue。
+        判断返回 ABI 前必须使用具体类型，否则声明会退回 xvalue*。
     */
     returnType = xl6CgenCloneCanonicalTypeNode(ctx, returns->children[0]);
     result = xl6CgenIsTypedContainerType(ctx, returnType);
@@ -374,7 +418,7 @@ static int xl6CgenParamTypeUsesTypedContainerStorage(XL6_CgenContext* ctx, const
      * 泛型函数实例化时，array<T>/list<T>/set<T>/dict<T> 的 T 已经可以通过
      * currentGenericParams/currentGenericArgs 替换成具体类型。只要替换后的
      * 容器元素不是 var，就继续使用 XRT typed-container 句柄作为 ABI；
-     * 只有真正无法静态确定的容器才退回 xvalue。
+     * 只有真正无法静态确定的容器才退回 xvalue*。
      */
     concreteType = xl6CgenTypedContainerConcreteType(ctx, typeNode);
     return ctx != NULL &&
@@ -401,13 +445,13 @@ static const char* xl6CgenParamCType(XL6_CgenContext* ctx, const XL6_AstNode* ty
     return baseType;
 }
 
-static void xl6CgenTypedContainerValueFromExprMode(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr, const char* mode)
+static void xl6CgenTypedContainerValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr)
 {
     const XL6_AstNode* literal;
 
     literal = xl6CgenTypedContainerInitLiteral(ctx, typeNode, expr);
     if ( literal != NULL ) {
-        xl6CgenTypedContainerCreateExprMode(ctx, typeNode, mode);
+        xl6CgenTypedContainerCreateExpr(ctx, typeNode);
         return;
     }
 
@@ -416,20 +460,11 @@ static void xl6CgenTypedContainerValueFromExprMode(XL6_CgenContext* ctx, const X
         return;
     }
     if ( xl6CgenExprUsesTypedContainerStorage(ctx, expr) ) {
-        if ( mode != NULL && xl6CTextEquals(mode, "XRT_OBJMODE_SHARED") ) {
-            xl6CgenTypedContainerCopyExprMode(ctx, typeNode, expr, mode);
-        } else {
         xl6CgenTypedContainerRetainExpr(ctx, typeNode, expr);
-        }
         return;
     }
 
     xl6CgenExpr(ctx, expr);
-}
-
-static void xl6CgenTypedContainerValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr)
-{
-    xl6CgenTypedContainerValueFromExprMode(ctx, typeNode, expr, "XRT_OBJMODE_LOCAL");
 }
 
 static void xl6CgenTypedContainerReturnStmt(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const XL6_AstNode* expr, int id)
@@ -471,7 +506,7 @@ static void xl6CgenNamedValueReference(XL6_CgenContext* ctx, const char* name)
         return;
     }
     if ( xl6CTextEquals(name, "self") && ctx->currentClass != NULL ) {
-        xl6OutputPuts("xvoShare(xvoGetRecordOwner(self))", ctx->out);
+        xl6OutputPuts("xl6ValueRecordOwnerRef(self)", ctx->out);
         return;
     }
     if ( xl6CgenAnonCaptureIndex(ctx->currentAnonFunc, name) >= 0 ) {
@@ -608,10 +643,13 @@ static int xl6CgenCallIsExternalStringReturn(XL6_CgenContext* ctx, const XL6_Ast
     callee = call->children[0];
     if ( callee == NULL ) {
         return 0;
-    }
-    if ( callee->kind == XL6_AST_NAME ) {
-        return xl6CgenCallableReturnsString(ctx, xl6CgenFindExternFunc(ctx, callee->text));
-    }
+	}
+	if ( callee->kind == XL6_AST_NAME ) {
+		const XL6_AstNode* target = xl6CgenHirTarget(ctx, call);
+
+		return target != NULL && target->kind == XL6_AST_EXTERN_FUNC &&
+			xl6CgenCallableReturnsString(ctx, target);
+	}
     if ( callee->kind == XL6_AST_MEMBER && callee->childCount > 0 ) {
         const XL6_AstNode* receiver = callee->children[0];
         XL6_AstNode* receiverType;

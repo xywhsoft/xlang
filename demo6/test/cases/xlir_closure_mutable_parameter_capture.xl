@@ -1,0 +1,12 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+func applyCounter(int initial) as int
+    auto next = func() as int
+        initial = initial + 1
+        return initial
+    end
+    next()
+    return next()
+end
+
+expect(applyCounter(40), 42)

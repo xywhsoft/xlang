@@ -1,0 +1,51 @@
+async func delayedInt(int value, int delayMs) as int
+    time.sleep(delayMs)
+    return value
+end
+
+async func failedInt() as int
+    throw "future member failure"
+    return 0
+end
+
+future<int> pending = delayedInt(7, 150)
+assert pending.setDebugName("status-gate"), "Future should accept a stable debug name"
+assert pending.debugName() == "status-gate", "Future should copy its debug name"
+assert pending.createTimeMs() > 0, "Future should expose a creation timestamp"
+assert pending.completeTimeMs() == 0, "pending Future should have no completion timestamp"
+assert pending.pendingContinuations() >= 0, "Future continuation count should be nonnegative"
+assert pending.isPending(), "new delayed Future should be pending"
+assert not pending.isDone(), "pending Future should not be done"
+assert pending.state() == 0, "pending Future should expose state zero"
+assert pending.status() == 0, "pending Future should expose neutral status"
+assert not pending.waitTimeout(1), "short relative wait should time out"
+assert pending.wait(), "unbounded wait should observe successful completion"
+assert pending.completeTimeMs() >= pending.createTimeMs(), "completed Future timestamps should be ordered"
+assert pending.isDone(), "resolved Future should be done"
+assert not pending.isPending(), "resolved Future should not remain pending"
+assert pending.state() == 1, "resolved Future should expose state one"
+assert pending.status() == 0, "resolved Future should retain neutral status"
+assert pending.waitUntil(0), "an already resolved Future ignores an expired deadline"
+assert not pending.isFailed(), "resolved Future should not be failed"
+assert not pending.isCancelled(), "resolved Future should not be cancelled"
+
+future<int> failed = failedInt()
+assert not failed.wait(), "wait should report a failed Future"
+assert failed.isDone(), "failed Future should be done"
+assert failed.isFailed(), "failed Future should expose failed state"
+assert failed.state() == 2, "failed Future should expose state two"
+assert failed.status() == -1, "failed Future should expose failure status"
+error failure = failed.error()
+assert failure != null, "failed Future should expose an owned structured error"
+assert failure.message == "future member failure", "Future error should preserve failure message"
+
+future<int> cancelled = delayedInt(9, 250)
+assert cancelled.cancel(), "cancellation request should be accepted"
+assert not cancelled.wait(), "wait should observe cancellation as unsuccessful completion"
+assert cancelled.isDone(), "cancelled Future should be done"
+assert cancelled.isCancelled(), "cancelled Future should expose cancelled state"
+assert not cancelled.isFailed(), "cancelled Future should not be failed"
+assert cancelled.state() == 3, "cancelled Future should expose state three"
+assert cancelled.status() == -2, "cancelled Future should expose cancellation status"
+
+println("xlir future member status abi ok")

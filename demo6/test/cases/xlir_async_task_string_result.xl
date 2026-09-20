@@ -1,0 +1,5 @@
+async func makeGreetingAsync() as string
+    return "XLIR"
+end
+
+future<string> pending = makeGreetingAsync()

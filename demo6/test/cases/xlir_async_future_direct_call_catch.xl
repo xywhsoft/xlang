@@ -1,0 +1,13 @@
+extern "xlir_make_i64_future" func makeI64Future() as future<int>
+
+async func recoverProduced() as int
+    try
+        return await makeI64Future()
+    catch ignored
+        return 7
+    end
+end
+
+future<int> pending = recoverProduced()
+int completed = await pending
+assert completed == 7

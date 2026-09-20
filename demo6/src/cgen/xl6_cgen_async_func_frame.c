@@ -40,7 +40,7 @@ static void xl6CgenAsyncArgsFreeFunc(XL6_CgenContext* ctx, const XL6_AstNode* no
         xl6CgenIndent(ctx);
         xl6OutputPuts(
             "if (__xl6_args->__xl6_self != 0) { "
-            "xvoUnref(__xl6_args->__xl6_self); "
+            "xrtValueRelease(__xl6_args->__xl6_self); "
             "__xl6_args->__xl6_self = 0; }\n",
             ctx->out);
     }
@@ -74,10 +74,13 @@ static void xl6CgenAsyncArgsFreeFunc(XL6_CgenContext* ctx, const XL6_AstNode* no
             xl6OutputPrintf(ctx->out, "; %s = 0; }\n", fieldPath);
         } else if ( xl6CgenIsWeakType(typeNode) ) {
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvoWeakUnit(&%s);\n", fieldPath);
+            xl6OutputPrintf(ctx->out, "xl6WeakUnit(&%s);\n", fieldPath);
+        } else if ( xl6CgenIsErrorType(ctx, typeNode) ) {
+            xl6CgenIndent(ctx);
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xl6_error_free(%s); %s = 0; }\n", fieldPath, fieldPath, fieldPath);
         } else if ( xl6CgenIsXValueType(typeNode) ) {
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", fieldPath, fieldPath, fieldPath);
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtValueRelease(%s); %s = 0; }\n", fieldPath, fieldPath, fieldPath);
         } else if ( xl6CgenIsFunctionType(typeNode) ) {
             xl6CgenReleaseFunctionPath(ctx, fieldPath);
         } else if ( xl6CgenNullableHasManagedInner(ctx, typeNode) ) {
@@ -87,7 +90,7 @@ static void xl6CgenAsyncArgsFreeFunc(XL6_CgenContext* ctx, const XL6_AstNode* no
             xl6OutputPrintf(ctx->out, "%s(&%s);\n", dropName, fieldPath);
         } else if ( xl6CgenIsTaggedEnumType(ctx, typeNode) ) {
             xl6CgenIndent(ctx);
-            xl6OutputPuts("xrtTypeDropValue(", ctx->out);
+            xl6OutputPuts("xl6TypeDropValue(", ctx->out);
             xl6CgenEmitXrtTypeDescRef(ctx, typeNode);
             xl6OutputPrintf(ctx->out, ", &%s);\n", fieldPath);
         } else {
@@ -118,7 +121,7 @@ static void xl6CgenAsyncCopyArgToFrame(XL6_CgenContext* ctx, const XL6_AstNode* 
     xl6CgenCIdentText(paramName, sizeof(paramName), param->text);
     if ( xl6CgenIsTaggedEnumType(ctx, typeNode) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPuts("if (!xrtTypeCopyValue(", ctx->out);
+        xl6OutputPuts("if (!xl6TypeCopyValue(", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, typeNode);
         xl6OutputPrintf(
             ctx->out,
@@ -135,14 +138,16 @@ static void xl6CgenAsyncCopyArgToFrame(XL6_CgenContext* ctx, const XL6_AstNode* 
             ctx->out,
             xl6CgenIsNullableStringTypeNode(ctx, typeNode) ?
                 "xl6_nullable_string_copy(%s)" :
-                "xrtCopyStr(%s, 0u)",
+                "xl6_xrt_string_dup(%s, 0u)",
             paramName);
-    } else if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
-        xl6CgenTypedContainerCopyCExprMode(ctx, typeNode, paramName, "XRT_OBJMODE_SHARED");
+	} else if ( xl6CgenIsTypedContainerType(ctx, typeNode) ) {
+		xl6CgenTypedContainerCloneCExpr(ctx, typeNode, paramName);
     } else if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
         xl6CgenSpecialCollectionRetainCExpr(ctx, typeNode, paramName);
     } else if ( xl6CgenIsWeakType(typeNode) ) {
-        xl6OutputPrintf(ctx->out, "xvoWeakClone(&%s)", paramName);
+        xl6OutputPrintf(ctx->out, "xl6WeakClone(&%s)", paramName);
+    } else if ( xl6CgenIsErrorType(ctx, typeNode) ) {
+        xl6OutputPrintf(ctx->out, "xl6_error_retain(%s)", paramName);
     } else if ( xl6CgenIsXValueType(typeNode) ) {
         xl6OutputPrintf(ctx->out, "xl6_xrt_retain(%s)", paramName);
     } else if ( xl6CgenIsFunctionType(typeNode) ) {
@@ -189,13 +194,13 @@ static void xl6CgenAsyncTakeArgFromFrame(XL6_CgenContext* ctx, const XL6_AstNode
         if ( xl6CgenIsNullableStringTypeNode(ctx, typeNode) ) {
             xl6OutputPrintf(
                 ctx->out,
-                "%s != 0 ? xrtTempStringTake((char*)%s, 0u) : 0",
+                "%s != 0 ? xl6_temp_string_take((char*)%s, 0u) : 0",
                 fieldPath,
                 fieldPath);
         } else {
             xl6OutputPrintf(
                 ctx->out,
-                "xrtTempStringTake((char*)%s, 0u)",
+                "xl6_temp_string_take((char*)%s, 0u)",
                 fieldPath);
         }
     } else {
@@ -207,6 +212,7 @@ static void xl6CgenAsyncTakeArgFromFrame(XL6_CgenContext* ctx, const XL6_AstNode
                               !xl6CgenIsTypedContainerType(ctx, typeNode) &&
                               !xl6CgenIsSpecialCollectionType(ctx, typeNode) &&
                                !xl6CgenIsWeakType(typeNode) &&
+                               !xl6CgenIsErrorType(ctx, typeNode) &&
                                !xl6CgenIsXValueType(typeNode) &&
                                !xl6CgenIsFunctionType(typeNode) &&
                                !xl6CgenNullableHasManagedInner(ctx, typeNode) &&
@@ -248,7 +254,8 @@ static void xl6CgenRegisterAsyncParamOwnerCleanups(XL6_CgenContext* ctx, const X
             xl6OutputPrintf(ctx->out, "%s = 1;\n", ownerName);
         } else if ( xl6CgenIsSpecialCollectionType(ctx, typeNode) ) {
             xl6CgenAddSpecialCollectionCleanup(ctx, param->text, typeNode);
-        } else if ( xl6CgenIsXValueType(typeNode) ) {
+        } else if ( xl6CgenIsErrorType(ctx, typeNode) ||
+                    xl6CgenIsXValueType(typeNode) ) {
             /* var 与 class handle 已由普通参数清理栈统一持有，不能重复注册 class 析构。 */
             continue;
         } else if ( xl6CgenIsFunctionType(typeNode) ||
@@ -277,7 +284,7 @@ static void xl6CgenAsyncResultFreeFunc(XL6_CgenContext* ctx, const XL6_AstNode* 
         xl6OutputPuts("static void ", ctx->out);
         xl6CgenAsyncResultFreeSymbol(ctx, node);
         xl6OutputPuts("(void* pValue)\n{\n", ctx->out);
-        xl6OutputPuts("    if ( pValue != 0 ) { xrtTypeDropValue(", ctx->out);
+        xl6OutputPuts("    if ( pValue != 0 ) { xl6TypeDropValue(", ctx->out);
         xl6CgenEmitXrtTypeDescRef(ctx, resultType);
         xl6OutputPuts(", pValue); }\n", ctx->out);
         xl6OutputPuts("    xrtFree(pValue);\n}\n\n", ctx->out);
@@ -368,6 +375,10 @@ static const char* xl6CgenAsyncSpecialCollectionFreeHelper(XL6_CgenContext* ctx,
 
 static void xl6CgenAsyncResultFreeValue(XL6_CgenContext* ctx, const XL6_AstNode* funcNode, const XL6_AstNode* resultType)
 {
+    if ( xl6CgenIsErrorType(ctx, resultType) ) {
+        xl6OutputPuts("xl6_async_free_error_value", ctx->out);
+        return;
+    }
     if ( xl6CgenIsTypedContainerType(ctx, resultType) ) {
         xl6OutputPuts(xl6CgenAsyncTypedContainerFreeHelper(ctx, resultType), ctx->out);
         return;
@@ -586,15 +597,14 @@ static void xl6CgenAsyncPendingResultCompletion(XL6_CgenContext* ctx, int target
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "pOut->pValue = __xl6_pending_box_%d;\n", targetId);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("pOut->sError = 0;\n", ctx->out);
+    xl6OutputPuts("pOut->Error = 0;\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("pOut->iFlags = XFUTURE_RESULT_F_OWN_VALUE;\n", ctx->out);
+    xl6OutputPuts("pOut->iFlags = XL6_FUTURE_OWN_VALUE;\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPuts("pOut->pfnFreeValue = ", ctx->out);
     xl6CgenAsyncResultFreeValue(ctx, ctx->currentReturnFunc, resultType);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("pOut->pfnFreeError = 0;\n", ctx->out);
     xl6CgenEmitCleanupsSince(ctx, 0);
     xl6CgenIndent(ctx);
     xl6OutputPuts("return 0;\n", ctx->out);

@@ -1,0 +1,40 @@
+extern "owned_capture_drop" func ownedDrop(int id)
+extern "owned_capture_body" func ownedBody(bool fail)
+extern "owned_capture_input" func ownedInput() as future<int>
+class OwnedCaptureValue
+    int id
+    create(int id)
+        self.id = id
+    end
+    destroy()
+        ownedDrop(self.id)
+    end
+end
+export "owned_capture_new" func ownedNew(int id) as OwnedCaptureValue
+    return OwnedCaptureValue(id)
+end
+func ownedGenerator(string key, byval OwnedCaptureValue first, byval OwnedCaptureValue unused) as generator<int>
+    ownedBody(false)
+    yield first.id + key.length
+    yield 8
+end
+async func ownedReady(byval OwnedCaptureValue first, byval OwnedCaptureValue unused) as int
+    return 7
+end
+async func ownedPool(string key, byval OwnedCaptureValue first, byval OwnedCaptureValue unused, bool fail)
+    ownedBody(fail)
+    assert first.id + key.length == 7
+end
+async func ownedMachine(string key, byval OwnedCaptureValue first, byval OwnedCaptureValue unused, future<int> pending, bool fail) as int
+    int value = await pending
+    ownedBody(fail)
+    return first.id + key.length + value
+end
+export "owned_capture_keep" func ownedKeep()
+    for number in ownedGenerator("key", ownedNew(4), ownedNew(5))
+        assert number == 7 or number == 8
+    end
+    future<int> ready = ownedReady(ownedNew(4), ownedNew(5))
+    auto pool = ownedPool("key", ownedNew(4), ownedNew(5), false)
+    future<int> machine = ownedMachine("key", ownedNew(4), ownedNew(5), ownedInput(), false)
+end

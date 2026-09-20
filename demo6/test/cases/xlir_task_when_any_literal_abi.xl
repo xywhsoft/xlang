@@ -1,0 +1,26 @@
+async func xlirWhenAnySlowInt(int value) as int
+    time.sleep(40)
+    return value
+end
+
+async func xlirWhenAnyFastInt(int value) as int
+    time.sleep(1)
+    return value
+end
+
+async func xlirWhenAnySlowText(string value) as string
+    time.sleep(40)
+    return value
+end
+
+int homogeneousIndex = await task.whenAny([
+    xlirWhenAnySlowInt(11), xlirWhenAnyFastInt(22)
+])
+assert homogeneousIndex == 1, "task.whenAny should return the first completed homogeneous Future index"
+
+int heterogeneousIndex = await task.whenAny([
+    xlirWhenAnySlowText("slow"), xlirWhenAnyFastInt(33)
+])
+assert heterogeneousIndex == 1, "task.whenAny should accept heterogeneous Future payloads"
+
+println("xlir task whenAny literal abi ok")

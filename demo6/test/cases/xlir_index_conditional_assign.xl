@@ -1,0 +1,164 @@
+// Conditional writes share address ownership but keep RHS evaluation lazy.
+extern "conditional_fail" func conditionalFail()
+extern "conditional_future" func conditionalFuture() as future<int>
+int conditionalOrder = 0
+array<var> conditionalArray = array[null]
+array<var> conditionalArrayOriginal = conditionalArray
+list<var> conditionalList = list[0: null]
+list<var> conditionalListOriginal = conditionalList
+dict<var> conditionalDict = dict{"0": null}
+dict<var> conditionalDictOriginal = conditionalDict
+var conditionalObject = {"0": null}
+var conditionalObjectOriginal = conditionalObject
+string? conditionalNoString = null
+int? conditionalNoNumber = null
+array<string?> conditionalStrings = array[conditionalNoString]
+array<string?> conditionalStringsOriginal = conditionalStrings
+array<int?> conditionalNumbers = array[conditionalNoNumber]
+array<int?> conditionalNumbersOriginal = conditionalNumbers
+
+export "conditional_reset" func conditionalReset(bool present)
+    conditionalOrder = 0
+    var item = present ? 8 : null
+    string? text = present ? "8" : null
+    int? number = present ? 8 : null
+    conditionalArray = array[item]
+    conditionalArrayOriginal = conditionalArray
+    conditionalList = list[0: item]
+    conditionalListOriginal = conditionalList
+    conditionalDict = dict{"0": item}
+    conditionalDictOriginal = conditionalDict
+    conditionalObject = {"0": present ? 8 : null}
+    conditionalObjectOriginal = conditionalObject
+    conditionalStrings = array[text]
+    conditionalStringsOriginal = conditionalStrings
+    conditionalNumbers = array[number]
+    conditionalNumbersOriginal = conditionalNumbers
+end
+
+export "conditional_replace" func conditionalReplace()
+    var item = 29
+    string? text = "29"
+    int? number = 29
+    conditionalArray = array[item]
+    conditionalList = list[0: item]
+    conditionalDict = dict{"0": item}
+    conditionalObject = {"0": 29}
+    conditionalStrings = array[text]
+    conditionalNumbers = array[number]
+end
+
+func conditionalStep(int part, int stage)
+    conditionalOrder = conditionalOrder * 10 + part
+    if part == stage
+        conditionalFail()
+    end
+end
+func conditionalArrayReceiver(int stage) as array<var>
+    conditionalStep(1, stage)
+    return conditionalArray
+end
+func conditionalListReceiver(int stage) as list<var>
+    conditionalStep(1, stage)
+    return conditionalList
+end
+func conditionalDictReceiver(int stage) as dict<var>
+    conditionalStep(1, stage)
+    return conditionalDict
+end
+func conditionalObjectReceiver(int stage) as var
+    conditionalStep(1, stage)
+    return conditionalObject
+end
+func conditionalKey(int stage) as int
+    conditionalStep(2, stage)
+    conditionalReplace()
+    return stage == 4 ? 99 : 0
+end
+func conditionalStringKey(int stage) as string
+    return string(conditionalKey(stage))
+end
+func conditionalErasedKey(int stage) as var
+    return conditionalStringKey(stage)
+end
+func conditionalRhs(int stage) as var
+    conditionalStep(3, stage)
+    conditionalReplace()
+    return 17
+end
+
+export "conditional_original" func conditionalOriginal(int mode) as int
+    if mode == 0 or mode == 5
+        return int(conditionalArrayOriginal[0] ?? -1)
+    elseif mode == 1
+        return int(conditionalListOriginal[0] ?? -1)
+    elseif mode == 2 or mode == 3
+        return int(conditionalDictOriginal["0"] ?? -1)
+    elseif mode == 4
+        return int(conditionalObjectOriginal["0"] ?? -1)
+    elseif mode == 6
+        return int(conditionalStringsOriginal[0] ?? "-1")
+    end
+    return conditionalNumbersOriginal[0] ?? -1
+end
+
+export "conditional_sync" func conditionalSync(int mode, bool present, int stage) as int
+    conditionalReset(present)
+    int caught = 0
+    try
+        if mode == 0
+            conditionalArrayReceiver(stage)[conditionalKey(stage)] ?= conditionalRhs(stage)
+        elseif mode == 1
+            conditionalListReceiver(stage)[conditionalKey(stage)] ?= conditionalRhs(stage)
+        elseif mode == 2
+            conditionalDictReceiver(stage)["0"] ?= conditionalRhs(stage)
+        elseif mode == 3
+            conditionalDictReceiver(stage)[conditionalStringKey(stage)] ?= conditionalRhs(stage)
+        else
+            conditionalObjectReceiver(stage)[conditionalErasedKey(stage)] ?= conditionalRhs(stage)
+        end
+    catch failure
+        caught = 1
+        if stage != 4 then assert failure.code == 73 end
+    end
+    assert conditionalOriginal(mode) == (present ? 8 : (caught == 0 ? 17 : -1))
+    return conditionalOrder * 10 + caught
+end
+
+async func conditionalAwait(future<int> pending, int mode) as int
+    if mode == 0
+        conditionalArray[0] ?= await pending
+    elseif mode == 1
+        conditionalList[0] ?= await pending
+    elseif mode == 2
+        conditionalDict["0"] ?= await pending
+    elseif mode == 3
+        conditionalDict[string(0)] ?= await pending
+    elseif mode == 4
+        var key = "0"
+        conditionalObject[key] ?= await pending
+    elseif mode == 5
+        conditionalArray[await pending] ?= conditionalRhs(0)
+    elseif mode == 6
+        conditionalStrings[0] ?= string(await pending)
+    else
+        conditionalNumbers[0] ?= await pending
+    end
+    return conditionalOriginal(mode)
+end
+async func conditionalReady() as int
+    return 0
+end
+future<int> conditionalPending = conditionalReady()
+export "conditional_start" func conditionalStart(int mode)
+    conditionalPending = conditionalAwait(conditionalFuture(), mode)
+end
+
+// Non-null element types still evaluate the address, but never the RHS.
+export "conditional_nonnull" func conditionalNonNull() as int
+    conditionalOrder = 0
+    array<int> values = array[8]
+    values[conditionalKey(0)] ?= int(conditionalRhs(3))
+    assert values[0] == 8
+    return conditionalOrder
+end

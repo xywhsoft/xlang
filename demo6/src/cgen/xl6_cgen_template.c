@@ -1,77 +1,427 @@
+/* 模板桥接只依赖 XRT 公开契约，不再复制模板编译器内部布局。 */
+static const char xl6TemplateRuntimeTypes[] =
+    "#ifndef XL6_TEMPLATE_RUNTIME\n"
+    "#define XL6_TEMPLATE_RUNTIME\n"
+    "#include <stddef.h>\n"
+    "#include <stdint.h>\n"
+    "#include <stdbool.h>\n"
+    "#include <string.h>\n"
+    "typedef struct XL6_Template_Definition { char* Name; size_t NameSize; int Type; size_t MinArguments; size_t MaxArguments; XL6_Function Function; } XL6_Template_Definition;\n"
+    "typedef struct XL6_Template_Engine { XL6_Template_Definition* Definitions; size_t Count; size_t Capacity; xerror* LastError; } XL6_Template_Engine;\n"
+    "typedef struct XL6_Template_Callback { int Type; XL6_Function Function; } XL6_Template_Callback;\n"
+    "typedef struct XL6_Template { xtemplate* Value; xerror* LastError; } XL6_Template;\n\n"
+    "static inline char* xl6_xrt_string_dup(const char* text, size_t size);\n"
+    "\n";
+
+
+
+/* 错误、节点和模板参数都转换为稳定的 xlang 值对象。 */
+static const char xl6TemplateRuntimeValues[] =
+    "static void xl6_template_replace_error(xerror** slot, xerror* error)\n"
+    "{\n"
+    "    if ( slot == 0 ) { xrtErrorFree(error); return; }\n"
+    "    xrtErrorFree(*slot);\n"
+    "    *slot = error;\n"
+    "}\n\n"
+    "static void xl6_template_set_value(xvalue* object, const char* key, xvalue* value)\n"
+    "{\n"
+    "    if ( value != 0 && (object == 0 || !xl6_xrt_value_object_set(object, key, 0u, value, true)) ) {\n"
+    "        xrtValueRelease(value);\n"
+    "    }\n"
+    "}\n\n"
+    "static void xl6_template_set_int(xvalue* object, const char* key, int64_t value)\n"
+    "{\n"
+    "    xl6_template_set_value(object, key, xrtValueInt(value));\n"
+    "}\n\n"
+    "static void xl6_template_set_text_n(xvalue* object, const char* key, const char* text, size_t size)\n"
+    "{\n"
+    "    if ( text == 0 ) { text = \"\"; size = 0u; }\n"
+    "    if ( size > UINT32_MAX ) { size = UINT32_MAX; }\n"
+    "    xl6_template_set_value(object, key, xl6_xrt_value_text_create((void*)text, (uint32_t)size, false));\n"
+    "}\n\n"
+    "static void xl6_template_set_text(xvalue* object, const char* key, const char* text)\n"
+    "{\n"
+    "    xl6_template_set_text_n(object, key, text, text != 0 ? strlen(text) : 0u);\n"
+    "}\n\n"
+    "static xvalue* xl6_template_error_value(const xerror* error)\n"
+    "{\n"
+    "    xvalue* value = xrtValueObject();\n"
+    "    xtemplatelocation location = { 0u, 0u, 0u, 0u };\n"
+    "    if ( value == 0 ) { return 0; }\n"
+    "    if ( error != 0 ) { (void)xrtTemplateErrorLocation(error, &location); }\n"
+    "    xl6_template_set_int(value, \"kind\", error != 0 ? xrtErrorKind(error) : 0);\n"
+    "    xl6_template_set_int(value, \"code\", error != 0 ? xrtErrorCode(error) : 0);\n"
+    "    xl6_template_set_int(value, \"systemCode\", error != 0 ? xrtErrorSystemCode(error) : 0);\n"
+    "    xl6_template_set_text(value, \"domain\", error != 0 ? xrtErrorDomain(error) : \"\");\n"
+    "    xl6_template_set_text(value, \"operation\", error != 0 ? xrtErrorOperation(error) : \"\");\n"
+    "    xl6_template_set_text(value, \"description\", error != 0 ? xrtErrorMessage(error) : \"\");\n"
+    "    xl6_template_set_text(value, \"data\", error != 0 ? xrtErrorData(error) : \"\");\n"
+    "    xl6_template_set_int(value, \"position\", (int64_t)location.Offset);\n"
+    "    xl6_template_set_int(value, \"size\", (int64_t)location.Size);\n"
+    "    xl6_template_set_int(value, \"line\", (int64_t)location.Line);\n"
+    "    xl6_template_set_int(value, \"column\", (int64_t)location.Column);\n"
+    "    return value;\n"
+    "}\n\n"
+    "static xvalue* xl6_template_value_copy(const xtemplatevalue* source)\n"
+    "{\n"
+    "    if ( source == 0 ) { return 0; }\n"
+    "    if ( source->Value != 0 ) { return xrtValueRetain(source->Value); }\n"
+    "    switch ( source->Type ) {\n"
+    "        case XVALUE_NULL: return xrtValueRetain(xrtValueNull());\n"
+    "        case XVALUE_BOOL: return xrtValueBool(source->Bool);\n"
+    "        case XVALUE_INT: return xrtValueInt(source->Integer);\n"
+    "        case XVALUE_FLOAT: return xrtValueFloat(source->Float);\n"
+    "        case XVALUE_STRING: return xrtValueString(source->Text);\n"
+    "        case XVALUE_BYTES: return xrtValueBytes((xbytesview){ (cbytes)source->Text.Data, source->Text.Size });\n"
+    "        case XVALUE_TIME: return xrtValueTime(source->Time);\n"
+    "        default: return xrtValueRetain(xrtValueNull());\n"
+    "    }\n"
+    "}\n\n"
+    "static xvalue* xl6_template_arguments(xtemplatecall* call)\n"
+    "{\n"
+    "    xvalue* values = xrtValueArray();\n"
+    "    size_t count;\n"
+    "    size_t i;\n"
+    "    if ( values == 0 || call == 0 ) { xrtValueRelease(values); return 0; }\n"
+    "    count = xrtTemplateCallArgumentCount(call);\n"
+    "    for ( i = 0u; i < count; ++i ) {\n"
+    "        xtemplateargview argument;\n"
+    "        xtemplatevalue evaluated;\n"
+    "        xvalue* value;\n"
+    "        if ( !xrtTemplateCallArgument(call, i, &argument) || !xrtTemplateCallEval(call, &argument, &evaluated) ) {\n"
+    "            xrtValueRelease(values);\n"
+    "            return 0;\n"
+    "        }\n"
+    "        value = xl6_template_value_copy(&evaluated);\n"
+    "        if ( value == 0 || !xl6_xrt_value_array_append(values, value, true) ) {\n"
+    "            if ( value != 0 ) { xrtValueRelease(value); }\n"
+    "            xrtValueRelease(values);\n"
+    "            return 0;\n"
+    "        }\n"
+    "    }\n"
+    "    return values;\n"
+    "}\n\n";
+
+
+
+/* 不可变 XRT 注册表持有回调副本，使模板生命周期独立于 Engine。 */
+static const char xl6TemplateRuntimeExtensions[] =
+    "static void xl6_template_callback_drop(void* data)\n"
+    "{\n"
+    "    XL6_Template_Callback* callback = (XL6_Template_Callback*)data;\n"
+    "    if ( callback == 0 ) { return; }\n"
+    "    xl6_function_release_value(callback->Function);\n"
+    "    xrtFree(callback);\n"
+    "}\n\n"
+    "static bool xl6_template_callback_call(xtemplatecall* call)\n"
+    "{\n"
+    "    XL6_Template_Callback* callback = call != 0 ? (XL6_Template_Callback*)xrtTemplateCallData(call) : 0;\n"
+    "    xvalue* arguments;\n"
+    "    xvalue* result;\n"
+    "    if ( callback == 0 ) { return false; }\n"
+    "    arguments = xl6_template_arguments(call);\n"
+    "    if ( arguments == 0 ) { return false; }\n"
+    "    if ( callback->Type == XTEMPLATE_EXTENSION_RAW_BLOCK ) {\n"
+    "        xstrview raw = xrtTemplateCallRaw(call);\n"
+    "        xvalue* body = xl6_xrt_value_text_create((void*)(raw.Data != 0 ? raw.Data : \"\"), (uint32_t)raw.Size, false);\n"
+    "        if ( body == 0 ) { xrtValueRelease(arguments); return false; }\n"
+    "        result = xl6_function_call_var(callback->Function, 2, arguments, body);\n"
+    "    } else {\n"
+    "        result = xl6_function_call_var(callback->Function, 1, arguments);\n"
+    "    }\n"
+    "    if ( result == 0 ) { return false; }\n"
+    "    if ( callback->Type == XTEMPLATE_EXTENSION_BLOCK ) {\n"
+    "        bool render = xl6_xrt_value_bool(result);\n"
+    "        xrtValueRelease(result);\n"
+    "        return !render || xrtTemplateCallRender(call);\n"
+    "    }\n"
+    "    {\n"
+    "        uint32_t size = 0u;\n"
+    "        char* text = xl6_xrt_value_string_owned(result, &size);\n"
+    "        bool written;\n"
+    "        xrtValueRelease(result);\n"
+    "        if ( text == 0 ) { return false; }\n"
+    "        written = xrtTemplateCallWrite(call, (xstrview){ text, size });\n"
+    "        xrtFree(text);\n"
+    "        return written;\n"
+    "    }\n"
+    "}\n\n"
+    "static int xl6_template_engine_fail(XL6_Template_Engine* engine, int kind, int code, const char* message)\n"
+    "{\n"
+    "    if ( engine != 0 ) {\n"
+    "        xl6_template_replace_error(&engine->LastError, xrtErrorCreate(kind, \"xlang.template\", code, message));\n"
+    "    }\n"
+    "    return 0;\n"
+    "}\n\n"
+    "static int xl6_template_engine_register(void* handle, const char* name, XL6_Function function, int type, int64_t minArguments, int64_t maxArguments)\n"
+    "{\n"
+    "    XL6_Template_Engine* engine = (XL6_Template_Engine*)handle;\n"
+    "    XL6_Template_Definition* definition;\n"
+    "    size_t nameSize;\n"
+    "    size_t i;\n"
+    "    if ( engine == 0 || name == 0 || name[0] == '\\0' || (function.invoke_var == 0 && function.invoke_xcall == 0) || minArguments < 0 || maxArguments < minArguments ) {\n"
+    "        return xl6_template_engine_fail(engine, 1, 1, \"invalid template extension\");\n"
+    "    }\n"
+    "    nameSize = strlen(name);\n"
+    "    for ( i = 0u; i < engine->Count; ++i ) {\n"
+    "        definition = &engine->Definitions[i];\n"
+    "        if ( definition->Type == type && definition->NameSize == nameSize && memcmp(definition->Name, name, nameSize) == 0 ) {\n"
+    "            return xl6_template_engine_fail(engine, 9, 2, \"template extension already exists\");\n"
+    "        }\n"
+    "    }\n"
+    "    if ( engine->Count == engine->Capacity ) {\n"
+    "        size_t capacity = engine->Capacity != 0u ? engine->Capacity * 2u : 4u;\n"
+    "        XL6_Template_Definition* definitions;\n"
+    "        if ( capacity < engine->Capacity || capacity > (SIZE_MAX / sizeof(*definitions)) ) {\n"
+    "            return xl6_template_engine_fail(engine, 4, 3, \"too many template extensions\");\n"
+    "        }\n"
+    "        definitions = (XL6_Template_Definition*)xrtRealloc(engine->Definitions, capacity * sizeof(*definitions));\n"
+    "        if ( definitions == 0 ) { return 0; }\n"
+    "        engine->Definitions = definitions;\n"
+    "        engine->Capacity = capacity;\n"
+    "    }\n"
+    "    definition = &engine->Definitions[engine->Count];\n"
+    "    memset(definition, 0, sizeof(*definition));\n"
+    "    definition->Name = (char*)xrtCalloc(nameSize + 1u, 1u);\n"
+    "    if ( definition->Name == 0 ) { return 0; }\n"
+    "    memcpy(definition->Name, name, nameSize);\n"
+    "    definition->NameSize = nameSize;\n"
+    "    definition->Type = type;\n"
+    "    definition->MinArguments = (size_t)minArguments;\n"
+    "    definition->MaxArguments = (size_t)maxArguments;\n"
+    "    definition->Function = xl6_function_copy_value(function);\n"
+    "    engine->Count++;\n"
+    "    xl6_template_replace_error(&engine->LastError, 0);\n"
+    "    return 1;\n"
+    "}\n\n"
+    "static xtemplateregistry* xl6_template_engine_registry(XL6_Template_Engine* engine)\n"
+    "{\n"
+    "    xtemplateextension* extensions;\n"
+    "    XL6_Template_Callback** callbacks;\n"
+    "    xtemplateregistry* registry;\n"
+    "    size_t i;\n"
+    "    if ( engine == 0 || engine->Count == 0u ) { return 0; }\n"
+    "    extensions = (xtemplateextension*)xrtCalloc(engine->Count, sizeof(*extensions));\n"
+    "    callbacks = (XL6_Template_Callback**)xrtCalloc(engine->Count, sizeof(*callbacks));\n"
+    "    if ( extensions == 0 || callbacks == 0 ) { xrtFree(extensions); xrtFree(callbacks); return 0; }\n"
+    "    for ( i = 0u; i < engine->Count; ++i ) {\n"
+    "        XL6_Template_Definition* definition = &engine->Definitions[i];\n"
+    "        XL6_Template_Callback* callback = (XL6_Template_Callback*)xrtCalloc(1u, sizeof(*callback));\n"
+    "        if ( callback == 0 ) { break; }\n"
+    "        callback->Type = definition->Type;\n"
+    "        callback->Function = xl6_function_copy_value(definition->Function);\n"
+    "        callbacks[i] = callback;\n"
+    "        extensions[i].Name = (xstrview){ definition->Name, definition->NameSize };\n"
+    "        extensions[i].Type = definition->Type;\n"
+    "        extensions[i].MinArguments = definition->MinArguments;\n"
+    "        extensions[i].MaxArguments = definition->MaxArguments;\n"
+    "        extensions[i].Call = xl6_template_callback_call;\n"
+    "        extensions[i].Data = callback;\n"
+    "        extensions[i].Drop = xl6_template_callback_drop;\n"
+    "    }\n"
+    "    if ( i != engine->Count ) {\n"
+    "        registry = 0;\n"
+    "    } else {\n"
+    "        registry = xrtTemplateRegistryCreate(extensions, engine->Count);\n"
+    "    }\n"
+    "    if ( registry == 0 ) {\n"
+    "        for ( i = 0u; i < engine->Count; ++i ) { xl6_template_callback_drop(callbacks[i]); }\n"
+    "    }\n"
+    "    xrtFree(callbacks);\n"
+    "    xrtFree(extensions);\n"
+    "    return registry;\n"
+    "}\n\n";
+
+
+
+/* Engine 负责可变注册，编译后只把不可变模板交给 Template。 */
+static const char xl6TemplateRuntimeEngine[] =
+    "static XL6_Template* xl6_template_compile(XL6_Template_Engine* engine, const char* source, const char* path, const char* open, const char* close)\n"
+    "{\n"
+    "    XL6_Template* result;\n"
+    "    xtemplateconfig config;\n"
+    "    xtemplateregistry* registry = 0;\n"
+    "    xtemplate* value;\n"
+    "    xerror* error;\n"
+    "    if ( engine == 0 ) { return 0; }\n"
+    "    result = (XL6_Template*)xrtCalloc(1u, sizeof(*result));\n"
+    "    if ( result == 0 ) { return 0; }\n"
+    "    if ( open == 0 || open[0] == '\\0' ) { open = \"{\"; }\n"
+    "    if ( close == 0 || close[0] == '\\0' ) { close = \"}\"; }\n"
+    "    xrtClearError();\n"
+    "    xl6_template_replace_error(&engine->LastError, 0);\n"
+    "    xrtTemplateConfigInit(&config);\n"
+    "    config.Open = (xstrview){ open, strlen(open) };\n"
+    "    config.Close = (xstrview){ close, strlen(close) };\n"
+    "    if ( engine->Count != 0u ) {\n"
+    "        registry = xl6_template_engine_registry(engine);\n"
+    "        if ( registry == 0 ) {\n"
+    "            error = xrtTakeError();\n"
+    "            if ( error == 0 ) { error = xrtErrorCreate(6, \"xlang.template\", 4, \"could not create template registry\"); }\n"
+    "            xl6_template_replace_error(&engine->LastError, error);\n"
+    "            result->LastError = engine->LastError != 0 ? xrtErrorRef(engine->LastError) : 0;\n"
+    "            return result;\n"
+    "        }\n"
+    "        config.Registry = registry;\n"
+    "    }\n"
+    "    if ( path != 0 ) {\n"
+    "        value = xrtTemplateCompileFileConfig(path, &config);\n"
+    "    } else {\n"
+    "        if ( source == 0 ) { source = \"\"; }\n"
+    "        value = xrtTemplateCompileConfig((xstrview){ source, strlen(source) }, &config);\n"
+    "    }\n"
+    "    xrtTemplateRegistryRelease(registry);\n"
+    "    result->Value = value;\n"
+    "    if ( value == 0 ) {\n"
+    "        error = xrtTakeError();\n"
+    "        if ( error == 0 ) { error = xrtErrorCreate(17, \"xlang.template\", 5, \"template compilation failed\"); }\n"
+    "        xl6_template_replace_error(&engine->LastError, error);\n"
+    "        result->LastError = engine->LastError != 0 ? xrtErrorRef(engine->LastError) : 0;\n"
+    "    }\n"
+    "    return result;\n"
+    "}\n\n"
+    "void* xl6_xrt_template_engine_create(void)\n"
+    "{\n"
+    "    return xrtCalloc(1u, sizeof(XL6_Template_Engine));\n"
+    "}\n\n"
+    "int64_t xl6_xrt_template_engine_destroy(void* handle)\n"
+    "{\n"
+    "    XL6_Template_Engine* engine = (XL6_Template_Engine*)handle;\n"
+    "    size_t i;\n"
+    "    if ( engine == 0 ) { return 0; }\n"
+    "    for ( i = 0u; i < engine->Count; ++i ) {\n"
+    "        xl6_function_release_value(engine->Definitions[i].Function);\n"
+    "        xrtFree(engine->Definitions[i].Name);\n"
+    "    }\n"
+    "    xrtFree(engine->Definitions);\n"
+    "    xrtErrorFree(engine->LastError);\n"
+    "    xrtFree(engine);\n"
+    "    return 0;\n"
+    "}\n\n"
+    "int xl6_xrt_template_engine_register_function(void* handle, const char* name, XL6_Function function, int64_t minArguments, int64_t maxArguments)\n"
+    "{\n"
+    "    return xl6_template_engine_register(handle, name, function, XTEMPLATE_EXTENSION_FUNCTION, minArguments, maxArguments);\n"
+    "}\n\n"
+    "int xl6_xrt_template_engine_register_statement(void* handle, const char* name, XL6_Function function, int64_t minArguments, int64_t maxArguments)\n"
+    "{\n"
+    "    return xl6_template_engine_register(handle, name, function, XTEMPLATE_EXTENSION_STATEMENT, minArguments, maxArguments);\n"
+    "}\n\n"
+    "int xl6_xrt_template_engine_register_block(void* handle, const char* name, XL6_Function function, int64_t minArguments, int64_t maxArguments)\n"
+    "{\n"
+    "    return xl6_template_engine_register(handle, name, function, XTEMPLATE_EXTENSION_BLOCK, minArguments, maxArguments);\n"
+    "}\n\n"
+    "int xl6_xrt_template_engine_register_raw_block(void* handle, const char* name, XL6_Function function, int64_t minArguments, int64_t maxArguments)\n"
+    "{\n"
+    "    return xl6_template_engine_register(handle, name, function, XTEMPLATE_EXTENSION_RAW_BLOCK, minArguments, maxArguments);\n"
+    "}\n\n"
+    "void* xl6_xrt_template_engine_compile(void* handle, const char* text, const char* open, const char* close)\n"
+    "{\n"
+    "    return xl6_template_compile((XL6_Template_Engine*)handle, text, 0, open, close);\n"
+    "}\n\n"
+    "void* xl6_xrt_template_engine_compile_file(void* handle, const char* path, const char* open, const char* close)\n"
+    "{\n"
+    "    if ( path == 0 ) { path = \"\"; }\n"
+    "    return xl6_template_compile((XL6_Template_Engine*)handle, 0, path, open, close);\n"
+    "}\n\n"
+    "xvalue* xl6_xrt_template_engine_error(void* handle)\n"
+    "{\n"
+    "    XL6_Template_Engine* engine = (XL6_Template_Engine*)handle;\n"
+    "    return xl6_template_error_value(engine != 0 ? engine->LastError : 0);\n"
+    "}\n\n";
+
+
+
+/* Template 公开源码、节点视图、渲染与结构化错误。 */
+static const char xl6TemplateRuntimeTemplate[] =
+    "void* xl6_xrt_template_wrap_handle(void* handle)\n"
+    "{\n"
+    "    return handle;\n"
+    "}\n\n"
+    "void* xl6_xrt_template_parse(const char* text, const char* open, const char* close)\n"
+    "{\n"
+    "    XL6_Template_Engine engine = { 0 };\n"
+    "    XL6_Template* result = xl6_template_compile(&engine, text, 0, open, close);\n"
+    "    xrtErrorFree(engine.LastError);\n"
+    "    return result;\n"
+    "}\n\n"
+    "int64_t xl6_xrt_template_destroy(void* handle)\n"
+    "{\n"
+    "    XL6_Template* value = (XL6_Template*)handle;\n"
+    "    if ( value != 0 ) {\n"
+    "        xrtTemplateRelease(value->Value);\n"
+    "        xrtErrorFree(value->LastError);\n"
+    "        xrtFree(value);\n"
+    "    }\n"
+    "    return 0;\n"
+    "}\n\n"
+    "int xl6_xrt_template_valid(void* handle)\n"
+    "{\n"
+    "    XL6_Template* value = (XL6_Template*)handle;\n"
+    "    return value != 0 && value->Value != 0;\n"
+    "}\n\n"
+    "void* xl6_xrt_template_source(void* handle)\n"
+    "{\n"
+    "    XL6_Template* value = (XL6_Template*)handle;\n"
+    "    xstrview source = value != 0 && value->Value != 0 ? xrtTemplateSource(value->Value) : (xstrview){ \"\", 0u };\n"
+    "    return xl6_xrt_string_dup(source.Data != 0 ? source.Data : \"\", source.Size);\n"
+    "}\n\n"
+    "void* xl6_xrt_template_render(void* handle, xvalue* data)\n"
+    "{\n"
+    "    XL6_Template* value = (XL6_Template*)handle;\n"
+    "    char* output;\n"
+    "    if ( value == 0 || value->Value == 0 ) { return xl6_xrt_string_dup(\"\", 0u); }\n"
+    "    xrtClearError();\n"
+    "    xl6_template_replace_error(&value->LastError, 0);\n"
+    "    output = xrtTemplateRender(value->Value, data, 0);\n"
+    "    if ( output == 0 ) {\n"
+    "        xl6_template_replace_error(&value->LastError, xrtTakeError());\n"
+    "        return xl6_xrt_string_dup(\"\", 0u);\n"
+    "    }\n"
+    "    return output;\n"
+    "}\n\n"
+    "uint32_t xl6_xrt_template_node_count(void* handle)\n"
+    "{\n"
+    "    XL6_Template* value = (XL6_Template*)handle;\n"
+    "    size_t count = value != 0 && value->Value != 0 ? xrtTemplateNodeCount(value->Value) : 0u;\n"
+    "    return count <= UINT32_MAX ? (uint32_t)count : UINT32_MAX;\n"
+    "}\n\n"
+    "xvalue* xl6_xrt_template_error(void* handle)\n"
+    "{\n"
+    "    XL6_Template* value = (XL6_Template*)handle;\n"
+    "    return xl6_template_error_value(value != 0 ? value->LastError : 0);\n"
+    "}\n\n"
+    "xvalue* xl6_xrt_template_node(void* handle, int64_t index)\n"
+    "{\n"
+    "    XL6_Template* value = (XL6_Template*)handle;\n"
+    "    xtemplatenodeview node;\n"
+    "    xvalue* result = xrtValueObject();\n"
+    "    if ( result == 0 || value == 0 || value->Value == 0 || index < 0 || !xrtTemplateNode(value->Value, (size_t)index, &node) ) { return result; }\n"
+    "    xl6_template_set_int(result, \"type\", node.Type);\n"
+    "    xl6_template_set_int(result, \"output\", node.Output);\n"
+    "    xl6_template_set_int(result, \"position\", (int64_t)node.Location.Offset);\n"
+    "    xl6_template_set_int(result, \"size\", (int64_t)node.Location.Size);\n"
+    "    xl6_template_set_int(result, \"line\", (int64_t)node.Location.Line);\n"
+    "    xl6_template_set_int(result, \"column\", (int64_t)node.Location.Column);\n"
+    "    xl6_template_set_text_n(result, \"source\", node.Source.Data, node.Source.Size);\n"
+    "    xl6_template_set_text_n(result, \"expression\", node.Expression.Data, node.Expression.Size);\n"
+    "    xl6_template_set_text_n(result, \"format\", node.Format.Data, node.Format.Size);\n"
+    "    xl6_template_set_text_n(result, \"name\", node.Name.Data, node.Name.Size);\n"
+    "    return result;\n"
+    "}\n"
+    "#endif\n\n";
+
+
+
+/* 生成程序仅获得公开桥接，不再暴露历史 XTE ABI。 */
 static void xl6CgenEmitTemplateRuntime(XL6_Output* out)
 {
     if ( out == NULL ) {
         return;
     }
 
-    xl6OutputPuts("#ifndef XL6_TEMPLATE_RUNTIME\n", out);
-    xl6OutputPuts("#define XL6_TEMPLATE_RUNTIME\n", out);
-    xl6OutputPuts("#include <stddef.h>\n#include <stdint.h>\n#include <stdbool.h>\n", out);
-    xl6OutputPuts("#ifndef XL6_XVALUE_TYPEDEF\n#define XL6_XVALUE_TYPEDEF\ntypedef struct xvalue_struct* xvalue;\n#endif\n", out);
-    xl6OutputPuts("typedef struct XTE_Engine_Struct* xteengine;\ntypedef struct XTE_Template_Struct* xtetemplate;\n", out);
-    xl6OutputPuts("typedef struct XTE_RenderCtx_Struct XTE_RenderCtx;\ntypedef struct XTE_FuncCtx_Struct XTE_FuncCtx;\ntypedef struct XTE_StmtParseCtx_Struct XTE_StmtParseCtx;\ntypedef struct XTE_StmtRenderCtx_Struct XTE_StmtRenderCtx;\n", out);
-    xl6OutputPuts("typedef struct { int iCode; const char* sDesc; uint32_t iLine; uint32_t iColumn; uint32_t iPos; uint32_t iRefLine; uint32_t iRefColumn; uint32_t iRefPos; } XTE_Error;\n", out);
-    xl6OutputPuts("typedef struct { const char* sBracket; uint32_t iFlags; } XTE_ParseOptions;\n", out);
-    xl6OutputPuts("typedef struct { uint32_t iStart; uint32_t iCount; } XTE_NodeSpan;\n", out);
-    xl6OutputPuts("typedef struct { uint32_t iType; uint32_t iFlags; uint32_t iTextOff; uint32_t iTextSize; int64_t iIntValue; int iBoolValue; } XTE_ExprNode;\n", out);
-    xl6OutputPuts("typedef struct { uint32_t iNameOff; uint32_t iNameSize; uint32_t iRawOff; uint32_t iRawSize; uint32_t iFlags; uint32_t iExprIndex; } XTE_ArgItem;\n", out);
-    xl6OutputPuts("typedef struct { xtetemplate hTemplate; const XTE_ArgItem* pItems; uint32_t iCount; } XTE_ArgList;\n", out);
-    xl6OutputPuts("typedef struct { uint32_t iType; uint32_t iFlags; uint32_t iPos; uint32_t iSize; } XL6_XTE_NodeHead;\n", out);
-    xl6OutputPuts("typedef enum { XTE_FLOW_OK = 0, XTE_FLOW_BREAK = 1, XTE_FLOW_CONTINUE = 2, XTE_FLOW_ERROR = -1 } XTE_Flow;\n", out);
-    xl6OutputPuts("struct XTE_FuncCtx_Struct { XTE_RenderCtx* pRender; const void* pDef; const XTE_ArgList* pArgs; void* pUserData; };\n", out);
-    xl6OutputPuts("struct XTE_StmtRenderCtx_Struct { XTE_RenderCtx* pRender; const void* pDef; const XTE_ArgList* pArgs; const XTE_NodeSpan* pBody; const char* sRawBody; size_t iRawBodySize; void* pData; void* pUserData; };\n", out);
-    xl6OutputPuts("typedef struct XL6_Template_Engine { xteengine engine; XTE_Error lastError; } XL6_Template_Engine;\n", out);
-    xl6OutputPuts("typedef struct XL6_Template_Callback { XL6_Function fn; } XL6_Template_Callback;\n\n", out);
-
-    xl6OutputPuts("void* xrtCalloc(size_t iCount, size_t iSize);\nvoid xrtFree(void* pMem);\n", out);
-    xl6OutputPuts("xvalue xvoCreateArray(void);\nxvalue xvoCreateTable(void);\nxvalue xvoCreateInt(long long value);\nxvalue xvoCreateBool(bool value);\nxvalue xvoCreateText(void* text, uint32_t size, bool colloc);\n", out);
-    xl6OutputPuts("bool xvoArrayAppendValue(xvalue array, xvalue value, bool colloc);\nbool xvoTableSetValue(xvalue table, const void* key, uint32_t keySize, xvalue value, bool colloc);\n", out);
-    xl6OutputPuts("const char* xvoGetText(xvalue value);\nuint32_t xvoGetSize(xvalue value);\nvoid xvoUnref(xvalue value);\n", out);
-    xl6OutputPuts("xteengine xteCreateEngine(void);\nvoid xteDestroyEngine(xteengine engine);\n", out);
-    xl6OutputPuts("int xteRegisterFunctionEx(xteengine engine, const char* name, uint16_t minArgs, uint16_t maxArgs, int (*call)(XTE_FuncCtx*, xvalue*), void* userData, void (*freeUserData)(void*));\n", out);
-    xl6OutputPuts("int xteRegisterStatementEx(xteengine engine, const char* name, uint32_t flags, uint16_t minArgs, uint16_t maxArgs, int (*parse)(XTE_StmtParseCtx*, void**), XTE_Flow (*render)(XTE_StmtRenderCtx*), void (*freeData)(void*), void* userData, void (*freeUserData)(void*));\n", out);
-    xl6OutputPuts("xtetemplate xteParseEx(xteengine engine, const char* text, size_t size, const XTE_ParseOptions* options, XTE_Error* error);\n", out);
-    xl6OutputPuts("xtetemplate xteParse(const char* text, size_t size, const char* bracket);\nvoid xteDestroyTemplate(xtetemplate value);\n", out);
-    xl6OutputPuts("char* xteMake(xtetemplate value, xvalue current, xvalue global, void* includes, size_t* size);\n", out);
-    xl6OutputPuts("int xteTemplateSaveFile(xtetemplate value, const char* path, uint32_t flags, XTE_Error* error);\nxtetemplate xteTemplateLoadFile(xteengine engine, const char* path, uint32_t flags, XTE_Error* error);\n", out);
-    xl6OutputPuts("uint32_t xteTemplateGetNodeCount(xtetemplate value);\nuint32_t xteTemplateGetExprCount(xtetemplate value);\nuint32_t xteTemplateGetArgCount(xtetemplate value);\nuint32_t xteTemplateGetStringPoolSize(xtetemplate value);\n", out);
-    xl6OutputPuts("XTE_NodeSpan xteTemplateGetRootSpan(xtetemplate value);\nconst void* xteTemplateGetNode(xtetemplate value, uint32_t index);\nconst XTE_ExprNode* xteTemplateGetExpr(xtetemplate value, uint32_t index);\nconst XTE_ArgItem* xteTemplateGetArg(xtetemplate value, uint32_t index);\nconst char* xteTemplateGetString(xtetemplate value, uint32_t offset);\nconst XTE_Error* xteTemplateGetLastError(xtetemplate value);\n", out);
-    xl6OutputPuts("uint32_t xteArgCount(const XTE_ArgList* args);\nconst XTE_ArgItem* xteArgAt(const XTE_ArgList* args, uint32_t index);\nxvalue xteEvalArgValue(XTE_RenderCtx* ctx, const XTE_ArgItem* arg);\nint xteStmtWrite(XTE_StmtRenderCtx* ctx, const char* text, size_t size);\n\n", out);
-
-    xl6OutputPuts("static void xl6_template_set_value(xvalue table, const char* key, xvalue value)\n{\n    if ( value != 0 && (table == 0 || !xvoTableSetValue(table, key, 0u, value, true)) ) { xvoUnref(value); }\n}\n", out);
-    xl6OutputPuts("static void xl6_template_set_int(xvalue table, const char* key, long long value)\n{\n    xl6_template_set_value(table, key, xvoCreateInt(value));\n}\n", out);
-    xl6OutputPuts("static void xl6_template_set_bool(xvalue table, const char* key, bool value)\n{\n    xl6_template_set_value(table, key, xvoCreateBool(value));\n}\n", out);
-    xl6OutputPuts("static void xl6_template_set_text_n(xvalue table, const char* key, const char* text, uint32_t size)\n{\n    xl6_template_set_value(table, key, xvoCreateText((void*)(text != 0 ? text : \"\"), text != 0 ? size : 0u, false));\n}\n", out);
-    xl6OutputPuts("static void xl6_template_set_text(xvalue table, const char* key, const char* text)\n{\n    xl6_template_set_text_n(table, key, text, 0u);\n}\n\n", out);
-
-    xl6OutputPuts("static xvalue xl6_template_error_value(const XTE_Error* error)\n{\n    xvalue value = xvoCreateTable();\n    if ( value == 0 ) { return 0; }\n    xl6_template_set_int(value, \"code\", error != 0 ? error->iCode : 0);\n    xl6_template_set_text(value, \"description\", error != 0 ? error->sDesc : \"\");\n    xl6_template_set_int(value, \"line\", error != 0 ? error->iLine : 0);\n    xl6_template_set_int(value, \"column\", error != 0 ? error->iColumn : 0);\n    xl6_template_set_int(value, \"position\", error != 0 ? error->iPos : 0);\n    xl6_template_set_int(value, \"referenceLine\", error != 0 ? error->iRefLine : 0);\n    xl6_template_set_int(value, \"referenceColumn\", error != 0 ? error->iRefColumn : 0);\n    xl6_template_set_int(value, \"referencePosition\", error != 0 ? error->iRefPos : 0);\n    return value;\n}\n\n", out);
-
-    xl6OutputPuts("static xvalue xl6_template_eval_args(XTE_RenderCtx* render, const XTE_ArgList* args)\n{\n    xvalue values = xvoCreateArray();\n    uint32_t i;\n    if ( values == 0 ) { return 0; }\n    for ( i = 0; i < xteArgCount(args); ++i ) {\n        xvalue value = xteEvalArgValue(render, xteArgAt(args, i));\n        if ( value == 0 || !xvoArrayAppendValue(values, value, true) ) {\n            if ( value != 0 ) { xvoUnref(value); }\n            xvoUnref(values);\n            return 0;\n        }\n    }\n    return values;\n}\n", out);
-    xl6OutputPuts("static void xl6_template_free_callback(void* userData)\n{\n    XL6_Template_Callback* callback = (XL6_Template_Callback*)userData;\n    if ( callback == 0 ) { return; }\n    xl6_function_release_value(callback->fn);\n    xrtFree(callback);\n}\n", out);
-    xl6OutputPuts("static int xl6_template_call_function(XTE_FuncCtx* ctx, xvalue* result)\n{\n    XL6_Template_Callback* callback = ctx != 0 ? (XL6_Template_Callback*)ctx->pUserData : 0;\n    xvalue args;\n    xvalue value;\n    if ( callback == 0 || result == 0 ) { return 0; }\n    args = xl6_template_eval_args(ctx->pRender, ctx->pArgs);\n    if ( args == 0 ) { return 0; }\n    value = xl6_function_call_var(callback->fn, 1, args);\n    if ( value == 0 ) { return 0; }\n    *result = value;\n    return 1;\n}\n", out);
-    xl6OutputPuts("static XTE_Flow xl6_template_call_statement(XTE_StmtRenderCtx* ctx)\n{\n    XL6_Template_Callback* callback = ctx != 0 ? (XL6_Template_Callback*)ctx->pUserData : 0;\n    xvalue args;\n    xvalue body;\n    xvalue value;\n    const char* text;\n    uint32_t size;\n    if ( callback == 0 ) { return XTE_FLOW_ERROR; }\n    args = xl6_template_eval_args(ctx->pRender, ctx->pArgs);\n    body = xvoCreateText((void*)(ctx->sRawBody != 0 ? ctx->sRawBody : \"\"), (uint32_t)ctx->iRawBodySize, false);\n    if ( args == 0 || body == 0 ) { xvoUnref(args); xvoUnref(body); return XTE_FLOW_ERROR; }\n    value = xl6_function_call_var(callback->fn, 2, args, body);\n    if ( value == 0 ) { return XTE_FLOW_ERROR; }\n    text = xvoGetText(value);\n    size = xvoGetSize(value);\n    if ( text == 0 || !xteStmtWrite(ctx, text, size) ) { xvoUnref(value); return XTE_FLOW_ERROR; }\n    xvoUnref(value);\n    return XTE_FLOW_OK;\n}\n\n", out);
-
-    xl6OutputPuts("void* xl6_xrt_template_engine_create(void)\n{\n    XL6_Template_Engine* value = (XL6_Template_Engine*)xrtCalloc(1u, sizeof(*value));\n    if ( value == 0 ) { return 0; }\n    value->engine = xteCreateEngine();\n    if ( value->engine == 0 ) { xrtFree(value); return 0; }\n    return value;\n}\n", out);
-    xl6OutputPuts("long long xl6_xrt_template_engine_destroy(void* handle)\n{\n    XL6_Template_Engine* value = (XL6_Template_Engine*)handle;\n    if ( value != 0 ) { xteDestroyEngine(value->engine); xrtFree(value); }\n    return 0;\n}\n", out);
-    xl6OutputPuts("int xl6_xrt_template_engine_register_function(void* handle, const char* name, XL6_Function fn, long long minArgs, long long maxArgs)\n{\n    XL6_Template_Engine* value = (XL6_Template_Engine*)handle;\n    XL6_Template_Callback* callback;\n    if ( value == 0 || value->engine == 0 || name == 0 || name[0] == '\\0' || minArgs < 0 || maxArgs < minArgs || maxArgs > 65535 ) { return 0; }\n    callback = (XL6_Template_Callback*)xrtCalloc(1u, sizeof(*callback));\n    if ( callback == 0 ) { return 0; }\n    callback->fn = xl6_function_copy_value(fn);\n    if ( !xteRegisterFunctionEx(value->engine, name, (uint16_t)minArgs, (uint16_t)maxArgs, xl6_template_call_function, callback, xl6_template_free_callback) ) { xl6_template_free_callback(callback); return 0; }\n    return 1;\n}\n", out);
-    xl6OutputPuts("int xl6_xrt_template_engine_register_statement(void* handle, const char* name, XL6_Function fn, long long minArgs, long long maxArgs)\n{\n    XL6_Template_Engine* value = (XL6_Template_Engine*)handle;\n    XL6_Template_Callback* callback;\n    if ( value == 0 || value->engine == 0 || name == 0 || name[0] == '\\0' || minArgs < 0 || maxArgs < minArgs || maxArgs > 65535 ) { return 0; }\n    callback = (XL6_Template_Callback*)xrtCalloc(1u, sizeof(*callback));\n    if ( callback == 0 ) { return 0; }\n    callback->fn = xl6_function_copy_value(fn);\n    if ( !xteRegisterStatementEx(value->engine, name, 14u, (uint16_t)minArgs, (uint16_t)maxArgs, 0, xl6_template_call_statement, 0, callback, xl6_template_free_callback) ) { xl6_template_free_callback(callback); return 0; }\n    return 1;\n}\n", out);
-    xl6OutputPuts("void* xl6_xrt_template_engine_compile(void* handle, const char* text, const char* bracket)\n{\n    XL6_Template_Engine* value = (XL6_Template_Engine*)handle;\n    XTE_ParseOptions options = { 0 };\n    if ( value == 0 || value->engine == 0 ) { return 0; }\n    options.sBracket = bracket != 0 && bracket[0] != '\\0' ? bracket : 0;\n    return xteParseEx(value->engine, text != 0 ? text : \"\", 0u, &options, &value->lastError);\n}\n", out);
-    xl6OutputPuts("void* xl6_xrt_template_engine_load(void* handle, const char* path)\n{\n    XL6_Template_Engine* value = (XL6_Template_Engine*)handle;\n    if ( value == 0 || value->engine == 0 || path == 0 ) { return 0; }\n    return xteTemplateLoadFile(value->engine, path, 0u, &value->lastError);\n}\n", out);
-    xl6OutputPuts("xvalue xl6_xrt_template_engine_error(void* handle)\n{\n    XL6_Template_Engine* value = (XL6_Template_Engine*)handle;\n    return xl6_template_error_value(value != 0 ? &value->lastError : 0);\n}\n\n", out);
-
-    xl6OutputPuts("void* xl6_xrt_template_wrap_handle(void* handle)\n{\n    return handle;\n}\n", out);
-    xl6OutputPuts("void* xl6_xrt_template_parse(const char* text, const char* bracket)\n{\n    if ( text == 0 ) { text = \"\"; }\n    if ( bracket != 0 && bracket[0] == '\\0' ) { bracket = 0; }\n    return xteParse(text, 0u, bracket);\n}\n", out);
-    xl6OutputPuts("long long xl6_xrt_template_destroy(void* self)\n{\n    xteDestroyTemplate((xtetemplate)self);\n    return 0;\n}\n", out);
-    xl6OutputPuts("void* xl6_xrt_template_render(void* self, xvalue data)\n{\n    return self != 0 ? xteMake((xtetemplate)self, data, 0, 0, 0) : 0;\n}\n", out);
-    xl6OutputPuts("int xl6_xrt_template_save(void* self, const char* path)\n{\n    return self != 0 && path != 0 && xteTemplateSaveFile((xtetemplate)self, path, 0u, 0) != 0;\n}\n", out);
-    xl6OutputPuts("unsigned int xl6_xrt_template_node_count(void* self)\n{\n    return self != 0 ? xteTemplateGetNodeCount((xtetemplate)self) : 0u;\n}\n", out);
-    xl6OutputPuts("unsigned int xl6_xrt_template_expr_count(void* self)\n{\n    return self != 0 ? xteTemplateGetExprCount((xtetemplate)self) : 0u;\n}\n", out);
-    xl6OutputPuts("unsigned int xl6_xrt_template_arg_count(void* self)\n{\n    return self != 0 ? xteTemplateGetArgCount((xtetemplate)self) : 0u;\n}\n", out);
-    xl6OutputPuts("unsigned int xl6_xrt_template_string_pool_size(void* self)\n{\n    return self != 0 ? xteTemplateGetStringPoolSize((xtetemplate)self) : 0u;\n}\n", out);
-    xl6OutputPuts("xvalue xl6_xrt_template_error(void* self)\n{\n    return xl6_template_error_value(self != 0 ? xteTemplateGetLastError((xtetemplate)self) : 0);\n}\n", out);
-    xl6OutputPuts("xvalue xl6_xrt_template_root(void* self)\n{\n    xvalue value = xvoCreateTable();\n    XTE_NodeSpan span = self != 0 ? xteTemplateGetRootSpan((xtetemplate)self) : (XTE_NodeSpan){0};\n    xl6_template_set_int(value, \"start\", span.iStart);\n    xl6_template_set_int(value, \"count\", span.iCount);\n    return value;\n}\n", out);
-    xl6OutputPuts("xvalue xl6_xrt_template_node(void* self, long long index)\n{\n    const XL6_XTE_NodeHead* node;\n    xvalue value;\n    if ( self == 0 || index < 0 || (uint64_t)index >= xteTemplateGetNodeCount((xtetemplate)self) ) { return xvoCreateTable(); }\n    node = (const XL6_XTE_NodeHead*)xteTemplateGetNode((xtetemplate)self, (uint32_t)index);\n    value = xvoCreateTable();\n    if ( node != 0 ) { xl6_template_set_int(value, \"type\", node->iType); xl6_template_set_int(value, \"flags\", node->iFlags); xl6_template_set_int(value, \"position\", node->iPos); xl6_template_set_int(value, \"size\", node->iSize); }\n    return value;\n}\n", out);
-    xl6OutputPuts("xvalue xl6_xrt_template_expr(void* self, long long index)\n{\n    const XTE_ExprNode* expr;\n    xvalue value;\n    if ( self == 0 || index < 0 || (uint64_t)index >= xteTemplateGetExprCount((xtetemplate)self) ) { return xvoCreateTable(); }\n    expr = xteTemplateGetExpr((xtetemplate)self, (uint32_t)index);\n    value = xvoCreateTable();\n    if ( expr != 0 ) { xl6_template_set_int(value, \"type\", expr->iType); xl6_template_set_int(value, \"flags\", expr->iFlags); xl6_template_set_text_n(value, \"text\", xteTemplateGetString((xtetemplate)self, expr->iTextOff), expr->iTextSize); xl6_template_set_int(value, \"intValue\", expr->iIntValue); xl6_template_set_bool(value, \"boolValue\", expr->iBoolValue != 0); }\n    return value;\n}\n", out);
-    xl6OutputPuts("xvalue xl6_xrt_template_arg(void* self, long long index)\n{\n    const XTE_ArgItem* arg;\n    xvalue value;\n    if ( self == 0 || index < 0 || (uint64_t)index >= xteTemplateGetArgCount((xtetemplate)self) ) { return xvoCreateTable(); }\n    arg = xteTemplateGetArg((xtetemplate)self, (uint32_t)index);\n    value = xvoCreateTable();\n    if ( arg != 0 ) { xl6_template_set_text_n(value, \"name\", xteTemplateGetString((xtetemplate)self, arg->iNameOff), arg->iNameSize); xl6_template_set_text_n(value, \"raw\", xteTemplateGetString((xtetemplate)self, arg->iRawOff), arg->iRawSize); xl6_template_set_int(value, \"flags\", arg->iFlags); xl6_template_set_int(value, \"expression\", arg->iExprIndex); }\n    return value;\n}\n", out);
-    xl6OutputPuts("#endif\n\n", out);
+    xl6OutputPuts(xl6TemplateRuntimeTypes, out);
+    xl6OutputPuts(xl6TemplateRuntimeValues, out);
+    xl6OutputPuts(xl6TemplateRuntimeExtensions, out);
+    xl6OutputPuts(xl6TemplateRuntimeEngine, out);
+    xl6OutputPuts(xl6TemplateRuntimeTemplate, out);
 }

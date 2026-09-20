@@ -1,0 +1,15 @@
+extern "generator_storage_entered" func generatorStorageEntered()
+
+func generatorStorageProbe() as generator<int>
+    generatorStorageEntered()
+    yield 171
+end
+
+func main(...) as int
+    int sum = 0
+    for item in generatorStorageProbe()
+        sum += item
+    end
+    assert sum == 171
+    return 0
+end

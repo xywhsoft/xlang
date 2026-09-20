@@ -1,0 +1,43 @@
+string root = "build/test/xlir_directory_bridge_data"
+assert !dir.exists(root), "directory bridge fixture must start without stale data"
+assert dir.create(root)
+assert dir.empty(root)
+assert dir.create(root + "/child")
+assert file.writeText(root + "/a.txt", "abc")
+assert file.writeText(root + "/c.bin", "!")
+assert file.writeText(root + "/child/b.txt", "xyz")
+assert !dir.empty(root)
+assert dir.list(root).length == 3
+assert dir.files(root).length == 2
+assert dir.dirs(root).length == 1
+assert dir.files(root, true).length == 3
+assert dir.glob(root, "*.txt", true).length == 2
+assert dir.count(root) == 3
+assert dir.count(root, true) == 4
+assert dir.size(root, false) == 4
+assert dir.size(root, true) == 7
+array entries = dir.entries(root, true)
+assert entries.length == 4
+int files = 0
+int bytes = 0
+for entry in entries
+    if entry["isFile"]
+        files = files + 1
+        bytes = bytes + int(entry["size"])
+        assert entry["enter"] == false
+        assert entry["leave"] == false
+    else
+        assert entry["isDir"]
+        assert entry["enter"]
+        assert entry["name"] == "child"
+    end
+end
+assert files == 3 and bytes == 7
+assert dir.walk(root, "*.txt").length == 2
+assert dir.walk(root).length == 5
+assert file.delete(root + "/a.txt")
+assert file.delete(root + "/c.bin")
+assert file.delete(root + "/child/b.txt")
+assert dir.delete(root + "/child")
+assert dir.empty(root)
+assert dir.delete(root)

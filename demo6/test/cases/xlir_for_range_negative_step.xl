@@ -1,0 +1,7 @@
+export "xlir_test_sum_range_down" func sum_range_down() as int64
+    int64 total = 0
+    for value in range(5, 0, -2)
+        total = total + value
+    end
+    return total
+end

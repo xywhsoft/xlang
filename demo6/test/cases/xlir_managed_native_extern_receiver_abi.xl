@@ -1,0 +1,24 @@
+class BorrowedProbe
+    native point handle
+
+    extern "borrowed_probe_value" func value() as int
+end
+
+extern "borrowed_probe_at" func probeAt(int index) as point
+extern "expect_i64" func expect(int actual, int expected)
+
+func exercise()
+    point shared = probeAt(1)
+    BorrowedProbe first = BorrowedProbe(shared)
+    BorrowedProbe second = BorrowedProbe(shared)
+    BorrowedProbe other = BorrowedProbe(probeAt(2))
+
+    expect(first.value(), 41)
+    expect(second.value(), 41)
+    expect(other.value(), 82)
+
+    set<BorrowedProbe> values = set{first, second, first, other}
+    expect(values.length, 3)
+end
+
+exercise()

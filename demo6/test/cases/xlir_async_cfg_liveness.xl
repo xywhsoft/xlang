@@ -1,0 +1,23 @@
+async func livenessSeed(int value) as int
+    return value
+end
+
+async func branchAfterAwait(future<int> source, future<int> tail, bool add, int left, int right) as int
+    int base = left
+    int value = await source
+    if add then
+        base = base + value
+    else
+        base = base - value
+    end
+    int tailValue = await tail
+    return base + right + tailValue
+end
+
+future<int> addSource = livenessSeed(5)
+future<int> addTail = livenessSeed(1)
+assert await branchAfterAwait(addSource, addTail, true, 10, 2) == 18, "async CFG liveness add path failed"
+
+future<int> subtractSource = livenessSeed(4)
+future<int> subtractTail = livenessSeed(2)
+assert await branchAfterAwait(subtractSource, subtractTail, false, 10, 3) == 11, "async CFG liveness subtract path failed"

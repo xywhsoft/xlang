@@ -1,0 +1,10 @@
+func rethrow_until_error_payload_is_lowered() as int
+    try
+        throw "initial failure"
+    catch ignored
+        throw
+    end
+end
+
+// Root the may-raise target for the strict generated-C host.
+rethrow_until_error_payload_is_lowered()

@@ -182,6 +182,27 @@ static int xl6CgenIsTypedContainerType(XL6_CgenContext* ctx, const XL6_AstNode* 
     return xl6CgenTypedContainerConcreteType(ctx, typeNode) != NULL;
 }
 
+
+
+/*
+	只按代码生成器实际收集到的运行时类型描述启用 typed container。
+	标准库声明也位于根 AST 中，直接扫描整棵树会让无关程序带入全部容器运行时。
+*/
+static int xl6CgenContextNeedsTypedContainerRuntime(XL6_CgenContext* ctx)
+{
+    size_t i;
+
+    if ( ctx == NULL ) {
+        return 0;
+    }
+    for ( i = 0; i < ctx->runtimeTypeDescCount; ++i ) {
+        if ( xl6CgenIsTypedContainerType(ctx, ctx->runtimeTypeDescs[i].typeNode) ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static const char* xl6CgenTypedContainerCType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
 {
     const XL6_AstNode* concreteType;
@@ -410,7 +431,7 @@ static void xl6CgenAnonAddCapture(XL6_CgenContext* ctx, XL6_CgenAnonFunc* info, 
         info->captures = newItems;
         info->captureCapacity = newCapacity;
     }
-    info->captures[info->captureCount].name = xrtCopyStr((char*)name, strlen(name));
+    info->captures[info->captureCount].name = xrtStrDupN(name, strlen(name));
     info->captures[info->captureCount].type = type;
     info->captureCount += 1;
 }
@@ -506,7 +527,6 @@ static XL6_AstNode* xl6CgenFindExternFunc(XL6_CgenContext* ctx, const char* name
 static void xl6CgenFuncSymbol(XL6_CgenContext* ctx, const XL6_AstNode* funcNode);
 static void xl6CgenClassCallableSymbol(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode* memberNode);
 static void xl6CgenClassDefaultInitFields(XL6_CgenContext* ctx, const XL6_AstNode* classNode, const char* varPath);
-static void xl6CgenClassValuePublishShared(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, const char* varPath);
 static void xl6CgenCollectGenericInstances(XL6_CgenContext* ctx, const XL6_AstNode* node);
 static void xl6CgenCollectRuntimeTypeDescs(XL6_CgenContext* ctx, const XL6_AstNode* root);
 static void xl6CgenTypeText(XL6_CgenContext* ctx, const XL6_AstNode* typeNode, char* buffer, size_t capacity);

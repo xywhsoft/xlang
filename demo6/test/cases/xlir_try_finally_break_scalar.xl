@@ -1,0 +1,12 @@
+export "xlir_test_break_through_finally" func break_through_finally() as int
+    int value = 0
+    while value < 1
+        try
+            value = 1
+            break
+        finally
+            value = value + 2
+        end
+    end
+    return value
+end

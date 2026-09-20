@@ -1,0 +1,48 @@
+extern "frame_graph_source" func graphSource(int stage) as future<int>
+extern "frame_graph_capture" func graphCapture(var value)
+
+async func frameSlots(var first, var second, future<int> saved, func() as int callback) as int
+    int a = await graphSource(0)
+    int b = await graphSource(1)
+    int c = await saved
+    return int(first[0]) + int(second[0]) + callback() + a + b + c
+end
+
+async func frameCell(var input) as int
+    var shared = input
+    auto read = func() as int
+        shared = shared
+        return int(shared[0])
+    end
+    int a = await graphSource(0)
+    shared = [42]
+    int b = await graphSource(1)
+    return read() + a + b
+end
+
+async func frameError(error reason) as int
+    int a = await graphSource(0)
+    int b = await graphSource(1)
+    assert(reason.message == "owned frame error")
+    return a + b + 42
+end
+
+export "frame_graph_build" func frameBuild(int mode)
+    var shared = [40]
+    if mode == 0 then
+        auto callback = func() as int => int(shared[0]) + 2
+        graphCapture(frameSlots(shared, shared, graphSource(0), callback))
+    elseif mode == 1 then
+        graphCapture(frameCell(shared))
+    else
+        try
+            throw RuntimeError "owned frame error"
+        catch reason
+            graphCapture(frameError(reason))
+        end
+    end
+end
+
+func main(...) as int
+    return 0
+end

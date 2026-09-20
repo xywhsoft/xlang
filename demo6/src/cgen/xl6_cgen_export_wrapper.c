@@ -91,9 +91,10 @@ static void xl6CgenEmitExportWrapperParamArg(
     }
     if ( param->childCount > 0 &&
          xl6CgenIsFunctionType(param->children[0]) ) {
-        xl6OutputPuts("xl6_function_copy_value(", ctx->out);
-        xl6CgenFputsCIdent(ctx->out, param->text);
-        xl6OutputPutc(')', ctx->out);
+        xl6CgenEmitCAbiCallbackMakeExpr(
+            ctx,
+            param->children[0],
+            param->text);
         return;
     }
     if ( param->childCount > 0 &&

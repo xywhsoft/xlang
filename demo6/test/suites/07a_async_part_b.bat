@@ -403,12 +403,12 @@ if errorlevel 1 (
 )
 release\xl.exe cgen test\cases\cgen_task_shared_closure_refcount.xl --emit build\test\cgen_task_shared_closure_refcount.c
 if errorlevel 1 exit /b 1
-findstr /C:"xrtAtomicRefRetain(&__env->ref_count)" build\test\cgen_task_shared_closure_refcount.c >nul
+findstr /C:"xrtRefRetain(&__env->ref_count)" build\test\cgen_task_shared_closure_refcount.c >nul
 if errorlevel 1 (
     echo cgen_task_shared_closure_refcount.c missing atomic closure retain.
     exit /b 1
 )
-findstr /C:"xrtAtomicRefRelease(&__env->ref_count)" build\test\cgen_task_shared_closure_refcount.c >nul
+findstr /C:"xrtRefRelease(&__env->ref_count)" build\test\cgen_task_shared_closure_refcount.c >nul
 if errorlevel 1 (
     echo cgen_task_shared_closure_refcount.c missing atomic closure release.
     exit /b 1
@@ -585,14 +585,9 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_var.xl >nul 2> build\test\sem_task_spawn_return_var.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_return_var.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn return type cannot be var" build\test\sem_task_spawn_return_var.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_return_var.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_return_var.xl missing task.spawn return diagnostic.
+    echo sem_task_spawn_return_var.xl should pass language checking.
     exit /b 1
 )
 
@@ -607,47 +602,27 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_typed_array.xl >nul 2> build\test\sem_task_spawn_return_typed_array.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_return_typed_array.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_typed_array.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_return_typed_array.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_return_typed_array.xl missing task.spawn typed array return diagnostic.
+    echo sem_task_spawn_return_typed_array.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_typed_list.xl >nul 2> build\test\sem_task_spawn_return_typed_list.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_return_typed_list.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_typed_list.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_return_typed_list.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_return_typed_list.xl missing task.spawn typed list return diagnostic.
+    echo sem_task_spawn_return_typed_list.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_typed_set.xl >nul 2> build\test\sem_task_spawn_return_typed_set.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_return_typed_set.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_typed_set.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_return_typed_set.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_return_typed_set.xl missing task.spawn typed set return diagnostic.
+    echo sem_task_spawn_return_typed_set.xl should pass language checking.
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_task_spawn_return_typed_dict.xl >nul 2> build\test\sem_task_spawn_return_typed_dict.err.txt
-if not errorlevel 1 (
-    echo sem_task_spawn_return_typed_dict.xl should fail.
-    exit /b 1
-)
-findstr /C:"task.spawn return type must be supported" build\test\sem_task_spawn_return_typed_dict.err.txt >nul
+release\xl.exe check test\cases\sem_task_spawn_return_typed_dict.xl >nul
 if errorlevel 1 (
-    echo sem_task_spawn_return_typed_dict.xl missing task.spawn typed dict return diagnostic.
+    echo sem_task_spawn_return_typed_dict.xl should pass language checking.
     exit /b 1
 )
 

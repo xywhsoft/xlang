@@ -1,0 +1,6 @@
+extern "xlir_identity_point_source" func identityPointSource() as point
+extern "xlir_expect_same_point" func expectSamePoint(point actual, point expected)
+
+point source = identityPointSource()
+point converted = point(source)
+expectSamePoint(converted, source)

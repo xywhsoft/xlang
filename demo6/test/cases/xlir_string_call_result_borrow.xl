@@ -1,0 +1,12 @@
+func make_text() as string
+    string text = "temporary"
+    return text
+end
+
+func inspect(string text) as int
+    return 9
+end
+
+export "xlir_test_call_result_borrow" func call_result_borrow() as int
+    return inspect(make_text())
+end

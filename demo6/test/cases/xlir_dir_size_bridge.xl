@@ -1,0 +1,1 @@
+assert dir.size("build/test/xlir_absent_directory_probe") == 0

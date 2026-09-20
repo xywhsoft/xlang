@@ -590,7 +590,7 @@ static int xl6CgenClassProtocolCallPrefix(
 static void xl6CgenClassProtocolTempInit(XL6_CgenContext* ctx, const char* tempName, const XL6_AstNode* paramType, const XL6_AstNode* expr)
 {
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue %s = ", tempName);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = ", tempName);
     xl6CgenXValueFromExprForTarget(ctx, paramType, expr);
     xl6OutputPuts(";\n", ctx->out);
 }
@@ -598,6 +598,6 @@ static void xl6CgenClassProtocolTempInit(XL6_CgenContext* ctx, const char* tempN
 static void xl6CgenClassProtocolTempCleanup(XL6_CgenContext* ctx, const char* tempName)
 {
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", tempName, tempName);
+    xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtValueRelease(%s); }\n", tempName, tempName);
 }
 

@@ -10,7 +10,10 @@ point<ImageTag> same = keep(image)
 point raw = null
 
 func main(...) as int
-    if image == null and same == null and raw == null then
+    array<point<ImageTag>> values = [image]
+    values[0] = null
+
+    if image == null and same == null and raw == null and values[0] == null then
         return 0
     end
     return 1

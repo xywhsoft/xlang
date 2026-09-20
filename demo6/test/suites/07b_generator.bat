@@ -193,7 +193,7 @@ if errorlevel 1 (
     echo cgen_generator.c missing consumed generator first-pass move lowering.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = consumedGen;\s*consumedGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""iterate null generator""[\s\S]*?consumedAgainState = 42LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = consumedGen;\s*consumedGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrCompare\(xrtStrView\(xl6_error_message\(e, 0\)\), xrtStrView\(\x22iterate null generator\x22\)\)[\s\S]*?consumedAgainState = 42LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing consumed generator second-pass null rejection.
     exit /b 1
@@ -203,7 +203,7 @@ if errorlevel 1 (
     echo cgen_generator.c missing null generator initialization.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = missingGen;\s*missingGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrComp\(xl6_error_message\(e\), ""iterate null generator""[\s\S]*?missingGenState = 42LL'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_generator.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'XL6_Generator\* __xl6_gen_iter_([0-9]+) = missingGen;\s*missingGen = 0;[\s\S]*?while \(xl6_generator_next\(__xl6_gen_iter_\1,[\s\S]*?goto __xl6_try_catch_([0-9]+);[\s\S]*?__xl6_try_catch_\2:[\s\S]*?xrtStrCompare\(xrtStrView\(xl6_error_message\(e, 0\)\), xrtStrView\(\x22iterate null generator\x22\)\)[\s\S]*?missingGenState = 42LL'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_generator.c missing null generator rejection.
     exit /b 1
@@ -331,7 +331,7 @@ release\xl.exe run test\cases\cgen_generator_string_resource.xl
 if errorlevel 1 exit /b 1
 release\xl.exe cgen test\cases\cgen_generator_string_resource.xl --emit build\test\cgen_generator_string_resource.c
 if errorlevel 1 exit /b 1
-findstr /C:"__xl6_frame->prefix = xrtCopyStr(prefix != 0 ? prefix : \"\", 0u);" build\test\cgen_generator_string_resource.c >nul
+findstr /C:"__xl6_frame->prefix = xl6_xrt_string_dup(prefix != 0 ? prefix : \"\", 0u);" build\test\cgen_generator_string_resource.c >nul
 if errorlevel 1 (
     echo cgen_generator_string_resource.c missing owned generator string frame copy.
     exit /b 1
@@ -346,7 +346,7 @@ if errorlevel 1 (
     echo cgen_generator_string_resource.c missing suspended generator cancellation.
     exit /b 1
 )
-"%XL6_TCC%" -DXL6_USE_XRT_LIFECYCLE %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% build\test\cgen_generator_string_resource.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_generator_string_resource.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -DXL6_USE_XRT_LIFECYCLE build\test\cgen_generator_string_resource.c %XL6_CGEN_LINKS% -o build\test\cgen_generator_string_resource.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_generator_string_resource.exe
 if errorlevel 1 exit /b 1
@@ -395,19 +395,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_generator_class_param.xl >nul 2> build\test\sem_generator_class_param.err.txt
-if not errorlevel 1 (
-    echo sem_generator_class_param.xl should fail.
-    exit /b 1
-)
-findstr /C:"generator" build\test\sem_generator_class_param.err.txt >nul
+rem Class references now use retained continuation-frame ownership.
+release\xl.exe run test\cases\sem_generator_class_param.xl
 if errorlevel 1 (
-    echo sem_generator_class_param.xl missing generator parameter diagnostic.
-    exit /b 1
-)
-findstr /C:"frame" build\test\sem_generator_class_param.err.txt >nul
-if errorlevel 1 (
-    echo sem_generator_class_param.xl missing generator parameter type boundary.
+    echo sem_generator_class_param.xl failed retained class-frame execution.
     exit /b 1
 )
 

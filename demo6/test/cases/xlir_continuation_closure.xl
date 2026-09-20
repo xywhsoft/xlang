@@ -1,0 +1,15 @@
+extern "continuation_closure_source" func source() as future<int>
+extern "continuation_closure_capture" func capture(var value)
+
+async func afterClose(future<int> input) as func() as int
+    int amount = await input
+    return func() as int => amount
+end
+
+export "continuation_closure_start" func start()
+    capture(afterClose(source()))
+end
+
+func main(...) as int
+    return 0
+end

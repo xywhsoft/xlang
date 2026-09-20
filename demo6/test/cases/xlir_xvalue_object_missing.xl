@@ -1,0 +1,9 @@
+func dynamic_object_missing() as var
+  var value = {"count": 42}
+  return value["missing"]
+end
+
+export "xlir_test_xvalue_object_missing_root" func xlir_test_root() as int
+  var rootedValue = dynamic_object_missing()
+  return 0
+end

@@ -1,0 +1,192 @@
+extern "return_projection_open" func opened(int id)
+extern "return_projection_drop" func dropped(int id)
+extern "return_projection_later" func later() as int
+extern "return_projection_observe" func observed()
+extern "return_projection_finally" func finalCheck(int id)
+
+class ProjectionGuard
+    int id
+    int marker = 9
+    create(int id)
+        self.id = id
+        opened(id)
+    end
+    destroy()
+        dropped(self.id)
+    end
+end
+
+func singleCarrier() as var
+    ProjectionGuard scratch = ProjectionGuard(2)
+    var item = ProjectionGuard(1)
+    later()
+    return item
+end
+
+func productCarrier() as (bool, var)
+    ProjectionGuard scratch = ProjectionGuard(2)
+    var item = ProjectionGuard(1)
+    later()
+    return true, item
+end
+
+func repeatedCarrier() as (var, var)
+    ProjectionGuard scratch = ProjectionGuard(2)
+    var item = ProjectionGuard(1)
+    later()
+    return item, item
+end
+
+func widenedCarrier() as (var, var)
+    ProjectionGuard scratch = ProjectionGuard(2)
+    ProjectionGuard item = ProjectionGuard(1)
+    later()
+    return item, item
+end
+
+func scalarCarriers() as (var, var, var)
+    ProjectionGuard scratch = ProjectionGuard(2)
+    ProjectionGuard marker = ProjectionGuard(1)
+    var number = 42
+    var truth = true
+    var text = "value"
+    later()
+    return number, truth, text
+end
+
+func nullableCarriers() as (string?, string?)
+    ProjectionGuard scratch = ProjectionGuard(2)
+    ProjectionGuard marker = ProjectionGuard(1)
+    string? text = "value"
+    later()
+    if text != null
+        return text, text
+    end
+    return null, null
+end
+
+func partialCarrier() as (var, int)
+    ProjectionGuard scratch = ProjectionGuard(2)
+    var item = ProjectionGuard(1)
+    return item, later()
+end
+
+func deferredCarriers() as (var, var)
+    ProjectionGuard scratch = ProjectionGuard(2)
+    var item = ProjectionGuard(1)
+    try
+        return item, item
+    finally
+        finalCheck(item.id)
+        later()
+    end
+end
+
+func capturedCarriers() as (var, var)
+    ProjectionGuard scratch = ProjectionGuard(2)
+    var item = ProjectionGuard(1)
+    auto callback = func() as int
+        item = item
+        return item.id
+    end
+    assert callback() == 1
+    later()
+    return item, item
+end
+
+func joinedCarriers(bool choose) as (var, var)
+    ProjectionGuard scratch = ProjectionGuard(2)
+    var item = ProjectionGuard(1)
+    later()
+    return choose ? item : item, item
+end
+
+func optionalCarrier(bool present, var item) as var
+    return present ? item : null
+end
+
+func coalescedCarriers(bool present) as (var, var)
+    ProjectionGuard scratch = ProjectionGuard(2)
+    var item = ProjectionGuard(1)
+    var optional = optionalCarrier(present, item)
+    later()
+    return optional ?? item, item
+end
+
+func joinedStrings(bool present) as (string, string)
+    ProjectionGuard scratch = ProjectionGuard(2)
+    ProjectionGuard marker = ProjectionGuard(1)
+    string? text = present ? "value" : null
+    later()
+    return text ?? "fallback", text ?? "fallback"
+end
+
+export "return_projection_probe" func probe(int lane) as int
+    if lane == 0
+        var value = singleCarrier()
+        assert value.id == 1
+        observed()
+    elseif lane == 1
+        auto valid, value = productCarrier()
+        assert valid and value.id == 1
+        observed()
+    elseif lane == 2
+        auto first, second = repeatedCarrier()
+        first.marker = 7
+        assert first.id == 1 and second.id == 1 and second.marker == 7
+        observed()
+    elseif lane == 3
+        auto first, second = widenedCarrier()
+        first.marker = 7
+        assert first.id == 1 and second.id == 1 and second.marker == 7
+        observed()
+    elseif lane == 4
+        auto number, truth, text = scalarCarriers()
+        assert number == 42 and truth == true and text == "value"
+        observed()
+    elseif lane == 5
+        auto first, second = nullableCarriers()
+        if first != null and second != null
+            assert first == "value" and second == "value"
+        else
+            assert false
+        end
+        observed()
+    elseif lane == 6
+        auto value, number = partialCarrier()
+        assert value.id == 1 and number == 7
+        observed()
+    elseif lane == 7
+        auto first, second = deferredCarriers()
+        first.marker = 7
+        assert first.id == 1 and second.id == 1 and second.marker == 7
+        observed()
+    elseif lane == 8
+        auto first, second = capturedCarriers()
+        first.marker = 7
+        assert first.id == 1 and second.id == 1 and second.marker == 7
+        observed()
+    elseif lane == 9 or lane == 10
+        auto first, second = joinedCarriers(lane == 9)
+        first.marker = 7
+        assert first.id == 1 and second.id == 1 and second.marker == 7
+        observed()
+    elseif lane == 11 or lane == 12
+        auto first, second = coalescedCarriers(lane == 11)
+        first.marker = 7
+        assert first.id == 1 and second.id == 1 and second.marker == 7
+        observed()
+    elseif lane == 13 or lane == 14
+        auto first, second = joinedStrings(lane == 13)
+        assert first == second
+        if lane == 13
+            assert first == "value"
+        else
+            assert first == "fallback"
+        end
+        observed()
+    else
+        assert false
+    end
+    return 41
+end

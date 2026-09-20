@@ -340,6 +340,13 @@ static int xl6CgenIsStringTypeNode(XL6_CgenContext* ctx, const XL6_AstNode* type
     return typeNode != NULL && xl6CTextEquals(typeNode->text, "string");
 }
 
+static int xl6CgenIsErrorType(XL6_CgenContext* ctx, const XL6_AstNode* typeNode)
+{
+    typeNode = xl6CgenSubstituteGenericType(ctx, typeNode);
+    typeNode = xl6CgenResolveAliasType(ctx, typeNode);
+    return typeNode != NULL && xl6CTextEquals(typeNode->text, "error");
+}
+
 static int xl6CgenIsNullableStringTypeNode(
     XL6_CgenContext* ctx,
     const XL6_AstNode* typeNode)
@@ -474,7 +481,7 @@ static const char* xl6CgenConvertCTypeName(const char* name)
         return "void*";
     }
     if ( xl6CgenIsXValueTypeName(name) ) {
-        return "xvalue";
+        return "xvalue*";
     }
     return "int";
 }
@@ -516,7 +523,7 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
              xl6CgenIsProtocolType(ctx, concreteInner) ||
              (concreteInner != NULL && concreteInner->text != NULL &&
               xl6CgenFindClass(ctx, concreteInner->text) != NULL) ) {
-            return "xvalue";
+            return "xvalue*";
         }
         if ( xl6CgenNullableUsesPointer(typeNode) ) {
             if ( xl6CgenTypedContainerConcreteType(ctx, inner) != NULL ) {
@@ -529,7 +536,7 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
         return stableText != NULL ? stableText : "int";
     }
     if ( xl6CgenIsWeakType(typeNode) ) {
-        return "xrt_value_weak";
+        return "xl6_weak";
     }
 
     if ( xl6CTextEquals(typeNode->text, "int") || xl6CTextEquals(typeNode->text, "int64") ) {
@@ -591,7 +598,7 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
         return "xfuture*";
     }
     if ( xl6CTextEquals(typeNode->text, "channel") ) {
-        return "xchannel";
+        return "xl6_channel";
     }
     if ( xl6CTextEquals(typeNode->text, "Stack") ) {
         return "xtstack";
@@ -626,13 +633,13 @@ static const char* xl6CgenTypeName(XL6_CgenContext* ctx, const XL6_AstNode* type
          xl6CTextEquals(typeNode->text, "list") || xl6CTextEquals(typeNode->text, "list<var>") ||
          xl6CTextEquals(typeNode->text, "set") || xl6CTextEquals(typeNode->text, "set<var>") ||
          xl6CTextEquals(typeNode->text, "dict") || xl6CTextEquals(typeNode->text, "dict<var>") ) {
-        return "xvalue";
+        return "xvalue*";
     }
     if ( xl6CTextEquals(typeNode->text, "function") ) {
         return "XL6_Function";
     }
     if ( xl6CgenIsProtocolType(ctx, typeNode) ) {
-        return "xvalue";
+        return "xvalue*";
     }
     if ( xl6CgenIsTaggedEnumType(ctx, typeNode) ) {
         xl6CgenEnumTypeRefName(typeTextBuffer, sizeof(typeTextBuffer), typeNode);
@@ -691,7 +698,7 @@ static const char* xl6CgenCAbiTypeName(XL6_CgenContext* ctx, const XL6_AstNode* 
         const XL6_AstNode* inner = xl6CgenNullableInnerType(typeNode);
 
         if ( xl6CgenNullableUsesXValue(typeNode) ) {
-            return "xvalue";
+            return "xvalue*";
         }
         if ( xl6CgenNullableUsesPointer(typeNode) ) {
             return xl6CgenCAbiTypeName(ctx, inner);
@@ -701,7 +708,7 @@ static const char* xl6CgenCAbiTypeName(XL6_CgenContext* ctx, const XL6_AstNode* 
         return stableText != NULL ? stableText : "void";
     }
     if ( xl6CgenIsWeakType(typeNode) ) {
-        return "xrt_value_weak";
+        return "xl6_weak";
     }
     if ( xl6CTextEquals(typeNode->text, "bool") ) {
         return "bool";
@@ -753,6 +760,13 @@ static const char* xl6CgenCAbiTypeName(XL6_CgenContext* ctx, const XL6_AstNode* 
     }
     if ( xl6CTextEquals(typeNode->text, "point") ) {
         return "void*";
+    }
+    if ( xl6CTextEquals(typeNode->text, "function") ) {
+        /*
+            XL6_Function 是语言内部/XCall 的胖函数值。
+            只有明确的 C ABI 参数位置才由声明生成器改写为原生函数指针 typedef。
+        */
+        return "XL6_Function";
     }
     if ( xl6CgenTypedContainerConcreteType(ctx, typeNode) != NULL ) {
         return xl6CgenTypedContainerCType(ctx, typeNode);

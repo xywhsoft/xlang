@@ -177,7 +177,7 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
             return 1;
         }
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = xl6_xrt_typed_box_or_null(", currentName);
+        xl6OutputPrintf(ctx->out, "xvalue* %s = xl6_xrt_typed_box_or_null(", currentName);
         xl6CgenEmitXrtTypeDescRef(ctx, itemType);
         xl6OutputPuts(", ", ctx->out);
         if ( xl6CTextEquals(receiverKind, "array") ) {
@@ -187,7 +187,7 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
             xl6CgenExpr(ctx, index);
             xl6OutputPuts("))", ctx->out);
         } else if ( xl6CTextEquals(receiverKind, "list") ) {
-            xl6OutputPuts("xrtTypedListGet(", ctx->out);
+            xl6OutputPuts("xl6TypedListGet(", ctx->out);
             xl6CgenExpr(ctx, receiver);
             xl6OutputPuts(", (long long)(", ctx->out);
             xl6CgenExpr(ctx, index);
@@ -197,12 +197,12 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
         }
         xl6OutputPuts(");\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s == 0 || xvoType(%s) == XL6_XVO_DT_NULL) {\n", currentName, currentName);
+        xl6OutputPrintf(ctx->out, "if (%s == 0 || xl6_xrt_value_kind(%s) == XL6_XVO_DT_NULL) {\n", currentName, currentName);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", currentName, currentName, currentName);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtValueRelease(%s); %s = 0; }\n", currentName, currentName, currentName);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = ", tempName);
+        xl6OutputPrintf(ctx->out, "xvalue* %s = ", tempName);
         xl6CgenXValueFromExpr(ctx, right);
         xl6OutputPuts(";\n", ctx->out);
         xl6CgenIndexAssignTemp(ctx, left, tempName);
@@ -211,7 +211,7 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
         xl6OutputPuts("} else {\n", ctx->out);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvoUnref(%s);\n", currentName);
+        xl6OutputPrintf(ctx->out, "xrtValueRelease(%s);\n", currentName);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
         xl6OutputPuts("}\n", ctx->out);
@@ -236,7 +236,7 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
         xl6CgenExpr(ctx, right);
         xl6OutputPuts(";\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateText((void*)xl6_xrt_str_concat(%s, %s), 0, false);\n",
+        xl6OutputPrintf(ctx->out, "xvalue* %s = xl6_xrt_value_text_create((void*)xl6_xrt_str_concat(%s, %s), 0, false);\n",
                 tempName, currentName, rightName);
         xl6CgenIndexAssignTemp(ctx, left, tempName);
         xl6AstFree(itemType);
@@ -267,7 +267,7 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
         xl6CgenXValueAsI64Expr(ctx, right);
         xl6OutputPuts(");\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateInt(xl6_int_pow_i64(%s, %s));\n", tempName, currentName, rightName);
+        xl6OutputPrintf(ctx->out, "xvalue* %s = xrtValueInt(xl6_int_pow_i64(%s, %s));\n", tempName, currentName, rightName);
         xl6CgenIndexAssignTemp(ctx, left, tempName);
         xl6AstFree(itemType);
         xl6AstFree(receiverType);
@@ -299,7 +299,7 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
         xl6CgenXValueAsF64Expr(ctx, right);
         xl6OutputPuts(");\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateFloat(%s %s %s);\n", tempName, currentName, binaryOp, rightName);
+        xl6OutputPrintf(ctx->out, "xvalue* %s = xrtValueFloat(%s %s %s);\n", tempName, currentName, binaryOp, rightName);
     } else {
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "long long %s = (long long)(", currentName);
@@ -310,7 +310,7 @@ static int xl6CgenTypedIndexCompoundAssignStmt(
         xl6CgenXValueAsI64Expr(ctx, right);
         xl6OutputPuts(");\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateInt(%s %s %s);\n", tempName, currentName, binaryOp, rightName);
+        xl6OutputPrintf(ctx->out, "xvalue* %s = xrtValueInt(%s %s %s);\n", tempName, currentName, binaryOp, rightName);
     }
     xl6CgenIndexAssignTemp(ctx, left, tempName);
 
@@ -347,17 +347,17 @@ static void xl6CgenIndexCompoundAssignStmt(
     snprintf(tempName, sizeof(tempName), "__xl6_index_assign_%d", id);
 
     /*
-        xvoArrayGetValue/xvoListGetValue/xvoTableGetValue 返回容器内借用值。
-        current 只用于本语句内读取旧值，不能 xvoUnref，否则会误减容器元素引用。
+        xl6_xrt_index_get_i64/xl6_xrt_value_object_get 返回容器内借用值。
+        current 只用于本语句内读取旧值，不能 xrtValueRelease，否则会误减容器元素引用。
     */
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue %s = ", currentName);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = ", currentName);
     xl6CgenIndexExpr(ctx, left);
     xl6OutputPuts(";\n", ctx->out);
 
     if ( xl6CTextEquals(op, "?=") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (xvoIsNull(%s)) {\n", currentName);
+        xl6OutputPrintf(ctx->out, "if (xl6_xrt_value_is_null(%s)) {\n", currentName);
         ctx->indent += 1;
         xl6CgenIndexAssignStmt(ctx, left, right);
         ctx->indent -= 1;
@@ -372,7 +372,7 @@ static void xl6CgenIndexCompoundAssignStmt(
         xl6CgenXValueAsI64Expr(ctx, right);
         xl6OutputPuts(");\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateInt(xl6_int_pow_i64(xvoGetInt(%s), %s));\n",
+        xl6OutputPrintf(ctx->out, "xvalue* %s = xrtValueInt(xl6_int_pow_i64(xl6_xrt_value_int(%s), %s));\n",
                 tempName, currentName, rightName);
         xl6CgenIndexAssignTemp(ctx, left, tempName);
         return;
@@ -391,10 +391,10 @@ static void xl6CgenIndexCompoundAssignStmt(
         xl6CgenXValueAsF64Expr(ctx, right);
         xl6OutputPuts(";\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "int %s = xvoType(%s);\n", typeName, currentName);
+        xl6OutputPrintf(ctx->out, "int %s = xl6_xrt_value_kind(%s);\n", typeName, currentName);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out,
-                "xvalue %s = xvoCreateFloat(xl6_xrt_value_to_double(%s, %s) %s %s);\n",
+                "xvalue* %s = xrtValueFloat(xl6_xrt_value_to_double(%s, %s) %s %s);\n",
                 tempName, currentName, typeName, binaryOp, rightName);
     } else {
         xl6CgenIndent(ctx);
@@ -402,12 +402,12 @@ static void xl6CgenIndexCompoundAssignStmt(
         xl6CgenXValueAsI64Expr(ctx, right);
         xl6OutputPuts(");\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "int %s = xvoType(%s);\n", typeName, currentName);
+        xl6OutputPrintf(ctx->out, "int %s = xl6_xrt_value_kind(%s);\n", typeName, currentName);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", tempName);
+        xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", tempName);
         if ( xl6CTextEquals(op, "%=") ) {
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = xvoCreateInt(xvoGetInt(%s) %% %s);\n",
+            xl6OutputPrintf(ctx->out, "%s = xrtValueInt(xl6_xrt_value_int(%s) %% %s);\n",
                     tempName, currentName, rightName);
         } else {
             xl6CgenIndent(ctx);
@@ -415,14 +415,14 @@ static void xl6CgenIndexCompoundAssignStmt(
             ctx->indent += 1;
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out,
-                    "%s = xvoCreateFloat(xl6_xrt_value_to_double(%s, %s) %s (double)%s);\n",
+                    "%s = xrtValueFloat(xl6_xrt_value_to_double(%s, %s) %s (double)%s);\n",
                     tempName, currentName, typeName, binaryOp, rightName);
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("} else {\n", ctx->out);
             ctx->indent += 1;
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = xvoCreateInt(xvoGetInt(%s) %s %s);\n",
+            xl6OutputPrintf(ctx->out, "%s = xrtValueInt(xl6_xrt_value_int(%s) %s %s);\n",
                     tempName, currentName, binaryOp, rightName);
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
@@ -472,7 +472,7 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
     receiver = left->children[0];
     /*
      * 动态成员写入取决于接收者的真实 C 存储，而不是流分析后的读取类型。
-     * 例如 `var boxed = objectValue; boxed.extra = 1` 中 boxed 仍由 xvalue 承载。
+     * 例如 `var boxed = objectValue; boxed.extra = 1` 中 boxed 仍由 xvalue* 承载。
      */
     receiverType = xl6CgenCloneExprStorageType(ctx, receiver);
     if ( xl6CgenClassHandleTargetType(ctx, receiverType) != NULL ) {
@@ -504,9 +504,9 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
     if ( !receiverBorrow ) {
         snprintf(receiverName, sizeof(receiverName), "__xl6_member_receiver_%d", id);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue %s = ", receiverName);
+        xl6OutputPrintf(ctx->out, "xvalue* %s = ", receiverName);
         /*
-            嵌套动态字段赋值需要先把 receiver 固化为 owned xvalue。
+            嵌套动态字段赋值需要先把 receiver 固化为 owned xvalue*。
             例如 nested.inner.name = 1：inner 是从 nested 取出的字典对象，
             写入 name 后立即释放这个临时引用，底层对象仍由 nested 持有。
         */
@@ -514,7 +514,7 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
         xl6OutputPuts(";\n", ctx->out);
     }
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue %s = ", tempName);
+    xl6OutputPrintf(ctx->out, "xvalue* %s = ", tempName);
     xl6CgenXValueFromExpr(ctx, right);
     xl6OutputPuts(";\n", ctx->out);
     xl6CgenIndent(ctx);
@@ -536,10 +536,10 @@ static int xl6CgenDynamicMemberAssignStmt(XL6_CgenContext* ctx, const XL6_AstNod
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if ( %s != 0 ) { xvoUnref(%s); }\n", tempName, tempName);
+    xl6OutputPrintf(ctx->out, "if ( %s != 0 ) { xrtValueRelease(%s); }\n", tempName, tempName);
     if ( !receiverBorrow ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if ( %s != 0 ) { xvoUnref(%s); }\n", receiverName, receiverName);
+        xl6OutputPrintf(ctx->out, "if ( %s != 0 ) { xrtValueRelease(%s); }\n", receiverName, receiverName);
     }
     xl6AstFree(receiverType);
     return 1;
@@ -622,8 +622,6 @@ static int xl6CgenNullableTypedContainerAssignStmt(
     XL6_HirOwnership ownership;
     unsigned int targetFlags;
     int targetBorrowed;
-    int targetShared;
-    int sourceShared;
     int id;
     char cName[512];
     char tempName[64];
@@ -667,8 +665,6 @@ static int xl6CgenNullableTypedContainerAssignStmt(
     targetFlags = xl6CgenFindTrackedVarFlags(ctx, left->text);
     targetBorrowed = (targetFlags & XL6_CGEN_VAR_BORROWED) != 0 &&
                      (targetFlags & (XL6_CGEN_VAR_BYREF | XL6_CGEN_VAR_OUT)) == 0;
-    targetShared = (targetFlags & XL6_CGEN_VAR_MODULE_GLOBAL) != 0;
-    sourceShared = xl6CgenTypedContainerExprIsSharedStorage(ctx, right);
     id = ctx->tempId++;
     xl6CgenNameAssignTargetPath(ctx, left->text, cName, sizeof(cName));
     snprintf(tempName, sizeof(tempName), "__xl6_nullable_container_assign_%d", id);
@@ -688,10 +684,7 @@ static int xl6CgenNullableTypedContainerAssignStmt(
             "%s %s = ",
             xl6CgenTypedContainerCType(ctx, innerType),
             tempName);
-        xl6CgenTypedContainerCreateExprMode(
-            ctx,
-            innerType,
-            targetShared ? "XRT_OBJMODE_SHARED" : "XRT_OBJMODE_LOCAL");
+        xl6CgenTypedContainerCreateExpr(ctx, innerType);
         xl6OutputPuts(";\n", ctx->out);
         xl6CgenTypedContainerFillFromLiteral(ctx, tempName, innerType, right);
     } else {
@@ -715,24 +708,12 @@ static int xl6CgenNullableTypedContainerAssignStmt(
             xl6CgenTypedContainerCType(ctx, innerType),
             tempName,
             sourceName);
-        if ( targetShared && !sourceShared ) {
-            xl6CgenTypedContainerCopyCExprMode(
-                ctx,
-                innerType,
-                sourceName,
-                "XRT_OBJMODE_SHARED");
-        } else if ( ownership == XL6_HIR_OWNERSHIP_MOVE ) {
+        if ( ownership == XL6_HIR_OWNERSHIP_MOVE ) {
             xl6OutputPuts(sourceName, ctx->out);
         } else {
             xl6CgenTypedContainerRetainCExpr(ctx, innerType, sourceName);
         }
         xl6OutputPuts(" : 0;\n", ctx->out);
-
-        if ( ownership == XL6_HIR_OWNERSHIP_MOVE &&
-             targetShared && !sourceShared ) {
-            xl6CgenIndent(ctx);
-            xl6CgenTypedContainerDestroyValue(ctx, innerType, sourceName);
-        }
     }
 
     if ( targetBorrowed ) {

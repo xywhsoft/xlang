@@ -1,0 +1,21 @@
+extern "expect_xvalue_bool" func expectBool(var actual, bool expected)
+extern "expect_xvalue_float" func expectFloat(var actual, float expected)
+
+func invert(bool value) as bool
+    return value == false
+end
+
+func selectFraction(bool selected, int unusedWhole, float fraction) as float
+    if selected
+        return fraction
+    end
+    return fraction + 1.0
+end
+
+func(bool) as bool boolFn = invert
+var boxedBool = xcall(boolFn)
+expectBool(boxedBool(true), false)
+
+func(bool, int, float) as float floatFn = selectFraction
+var boxedFloat = xcall(floatFn)
+expectFloat(boxedFloat(true, 9, 2.5), 2.5)

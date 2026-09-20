@@ -1,0 +1,10 @@
+extern "xvalue_vararg_count" func nativeCount(string tag, ...) as int
+extern "xvalue_kw_count" func nativeKwCount(string tag, ***) as int
+
+export "xlir_callsite_variadic_probe" func probe() as int
+    int positional = nativeCount("pos", 1, "two", true)
+    int positionalEmpty = nativeCount("empty")
+    int named = nativeKwCount("kw", first = 1, second = "two")
+    int namedEmpty = nativeKwCount("empty")
+    return positional * 1000 + positionalEmpty * 100 + named * 10 + namedEmpty
+end

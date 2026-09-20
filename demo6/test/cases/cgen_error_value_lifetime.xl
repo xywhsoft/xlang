@@ -1,0 +1,105 @@
+func captureFirst() as error
+    try
+        throw ValueError "first error"
+    catch e
+        return e
+    end
+    return null
+end
+
+
+func captureSecond() as error
+    try
+        throw FileError "second error"
+    catch e
+        return e
+    end
+    return null
+end
+
+
+func preserve(error value) as error
+    return value
+end
+
+
+func pairErrors(error left, error right) as (error, error)
+    return left, right
+end
+
+
+async func preserveAsync(error value) as error
+    return value
+end
+
+
+class ErrorHolder
+    derive copy
+    derive clone
+
+    error value = null
+
+    create(error value)
+        self.value = value
+    end
+end
+
+
+// 普通返回、参数传递和覆盖赋值必须各自持有独立引用。
+error first = captureFirst()
+error second = captureSecond()
+error returned = preserve(first)
+assert returned.kind == "ValueError"
+assert returned.message == "first error"
+
+error assigned = null
+assigned ?= first
+assert assigned.message == "first error"
+assigned ?= second
+assert assigned.message == "first error"
+assigned = second
+assert assigned.kind == "FileError"
+assert assigned.message == "second error"
+
+
+// 类字段的构造、复制、克隆和覆盖必须保留原值生命周期。
+ErrorHolder holder = ErrorHolder(first)
+ErrorHolder copied = copy(holder)
+ErrorHolder cloned = clone(holder)
+holder.value = second
+assert holder.value.message == "second error"
+assert copied.value.message == "first error"
+assert cloned.value.message == "first error"
+
+
+// error 装入动态值后不借用原始指针，动态调用也使用同一 TypeDesc。
+var boxed = first
+assert boxed is error
+error unboxed = boxed as error
+assert unboxed.message == "first error"
+
+func(error) as error callback = preserve
+var dynamicCallback = xcall(callback)
+error dynamicResult = dynamicCallback(first) as error
+assert dynamicResult.message == "first error"
+
+
+// 多返回值赋值会转移新结果，并在覆盖前释放目标旧值。
+error left = first
+error right = second
+left, right = pairErrors(second, first)
+assert left.message == "second error"
+assert right.message == "first error"
+
+
+// future 始终拥有完成值；重复 await 每次都返回独立强引用。
+future<error> pending = preserveAsync(first)
+error awaitedFirst = await pending
+error awaitedAgain = await pending
+assert awaitedFirst.message == "first error"
+assert awaitedAgain.message == "first error"
+
+error awaitedTemporary = await preserveAsync(second)
+assert awaitedTemporary.message == "second error"
+
+println("error value lifetime ok")

@@ -1,0 +1,17 @@
+extern "async_storage_source" func storageSource(int stage) as future<int>
+extern "async_storage_entered" func storageEntered()
+
+async func asyncStorageProbe() as int
+    storageEntered()
+    int first = await storageSource(0)
+    int second = await storageSource(1)
+    return first + second
+end
+
+export "async_storage_start" func storageStart()
+    future<int> output = asyncStorageProbe()
+end
+
+func main(...) as int
+    return 0
+end

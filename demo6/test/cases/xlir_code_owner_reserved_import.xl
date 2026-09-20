@@ -1,0 +1,2 @@
+extern "xl_script_bind_code_owner" func invalidBinding(int value) as int
+assert invalidBinding(1) == 1

@@ -1,0 +1,2 @@
+assert process.success("exit 0")
+assert !process.success("exit 7")

@@ -21,7 +21,7 @@ if errorlevel 1 (
     echo cgen_class_field_and_container_param.c has invalid class declaration ordering.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_field_and_container_param.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_field_and_container_param.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_class_field_and_container_param.c %XL6_CGEN_LINKS% -o build\test\cgen_class_field_and_container_param.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_field_and_container_param.exe
 if errorlevel 1 exit /b 1
@@ -48,12 +48,12 @@ if errorlevel 1 (
     echo cgen_typed_container_param_mutation.c missing nested assignment argument lowering.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayDestroy(__xl6_call_arg_" build\test\cgen_typed_container_param_mutation.c >nul
+findstr /C:"xl6TypedArrayRelease(__xl6_call_arg_" build\test\cgen_typed_container_param_mutation.c >nul
 if errorlevel 1 (
     echo cgen_typed_container_param_mutation.c missing owned call argument cleanup.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_typed_container_param_mutation.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_typed_container_param_mutation.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_typed_container_param_mutation.c %XL6_CGEN_LINKS% -o build\test\cgen_typed_container_param_mutation.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_typed_container_param_mutation.exe
 if errorlevel 1 exit /b 1
@@ -76,7 +76,7 @@ if errorlevel 1 (
     echo cgen_class_param_value_ownership.c missing retained byval managed handle.
     exit /b 1
 )
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_class_param_value_ownership.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_class_param_value_ownership.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_class_param_value_ownership.c %XL6_CGEN_LINKS% -o build\test\cgen_class_param_value_ownership.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_class_param_value_ownership.exe
 if errorlevel 1 exit /b 1
@@ -88,14 +88,14 @@ if errorlevel 1 (
     echo cgen_export_typed_container_abi.c missing static container ABI.
     exit /b 1
 )
-findstr /C:"xl6_export_sumInternal(xvalue values)" build\test\cgen_export_typed_container_abi.c >nul
+findstr /C:"xl6_export_sumInternal(xvalue* values)" build\test\cgen_export_typed_container_abi.c >nul
 if not errorlevel 1 (
     echo cgen_export_typed_container_abi.c regressed to dynamic container ABI.
     exit /b 1
 )
 "%XL6_BOOTSTRAP_CC%" -std=c11 -Werror=incompatible-pointer-types -Ibuild\test -fsyntax-only build\test\cgen_export_typed_container_abi.c
 if errorlevel 1 exit /b 1
-"%XL6_TCC%" %XL6_TCC_INCLUDES% %XL6_TCC_LIB_FLAGS% build\test\cgen_export_typed_container_abi.c %XL6_XRT_OBJ% %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\cgen_export_typed_container_abi.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% build\test\cgen_export_typed_container_abi.c %XL6_CGEN_LINKS% -o build\test\cgen_export_typed_container_abi.exe
 if errorlevel 1 exit /b 1
 build\test\cgen_export_typed_container_abi.exe
 if errorlevel 1 exit /b 1

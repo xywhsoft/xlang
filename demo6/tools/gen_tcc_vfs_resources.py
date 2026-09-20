@@ -58,6 +58,9 @@ def resolve_manifest_path(
     }
     for token, replacement in replacements.items():
         value = value.replace(token, replacement)
+
+    # 清单可能由 Windows 与 POSIX 构建共用，统一采用 Path 可识别的分隔符。
+    value = value.replace("\\", "/")
     path = Path(value)
     return (path if path.is_absolute() else root / path).resolve()
 

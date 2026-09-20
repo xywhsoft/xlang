@@ -162,10 +162,10 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| xlang 写法 | `crypto.sha256` / `url.host` / `query.encode` / `regex.find` / `process.exec` / `dir.list` / `path.join` / `http.server.create` |
-| 生成规则描述 | 标准库 runtime needs 通过内部函数名触发，例如 `__xl_std_runtime_sha256_hex`、`__xl_std_runtime_url_part`。每个命名空间都有一个 `Is*RuntimeCall` 和一个递归 `NodeNeeds*Runtime`。 |
+| xlang 写法 | `crypto.sha256` / `process.exec` / `dir.list` / `path.join` |
+| 生成规则描述 | 核心标准库 runtime needs 通过内部函数名触发，例如 `__xl_std_runtime_sha256_hex`。xhttp、xregex 等扩展通过 package source/link closure 接入，不进入核心 needs。 |
 | 生成器文件名和行号 | `xl6_cgen_needs_basic_classify.c:77`、`xl6_cgen_needs_basic_classify.c:94`、`xl6_cgen_needs_basic_classify.c:112`、`xl6_cgen_needs_basic_classify.c:130`、`xl6_cgen_needs_basic_classify.c:145`、`xl6_cgen_needs_basic_classify.c:218` |
-| 对应生成的 C 代码 | `if (hasUrlRuntime) xl6CgenEmitUrlRuntime(out);` |
+| 对应生成的 C 代码 | `if (hasCryptoRuntime) xl6CgenEmitCryptoRuntime(out);` |
 | 中间形态伪代码 | `if call name in runtime namespace set: need wrapper` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要人工 include 对应 wrapper。 |
 | 额外依赖的封装代码 | 各标准库 wrapper。 |
@@ -229,3 +229,25 @@
 | 中间形态伪代码 | `needs flags -> cascade flags -> emit runtimes in dependency order` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自己确保底层 helper 先于依赖 helper 出现。 |
 | 额外依赖的封装代码 | module runtime 注入顺序。 |
+
+### 统一 XLIR 的 runtime component 选择边界
+
+以上 `CGEN-NEEDS-*` 的 AST/HIR 扫描只描述显式 `--backend legacy` 的兼容实现。默认 XLIR
+后端不得复用这些 source-shape 判定：`xl6_ir_cgen_needs_analysis.c` 只遍历已验证且非
+`UNREACHABLE` 的 Function/CallTarget/RuntimeOp，网络族再以 `CallTarget.runtimeBridge`
+选择 TCP、TLS、HTTP 与 WebSocket 组件。粗粒度 bridge 内的 TCP file 和 NetBytes future
+子操作由 lowering 固化为 `CallTarget.runtimeBridgeOperation`，最终 verifier 会用规范声明及
+完整 physical ABI 复核；Cgen 只读取该枚举。Stream、NetBytes 等语言对象类型从 physical
+parameter/result ABI 与该已验证 operation 推导，不按 C 符号、class 名或源码成员名搜索。
+
+共享 transport 机械实现由 `xl6CgenEmitNetTcpComponent`、`xl6CgenEmitNetBufferComponent`
+和 `xl6CgenEmitNetTcpStatsComponent` 提供，legacy 与 XLIR 只分别负责生成各自的已验证 needs
+输入。组件内部固定包含但用户代码未直接调用的 NetBytes future adapter，只允许从
+`NET_TCP_RECV_OWNED_BYTES_ASYNC` / `NET_TLS_RECV_OWNED_BYTES_ASYNC` operation 的已验证
+`Future<Class>` 结果取得类型，不能重新扫描同 bridge 的任意 `Future<Class>`。已有 XRT 声明时，fallback extern 由
+`XLIR_XRT_DECLARATIONS` 抑制，避免同一物理 ABI 被第二次猜测声明。
+
+对应守门为 `check_xlir_async_machine_admission.ps1`、
+`check_xlir_foreign_function_value_abi.ps1`、`check_xlir_default_admission.ps1` 与完整严格 C
+回归；前两者固定网络/TLS 生成 C 的定义唯一性和 exact callback ABI，后者固定默认 XLIR
+覆盖不得低于 legacy 正例且迁移 gap 为零。

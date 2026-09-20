@@ -1,0 +1,5 @@
+export "xlir_test_cleanup_plan" func cleanup_plan()
+    string first = "a"
+    string second = "b"
+    return
+end

@@ -5,8 +5,8 @@
 
 #include "src/ast/xl6_ast.h"
 
-#define XL6_STDLIB_CONST_COUNT 115
-#define XL6_STDLIB_FUNC_COUNT 914
+#define XL6_STDLIB_CONST_COUNT 79
+#define XL6_STDLIB_FUNC_COUNT 737
 
 typedef struct XL6_StdlibParam {
     const char* type;
@@ -36,25 +36,55 @@ extern const char* xl6StdlibRandomClassSource;
 extern const char* xl6StdlibXidClassSource;
 extern const char* xl6StdlibBufferClassSource;
 extern const char* xl6StdlibLoggerClassSource;
+extern const char* xl6StdlibLoggerCustomMethodSource;
+extern const char* xl6StdlibLoggerClassEndSource;
 extern const char* xl6StdlibSignalClassSource;
 extern const char* xl6StdlibTaskGroupClassSource;
 extern const char* xl6StdlibTemplateClassSource;
 extern const char* xl6StdlibCryptoClassSource;
-extern const char* xl6StdlibHttpSemanticsClassSource;
+extern const char* xl6StdlibNetAddressClassSource;
+extern const char* xl6StdlibNetInterfaceClassSource;
+extern const char* xl6StdlibNetBytesClassSource;
+extern const char* xl6StdlibNetFrameClassSource;
+extern const char* xl6StdlibLineFramerClassSource;
+extern const char* xl6StdlibLengthFramerClassSource;
+extern const char* xl6StdlibNetEngineStatsClassSource;
+extern const char* xl6StdlibNetResolverStatsClassSource;
+extern const char* xl6StdlibNetProxyClassSource;
+extern const char* xl6StdlibNetEngineClassSource;
+extern const char* xl6StdlibTcpStreamStatsClassSource;
+extern const char* xl6StdlibTcpServerStatsClassSource;
+extern const char* xl6StdlibTcpStreamClassSource;
+extern const char* xl6StdlibTcpStreamFileMethodSource;
+extern const char* xl6StdlibTcpStreamLineFrameMethodSource;
+extern const char* xl6StdlibTcpStreamLengthFrameMethodSource;
+extern const char* xl6StdlibTcpStreamClassEndSource;
+extern const char* xl6StdlibTcpServerClassSource;
+extern const char* xl6StdlibUdpStatsClassSource;
+extern const char* xl6StdlibUdpClassSource;
+extern const char* xl6StdlibTlsSessionClassSource;
+extern const char* xl6StdlibTlsStreamClassSource;
+extern const char* xl6StdlibTlsServerClassSource;
+extern const char* xl6StdlibHttp1ClassSource;
+extern const char* xl6StdlibHttpDecoderClassSource;
+extern const char* xl6StdlibWsFrameClassSource;
+extern const char* xl6StdlibWsHandshakeClassSource;
+extern const char* xl6StdlibWsUpgradeClassSource;
+extern const char* xl6StdlibWebSocketTlsExternSource;
+extern const char* xl6StdlibWebSocketConfigClassSource;
 extern const char* xl6StdlibWebSocketClassSource;
-extern const char* xl6StdlibHttpServerClassSource;
-extern const char* xl6StdlibHttpServerWebSocketMethodSource;
-extern const char* xl6StdlibHttpServerClassEndSource;
-extern const char* xl6StdlibHttpClientClassSource;
-extern const char* xl6StdlibNetBaseClassSource;
-extern const char* xl6StdlibNetTlsClassSource;
-extern const char* xl6StdlibNetConfigClassSource;
+extern const char* xl6StdlibWebSocketTlsMethodSource;
+extern const char* xl6StdlibWebSocketClassEndSource;
+extern const char* xl6StdlibTcpConnectConfigClassSource;
+extern const char* xl6StdlibTcpListenConfigClassSource;
+extern const char* xl6StdlibUdpConfigClassSource;
 extern const char* xl6StdlibFileInfoClassSource;
 extern const char* xl6StdlibFileClassSource;
 extern const char* xl6StdlibAsyncFileClassSource;
-extern const char* xl6StdlibRegexClassSource;
 extern const char* xl6StdlibJsonClassSource;
 extern const char* xl6StdlibProcessClassSource;
+extern const char* xl6StdlibProcessWaitAsyncMethodSource;
+extern const char* xl6StdlibProcessClassEndSource;
 extern const char* xl6StdlibTccClassSource;
 extern const char* xl6StdlibXlangClassSource;
 

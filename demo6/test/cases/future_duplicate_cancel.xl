@@ -1,0 +1,14 @@
+async func slowValue(int value) as int
+    time.sleep(250)
+    return value
+end
+
+future<int> source = slowValue(509)
+future<array<int>> combined = task.all([source, source])
+
+assert task.cancel(source), "pending duplicate source must accept cancellation"
+assert source.isCancelled(), "source cancellation must publish a cancelled terminal state"
+assert not combined.wait(), "task.all must report a cancelled duplicate source"
+assert combined.isCancelled(), "task.all must preserve duplicate source cancellation"
+
+println("future duplicate cancel ok")

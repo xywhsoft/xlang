@@ -1,0 +1,149 @@
+extern "checked_projection_arm" func armProjection()
+extern "checked_projection_drop" func projectionDrop()
+extern "checked_projection_caught" func projectionCaught()
+extern "checked_projection_finally" func projectionFinally()
+
+func projectionAnswer(int value) as int
+    return value + 10
+end
+
+class ProjectionGuard
+    destroy()
+        projectionDrop()
+    end
+end
+
+class ProjectionFields
+    func(int) as int callback = projectionAnswer
+    (func(int) as int)? optional = projectionAnswer
+    string? text = "hello"
+end
+
+func armFields(ProjectionFields fields) as ProjectionFields
+    armProjection()
+    return fields
+end
+
+export func checked_projection_case(int kind) as int
+    ProjectionGuard guard = ProjectionGuard()
+    try
+        if kind == 0
+            array<func(int) as int> values = array[projectionAnswer]
+            armProjection()
+            return values[0](1)
+        elseif kind == 1 or kind == 2
+            array<func(int) as int> values = array[projectionAnswer]
+            int index = 0
+            if kind == 2
+                index = 9
+            end
+            armProjection()
+            (func(int) as int)? value = values?[index]
+            if value != null
+                return value(1)
+            end
+            return 17
+        elseif kind == 3
+            ProjectionFields fields = ProjectionFields()
+            armProjection()
+            return fields.callback(1)
+        elseif kind == 4
+            ProjectionFields fields = ProjectionFields()
+            armProjection()
+            (func(int) as int)? value = fields.optional
+            if value != null
+                return value(1)
+            end
+        elseif kind == 5
+            ProjectionFields fields = ProjectionFields()
+            armProjection()
+            string? value = fields.text
+            if value != null
+                return value.length
+            end
+        elseif kind == 6
+            return armFields(ProjectionFields()).callback(1)
+        elseif kind == 7 or kind == 8
+            array<string> values = array["hello"]
+            int index = 0
+            if kind == 8
+                index = 9
+            end
+            armProjection()
+            string? value = values?[index]
+            if value != null
+                return value.length
+            end
+            return 17
+        elseif kind == 9
+            dict<func(int) as int> values = dict{"answer": projectionAnswer}
+            string key = "answer"
+            armProjection()
+            return values[key](1)
+        elseif kind == 10
+            dict<string> values = dict{"answer": "hello"}
+            string key = "answer"
+            armProjection()
+            return values[key].length
+        elseif kind == 11
+            array<func(int) as int> values = array[projectionAnswer, projectionAnswer]
+            int index = 0
+            int total = 0
+            for callback in values
+                if index == 0
+                    armProjection()
+                else
+                    total += callback(1)
+                end
+                index += 1
+            end
+            return total
+        elseif kind == 12
+            array<string?> values = array[null, "hello"]
+            int index = 0
+            int total = 0
+            for value in values
+                if index == 0
+                    armProjection()
+                elseif value != null
+                    total += value.length
+                end
+                index += 1
+            end
+            return total
+        elseif kind == 13
+            ProjectionFields? fields = ProjectionFields()
+            armProjection()
+            string? value = fields?.text
+            if value != null
+                return value.length
+            end
+        elseif kind == 14
+            ProjectionFields? fields = null
+            armProjection()
+            string? value = fields?.text
+            if value == null
+                return 17
+            end
+        else
+            array<(func(int) as int)?> values = array[null, projectionAnswer]
+            int index = 0
+            int total = 0
+            for value in values
+                if index == 0
+                    armProjection()
+                elseif value != null
+                    total += value(1)
+                end
+                index += 1
+            end
+            return total
+        end
+    catch error
+        projectionCaught()
+        return 23
+    finally
+        projectionFinally()
+    end
+    return 0
+end

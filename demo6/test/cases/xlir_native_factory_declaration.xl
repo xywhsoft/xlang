@@ -1,0 +1,8 @@
+// A constructor's identity and result ABI must exist even with no call site.
+class UnusedNativeFactory
+    native point handle
+    extern "xlir_unused_factory_default" create()
+    extern "xlir_unused_factory_overload" create(bool enabled)
+    extern "xlir_unused_factory_destroy" destroy()
+end
+assert true

@@ -1,0 +1,36 @@
+func greet(string prefix, string name) as string
+    return prefix + name
+end
+
+func flip(bool value) as bool
+    return not value
+end
+
+func addHalf(float value) as float
+    return value + 0.5
+end
+
+func add(int left, int right) as int
+    return left + right
+end
+
+func addVar(var value) as int
+    return int(value) + 1
+end
+
+func(string, string) as string greetJob = greet
+func(bool) as bool flipJob = flip
+func(float) as float floatJob = addHalf
+func(int, int) as int addJob = add
+func(var) as int dynamicJob = addVar
+var dynamicArg = true
+
+string greeting = await task.spawn(greetJob, "hello ", "xlir")
+bool flipped = await task.spawn(flipJob, false)
+float number = await task.spawn(floatJob, 41.5)
+int dynamicValue = await task.spawn(dynamicJob, dynamicArg)
+
+assert greeting == "hello xlir", "task.spawn must copy string arguments and own string results"
+assert flipped, "task.spawn must preserve bool value ABI"
+assert number == 42.0, "task.spawn must preserve float value ABI"
+assert dynamicValue == 2, "task.spawn must retain dynamic arguments"

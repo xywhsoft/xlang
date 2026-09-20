@@ -1,0 +1,15 @@
+extern "expect_i64" func expect(int actual, int expected)
+
+float parsed = float(" 2.5 ")
+float aliasParsed = float64("3.25")
+
+expect(int(parsed * 2.0), 5)
+expect(int(aliasParsed * 4.0), 13)
+
+export "xlir_test_invalid_float_string_recovered" func invalid_float_string_recovered() as float
+    try
+        return float("not-a-float")
+    catch ValueError ignored
+        return 73.0
+    end
+end

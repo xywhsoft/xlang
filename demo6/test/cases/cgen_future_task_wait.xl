@@ -32,7 +32,11 @@ assert not failed.wait(), "future.wait should report failed future"
 assert failed.isDone(), "failed future should be done"
 assert failed.isFailed(), "failed future should be failed"
 assert failed.state() == 2, "failed future state should be rejected"
-assert failed.error() == "future boom", "future.error should expose failure message"
+auto failedError = failed.error()
+assert failedError != null, "future.error should expose a structured failure"
+assert failedError.kind == "AsyncError", "future.error should preserve the async boundary"
+assert failedError.message == "future boom", "future.error should expose failure message"
+assert failedError.cause != null, "future.error should preserve the language cause"
 
 int failedCatch = 0
 try

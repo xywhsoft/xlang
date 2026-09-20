@@ -19,7 +19,7 @@ static void xl6CgenEmitAsyncRuntimeWhenAnyAdapters(XL6_Output* out)
     xl6OutputPuts("        for ( i = 0; i < count; ++i ) {\n", out);
     xl6OutputPuts("            futureArg = va_arg(ap, xfuture*);\n", out);
     xl6OutputPuts("            ownedArg = va_arg(ap, int);\n", out);
-    xl6OutputPuts("            if ( ownedArg && futureArg != 0 ) { xFutureRelease(futureArg); }\n", out);
+    xl6OutputPuts("            if ( ownedArg && futureArg != 0 ) { xl6FutureDestroy(futureArg); }\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("        va_end(ap);\n", out);
     xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"out of memory while starting task.whenAny\", file, line, column);\n", out);
@@ -31,7 +31,7 @@ static void xl6CgenEmitAsyncRuntimeWhenAnyAdapters(XL6_Output* out)
     xl6OutputPuts("        for ( i = 0; i < count; ++i ) {\n", out);
     xl6OutputPuts("            futureArg = va_arg(ap, xfuture*);\n", out);
     xl6OutputPuts("            ownedArg = va_arg(ap, int);\n", out);
-    xl6OutputPuts("            if ( ownedArg && futureArg != 0 ) { xFutureRelease(futureArg); }\n", out);
+    xl6OutputPuts("            if ( ownedArg && futureArg != 0 ) { xl6FutureDestroy(futureArg); }\n", out);
     xl6OutputPuts("        }\n", out);
     xl6OutputPuts("        va_end(ap);\n", out);
     xl6OutputPuts("        xrtFree(futures);\n", out);
@@ -46,7 +46,7 @@ static void xl6CgenEmitAsyncRuntimeWhenAnyAdapters(XL6_Output* out)
     xl6OutputPuts("    va_end(ap);\n", out);
     xl6OutputPuts("    result = xl6_task_when_any_start(futures, count, file, line, column);\n", out);
     xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
-    xl6OutputPuts("        if ( owned[i] && futures[i] != 0 ) { xFutureRelease(futures[i]); }\n", out);
+    xl6OutputPuts("        if ( owned[i] && futures[i] != 0 ) { xl6FutureDestroy(futures[i]); }\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    xrtFree(owned);\n", out);
     xl6OutputPuts("    xrtFree(futures);\n", out);
@@ -63,7 +63,7 @@ static void xl6CgenEmitAsyncRuntimeWhenAnyAdapters(XL6_Output* out)
     xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.whenAny source array is null\", file, line, column);\n", out);
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
-    xl6OutputPuts("    count = xrtTypedArrayCount(pArray);\n", out);
+    xl6OutputPuts("    count = xl6TypedArrayCount(pArray);\n", out);
     xl6OutputPuts("    if ( count == 0 ) {\n", out);
     xl6OutputPuts("        xl6_error_raise(\"TaskError\", \"task.whenAny requires a non-empty future array\", file, line, column);\n", out);
     xl6OutputPuts("        return 0;\n", out);
@@ -74,7 +74,7 @@ static void xl6CgenEmitAsyncRuntimeWhenAnyAdapters(XL6_Output* out)
     xl6OutputPuts("        return 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    for ( i = 0; i < count; ++i ) {\n", out);
-    xl6OutputPuts("        xfuture** slot = (xfuture**)xrtTypedArrayGet(pArray, i + 1u);\n", out);
+    xl6OutputPuts("        xfuture** slot = (xfuture**)xl6TypedArrayGet(pArray, i);\n", out);
     xl6OutputPuts("        futures[i] = slot != 0 ? *slot : 0;\n", out);
     xl6OutputPuts("    }\n", out);
     xl6OutputPuts("    result = xl6_task_when_any_start(futures, (int)count, file, line, column);\n", out);

@@ -200,14 +200,11 @@ $requiredArtifactSubstrings = @{
     "sem_for_await_non_generator.err.txt" = "for await requires generator<T>"
     "sem_async_type_non_generator.err.txt" = "async type marker is only supported on generator<T>"
     "sem_task_unknown_member.err.txt" = "standard library namespace has no such symbol"
-    "sem_task_spawn_return_channel.err.txt" = "task.spawn return type must be supported"
-    "sem_task_spawn_return_future.err.txt" = "task.spawn return type must be supported"
-    "sem_task_spawn_return_sync.err.txt" = "task.spawn return type must be supported"
-    "sem_task_spawn_return_thread.err.txt" = "task.spawn return type must be supported"
-    "sem_task_spawn_arg_channel.err.txt" = "task.spawn parameter type must be supported"
-    "sem_task_spawn_arg_future.err.txt" = "task.spawn parameter type must be supported"
-    "sem_task_spawn_arg_sync.err.txt" = "task.spawn parameter type must be supported"
-    "sem_task_spawn_arg_thread.err.txt" = "task.spawn parameter type must be supported"
+    "sem_task_spawn_return_channel.err.txt" = $diagNonCopyableReturn
+    "sem_task_spawn_return_sync.err.txt" = $diagNonCopyableReturn
+    "sem_task_spawn_return_thread.err.txt" = $diagNonCopyableReturn
+    "sem_task_spawn_arg_byref.err.txt" = "task.spawn cannot capture byref or out caller storage"
+    "sem_task_spawn_arg_out.err.txt" = "task.spawn cannot capture byref or out caller storage"
     "sem_task_all_return_channel.err.txt" = "move-only resource handles cannot be aggregated"
     "sem_task_all_return_generator.err.txt" = "move-only resource handles cannot be aggregated"
     "sem_task_all_typed_array_return_channel.err.txt" = "move-only resource handles cannot be aggregated"
@@ -241,7 +238,6 @@ $requiredArtifactSubstrings = @{
     "sem_channel_unknown_method.err.txt" = "unknown channel method"
     "sem_generator_class_element.err.txt" = $diagGeneratorPlainValueElement
     "sem_generator_function_element.err.txt" = $diagGeneratorPlainValueElement
-    "sem_generator_class_param.err.txt" = $diagGeneratorParamPlainValue
     "sem_generator_function_param.err.txt" = $diagGeneratorParamPlainValue
     "sem_generator_string_element.err.txt" = $diagGeneratorPlainValueElement
     "sem_generator_typed_array_element.err.txt" = $diagGeneratorPlainValueElement
@@ -367,13 +363,10 @@ $maxArtifactLineCounts = @{
     "sem_channel_generator_element.err.txt" = 1
     "sem_channel_typed_array_element.err.txt" = 1
     "sem_task_spawn_return_channel.err.txt" = 1
-    "sem_task_spawn_return_future.err.txt" = 1
     "sem_task_spawn_return_sync.err.txt" = 1
     "sem_task_spawn_return_thread.err.txt" = 1
-    "sem_task_spawn_arg_channel.err.txt" = 1
-    "sem_task_spawn_arg_future.err.txt" = 1
-    "sem_task_spawn_arg_sync.err.txt" = 1
-    "sem_task_spawn_arg_thread.err.txt" = 1
+    "sem_task_spawn_arg_byref.err.txt" = 1
+    "sem_task_spawn_arg_out.err.txt" = 1
     "sem_generator_typed_array_element.err.txt" = 1
     "sem_generator_typed_array_param.err.txt" = 1
     "sem_alias_cycle.err.txt" = 2
@@ -384,6 +377,7 @@ $maxArtifactLineCounts = @{
     "sem_var_to_concrete_implicit.err.txt" = 4
     "sem_class_property_vararg.err.txt" = 2
     "sem_container_literal_target_item_mismatch.err.txt" = 4
+    "sem_special_collection_contract.err.txt" = 3
     "sem_param_modes_invalid.err.txt" = 2
     "sem_c_vararg_export.err.txt" = 2
     "sem_async_return_channel.err.txt" = 1
@@ -431,6 +425,7 @@ $allowedMultiLineArtifacts.Add("sem_multi_return_type_diagnostic.err.txt") | Out
 $allowedMultiLineArtifacts.Add("sem_var_to_concrete_implicit.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_class_property_vararg.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_container_literal_target_item_mismatch.err.txt") | Out-Null
+$allowedMultiLineArtifacts.Add("sem_special_collection_contract.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_param_modes_invalid.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_c_vararg_export.err.txt") | Out-Null
 $allowedMultiLineArtifacts.Add("sem_enum_recursive_mutual_error.err.txt") | Out-Null

@@ -1,0 +1,11 @@
+func dynamic_object_variable_key_set() as var
+  var value = {"answer": 41}
+  string key = "answer"
+  value[key] = 42
+  return value[key]
+end
+
+export "xlir_test_xvalue_object_variable_key_set_root" func xlir_test_root() as int
+  var rootedValue = dynamic_object_variable_key_set()
+  return 0
+end

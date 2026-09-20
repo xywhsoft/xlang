@@ -1,0 +1,16 @@
+class GenericBag<T>
+    T value
+
+    create(T value)
+        self.value = value
+    end
+
+    func __field__(string name) as T
+        return self.value
+    end
+end
+
+extern "expect_i64" func expect(int actual, int expected)
+
+auto bag = GenericBag::<int>(41)
+expect(bag.missing, 41)

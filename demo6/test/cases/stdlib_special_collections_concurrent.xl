@@ -49,6 +49,20 @@ func main(...) as int
     assert(sum == 79800)
     assert(queue.count() == 0)
 
+    array<int> batchInput = array[7, 8, 9]
+    array<int> batchOutput = array[99, 100]
+    assert(queue.pushBatch(batchInput) == 3)
+    assert(queue.popBatchInto(batchOutput, 2) == 2)
+    assert(batchOutput.length == 2)
+    assert(batchOutput[0] == 7)
+    assert(batchOutput[1] == 8)
+    assert(queue.popBatchInto(batchOutput, 4) == 1)
+    assert(batchOutput.length == 1)
+    assert(batchOutput[0] == 9)
+    assert(queue.popBatchInto(batchOutput, -1) == -1)
+    assert(batchOutput.length == 1)
+    assert(batchOutput[0] == 9)
+
     WaitQueue<string> waits = WaitQueue::<string>(8)
     auto delayed = func() as int
         if not waits.tryPush("ready") then return 20 end

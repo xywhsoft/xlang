@@ -1,0 +1,8 @@
+extern "expect_text" func expectText(string actual, string expected)
+
+func applyPrefix(string prefix) as string
+    auto addSuffix = func(string suffix) as string => prefix + suffix
+    return addSuffix(" world")
+end
+
+expectText(applyPrefix("hello"), "hello world")

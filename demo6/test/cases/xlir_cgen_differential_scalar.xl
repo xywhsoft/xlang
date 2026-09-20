@@ -1,0 +1,3 @@
+export "xl6_diff_answer" func answer() as int64
+    return 42
+end

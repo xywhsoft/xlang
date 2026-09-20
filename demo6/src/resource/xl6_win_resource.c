@@ -1,7 +1,8 @@
 #include "src/resource/xl6_win_resource.h"
 
-#include "lib/xrt/xrt.h"
+#include "src/common/xl6_xrt.h"
 
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -356,24 +357,36 @@ static int xl6ResourceCompare(const void* left, const void* right)
     return 0;
 }
 
-static int xl6WriteUtf16String(XL6_ResBuf* buf, const char* text, size_t* outChars)
+static int xl6WriteUtf16View(XL6_ResBuf* buf, xstrview text, size_t* outChars)
 {
-    u16str wide;
+    xutfresult query;
+    xutfresult result;
+    uint16* wide;
     size_t count;
     size_t i;
 
     if ( outChars != NULL ) {
         *outChars = 0;
     }
-    if ( text == NULL ) {
-        text = "";
+    if ( text.Data == NULL && text.Size != 0 ) {
+        return 0;
     }
-    wide = xrtUTF8to16((u8str)text, 0, &count);
+    query = xrtUtf8To16Buffer(text, NULL, 0, XUTF_STRICT);
+    if ( query.Status != XUTF_OK ) {
+        return 0;
+    }
+    count = query.Written;
+    wide = (uint16*)xrtMalloc((count != 0 ? count : 1u) * sizeof(uint16));
     if ( wide == NULL ) {
         return 0;
     }
+    result = xrtUtf8To16Buffer(text, wide, count, XUTF_STRICT);
+    if ( result.Status != XUTF_OK || result.Written != count ) {
+        xrtFree(wide);
+        return 0;
+    }
     for ( i = 0; i < count; ++i ) {
-        if ( !xl6ResBufU16(buf, ((unsigned short*)wide)[i]) ) {
+        if ( !xl6ResBufU16(buf, wide[i]) ) {
             xrtFree(wide);
             return 0;
         }
@@ -387,6 +400,11 @@ static int xl6WriteUtf16String(XL6_ResBuf* buf, const char* text, size_t* outCha
         *outChars = count;
     }
     return 1;
+}
+
+static int xl6WriteUtf16String(XL6_ResBuf* buf, const char* text, size_t* outChars)
+{
+    return xl6WriteUtf16View(buf, xrtStrView(text != NULL ? text : ""), outChars);
 }
 
 static size_t xl6BeginVersionBlock(XL6_ResBuf* buf, const char* key, unsigned int valueLength, unsigned int type)
@@ -419,23 +437,23 @@ static int xl6EndVersionBlock(XL6_ResBuf* buf, size_t start)
     return 1;
 }
 
-static int xl6WriteVersionStringBlock(XL6_ResBuf* buf, const char* key, const char* value)
+static int xl6WriteVersionStringBlock(XL6_ResBuf* buf, const char* key, xstrview value)
 {
-    u16str wide;
+    xutfresult query;
     size_t valueChars;
     size_t start;
 
-    if ( key == NULL || value == NULL || value[0] == '\0' ) {
+    if ( key == NULL || value.Size == 0 ) {
         return 1;
     }
-    wide = xrtUTF8to16((u8str)value, 0, &valueChars);
-    if ( wide == NULL ) {
+    query = xrtUtf8To16Buffer(value, NULL, 0, XUTF_STRICT);
+    if ( query.Status != XUTF_OK ) {
         return 0;
     }
-    xrtFree(wide);
+    valueChars = query.Written;
     start = xl6BeginVersionBlock(buf, key, (unsigned int)valueChars + 1u, 1u);
     if ( start == (size_t)-1 ||
-         !xl6WriteUtf16String(buf, value, NULL) ||
+         !xl6WriteUtf16View(buf, value, NULL) ||
          !xl6ResBufAlign4(buf) ||
          !xl6EndVersionBlock(buf, start) ) {
         return 0;
@@ -443,59 +461,69 @@ static int xl6WriteVersionStringBlock(XL6_ResBuf* buf, const char* key, const ch
     return 1;
 }
 
-static int xl6HasField(xvalue object, const char* name)
+static int xl6HasField(const xvalue* object, const char* name)
 {
     return object != NULL && name != NULL &&
-           xvoIsTable(object) &&
-           xvoTableExists(object, (str)name, (uint32)strlen(name));
+           xrtValueType(object) == XVALUE_OBJECT &&
+           xrtValueObjectHas(object, xrtStrView(name));
 }
 
-static xvalue xl6Field(xvalue object, const char* name)
+static xvalue* xl6Field(const xvalue* object, const char* name)
 {
-    return xvoTableGetValue(object, (str)name, (uint32)strlen(name));
+    return xrtValueObjectGet(object, xrtStrView(name));
 }
 
-static const char* xl6TextField2(xvalue object, const char* a, const char* b)
+static int xl6TextField2(const xvalue* object, const char* a, const char* b, xstrview* out)
 {
-    xvalue value;
+    xvalue* value;
+
+    if ( out == NULL ) {
+        return 0;
+    }
+    out->Data = NULL;
+    out->Size = 0;
 
     if ( xl6HasField(object, a) ) {
         value = xl6Field(object, a);
-        if ( xvoIsText(value) ) {
-            return xvoGetText(value);
+        if ( xrtValueGetString(value, out) ) {
+            return 1;
         }
     }
     if ( b != NULL && xl6HasField(object, b) ) {
         value = xl6Field(object, b);
-        if ( xvoIsText(value) ) {
-            return xvoGetText(value);
+        if ( xrtValueGetString(value, out) ) {
+            return 1;
         }
     }
-    return NULL;
+    return 0;
 }
 
-static unsigned int xl6UIntField(xvalue object, const char* name, unsigned int fallback)
+static unsigned int xl6UIntField(const xvalue* object, const char* name, unsigned int fallback)
 {
-    xvalue value;
+    xvalue* value;
+    int64 signedValue;
+    uint64 unsignedValue;
+    xstrview text;
 
     if ( !xl6HasField(object, name) ) {
         return fallback;
     }
     value = xl6Field(object, name);
-    if ( xvoIsInt(value) ) {
-        int64 v = xvoGetInt(value);
-        return v < 0 ? fallback : (unsigned int)v;
+    if ( xrtValueGetInt(value, &signedValue) ) {
+        return signedValue >= 0 && (uint64)signedValue <= UINT_MAX ?
+            (unsigned int)signedValue : fallback;
     }
-    if ( xvoIsText(value) ) {
-        return (unsigned int)xrtStrToI64((str)xvoGetText(value));
+    xrtClearError();
+    if ( xrtValueGetString(value, &text) &&
+         xrtUIntParse(text, 10, 0, &unsignedValue) && unsignedValue <= UINT_MAX ) {
+        return (unsigned int)unsignedValue;
     }
     return fallback;
 }
 
-static int xl6ParseVersionQuad(const char* text, unsigned int outParts[4])
+static int xl6ParseVersionQuad(xstrview text, unsigned int outParts[4])
 {
-    const char* p;
-    char* end;
+    size_t offset;
     int i;
 
     if ( outParts == NULL ) {
@@ -504,40 +532,52 @@ static int xl6ParseVersionQuad(const char* text, unsigned int outParts[4])
     for ( i = 0; i < 4; ++i ) {
         outParts[i] = 0;
     }
-    if ( text == NULL || text[0] == '\0' ) {
+    if ( text.Size == 0 ) {
         return 1;
     }
-    p = text;
+    if ( text.Data == NULL ) {
+        return 0;
+    }
+    offset = 0;
     for ( i = 0; i < 4; ++i ) {
-        unsigned long value;
+        unsigned int value;
 
-        value = strtoul(p, &end, 10);
-        if ( end == p || value > 65535u ) {
+        if ( offset >= text.Size || text.Data[offset] < '0' || text.Data[offset] > '9' ) {
             return 0;
+        }
+        value = 0;
+        while ( offset < text.Size && text.Data[offset] >= '0' && text.Data[offset] <= '9' ) {
+            value = (value * 10u) + (unsigned int)(text.Data[offset] - '0');
+            if ( value > 65535u ) {
+                return 0;
+            }
+            offset += 1u;
         }
         outParts[i] = (unsigned int)value;
-        if ( *end == '\0' ) {
+        if ( offset == text.Size ) {
             return 1;
         }
-        if ( *end != '.' ) {
+        if ( text.Data[offset] != '.' ) {
             return 0;
         }
-        p = end + 1;
+        offset += 1u;
     }
-    return *p == '\0';
+    return offset == text.Size;
 }
 
-static const char* xl6VersionText(xvalue version, const char* camel, const char* official)
+static xstrview xl6VersionText(const xvalue* version, const char* camel, const char* official)
 {
-    const char* text;
+    xstrview text;
 
-    text = xl6TextField2(version, camel, official);
-    return text != NULL ? text : "";
+    if ( xl6TextField2(version, camel, official, &text) ) {
+        return text;
+    }
+    return XRT_STR_LITERAL("");
 }
 
 static int xl6AddVersionResource(
     XL6_WinResourceList* resources,
-    xvalue version,
+    const xvalue* version,
     unsigned int language,
     unsigned int codepage,
     char* error,
@@ -557,8 +597,8 @@ static int xl6AddVersionResource(
         { "productName", "ProductName" },
         { "productVersion", "ProductVersion" }
     };
-    const char* fileVersion;
-    const char* productVersion;
+    xstrview fileVersion;
+    xstrview productVersion;
     unsigned int fv[4];
     unsigned int pv[4];
     char tableKey[16];
@@ -572,16 +612,16 @@ static int xl6AddVersionResource(
     unsigned char* data;
     size_t i;
 
-    if ( version == NULL || !xvoIsTable(version) ) {
+    if ( version == NULL || xrtValueType(version) != XVALUE_OBJECT ) {
         return 1;
     }
     memset(&buf, 0, sizeof(buf));
     fileVersion = xl6VersionText(version, "fileVersion", "FileVersion");
     productVersion = xl6VersionText(version, "productVersion", "ProductVersion");
-    if ( fileVersion[0] == '\0' ) {
-        fileVersion = productVersion[0] != '\0' ? productVersion : "0.0.0.0";
+    if ( fileVersion.Size == 0 ) {
+        fileVersion = productVersion.Size != 0 ? productVersion : XRT_STR_LITERAL("0.0.0.0");
     }
-    if ( productVersion[0] == '\0' ) {
+    if ( productVersion.Size == 0 ) {
         productVersion = fileVersion;
     }
     if ( !xl6ParseVersionQuad(fileVersion, fv) || !xl6ParseVersionQuad(productVersion, pv) ) {
@@ -613,10 +653,10 @@ static int xl6AddVersionResource(
     snprintf(tableKey, sizeof(tableKey), "%04x%04x", (unsigned int)(language & 0xFFFFu), (unsigned int)(codepage & 0xFFFFu));
     stringTable = xl6BeginVersionBlock(&buf, tableKey, 0u, 1u);
     for ( i = 0; i < sizeof(stringFields) / sizeof(stringFields[0]); ++i ) {
-        const char* value = xl6VersionText(version, stringFields[i].camel, stringFields[i].official);
-        if ( value[0] == '\0' && strcmp(stringFields[i].official, "FileVersion") == 0 ) {
+        xstrview value = xl6VersionText(version, stringFields[i].camel, stringFields[i].official);
+        if ( value.Size == 0 && strcmp(stringFields[i].official, "FileVersion") == 0 ) {
             value = fileVersion;
-        } else if ( value[0] == '\0' && strcmp(stringFields[i].official, "ProductVersion") == 0 ) {
+        } else if ( value.Size == 0 && strcmp(stringFields[i].official, "ProductVersion") == 0 ) {
             value = productVersion;
         }
         if ( !xl6WriteVersionStringBlock(&buf, stringFields[i].official, value) ) {
@@ -658,10 +698,10 @@ static char* xl6ResolveRelativePath(const char* baseDir, const char* path)
     if ( path == NULL || path[0] == '\0' ) {
         return NULL;
     }
-    if ( xrtPathIsAbs((str)path, 0) ) {
-        return (char*)xrtCopyStr((str)path, 0);
+    if ( xrtPathIsAbs(path) ) {
+        return xrtStrDup(path);
     }
-    return (char*)xrtPathJoin(2, (str)(baseDir != NULL && baseDir[0] != '\0' ? baseDir : "."), (str)path);
+    return xrtPathJoin(baseDir != NULL && baseDir[0] != '\0' ? baseDir : ".", path);
 }
 
 static int xl6LoadBinaryFile(
@@ -687,19 +727,11 @@ static int xl6LoadBinaryFile(
         return 0;
     }
     size = 0;
-    data = (unsigned char*)xrtFileReadAll((str)resolved, XRT_CP_BINARY, &size);
-    if ( data == NULL && size != 0 ) {
+    data = xrtFileReadAll(resolved, &size);
+    if ( data == NULL ) {
         xl6ResSetError(error, errorSize, "cannot read resource file: %s", resolved);
         xrtFree(resolved);
         return 0;
-    }
-    if ( data == NULL ) {
-        data = (unsigned char*)xrtMalloc(1u);
-        if ( data == NULL ) {
-            xl6ResSetError(error, errorSize, "cannot allocate empty resource file");
-            xrtFree(resolved);
-            return 0;
-        }
     }
     *outData = data;
     *outSize = size;
@@ -708,13 +740,13 @@ static int xl6LoadBinaryFile(
 }
 
 static int xl6DecodeBase64(
-    const char* text,
+    xstrview text,
     unsigned char** outData,
     size_t* outSize,
     char* error,
     size_t errorSize)
 {
-    xbuffer buf;
+    xbuffer* buf;
     unsigned char* data;
 
     if ( outData == NULL || outSize == NULL ) {
@@ -722,32 +754,32 @@ static int xl6DecodeBase64(
     }
     *outData = NULL;
     *outSize = 0;
-    if ( text == NULL || text[0] == '\0' ) {
+    if ( text.Data == NULL || text.Size == 0 ) {
         xl6ResSetError(error, errorSize, "base64 resource data is empty");
         return 0;
     }
-    buf = xrtBufferFromBase64((str)text, 0, NULL);
+    buf = xrtBufferFromBase64(text, NULL);
     if ( buf == NULL ) {
         xl6ResSetError(error, errorSize, "invalid base64 resource data");
         return 0;
     }
-    data = (unsigned char*)xrtMalloc(buf->Length != 0 ? buf->Length : 1u);
+    data = (unsigned char*)xrtMalloc(buf->Size != 0 ? buf->Size : 1u);
     if ( data == NULL ) {
         xrtBufferDestroy(buf);
         xl6ResSetError(error, errorSize, "cannot allocate base64 resource data");
         return 0;
     }
-    if ( buf->Length != 0 ) {
-        memcpy(data, buf->Buffer, buf->Length);
+    if ( buf->Size != 0 ) {
+        memcpy(data, buf->Data, buf->Size);
     }
     *outData = data;
-    *outSize = buf->Length;
+    *outSize = buf->Size;
     xrtBufferDestroy(buf);
     return 1;
 }
 
 static int xl6ReadBinarySpec(
-    xvalue value,
+    const xvalue* value,
     const char* baseDir,
     int allowText,
     unsigned char** outData,
@@ -755,33 +787,50 @@ static int xl6ReadBinarySpec(
     char* error,
     size_t errorSize)
 {
-    const char* text;
+    xstrview text;
+    char* path;
 
-    if ( xvoIsText(value) ) {
-        return xl6LoadBinaryFile(baseDir, xvoGetText(value), outData, outSize, error, errorSize);
+    if ( xrtValueGetString(value, &text) ) {
+        path = xrtStrDupN(text.Data, text.Size);
+        if ( path == NULL ) {
+            xl6ResSetError(error, errorSize, "cannot copy resource path");
+            return 0;
+        }
+        {
+            int ok = xl6LoadBinaryFile(baseDir, path, outData, outSize, error, errorSize);
+            xrtFree(path);
+            return ok;
+        }
     }
-    if ( !xvoIsTable(value) ) {
+    xrtClearError();
+    if ( xrtValueType(value) != XVALUE_OBJECT ) {
         xl6ResSetError(error, errorSize, "resource field must be a string or object");
         return 0;
     }
-    text = xl6TextField2(value, "path", NULL);
-    if ( text != NULL ) {
-        return xl6LoadBinaryFile(baseDir, text, outData, outSize, error, errorSize);
+    if ( xl6TextField2(value, "path", NULL, &text) ) {
+        int ok;
+
+        path = xrtStrDupN(text.Data, text.Size);
+        if ( path == NULL ) {
+            xl6ResSetError(error, errorSize, "cannot copy resource path");
+            return 0;
+        }
+        ok = xl6LoadBinaryFile(baseDir, path, outData, outSize, error, errorSize);
+        xrtFree(path);
+        return ok;
     }
-    text = xl6TextField2(value, "base64", NULL);
-    if ( text != NULL ) {
+    if ( xl6TextField2(value, "base64", NULL, &text) ) {
         return xl6DecodeBase64(text, outData, outSize, error, errorSize);
     }
-    text = allowText ? xl6TextField2(value, "text", NULL) : NULL;
-    if ( text != NULL ) {
-        size_t size = strlen(text);
+    if ( allowText && xl6TextField2(value, "text", NULL, &text) ) {
+        size_t size = text.Size;
         unsigned char* data = (unsigned char*)xrtMalloc(size != 0 ? size : 1u);
         if ( data == NULL ) {
             xl6ResSetError(error, errorSize, "cannot allocate text resource data");
             return 0;
         }
         if ( size != 0 ) {
-            memcpy(data, text, size);
+            memcpy(data, text.Data, size);
         }
         *outData = data;
         *outSize = size;
@@ -793,7 +842,7 @@ static int xl6ReadBinarySpec(
 
 static int xl6AddIconResources(
     XL6_WinResourceList* resources,
-    xvalue icon,
+    const xvalue* icon,
     const char* baseDir,
     unsigned int language,
     unsigned int codepage,
@@ -808,7 +857,7 @@ static int xl6AddIconResources(
     size_t groupSize;
     unsigned char* groupData;
 
-    if ( icon == NULL || xvoIsNull(icon) ) {
+    if ( icon == NULL || xrtValueType(icon) == XVALUE_NULL ) {
         return 1;
     }
     ico = NULL;
@@ -884,7 +933,7 @@ static int xl6AddIconResources(
 
 static int xl6AddManifestResource(
     XL6_WinResourceList* resources,
-    xvalue manifest,
+    const xvalue* manifest,
     const char* baseDir,
     unsigned int language,
     unsigned int codepage,
@@ -894,7 +943,7 @@ static int xl6AddManifestResource(
     unsigned char* data;
     size_t size;
 
-    if ( manifest == NULL || xvoIsNull(manifest) ) {
+    if ( manifest == NULL || xrtValueType(manifest) == XVALUE_NULL ) {
         return 1;
     }
     data = NULL;
@@ -1137,12 +1186,11 @@ static int xl6BuildCoffObject(
     return 1;
 }
 
-static xvalue xl6ParseResourceConfig(const char* configPath, char** outText, char* error, size_t errorSize)
+static xvalue* xl6ParseResourceConfig(const char* configPath, char** outText, char* error, size_t errorSize)
 {
     char* text;
     size_t size;
-    size_t offset;
-    xvalue root;
+    xvalue* root;
 
     if ( outText != NULL ) {
         *outText = NULL;
@@ -1152,24 +1200,18 @@ static xvalue xl6ParseResourceConfig(const char* configPath, char** outText, cha
         return NULL;
     }
     size = 0;
-    text = (char*)xrtFileReadAll((str)configPath, XRT_CP_UTF8, &size);
+    text = xrtFileReadText(configPath, XENCODING_UTF8, XUTF_STRICT, &size);
     if ( text == NULL ) {
         xl6ResSetError(error, errorSize, "cannot read resource config: %s", configPath);
         return NULL;
     }
-    offset = size >= 3u &&
-             (unsigned char)text[0] == 0xEFu &&
-             (unsigned char)text[1] == 0xBBu &&
-             (unsigned char)text[2] == 0xBFu ? 3u : 0u;
-    root = xrtJsonValid(text + offset, size - offset) ?
-           xrtParseJSON(text + offset, size - offset) :
-           NULL;
-    if ( root == NULL || xvoIsNull(root) ) {
-        xvoUnref(root);
-        root = xrtParseXSON(text + offset, size - offset);
+    root = xrtJsonParse(xrtStrViewN(text, size));
+    if ( root == NULL ) {
+        xrtClearError();
+        root = xrtXsonParse(xrtStrViewN(text, size));
     }
-    if ( root == NULL || xvoIsNull(root) || !xvoIsTable(root) ) {
-        xvoUnref(root);
+    if ( root == NULL || xrtValueType(root) != XVALUE_OBJECT ) {
+        xrtValueRelease(root);
         xrtFree(text);
         xl6ResSetError(error, errorSize, "resource config must be a JSON/XSON object");
         return NULL;
@@ -1191,7 +1233,7 @@ int xl6WinResourceConfigToCoffMemory(
 {
     char* configText;
     char* baseDir;
-    xvalue root;
+    xvalue* root;
     XL6_WinResourceList resources;
     XL6_ResBuf rsrc;
     XL6_RelocList relocs;
@@ -1215,10 +1257,10 @@ int xl6WinResourceConfigToCoffMemory(
     if ( root == NULL ) {
         return 0;
     }
-    baseDir = (char*)xrtPathGetDir((str)configPath, 0);
+    baseDir = xrtPathParent(configPath);
     if ( baseDir == NULL || baseDir[0] == '\0' ) {
         xrtFree(baseDir);
-        baseDir = (char*)xrtCopyStr((str)".", 0);
+        baseDir = xrtStrDup(".");
     }
     language = xl6UIntField(root, "language", 1033u);
     codepage = xl6UIntField(root, "codepage", 1200u);
@@ -1239,7 +1281,7 @@ int xl6WinResourceConfigToCoffMemory(
     xl6RelocFree(&relocs);
     xl6ResBufFree(&rsrc);
     xl6ResourceListFree(&resources);
-    xvoUnref(root);
+    xrtValueRelease(root);
     xrtFree(configText);
     xrtFree(baseDir);
     return ok;

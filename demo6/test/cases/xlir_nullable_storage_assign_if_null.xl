@@ -1,0 +1,45 @@
+int fallbackCalls = 0
+func storageFallback(bool fail) as int
+    fallbackCalls += 1
+    if fail then throw "storage RHS failure" end
+    return 17
+end
+func main(...) as int
+    int? number = null
+    number ?= storageFallback(false)
+    number ?= storageFallback(true)
+    assert (number ?? -1) == 17 and fallbackCalls == 1
+    bool? flag = null
+    flag ?= false
+    flag ?= true
+    assert (flag ?? true) == false
+    float? real = null
+    real ?= 0.0
+    real ?= 2.5
+    assert (real ?? 1.0) == 0.0
+    uint64? wide = null
+    wide ?= uint64(18446744073709551615)
+    wide ?= uint64(1)
+    assert (wide ?? uint64(0)) == 18446744073709551615
+    string? text = null
+    text ?= null
+    text ?= string(17)
+    text ?= "wrong"
+    assert (text ?? "missing") == "17"
+    int? shared = null
+    auto fill = func() as int
+        shared ?= storageFallback(false)
+        return shared ?? -1
+    end
+    assert fill() == 17 and fill() == 17 and fallbackCalls == 2
+    int? unchanged = null
+    bool caught = false
+    try
+        unchanged ?= storageFallback(true)
+    catch failure
+        assert failure.message == "storage RHS failure"
+        caught = true
+    end
+    assert caught and unchanged == null and fallbackCalls == 3
+    return 0
+end

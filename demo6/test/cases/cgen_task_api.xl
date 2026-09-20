@@ -245,7 +245,7 @@ catch e
 end
 expect(duplicateCanceledAllSourceState, 42)
 bool duplicateCanceledAllSourceCancelAgain = task.cancel(duplicateCanceledAllSource)
-expect(duplicateCanceledAllSourceCancelAgain, 1)
+expect(duplicateCanceledAllSourceCancelAgain, 0)
 
 future<int> duplicateCanceledRaceSource = slowRaceAsync(510)
 future<int> duplicateCanceledRaceGroup = task.race([duplicateCanceledRaceSource, duplicateCanceledRaceSource])
@@ -273,7 +273,7 @@ catch e
 end
 expect(duplicateCanceledRaceSourceState, 42)
 bool duplicateCanceledRaceSourceCancelAgain = task.cancel(duplicateCanceledRaceSource)
-expect(duplicateCanceledRaceSourceCancelAgain, 1)
+expect(duplicateCanceledRaceSourceCancelAgain, 0)
 
 future<int> duplicateTypedCanceledAllSource = slowRaceAsync(511)
 array<future<int>> duplicateTypedCanceledAllJobs = array[duplicateTypedCanceledAllSource, duplicateTypedCanceledAllSource]
@@ -302,7 +302,7 @@ catch e
 end
 expect(duplicateTypedCanceledAllSourceState, 42)
 bool duplicateTypedCanceledAllSourceCancelAgain = task.cancel(duplicateTypedCanceledAllSource)
-expect(duplicateTypedCanceledAllSourceCancelAgain, 1)
+expect(duplicateTypedCanceledAllSourceCancelAgain, 0)
 
 future<int> duplicateTypedCanceledRaceSource = slowRaceAsync(512)
 array<future<int>> duplicateTypedCanceledRaceJobs = array[duplicateTypedCanceledRaceSource, duplicateTypedCanceledRaceSource]
@@ -331,7 +331,7 @@ catch e
 end
 expect(duplicateTypedCanceledRaceSourceState, 42)
 bool duplicateTypedCanceledRaceSourceCancelAgain = task.cancel(duplicateTypedCanceledRaceSource)
-expect(duplicateTypedCanceledRaceSourceCancelAgain, 1)
+expect(duplicateTypedCanceledRaceSourceCancelAgain, 0)
 
 array<future<int>> typedAllCompletedJobs = array[addAsync(40, 1), addAsync(50, 2)]
 future<array<int>> typedAllCompletedFuture = task.all(typedAllCompletedJobs)
@@ -787,7 +787,7 @@ catch e
 end
 expect(sourceCanceledAllLeftLateState, 42)
 bool sourceCanceledAllLeftAgain = task.cancel(sourceCanceledAllLeft)
-expect(sourceCanceledAllLeftAgain, 1)
+expect(sourceCanceledAllLeftAgain, 0)
 
 future<int> sourceCanceledTypedAllLeft = slowRaceAsync(195)
 future<int> sourceCanceledTypedAllRight = slowRaceAsync(196)
@@ -843,7 +843,7 @@ catch e
 end
 expect(sourceCanceledTypedAllLeftLateState, 42)
 bool sourceCanceledTypedAllLeftAgain = task.cancel(sourceCanceledTypedAllLeft)
-expect(sourceCanceledTypedAllLeftAgain, 1)
+expect(sourceCanceledTypedAllLeftAgain, 0)
 
 future<int> sourceCanceledRaceWinner = slowRaceAsync(187)
 future<int> sourceCanceledRaceLoser = slowRaceAsync(188)
@@ -885,7 +885,7 @@ catch e
 end
 expect(sourceCanceledRaceLoserStateB, 42)
 bool sourceCanceledRaceWinnerAgain = task.cancel(sourceCanceledRaceWinner)
-expect(sourceCanceledRaceWinnerAgain, 1)
+expect(sourceCanceledRaceWinnerAgain, 0)
 
 future<int> sourceCanceledTypedRaceWinner = slowRaceAsync(197)
 future<int> sourceCanceledTypedRaceLoser = slowRaceAsync(198)
@@ -928,7 +928,7 @@ catch e
 end
 expect(sourceCanceledTypedRaceLoserLateState, 42)
 bool sourceCanceledTypedRaceWinnerAgain = task.cancel(sourceCanceledTypedRaceWinner)
-expect(sourceCanceledTypedRaceWinnerAgain, 1)
+expect(sourceCanceledTypedRaceWinnerAgain, 0)
 
 future<int> completedCanceledAllLeft = slowRaceAsync(205)
 bool completedCanceledAllRequest = task.cancel(completedCanceledAllLeft)
@@ -1025,7 +1025,7 @@ catch e
 end
 expect(completedCanceledAllLeftLateState, 42)
 bool completedCanceledAllLeftAgain = task.cancel(completedCanceledAllLeft)
-expect(completedCanceledAllLeftAgain, 1)
+expect(completedCanceledAllLeftAgain, 0)
 
 int completedCanceledTypedAllLeftLateState = 0
 try
@@ -1038,7 +1038,7 @@ catch e
 end
 expect(completedCanceledTypedAllLeftLateState, 42)
 bool completedCanceledTypedAllLeftAgain = task.cancel(completedCanceledTypedAllLeft)
-expect(completedCanceledTypedAllLeftAgain, 1)
+expect(completedCanceledTypedAllLeftAgain, 0)
 
 future<int> completedCanceledRaceWinner = slowRaceAsync(207)
 bool completedCanceledRaceRequest = task.cancel(completedCanceledRaceWinner)
@@ -1109,7 +1109,7 @@ catch e
 end
 expect(completedCanceledRaceLoserLateState, 42)
 bool completedCanceledRaceWinnerAgain = task.cancel(completedCanceledRaceWinner)
-expect(completedCanceledRaceWinnerAgain, 1)
+expect(completedCanceledRaceWinnerAgain, 0)
 
 int completedCanceledTypedRaceLoserLateState = 0
 try
@@ -1122,7 +1122,7 @@ catch e
 end
 expect(completedCanceledTypedRaceLoserLateState, 42)
 bool completedCanceledTypedRaceWinnerAgain = task.cancel(completedCanceledTypedRaceWinner)
-expect(completedCanceledTypedRaceWinnerAgain, 1)
+expect(completedCanceledTypedRaceWinnerAgain, 0)
 
 array<int> allInputOrderValues = await task.all([slowRaceAsync(401), fastRaceAsync(402)])
 expect(allInputOrderValues.length, 2)
@@ -1141,7 +1141,7 @@ future<array<int>> cancelAllGroup = task.all([cancelAllLeft, cancelAllRight])
 bool cancelAllRequested = task.cancel(cancelAllGroup)
 expect(cancelAllRequested, 1)
 bool cancelAllRequestedAgain = task.cancel(cancelAllGroup)
-expect(cancelAllRequestedAgain, 1)
+expect(cancelAllRequestedAgain, 0)
 
 int cancelAllGroupState = 0
 try
@@ -1164,7 +1164,7 @@ catch e
 end
 expect(cancelAllGroupStateAgain, 42)
 bool cancelAllRequestedAfterAwait = task.cancel(cancelAllGroup)
-expect(cancelAllRequestedAfterAwait, 1)
+expect(cancelAllRequestedAfterAwait, 0)
 int cancelAllGroupStateAfterCancel = 0
 try
     array<int> cancelAllValuesAfterCancel = await cancelAllGroup
@@ -1187,7 +1187,7 @@ catch e
 end
 expect(cancelAllLeftState, 42)
 bool cancelAllLeftCancelAgain = task.cancel(cancelAllLeft)
-expect(cancelAllLeftCancelAgain, 1)
+expect(cancelAllLeftCancelAgain, 0)
 
 int cancelAllRightState = 0
 try
@@ -1282,7 +1282,7 @@ future<int> repeatCancelFuture = slowRaceAsync(206)
 bool repeatCancelFirst = task.cancel(repeatCancelFuture)
 expect(repeatCancelFirst, 1)
 bool repeatCancelSecond = task.cancel(repeatCancelFuture)
-expect(repeatCancelSecond, 1)
+expect(repeatCancelSecond, 0)
 
 int repeatCancelState = 0
 try
@@ -1295,7 +1295,7 @@ catch e
 end
 expect(repeatCancelState, 42)
 bool repeatCancelAfterAwait = task.cancel(repeatCancelFuture)
-expect(repeatCancelAfterAwait, 1)
+expect(repeatCancelAfterAwait, 0)
 time.sleep(300)
 
 future<int> cancelRaceLeft = slowRaceAsync(301)
@@ -1304,7 +1304,7 @@ future<int> cancelRaceGroup = task.race([cancelRaceLeft, cancelRaceRight])
 bool cancelRaceRequested = task.cancel(cancelRaceGroup)
 expect(cancelRaceRequested, 1)
 bool cancelRaceRequestedAgain = task.cancel(cancelRaceGroup)
-expect(cancelRaceRequestedAgain, 1)
+expect(cancelRaceRequestedAgain, 0)
 
 int cancelRaceGroupState = 0
 try
@@ -1327,7 +1327,7 @@ catch e
 end
 expect(cancelRaceGroupStateAgain, 42)
 bool cancelRaceRequestedAfterAwait = task.cancel(cancelRaceGroup)
-expect(cancelRaceRequestedAfterAwait, 1)
+expect(cancelRaceRequestedAfterAwait, 0)
 int cancelRaceGroupStateAfterCancel = 0
 try
     int cancelRaceValueAfterCancel = await cancelRaceGroup
@@ -1350,7 +1350,7 @@ catch e
 end
 expect(cancelRaceLeftState, 42)
 bool cancelRaceLeftCancelAgain = task.cancel(cancelRaceLeft)
-expect(cancelRaceLeftCancelAgain, 1)
+expect(cancelRaceLeftCancelAgain, 0)
 
 int cancelRaceRightState = 0
 try
@@ -1448,7 +1448,7 @@ future<array<int>> cancelTypedAllGroup = task.all(cancelTypedAllJobs)
 bool cancelTypedAllRequested = task.cancel(cancelTypedAllGroup)
 expect(cancelTypedAllRequested, 1)
 bool cancelTypedAllRequestedAgain = task.cancel(cancelTypedAllGroup)
-expect(cancelTypedAllRequestedAgain, 1)
+expect(cancelTypedAllRequestedAgain, 0)
 
 int cancelTypedAllGroupState = 0
 try
@@ -1471,7 +1471,7 @@ catch e
 end
 expect(cancelTypedAllGroupStateAgain, 42)
 bool cancelTypedAllRequestedAfterAwait = task.cancel(cancelTypedAllGroup)
-expect(cancelTypedAllRequestedAfterAwait, 1)
+expect(cancelTypedAllRequestedAfterAwait, 0)
 int cancelTypedAllGroupStateAfterCancel = 0
 try
     array<int> cancelTypedAllValuesAfterCancel = await cancelTypedAllGroup
@@ -1592,7 +1592,7 @@ future<int> cancelTypedRaceGroup = task.race(cancelTypedRaceJobs)
 bool cancelTypedRaceRequested = task.cancel(cancelTypedRaceGroup)
 expect(cancelTypedRaceRequested, 1)
 bool cancelTypedRaceRequestedAgain = task.cancel(cancelTypedRaceGroup)
-expect(cancelTypedRaceRequestedAgain, 1)
+expect(cancelTypedRaceRequestedAgain, 0)
 
 int cancelTypedRaceGroupState = 0
 try
@@ -1615,7 +1615,7 @@ catch e
 end
 expect(cancelTypedRaceGroupStateAgain, 42)
 bool cancelTypedRaceRequestedAfterAwait = task.cancel(cancelTypedRaceGroup)
-expect(cancelTypedRaceRequestedAfterAwait, 1)
+expect(cancelTypedRaceRequestedAfterAwait, 0)
 int cancelTypedRaceGroupStateAfterCancel = 0
 try
     int cancelTypedRaceValueAfterCancel = await cancelTypedRaceGroup

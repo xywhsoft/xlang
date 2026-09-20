@@ -6,8 +6,8 @@ static void xl6CgenPrintXValueFromExpr(XL6_CgenContext* ctx, const XL6_AstNode* 
     rawTypeNode = xl6CgenCloneExprTypeForInference(ctx, expr);
     typeNode = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, rawTypeNode));
     if ( typeNode != NULL && xl6CgenIsUnsignedIntegerTypeName(typeNode->text) ) {
-        /* xvalue 的 int 是有符号 int64；打印无符号整数时先保留完整文本。 */
-        xl6OutputPuts("xvoCreateText((void*)xl6_xrt_u64_to_string((unsigned long long)(", ctx->out);
+        /* xvalue* 的 int 是有符号 int64；打印无符号整数时先保留完整文本。 */
+        xl6OutputPuts("xl6_xrt_value_text_create((void*)xl6_xrt_u64_to_string((unsigned long long)(", ctx->out);
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts(")), 0, false)", ctx->out);
     } else {
@@ -50,7 +50,7 @@ static int xl6CgenConditionalIsXValue(XL6_CgenContext* ctx, const XL6_AstNode* n
 static void xl6CgenXValueConditionalExpr(XL6_CgenContext* ctx, const XL6_AstNode* node)
 {
     if ( node == NULL || node->childCount < 3 ) {
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         return;
     }
 
@@ -267,7 +267,7 @@ static void xl6CgenXValueBinaryExpr(XL6_CgenContext* ctx, const XL6_AstNode* nod
     int mode;
 
     if ( node == NULL || node->childCount < 2 ) {
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         return;
     }
 
@@ -388,22 +388,22 @@ static void xl6CgenXValueScalarGetExpr(XL6_CgenContext* ctx, const char* cType, 
     const char* releaseHelper;
 
     if ( xl6CgenExprIsXValueBorrow(ctx, expr) ) {
-        xl6OutputPrintf(ctx->out, "((%s)%s(", cType != NULL ? cType : "int", getter != NULL ? getter : "xvoGetInt");
+        xl6OutputPrintf(ctx->out, "((%s)%s(", cType != NULL ? cType : "int", getter != NULL ? getter : "xl6_xrt_value_int");
         xl6CgenExpr(ctx, expr);
         xl6OutputPuts("))", ctx->out);
         return;
     }
 
     releaseHelper = NULL;
-    if ( getter == NULL || xl6CTextEquals(getter, "xvoGetInt") ) {
+    if ( getter == NULL || xl6CTextEquals(getter, "xl6_xrt_value_int") ) {
         releaseHelper = "xl6_xrt_value_to_i64_release";
-    } else if ( xl6CTextEquals(getter, "xvoGetFloat") ) {
+    } else if ( xl6CTextEquals(getter, "xl6_xrt_value_float") ) {
         releaseHelper = "xl6_xrt_value_to_f64_release";
-    } else if ( xl6CTextEquals(getter, "xvoGetBool") ) {
+    } else if ( xl6CTextEquals(getter, "xl6_xrt_value_bool") ) {
         releaseHelper = "xl6_xrt_value_to_bool_release";
-    } else if ( xl6CTextEquals(getter, "xvoGetTime") ) {
+    } else if ( xl6CTextEquals(getter, "xl6_xrt_value_time") ) {
         releaseHelper = "xl6_xrt_value_to_time_release";
-    } else if ( xl6CTextEquals(getter, "xvoGetPoint") ) {
+    } else if ( xl6CTextEquals(getter, "xl6_xrt_value_pointer") ) {
         releaseHelper = "xl6_xrt_value_to_point_release";
     }
 
@@ -414,7 +414,7 @@ static void xl6CgenXValueScalarGetExpr(XL6_CgenContext* ctx, const char* cType, 
         return;
     }
 
-    xl6CgenError(ctx, expr, "unsupported xvalue scalar getter in C generator");
+    xl6CgenError(ctx, expr, "unsupported xvalue* scalar getter in C generator");
     xl6OutputPrintf(ctx->out, "((%s)0)", cType != NULL ? cType : "int");
 }
 
@@ -504,12 +504,34 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
     } else if ( sourceIsXValue ) {
         if ( xl6CgenIsXValueTypeName(target) ) {
             xl6CgenXValueFromExpr(ctx, arg);
-        } else if ( xl6CgenIsIntegerTypeName(target) ) {
-            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetInt", arg);
+        } else if ( xl6CgenIntTypeInfo(target, &targetInt) ) {
+            const char* helper = targetInt.isSigned ?
+                "xl6_xrt_value_to_i64_checked" :
+                "xl6_xrt_value_to_u64_checked";
+
+            if ( !xl6CgenExprIsXValueBorrow(ctx, arg) ) {
+                helper = targetInt.isSigned ?
+                    "xl6_xrt_value_to_i64_checked_release" :
+                    "xl6_xrt_value_to_u64_checked_release";
+            }
+            xl6OutputPrintf(
+                ctx->out,
+                "((%s)%s(",
+                xl6CgenConvertCTypeName(target),
+                helper
+            );
+            xl6CgenExpr(ctx, arg);
+            xl6OutputPrintf(
+                ctx->out,
+                ", %d, \"\", %d, %d))",
+                targetInt.bits,
+                node->line,
+                node->column
+            );
         } else if ( xl6CgenIsFloatTypeName(target) ) {
-            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetFloat", arg);
+            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xl6_xrt_value_float", arg);
         } else if ( xl6CgenIsBoolTypeName(target) ) {
-            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetBool", arg);
+            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xl6_xrt_value_bool", arg);
         } else if ( xl6CTextEquals(target, "string") ) {
             if ( xl6CgenClassToStringConversionExpr(ctx, arg, sourceType) ) {
                 ;
@@ -523,9 +545,9 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
                 xl6OutputPutc(')', ctx->out);
             }
         } else if ( xl6CTextEquals(target, "time") ) {
-            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetTime", arg);
+            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xl6_xrt_value_time", arg);
         } else if ( xl6CTextEquals(target, "point") ) {
-            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xvoGetPoint", arg);
+            xl6CgenXValueScalarGetExpr(ctx, xl6CgenConvertCTypeName(target), "xl6_xrt_value_pointer", arg);
         } else {
             char message[256];
             snprintf(message, sizeof(message),
@@ -537,10 +559,24 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
         }
     } else if ( xl6CgenIsIntegerTypeName(target) ) {
         xl6OutputPrintf(ctx->out, "((%s)(", xl6CgenConvertCTypeName(target));
-        if ( xl6CTextEquals(source, "string") ) {
-            xl6OutputPrintf(ctx->out, "xl6_xrt_str_to_i64_checked(");
+        if ( xl6CTextEquals(source, "string") &&
+             xl6CgenIntTypeInfo(target, &targetInt) ) {
+            xl6OutputPrintf(
+                ctx->out,
+                targetInt.isSigned ?
+                    "xl6_xrt_i64_range_checked(xl6_xrt_str_to_i64_checked(" :
+                    "xl6_xrt_u64_range_checked(xl6_xrt_str_to_u64_checked("
+            );
             xl6CgenExpr(ctx, arg);
-            xl6OutputPrintf(ctx->out, ", \"\", %d, %d)", node->line, node->column);
+            xl6OutputPrintf(
+                ctx->out,
+                ", \"\", %d, %d), %d, \"\", %d, %d)",
+                node->line,
+                node->column,
+                targetInt.bits,
+                node->line,
+                node->column
+            );
         } else if ( xl6CgenIsFloatTypeName(source) && xl6CgenIntTypeInfo(target, &targetInt) ) {
             xl6OutputPuts(targetInt.isSigned ?
                               "xl6_xrt_f64_to_i64_checked((double)(" :
@@ -602,7 +638,7 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
             xl6CgenExpr(ctx, arg);
             xl6OutputPuts("))", ctx->out);
         } else if ( xl6CTextEquals(source, "time") ) {
-            xl6OutputPuts("xl6_xrt_take_cstr((char*)xrtTimeToStr((long long)(", ctx->out);
+            xl6OutputPuts("xl6_xrt_take_cstr((char*)xl6_xrt_time_string_owned((long long)(", ctx->out);
             xl6CgenExpr(ctx, arg);
             xl6OutputPuts("), 0))", ctx->out);
         } else if ( xl6CTextEquals(source, "point") ) {
@@ -617,7 +653,7 @@ static void xl6CgenTypeConvertExpr(XL6_CgenContext* ctx, const XL6_AstNode* node
         }
     } else if ( xl6CTextEquals(target, "time") ) {
         if ( xl6CTextEquals(source, "string") ) {
-            xl6OutputPuts("xrtStrToTime(", ctx->out);
+            xl6OutputPuts("xl6_xrt_time_parse_any_value(", ctx->out);
             xl6CgenExpr(ctx, arg);
             xl6OutputPuts(", 0)", ctx->out);
         } else if ( xl6CTextEquals(source, "null") ) {

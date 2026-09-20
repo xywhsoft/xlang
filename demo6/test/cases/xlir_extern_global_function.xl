@@ -1,0 +1,10 @@
+extern "host_counter" int counter
+
+export "xl6_read_counter" func readCounter() as int
+    return counter
+end
+
+export "xl6_add_counter" func addCounter(int delta) as int
+    counter = counter + delta
+    return counter
+end

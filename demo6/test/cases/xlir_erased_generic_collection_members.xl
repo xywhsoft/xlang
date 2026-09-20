@@ -1,0 +1,28 @@
+array<var> values = [1, "two"]
+assert values.insert(0, "zero")
+assert values.contains(1)
+assert values.removeValue(1)
+assert values.swap(0, 1)
+assert values.reserve(16)
+assert string(values.take(0)) == "two"
+assert string(values.pop()) == "zero"
+assert values.clear()
+
+list<var> sparse = [3: "three", 7: 9]
+assert sparse.contains("three")
+assert string(sparse.take(3)) == "three"
+assert sparse.remove(7)
+assert sparse.clear()
+
+set<var> unique = {1, "two"}
+assert unique.add(4)
+assert unique.contains(4)
+assert unique.remove("two")
+assert unique.clear()
+
+dict<var> named = {"text": "owned"}
+assert named.contains("text")
+assert string(named.take("text")) == "owned"
+assert named.clear()
+
+println("xlir erased generic collection members ok")

@@ -1,0 +1,4 @@
+import xlir_pkg_valid
+extern "native_add_i64" func extra(int a, int b) as int
+assert xlir_pkg_valid.verify()
+assert extra(20, 22) == 42

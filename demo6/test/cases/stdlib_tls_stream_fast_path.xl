@@ -1,0 +1,35 @@
+TlsConfig config = TlsConfig()
+config.verifyPeer(false)
+config.host("localhost")
+config.alpn("http/1.1")
+
+TlsStream stream = tls.connect("127.0.0.1", 1, config, 1)
+future<TlsStream> connecting = tls.connectAsync("127.0.0.1", 1, config, 1)
+
+Buffer payload = Buffer()
+payload.append("ping")
+
+if stream.nativeHandle() != null then
+    future<bool> sent = stream.sendBytesAsync(payload)
+    future<bool> sentText = stream.sendAsync("ping")
+    future<bool> sentVec = stream.sendVecAsync([payload])
+    future<NetBytes> received = stream.recvBytesAsync(4096)
+    future<string> text = stream.recvAsync(4096)
+    future<bool> readable = stream.readableAsync()
+    future<bool> writable = stream.writableAsync()
+    future<bool> drained = stream.drainAsync()
+    future<bool> ended = stream.endAsync()
+    future<bool> closed = stream.closeAsync()
+
+    println(stream.state)
+    println(stream.available)
+    println(stream.pending)
+    println(stream.asyncBytes)
+    println(stream.asyncCount)
+    println(stream.localAddr())
+    println(stream.remoteAddr())
+    stream.abort()
+end
+
+connecting.cancel()
+println("tls-stream-fast-path-ok")

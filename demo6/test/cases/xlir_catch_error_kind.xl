@@ -1,0 +1,9 @@
+int observed = 0
+try
+    throw ValueError "typed payload"
+catch e
+    string kind = e.kind
+    assert kind == "ValueError"
+    observed = 1
+end
+assert observed == 1

@@ -1,0 +1,10 @@
+TlsConfig config = TlsConfig()
+config.verifyPeer(false)
+
+TlsSession session = config.session()
+Buffer input = Buffer()
+input.append("payload")
+
+println(session.status)
+println(session.write(input))
+println("tls-session-trim-ok")

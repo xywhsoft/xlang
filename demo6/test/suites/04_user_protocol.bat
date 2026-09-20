@@ -47,9 +47,9 @@ if errorlevel 1 exit /b 1
 build\test\protocol_native_backed_dispatch.exe
 if errorlevel 1 exit /b 1
 
-"%XL6_TCC%" -std=c11 -Wall -I. %XL6_TCC_INCLUDES_WINAPI% %XL6_TCC_LIB_FLAGS% test\cases\xrt_protocol_registry.c %XL6_TCC_LIBTCC1% -lWs2_32 -lIPHLPAPI -lShell32 -o build\test\xrt_protocol_registry.exe
+"%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% test\cases\xruntime_protocol_registry.c %XL6_CGEN_LINKS% -o build\test\xruntime_protocol_registry.exe
 if errorlevel 1 exit /b 1
-build\test\xrt_protocol_registry.exe
+build\test\xruntime_protocol_registry.exe
 if errorlevel 1 exit /b 1
 
 for %%F in (

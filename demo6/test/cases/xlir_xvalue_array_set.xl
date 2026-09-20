@@ -1,0 +1,9 @@
+func dynamic_array_set() as int
+  var values = [41, 42]
+  values[0] = 43
+  return 59
+end
+
+export "xlir_test_xvalue_array_set_root" func xlir_test_root() as int
+  return dynamic_array_set()
+end

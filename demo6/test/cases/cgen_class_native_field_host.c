@@ -17,7 +17,7 @@ void* native_box_open(long long value)
     return box;
 }
 
-long long native_box_close(void* self)
+void native_box_close(void* self)
 {
     NativeBox* box = (NativeBox*)self;
     if ( box == 0 || gCloseCount >= 8 ) {
@@ -26,7 +26,6 @@ long long native_box_close(void* self)
     gCloseValues[gCloseCount] = box->value;
     gCloseCount += 1;
     free(box);
-    return 0;
 }
 
 long long native_box_value(void* self)

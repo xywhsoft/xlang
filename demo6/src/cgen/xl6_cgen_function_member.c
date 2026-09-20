@@ -73,25 +73,47 @@ static void xl6CgenMemberFunctionStatementInvokeExpr(XL6_CgenContext* ctx,
 
 static int xl6CgenMemberIsClassMethodCallTarget(XL6_CgenContext* ctx, const XL6_AstNode* call, const XL6_AstNode* member)
 {
+    const XL6_AstNode* hirTarget;
     const XL6_AstNode* receiver;
     const XL6_AstNode* receiverType;
+    const XL6_AstNode* classType;
     XL6_AstNode* ownedReceiverType;
     const XL6_AstNode* classNode;
     const XL6_AstNode* prevParams;
     const XL6_AstNode* prevArgs;
     const XL6_AstNode* method;
 
-    if ( ctx == NULL ||
-         call == NULL ||
+	if ( ctx == NULL ||
+		 call == NULL ||
          member == NULL ||
          member->kind != XL6_AST_MEMBER ||
          member->text == NULL ||
          member->childCount == 0 ) {
-        return 0;
+		return 0;
+	}
+	/* enum 变体构造已由语义阶段完成决议，不是 class 成员调用。 */
+	if ( call->semanticCallKind == XL6_SEM_CALL_ENUM_VARIANT ) {
+		return 0;
+	}
+
+	/*
+     * typed HIR 已经解析出的 class 方法是最权威的调用目标。导入类的类型名会在
+     * 包合并时规范化，不能先依赖源码名称重建接收者，再把真实方法误判成 function
+     * 字段。真正的 function/var 字段不会把 HIR 目标绑定到 class callable。
+     */
+	hirTarget = xl6CgenHirTarget(ctx, call);
+    if ( hirTarget != NULL &&
+         (hirTarget->kind == XL6_AST_FUNC ||
+          hirTarget->kind == XL6_AST_ASYNC_FUNC ||
+          hirTarget->kind == XL6_AST_EXTERN_FUNC ||
+          hirTarget->kind == XL6_AST_EXPORT_FUNC ||
+          hirTarget->kind == XL6_AST_NATIVE_EXTERN_FUNC) ) {
+        return 1;
     }
 
     receiver = member->children[0];
     receiverType = NULL;
+    classType = NULL;
     ownedReceiverType = NULL;
     classNode = NULL;
 
@@ -100,20 +122,23 @@ static int xl6CgenMemberIsClassMethodCallTarget(XL6_CgenContext* ctx, const XL6_
          xl6CTextEquals(receiver->text, "self") &&
          ctx->currentClass != NULL ) {
         classNode = ctx->currentClass;
-    } else if ( receiver != NULL && receiver->kind == XL6_AST_MEMBER ) {
-        ownedReceiverType = xl6CgenCloneMemberFieldTypeForInference(ctx, receiver);
-        receiverType = ownedReceiverType;
-        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
-    } else if ( receiver != NULL && receiver->kind == XL6_AST_NAME ) {
+        receiverType = xl6CgenFindVarType(ctx, "self");
+        classType = receiverType;
+    } else if ( receiver != NULL ) {
         ownedReceiverType = xl6CgenCloneExprTypeForInference(ctx, receiver);
         receiverType = ownedReceiverType;
-        classNode = receiverType != NULL ? xl6CgenFindClass(ctx, receiverType->text) : NULL;
+        classType = xl6CgenClassHandleTargetType(ctx, receiverType);
+        if ( classType == NULL ) {
+            classType = receiverType;
+        }
+        classNode = classType != NULL ?
+                    xl6CgenFindClass(ctx, classType->text) : NULL;
     }
 
-    if ( classNode == NULL ) {
-        xl6AstFree(ownedReceiverType);
-        return 0;
-    }
+	if ( classNode == NULL ) {
+		xl6AstFree(ownedReceiverType);
+		return 0;
+	}
 
     /*
      * 普通 class 方法优先于 function 字段和 __field__ 动态字段。
@@ -122,9 +147,10 @@ static int xl6CgenMemberIsClassMethodCallTarget(XL6_CgenContext* ctx, const XL6_
      */
     prevParams = ctx->currentGenericParams;
     prevArgs = ctx->currentGenericArgs;
-    if ( receiverType != NULL && receiverType->childCount > 0 && xl6CgenClassHasTypeParams(classNode) ) {
+    if ( classType != NULL && classType->childCount > 0 &&
+         xl6CgenClassHasTypeParams(classNode) ) {
         ctx->currentGenericParams = xl6CgenClassTypeParams(classNode);
-        ctx->currentGenericArgs = receiverType->children[0];
+        ctx->currentGenericArgs = classType->children[0];
     }
     method = xl6CgenResolveClassFunc(ctx, classNode, call, member->text, NULL);
     ctx->currentGenericParams = prevParams;
@@ -175,7 +201,7 @@ static void xl6CgenFunctionInvoke(XL6_CgenContext* ctx, const char* name, const 
         xl6CgenFunctionInvokeDirectCall(ctx, cName, paramTypes, returns, args, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(" : (xl6_function_fatal(3), (", ctx->out);
         xl6CgenFunctionReturnStructName(ctx, paramTypes, returns);
-        xl6OutputPuts("){0})) : (xl6_function_fatal(3), (", ctx->out);
+        xl6OutputPrintf(ctx->out, "){0})) : (xl6_function_signature_mismatch(%s.signature, 0x%016llXULL), (", cName, signatureId);
         xl6CgenFunctionReturnStructName(ctx, paramTypes, returns);
         xl6OutputPuts("){0}))", ctx->out);
     } else if ( returnCount == 1 ) {
@@ -183,7 +209,7 @@ static void xl6CgenFunctionInvoke(XL6_CgenContext* ctx, const char* name, const 
         xl6CgenFunctionInvokeDirectCall(ctx, cName, paramTypes, returns, args, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(" : ", ctx->out);
         xl6CgenFunctionInvokeFallbackExpr(ctx, returns->children[0], cName, args);
-        xl6OutputPuts(") : (xl6_function_fatal(3), ", ctx->out);
+        xl6OutputPrintf(ctx->out, ") : (xl6_function_signature_mismatch(%s.signature, 0x%016llXULL), ", cName, signatureId);
         xl6CgenFunctionDefaultReturnExpr(ctx, returns->children[0]);
         xl6OutputPuts("))", ctx->out);
     } else {
@@ -191,7 +217,7 @@ static void xl6CgenFunctionInvoke(XL6_CgenContext* ctx, const char* name, const 
         xl6CgenFunctionInvokeDirectCall(ctx, cName, paramTypes, returns, args, fixedCount, hasArrayVararg, hasDictVararg);
         xl6OutputPuts(" : xl6_xvalue_drop(", ctx->out);
         xl6CgenFunctionInvokeFallbackCall(ctx, cName, args);
-        xl6OutputPuts(")) : xl6_function_fatal(3))", ctx->out);
+        xl6OutputPrintf(ctx->out, ")) : xl6_function_signature_mismatch(%s.signature, 0x%016llXULL))", cName, signatureId);
     }
 }
 
@@ -214,19 +240,7 @@ static int xl6CgenMemberFunctionInvoke(XL6_CgenContext* ctx, const XL6_AstNode* 
         const XL6_AstNode* returns = xl6CgenFunctionReturnTypes(functionType);
         int returnCount = returns != NULL ? (int)returns->childCount : 0;
 
-        if ( xl6CgenFunctionTypeSupportsErasedCall(ctx, functionType) ) {
-            if ( returnCount == 1 ) {
-                xl6CgenFunctionInvokeFallbackExprForExpr(ctx, returns->children[0], member, functionType, args, 0);
-            } else {
-                xl6OutputPuts("xl6_xvalue_drop(", ctx->out);
-                xl6CgenFunctionInvokeFallbackCallExpr(ctx, member, functionType, args, 0);
-                xl6OutputPutc(')', ctx->out);
-            }
-            xl6AstFree(functionType);
-            return 1;
-        }
-
-        if ( xl6CgenFunctionExprIsRepeatableLvalue(member) ) {
+        if ( xl6CgenFunctionExprIsRepeatableLvalue(ctx, member) ) {
             xl6CgenFunctionInvokeExpr(ctx, member, functionType, args);
         } else {
             xl6CgenError(ctx, member, "member function expression receiver must be a stable lvalue");
@@ -344,4 +358,52 @@ static void xl6CgenFunctionValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* ex
         return;
     }
     xl6CgenExpr(ctx, expr);
+}
+
+
+
+/*
+    函数值使用结构体 ABI，必须通过专用 helper 与 null 比较。
+    借用值只检查；工厂、闭包和混合条件表达式产生的拥有型值在检查后释放。
+*/
+static int xl6CgenFunctionNullComparison(
+    XL6_CgenContext* ctx,
+    const XL6_AstNode* node)
+{
+    const XL6_AstNode* valueExpr;
+    XL6_AstNode* valueType;
+    int notEqual;
+    int borrowed;
+
+    if ( ctx == NULL || node == NULL || node->kind != XL6_AST_BINARY ||
+         node->childCount < 2 ||
+         (!xl6CTextEquals(node->text, "==") &&
+          !xl6CTextEquals(node->text, "!=")) ) {
+        return 0;
+    }
+    if ( node->children[0] != NULL && node->children[0]->kind == XL6_AST_NULL ) {
+        valueExpr = node->children[1];
+    } else if ( node->children[1] != NULL &&
+                node->children[1]->kind == XL6_AST_NULL ) {
+        valueExpr = node->children[0];
+    } else {
+        return 0;
+    }
+
+    valueType = xl6CgenCloneExprTypeForInference(ctx, valueExpr);
+    if ( !xl6CgenIsFunctionType(valueType) ) {
+        xl6AstFree(valueType);
+        return 0;
+    }
+
+    notEqual = xl6CTextEquals(node->text, "!=");
+    borrowed = xl6CgenExprIsFunctionBorrow(ctx, valueExpr);
+    xl6OutputPuts(notEqual ? "(!" : "(", ctx->out);
+    xl6OutputPuts(
+        borrowed ? "xl6_function_is_null(" : "xl6_function_is_null_release(",
+        ctx->out);
+    xl6CgenFunctionValueExpr(ctx, valueExpr, valueType);
+    xl6OutputPuts("))", ctx->out);
+    xl6AstFree(valueType);
+    return 1;
 }

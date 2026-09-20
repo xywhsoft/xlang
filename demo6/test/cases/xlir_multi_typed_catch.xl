@@ -1,0 +1,10 @@
+int observed = 0
+try
+    throw ValueError "multi handler payload"
+catch TypeError ignored
+    observed = 1
+catch ValueError e
+    assert e.kind == "ValueError"
+    observed = 2
+end
+assert observed == 2

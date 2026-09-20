@@ -1,0 +1,10 @@
+func dynamic_array_set_read() as var
+  var values = [41, 42]
+  values[-1] = 43
+  return values[-1]
+end
+
+export "xlir_test_xvalue_array_set_read_root" func xlir_test_root() as int
+  var rootedValue = dynamic_array_set_read()
+  return 0
+end

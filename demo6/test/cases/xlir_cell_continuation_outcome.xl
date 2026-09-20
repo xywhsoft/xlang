@@ -1,0 +1,93 @@
+extern "cell_continuation_mark" func cellContinuationMark(int phase)
+extern "cell_continuation_input" func cellContinuationInput() as future<int>
+extern "cell_continuation_drop" func cellContinuationDrop(int id)
+
+class CellContinuationValue
+    int id = 0
+    destroy()
+        cellContinuationDrop(self.id)
+    end
+end
+
+func cellContinuationNew(int id) as CellContinuationValue
+    auto value = CellContinuationValue()
+    value.id = id
+    return value
+end
+
+async func cellContinuationManaged(future<int> firstInput, future<int> secondInput) as int
+    int visits = 0
+    int total = 0
+    // The container owns only nulls; the mutable var cell is the object's owner.
+    array<var> slots = [null, null]
+    for item in slots
+        item = cellContinuationNew(visits + 1)
+        auto read = func() as int
+            item = item
+            return int(item.id)
+        end
+        if visits == 0 then
+            int value = await firstInput
+            assert(value == 10)
+        else
+            int value = await secondInput
+            assert(value == 20)
+        end
+        cellContinuationMark(visits)
+        total += read()
+        visits += 1
+    end
+    assert(visits == 2)
+    return total
+end
+
+func cellContinuationWords() as generator<string>
+    for index, item in "ab"
+        auto read = func() as string
+            index += 10
+            item = item + "x"
+            assert(index >= 10)
+            return item
+        end
+        yield read()
+        yield read()
+    end
+end
+
+async func cellContinuationAwait(future<int> firstInput, future<int> secondInput) as int
+    func() as int first = func() as int => 0
+    func() as int last = func() as int => 0
+    int visits = 0
+    int total = 0
+    for index, item in "ab"
+        auto read = func() as int
+            index += 10
+            item = item + "x"
+            return index * 100 + item.length
+        end
+        if visits == 0 then
+            int value = await firstInput
+            assert(value == 10)
+        else
+            int value = await secondInput
+            assert(value == 20)
+        end
+        cellContinuationMark(visits)
+        total += read()
+        if visits == 0 then
+            first = read
+        else
+            last = read
+        end
+        visits += 1
+    end
+    assert(visits == 2)
+    return total + first() + last() + first()
+end
+
+// Keep source-real machines reachable without executing them at module startup.
+export "cell_continuation_keep" func cellContinuationKeep()
+    auto words = cellContinuationWords()
+    auto result = cellContinuationAwait(cellContinuationInput(), cellContinuationInput())
+    auto managed = cellContinuationManaged(cellContinuationInput(), cellContinuationInput())
+end

@@ -1,0 +1,2 @@
+assert process.exitCode("exit 0") == 0
+assert process.exitCode("exit 7") == 7

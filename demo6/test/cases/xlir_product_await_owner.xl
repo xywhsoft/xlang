@@ -1,0 +1,44 @@
+extern "product_await_drop" func productAwaitDrop(int id)
+extern "product_await_caught" func productAwaitCaught(int code)
+extern "product_await_finally" func productAwaitFinally()
+extern "product_await_assigned" func productAwaitAssigned(int first, int second)
+extern "product_await_input" func productAwaitInput(int which) as future<int>
+
+class ProductAwaitItem
+    int id
+    create(int id)
+        self.id = id
+    end
+    destroy()
+        productAwaitDrop(self.id)
+    end
+end
+
+func productAwaitPair() as (ProductAwaitItem, ProductAwaitItem)
+    return ProductAwaitItem(1), ProductAwaitItem(2)
+end
+
+async func productAwaitOwner(future<int> first, future<int> second) as int
+    try
+        array<ProductAwaitItem> items = array[ProductAwaitItem(10), ProductAwaitItem(20)]
+        // Both RHS fields exist before the first destination can suspend.
+        // At the second suspension field 1 is committed; field 2 is still owned.
+        items[await first], items[await second] = productAwaitPair()
+        productAwaitAssigned(items[0].id, items[1].id)
+    catch failure
+        productAwaitCaught(failure.code)
+        return 23
+    finally
+        productAwaitFinally()
+    end
+    return 0
+end
+
+async func productAwaitReady() as int
+    return 0
+end
+future<int> productAwaitPending = productAwaitReady()
+
+export "product_await_start" func productAwaitStart()
+    productAwaitPending = productAwaitOwner(productAwaitInput(0), productAwaitInput(1))
+end

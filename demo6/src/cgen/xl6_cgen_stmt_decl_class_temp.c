@@ -32,11 +32,18 @@ static void xl6CgenDeclDestroyTemporaryClassValue(XL6_CgenContext* ctx, const XL
 {
     (void)classNode;
     (void)classTypeNode;
-    if ( tempName == NULL ) {
-        return;
-    }
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); %s = 0; }\n", tempName, tempName, tempName);
+	if ( tempName == NULL ) {
+		return;
+	}
+	xl6CgenIndent(ctx);
+	xl6OutputPrintf(
+		ctx->out,
+		"if (%s != 0) { xl6_temp_managed_release((void*)%s, "
+		"(XL6_TempManagedDrop)xrtValueRelease); %s = 0; }\n",
+		tempName,
+		tempName,
+		tempName
+	);
 }
 
 static int xl6CgenDeclExprHasReplacement(XL6_CgenContext* ctx, const XL6_AstNode* expr);
@@ -45,6 +52,7 @@ typedef struct XL6_CgenDeclClassArgTemp {
     int active;
     int isConstructor;
     int isUpcast;
+    int isClassMethod;
     const XL6_AstNode* expr;
     XL6_AstNode* valueType;
     XL6_AstNode* functionType;
@@ -88,6 +96,7 @@ static int xl6CgenDeclPrepareClassArgTemp(
     temp->active = 0;
     temp->isConstructor = 0;
     temp->isUpcast = 0;
+    temp->isClassMethod = 0;
     temp->expr = NULL;
     temp->valueType = NULL;
     temp->functionType = NULL;
@@ -100,6 +109,12 @@ static int xl6CgenDeclPrepareClassArgTemp(
         return 0;
     }
 
+	/* 与普通成员调用共用 typed HIR 优先的唯一判定口径。 */
+	temp->isClassMethod = expr != NULL && expr->kind == XL6_AST_CALL &&
+					  expr->childCount > 0 &&
+					  xl6CgenMemberIsClassMethodCallTarget(
+						  ctx, expr, expr->children[0]
+					  );
     functionType = xl6CgenCloneMemberFunctionCallTypeForStatementInvoke(ctx, expr);
     returnCanonical = NULL;
     classNode = NULL;
@@ -123,11 +138,23 @@ static int xl6CgenDeclPrepareClassArgTemp(
             }
             xl6AstFree(genericType);
         }
-        if ( returnCanonical == NULL || classNode == NULL ) {
+        if ( returnCanonical != NULL && classNode != NULL ) {
+            temp->isConstructor = 1;
+        } else {
+            /*
+                class 已进入 XCall 值域后，成员函数和普通函数都可能通过擦除入口返回对象。
+                可调用性只决定调用路径，不能取消临时返回值的所有权管理。
+            */
             xl6AstFree(returnCanonical);
-            return 0;
+            returnCanonical = expr != NULL && expr->kind == XL6_AST_CALL
+                ? xl6CgenCloneExprTypeForInference(ctx, expr)
+                : NULL;
+            classNode = xl6CgenClassNodeForType(ctx, returnCanonical);
+            if ( returnCanonical == NULL || classNode == NULL ) {
+                xl6AstFree(returnCanonical);
+                return 0;
+            }
         }
-        temp->isConstructor = 1;
     }
 
     paramCanonical = paramType != NULL ? xl6CgenCloneCanonicalTypeNode(ctx, paramType) : NULL;
@@ -264,6 +291,67 @@ static void xl6CgenDeclCollectClassArgTempsInExpr(XL6_CgenContext* ctx,
     xl6CgenDeclCollectClassArgTempsInExprImpl(ctx, expr, 0, temps, count, capacity);
 }
 
+/* 统一物化一个拥有型 class 实参，避免不同语句路径产生不同调用语义。 */
+static void xl6CgenDeclEmitClassArgTempValue(
+    XL6_CgenContext* ctx,
+    XL6_CgenDeclClassArgTemp* temp,
+    const XL6_AstNode* expr)
+{
+    const XL6_AstNode* callee =
+        expr != NULL && expr->kind == XL6_AST_CALL &&
+        expr->childCount > 0 ? expr->children[0] : NULL;
+
+    if ( temp == NULL ) {
+        return;
+    }
+    if ( temp->isConstructor ) {
+        if ( !xl6CgenTryClassCtorBoxXValueStmt(
+            ctx, temp->valueType, expr, temp->valueName
+        ) ) {
+            xl6CgenError(ctx, expr, "class argument constructor boxing failed");
+        }
+        return;
+    }
+    if ( temp->isUpcast ) {
+        if ( !xl6CgenClassUpcastStmt(
+            ctx, temp->valueType, expr, temp->valueName
+        ) ) {
+            xl6CgenError(ctx, expr, "class argument upcast lowering failed");
+        }
+        return;
+    }
+    if ( temp->isClassMethod &&
+         callee != NULL && callee->kind == XL6_AST_MEMBER ) {
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", temp->valueName);
+		/* 与普通表达式保持同一分派顺序，覆盖类型名静态调用和 native 方法。 */
+		if ( !xl6CgenStaticClassMethodCall(ctx, expr, callee) &&
+			!xl6CgenNativeClassMethodCall(ctx, expr, callee) &&
+			!xl6CgenClassMethodCall(ctx, expr, callee) ) {
+            xl6CgenError(ctx, expr, "class argument method lowering failed");
+            xl6OutputPuts("0", ctx->out);
+        }
+        xl6OutputPuts(";\n", ctx->out);
+        return;
+    }
+    if ( temp->functionType != NULL ) {
+        xl6CgenEmitMemberFunctionStatementTemp(
+            ctx, expr, temp->functionName
+        );
+        xl6CgenIndent(ctx);
+        xl6OutputPrintf(ctx->out, "%s = ", temp->valueName);
+        xl6CgenMemberFunctionStatementInvokeExpr(
+            ctx, expr, temp->functionType, temp->functionName
+        );
+        xl6OutputPuts(";\n", ctx->out);
+        return;
+    }
+    xl6CgenIndent(ctx);
+    xl6OutputPrintf(ctx->out, "%s = ", temp->valueName);
+    xl6CgenExpr(ctx, expr);
+    xl6OutputPuts(";\n", ctx->out);
+}
+
 static void xl6CgenDeclEmitClassArgTemps(XL6_CgenContext* ctx,
                                          XL6_CgenDeclClassArgTemp* temps,
                                          int count,
@@ -306,22 +394,10 @@ static void xl6CgenDeclEmitClassArgTemps(XL6_CgenContext* ctx,
         } else {
             xl6CgenIndent(ctx);
         }
-        xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", temps[i].valueName);
-        if ( temps[i].isConstructor ) {
-            if ( !xl6CgenTryClassCtorBoxXValueStmt(ctx, temps[i].valueType, temps[i].expr, temps[i].valueName) ) {
-                xl6CgenError(ctx, temps[i].expr, "nested class constructor boxing failed");
-            }
-        } else if ( temps[i].isUpcast ) {
-            if ( !xl6CgenClassUpcastStmt(ctx, temps[i].valueType, temps[i].expr, temps[i].valueName) ) {
-                xl6CgenError(ctx, temps[i].expr, "nested class upcast lowering failed");
-            }
-        } else {
-            xl6CgenEmitMemberFunctionStatementTemp(ctx, temps[i].expr, temps[i].functionName);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = ", temps[i].valueName);
-            xl6CgenMemberFunctionStatementInvokeExpr(ctx, temps[i].expr, temps[i].functionType, temps[i].functionName);
-            xl6OutputPuts(";\n", ctx->out);
-        }
+        xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", temps[i].valueName);
+        xl6CgenDeclEmitClassArgTempValue(
+            ctx, &temps[i], temps[i].expr
+        );
         dependencies[savedReplacementCount + emittedCount].expr = temps[i].expr;
         dependencies[savedReplacementCount + emittedCount].cName = temps[i].valueName;
         dependencies[savedReplacementCount + emittedCount].flags = XL6_CGEN_EXPR_REPLACEMENT_XVALUE;
@@ -639,22 +715,8 @@ static int xl6CgenDeclTryTemporaryClassArgInit(
             xl6CgenIndent(ctx);
         }
         firstOutput = 0;
-        xl6OutputPrintf(ctx->out, "xvalue %s = 0;\n", temps[i].valueName);
-        if ( temps[i].isConstructor ) {
-            if ( !xl6CgenTryClassCtorBoxXValueStmt(ctx, temps[i].valueType, expr, temps[i].valueName) ) {
-                xl6CgenError(ctx, expr, "class argument constructor boxing failed");
-            }
-        } else if ( temps[i].isUpcast ) {
-            if ( !xl6CgenClassUpcastStmt(ctx, temps[i].valueType, expr, temps[i].valueName) ) {
-                xl6CgenError(ctx, expr, "class argument upcast lowering failed");
-            }
-        } else {
-            xl6CgenEmitMemberFunctionStatementTemp(ctx, expr, temps[i].functionName);
-            xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "%s = ", temps[i].valueName);
-            xl6CgenMemberFunctionStatementInvokeExpr(ctx, expr, temps[i].functionType, temps[i].functionName);
-            xl6OutputPuts(";\n", ctx->out);
-        }
+        xl6OutputPrintf(ctx->out, "xvalue* %s = 0;\n", temps[i].valueName);
+        xl6CgenDeclEmitClassArgTempValue(ctx, &temps[i], expr);
     }
 
     xl6CgenAddVarType(ctx, node->text, typeNode);

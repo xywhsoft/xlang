@@ -1,0 +1,56 @@
+// Returned values are inspected by a native host after all maker locals die.
+// This exercises generated capture adapters, not a host-built substitute graph.
+extern "graph_capture" func captureGraph(var value)
+
+class GraphReceiver
+    int value = 42
+    func read() as int
+        return self.value
+    end
+end
+
+func makeGraph(int mode) as var
+    array<int> values = [42]
+    if mode == 0 then
+        auto callback = func() as int => values[0]
+        return xcall(callback)
+    elseif mode == 1 then
+        var shared = values
+        auto first = func() as int
+            shared = [int(shared[0]) + 1]
+            return int(shared[0])
+        end
+        auto second = func() as int => int(shared[0])
+        return [xcall(first), xcall(second)]
+    elseif mode == 2 then
+        auto inner = func() as int => values[0]
+        auto outer = func() as int => inner()
+        return xcall(outer)
+    elseif mode == 3 then
+        auto first = func() as int => values[0]
+        auto second = first
+        auto outer = func() as int => first() + second()
+        return xcall(outer)
+    elseif mode == 4 then
+        var receiver = GraphReceiver()
+        return receiver.read
+    elseif mode == 5 then
+        auto inner = func() as int => values[0]
+        var boxed = xcall(inner)
+        func() as int projected = boxed as func() as int
+        return xcall(projected)
+    else
+        auto inner = func() as int => values[0]
+        array<func() as int> callbacks = array[inner]
+        func() as int projected = callbacks[0]
+        return xcall(projected)
+    end
+end
+
+export "graph_build" func buildGraph(int mode)
+    captureGraph(makeGraph(mode))
+end
+
+func main(...) as int
+    return 0
+end

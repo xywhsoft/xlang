@@ -1,0 +1,86 @@
+extern "xl6_xrt_last_error_text" func lastNativeError() as string
+
+func continueVisit(var event) as bool
+    return true
+end
+
+func throwVisit(var event) as bool
+    throw ValueError "serialization-callback-sentinel"
+    return true
+end
+
+func convertVisit(var event) as bool
+    int value = int(1e30)
+    return value == 0
+end
+
+func nestedVisit(var event) as bool
+    int status = xson.visit("null", throwVisit)
+    return status == xson.visitComplete
+end
+
+func nativeDiagnosticVisit(var event) as bool
+    assert !xson.valid("{bad}")
+    assert json.visit("{", continueVisit) == json.visitInvalid
+    assert string.len(lastNativeError()) > 0
+    return true
+end
+
+func recoveredVisit(var event) as bool
+    bool caught = false
+    try
+        int status = json.visit("null", throwVisit)
+    catch e
+        assert e.kind == "ValueError"
+        assert e.message == "serialization-callback-sentinel"
+        caught = true
+    end
+    return caught
+end
+
+for i in range(20)
+    // Invalid parse status remains distinct from a language exception,
+    // including after a previous native diagnostic and inside a callback.
+    assert !xson.valid("{bad}")
+    assert json.visit("{", continueVisit) == json.visitInvalid
+    assert xson.visit("{bad}", continueVisit) == xson.visitInvalid
+    assert string.len(lastNativeError()) > 0
+    assert json.visit("null", nativeDiagnosticVisit) == json.visitComplete
+    assert xson.visit("null", nativeDiagnosticVisit) == xson.visitComplete
+    assert xson.visit("null", recoveredVisit) == xson.visitComplete
+
+    int caught = 0
+    try
+        int status = json.visit("null", throwVisit)
+    catch e
+        assert e.kind == "ValueError"
+        assert e.message == "serialization-callback-sentinel"
+        caught = caught + 1
+    end
+    try
+        int status = xson.visit("null", throwVisit)
+    catch e
+        assert e.kind == "ValueError"
+        assert e.message == "serialization-callback-sentinel"
+        caught = caught + 1
+    end
+    try
+        int status = json.visit("null", nestedVisit)
+    catch e
+        assert e.message == "serialization-callback-sentinel"
+        caught = caught + 1
+    end
+    try
+        int status = json.visit("null", convertVisit)
+    catch RangeError e
+        caught = caught + 1
+    end
+    try
+        int status = xson.visit("null", convertVisit)
+    catch RangeError e
+        caught = caught + 1
+    end
+    assert caught == 5, "visitor exceptions were reduced to parser status codes"
+    assert json.visit("null", continueVisit) == json.visitComplete
+    assert xson.visit("null", continueVisit) == xson.visitComplete
+end

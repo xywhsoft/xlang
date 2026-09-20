@@ -1,0 +1,7 @@
+int total = 0
+
+for i in range(1, 5)
+    total += i
+end
+
+assert total == 10, "typed range intrinsic runtime"

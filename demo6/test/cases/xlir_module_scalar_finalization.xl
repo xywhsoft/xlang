@@ -1,0 +1,6 @@
+extern "module_scalar_seed" func seed() as int
+int value = seed()
+
+func main(...) as int
+    return value
+end

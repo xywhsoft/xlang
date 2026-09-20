@@ -39,7 +39,7 @@ static int xl6CgenClassNeedsAutoValueProtocol(
 
 static void xl6CgenClassAutoToValueProto(XL6_CgenContext* ctx, const XL6_AstNode* classNode)
 {
-    xl6OutputPuts("xvalue ", ctx->out);
+    xl6OutputPuts("xvalue* ", ctx->out);
     xl6CgenClassMemberSymbol(ctx->out, classNode->text, "__toValue__");
     xl6OutputPutc('(', ctx->out);
     xl6CgenClassTypeName(ctx->out, classNode->text);
@@ -52,7 +52,7 @@ static void xl6CgenClassAutoFromValueProto(XL6_CgenContext* ctx, const XL6_AstNo
     xl6CgenClassMemberSymbol(ctx->out, classNode->text, "__fromValue__");
     xl6OutputPutc('(', ctx->out);
     xl6CgenClassTypeName(ctx->out, classNode->text);
-    xl6OutputPuts("* self, xvalue value)", ctx->out);
+    xl6OutputPuts("* self, xvalue* value)", ctx->out);
 }
 
 static const char* xl6CgenClassValueFormatSuffix(const char* format)
@@ -100,7 +100,7 @@ static void xl6CgenClassAutoToValueFormatProto(
     const XL6_AstNode* classNode,
     const char* format)
 {
-    xl6OutputPuts("static xvalue ", ctx->out);
+    xl6OutputPuts("static xvalue* ", ctx->out);
     xl6CgenClassAutoToValueFormatSymbol(ctx->out, classNode, format);
     xl6OutputPutc('(', ctx->out);
     xl6CgenClassTypeName(ctx->out, classNode->text);
@@ -116,7 +116,7 @@ static void xl6CgenClassAutoFromValueFormatProto(
     xl6CgenClassAutoFromValueFormatSymbol(ctx->out, classNode, format);
     xl6OutputPutc('(', ctx->out);
     xl6CgenClassTypeName(ctx->out, classNode->text);
-    xl6OutputPuts("* self, xvalue value)", ctx->out);
+    xl6OutputPuts("* self, xvalue* value)", ctx->out);
 }
 
 static void xl6CgenClassFieldPath(char* buffer, size_t capacity, const char* ownerPath, int pointer, const char* fieldName)
@@ -234,7 +234,7 @@ static void xl6CgenClassValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeN
 
     concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
     if ( concreteType == NULL || concreteType->text == NULL ) {
-        xl6OutputPuts("xvoCreateNull()", ctx->out);
+        xl6OutputPuts("xrtValueNull()", ctx->out);
         return;
     }
     if ( xl6CgenIsNullableType(concreteType) ) {
@@ -245,42 +245,42 @@ static void xl6CgenClassValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeN
             snprintf(innerPath, sizeof(innerPath), "(%s).value", valuePath);
             xl6OutputPrintf(ctx->out, "((%s).hasValue ? ", valuePath);
             xl6CgenClassValueExpr(ctx, innerType, innerPath);
-            xl6OutputPuts(" : xvoCreateNull())", ctx->out);
+            xl6OutputPuts(" : xrtValueNull())", ctx->out);
         } else if ( xl6CgenNullableUsesXValue(concreteType) ) {
             xl6OutputPrintf(
                 ctx->out,
-                "(((%s) != 0 && !xvoIsNull(%s)) ? ",
+                "(((%s) != 0 && !xl6_xrt_value_is_null(%s)) ? ",
                 valuePath,
                 valuePath);
             xl6CgenClassValueExpr(ctx, innerType, valuePath);
-            xl6OutputPuts(" : xvoCreateNull())", ctx->out);
+            xl6OutputPuts(" : xrtValueNull())", ctx->out);
         } else {
             xl6OutputPrintf(ctx->out, "((%s) != 0 ? ", valuePath);
             xl6CgenClassValueExpr(ctx, innerType, valuePath);
-            xl6OutputPuts(" : xvoCreateNull())", ctx->out);
+            xl6OutputPuts(" : xrtValueNull())", ctx->out);
         }
         return;
     }
     if ( xl6CgenIsBoolTypeName(concreteType->text) ) {
-        xl6OutputPuts("xvoCreateBool((bool)(", ctx->out);
+        xl6OutputPuts("xrtValueBool((bool)(", ctx->out);
         xl6OutputPuts(valuePath, ctx->out);
         xl6OutputPuts("))", ctx->out);
         return;
     }
     if ( xl6CgenIsIntegerTypeName(concreteType->text) ) {
-        xl6OutputPuts("xvoCreateInt((long long)(", ctx->out);
+        xl6OutputPuts("xrtValueInt((long long)(", ctx->out);
         xl6OutputPuts(valuePath, ctx->out);
         xl6OutputPuts("))", ctx->out);
         return;
     }
     if ( xl6CgenIsFloatTypeName(concreteType->text) ) {
-        xl6OutputPuts("xvoCreateFloat((double)(", ctx->out);
+        xl6OutputPuts("xrtValueFloat((double)(", ctx->out);
         xl6OutputPuts(valuePath, ctx->out);
         xl6OutputPuts("))", ctx->out);
         return;
     }
     if ( xl6CTextEquals(concreteType->text, "string") ) {
-        xl6OutputPuts("xvoCreateText((void*)((", ctx->out);
+        xl6OutputPuts("xl6_xrt_value_text_create((void*)((", ctx->out);
         xl6OutputPuts(valuePath, ctx->out);
         xl6OutputPuts(") != 0 ? (", ctx->out);
         xl6OutputPuts(valuePath, ctx->out);
@@ -288,13 +288,13 @@ static void xl6CgenClassValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeN
         return;
     }
     if ( xl6CTextEquals(concreteType->text, "time") ) {
-        xl6OutputPuts("xvoCreateTime((long long)(", ctx->out);
+        xl6OutputPuts("xrtValueTime((long long)(", ctx->out);
         xl6OutputPuts(valuePath, ctx->out);
         xl6OutputPuts("))", ctx->out);
         return;
     }
     if ( xl6CTextEquals(concreteType->text, "point") ) {
-        xl6OutputPuts("xvoCreatePoint((void*)(", ctx->out);
+        xl6OutputPuts("xrtValuePointer((void*)(", ctx->out);
         xl6OutputPuts(valuePath, ctx->out);
         xl6OutputPuts("))", ctx->out);
         return;
@@ -323,9 +323,9 @@ static void xl6CgenClassValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeN
         classNode = xl6CgenPersistenceClassForType(ctx, recordType);
         xl6CgenClassTypeRefName(cTypeName, sizeof(cTypeName), recordType);
         if ( classNode != NULL && xl6CTextEquals(classNode->text, "object") ) {
-            xl6OutputPuts("xvoCopy(((", ctx->out);
+            xl6OutputPuts("xl6_xrt_dynamic_fields_to_value_handle(((", ctx->out);
             xl6OutputPuts(cTypeName, ctx->out);
-            xl6OutputPuts("*)xvoGetRecordData(", ctx->out);
+            xl6OutputPuts("*)xl6ValueRecordData(", ctx->out);
             xl6OutputPuts(valuePath, ctx->out);
             xl6OutputPuts("))->__fields)", ctx->out);
             return;
@@ -334,21 +334,21 @@ static void xl6CgenClassValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeN
             xl6CgenEmitClassToValueSymbol(ctx, classNode);
             xl6OutputPuts("((", ctx->out);
             xl6OutputPuts(cTypeName, ctx->out);
-            xl6OutputPuts("*)xvoGetRecordData(", ctx->out);
+            xl6OutputPuts("*)xl6ValueRecordData(", ctx->out);
             xl6OutputPuts(valuePath, ctx->out);
             xl6OutputPuts("))", ctx->out);
             return;
         }
     }
     if ( xl6CgenIsXValueType(typeNode) ) {
-        xl6OutputPuts("xvoCopy(", ctx->out);
+        xl6OutputPuts("xrtValueClone(", ctx->out);
         xl6OutputPuts(valuePath, ctx->out);
         xl6OutputPutc(')', ctx->out);
         return;
     }
     classNode = xl6CgenPersistenceClassForType(ctx, typeNode);
     if ( classNode != NULL && xl6CTextEquals(classNode->text, "object") ) {
-        xl6OutputPuts("xvoCopy(", ctx->out);
+        xl6OutputPuts("xl6_xrt_dynamic_fields_to_value_handle(", ctx->out);
         xl6OutputPuts(valuePath, ctx->out);
         xl6OutputPuts(".__fields)", ctx->out);
         return;
@@ -360,7 +360,7 @@ static void xl6CgenClassValueExpr(XL6_CgenContext* ctx, const XL6_AstNode* typeN
         xl6OutputPutc(')', ctx->out);
         return;
     }
-    xl6OutputPuts("xvoCreateNull()", ctx->out);
+    xl6OutputPuts("xrtValueNull()", ctx->out);
 }
 
 static void xl6CgenClassClearNullableValue(
@@ -388,7 +388,7 @@ static void xl6CgenClassClearNullableValue(
         xl6CgenIndent(ctx);
         xl6OutputPrintf(
             ctx->out,
-            "if (%s != 0) { xvoUnref(%s); } %s = xvoCreateNull();\n",
+            "if (%s != 0) { xrtValueRelease(%s); } %s = xrtValueNull();\n",
             valuePath,
             valuePath,
             valuePath);
@@ -440,7 +440,7 @@ static void xl6CgenClassAssignFromValue(
         const XL6_AstNode* innerType = xl6CgenNullableInnerType(concreteType);
 
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s == 0 || xvoIsNull(%s)) {\n", itemName, itemName);
+        xl6OutputPrintf(ctx->out, "if (%s == 0 || xl6_xrt_value_is_null(%s)) {\n", itemName, itemName);
         ctx->indent += 1;
         xl6CgenClassClearNullableValue(ctx, concreteType, valuePath);
         ctx->indent -= 1;
@@ -475,24 +475,24 @@ static void xl6CgenClassAssignFromValue(
     }
     if ( xl6CgenIsBoolTypeName(concreteType->text) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xvoGetBool(%s) ? 1 : 0;\n", valuePath, itemName);
+        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_value_bool(%s) ? 1 : 0;\n", valuePath, itemName);
         return;
     }
     if ( xl6CgenIsIntegerTypeName(concreteType->text) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = (%s)xvoGetInt(%s);\n", valuePath, xl6CgenTypeName(ctx, concreteType), itemName);
+        xl6OutputPrintf(ctx->out, "%s = (%s)xl6_xrt_value_int(%s);\n", valuePath, xl6CgenTypeName(ctx, concreteType), itemName);
         return;
     }
     if ( xl6CgenIsFloatTypeName(concreteType->text) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = (%s)xvoGetFloat(%s);\n", valuePath, xl6CgenTypeName(ctx, concreteType), itemName);
+        xl6OutputPrintf(ctx->out, "%s = (%s)xl6_xrt_value_float(%s);\n", valuePath, xl6CgenTypeName(ctx, concreteType), itemName);
         return;
     }
     if ( xl6CTextEquals(concreteType->text, "string") ) {
         int id = ctx->tempId++;
 
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "char* __xl6_string_from_value_%d = xrtCopyStr(xvoGetText(%s), 0u);\n", id, itemName);
+        xl6OutputPrintf(ctx->out, "char* __xl6_string_from_value_%d = xl6_xrt_string_dup(xl6_xrt_value_text(%s), 0u);\n", id, itemName);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "if (__xl6_string_from_value_%d == 0) { %s = 0; } else {\n", id, okName);
         ctx->indent += 1;
@@ -507,12 +507,12 @@ static void xl6CgenClassAssignFromValue(
     }
     if ( xl6CTextEquals(concreteType->text, "time") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xvoGetTime(%s);\n", valuePath, itemName);
+        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_value_time(%s);\n", valuePath, itemName);
         return;
     }
     if ( xl6CTextEquals(concreteType->text, "point") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xvoGetPoint(%s);\n", valuePath, itemName);
+        xl6OutputPrintf(ctx->out, "%s = xl6_xrt_value_pointer(%s);\n", valuePath, itemName);
         return;
     }
     if ( xl6CgenClassArrayAssignFromValueStmt(ctx, concreteType, valuePath, itemName, okName, format) ) {
@@ -529,14 +529,14 @@ static void xl6CgenClassAssignFromValue(
             xl6CgenIndent(ctx);
             xl6OutputPuts("if (", ctx->out);
             xl6OutputPuts(itemName, ctx->out);
-            xl6OutputPuts(" == 0 || !xrtTypeIsA(xvoTypeDesc(", ctx->out);
+            xl6OutputPuts(" == 0 || !xl6TypeIsA(xl6ValueType(", ctx->out);
             xl6OutputPuts(itemName, ctx->out);
             xl6OutputPuts("), ", ctx->out);
             xl6CgenTypeDescSymbol(ctx->out, cTypeName);
             xl6OutputPrintf(ctx->out, "())) { %s = 0; } else {\n", okName);
             ctx->indent += 1;
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", valuePath, valuePath);
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtValueRelease(%s); }\n", valuePath, valuePath);
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s = xl6_xrt_retain(%s);\n", valuePath, itemName);
             ctx->indent -= 1;
@@ -545,15 +545,15 @@ static void xl6CgenClassAssignFromValue(
             return;
         }
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "xvalue __xl6_class_from_value_%d = ", id);
+        xl6OutputPrintf(ctx->out, "xvalue* __xl6_class_from_value_%d = ", id);
         xl6CgenClassMemberSymbol(ctx->out, classNode->text, "__xl6_from_value_release");
         /* 反序列化只读取子值；保留同一引用，避免浅拷贝容器 backing。 */
         xl6OutputPrintf(ctx->out, "(xl6_xrt_retain(%s), %d);\n", itemName, xl6CgenPersistenceFormatKind(format));
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (__xl6_class_from_value_%d == 0 || xvoIsNull(__xl6_class_from_value_%d)) {\n", id, id);
+        xl6OutputPrintf(ctx->out, "if (__xl6_class_from_value_%d == 0 || xl6_xrt_value_is_null(__xl6_class_from_value_%d)) {\n", id, id);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (__xl6_class_from_value_%d != 0) { xvoUnref(__xl6_class_from_value_%d); }\n", id, id);
+        xl6OutputPrintf(ctx->out, "if (__xl6_class_from_value_%d != 0) { xrtValueRelease(__xl6_class_from_value_%d); }\n", id, id);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = 0;\n", okName);
         ctx->indent -= 1;
@@ -561,7 +561,7 @@ static void xl6CgenClassAssignFromValue(
         xl6OutputPuts("} else {\n", ctx->out);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", valuePath, valuePath);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtValueRelease(%s); }\n", valuePath, valuePath);
         xl6CgenIndent(ctx);
         xl6OutputPrintf(ctx->out, "%s = __xl6_class_from_value_%d;\n", valuePath, id);
         ctx->indent -= 1;
@@ -571,17 +571,20 @@ static void xl6CgenClassAssignFromValue(
     }
     if ( xl6CgenIsXValueType(typeNode) ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", valuePath, valuePath);
+        xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtValueRelease(%s); }\n", valuePath, valuePath);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s = xvoCopy(%s);\n", valuePath, itemName);
+        xl6OutputPrintf(ctx->out, "%s = xrtValueClone(%s);\n", valuePath, itemName);
         return;
     }
     classNode = xl6CgenPersistenceClassForType(ctx, typeNode);
     if ( classNode != NULL && xl6CTextEquals(classNode->text, "object") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (%s.__fields != 0) { xvoUnref(%s.__fields); }\n", valuePath, valuePath);
-        xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "%s.__fields = xvoCopy(%s);\n", valuePath, itemName);
+        xl6OutputPrintf(
+            ctx->out,
+            "if (!xl6_xrt_dynamic_fields_assign_value_handle(%s.__fields, %s)) { %s = 0; }\n",
+            valuePath,
+            itemName,
+            okName);
         return;
     }
     if ( classNode != NULL ) {
@@ -706,18 +709,18 @@ static void xl6CgenClassPersistSetField(
         if ( cfg->omitEmpty ) {
             xl6OutputPuts("if ( item != 0 && xl6_xrt_value_truthy(item) ) {\n", ctx->out);
         } else {
-            xl6OutputPuts("if ( item != 0 && !xvoIsNull(item) ) {\n", ctx->out);
+            xl6OutputPuts("if ( item != 0 && !xl6_xrt_value_is_null(item) ) {\n", ctx->out);
         }
         ctx->indent += 1;
         xl6CgenIndent(ctx);
     }
-    xl6OutputPuts("if ( !xvoTableSetValue(result, ", ctx->out);
+    xl6OutputPuts("if ( !xl6_xrt_value_object_set(result, ", ctx->out);
     xl6CgenFieldPersistKeyLiteral(ctx, field, cfg);
-    xl6OutputPuts(", 0, item, true) && item != 0 ) { xvoUnref(item); }\n", ctx->out);
+    xl6OutputPuts(", 0, item, true) && item != 0 ) { xrtValueRelease(item); }\n", ctx->out);
     if ( cfg != NULL && (cfg->omitEmpty || cfg->omitNull) ) {
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
-        xl6OutputPuts("} else if ( item != 0 ) { xvoUnref(item); }\n", ctx->out);
+        xl6OutputPuts("} else if ( item != 0 ) { xrtValueRelease(item); }\n", ctx->out);
     }
     xl6CgenIndent(ctx);
     xl6OutputPuts("item = 0;\n", ctx->out);
@@ -777,9 +780,9 @@ static int xl6CgenClassArrayValueStmt(
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_array_value_%d = xvoCreateArray();\n", id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_array_value_%d = xrtValueArray();\n", id);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "unsigned int __xl6_array_count_%d = xrtTypedArrayCount(%s);\n", id, valuePath);
+    xl6OutputPrintf(ctx->out, "unsigned int __xl6_array_count_%d = xl6TypedArrayCount(%s);\n", id, valuePath);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "unsigned int __xl6_array_i_%d;\n", id);
     xl6CgenIndent(ctx);
@@ -787,23 +790,23 @@ static int xl6CgenClassArrayValueStmt(
                     id, id, id, id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPuts("xvalue", ctx->out);
+    xl6OutputPuts("xvalue*", ctx->out);
     xl6OutputPrintf(ctx->out, "* __xl6_array_item_%d = (", id);
-    xl6OutputPuts("xvalue", ctx->out);
+    xl6OutputPuts("xvalue*", ctx->out);
     xl6OutputPrintf(ctx->out, "*)xl6_xrt_typed_array_get_at(%s, __xl6_array_i_%d);\n", valuePath, id);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_array_item_value_%d = (__xl6_array_item_%d != 0 && *__xl6_array_item_%d != 0) ? ", id, id, id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_array_item_value_%d = (__xl6_array_item_%d != 0 && *__xl6_array_item_%d != 0) ? ", id, id, id);
     xl6CgenEmitClassToValueForFormat(ctx, itemClass, format);
-    xl6OutputPrintf(ctx->out, "((%s*)xl6_class_data(*__xl6_array_item_%d, \"\", 0, 0)) : xvoCreateNull();\n", itemCType, id);
+    xl6OutputPrintf(ctx->out, "((%s*)xl6_class_data(*__xl6_array_item_%d, \"\", 0, 0)) : xrtValueNull();\n", itemCType, id);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out,
-                    "if ( !xvoArrayAppendValue(__xl6_array_value_%d, __xl6_array_item_value_%d, true) && __xl6_array_item_value_%d != 0 ) { xvoUnref(__xl6_array_item_value_%d); }\n",
+                    "if ( !xl6_xrt_value_array_append(__xl6_array_value_%d, __xl6_array_item_value_%d, true) && __xl6_array_item_value_%d != 0 ) { xrtValueRelease(__xl6_array_item_value_%d); }\n",
                     id, id, id, id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = __xl6_array_value_%d != 0 ? __xl6_array_value_%d : xvoCreateNull();\n", itemName, id, id);
+    xl6OutputPrintf(ctx->out, "%s = __xl6_array_value_%d != 0 ? __xl6_array_value_%d : xrtValueNull();\n", itemName, id, id);
     ctx->indent -= 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("}\n", ctx->out);
@@ -845,7 +848,7 @@ static int xl6CgenClassArrayAssignFromValueStmt(
     int id;
 
     concreteType = xl6CgenResolveAliasType(ctx, xl6CgenSubstituteGenericType(ctx, typeNode));
-    /* array<var> 由 xvalue 保存，不能套用 xtarray 的销毁与重建规则。 */
+    /* array<var> 由 xvalue* 保存，不能套用 xtarray 的销毁与重建规则。 */
     if ( concreteType == NULL ||
          !xl6CgenIsTypedContainerType(ctx, concreteType) ||
          !xl6CTextEquals(concreteType->text, "array") ) {
@@ -873,13 +876,13 @@ static int xl6CgenClassArrayAssignFromValueStmt(
     xl6OutputPuts("{\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtTypedArrayDestroy(%s); }\n", valuePath, valuePath);
+    xl6OutputPrintf(ctx->out, "if (%s != 0) { xl6TypedArrayRelease(%s); }\n", valuePath, valuePath);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "%s = xrtTypedArrayCreate(", valuePath);
+    xl6OutputPrintf(ctx->out, "%s = xl6TypedArrayCreate(", valuePath);
     xl6CgenEmitXrtTypeDescRef(ctx, itemType);
-    xl6OutputPuts(", XRT_OBJMODE_LOCAL);\n", ctx->out);
+    xl6OutputPuts(");\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "if (%s == 0 || %s == 0 || xvoType(%s) != XL6_XVO_DT_ARRAY) {\n", valuePath, itemName, itemName);
+    xl6OutputPrintf(ctx->out, "if (%s == 0 || %s == 0 || xl6_xrt_value_kind(%s) != XL6_XVO_DT_ARRAY) {\n", valuePath, itemName, itemName);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "%s = 0;\n", okName);
@@ -888,15 +891,15 @@ static int xl6CgenClassArrayAssignFromValueStmt(
     xl6OutputPuts("} else {\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "unsigned int __xl6_array_count_%d = xvoArrayItemCount(%s);\n", id, itemName);
-    xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "unsigned int __xl6_array_i_%d;\n", id);
+	xl6OutputPrintf(ctx->out, "size_t __xl6_array_count_%d = xrtValueCount(%s);\n", id, itemName);
+	xl6CgenIndent(ctx);
+	xl6OutputPrintf(ctx->out, "size_t __xl6_array_i_%d;\n", id);
     xl6CgenIndent(ctx);
     xl6OutputPrintf(ctx->out, "for (__xl6_array_i_%d = 0; __xl6_array_i_%d < __xl6_array_count_%d; ++__xl6_array_i_%d) {\n",
                     id, id, id, id);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPrintf(ctx->out, "xvalue __xl6_array_item_value_%d = xvoArrayGetValue(%s, __xl6_array_i_%d);\n", id, itemName, id);
+    xl6OutputPrintf(ctx->out, "xvalue* __xl6_array_item_value_%d = xrtValueArrayGet(%s, __xl6_array_i_%d);\n", id, itemName, id);
     if ( itemClass != NULL ) {
         char elemName[64];
         char boxedName[64];
@@ -905,12 +908,12 @@ static int xl6CgenClassArrayAssignFromValueStmt(
         snprintf(boxedName, sizeof(boxedName), "__xl6_array_item_boxed_%d", id);
         snprintf(targetExpr, sizeof(targetExpr), "(*%s)", elemName);
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (__xl6_array_item_value_%d == 0 || xvoIsNull(__xl6_array_item_value_%d) || xrtTypeIsA(xvoTypeDesc(__xl6_array_item_value_%d), ", id, id, id);
+        xl6OutputPrintf(ctx->out, "if (__xl6_array_item_value_%d == 0 || xl6_xrt_value_is_null(__xl6_array_item_value_%d) || xl6TypeIsA(xl6ValueType(__xl6_array_item_value_%d), ", id, id, id);
         xl6CgenTypeDescSymbol(ctx->out, itemCType);
         xl6OutputPuts("())) {\n", ctx->out);
         ctx->indent += 1;
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (!xrtTypedArrayAppendValue(%s, __xl6_array_item_value_%d)) { %s = 0; }\n",
+        xl6OutputPrintf(ctx->out, "if (!xl6TypedArrayAppendValue(%s, __xl6_array_item_value_%d)) { %s = 0; }\n",
                         valuePath, id, okName);
         ctx->indent -= 1;
         xl6CgenIndent(ctx);
@@ -918,13 +921,13 @@ static int xl6CgenClassArrayAssignFromValueStmt(
         ctx->indent += 1;
         if ( itemHasFromValue ) {
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "xvalue %s = xvoCreateObject(", boxedName);
+            xl6OutputPrintf(ctx->out, "xvalue* %s = xl6ValueObject(", boxedName);
             xl6CgenTypeDescSymbol(ctx->out, itemCType);
             xl6OutputPuts("());\n", ctx->out);
             xl6CgenIndent(ctx);
             xl6OutputPuts(itemCType, ctx->out);
             xl6OutputPrintf(ctx->out,
-                            "* %s = %s != 0 ? (%s*)xvoGetRecordData(%s) : 0;\n",
+                            "* %s = %s != 0 ? (%s*)xl6ValueRecordData(%s) : 0;\n",
                             elemName,
                             boxedName,
                             itemCType,
@@ -946,9 +949,8 @@ static int xl6CgenClassArrayAssignFromValueStmt(
             xl6CgenEmitClassFromValueForFormat(ctx, itemClass, format);
             xl6OutputPrintf(ctx->out, "(%s, __xl6_array_item_value_%d)) { %s = 0; } else {\n", elemName, id, okName);
             ctx->indent += 1;
-            xl6CgenClassPublishSharedFields(ctx, itemClass, targetExpr);
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "if (!xrtTypedArrayAppendValue(%s, %s)) { %s = 0; }\n", valuePath, boxedName, okName);
+            xl6OutputPrintf(ctx->out, "if (!xl6TypedArrayAppendValue(%s, %s)) { %s = 0; }\n", valuePath, boxedName, okName);
             ctx->indent -= 1;
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
@@ -956,7 +958,7 @@ static int xl6CgenClassArrayAssignFromValueStmt(
             xl6CgenIndent(ctx);
             xl6OutputPuts("}\n", ctx->out);
             xl6CgenIndent(ctx);
-            xl6OutputPrintf(ctx->out, "if (%s != 0) { xvoUnref(%s); }\n", boxedName, boxedName);
+            xl6OutputPrintf(ctx->out, "if (%s != 0) { xrtValueRelease(%s); }\n", boxedName, boxedName);
         } else {
             xl6CgenIndent(ctx);
             xl6OutputPrintf(ctx->out, "%s = 0;\n", okName);
@@ -966,7 +968,7 @@ static int xl6CgenClassArrayAssignFromValueStmt(
         xl6OutputPuts("}\n", ctx->out);
     } else {
         xl6CgenIndent(ctx);
-        xl6OutputPrintf(ctx->out, "if (!xrtTypedArrayAppendValue(%s, __xl6_array_item_value_%d)) { %s = 0; }\n",
+        xl6OutputPrintf(ctx->out, "if (!xl6TypedArrayAppendValue(%s, __xl6_array_item_value_%d)) { %s = 0; }\n",
                         valuePath, id, okName);
     }
     ctx->indent -= 1;
@@ -995,9 +997,9 @@ static void xl6CgenClassAutoToValueFormatProtocol(
     xl6OutputPuts("\n{\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
-    xl6OutputPuts("xvalue result = xvoCreateTable();\n", ctx->out);
+    xl6OutputPuts("xvalue* result = xrtValueObject();\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("xvalue item = 0;\n", ctx->out);
+    xl6OutputPuts("xvalue* item = 0;\n", ctx->out);
     xl6CgenIndent(ctx);
     xl6OutputPuts("if ( self == 0 || result == 0 ) {\n", ctx->out);
     ctx->indent += 1;
@@ -1011,16 +1013,20 @@ static void xl6CgenClassAutoToValueFormatProtocol(
     baseClass = base != NULL && base->kind == XL6_AST_NAME ? xl6CgenFindClass(ctx, base->text) : NULL;
     if ( baseClass != NULL && xl6CTextEquals(baseClass->text, "object") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPuts("if ( self->base.__fields != 0 ) { xvoTableMerge(result, self->base.__fields, false); }\n", ctx->out);
+        xl6OutputPuts("item = xl6_xrt_dynamic_fields_to_value_handle(self->base.__fields);\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("if ( item != 0 && xl6_xrt_value_kind(item) == XL6_XVO_DT_TABLE ) { xrtValueObjectMerge(result, item, 0); }\n", ctx->out);
+        xl6CgenIndent(ctx);
+        xl6OutputPuts("if ( item != 0 ) { xrtValueRelease(item); item = 0; }\n", ctx->out);
     } else if ( baseClass != NULL && xl6CgenClassHasValueDerive(baseClass) ) {
         xl6CgenIndent(ctx);
         xl6OutputPuts("item = ", ctx->out);
         xl6CgenEmitClassToValueSymbol(ctx, baseClass);
         xl6OutputPuts("(&self->base);\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPuts("if ( item != 0 && xvoType(item) == XL6_XVO_DT_TABLE ) { xvoTableMerge(result, item, false); }\n", ctx->out);
+        xl6OutputPuts("if ( item != 0 && xl6_xrt_value_kind(item) == XL6_XVO_DT_TABLE ) { xrtValueObjectMerge(result, item, 0); }\n", ctx->out);
         xl6CgenIndent(ctx);
-        xl6OutputPuts("if ( item != 0 ) { xvoUnref(item); item = 0; }\n", ctx->out);
+        xl6OutputPuts("if ( item != 0 ) { xrtValueRelease(item); item = 0; }\n", ctx->out);
     }
 
     body = xl6CgenClassBody(classNode);
@@ -1053,7 +1059,7 @@ static void xl6CgenClassAutoToValueFormatProtocol(
             xl6OutputPuts(xl6CgenTypeName(ctx, fieldRecordType), ctx->out);
             xl6OutputPuts("*)xl6_class_data(", ctx->out);
             xl6OutputPuts(fieldPath, ctx->out);
-            xl6OutputPuts(", \"\", 0, 0)) : xvoCreateNull();\n", ctx->out);
+            xl6OutputPuts(", \"\", 0, 0)) : xrtValueNull();\n", ctx->out);
         } else if ( !xl6CgenClassArrayValueStmt(ctx, fieldType, fieldPath, "item", format) ) {
             xl6CgenIndent(ctx);
             xl6OutputPuts("item = ", ctx->out);
@@ -1098,9 +1104,9 @@ static void xl6CgenClassAutoFromValueFormatProtocol(
     xl6CgenIndent(ctx);
     xl6OutputPuts("int ok = 1;\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("xvalue item = 0;\n", ctx->out);
+    xl6OutputPuts("xvalue* item = 0;\n", ctx->out);
     xl6CgenIndent(ctx);
-    xl6OutputPuts("if ( self == 0 || value == 0 || xvoType(value) != XL6_XVO_DT_TABLE ) {\n", ctx->out);
+    xl6OutputPuts("if ( self == 0 || value == 0 || xl6_xrt_value_kind(value) != XL6_XVO_DT_TABLE ) {\n", ctx->out);
     ctx->indent += 1;
     xl6CgenIndent(ctx);
     xl6OutputPuts("return 0;\n", ctx->out);
@@ -1112,9 +1118,7 @@ static void xl6CgenClassAutoFromValueFormatProtocol(
     baseClass = base != NULL && base->kind == XL6_AST_NAME ? xl6CgenFindClass(ctx, base->text) : NULL;
     if ( baseClass != NULL && xl6CTextEquals(baseClass->text, "object") ) {
         xl6CgenIndent(ctx);
-        xl6OutputPuts("if ( self->base.__fields != 0 ) { xvoUnref(self->base.__fields); }\n", ctx->out);
-        xl6CgenIndent(ctx);
-        xl6OutputPuts("self->base.__fields = xvoCopy(value);\n", ctx->out);
+        xl6OutputPuts("if ( !xl6_xrt_dynamic_fields_assign_value_handle(self->base.__fields, value) ) { ok = 0; }\n", ctx->out);
     } else if ( baseClass != NULL && xl6CgenClassHasValueDerive(baseClass) ) {
         xl6CgenIndent(ctx);
         xl6OutputPuts("if (!", ctx->out);
@@ -1139,14 +1143,14 @@ static void xl6CgenClassAutoFromValueFormatProtocol(
         fieldType = member->children[0];
         xl6CgenClassFieldPath(fieldPath, sizeof(fieldPath), "self", 1, member->text);
         xl6CgenIndent(ctx);
-        xl6OutputPuts("item = xvoTableGetValue(value, ", ctx->out);
+        xl6OutputPuts("item = xl6_xrt_value_object_get(value, ", ctx->out);
         xl6CgenFieldPersistKeyLiteral(ctx, member, &cfg);
         xl6OutputPuts(", 0);\n", ctx->out);
         xl6CgenIndent(ctx);
         if ( xl6CgenIsNullableType(xl6CgenResolveAliasType(ctx, fieldType)) ) {
             xl6OutputPuts("if ( item != 0 ) {\n", ctx->out);
         } else {
-            xl6OutputPuts("if ( item != 0 && !xvoIsNull(item) ) {\n", ctx->out);
+            xl6OutputPuts("if ( item != 0 && !xl6_xrt_value_is_null(item) ) {\n", ctx->out);
         }
         ctx->indent += 1;
         xl6CgenClassAssignFromValue(ctx, fieldType, fieldPath, "item", "ok", format);

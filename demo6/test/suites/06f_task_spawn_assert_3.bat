@@ -39,12 +39,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed array for variadic task.spawn task.all.
     exit /b 1
 )
-findstr /C:"variadicAllFuture = xl6_task_all_from_array((xtarray)(variadicAllJobs), xrtTypeInt()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"variadicAllFuture = xl6_task_all_from_array((xtarray)(variadicAllJobs), xl6TypeInt64()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.all over variadic task.spawn typed array.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(variadicAllFuture" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6TypeInt64(), (*(xtarray*)xl6_future_await_value(variadicAllFuture" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing copied await for variadic task.all future.
     exit /b 1
@@ -79,7 +79,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing temporary variadic task.spawn cancel ownership.
     exit /b 1
 )
-findstr /C:"cancelTemporaryVariadicAll = xl6_task_cancel_value(xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"cancelTemporaryVariadicAll = xl6_task_cancel_value(xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing temporary task.all over variadic task.spawn ownership.
     exit /b 1
@@ -89,17 +89,17 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing temporary task.race over variadic task.spawn ownership.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedVarArgSpawn\s*=\s*xl6_task_spawn_values\(varArgJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xl6_xrt_retain\(dynamicSpawnArg\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'namedVarArgSpawn\s*=\s*xl6_task_spawn_values\(varArgJob,\s*xl6TypeInt64\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xl6_xrt_retain\(dynamicSpawnArg\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn var argument retain bridge.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'literalVarArgValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateInt\(\(long long\)\(41LL\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'literalVarArgValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varArgJob,\s*xl6TypeInt64\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xrtValueInt\(\(long long\)\(41LL\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn scalar literal to var argument bridge.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'varStringValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varStringJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xl6_xrt_retain\(dynamicStringSpawnArg\)\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'varStringValue\s*=\s*xl6_future_await_i64_release\(xl6_task_spawn_values\(varStringJob,\s*xl6TypeInt64\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xl6_xrt_retain\(dynamicStringSpawnArg\)\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.spawn string var argument retain bridge.
     exit /b 1
@@ -114,7 +114,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should cancel temporary task.spawn future through ownership helper.
     exit /b 1
 )
-findstr /C:"xvoCreateInt((long long)(2LL))), 1);" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xrtValueInt((long long)(2LL))), 1);" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should release temporary task.spawn future after task.cancel.
     exit /b 1
@@ -144,7 +144,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep pending task.spawn future canceled after worker completes.
     exit /b 1
 )
-findstr /C:"pendingSpawnAllGroup = xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"pendingSpawnAllGroup = xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing pending task.all over task.spawn group fixture.
     exit /b 1
@@ -204,17 +204,17 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep pending task.race task.spawn source canceled after worker completes.
     exit /b 1
 )
-findstr /C:"cancelTemporarySpawnAll = xl6_task_cancel_value(xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"cancelTemporarySpawnAll = xl6_task_cancel_value(xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should cancel temporary task.all over task.spawn futures through ownership helper.
     exit /b 1
 )
-findstr /C:"xvoCreateInt((long long)(4LL))), 1, xl6_task_spawn_values(defaultJob" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xrtValueInt((long long)(4LL))), 1, xl6_task_spawn_values(defaultJob" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should release temporary task.spawn inputs inside task.cancel task.all.
     exit /b 1
 )
-findstr /C:"xvoCreateInt((long long)(5LL))), 1), 1);" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xrtValueInt((long long)(5LL))), 1), 1);" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should release temporary task.all future after task.cancel.
     exit /b 1
@@ -224,27 +224,27 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should cancel temporary task.race over task.spawn futures through ownership helper.
     exit /b 1
 )
-findstr /C:"xvoCreateInt((long long)(7LL))), 1, xl6_task_spawn_values(defaultJob" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xrtValueInt((long long)(7LL))), 1, xl6_task_spawn_values(defaultJob" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should release temporary task.spawn inputs inside task.cancel task.race.
     exit /b 1
 )
-findstr /C:"xvoCreateInt((long long)(8LL))), 1), 1);" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xrtValueInt((long long)(8LL))), 1), 1);" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should release temporary task.race future after task.cancel.
     exit /b 1
 )
-findstr /C:"cancelTemporaryDefaultSpawn = xl6_task_cancel_value(xl6_task_spawn_values(defaultJob, xrtTypeInt(), sizeof(long long)" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"cancelTemporaryDefaultSpawn = xl6_task_cancel_value(xl6_task_spawn_values(defaultJob, xl6TypeInt64(), sizeof(long long)" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing temporary optional adapter task.spawn cancel ownership.
     exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'cancelTemporaryDefaultSpawn\s*=\s*xl6_task_cancel_value\(xl6_task_spawn_values\(defaultJob,\s*xrtTypeInt\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xvoCreateInt\(\(long long\)\(42LL\)\)\),\s*1\)'){ exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$text=[System.IO.File]::ReadAllText('build\test\cgen_task_spawn.assert.c',[System.Text.Encoding]::UTF8); if($text -notmatch 'cancelTemporaryDefaultSpawn\s*=\s*xl6_task_cancel_value\(xl6_task_spawn_values\(defaultJob,\s*xl6TypeInt64\(\),\s*sizeof\(long long\),\s*\"\",\s*\d+,\s*\d+,\s*1,\s*1,\s*xrtValueInt\(\(long long\)\(42LL\)\)\),\s*1\)'){ exit 1 }"
 if errorlevel 1 (
     echo cgen_task_spawn.c should release temporary optional adapter task.spawn future after task.cancel.
     exit /b 1
 )
-findstr /C:"xl6_task_all_values(xrtTypeInt()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_values(xl6TypeInt64()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing task.all over task.spawn futures.
     exit /b 1
@@ -259,27 +259,27 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should pass temporary task.spawn race futures as owned.
     exit /b 1
 )
-findstr /C:"xl6_task_all_values(xrtTypeString()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_values(xl6TypeString()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing string task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(greetJob, xrtTypeString(), sizeof(const char*)" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_spawn_values(greetJob, xl6TypeString(), sizeof(const char*)" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing string task.spawn source for task aggregation.
     exit /b 1
 )
-findstr /C:"spawnStringRaceValue = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"spawnStringRaceValue = xl6_xrt_string_dup(xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing string task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_all_values(xrtTypeBool32()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_values(xl6TypeBool32()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing bool task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(flipJob, xrtTypeBool32(), sizeof(int)" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_spawn_values(flipJob, xl6TypeBool32(), sizeof(int)" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing bool task.spawn source for task aggregation.
     exit /b 1
@@ -289,12 +289,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing bool task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_all_values(xrtTypeFloat()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_values(xl6TypeFloat64()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing float task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(halfJob, xrtTypeFloat(), sizeof(double)" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_spawn_values(halfJob, xl6TypeFloat64(), sizeof(double)" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing float task.spawn source for task aggregation.
     exit /b 1
@@ -304,27 +304,27 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing float task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_all_values(xrtTypeString()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_values(xl6TypeString()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed string task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(throwingStringJob, xrtTypeString(), sizeof(const char*)" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_spawn_values(throwingStringJob, xl6TypeString(), sizeof(const char*)" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed string task.spawn source for task aggregation.
     exit /b 1
 )
-findstr /C:"failedStringSpawnRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"failedStringSpawnRace = xl6_xrt_string_dup(xl6_future_await_cstr_release(xl6_task_race_values" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed string task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_all_values(xrtTypeBool32()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_values(xl6TypeBool32()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed bool task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(throwingBoolJob, xrtTypeBool32(), sizeof(int)" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_spawn_values(throwingBoolJob, xl6TypeBool32(), sizeof(int)" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed bool task.spawn source for task aggregation.
     exit /b 1
@@ -334,12 +334,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing failed bool task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_all_values(xrtTypeFloat()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_values(xl6TypeFloat64()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed float task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(throwingFloatJob, xrtTypeFloat(), sizeof(double)" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_spawn_values(throwingFloatJob, xl6TypeFloat64(), sizeof(double)" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing failed float task.spawn source for task aggregation.
     exit /b 1
@@ -349,12 +349,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing failed float task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(spawnStringAllJobs), xrtTypeString()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(spawnStringAllJobs), xl6TypeString()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"= xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(__xl6_call_arg_" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"= xl6_xrt_string_dup(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(__xl6_call_arg_" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.race over task.spawn futures.
     exit /b 1
@@ -364,7 +364,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array string task.race managed result assignment.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(spawnBoolAllJobs), xrtTypeBool32()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(spawnBoolAllJobs), xl6TypeBool32()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array bool task.all over task.spawn futures.
     exit /b 1
@@ -379,7 +379,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array bool task.race result assignment.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(spawnFloatAllJobs), xrtTypeFloat()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(spawnFloatAllJobs), xl6TypeFloat64()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array float task.all over task.spawn futures.
     exit /b 1
@@ -399,17 +399,17 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first int task.all source array over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xvoCreateInt((long long)(180LL)), xvoCreateInt((long long)(1LL))" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xrtValueInt((long long)(180LL)), xrtValueInt((long long)(1LL))" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first int task.all task.spawn source.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(typedNullFirstSpawnAllJobs), xrtTypeInt()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(typedNullFirstSpawnAllJobs), xl6TypeInt64()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first int task.all await over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnAllJobs);" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6TypedArrayRelease(typedNullFirstSpawnAllJobs);" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing cleanup for typed-array null-first int task.all jobs.
     exit /b 1
@@ -419,7 +419,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first int task.all error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnAllTail = (*(long long*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnAllJobs, (long long)(1LL)), xrtTypeFuture()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedNullFirstSpawnAllTail = (*(long long*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnAllJobs, (long long)(1LL)), xl6TypeFuture()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first int task.all source.
     exit /b 1
@@ -434,7 +434,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first int task.race source array over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xvoCreateInt((long long)(190LL)), xvoCreateInt((long long)(1LL))" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xrtValueInt((long long)(190LL)), xrtValueInt((long long)(1LL))" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first int task.race task.spawn source.
     exit /b 1
@@ -444,7 +444,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first int task.race await over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnRaceJobs);" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6TypedArrayRelease(typedNullFirstSpawnRaceJobs);" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing cleanup for typed-array null-first int task.race jobs.
     exit /b 1
@@ -454,7 +454,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first int task.race error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnRaceTail = (*(long long*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnRaceJobs, (long long)(1LL)), xrtTypeFuture()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedNullFirstSpawnRaceTail = (*(long long*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnRaceJobs, (long long)(1LL)), xl6TypeFuture()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first int task.race source.
     exit /b 1
@@ -469,7 +469,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first string task.all source array over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_spawn_values(greetJob, xrtTypeString(), sizeof(const char*)" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_spawn_values(greetJob, xl6TypeString(), sizeof(const char*)" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first string task.spawn source.
     exit /b 1
@@ -479,12 +479,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first string task.all payload.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(typedNullFirstSpawnStringAllJobs), xrtTypeString()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(typedNullFirstSpawnStringAllJobs), xl6TypeString()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first string task.all await over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnStringAllJobs);" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6TypedArrayRelease(typedNullFirstSpawnStringAllJobs);" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing cleanup for typed-array null-first string task.all jobs.
     exit /b 1
@@ -494,7 +494,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first string task.all error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnStringAllTail = xrtCopyStr(xl6_future_await_cstr_copy((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnStringAllJobs, (long long)(1LL)), xrtTypeFuture()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedNullFirstSpawnStringAllTail = xl6_xrt_string_dup(xl6_future_await_cstr_copy((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnStringAllJobs, (long long)(1LL)), xl6TypeFuture()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first string task.all source.
     exit /b 1
@@ -514,12 +514,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first string task.race payload.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnStringRace = xrtCopyStr(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(__xl6_call_arg_" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedNullFirstSpawnStringRace = xl6_xrt_string_dup(xl6_future_await_cstr_release(xl6_task_race_from_array((xtarray)(__xl6_call_arg_" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first string task.race await over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnStringRaceJobs);" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6TypedArrayRelease(typedNullFirstSpawnStringRaceJobs);" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing cleanup for typed-array null-first string task.race jobs.
     exit /b 1
@@ -529,7 +529,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first string task.race error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnStringRaceTail = xrtCopyStr(xl6_future_await_cstr_copy((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnStringRaceJobs, (long long)(1LL)), xrtTypeFuture()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedNullFirstSpawnStringRaceTail = xl6_xrt_string_dup(xl6_future_await_cstr_copy((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnStringRaceJobs, (long long)(1LL)), xl6TypeFuture()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first string task.race source.
     exit /b 1
@@ -544,12 +544,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first bool task.all source array over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(typedNullFirstSpawnBoolAllJobs), xrtTypeBool32()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(typedNullFirstSpawnBoolAllJobs), xl6TypeBool32()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first bool task.all await over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnBoolAllJobs);" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6TypedArrayRelease(typedNullFirstSpawnBoolAllJobs);" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing cleanup for typed-array null-first bool task.all jobs.
     exit /b 1
@@ -559,7 +559,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first bool task.all error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnBoolAllTail = (*(int*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnBoolAllJobs, (long long)(1LL)), xrtTypeFuture()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedNullFirstSpawnBoolAllTail = (*(int*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnBoolAllJobs, (long long)(1LL)), xl6TypeFuture()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first bool task.all source.
     exit /b 1
@@ -579,7 +579,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first bool task.race await over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnBoolRaceJobs);" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6TypedArrayRelease(typedNullFirstSpawnBoolRaceJobs);" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing cleanup for typed-array null-first bool task.race jobs.
     exit /b 1
@@ -589,7 +589,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first bool task.race error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnBoolRaceTail = (*(int*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnBoolRaceJobs, (long long)(1LL)), xrtTypeFuture()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedNullFirstSpawnBoolRaceTail = (*(int*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnBoolRaceJobs, (long long)(1LL)), xl6TypeFuture()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first bool task.race source.
     exit /b 1
@@ -604,12 +604,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first float task.all source array over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_task_all_from_array((xtarray)(typedNullFirstSpawnFloatAllJobs), xrtTypeFloat()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_task_all_from_array((xtarray)(typedNullFirstSpawnFloatAllJobs), xl6TypeFloat64()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first float task.all await over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnFloatAllJobs);" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6TypedArrayRelease(typedNullFirstSpawnFloatAllJobs);" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing cleanup for typed-array null-first float task.all jobs.
     exit /b 1
@@ -619,7 +619,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first float task.all error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnFloatAllTail = (*(double*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnFloatAllJobs, (long long)(1LL)), xrtTypeFuture()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedNullFirstSpawnFloatAllTail = (*(double*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnFloatAllJobs, (long long)(1LL)), xl6TypeFuture()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first float task.all source.
     exit /b 1
@@ -639,7 +639,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array null-first float task.race await over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xrtTypedArrayDestroy(typedNullFirstSpawnFloatRaceJobs);" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6TypedArrayRelease(typedNullFirstSpawnFloatRaceJobs);" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing cleanup for typed-array null-first float task.race jobs.
     exit /b 1
@@ -649,7 +649,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing assertion for typed-array null-first float task.race error path.
     exit /b 1
 )
-findstr /C:"typedNullFirstSpawnFloatRaceTail = (*(double*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnFloatRaceJobs, (long long)(1LL)), xrtTypeFuture()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"typedNullFirstSpawnFloatRaceTail = (*(double*)xl6_future_await_value((*(xfuture**)xl6_xrt_typed_require_item(xl6_xrt_typed_array_get_at(typedNullFirstSpawnFloatRaceJobs, (long long)(1LL)), xl6TypeFuture()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing tail await for typed-array null-first float task.race source.
     exit /b 1
@@ -659,12 +659,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing tail assertion for typed-array null-first float task.race source.
     exit /b 1
 )
-findstr /C:"spawnIntAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnIntAllCompletedJobs), xrtTypeInt()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"spawnIntAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnIntAllCompletedJobs), xl6TypeInt64()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array completed int task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(spawnIntAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6TypeInt64(), (*(xtarray*)xl6_future_await_value(spawnIntAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing repeated await for typed-array completed int task.all over task.spawn futures.
     exit /b 1
@@ -674,7 +674,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array completed int task.all over task.spawn futures as borrowed.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeInt(), (*(xtarray*)xl6_future_await_value(spawnIntAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6TypeInt64(), (*(xtarray*)xl6_future_await_value(spawnIntAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep typed-array completed int task.all over task.spawn futures awaitable after cancel.
     exit /b 1
@@ -699,12 +699,12 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should keep typed-array completed int task.race over task.spawn futures awaitable after cancel.
     exit /b 1
 )
-findstr /C:"spawnStringAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnStringAllCompletedJobs), xrtTypeString()" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"spawnStringAllCompletedFuture = xl6_task_all_from_array((xtarray)(spawnStringAllCompletedJobs), xl6TypeString()" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array completed string task.all over task.spawn futures.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeString(), (*(xtarray*)xl6_future_await_value(spawnStringAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6TypeString(), (*(xtarray*)xl6_future_await_value(spawnStringAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing repeated await for typed-array completed string task.all over task.spawn futures.
     exit /b 1
@@ -714,7 +714,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c should cancel typed-array completed string task.all over task.spawn futures as borrowed.
     exit /b 1
 )
-findstr /C:"xl6_xrt_typed_array_copy_mode(xrtTypeString(), (*(xtarray*)xl6_future_await_value(spawnStringAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"xl6_xrt_typed_array_copy(xl6TypeString(), (*(xtarray*)xl6_future_await_value(spawnStringAllCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c should keep typed-array completed string task.all over task.spawn futures awaitable after cancel.
     exit /b 1
@@ -724,7 +724,7 @@ if errorlevel 1 (
     echo cgen_task_spawn.c missing typed-array completed string task.race over task.spawn futures.
     exit /b 1
 )
-findstr /C:"spawnStringRaceCompletedB = xrtCopyStr(xl6_future_await_cstr_copy(spawnStringRaceCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
+findstr /C:"spawnStringRaceCompletedB = xl6_xrt_string_dup(xl6_future_await_cstr_copy(spawnStringRaceCompletedFuture" build\test\cgen_task_spawn.assert.c >nul
 if errorlevel 1 (
     echo cgen_task_spawn.c missing repeated await for typed-array completed string task.race over task.spawn futures.
     exit /b 1

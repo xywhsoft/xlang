@@ -1,0 +1,6 @@
+func choose(bool enabled) as string
+    return enabled ? "yes" : "no"
+end
+
+string actual = choose(true)
+assert actual == "yes"

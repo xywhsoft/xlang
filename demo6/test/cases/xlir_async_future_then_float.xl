@@ -1,0 +1,10 @@
+extern "xlir_make_f64_future" func makeFuture() as future<float>
+
+async func multiplyAfter(future<float> source, float scale) as float
+    return await source * scale
+end
+
+future<float> source = makeFuture()
+future<float> pending = multiplyAfter(source, 2.5)
+float completed = await pending
+assert completed == 10.0

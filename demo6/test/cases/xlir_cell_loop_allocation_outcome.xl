@@ -1,0 +1,19 @@
+func cellLoop() as func() as int
+    func() as int selected = func() as int => 0
+    for item in array[6, 7]
+        selected = func() as int
+            item += 1
+            return item
+        end
+    end
+    return selected
+end
+
+export "cell_loop_allocation_probe" func cellLoopProbe() as int
+    return cellLoop()()
+end
+
+func main(...) as int
+    assert(cellLoopProbe() == 8)
+    return 0
+end

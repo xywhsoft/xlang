@@ -1,0 +1,94 @@
+extern "pool_test_created" func poolCreated()
+extern "pool_test_dropped" func poolDropped()
+extern "pool_test_job" func poolJob(int mode)
+class PoolGlobal
+    int value
+    create()
+        self.value = 42
+        poolCreated()
+    end
+    destroy()
+        poolDropped()
+    end
+end
+PoolGlobal poolGlobal = PoolGlobal()
+export "pool_test_read" func poolRead() as int
+    return poolGlobal.value
+end
+async func poolAsync(int mode)
+    poolJob(mode)
+    assert poolGlobal.value == 42
+end
+func poolClosure(int mode) as int
+    poolJob(mode)
+    return poolGlobal.value
+end
+export "pool_test_start_async" func poolStartAsync(int mode)
+    auto pending = poolAsync(mode)
+end
+export "pool_test_start_spawn" func poolStartSpawn(int mode)
+    func(int) as int job = poolClosure
+    auto pending = task.spawn(job, mode)
+end
+
+
+extern "construction_child_created" func constructionChildCreated()
+extern "construction_child_dropped" func constructionChildDropped()
+class ConstructionDefaults
+    string text
+    array<int> numbers
+    dict<int> mapping
+    int number = 17
+end
+class ConstructionChild
+    int number
+    create()
+        self.number = 9
+        constructionChildCreated()
+    end
+    destroy()
+        constructionChildDropped()
+    end
+end
+class ConstructionNested
+    ConstructionChild child = ConstructionChild()
+    string text
+    create(int number)
+        self.child.number = number
+    end
+end
+class ConstructionBase
+    int number
+    create()
+        self.number = 37
+    end
+end
+class ConstructionDerived extends ConstructionBase
+    string text
+end
+class ConstructionNative
+    native point handle
+    extern "construction_native_open" create(int number)
+    extern "construction_native_close" destroy()
+end
+class ConstructionNativeHolder
+    ConstructionNative handle = ConstructionNative(23)
+    string text
+end
+export "pool_test_construct_variant" func constructionVariant(int kind) as int
+    if kind == 0
+        auto value = ConstructionDefaults()
+        assert value.number == 17 and value.text.length == 0
+    elseif kind == 1
+        auto value = ConstructionNested(43)
+        assert value.child.number == 43
+    elseif kind == 2
+        auto value = ConstructionDerived()
+        assert value.number == 37
+    elseif kind == 3
+        auto value = ConstructionNative(23)
+    else
+        auto value = ConstructionNativeHolder()
+    end
+    return 1
+end

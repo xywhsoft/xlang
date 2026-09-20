@@ -1,0 +1,72 @@
+extern "expect_i64" func expect(int actual, int expected)
+extern "expect_str" func expect_string(string actual, string expected)
+
+dict<int> values = dict{"a": 1, "bb": 2, "ccc": 3}
+int valueTotal = 0
+int keyLengthTotal = 0
+for key, value in values
+    valueTotal = valueTotal + value
+    keyLengthTotal = keyLengthTotal + key.length
+end
+expect(valueTotal, 6)
+expect(keyLengthTotal, 6)
+
+func first_key(dict<int> source) as string
+    for key, value in source
+        return key
+    end
+    return ""
+end
+
+expect_string(first_key(dict{"alpha": 7}), "alpha")
+
+int continueFinallyTrace = 0
+func continue_through_finally(dict<string> source) as int
+    int total = 0
+    for key, value in source
+        try
+            if key == "skip"
+                continue
+            end
+            total = total + value.length
+        finally
+            continueFinallyTrace = continueFinallyTrace + key.length + value.length
+        end
+    end
+    return total
+end
+
+int returnFinallyTrace = 0
+func return_item_through_finally(dict<string> source) as string
+    for key, value in source
+        try
+            return value
+        finally
+            returnFinallyTrace = key.length + value.length
+        end
+    end
+    return ""
+end
+
+expect(continue_through_finally(dict{"skip": "x", "take": "yy"}), 2)
+expect(continueFinallyTrace, 11)
+expect_string(return_item_through_finally(dict{"name": "owned"}), "owned")
+expect(returnFinallyTrace, 9)
+
+dict<bool> flags = dict{"off": false, "on": true}
+int boolTotal = 0
+for key, value in flags
+    if value
+        boolTotal = boolTotal + key.length
+    end
+end
+expect(boolTotal, 2)
+
+dict<float> weights = dict{"left": 1.5, "right": 2.5}
+float floatTotal = 0.0
+for key, value in weights
+    floatTotal = floatTotal + value
+end
+if floatTotal < 3.99 or floatTotal > 4.01
+    expect(0, 1)
+end

@@ -1,0 +1,61 @@
+// 字节索引与字符切片是两种单位，不能共用转换或越界规则。
+func inspectText(string text)
+    assert string.len(text) == 4
+    assert string.byteLen(text) == 8
+    assert string.byteAt(text, 1) == 228
+    assert string.byteAt(text, -1) == 66
+    assert string.byteAt(text, 8) == -1
+    assert string.byteAt(text, -9) == -1
+    assert string.byteAt(text, 9223372036854775807) == -1
+    assert string.byteAt(text, -9223372036854775807 - 1) == -1
+    assert string.slice(text, 1, 2) == "你好"
+    assert string.slice(text, -2) == "好B"
+    assert string.slice(text, 99) == ""
+    assert string.slice(text, 0, 0) == ""
+    assert string.replace(text, "你好", "ok") == "AokB"
+end
+
+func main(...) as int
+    inspectText("A" + "你好B")
+    assert string.byteLen("") == 0
+    assert string.byteAt("", 0) == -1
+    assert string.byteAt("", -1) == -1
+
+    // 默认大小写敏感；显式忽略大小写与空前后缀分别验证。
+    assert string.startsWith("Hello你好", "He")
+    assert not string.startsWith("Hello你好", "he")
+    assert string.startsWith("Hello你好", "he", true)
+    assert string.endsWith("你好Hello", "LO", true)
+    assert not string.endsWith("你好Hello", "LO")
+    assert string.startsWith("", "")
+    assert string.endsWith("", "")
+    assert not string.startsWith("a", "ab")
+    assert not string.endsWith("a", "ba")
+
+    // split 的空片段必须保留，结果不借用输入临时值。
+    array parts = string.split(string.replace("|a||你好|", "a", "b"), "|")
+    assert parts.length == 5
+    assert string(parts[0]) == ""
+    assert string(parts[1]) == "b"
+    assert string(parts[2]) == ""
+    assert string(parts[3]) == "你好"
+    assert string(parts[4]) == ""
+    array whole = string.split("你好", "")
+    assert whole.length == 1 and string(whole[0]) == "你好"
+    array empty = string.split("", ",")
+    assert empty.length == 1 and string(empty[0]) == ""
+    array lines = string.splitLines("a\r\n你好\nb")
+    assert lines.length == 3
+    assert string(lines[1]) == "你好"
+
+    // 具名函数值与重复分配经过同一条适配和清理路径。
+    func(string, string) as array splitValue = string.split
+    for i in range(200)
+        array values = splitValue("你好::x", "::")
+        assert values.length == 2 and string(values[0]) == "你好"
+        inspectText("A你好B")
+    end
+    assert string(parts[3]) == "你好"
+    println("string bridges ok")
+    return 0
+end

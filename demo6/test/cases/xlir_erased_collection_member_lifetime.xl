@@ -1,0 +1,49 @@
+extern "xlir_json_observe_lifetime" func observeLifetime(var target) as var
+extern "xlir_json_lifetime_expired" func expired(var witness) as c_bool
+
+func ownedValues(array witnesses) as array
+    var state = {"text": "owned"}
+    witnesses.append(observeLifetime(state))
+    return [state]
+end
+
+func takeScope(array witnesses, bool usePop)
+    array values = ownedValues(witnesses)
+    var result
+    if usePop
+        result = values.pop()
+    else
+        result = values.take(0)
+    end
+    assert values.clear()
+    assert values.length == 0
+    assert !expired(witnesses[0])
+    assert result["text"] == "owned"
+end
+
+func removeScope(array witnesses)
+    var state = {"text": "borrowed"}
+    witnesses.append(observeLifetime(state))
+    array values = [state]
+    assert values.contains(state)
+    assert values.removeValue(state)
+    assert values.length == 0
+    assert !expired(witnesses[0])
+    assert state["text"] == "borrowed"
+end
+
+for i in range(30)
+    array witnesses
+    takeScope(witnesses, i % 2 == 0)
+    assert expired(witnesses[0]), "pop/take retained an owned result after scope exit"
+    assert witnesses.clear()
+    removeScope(witnesses)
+    assert expired(witnesses[0]), "removeValue retained its borrowed argument"
+    assert witnesses.clear()
+    assert ownedValues(witnesses).clear()
+    assert expired(witnesses[0]), "temporary clear receiver survived the operation"
+    assert witnesses.clear()
+    assert ownedValues(witnesses).insert(0, "temporary")
+    assert expired(witnesses[0]), "temporary insert receiver survived the operation"
+end
+println("xlir erased collection lifetime ok")

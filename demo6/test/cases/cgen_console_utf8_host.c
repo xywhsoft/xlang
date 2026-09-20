@@ -1,5 +1,9 @@
 #include "src/common/xl6_console.h"
+
+#define XRT_MODULE_VALUE
 #include "lib/xrt/xrt.h"
+
+#include <stdio.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
@@ -86,17 +90,24 @@ static int testConsoleSessionAndWrite(void)
     }
 
     {
-        xvalue value = xvoCreateText(
-            (void*)utf8Text,
-            (uint32)(sizeof(utf8Text) - 1u),
-            false);
-        if ( value == NULL ) {
+        xstrview text;
+        xvalue* value = xrtValueString((xstrview){
+            utf8Text,
+            sizeof(utf8Text) - 1u
+        });
+        if ( value == NULL || !xrtValueGetString(value, &text) ) {
             result = 8;
+            xrtValueRelease(value);
             xl6ConsoleSessionEnd();
             goto restore_handles;
         }
-        xvoPrint(value, false);
-        xvoUnref(value);
+        if ( !xl6ConsoleWrite(XL6_CONSOLE_STDOUT, text.Data, text.Size) ) {
+            result = 8;
+            xrtValueRelease(value);
+            xl6ConsoleSessionEnd();
+            goto restore_handles;
+        }
+        xrtValueRelease(value);
     }
 
     if ( !GetConsoleScreenBufferInfo(screen, &screenInfo) ) {
@@ -196,9 +207,6 @@ int main(void)
 {
     int result;
 
-    if ( xrtInit() == NULL ) {
-        return 20;
-    }
 #if defined(_WIN32) || defined(_WIN64)
     result = testConsoleSessionAndWrite();
     if ( result != 0 ) {
@@ -223,6 +231,5 @@ int main(void)
     xl6ConsoleSessionEnd();
     result = 0;
 #endif
-    xrtUnit();
-    return result;
+	return result;
 }

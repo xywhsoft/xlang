@@ -1,0 +1,17 @@
+class Marker
+    int id = 0
+    create(int id)
+        self.id = id
+    end
+    destroy()
+        println(self.id)
+    end
+end
+
+Marker first = Marker(1)
+Marker second = Marker(2)
+
+func main(...) as int
+    throw "module-main-failure-sentinel"
+    return 0
+end

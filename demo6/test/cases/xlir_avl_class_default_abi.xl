@@ -1,0 +1,5 @@
+class AvlDefaultHolder
+    AvlTree<string, int> values
+end
+
+AvlDefaultHolder avlDefaultHolder

@@ -1,0 +1,63 @@
+class RollbackOwned
+    native point handle
+    extern "rollback_owned_open" create()
+    extern "rollback_owned_close" destroy()
+end
+
+class RollbackBorrowed
+    native point handle
+    extern "rollback_borrowed_open" create()
+end
+
+export "rollback_caught" func caught() as int
+    try
+        RollbackOwned resource = RollbackOwned()
+        return -1
+    catch failure
+        return failure.code
+    end
+end
+
+export "rollback_borrowed_caught" func borrowed_caught() as int
+    try
+        RollbackBorrowed resource = RollbackBorrowed()
+        return -1
+    catch failure
+        return failure.code
+    end
+end
+
+export "rollback_escape" func escape() as int
+    RollbackOwned resource = RollbackOwned()
+    return -1
+end
+
+async func async_caught() as int
+    try
+        RollbackOwned resource = RollbackOwned()
+        return -1
+    catch failure
+        return failure.code
+    end
+end
+
+export "rollback_async_launch_anchor" func async_entry()
+    future<int> pending = async_caught()
+end
+
+func generated_codes() as generator<int>
+    try
+        RollbackOwned resource = RollbackOwned()
+        yield -1
+    catch failure
+        yield failure.code
+    end
+end
+
+export "rollback_generator" func generator_entry() as int
+    int result = -2
+    for code in generated_codes()
+        result = code
+    end
+    return result
+end
