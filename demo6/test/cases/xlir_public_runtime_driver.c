@@ -44,7 +44,8 @@ int main(int argc, char** argv)
     if (!runtime) { fprintf(stderr, "runtime context creation failed\n"); return 4; }
     if (!GetModuleFileNameA(NULL, headers, sizeof(headers))) goto done;
     slash = strrchr(headers, '\\'); if (!slash) goto done;
-    strcpy(slash, "\\include");
+    if ((size_t)(slash - headers) + sizeof("\\include") > sizeof(headers)) goto done;
+    memcpy(slash, "\\include", sizeof("\\include"));
     if (!xlAddIncludePath(runtime, headers)) goto done;
     if (!strcmp(argv[2], "run")) ok = xlRunScriptFile(runtime, argv[1]);
     else if (!strcmp(argv[2], "module")) {

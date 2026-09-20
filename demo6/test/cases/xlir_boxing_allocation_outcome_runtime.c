@@ -2,6 +2,8 @@
 #define XRT_MODULE_ERROR
 #include "lib/xrt/xrt.h"
 #include <assert.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,6 +13,17 @@ extern int64_t boxing_outcome_invoke(int kind, int caught);
 extern int64_t boxing_outcome_callback(void);
 extern int64_t boxing_outcome_failed_insertion(void);
 #include "xlir_owner_fault_runtime.h"
+
+static int parse_int_arg(const char* text)
+{
+    char* end = NULL;
+    long value;
+    errno = 0;
+    value = strtol(text, &end, 10);
+    assert(errno == 0 && end != text && *end == '\0' &&
+        value >= INT_MIN && value <= INT_MAX);
+    return (int)value;
+}
 
 void boxing_arm_insertion_fault(void) { assert(xrtMemDebugFailAfter(0)); }
 static xerror* insertionCallbackError;
@@ -61,7 +74,8 @@ int main(int argc, char** argv)
     }
     assert(xrtMemDebugEnable(true) && boxing_outcome_init()); prepare_callback_error(); xrtMemDebugSnapshot(&before);
     if (argc == 4) {
-        unsigned count = run(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]));
+        unsigned count = run(parse_int_arg(argv[1]), parse_int_arg(argv[2]),
+            parse_int_arg(argv[3]));
         printf("boxing allocation directed: kind=%s caught=%s fault=%s allocations=%u\n", argv[1], argv[2], argv[3], count);
         xrtErrorFree(insertionCallbackError); insertionCallbackError = NULL;
         boxing_outcome_finish(); return 0;

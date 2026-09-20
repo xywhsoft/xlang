@@ -21,6 +21,15 @@ if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_tool_wiring.ps1
 if errorlevel 1 exit /b 1
 
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_fixtures.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_release_extlibs.ps1
+if errorlevel 1 exit /b 1
+
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_package_xrt_symbols.ps1
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xrt_snapshot.ps1
 if errorlevel 1 exit /b 1
 

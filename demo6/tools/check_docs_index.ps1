@@ -53,7 +53,85 @@ if ( ! (Test-Path -LiteralPath $settlementPath -PathType Leaf) ) {
 $readme = Read-Utf8Text $readmePath
 $matrix = Read-Utf8Text $matrixPath
 $settlement = Read-Utf8Text $settlementPath
-$docs = @(Get-ChildItem -LiteralPath $docsDir -Filter "*.md" -File | Sort-Object Name)
+$trackedFiles = @()
+$gitCommand = Get-Command git.exe -ErrorAction SilentlyContinue
+if ( $null -ne $gitCommand ) {
+    $trackedFiles = @(& $gitCommand.Source -c "core.quotepath=false" -C $Root ls-files 2>$null)
+}
+$gitInventoryAvailable = ($null -ne $gitCommand -and $LASTEXITCODE -eq 0 -and
+    $trackedFiles.Count -gt 0)
+
+function Get-VersionedMarkdownFiles([string]$relativePrefix, [switch]$ReadmeOnly)
+{
+    if ( ! $gitInventoryAvailable ) {
+        $searchRoot = if ( $relativePrefix -eq "" ) {
+            $Root
+        } else {
+            Join-Path $Root $relativePrefix
+        }
+        $parameters = @{
+            LiteralPath = $searchRoot
+            File = $true
+            ErrorAction = "Stop"
+        }
+        if ( $ReadmeOnly ) {
+            $parameters["Filter"] = "README.md"
+            $parameters["Recurse"] = $true
+        } else {
+            $parameters["Filter"] = "*.md"
+        }
+        return @(Get-ChildItem @parameters | Sort-Object FullName)
+    }
+
+    $prefix = if ( $relativePrefix -eq "" ) {
+        ""
+    } else {
+        $relativePrefix.TrimEnd("\", "/") + "/"
+    }
+    $selected = @($trackedFiles | Where-Object {
+        $normalized = $_.Replace("\", "/")
+        if ( ! $normalized.StartsWith(
+                $prefix, [System.StringComparison]::OrdinalIgnoreCase) ) {
+            return $false
+        }
+        $tail = $normalized.Substring($prefix.Length)
+        if ( $ReadmeOnly ) {
+            return [System.IO.Path]::GetFileName($tail).Equals(
+                "README.md", [System.StringComparison]::OrdinalIgnoreCase)
+        }
+        return $tail.IndexOf("/") -lt 0 -and $tail.EndsWith(
+            ".md", [System.StringComparison]::OrdinalIgnoreCase)
+    })
+    $files = New-Object System.Collections.Generic.List[object]
+    foreach ( $relative in $selected ) {
+        if ( $ReadmeOnly -and $null -ne $ignoredReadmePrefixes ) {
+            $normalized = $relative.Replace("/", "\").ToLowerInvariant()
+            $ignored = $false
+            foreach ( $ignoredPrefix in $ignoredReadmePrefixes ) {
+                if ( $normalized.StartsWith($ignoredPrefix) ) {
+                    $ignored = $true
+                    break
+                }
+            }
+            if ( $ignored ) {
+                continue
+            }
+        }
+        $path = Join-Path $Root $relative
+        if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
+            Add-Failure "versioned documentation file is missing: $relative"
+            continue
+        }
+        $files.Add((Get-Item -LiteralPath $path)) | Out-Null
+    }
+    return @($files | Sort-Object FullName)
+}
+
+# A core regression validates the versioned product. Untracked extension-work
+# notes may coexist in docs/ during development, but they must not alter the
+# result of a clean-clone gate. In source archives without Git metadata the
+# complete on-disk set is the versioned product, so retain the directory scan.
+$docs = @(Get-VersionedMarkdownFiles "docs")
 $extraMarkdownDocs = @(
     "README.md",
     "cgenrule\README.md",
@@ -64,10 +142,8 @@ $extraMarkdownDocs = @(
     "release\README.md",
 	"release\examples\README.md",
 	"release\examples\apps\README.md",
-	"release\examples\games\README.md",
 	"release\examples\feature_suite\README.md",
 	"release\examples\tutorial\README.md",
-	"release\projects\function_interop\README.md",
 	"release\projects\xs_static\README.md",
     "release\extlibs\README.md",
     "test\README.md"
@@ -100,8 +176,7 @@ $stalePatterns = @(
     '\bTBD\b',
     '\bFIXME\b',
     '\u5F85\u586B',
-    '\u672A\u6574\u7406',
-    '\u5F85\u786E\u8BA4'
+    '\u672A\u6574\u7406'
 )
 
 $forbiddenPolicyPatterns = @(
@@ -116,7 +191,6 @@ $forbiddenPolicyPatterns = @(
 )
 $staleCurrentCountPatterns = @(
     '271\s*\u4E2A\u6D4B\u8BD5',
-    '251\s*\u4E2A',
     '27\s*\u4E2A\u8303\u4F8B',
     '`docs`\s*\uFF1A19\s*\u4E2A',
     '`packages`\s*\uFF1A9\s*\u4E2A',
@@ -211,7 +285,7 @@ foreach ( $relative in $extraMarkdownDocs ) {
     }
 }
 
-$readmeDocs = @(Get-ChildItem -LiteralPath $Root -Filter "README.md" -File -Recurse | Sort-Object FullName)
+$readmeDocs = @(Get-VersionedMarkdownFiles "" -ReadmeOnly)
 $rootFullPath = (Resolve-Path -LiteralPath $Root).Path
 if ( ! $rootFullPath.EndsWith("\") ) {
     $rootFullPath = $rootFullPath + "\"

@@ -8,7 +8,8 @@ static int64_t xext_text_host_count;
 
 const char* xext_text_static(int64_t version)
 {
-    strcpy(xext_text_buffer, version == 1 ? "first" : "second");
+    const char* text = version == 1 ? "first" : "second";
+    memcpy(xext_text_buffer, text, strlen(text) + 1);
     return xext_text_buffer;
 }
 
@@ -38,7 +39,7 @@ void* xext_text_create(void)
 {
     char* text = (char*)malloc(16);
     if ( text != NULL ) {
-        strcpy(text, "native");
+        memcpy(text, "native", sizeof("native"));
         ++xext_text_host_count;
     }
     return text;

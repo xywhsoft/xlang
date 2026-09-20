@@ -200,7 +200,7 @@
 |---|---|
 | xlang 写法 | `int(x)`、`float(x)`、`string(x)`、`time(x)`、动态值转字符串 |
 | 生成规则描述 | 类型转换 runtime 输出当前 XRT 数值写入、编码和动态值字符串转换入口，并保护性定义 `xvalue`、`xstrview` 与 Base64 配置类型。它还输出 `xl6_xrt_value_to_i64/f64/bool/time/point_release` helper，供拥有型 `xvalue*` 到静态标量的转换使用。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:1`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:54`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:68`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:437`、`demo6/release/include/xl_runtime.h:12` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:1`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:54-370`、`demo6/release/include/xl_runtime.h:12` |
 | 对应生成的 C 代码 | `bool xrtIntWrite(...)`、`bool xrtNumWrite(...)`、`void* xrtHexEncodeNew(...)`、`static long long xl6_xrt_value_to_i64_release(xvalue* value)` 等。 |
 | 中间形态伪代码 | `emitConvertProtos(); emit xvalue typedef if missing; emit guarded releaseConvertHelpers()` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自行声明所有转换入口并处理 xvalue 生命周期。 |
@@ -212,7 +212,7 @@
 |---|---|
 | xlang 写法 | `string(x)`、`x.toString()` 中需要接管 XRT 返回字符串 |
 | 生成规则描述 | `xl6_xrt_temp_cstr` 使用 `xrtTemp` 复制普通 C 字符串，`xl6_xrt_take_cstr` 先复制为临时字符串，再用 `xrtFree` 释放原始 XRT 返回内存。空指针或分配失败返回空串。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:235`、`demo6/src/cgen/xl6_cgen_xvalue_runtime.c:251` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:231-258` |
 | 对应生成的 C 代码 | `static const char* xl6_xrt_temp_cstr(...)`、`const char* xl6_xrt_take_cstr(void* value)` |
 | 中间形态伪代码 | `tmp = xrtTemp(strlen+1); copy; if take: xrtFree(value); return tmp` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要明确谁释放 XRT 返回的堆字符串。 |
@@ -224,7 +224,7 @@
 |---|---|
 | xlang 写法 | `string(123)`、`string(uint64Value)`、`string(1.25)`、`string(varValue)` |
 | 生成规则描述 | 有符号整数、无符号整数和浮点分别通过 `xrtIntWrite`、`xrtUIntWrite`、`xrtNumWrite` 写入栈缓冲区。动态值转字符串调用统一的 `xl6_xrt_value_string_owned`，再接管返回文本。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:376-434` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:312-365` |
 | 对应生成的 C 代码 | `xl6_xrt_i64_to_string`、`xl6_xrt_u64_to_string`、`xl6_xrt_f64_to_string`、`xl6_xrt_value_to_string` |
 | 中间形态伪代码 | `buffer = xrtToStr(value); return tempCopy(buffer)` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要自己选择缓冲区、格式化和释放策略。 |
@@ -236,7 +236,7 @@
 |---|---|
 | xlang 写法 | 临时 `var` 表达式参与 `string(...)` 或拼接后需要释放 |
 | 生成规则描述 | `xl6_xrt_value_to_string_release` 先把 `xvalue*` 转为临时 C 字符串，再对输入值调用 `xrtValueRelease`。该 helper 用于表达式生成器处理临时动态值所有权。 |
-| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:427` |
+| 生成器文件名和行号 | `demo6/src/cgen/xl6_cgen_xvalue_runtime.c:358-365` |
 | 对应生成的 C 代码 | `static const char* xl6_xrt_value_to_string_release(xvalue* value) { ... xrtValueRelease(value); ... }` |
 | 中间形态伪代码 | `text = valueToString(value); unref(value); return text` |
 | 实现同等功能手写的 C 代码 | 手写 C 需要在转换后手动释放临时 xvalue。 |

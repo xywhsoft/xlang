@@ -1,0 +1,11 @@
+func main(...) as int
+    Buffer data = Buffer()
+    data.append("abc")
+    int count = 0
+    for value in data
+        count += 1
+    end
+    assert count == 3
+    println("native iterator protocol passed")
+    return 0
+end

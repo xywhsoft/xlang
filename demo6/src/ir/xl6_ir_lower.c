@@ -25842,6 +25842,7 @@ static int xl6IrLowerElementAssignIfNull(
     const XL6_IrType* itemType;
     XL6_IrLowerElementTargetPlan plan;
     int itemIsNonNull;
+    int addressMayBeAbsent;
     XL6_IrTypeId boolType;
     XL6_IrValueId current, isNull, replacement, updated;
     XL6_IrBlockId assignBlock, mergeBlock;
@@ -25853,11 +25854,15 @@ static int xl6IrLowerElementAssignIfNull(
            lhs->kind == XL6_IR_NODE_MEMBER))) return 0;
     itemType = xl6IrTypeGet(&ctx->module->types, lhs->storageType);
     itemIsNonNull = itemType != NULL && itemType->nullAbi == XL6_IR_NULL_ABI_NONE;
+    addressMayBeAbsent = lhs->kind == XL6_IR_NODE_INDEX &&
+        (lhs->indexWriteAbi == XL6_IR_INDEX_WRITE_XVALUE_OBJECT_LITERAL_SET_NEW ||
+         lhs->indexWriteAbi == XL6_IR_INDEX_WRITE_XVALUE_OBJECT_STRING_SET_NEW);
     if (itemType == NULL || !xl6IrLowerPrepareElementTargetPlan(ctx, id, lhs, &plan))
         return -1;
-    /* Even a statically non-null item preserves receiver/key evaluation. Its
-     * RHS, however, has no reachable evaluation edge. */
-    if (itemIsNonNull)
+    /* A non-null array/list element cannot select the assignment branch, but
+     * a typed dictionary can still have no value for a key. Its raw carrier
+     * read represents that absence independently of the declared item type. */
+    if (itemIsNonNull && !addressMayBeAbsent)
         return xl6IrLowerReleaseElementTargetPlan(ctx, id, &plan) ? 1 : -1;
     boolType = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
     current = plan.memberAddress

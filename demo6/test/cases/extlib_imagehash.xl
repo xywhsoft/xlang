@@ -1,0 +1,21 @@
+import imagehash
+
+string imagePath = "release/examples/extlibs/assets/tiny.png"
+string a = imagehash.ahash(imagePath)
+string d = imagehash.dhash(imagePath)
+string p = imagehash.phash(imagePath)
+
+assert imagehash.available(), "imagehash should be available"
+assert imagehash.valid(a) != 0, "ahash should contain 16 hexadecimal digits"
+assert imagehash.valid(d) != 0, "dhash should contain 16 hexadecimal digits"
+assert imagehash.valid(p) != 0, "phash should contain 16 hexadecimal digits"
+assert imagehash.hamming(a, a) == 0, "a hash must equal itself"
+assert imagehash.hamming(a, d) >= 0, "two valid hashes must be comparable"
+
+assert imagehash.ahash("release/examples/extlibs/assets/missing.png") == "", "missing image should not create a hash"
+assert imagehash.last_error() != "", "missing image should report a diagnostic"
+assert imagehash.valid("not-a-hash") == 0, "invalid hash text should be rejected"
+assert imagehash.hamming("not-a-hash", a) == -1, "invalid comparison should fail"
+assert imagehash.last_error() == "invalid hash string", "invalid comparison diagnostic mismatch"
+
+println("imagehash case ok")

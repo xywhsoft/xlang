@@ -146,7 +146,7 @@ int main(int argc, char** argv)
         }
         ++conditionalCount;
     }
-    assert(conditionalCount == 13 && mutations == 26 && xl6IrVerifyModule(&ir, &parse.diags));
+    assert(conditionalCount == 15 && mutations == 30 && xl6IrVerifyModule(&ir, &parse.diags));
     assert(argc == 4 && xl6OutputOpenFile(&out, argv[1]));
     assert(xl6IrCgenEmitC(&out, &ir, &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[2]));

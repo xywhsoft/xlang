@@ -69,7 +69,30 @@ if ( ! (Test-Path -LiteralPath $rc0Guard -PathType Leaf) ) {
 $testText = Get-TestRegressionText
 $rc0Text = Read-Utf8Text $rc0Guard
 $toolsReadmeText = Read-Utf8Text $toolsReadme
-$checkScripts = @(Get-ChildItem -LiteralPath $toolsDir -Filter "check_*.ps1" -File | Sort-Object Name)
+$trackedCheckScripts = @()
+$gitCommand = Get-Command git.exe -ErrorAction SilentlyContinue
+if ( $null -ne $gitCommand ) {
+    $trackedCheckScripts = @(& $gitCommand.Source -c "core.quotepath=false" -C $Root `
+        ls-files -- "tools/check_*.ps1" 2>$null)
+}
+if ( $null -ne $gitCommand -and $LASTEXITCODE -eq 0 -and
+     $trackedCheckScripts.Count -gt 0 ) {
+    $checkScripts = New-Object System.Collections.Generic.List[object]
+    foreach ( $relative in $trackedCheckScripts ) {
+        $path = Join-Path $Root $relative
+        if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
+            Add-Failure "versioned check script is missing: $relative"
+            continue
+        }
+        $checkScripts.Add((Get-Item -LiteralPath $path)) | Out-Null
+    }
+    $checkScripts = @($checkScripts | Sort-Object Name)
+} else {
+    # Source archives have no Git index; every packaged check script is then
+    # part of the product inventory.
+    $checkScripts = @(Get-ChildItem -LiteralPath $toolsDir -Filter "check_*.ps1" -File |
+        Sort-Object Name)
+}
 $xlirRunner = Join-Path $toolsDir "run_xlir_guards.ps1"
 $fullRegressionHasXlirRunner = $testText -match 'tools[\\/]run_xlir_guards\.ps1\s+-Mode\s+FullRegressionSupplement'
 $rc0HasXlirRunner = $rc0Text -match 'tools[\\/]run_xlir_guards\.ps1`?",\s*`?"-Mode`?",\s*`?"Rc0Supplement'

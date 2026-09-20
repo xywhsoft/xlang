@@ -10,10 +10,8 @@
 
 dir|include|%XL6_EMBED_TCC_DIST_X64%\include
 
-# Same TCC SDK compatibility surface as xl.dll for C/xlang package builds.
-file|include/windowsx.h|%XL6_ROOT%\release\windowsx.h
-file|include/strings.h|%XL6_ROOT%\release\strings.h
-file|include/imm.h|%XL6_ROOT%\release\imm.h
+# The tracked TCC include directory owns the same compatibility surface used
+# by xl.dll; package builds therefore do not depend on release outputs.
 
 file|include/xl.h|%XL6_ROOT%\release\include\xl.h
 file|include/xlc.h|%XL6_ROOT%\release\include\xlc.h

@@ -34,18 +34,90 @@ function Assert-GeneratedCellExchangeRelease(
     if ( ! $release.Success ) { throw $failureMessage }
 }
 $expectedLoweringFailures = [ordered]@{
-    "xlir_string_bridge_bad_parameter" =
+    "xlir_string_bridge_bad_parameter.xl" =
         "XLIR string runtime bridge has no exact parameter/result ABI"
-    "xlir_string_bridge_bad_result" =
+    "xlir_string_bridge_bad_result.xl" =
         "XLIR string runtime bridge has no exact parameter/result ABI"
-    "xlir_string_repeat_bad_parameter" =
+    "xlir_string_repeat_bad_parameter.xl" =
         "XLIR string runtime bridge has no exact parameter/result ABI"
-    "xlir_string_repeat_bad_result" =
+    "xlir_string_repeat_bad_result.xl" =
         "XLIR string runtime bridge has no exact parameter/result ABI"
-    "xlir_code_owner_reserved_export" =
+    "xlir_code_owner_reserved_export.xl" =
         "XLIR module code owner binding symbol is reserved for the artifact boundary"
-    "xlir_code_owner_reserved_import" =
+    "xlir_code_owner_reserved_import.xl" =
         "XLIR module code owner binding symbol is reserved for the artifact boundary"
+    "bad_xlir_base64_text_missing_table.xl" =
+        "XLIR text codec runtime bridge has no exact ABI"
+    "bad_xlir_base64_text_wrong_input.xl" =
+        "XLIR text codec runtime bridge has no exact ABI"
+    "bad_xlir_base64_text_wrong_result.xl" =
+        "XLIR text codec runtime bridge has no exact ABI"
+    "bad_xlir_byte_codec_missing_table.xl" =
+        "XLIR byte codec runtime bridge has no exact ABI"
+    "bad_xlir_byte_codec_wrong_input.xl" =
+        "XLIR byte codec runtime bridge has no exact ABI"
+    "bad_xlir_byte_codec_wrong_result.xl" =
+        "XLIR byte codec runtime bridge has no exact ABI"
+    "bad_xlir_direct_bridge_arity.xl" =
+        "XLIR direct runtime bridge has no exact declared ABI"
+    "bad_xlir_direct_bridge_boolean.xl" =
+        "XLIR direct runtime bridge has no exact declared ABI"
+    "bad_xlir_direct_bridge_collection.xl" =
+        "XLIR direct runtime bridge has no exact declared ABI"
+    "bad_xlir_direct_bridge_input.xl" =
+        "XLIR direct runtime bridge has no exact declared ABI"
+    "bad_xlir_direct_bridge_result.xl" =
+        "XLIR direct runtime bridge has no exact declared ABI"
+    "bad_xlir_direct_bridge_width.xl" =
+        "XLIR direct runtime bridge has no exact declared ABI"
+    "bad_xlir_json_stream_wrong_callback.xl" =
+        "XLIR JSON stream runtime bridge has no exact callback/handle ABI"
+    "bad_xlir_json_stream_wrong_callback_result.xl" =
+        "XLIR JSON stream runtime bridge has no exact callback/handle ABI"
+    "bad_xlir_json_stream_wrong_factory.xl" =
+        "XLIR JSON stream runtime bridge has no exact callback/handle ABI"
+    "bad_xlir_json_stream_wrong_receiver.xl" =
+        "XLIR JSON stream runtime bridge has no exact callback/handle ABI"
+    "bad_xlir_json_stream_wrong_writer_arg.xl" =
+        "XLIR JSON stream runtime bridge has no exact callback/handle ABI"
+    "bad_xlir_json_value_missing_pretty.xl" =
+        "XLIR JSON value runtime bridge has no exact parameter/result ABI"
+    "bad_xlir_json_value_wrong_dom.xl" =
+        "XLIR JSON value runtime bridge has no exact parameter/result ABI"
+    "bad_xlir_json_value_wrong_input.xl" =
+        "XLIR JSON value runtime bridge has no exact parameter/result ABI"
+    "bad_xlir_json_value_wrong_pretty.xl" =
+        "XLIR JSON value runtime bridge has no exact parameter/result ABI"
+    "bad_xlir_json_value_wrong_result.xl" =
+        "XLIR JSON value runtime bridge has no exact parameter/result ABI"
+    "bad_xlir_text_output_extra_input.xl" =
+        "XLIR direct runtime bridge has no exact declared ABI"
+    "bad_xlir_text_output_missing_input.xl" =
+        "XLIR direct runtime bridge has no exact declared ABI"
+    "bad_xlir_text_output_wrong_input.xl" =
+        "XLIR direct runtime bridge has no exact declared ABI"
+    "bad_xlir_text_output_wrong_result.xl" =
+        "XLIR direct runtime bridge has no exact declared ABI"
+    "bad_xlir_xson_missing_option.xl" =
+        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xson_wrong_callback.xl" =
+        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xson_wrong_callback_result.xl" =
+        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xson_wrong_dom.xl" =
+        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xson_wrong_factory.xl" =
+        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xson_wrong_input.xl" =
+        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xson_wrong_option.xl" =
+        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xson_wrong_receiver.xl" =
+        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xson_wrong_result.xl" =
+        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
+    "bad_xlir_xson_wrong_writer_arg.xl" =
+        "XLIR XSON runtime bridge has no exact parameter/result/callback/handle ABI"
 }
 $explicitProbeFixtures = @(
     "test/cases/cgen_closure_auto_copy_probe.xl",
@@ -55,7 +127,7 @@ $explicitProbeFixtures = @(
 $fixtures = @(
     @(Get-ChildItem -LiteralPath (Join-Path $Root "test\cases") -File -Filter "xlir_*.xl" |
         Sort-Object Name |
-        Where-Object { $_.BaseName -notin $expectedLoweringFailures.Keys } |
+        Where-Object { $_.Name -notin $expectedLoweringFailures.Keys } |
         ForEach-Object { $_.BaseName }) + @(
             "cgen_generic_function", "cgen_generic_dedupe", "cgen_runtime_type_baseline",
             "cgen_typed_container_index_assign_objects_functions",
@@ -83,6 +155,39 @@ if ( ! (Test-Path -LiteralPath $outputDir -PathType Container) ) {
     New-Item -ItemType Directory -Path $outputDir | Out-Null
 }
 
+# This guard is also invoked directly by release and audit workflows. Rebuild the
+# generated-C include mirror here instead of depending on test.bat/common.bat to
+# have populated it first. Removing the old build-only mirror prevents deleted
+# runtime declarations from remaining visible through stale test artifacts.
+$runtimeIncludeDir = Join-Path $outputDir "__xl_runtime"
+if ( Test-Path -LiteralPath $runtimeIncludeDir ) {
+    Remove-Item -LiteralPath $runtimeIncludeDir -Recurse -Force
+}
+New-Item -ItemType Directory -Path $runtimeIncludeDir | Out-Null
+
+$runtimeHeaders = @(
+    "release\include\xl_runtime.h",
+    "release\include\xl_extlib_abi.h",
+    "release\include\xrt_decl.h",
+    "release\include\xruntime_decl.h"
+)
+$privateRuntimeHeaders = @(
+    Get-ChildItem -LiteralPath (Join-Path $Root "src\runtime") -File -Filter "xl6_*.h"
+)
+if ( $privateRuntimeHeaders.Count -eq 0 ) {
+    throw "XLIR determinism check found no private runtime declarations"
+}
+foreach ( $relativeHeader in $runtimeHeaders ) {
+    $sourceHeader = Join-Path $Root $relativeHeader
+    if ( ! (Test-Path -LiteralPath $sourceHeader -PathType Leaf) ) {
+        throw "XLIR determinism check requires runtime declaration: $sourceHeader"
+    }
+    Copy-Item -LiteralPath $sourceHeader -Destination $runtimeIncludeDir
+}
+foreach ( $sourceHeader in $privateRuntimeHeaders ) {
+    Copy-Item -LiteralPath $sourceHeader.FullName -Destination $runtimeIncludeDir
+}
+
 if ( !$SkipFixtureBatch ) {
 $previousPackagePath = $env:XLANG_PACKAGE_PATH
 $env:XLANG_PACKAGE_PATH = Join-Path $Root "test\fixtures"
@@ -90,9 +195,10 @@ try {
 # ABI negatives are verified, not silently excluded from the xlir_* inventory.
 # They must fail precisely before producing any C artifact.
 foreach ( $entry in $expectedLoweringFailures.GetEnumerator() ) {
-    $fixture = $entry.Key
+    $fixtureFile = $entry.Key
+    $fixture = [System.IO.Path]::GetFileNameWithoutExtension($fixtureFile)
     $expectedDiagnostic = $entry.Value
-    $source = Join-Path $Root "test\cases\$fixture.xl"
+    $source = Join-Path $Root "test\cases\$fixtureFile"
     $rejectedC = Join-Path $outputDir "$fixture.determinism-rejected.c"
     if ( Test-Path -LiteralPath $rejectedC ) { Remove-Item -LiteralPath $rejectedC }
     $process = New-Object System.Diagnostics.Process

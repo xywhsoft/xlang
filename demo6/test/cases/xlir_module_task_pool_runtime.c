@@ -4,6 +4,8 @@
 #define XRT_MODULE_SEM
 #include "lib/xrt/xrt.h"
 #include <assert.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -12,6 +14,16 @@ extern void pool_run_unload(void);
 extern unsigned pool_allocation_faults(void);
 extern unsigned pool_global_construction_fault_probe(void);
 extern unsigned pool_local_construction_fault_probe(int);
+static int parse_int_arg(const char* text)
+{
+    char* end = NULL;
+    long value;
+    errno = 0;
+    value = strtol(text, &end, 10);
+    assert(errno == 0 && end != text && *end == '\0' &&
+        value >= INT_MIN && value <= INT_MAX);
+    return (int)value;
+}
 static unsigned constructionChildren, constructionDrops, constructionHandles;
 void construction_child_created(void) { ++constructionChildren; }
 void construction_child_dropped(void) { ++constructionDrops; }
@@ -48,7 +60,7 @@ int main(int argc, char** argv)
     unsigned jobStart, selfStart, rejectStart;
     int smoke = argc == 2 && strcmp(argv[1], "--smoke") == 0;
     int selectedConstruction = argc == 3 && strcmp(argv[1], "--construction-variant") == 0
-        ? atoi(argv[2]) : -1;
+        ? parse_int_arg(argv[2]) : -1;
     int constructionProbe = argc == 2 && strcmp(argv[1], "--global-construction-fault") == 0;
     assert(smoke || ((argc == 1 || constructionProbe || (selectedConstruction >= 0 && selectedConstruction < 5)) && xrtMemDebugEnable(true)));
     if (!smoke) xrtMemDebugSnapshot(&initial);

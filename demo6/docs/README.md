@@ -65,6 +65,19 @@
 - `文档整理收口.md`：本轮文档整理后的索引、收口口径、剩余非阻断文档增强和验证命令。
 - `文档状态矩阵.md`：逐份标明当前文档身份、使用方式、维护触发条件和冲突处理顺序。
 
+### XLIR 实现合同与审计附录
+
+以下文档是统一 XLIR 当前实现的可核验合同和阶段审计证据。它们补充上层设计，
+不另行定义语言语义；发生冲突时仍以代码、主回归、质量门和当前权威设计为准。
+
+- 核心产物与执行边界：`XLIR独立产物依赖合同.md`、`XLIR对象拥有图接入评估.md`、`XLIR恢复执行与派发合同.md`、`XLIR批次收敛流程.md`。
+- 批次与视图所有权：`XLIR多视图发送拥有关系.md`、`XLIR连接候选拥有关系.md`、`XLIR完成事件拥有权交接.md`、`XLIR引用批次拥有关系.md`。
+- 原生传输与缓冲：`XLIR原生传输操作拥有权.md`、`XLIR原生传输调度拥有链.md`、`XLIR原生传输缓冲与冻结边界.md`、`XLIR原生缓冲拥有链.md`、`XLIR原生Transport壳生命周期.md`。
+- 原生端口、发送与父对象：`XLIR原生端口拥有链.md`、`XLIR原生发送与Accept拥有链.md`、`XLIR原生UDP发送拥有链.md`、`XLIRTCP父对象拥有图.md`、`XLIRUDP父对象拥有图.md`。
+- 原生网络对象与服务退休：`XLIR原生Dial拥有链.md`、`XLIR原生Engine端口拥有图.md`、`XLIR原生Engine拥有链.md`、`XLIR原生Socket拥有链.md`、`XLIR原生Watch拥有链.md`、`XLIR原生服务退休合同.md`。
+- Future、resolver 与系统请求：`XLIR原生Future映射合同.md`、`XLIR原生Future拥有关系.md`、`XLIR原生Resolver拥有图合同.md`、`XLIR原生ResolverFuture拥有链.md`、`XLIR原生OS请求拥有链.md`。
+- 回调、嵌入与任务：`XLIR原生回调收集.md`、`XLIR原生回调拥有链.md`、`XLIR原生嵌入命令拥有链.md`、`XLIR原生网络任务拥有链.md`。
+
 ## 历史任务单
 
 以下文件记录阶段性任务和立项背景。它们可以帮助理解实现来路，但若与“当前权威设计”冲突，以当前权威设计和当前代码为准。
@@ -96,7 +109,6 @@
 - `../release/examples/tutorial/README.md`：教学范例阅读顺序和运行入口。
 - `../release/examples/feature_suite/README.md`：功能范例套件索引、宿主文件和回归入口。
 - `../release/examples/apps/README.md`：复合应用范例索引和运行入口。
-- `../release/examples/games/README.md`：XGE 游戏范例清单、运行方法和无头回归入口。
 
 ## 测试资产文档
 
@@ -115,7 +127,6 @@
 - `../release/include/README.md`：公开 C API 头文件说明。
 - `../lib/README.md`：XRT 单头文件、libprobe fixture 和依赖维护规则。
 - `../release/README.md`：构建产物目录说明。
-- `../release/projects/function_interop/README.md`：C 与 xlang 函数指针双向互操作范例说明。
 - `../release/projects/xs_static/README.md`：静态 xs 原型项目说明和 smoke 入口。
 
 ## 维护规则

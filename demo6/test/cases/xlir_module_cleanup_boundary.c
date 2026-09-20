@@ -5,12 +5,24 @@
 #include "lib/xrt/xrt.h"
 #include "src/api/xl_foreign_error.h"
 #include <assert.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
 
 /* Shared native fixture for real language CLI, standalone and DLL API entry.
  * No generated-C inclusion: these tests exercise artifact symbol boundaries. */
 static int mode = -1, opened, closed, mask;
+static int parse_int_arg(const char* text)
+{
+    char* end = NULL;
+    long value;
+    errno = 0;
+    value = strtol(text, &end, 10);
+    assert(errno == 0 && end != text && *end == '\0' &&
+        value >= INT_MIN && value <= INT_MAX);
+    return (int)value;
+}
 void module_cleanup_configure(int selected)
 {
     mode = selected; opened = closed = mask = 0;
@@ -43,7 +55,7 @@ void* module_cleanup_open(int64_t id)
     int64_t* handle;
     if (mode < 0) {
         const char* selected = getenv("XLIR_MODULE_CLEANUP_CASE");
-        module_cleanup_configure(selected != NULL ? atoi(selected) : 0);
+        module_cleanup_configure(selected != NULL ? parse_int_arg(selected) : 0);
     }
     handle = (int64_t*)xrtMalloc(sizeof(*handle));
     assert(handle != NULL); *handle = id; ++opened; return handle;
