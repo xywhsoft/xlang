@@ -3574,8 +3574,16 @@ static int xlEmitUnitCToFileEx(XL_Context* ctx, XL6_CompileUnit* unit, const cha
     } else if ( !ok ) {
         xlSetCompileDiagError(ctx, unit);
     }
+    if ( !ok ) {
+        xl6OutputDiscard(&out);
+        return 0;
+    }
     xl6OutputClose(&out);
-    return ok;
+    if ( xl6OutputHasFailed(&out) ) {
+        xlSetError2(ctx, "cannot write C output", xl6OutputError(&out));
+        return 0;
+    }
+    return 1;
 }
 
 static int xlEmitUnitCToFile(XL_Context* ctx, XL6_CompileUnit* unit, const char* outputPath)
@@ -3600,8 +3608,16 @@ static int xlEmitUnitXlirCToFile(XL_Context* ctx, XL6_CompileUnit* unit,
     ok = xl6IrCgenEmitCEx(&out, &unit->ir, &unit->parse.diags, &options);
     if ( xl6OutputHasFailed(&out) ) { xlSetError2(ctx, "cannot write XLIR C output", xl6OutputError(&out)); ok = 0; }
     else if ( !ok ) xlSetCompileDiagError(ctx, unit);
+    if ( !ok ) {
+        xl6OutputDiscard(&out);
+        return 0;
+    }
     xl6OutputClose(&out);
-    return ok;
+    if ( xl6OutputHasFailed(&out) ) {
+        xlSetError2(ctx, "cannot write XLIR C output", xl6OutputError(&out));
+        return 0;
+    }
+    return 1;
 }
 
 static int xlEmitUnitDebugCToFile(XL_Context* ctx, XL6_CompileUnit* unit, const char* outputPath, const char* debugSourcePath)
@@ -3650,8 +3666,16 @@ static int xlEmitUnitHeaderToFile(XL_Context* ctx, XL6_CompileUnit* unit,
     } else if ( !ok ) {
         xlSetCompileDiagError(ctx, unit);
     }
+    if ( !ok ) {
+        xl6OutputDiscard(&out);
+        return 0;
+    }
     xl6OutputClose(&out);
-    return ok;
+    if ( xl6OutputHasFailed(&out) ) {
+        xlSetError2(ctx, "cannot write header output", xl6OutputError(&out));
+        return 0;
+    }
+    return 1;
 }
 
 static int xlcOutputOpen(XL_Context* ctx, XL6_Output* out, const char* outputPath, const char* desc)
@@ -5420,7 +5444,15 @@ XL_API int xlcEmitXlirHeader(XLC_Context* ctx, const char* outputPath, const cha
             xlSetError2(ctx->runtime, "cannot write XLIR C header output", xl6OutputError(&out));
             ok = 0;
         } else if ( !ok ) xlSetCompileDiagError(ctx->runtime, &ctx->unit);
-        xl6OutputClose(&out);
+        if ( ok ) {
+            xl6OutputClose(&out);
+            if ( xl6OutputHasFailed(&out) ) {
+                xlSetError2(ctx->runtime, "cannot write XLIR C header output", xl6OutputError(&out));
+                ok = 0;
+            }
+        } else {
+            xl6OutputDiscard(&out);
+        }
     }
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
