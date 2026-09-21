@@ -634,6 +634,11 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                     needs->needsClosureRuntime = 1;
                     needs->needsXCallRuntime = 1;
                 } else if ( module->instructions[i].asyncResultAbi ==
+                            XL6_IR_ASYNC_RESULT_RETAINED_ERROR ) {
+                    needs->needsXValueErrorBoxRuntime = 1;
+                    needs->needsXValueHandleRuntime = 1;
+                    needs->needsXValueTypeIdentityRuntime = 1;
+                } else if ( module->instructions[i].asyncResultAbi ==
                             XL6_IR_ASYNC_RESULT_RETAINED_FUTURE ) {
                     needs->needsXValueFutureRuntime = 1;
                 }

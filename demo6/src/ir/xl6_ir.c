@@ -8012,6 +8012,10 @@ static int xl6IrTaskAllPayloadBoxerSupported(
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:
         return 1;
+    case XL6_IR_ASYNC_RESULT_RETAINED_ERROR:
+        return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+               type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+               type->typeValueId != 0;
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:
         return xl6IrRuntimeCallableSignatureSupported(module, typeId);
     default:

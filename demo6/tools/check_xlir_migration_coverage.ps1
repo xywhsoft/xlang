@@ -1104,12 +1104,13 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "xlir_async_error_abi.xl", "xlir_async_error_race_abi.xl",
-    "sem_task_all_error_payload_xlir_rejected.xl",
-    "retained-error", "retain-error", "future-race",
-    "explicit TypeValueId rebind", "xrtErrorRef(a0)",
-    "xrtErrorFree(frame->p0)", "byte-for-byte deterministic",
-    "XLIR task.all payload has no canonical xvalue boxing ABI",
-    "-Werror", "repeated-await runtime"
+    "xlir_task_all_error_abi.xl",
+    "retained-error", "retain-error", "future-race", "future-all-xvalues",
+    "canonical TypeValueId binding", "xrtErrorRef(a0)",
+    "xl6TaskRuntimeV2Get()->Cleanup", "xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_ERROR)",
+    "byte-for-byte deterministic",
+    "xlir_xvalue_error_ref", "xvalue-project-error-ref",
+    "-Werror", "repeated-await runtime", "source re-await ABI"
 ) ) {
     if ( ! $asyncErrorAbiGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the retained-error async ownership gate: $required"
@@ -1224,7 +1225,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xlir_channel_resource_abi.xl", 'runtimeResourceAbiName -eq "channel"',
     "xlir_channel_captured_output_abi.xl", 'abiName -eq "retain-cell"',
-    'kindName -eq "temporary"', "unique boolean commit edge",
+    'temporary.kindName -ne "temporary"', "unique boolean commit edge",
     "take/exchange/failure-release ownership split",
     'runtimeResourceOpName -like "channel-*"',
     'runtimeOpName -like "channel-*"', 'kindName -eq "storage-address"',

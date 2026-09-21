@@ -605,7 +605,9 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 "static xerror* xlir_xvalue_project_error_ref(const xvalue* value, uint64_t typeId)\n"
                 "{\n"
                 "    void* handle = NULL;\n"
-                "    if (value == NULL || typeId == 0 || xrtValueTypeId(value) != typeId ||\n"
+                "    if (value == NULL || typeId == 0) abort();\n"
+                "    if (xrtValueType(value) == 0) return NULL;\n"
+                "    if (xrtValueTypeId(value) != typeId ||\n"
                 "        !xrtValueGetHandle(value, &handle, NULL, NULL) || handle == NULL) abort();\n"
                 "    return xrtErrorRef((const xerror*)handle);\n"
                 "}\n",
