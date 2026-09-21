@@ -71,7 +71,7 @@ int main(int argc,char** argv)
     xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);
     assert(xl_script_module_init(NULL));
     xdeadline deadline=xrtDeadlineAfter(10000000u);
-    while(!xlir_continuation_quiesce()){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    while(!xlir_continuation_quiesce(false)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
     assert(xl6_net_engine && xl6_net_resolver);wait_trace(2);
     if(!strcmp(mode,"pinned-engine")){
         xnetengine* engine=xl6_net_engine;assert(xrtNetEnginePin(engine));
@@ -89,7 +89,7 @@ int main(int argc,char** argv)
         assert(CloseHandle(state.entered) && CloseHandle(state.release));
     }else finish();
     assert(xl_script_module_init(NULL));
-    while(!xlir_continuation_quiesce()){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    while(!xlir_continuation_quiesce(false)){assert(!xrtDeadlineExpired(deadline));xrtThreadYield();}
     finish();
     xrtClearError();assert(xrtRuntimeRetireThreadStorage());xrtMemDebugSnapshot(&after);
     bool balanced=before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes &&

@@ -69,7 +69,7 @@ static void xl6IrCgenEmitRetireSteps(XL6_Output* out, const XL6_IrModule* module
         "    xl6_error_scope cleanup = {0}; xl6_error_result outcome;\n", out);
     if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
         xl6OutputPuts("    if (xlir_module_initializing) return XL6_MODULE_RETIRE_BUSY;\n", out);
-    xl6OutputPuts("    prepared = xlir_module_prepare_resources(true);\n"
+    xl6OutputPuts("    prepared = xlir_module_prepare_resources(true, wait);\n"
         "    if (prepared == XL6_MODULE_PREPARE_BUSY) return XL6_MODULE_RETIRE_BUSY;\n"
         "    if (prepared != XL6_MODULE_PREPARE_READY) return XL6_MODULE_RETIRE_FAILED;\n"
         "    if (!xl6ErrorScopeBeginCleanup(&cleanup, false)) abort();\n"

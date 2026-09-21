@@ -1,5 +1,6 @@
 param([Parameter(Mandatory=$true)][string]$PublicDirectory,
-    [Parameter(Mandatory=$true)][string]$Directory)
+    [Parameter(Mandatory=$true)][string]$Directory,
+    [ValidateRange(1,3600)][int]$RunTimeoutSeconds=180)
 $ErrorActionPreference='Stop'
 $rootPath=Split-Path -Parent $PSScriptRoot
 Push-Location $rootPath
@@ -33,14 +34,14 @@ try {
         if(!$buildExit){
 $process=Start-Process -FilePath $binary -WindowStyle Hidden -WorkingDirectory $rootPath -PassThru -RedirectStandardOutput "$outputPath/$name.out.log" -RedirectStandardError "$outputPath/$name.err.log"
             $null = $process.Handle
-            if(!$process.WaitForExit(60000)){$process.Kill();$process.WaitForExit();$run=-999}else{$process.Refresh();$run=$process.ExitCode}
+            if(!$process.WaitForExit($RunTimeoutSeconds*1000)){$process.Kill();$process.WaitForExit();$run=-999}else{$process.Refresh();$run=$process.ExitCode}
             $process.Dispose()
         }
         $timer.Stop();$rows+=[pscustomobject]@{Name=$name;Build=$buildExit;Run=$run;Complete=$buildExit-eq 0-and$run-eq 0;Seconds=[Math]::Round($timer.Elapsed.TotalSeconds,3)}
         Write-Output "$name build=$buildExit run=$run"
     }
     $unchanged=@($inputs|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash-ne$_.Sha256}).Count-eq 0
-    $report=[pscustomobject]@{Complete=$unchanged-and@($rows|Where-Object {!$_.Complete}).Count-eq 0;Inputs=$inputs;InputsUnchanged=$unchanged;Results=$rows;
+    $report=[pscustomobject]@{Complete=$unchanged-and@($rows|Where-Object {!$_.Complete}).Count-eq 0;Inputs=$inputs;InputsUnchanged=$unchanged;RunTimeoutSeconds=$RunTimeoutSeconds;Results=$rows;
         Scope='Resident service lifecycle and verified IR contract only. No complete native service ownership graph or release acceptance claim.'}
     [IO.File]::WriteAllText("$outputPath/results.json",($report|ConvertTo-Json -Depth 7),[Text.UTF8Encoding]::new($false))
     if(!$report.Complete){throw 'Collected network-service contract/runtime failures'}

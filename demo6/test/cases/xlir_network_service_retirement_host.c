@@ -48,7 +48,7 @@ int main(int argc,char** argv)
     assert(xrtMemDebugEnable(true));xrtMemDebugSnapshot(&before);
     assert(xl_script_module_init(NULL));
     xdeadline deadline=xrtDeadlineAfter(10000000u);
-    while(!xlir_continuation_quiesce()) { assert(!xrtDeadlineExpired(deadline));xrtThreadYield(); }
+    while(!xlir_continuation_quiesce(false)) { assert(!xrtDeadlineExpired(deadline));xrtThreadYield(); }
     assert(xlir_module_initialized==2 && xl6_net_engine && xl6_net_resolver && !xrtGetError());
     xnetengine* engine=xl6_net_engine;
     xnetresolver* resolver=xl6_net_resolver;

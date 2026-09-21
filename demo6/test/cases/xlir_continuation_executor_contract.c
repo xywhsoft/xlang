@@ -48,6 +48,8 @@ static void execute(void* data)
             xl6ContinuationBlockingLeave(item->executor);
         }
     } else if (item->blocking) atomic_store_explicit(&seen->unblocked, 1, memory_order_release);
+    assert(xl6ContinuationComplete(&item->ticket));
+    if (!item->blocking) atomic_store_explicit(&seen->phase, 1, memory_order_release);
 }
 static void retire(void* data)
 {
@@ -171,8 +173,12 @@ int main(void)
         assert(xl6ContinuationExecutorReserve(executor, &extra, execute, retire, NULL) == XL6_CONTINUATION_FULL);
         xl6ContinuationExecutorClose(executor);
         assert(!xl6ContinuationExecutorDestroy(executor));
+        assert(!xl6ContinuationExecutorDestroyCompleted(executor));
         assert(xl6ContinuationExecutorReserve(executor, &extra, execute, retire, NULL) == XL6_CONTINUATION_CLOSED);
-        publish(item); await_count(&seen.done, 1); finish(executor);
+        publish(item);
+        if (round & 1) { await_count(&seen.done, 1); finish(executor); }
+        else { await_count(&seen.phase, 1); assert(xl6ContinuationExecutorDestroyCompleted(executor)); }
+        await_count(&seen.done, 1);
         assert(seen.runs[0] == 1 && seen.releases[0] == 1 && seen.threads[0] != producer);
         balanced(&before);
     }

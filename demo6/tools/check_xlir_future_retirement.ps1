@@ -12,7 +12,8 @@ try {
     $runtime=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -eq 'xrt_single_header_impl.o'})
     $driver=Join-Path $ContractDirectory 'xlir_code_owner_binding_contract.exe'
     if(!$build.SourceXrt -or $runtime.Count -ne 1){throw 'Current source runtime required'}
-    $files=@(Get-Item -LiteralPath $PSCommandPath,$driver,$Tcc,'C:/Windows/System32/ucrtbase.dll',(Get-Command gcc).Source,
+    $files=@(Get-Item -LiteralPath $PSCommandPath,(Join-Path $PSScriptRoot 'xlir_native_process.ps1'),
+        $driver,$Tcc,'C:/Windows/System32/ucrtbase.dll',(Get-Command gcc).Source,
         'test/cases/xlir_future_plan_runtime.c','test/cases/xlir_class_callable_plan_runtime.c',
         'test/cases/xlir_future_retirement.xl','test/cases/xlir_future_retirement_artifact.c','test/cases/xlir_future_retirement_tcc_host.c',
         'test/cases/xlir_one_shot_tcc_host.c','release/xl.dll')
@@ -32,15 +33,29 @@ try {
     }
     foreach($ext in @('c','h','json')){if((Get-FileHash "$prefix.generated.$ext").Hash -ne (Get-FileHash "$prefix.repeat.$ext").Hash){throw 'Future retirement emission changed'}}
     $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$rows=@()
+    # Compile the complete resident closure of FUTURE_PAYLOAD.  Its policy
+    # table can destroy and trace generator payloads even when this fixture
+    # exercises only the other policy rows, so a smaller ad-hoc link would not
+    # represent the production artifact graph.  FOREIGN_ERROR is already part
+    # of the selected single-header XRT implementation TU in every lane.
     $sources=@('test/cases/xlir_future_plan_runtime.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c',
-        'src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_ownership_plan.c','src/runtime/xl6_future_payload.c')
+        'src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_ownership_plan.c',
+        'src/runtime/xl6_future_payload.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c',
+        'src/runtime/xl6_generator.c')
     foreach($lane in @('gcc-O0','gcc-O2','tcc')){
         $binary="$outputPath/plan-$lane.exe"
-        if($lane -eq 'tcc'){& $Tcc -std=c11 -Wall -Werror -I. @sources tools/xrt_single_header_impl.c C:/Windows/System32/ucrtbase.dll @libs -o $binary *> "$outputPath/plan-$lane.build.log"}
-        else{& gcc -std=c11 -Wall -Wextra -Werror "-$($lane.Substring(4))" -I. @sources $runtime[0].Path @libs -o $binary *> "$outputPath/plan-$lane.build.log"}
-        $buildExit=$LASTEXITCODE;$run=$null;$complete=$false
+        if($lane -eq 'tcc'){
+            $arguments=@('-std=c11','-Wall','-Werror','-I.')+$sources+
+                @('tools/xrt_single_header_impl.c','C:/Windows/System32/ucrtbase.dll')+$libs+@('-o',$binary)
+            $buildExit=Invoke-XlirNativeToLog $Tcc $arguments "$outputPath/plan-$lane.build.log"
+        } else {
+            $arguments=@('-std=c11','-Wall','-Wextra','-Werror',"-$($lane.Substring(4))",'-I.')+$sources+
+                @($runtime[0].Path)+$libs+@('-o',$binary)
+            $buildExit=Invoke-XlirNativeToLog (Get-Command gcc).Source $arguments "$outputPath/plan-$lane.build.log"
+        }
+        $run=$null;$complete=$false
         if(!$buildExit){
-            & $binary *> "$outputPath/plan-$lane.run.log";$run=$LASTEXITCODE
+            $run=Invoke-XlirNativeToLog $binary @() "$outputPath/plan-$lane.run.log"
             $complete=$run -eq 0 -and [bool](Select-String -LiteralPath "$outputPath/plan-$lane.run.log" -Pattern '^Future plans: 225 physical graphs, 289 once-only finalizers, 189 producer closes, 50 pre-trace observer refusals, 64 OOM probes with [1-9][0-9]* real failures; .*zero live delta$' -Quiet)
         }
         $rows+=[pscustomobject]@{Lane="plan-$lane";Build=$buildExit;Run=$run;Complete=$complete}
@@ -53,12 +68,13 @@ try {
     $dependencies=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -notin $excluded} | ForEach-Object Path)
     foreach($level in @('O0','O2')){
         $binary="$outputPath/tcc-host-$level.exe"
-        & gcc @flags "-$level" test/cases/xlir_future_retirement_tcc_host.c @dependencies release/xl.dll @libs -o $binary *> "$outputPath/tcc-host-$level.build.log"
-        $buildExit=$LASTEXITCODE
+        $arguments=$flags+@("-$level",'test/cases/xlir_future_retirement_tcc_host.c')+$dependencies+
+            @('release/xl.dll')+$libs+@('-o',$binary)
+        $buildExit=Invoke-XlirNativeToLog (Get-Command gcc).Source $arguments "$outputPath/tcc-host-$level.build.log"
         foreach($mode in 0..5){
             $run=$null;$complete=$false;$log="$outputPath/tcc-host-$level-mode$mode.run.log"
             if(!$buildExit){
-                & $binary $mode *> $log;$run=$LASTEXITCODE
+                $run=Invoke-XlirNativeToLog $binary @([string]$mode) $log
                 $complete=$run -eq 0 -and [bool](Select-String -LiteralPath $log -SimpleMatch "Future retirement mode=${mode}: 25 real TCC lifetimes, 75 internal finalizers, independent aliases and zero live delta" -Quiet)
             }
             $rows+=[pscustomobject]@{Lane="tcc-host-$level-mode$mode";Build=$buildExit;Run=$run;Complete=$complete}

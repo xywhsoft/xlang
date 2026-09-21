@@ -90,6 +90,16 @@ static void xl6IrCgenEmitAsyncResultRollback(
     xl6OutputPuts("    xrtSetErrorTake(capture_outcome.error); }\n", out);
 }
 
+/* A resumed activation publishes its terminal Future only after lexical
+ * cleanup and after committing that no successor can be created. Checked
+ * module teardown may then wait for the physical queue/release tail without
+ * ever waiting on an activation still suspended on an external Future. */
+static void xl6IrCgenEmitAsyncCompletionBarrier(XL6_Output* out, int launch)
+{
+    if (!launch)
+        xl6OutputPuts("      if (!xl6ContinuationComplete(&frame->ticket)) abort();\n", out);
+}
+
 static int xl6IrCgenEmitAsyncResultCommit(
     XL6_Output* out, const XL6_IrModule* module, const XL6_IrCallTarget* target,
     const XL6_IrAsyncMachine* machine, const XL6_IrInstruction* instruction,
@@ -118,6 +128,7 @@ static int xl6IrCgenEmitAsyncResultCommit(
         "      if (value == NULL) {\n"
         "        if (xrtGetError() == NULL) xrtSetErrorKind(XERR_MEMORY);\n", type);
     xl6IrCgenEmitAsyncResultRollback(out, target, launch, unboxedDrop);
+    xl6IrCgenEmitAsyncCompletionBarrier(out, launch);
     xl6OutputPrintf(out, "        xlir_async_result_fail(%s);\n", promise);
     if (launch) xl6OutputPuts("        xrtPromiseDestroy(promise); return ready;\n", out);
     else xl6OutputPuts("        return;\n", out);
@@ -126,10 +137,13 @@ static int xl6IrCgenEmitAsyncResultCommit(
         "      if (!retired.ok) {\n        xrtSetErrorTake(retired.error);\n",
         (unsigned int)module->operands[instruction->firstOperand], (unsigned int)target->symbol);
     xl6IrCgenEmitAsyncResultRollback(out, target, launch, boxedDrop);
+    xl6IrCgenEmitAsyncCompletionBarrier(out, launch);
     xl6OutputPrintf(out, "        xlir_async_result_fail(%s);\n", promise);
     if (launch) xl6OutputPuts("        xrtPromiseDestroy(promise); return ready;\n", out);
     else xl6OutputPuts("        return;\n", out);
-    xl6OutputPuts("      }\n      if (!", out);
+    xl6OutputPuts("      }\n", out);
+    xl6IrCgenEmitAsyncCompletionBarrier(out, launch);
+    xl6OutputPuts("      if (!", out);
     if (!xl6IrCgenEmitAsyncPayloadPublish(out, target->asyncResultAbi, promise, "value")) return 0;
     xl6OutputPuts(") {\n        if (xrtGetError() == NULL) xrtSetErrorKind(XERR_STATE);\n", out);
     xl6IrCgenEmitAsyncResultRollback(out, target, launch, boxedDrop);
@@ -500,6 +514,7 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
             "    { xl6_error_result retired = {false, xrtTakeError()};\n"
             "      retired = xlir_async_machine_frame_retire_%u(frame, retired);\n",
             (unsigned int)target->symbol);
+        xl6IrCgenEmitAsyncCompletionBarrier(out, launch);
         if ( launch )
             xl6OutputPrintf(out,
                 "      xfuture* failed = NULL; xpromise* rejected = xrtPromiseCreate(&failed, NULL);\n"

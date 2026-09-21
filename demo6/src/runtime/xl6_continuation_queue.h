@@ -56,7 +56,8 @@ typedef struct XL6_ContinuationStorageV2 {
     void (*Ready)(const void*);
 } XL6_ContinuationStorageV2;
 enum { XL6_CONTINUATION_COMMITTED = 1u, XL6_CONTINUATION_READY = 2u,
-    XL6_CONTINUATION_TRANSPORT_RELEASED = 4u, XL6_CONTINUATION_RUNNING = 8u };
+    XL6_CONTINUATION_TRANSPORT_RELEASED = 4u, XL6_CONTINUATION_RUNNING = 8u,
+    XL6_CONTINUATION_COMPLETED = 16u };
 typedef struct XL6_ContinuationTicket {
     /* Private after Reserve; zero-initialize before first use. Storage stays
      * alive until release or successful Abort. Never copy an active ticket. */
@@ -146,6 +147,13 @@ XL6_CONTINUATION_API XL6_ContinuationAdmission xl6ContinuationReserveSuccessor(
 XL6_CONTINUATION_API void xl6ContinuationCommit(XL6_ContinuationTicket*);
 void xl6ContinuationReady(XL6_ContinuationTicket*);
 void xl6ContinuationTransportReleased(XL6_ContinuationTicket*);
+/* Commit the semantic completion barrier of the currently running logical
+ * activation. The caller has finished lexical cleanup and must invoke this
+ * before publishing its terminal Future outcome. A completed activation can
+ * no longer reserve a successor. This marker lets checked module teardown
+ * wait for the short physical release tail without waiting on an unresolved
+ * external Future. Invalid, duplicate or nonterminal use returns false. */
+XL6_CONTINUATION_API bool xl6ContinuationComplete(XL6_ContinuationTicket*);
 /* Registration failure before any event: return ownership to the caller,
  * without running or releasing language state on the admission thread. */
 XL6_CONTINUATION_API bool xl6ContinuationAbort(XL6_ContinuationTicket*);
@@ -160,6 +168,12 @@ bool xl6ContinuationRunOne(XL6_ContinuationQueue*);
 bool xl6ContinuationWaitRunOne(XL6_ContinuationQueue*);
 bool xl6ContinuationWaitRunOwned(XL6_ContinuationQueue*, XL6_ContinuationWaitSlot*);
 bool xl6ContinuationQueueIsIdle(XL6_ContinuationQueue*);
+/* If every accepted logical activation has crossed Complete, wait for their
+ * physical release/code-owner tails and return true. Otherwise return false
+ * immediately: Close is not cancellation and an external Future may never
+ * become ready. The completed barrier forbids new successors, so a successful
+ * admission cannot turn back into an externally suspended wait. */
+bool xl6ContinuationQueueWaitCompleted(XL6_ContinuationQueue*);
 /* Root execution credits, including provisional reservations and a final
  * code-owner release in progress. Used by admission to provision workers
  * BEFORE a root can publish. A successor inherits, never duplicates a credit. */

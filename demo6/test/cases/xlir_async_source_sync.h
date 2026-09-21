@@ -20,7 +20,7 @@ static void xlir_async_test_fini(void)
     xlir_async_test_wait_retired();
     /* The resident queue credit is released just AFTER the final code hook.
      * Honor that small busy window before trying the generated cleanup. */
-    while (!xlir_continuation_quiesce()) xlir_async_test_pause(&started);
+    while (!xlir_continuation_quiesce(false)) xlir_async_test_pause(&started);
     xlir_module_fini(); assert(!xrtGetError());
 }
 #endif

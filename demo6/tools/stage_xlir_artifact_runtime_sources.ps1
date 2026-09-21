@@ -19,7 +19,7 @@ function Stage-File([string]$source, [string]$relative) {
 # Materialize the compiler-relative development layout already understood by
 # xlGetProjectRoot, using the source/header mappings of the shipped package.
 # This is not a generated VFS and does not build the import-xlang/TCC payload.
-foreach ($entry in Get-Content tools/tcc_vfs_manifest_win64_xlc.txt) {
+foreach ($entry in Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt -Encoding UTF8) {
     if ($entry.StartsWith('dir|__xl_compiler/src|')) {
         $parts = $entry.Split('|'); $sourceRoot = $parts[2].Replace('%XL6_ROOT%',$rootPath)
         $patterns = $parts[3].Split(';')

@@ -53,7 +53,10 @@ int main(int argc, char** argv)
         text = xl6OutputTakeMemoryText(&out, NULL); assert(text);
         if (!n) assert(strstr(text, "xl_script_module_retirement_v3(void)") && !strstr(text, "xl_script_module_retirement_v2(void)") &&
             strstr(text, "visit(xl6ContinuationExecutorOwnership(xlir_continuation_executor), context)") &&
-            strstr(text, "if (teardown && !xlir_continuation_quiesce())") && !strstr(text, "xlir_continuation_executor != NULL) return false"));
+            strstr(text, "if (teardown && !xlir_continuation_quiesce(wait))") &&
+            strstr(text, "xl6ContinuationExecutorDestroyCompleted(xlir_continuation_executor)") &&
+            strstr(text, "xl6ContinuationComplete(&frame->ticket)") &&
+            !strstr(text, "xlir_continuation_executor != NULL) return false"));
         else assert(strstr(text, "xl_script_module_retirement_v2(void)") && !strstr(text, "xl_script_module_retirement_v3(void)"));
         xrtFree(text);
         assert(xl6OutputOpenMemory(&out)); xl6IrDumpModuleText(&out, &ir);
