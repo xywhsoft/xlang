@@ -10,6 +10,7 @@ if ( $Root -eq "" ) {
 
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_channel_resource_abi.xl"
+$capturedSource = Join-Path $Root "test\cases\xlir_channel_captured_output_abi.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_generated_module_diagnostic_host.c"
 $outputDir = Join-Path $Root "build\tmp"
 $testDir = Join-Path $Root "build\test"
@@ -18,8 +19,12 @@ $loweredJson = Join-Path $outputDir "xlir_channel_resource_abi.lowered.json"
 $generatedC = Join-Path $outputDir "xlir_channel_resource_abi.c"
 $generatedCSecond = Join-Path $outputDir "xlir_channel_resource_abi.second.c"
 $legacyC = Join-Path $outputDir "xlir_channel_resource_abi.legacy.c"
+$capturedTypedJson = Join-Path $outputDir "xlir_channel_captured_output_abi.typed.json"
+$capturedLoweredJson = Join-Path $outputDir "xlir_channel_captured_output_abi.lowered.json"
+$capturedGeneratedC = Join-Path $outputDir "xlir_channel_captured_output_abi.c"
+$capturedGeneratedCSecond = Join-Path $outputDir "xlir_channel_captured_output_abi.second.c"
 
-foreach ( $path in @($xl, $source, $hostSource) ) {
+foreach ( $path in @($xl, $source, $capturedSource, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR channel resource ABI gate input is missing: $path"
     }
@@ -241,6 +246,154 @@ if ( @($lowered.instructions | Where-Object {
     throw "XLIR channel receive storage-address count changed"
 }
 
+# Captured output targets are shared cells, not caller stack addresses.  The
+# runtime call writes through a function-local temporary and lowering commits
+# that temporary to the cell only along the operation's true edge.  Keep this
+# contract in JSON so Cgen never has to rediscover closure representation.
+& $xl ir $capturedSource --format json --emit $capturedTypedJson
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR captured channel output Typed IR failed" }
+$capturedTyped = [System.IO.File]::ReadAllText(
+    $capturedTypedJson, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+$capturedTypedCalls = @($capturedTyped.intrinsicCalls | Where-Object {
+    $_.runtimeResourceOpName -eq "channel-recv-into" -or
+    $_.runtimeResourceOpName -eq "channel-try-recv-into" -or
+    $_.runtimeResourceOpName -eq "channel-recv-timeout-into"
+})
+if ( $capturedTypedCalls.Count -ne 6 ) {
+    throw "XLIR captured channel output must contain six verified receive operations"
+}
+foreach ( $payloadAbi in @("trivial-copy", "string-copy", "xvalue-retain") ) {
+    if ( @($capturedTypedCalls | Where-Object {
+             $_.runtimeResourcePayloadAbiName -eq $payloadAbi
+         }).Count -ne 2 ) {
+        throw "XLIR captured channel output payload ABI coverage changed: $payloadAbi"
+    }
+}
+foreach ( $call in $capturedTypedCalls ) {
+    $operands = @($capturedTyped.intrinsicOperands |
+        Select-Object -Skip $call.firstOperand -First $call.operandCount)
+    $takesTimeout = $call.runtimeResourceOpName -eq
+        "channel-recv-timeout-into"
+    if ( $call.admissionName -ne "verified" -or
+         $operands.Count -ne $(if ($takesTimeout) { 3 } else { 2 }) -or
+         $operands[0].abiName -ne "borrow" -or
+         $operands[1].abiName -ne "storage-ref" -or
+         ($takesTimeout -and $operands[2].abiName -ne "value") ) {
+        throw "XLIR captured channel output lost its verified storage-ref contract"
+    }
+}
+
+& $xl ir $capturedSource --lowered --format json --emit $capturedLoweredJson
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR captured channel output Lowered IR failed" }
+$capturedLowered = [System.IO.File]::ReadAllText(
+    $capturedLoweredJson, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+$capturedOperations = @($capturedLowered.instructions | Where-Object {
+    $_.runtimeOpName -eq "channel-recv-into" -or
+    $_.runtimeOpName -eq "channel-try-recv-into" -or
+    $_.runtimeOpName -eq "channel-recv-timeout-into"
+})
+$capturedCells = @($capturedLowered.closureCaptures | Where-Object {
+    $_.abiName -eq "retain-cell"
+})
+if ( $capturedOperations.Count -ne 6 -or $capturedCells.Count -ne 6 -or
+     @($capturedCells | Group-Object type).Count -ne 3 -or
+     @($capturedCells | Group-Object type | Where-Object Count -ne 2).Count -ne 0 ) {
+    throw "XLIR captured channel outputs do not have exact scalar/string/xvalue cell captures"
+}
+$definitions = @{}
+foreach ( $instruction in $capturedLowered.instructions ) {
+    if ( $instruction.result -ne 0 ) {
+        $definitions[[string]$instruction.result] = $instruction
+    }
+}
+$storages = @{}
+foreach ( $storage in $capturedLowered.storages ) {
+    $storages[[string]$storage.symbol] = $storage
+}
+$cellSymbols = New-Object System.Collections.Generic.HashSet[string]
+foreach ( $capture in $capturedCells ) {
+    $cellSymbols.Add([string]$capture.storageSymbol) | Out-Null
+}
+foreach ( $operation in $capturedOperations ) {
+    $address = $definitions[[string]$operation.operands[1]]
+    $temporary = if ( $null -ne $address ) {
+        $storages[[string]$address.targetSymbol]
+    } else { $null }
+    if ( $null -eq $address -or $address.kindName -ne "storage-address" -or
+         $null -eq $temporary -or $temporary.kindName -ne "temporary" -or
+         $cellSymbols.Contains([string]$address.targetSymbol) ) {
+        throw "XLIR captured channel output exposes a cell or outer activation address"
+    }
+    $originInstructions = @($capturedLowered.instructions | Where-Object {
+        $_.origin -eq $operation.origin
+    })
+    $commitBranches = @($originInstructions | Where-Object {
+        $_.kindName -eq "branch" -and $_.operands.Count -eq 1 -and
+        $_.operands[0] -eq $operation.result
+    })
+    if ( $commitBranches.Count -ne 1 ) {
+        throw "XLIR captured channel output has no unique boolean commit edge"
+    }
+    $initialStores = @($originInstructions | Where-Object {
+        $_.kindName -eq "store" -and
+        $_.targetSymbol -eq $address.targetSymbol
+    })
+    $initialValue = if ( $initialStores.Count -eq 1 -and
+                         $initialStores[0].operands.Count -eq 1 ) {
+        $definitions[[string]$initialStores[0].operands[0]]
+    } else { $null }
+    $expectedInitialKind = if (
+        $operation.runtimeResourcePayloadAbiName -eq "trivial-copy"
+    ) { "const" } else { "null" }
+    if ( $null -eq $initialValue -or
+         $initialValue.kindName -ne $expectedInitialKind -or
+         $initialValue.type -ne $operation.payloadType ) {
+        throw "XLIR captured channel output temporary has no canonical initial owner"
+    }
+    if ( $operation.runtimeResourcePayloadAbiName -eq "trivial-copy" ) {
+        $loads = @($originInstructions | Where-Object {
+            $_.kindName -eq "load" -and
+            $_.targetSymbol -eq $address.targetSymbol
+        })
+        $stores = @($originInstructions | Where-Object {
+            $_.kindName -eq "cell-store" -and
+            $cellSymbols.Contains([string]$_.targetSymbol)
+        })
+        if ( $loads.Count -ne 1 -or $stores.Count -ne 1 -or
+             $stores[0].operands.Count -ne 1 -or
+             $stores[0].operands[0] -ne $loads[0].result ) {
+            throw "XLIR captured trivial output has no exact load/cell-store commit"
+        }
+    } else {
+        $takes = @($originInstructions | Where-Object {
+            $_.kindName -eq "storage-take" -and
+            $_.targetSymbol -eq $address.targetSymbol
+        })
+        $exchanges = @($originInstructions | Where-Object {
+            $_.kindName -eq "cell-exchange" -and
+            $cellSymbols.Contains([string]$_.targetSymbol)
+        })
+        $failureReleases = @($originInstructions | Where-Object {
+            $_.kindName -eq "release" -and
+            $_.targetSymbol -eq $address.targetSymbol
+        })
+        if ( $takes.Count -ne 1 -or $exchanges.Count -ne 1 -or
+             $failureReleases.Count -ne 1 -or
+             $exchanges[0].operands.Count -ne 1 -or
+             $exchanges[0].operands[0] -ne $takes[0].result ) {
+            throw "XLIR captured managed output has no exact take/exchange/failure-release ownership split"
+        }
+    }
+}
+foreach ( $address in @($capturedLowered.instructions | Where-Object {
+    $_.kindName -eq "storage-address"
+}) ) {
+    $storage = $storages[[string]$address.targetSymbol]
+    if ( $null -eq $storage -or $storage.kindName -ne "temporary" ) {
+        throw "XLIR captured channel output contains a non-local storage address"
+    }
+}
+
 & $xl cgen $source --backend xlir --emit $generatedC
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR channel resource C generation failed" }
 & $xl cgen $source --backend xlir --emit $generatedCSecond
@@ -250,6 +403,28 @@ $second = [System.IO.File]::ReadAllText(
     $generatedCSecond, [System.Text.Encoding]::UTF8)
 if ( $c -cne $second ) {
     throw "XLIR channel resource generated C is not byte-for-byte deterministic"
+}
+
+& $xl cgen $capturedSource --backend xlir --emit $capturedGeneratedC
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR captured channel output C generation failed" }
+& $xl cgen $capturedSource --backend xlir --emit $capturedGeneratedCSecond
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR captured channel output repeat C generation failed" }
+$capturedC = [System.IO.File]::ReadAllText(
+    $capturedGeneratedC, [System.Text.Encoding]::UTF8)
+$capturedSecond = [System.IO.File]::ReadAllText(
+    $capturedGeneratedCSecond, [System.Text.Encoding]::UTF8)
+if ( $capturedC -cne $capturedSecond ) {
+    throw "XLIR captured channel output generated C is not byte-for-byte deterministic"
+}
+if ( ([regex]::Matches($capturedC, 'v[0-9]+ = xlir_channel_recv\(')).Count -ne 6 -or
+     ! $capturedC.Contains('(xl6CellRuntimeV1Get()->Store)') -or
+     ! $capturedC.Contains('(xl6CellRuntimeV1Get()->Exchange)') ) {
+    throw "XLIR captured channel output mechanical C lost its verified receive/cell operations"
+}
+foreach ( $forbidden in @("XL6_AST_", "xl6IrNodeGet", "xl6IrCgenLegacy") ) {
+    if ( $capturedC.Contains($forbidden) ) {
+        throw "XLIR captured channel output Cgen leaked source/legacy machinery: $forbidden"
+    }
 }
 foreach ( $required in @(
     "typedef struct xlir_channel_handle", "volatile int32_t refs",
@@ -309,6 +484,12 @@ if ( $LASTEXITCODE -ne 0 ) {
     throw "XLIR channel resource strict-C/runtime gate failed"
 }
 
+$capturedCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\tmp\xlir_channel_captured_output_abi.c test\cases\xlir_generated_module_diagnostic_host.c !XL6_CGEN_LINKS! -o build\test\xlir_channel_captured_output_abi.exe && build\test\xlir_channel_captured_output_abi.exe'
+& $env:ComSpec /d /v:on /c $capturedCommand
+if ( $LASTEXITCODE -ne 0 ) {
+    throw "XLIR captured channel output strict-C/runtime gate failed"
+}
+
 & $xl cgen $source --backend legacy --emit $legacyC
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR channel resource legacy C generation failed" }
 # Legacy Cgen still renders void channel.close() as a comma expression that is
@@ -320,5 +501,5 @@ if ( $LASTEXITCODE -ne 0 ) {
     throw "XLIR channel resource legacy differential runtime gate failed"
 }
 
-Write-Output "XLIR channel resource ABI gate passed: exact channel<T>/payload identities, explicit storage refs and error edges, retained local capture, deterministic mechanical C, strict runtime, and legacy differential semantics."
+Write-Output "XLIR channel resource ABI gate passed: exact channel<T>/payload identities, explicit storage refs and error edges, captured scalar/string/xvalue outputs through local temporaries and success-only cell commits, deterministic mechanical C, strict runtime, and legacy differential semantics for the common subset."
 exit 0

@@ -37,7 +37,9 @@ for /L %%I in (1,1,5) do (
     )
 )
 
-release\xl.exe cgen test\cases\cgen_channel.xl --emit build\test\cgen_channel.c
+rem The textual assertions below intentionally preserve legacy-backend coverage.
+rem Default Cgen may be XLIR, whose mechanical helper ABI is covered separately.
+release\xl.exe cgen test\cases\cgen_channel.xl --backend legacy --emit build\test\cgen_channel.c
 if errorlevel 1 exit /b 1
 
 findstr /C:"xl6ChannelCreate" build\test\cgen_channel.c >nul
@@ -122,7 +124,7 @@ for /L %%I in (1,1,5) do (
         exit /b 1
     )
 )
-release\xl.exe cgen test\cases\cgen_channel_string.xl --emit build\test\cgen_channel_string.c
+release\xl.exe cgen test\cases\cgen_channel_string.xl --backend legacy --emit build\test\cgen_channel_string.c
 if errorlevel 1 exit /b 1
 findstr /C:"xl6_channel_send_string" build\test\cgen_channel_string.c >nul
 if errorlevel 1 (
@@ -342,27 +344,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-release\xl.exe check test\cases\sem_channel_recv_captured_target.xl >nul 2> build\test\sem_channel_recv_captured_target.err.txt
-if not errorlevel 1 (
-    echo sem_channel_recv_captured_target.xl should fail.
-    exit /b 1
-)
-findstr /C:"[sem]" build\test\sem_channel_recv_captured_target.err.txt >nul
-if errorlevel 1 (
-    echo sem_channel_recv_captured_target.xl missing semantic diagnostic.
-    exit /b 1
-)
+release\xl.exe check test\cases\sem_channel_recv_captured_target.xl
+if errorlevel 1 exit /b 1
 
-release\xl.exe check test\cases\sem_channel_try_recv_captured_target.xl >nul 2> build\test\sem_channel_try_recv_captured_target.err.txt
-if not errorlevel 1 (
-    echo sem_channel_try_recv_captured_target.xl should fail.
-    exit /b 1
-)
-findstr /C:"[sem]" build\test\sem_channel_try_recv_captured_target.err.txt >nul
-if errorlevel 1 (
-    echo sem_channel_try_recv_captured_target.xl missing semantic diagnostic.
-    exit /b 1
-)
+release\xl.exe check test\cases\sem_channel_try_recv_captured_target.xl
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_channel_recv_const_target.xl >nul 2> build\test\sem_channel_recv_const_target.err.txt
 if not errorlevel 1 (

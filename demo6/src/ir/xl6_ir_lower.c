@@ -78,6 +78,19 @@ typedef struct XL6_IrLowerEvaluationOwner {
     int pendingReturn;
 } XL6_IrLowerEvaluationOwner;
 
+/* A runtime out-parameter may name a mutable closure cell, but a cell is an
+ * owned resident object rather than addressable caller stack storage.  Lower
+ * that boundary through one function-local slot, then commit the received
+ * value with ordinary CELL_STORE/CELL_EXCHANGE instructions only when the
+ * operation reports success.  Cgen therefore never sees or invents a cell
+ * payload address. */
+typedef struct XL6_IrLowerStorageWriteback {
+    XL6_SymbolId target;
+    XL6_SymbolId temporary;
+    XL6_IrTypeId type;
+    int managed;
+} XL6_IrLowerStorageWriteback;
+
 static int xl6IrLowerRuntimeCallableSignatureSupported(
     const XL6_IrModule* module, XL6_IrTypeId typeId);
 static XL6_IrTypeId xl6IrLowerRuntimeCallableSourceSignature(
@@ -120,6 +133,9 @@ static int xl6IrLowerRuntimeResourceMetadataMatches(
     XL6_IrTypeId keyType,
     XL6_IrRuntimeResourcePayloadAbi keyPayloadAbi,
     XL6_IrRuntimeResourceKeyOrderAbi keyOrderAbi);
+static int xl6IrLowerReplaceStorageValue(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_SymbolId symbol,
+    XL6_IrTypeId typeId, XL6_IrValueId value);
 
 /* A function keeps its externally visible scalar parameter ABI.  When a
  * nested closure mutates that parameter, lowering materializes a separate
@@ -13055,10 +13071,7 @@ static int xl6IrLowerSubtreeContains(
     return 0;
 }
 
-/* Cell promotion is decided from the already-resolved IR tree, never from Cgen
- * heuristics.  Looking through nested closures is intentional: each ancestor
- * must preserve the same shared cell for a descendant that writes the binding. */
-static int xl6IrLowerSubtreeWritesSymbol(
+static int xl6IrLowerSubtreeAssignsSymbol(
     const XL6_IrModule* module, XL6_IrNodeId root, XL6_SymbolId symbol)
 {
     const XL6_IrNode* node = xl6IrNodeGet(module, root);
@@ -13069,7 +13082,70 @@ static int xl6IrLowerSubtreeWritesSymbol(
         if ( left != NULL && left->targetSymbol == symbol ) return 1;
     }
     for ( i = 0; i < node->childCount; ++i )
-        if ( xl6IrLowerSubtreeWritesSymbol(module, module->children[node->firstChild + i], symbol) ) return 1;
+        if ( xl6IrLowerSubtreeAssignsSymbol(
+                 module, module->children[node->firstChild + i], symbol) )
+            return 1;
+    return 0;
+}
+
+static int xl6IrLowerNodeBelongsToSubtree(
+    const XL6_IrModule* module, XL6_IrNodeId id, XL6_IrNodeId root)
+{
+    size_t depth = 0;
+    while ( id != XL6_IR_NODE_INVALID && depth++ <= module->nodeCount ) {
+        const XL6_IrNode* node;
+        if ( id == root ) return 1;
+        node = xl6IrNodeGet(module, id);
+        if ( node == NULL ) return 0;
+        id = node->parent;
+    }
+    return 0;
+}
+
+/* Cell promotion is decided from the already-resolved IR tree, never from Cgen
+ * heuristics.  Looking through nested closures is intentional: each ancestor
+ * must preserve the same shared cell for a descendant that writes the binding.
+ * Explicit assignments need one tree walk.  Storage-ref writes scan the
+ * compact intrinsic arena once and use parent links for subtree membership;
+ * calling the arena's linear origin lookup at every tree node would turn large
+ * closure-heavy modules into quadratic capture analysis. */
+static int xl6IrLowerSubtreeWritesSymbol(
+    const XL6_IrModule* module, XL6_IrNodeId root, XL6_SymbolId symbol)
+{
+    size_t intrinsicIndex;
+    if ( module == NULL || symbol == 0 ||
+         xl6IrNodeGet(module, root) == NULL ) return 0;
+    if ( xl6IrLowerSubtreeAssignsSymbol(module, root, symbol) ) return 1;
+    /* An admitted storage-ref intrinsic is a source-language write even
+     * though it is expressed as a call rather than ASSIGN.  Record that fact
+     * while capture representation is still being fixed; otherwise the
+     * closure would retain a stale value snapshot and lowering would later be
+     * tempted to pass the outer activation's address across the boundary. */
+    for ( intrinsicIndex = 0;
+          intrinsicIndex < module->intrinsicCallCount; ++intrinsicIndex ) {
+        const XL6_IrIntrinsicCall* intrinsic =
+            &module->intrinsicCalls[intrinsicIndex];
+        size_t operandIndex;
+        if ( intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_VERIFIED ||
+             intrinsic->firstOperand > module->intrinsicOperandCount ||
+             intrinsic->operandCount >
+                 module->intrinsicOperandCount - intrinsic->firstOperand )
+            continue;
+        for ( operandIndex = 0;
+              operandIndex < intrinsic->operandCount; ++operandIndex ) {
+            const XL6_IrIntrinsicOperand* operand =
+                &module->intrinsicOperands[
+                    intrinsic->firstOperand + operandIndex];
+            const XL6_IrNode* expression;
+            if ( operand->abi != XL6_IR_INTRINSIC_OPERAND_STORAGE_REF )
+                continue;
+            expression = xl6IrNodeGet(module, operand->expression);
+            if ( expression != NULL && expression->kind == XL6_IR_NODE_NAME &&
+                 expression->targetSymbol == symbol &&
+                 xl6IrLowerNodeBelongsToSubtree(
+                     module, intrinsic->origin, root) ) return 1;
+        }
+    }
     return 0;
 }
 
@@ -23638,6 +23714,170 @@ static XL6_IrRuntimeOp xl6IrLowerRuntimeResourceOp(
     }
 }
 
+static XL6_SymbolId xl6IrLowerResolvedNameStorage(
+    const XL6_IrLowerContext* ctx, XL6_SymbolId sourceSymbol)
+{
+    XL6_SymbolId symbol = xl6IrLowerClosureCaptureStorage(ctx, sourceSymbol);
+    if ( symbol == 0 )
+        symbol = xl6IrLowerPromotedParameterStorage(ctx, sourceSymbol);
+    return symbol != 0 ? symbol : sourceSymbol;
+}
+
+/* Runtime output slots start with a valid physical owner because the channel
+ * transport replaces an existing payload.  Pointer-shaped managed values use
+ * their canonical internal null sentinel; scalar values use an exact zero.
+ * This initialization belongs to lowering and remains visible to ownership
+ * verification instead of being hidden in a C local declaration. */
+static XL6_IrValueId xl6IrLowerRuntimeOutputInitialValue(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrTypeId typeId)
+{
+    const XL6_IrType* type = xl6IrTypeGet(&ctx->module->types, typeId);
+    XL6_IrRuntimeResourcePayloadAbi payloadAbi =
+        xl6IrLowerRuntimeResourcePayloadAbiForType(ctx->module, typeId);
+    XL6_IrInstruction* instruction;
+    XL6_IrValueId result = XL6_IR_VALUE_INVALID;
+    const char* literal = "0";
+    char* canonical = NULL;
+    if ( type == NULL || payloadAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID )
+        return XL6_IR_VALUE_INVALID;
+    if ( payloadAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_STRING_COPY ||
+         payloadAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ) {
+        return xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULL, origin, typeId,
+                              0, NULL, 0, &result)
+            ? result : XL6_IR_VALUE_INVALID;
+    }
+    if ( payloadAbi != XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY )
+        return XL6_IR_VALUE_INVALID;
+    if ( type->cAbi == XL6_IR_C_ABI_BOOL ||
+         type->cAbi == XL6_IR_C_ABI_C_BOOL ) literal = "false";
+    else if ( type->cAbi == XL6_IR_C_ABI_F64 ||
+              type->cAbi == XL6_IR_C_ABI_F32 ||
+              type->cAbi == XL6_IR_C_ABI_C_FLOAT ||
+              type->cAbi == XL6_IR_C_ABI_C_DOUBLE ) literal = "0.0";
+    if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CONST, origin, typeId,
+                         0, NULL, 0, &result) ) return XL6_IR_VALUE_INVALID;
+    instruction = &ctx->module->instructions[ctx->module->instructionCount - 1];
+    if ( type->cAbi == XL6_IR_C_ABI_I64 )
+        canonical = xl6IrLowerCanonicalIntegerLiteral(literal);
+    else if ( type->cAbi == XL6_IR_C_ABI_U64 )
+        canonical = xl6IrLowerCanonicalUnsignedIntegerLiteral(literal);
+    else if ( type->cAbi == XL6_IR_C_ABI_TYPE_ID )
+        canonical = xrtStrDupN("0x0000000000000000ULL", 21);
+    else if ( type->cAbi == XL6_IR_C_ABI_F64 )
+        canonical = xl6IrLowerCanonicalFloatLiteral(literal);
+    else
+        canonical = xrtStrDupN(literal, strlen(literal));
+    instruction->immediateText = canonical;
+    return canonical != NULL ? result : XL6_IR_VALUE_INVALID;
+}
+
+static int xl6IrLowerPrepareRuntimeStorageReference(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin,
+    XL6_IrNodeId expressionId, const XL6_IrNode* expression,
+    XL6_IrTypeId elementType, XL6_IrValueId* address,
+    XL6_IrLowerStorageWriteback* writeback)
+{
+    XL6_SymbolId symbol;
+    XL6_SymbolId temporary;
+    const XL6_IrStorage* storage;
+    const XL6_IrType* type;
+    const XL6_IrType* cell;
+    XL6_IrValueId initial;
+    if ( ctx == NULL || expression == NULL || address == NULL ||
+         writeback == NULL || expression->kind != XL6_IR_NODE_NAME ||
+         expression->targetSymbol == 0 ) return 0;
+    memset(writeback, 0, sizeof(*writeback));
+    symbol = xl6IrLowerResolvedNameStorage(ctx, expression->targetSymbol);
+    storage = xl6IrStorageGet(ctx->module, symbol);
+    type = xl6IrTypeGet(&ctx->module->types, elementType);
+    if ( storage == NULL || storage->type != elementType || type == NULL )
+        return xl6IrLowerDiag(ctx, origin,
+            "XLIR runtime output target has no exact storage ABI");
+    if ( storage->cellType == XL6_IR_TYPE_INVALID ) {
+        *address = xl6IrLowerEmitStorageSymbolAddress(
+            ctx, origin, expressionId, symbol, elementType);
+        return *address != XL6_IR_VALUE_INVALID;
+    }
+    cell = xl6IrTypeGet(&ctx->module->types, storage->cellType);
+    if ( cell == NULL || cell->kind != XL6_IR_TYPE_CELL ||
+         cell->cAbi != XL6_IR_C_ABI_RUNTIME_CELL_PTR ||
+         cell->paramCount != 1 || cell->params == NULL ||
+         cell->params[0] != elementType ||
+         (type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+          (type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+           !xl6IrLowerTypeHasStorageReleaseAbi(ctx->module, elementType))) )
+        return xl6IrLowerDiag(ctx, origin,
+            "XLIR runtime output cell has no exact element ownership ABI");
+    temporary = xl6IrLowerNewTempStorage(ctx, elementType, origin);
+    initial = xl6IrLowerRuntimeOutputInitialValue(ctx, origin, elementType);
+    if ( temporary == 0 || initial == XL6_IR_VALUE_INVALID ||
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, elementType,
+                          temporary, &initial, 1, NULL) ) return 0;
+    *address = xl6IrLowerEmitStorageSymbolAddress(
+        ctx, origin, expressionId, temporary, elementType);
+    if ( *address == XL6_IR_VALUE_INVALID ) return 0;
+    writeback->target = symbol;
+    writeback->temporary = temporary;
+    writeback->type = elementType;
+    writeback->managed =
+        type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
+    return 1;
+}
+
+/* A successful runtime output commits every temporary to its shared cell.
+ * Failure leaves the source binding untouched and retires only the temporary
+ * owner.  The result value dominates all three blocks and remains the value of
+ * the original expression after the merge. */
+static int xl6IrLowerCompleteRuntimeStorageWritebacks(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrValueId result,
+    const XL6_IrLowerStorageWriteback* writebacks, size_t writebackCount)
+{
+    XL6_IrBlockId committed, rejected, merge;
+    XL6_IrInstruction* branch;
+    const XL6_IrType* resultType;
+    size_t i;
+    if ( writebackCount == 0 ) return 1;
+    resultType = xl6IrTypeGet(
+        &ctx->module->types, xl6IrLowerValueType(ctx, result));
+    if ( resultType == NULL || resultType->cAbi != XL6_IR_C_ABI_BOOL ||
+         !xl6IrLowerNewBlock(ctx, &committed) ||
+         !xl6IrLowerNewBlock(ctx, &rejected) ||
+         !xl6IrLowerNewBlock(ctx, &merge) ||
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_BRANCH, origin,
+                          XL6_IR_TYPE_INVALID, 0, &result, 1, NULL) )
+        return xl6IrLowerDiag(ctx, origin,
+            "XLIR runtime output writeback has no canonical boolean commit CFG");
+    branch = &ctx->module->instructions[ctx->module->instructionCount - 1];
+    branch->trueTarget = committed;
+    branch->falseTarget = rejected;
+
+    xl6IrLowerEnterBlock(ctx, committed);
+    for ( i = 0; i < writebackCount; ++i ) {
+        XL6_IrValueId value = XL6_IR_VALUE_INVALID;
+        if ( !xl6IrLowerEmit(ctx,
+                 writebacks[i].managed
+                     ? XL6_IR_INSTR_STORAGE_TAKE : XL6_IR_INSTR_LOAD,
+                 origin, writebacks[i].type, writebacks[i].temporary,
+                 NULL, 0, &value) ||
+             !xl6IrLowerReplaceStorageValue(
+                 ctx, origin, writebacks[i].target,
+                 writebacks[i].type, value) ) return 0;
+    }
+    if ( !xl6IrLowerEmitJump(ctx, origin, merge) ) return 0;
+
+    xl6IrLowerEnterBlock(ctx, rejected);
+    for ( i = writebackCount; i > 0; --i ) {
+        const XL6_IrLowerStorageWriteback* writeback = &writebacks[i - 1];
+        if ( writeback->managed &&
+             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_RELEASE, origin,
+                              writeback->type, writeback->temporary,
+                              NULL, 0, NULL) ) return 0;
+    }
+    if ( !xl6IrLowerEmitJump(ctx, origin, merge) ) return 0;
+    xl6IrLowerEnterBlock(ctx, merge);
+    return 1;
+}
+
 /* Runtime resources are ordinary managed values after this boundary.  The
  * constructor/member identity and exact TypeIds were fixed in Typed XLIR;
  * lowering only anchors borrowed rvalues, emits one RuntimeOp and preserves
@@ -23654,10 +23894,12 @@ static int xl6IrLowerIntrinsicRuntimeResource(
     };
     XL6_IrRuntimeOp runtimeOp;
     XL6_IrInstruction* runtimeInstruction;
+    XL6_IrLowerStorageWriteback writebacks[4];
     size_t runtimeInstructionIndex;
     size_t runtimeOperandCount;
     size_t i;
     size_t evaluationFirst;
+    size_t writebackCount = 0;
     int creates;
     int mayRaise;
     int returnsVoid;
@@ -23742,11 +23984,15 @@ static int xl6IrLowerIntrinsicRuntimeResource(
             if ( reference == NULL ||
                  reference->kind != XL6_IR_TYPE_STORAGE_REF ||
                  reference->paramCount != 1 || reference->params == NULL ||
-                  (operands[i] = xl6IrLowerEmitStorageAddress(
-                       ctx, id, bindings[i].expression, source,
-                       reference->params[0])) == XL6_IR_VALUE_INVALID )
+                 writebackCount >= sizeof(writebacks) / sizeof(writebacks[0]) ||
+                 !xl6IrLowerPrepareRuntimeStorageReference(
+                     ctx, id, bindings[i].expression, source,
+                     reference->params[0], &operands[i],
+                     &writebacks[writebackCount]) )
                 ok = 0;
             if ( !ok ) break;
+            if ( writebacks[writebackCount].target != 0 )
+                writebackCount += 1;
             continue;
         }
         operands[i] = bindings[i].type == source->storageType
@@ -23828,6 +24074,8 @@ static int xl6IrLowerIntrinsicRuntimeResource(
         runtimeInstruction->calleeType = bindings[0].type;
     if ( mayRaise && !xl6IrLowerEmitRuntimeErrorEdge(
               ctx, id, call, *result) ) ok = 0;
+    if ( ok && !xl6IrLowerCompleteRuntimeStorageWritebacks(
+             ctx, id, *result, writebacks, writebackCount) ) ok = 0;
     if ( ok && !xl6IrLowerCompleteEvaluationBorrows(
              ctx, id, evaluationFirst, result) ) ok = 0;
 done:
