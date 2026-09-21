@@ -33,14 +33,23 @@ static void executor_begin(XL6_ContinuationExecutor* executor,xrtownershipscope*
 {if(!xrtOwnershipMutationBegin(mutation))abort();executor_lock(executor);}
 static void executor_end(XL6_ContinuationExecutor* executor,xrtownershipscope* mutation)
 {executor_unlock(executor);if(!xrtOwnershipScopeEnd(mutation))abort();}
-static bool executor_enter(XL6_ContinuationExecutor* executor)
+static bool executor_enter_mode(XL6_ContinuationExecutor* executor,bool terminalOwner)
 {
     xrtownershipscope mutation={0};executor_begin(executor,&mutation);
     if(!executor->references||executor->references==SIZE_MAX||executor->entries==SIZE_MAX)abort();
-    bool entered=!executor->entrySealed&&!executor->joining&&!executor->destroying&&!executor->cleared;
+    /* Ownership-plan Clear quarantines the graph but deliberately does not
+     * consume its real creator slot. The owning parent's terminal Destroy is
+     * therefore the one API entry which must remain admissible after Clear.
+     * entrySealed still rejects duplicate/late owners once retirement wins. */
+    bool entered=!executor->entrySealed&&!executor->joining&&!executor->destroying&&
+        (!executor->cleared||terminalOwner);
     if(entered){++executor->references;++executor->entries;}
     executor_end(executor,&mutation);return entered;
 }
+static bool executor_enter(XL6_ContinuationExecutor* executor)
+{return executor_enter_mode(executor,false);}
+static bool executor_enter_terminal_owner(XL6_ContinuationExecutor* executor)
+{return executor_enter_mode(executor,true);}
 static void executor_drop_locked(XL6_ContinuationExecutor* executor,xrtownershipscope* mutation)
 {
     if(!executor->references)abort();
@@ -272,13 +281,13 @@ static bool executor_destroy_entered(XL6_ContinuationExecutor* executor,bool com
 bool xl6ContinuationExecutorDestroy(XL6_ContinuationExecutor* executor)
 {
     if(!executor)return true;
-    if(!executor_enter(executor))return false;
+    if(!executor_enter_terminal_owner(executor))return false;
     bool destroyed=executor_destroy_entered(executor,false);executor_leave(executor);return destroyed;
 }
 bool xl6ContinuationExecutorDestroyCompleted(XL6_ContinuationExecutor* executor)
 {
     if(!executor)return true;
-    if(!executor_enter(executor))return false;
+    if(!executor_enter_terminal_owner(executor))return false;
     bool destroyed=executor_destroy_entered(executor,true);executor_leave(executor);return destroyed;
 }
 static bool executor_count(const void* data,size_t* count)

@@ -45,7 +45,10 @@ void xl6ContinuationBlockingLeave(XL6_ContinuationExecutor*);
  * External lifecycle serialization is required for Create/Close/Destroy.
  * A successful Destroy atomically seals new API entries before joining; calls
  * that race the sealed retirement receive their API's closed/neutral result.
- * The pointer itself must still be protected by a real owner until entry. */
+ * Ownership-plan Clear quarantines the graph but does not consume a creator
+ * slot, so Destroy/DestroyCompleted remain the terminal owner callbacks after
+ * Clear; every non-destroy API refuses that state. The pointer itself must
+ * still be protected by a real owner until entry. */
 XL6_CONTINUATION_API void xl6ContinuationExecutorClose(XL6_ContinuationExecutor*);
 /* Snapshot of accepted work, including physical release/code-owner tails.
  * Does not close admission or stop workers. Callers must serialize producers

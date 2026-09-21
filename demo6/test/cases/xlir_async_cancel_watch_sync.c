@@ -46,6 +46,11 @@ bool xlir_async_test_take_fault(void)
     xlir_async_test_wait_retired();bool detected=atomic_exchange(&fault,false)||xrtMemDebugFailTriggered();
     xrtMemDebugFailClear();return detected;
 }
+void xlir_async_test_assert_owner_released(void)
+{
+    assert(atomic_load_explicit(&returns,memory_order_acquire)==
+        atomic_load_explicit(&acquisitions,memory_order_acquire));
+}
 xfuturewatchresult xlir_async_test_watch_add(xfuture* future,xfuturewatch* watch)
 {
     xfuturewatchresult result=xrtFutureWatchAdd(future,watch);
