@@ -41,20 +41,23 @@ static int xl6IrCgenEmitUnionTypes(
                 return xl6IrCgenDiag(diags, module, layout->declaration,
                     "XLIR union type has no deterministic nominal C ABI");
             }
-            xl6OutputPrintf(out, "typedef union %s {\n", unionType->cName);
+            xl6OutputPrintf(out,
+                "#ifndef XL6_ABI_DEFINED_%s\n"
+                "#define XL6_ABI_DEFINED_%s 1\n"
+                "typedef union %s {\n",
+                unionType->cName, unionType->cName, unionType->cName);
             for ( fieldOffset = 0; fieldOffset < layout->fieldCount; ++fieldOffset ) {
                 size_t fieldIndex = layout->firstField + fieldOffset;
                 const XL6_IrUnionField* field = &module->unionFields[fieldIndex];
                 const char* cType = xl6IrCgenType(module, field->type);
-                if ( cType == NULL ) {
+                if ( cType == NULL || field->cName[0] == '\0' ) {
                     xrtFree(emitted);
                     return xl6IrCgenDiag(diags, module, field->declaration,
-                        "XLIR union field has no structural C value ABI");
+                        "XLIR union field has no exact C value ABI");
                 }
-                xl6OutputPrintf(out, "    %s f%lu;\n", cType,
-                                (unsigned long)fieldIndex);
+                xl6OutputPrintf(out, "    %s %s;\n", cType, field->cName);
             }
-            xl6OutputPrintf(out, "} %s;\n", unionType->cName);
+            xl6OutputPrintf(out, "} %s;\n#endif\n", unionType->cName);
             emitted[layoutIndex] = 1;
             emittedCount += 1;
         }

@@ -267,6 +267,8 @@ release\xl.exe run test\cases\import_package_type_class_use.xl
 if errorlevel 1 exit /b 1
 release\xl.exe run test\cases\import_package_type_union_use.xl
 if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_union_native_package_abi.ps1 -Root "%CD%"
+if errorlevel 1 exit /b 1
 release\xl.exe check test\cases\import_package_var_use.xl
 if errorlevel 1 exit /b 1
 release\xl.exe ir test\cases\import_package_var_use.xl --emit build\test\import_package_var_use.xlir

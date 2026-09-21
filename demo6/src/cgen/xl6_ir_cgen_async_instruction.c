@@ -196,20 +196,34 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
             (unsigned int)instruction->result,
             xl6IrCgenType(module, instruction->type));
         break;
-    case XL6_IR_INSTR_UNION_GET:
-        xl6OutputPrintf(out, "    v%u = v%u.f%lu;\n",
+    case XL6_IR_INSTR_UNION_GET: {
+        const XL6_IrUnionField* field =
+            instruction->elementIndex < module->unionFieldCount
+                ? &module->unionFields[instruction->elementIndex] : NULL;
+        if ( field == NULL || field->cName[0] == '\0' )
+            return xl6IrCgenDiag(diags, module, instruction->origin,
+                "XLIR async union read has no exact C member ABI");
+        xl6OutputPrintf(out, "    v%u = v%u.%s;\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],
-            (unsigned long)instruction->elementIndex);
+            field->cName);
         break;
-    case XL6_IR_INSTR_UNION_SET:
-        xl6OutputPrintf(out, "    v%u = v%u;\n    v%u.f%lu = v%u;\n",
+    }
+    case XL6_IR_INSTR_UNION_SET: {
+        const XL6_IrUnionField* field =
+            instruction->elementIndex < module->unionFieldCount
+                ? &module->unionFields[instruction->elementIndex] : NULL;
+        if ( field == NULL || field->cName[0] == '\0' )
+            return xl6IrCgenDiag(diags, module, instruction->origin,
+                "XLIR async union write has no exact C member ABI");
+        xl6OutputPrintf(out, "    v%u = v%u;\n    v%u.%s = v%u;\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],
             (unsigned int)instruction->result,
-            (unsigned long)instruction->elementIndex,
+            field->cName,
             (unsigned int)module->operands[instruction->firstOperand + 1]);
         break;
+    }
     case XL6_IR_INSTR_RUNTIME_CALL:
         if (!xl6IrCgenEmitRuntimeCallInstruction(out, module, instruction,
                 (size_t)(instruction - module->instructions), diags)) return 0;

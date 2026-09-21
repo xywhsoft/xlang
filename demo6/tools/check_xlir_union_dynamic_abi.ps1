@@ -134,7 +134,7 @@ if ( $LASTEXITCODE -ne 0 ) { throw "XLIR union class-field write Cgen failed" }
 $classHeader = [System.IO.File]::ReadAllText(
     $classHeaderPath, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "typedef union xlir_union_",
+    "typedef union XL_Union_",
     "xvalue* xl6_box_make(int64_t value);",
     "int64_t xl6_box_pick(xvalue* box);"
 ) ) {

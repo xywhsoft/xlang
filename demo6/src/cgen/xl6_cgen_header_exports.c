@@ -44,7 +44,11 @@ static void xl6CgenHeaderUnionDecl(
     }
 
     xl6CgenHeaderUnionTypeTextName(typeName, sizeof(typeName), node->text);
-    xl6OutputPrintf(out, "typedef union %s {\n", typeName);
+    xl6OutputPrintf(out,
+        "#ifndef XL6_ABI_DEFINED_%s\n"
+        "#define XL6_ABI_DEFINED_%s 1\n"
+        "typedef union %s {\n",
+        typeName, typeName, typeName);
     if ( body != NULL ) {
         for ( i = 0; i < body->childCount; ++i ) {
             const XL6_AstNode* field = body->children[i];
@@ -58,7 +62,7 @@ static void xl6CgenHeaderUnionDecl(
             xl6OutputPuts(";\n", out);
         }
     }
-    xl6OutputPrintf(out, "} %s;\n", typeName);
+    xl6OutputPrintf(out, "} %s;\n#endif\n", typeName);
 }
 
 static void xl6CgenHeaderEnumValue(
