@@ -501,9 +501,9 @@ typedef struct XL6_IrType {
      * Generic arguments are expanded here so Cgen never reconstructs a
      * user-visible type name from diagnostic or ABI fields. */
     char* displayName;
-    /* Deterministic backend spelling for compiler-owned structural ABIs.
-     * Empty for source/runtime types whose C spelling is fixed by cAbi. */
-    char cName[48];
+    /* Exact, verified backend spelling for nominal public and compiler-owned
+     * structural ABIs. Empty for source/runtime types fixed by cAbi. */
+    char cName[64];
     /* Canonical C result-carrier spelling for a MAY_RAISE callable returning
      * this type.  Empty means that no error-result ABI is admitted.  This is
      * a type-pool fact so Cgen never reconstructs carriers from cAbi. */
@@ -4617,6 +4617,9 @@ typedef struct XL6_IrUnionField {
     XL6_IrTypeId type;
     XL6_IrNodeId declaration;
     char* name;
+    /* Exact public C member spelling.  Cgen consumes this verified ABI fact;
+     * it never substitutes pool position or reconstructs source syntax. */
+    char cName[XL6_C_SYMBOL_COMPONENT_MAX + 1];
 } XL6_IrUnionField;
 
 typedef struct XL6_IrUnionLayout {

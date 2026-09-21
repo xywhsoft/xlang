@@ -63,6 +63,7 @@ static void xl6CgenUnionDecls(XL6_CgenContext* ctx, const XL6_AstNode* unionNode
 {
     const XL6_AstNode* body;
     size_t i;
+    char cTypeName[256];
 
     if ( ctx == NULL || unionNode == NULL || unionNode->text == NULL ) {
         return;
@@ -82,21 +83,19 @@ static void xl6CgenUnionDecls(XL6_CgenContext* ctx, const XL6_AstNode* unionNode
         }
     }
 
-    xl6OutputPuts("typedef union ", ctx->out);
-    xl6CgenUnionTypeName(ctx->out, unionNode->text);
-    xl6OutputPuts(" {\n", ctx->out);
+    xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), unionNode->text);
+    xl6OutputPrintf(ctx->out,
+        "#ifndef XL6_ABI_DEFINED_%s\n"
+        "#define XL6_ABI_DEFINED_%s 1\n"
+        "typedef union %s {\n",
+        cTypeName, cTypeName, cTypeName);
     if ( body != NULL ) {
         for ( i = 0; i < body->childCount; ++i ) {
             xl6CgenUnionFieldDecl(ctx, body->children[i], 1);
         }
     }
-    xl6OutputPuts("} ", ctx->out);
-    xl6CgenUnionTypeName(ctx->out, unionNode->text);
-    xl6OutputPuts(";\n", ctx->out);
+    xl6OutputPrintf(ctx->out, "} %s;\n#endif\n", cTypeName);
     if ( ctx->needsXValueRuntime ) {
-        char cTypeName[256];
-
-        xl6CgenUnionTypeTextName(cTypeName, sizeof(cTypeName), unionNode->text);
         xl6CgenEmitPlainRecordBoxRuntime(ctx, cTypeName, unionNode->text);
     }
 }

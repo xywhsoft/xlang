@@ -381,7 +381,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_union.xl --emit build\test\cgen_union.c
 if errorlevel 1 exit /b 1
-findstr /C:"typedef union xlir_union_t" build\test\cgen_union.c >nul
+findstr /C:"typedef union XL_Union_Payload" build\test\cgen_union.c >nul
 if errorlevel 1 (
     echo cgen_union.c missing top-level union typedef.
     exit /b 1
@@ -398,7 +398,7 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\cgen_union_var_box.xl --emit build\test\cgen_union_var_box.c
 if errorlevel 1 exit /b 1
-findstr /C:"typedef union xlir_union_t" build\test\cgen_union_var_box.c >nul
+findstr /C:"typedef union XL_Union_Payload" build\test\cgen_union_var_box.c >nul
 if errorlevel 1 (
     echo cgen_union_var_box.c missing verified union storage ABI.
     exit /b 1
@@ -435,12 +435,12 @@ if errorlevel 1 exit /b 1
 
 release\xl.exe cgen test\cases\export_union.xl --dump-dir build\test\dump_export_union
 if errorlevel 1 exit /b 1
-findstr /C:"typedef union xlir_union_t" build\test\dump_export_union\export_union.h >nul
+findstr /C:"typedef union XL_Union_Payload" build\test\dump_export_union\export_union.h >nul
 if errorlevel 1 (
     echo export_union.h missing union typedef.
     exit /b 1
 )
-findstr /C:"xlir_union_t" build\test\dump_export_union\export_union.h | findstr /C:" p);" >nul
+findstr /C:"XL_Union_Payload" build\test\dump_export_union\export_union.h | findstr /C:" p);" >nul
 if errorlevel 1 (
     echo export_union.h missing union parameter.
     exit /b 1

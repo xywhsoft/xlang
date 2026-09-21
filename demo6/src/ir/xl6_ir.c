@@ -536,6 +536,19 @@ static int xl6IrTypeFinalizeErrorResultCName(
     return written >= 0 && (size_t)written < sizeof(type->errorResultCName);
 }
 
+static int xl6IrTypeUnionCName(
+    const XL6_IrType* type, char* out, size_t capacity)
+{
+    char component[XL6_C_SYMBOL_COMPONENT_MAX + 1];
+    int written;
+    if ( type == NULL || type->kind != XL6_IR_TYPE_UNION ||
+         type->name == NULL || type->name[0] == '\0' ||
+         !xl6OutputEncodeSymbolComponent(
+             component, sizeof(component), type->name) ) return 0;
+    written = snprintf(out, capacity, "XL_Union_%s", component);
+    return written >= 0 && (size_t)written < capacity;
+}
+
 int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
 {
     const XL6_IrType* element;
@@ -560,13 +573,12 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
         return xl6IrTypeFinalizeErrorResultCName(pool, type);
     }
     if ( type->kind == XL6_IR_TYPE_UNION ) {
-        size_t typeIndex = (size_t)(type - pool->items) + 1;
         if ( type->paramCount != 0 || type->returnCount != 0 ) return 0;
         type->cAbi = XL6_IR_C_ABI_UNION;
         type->ownershipAbi = XL6_IR_OWNERSHIP_ABI_TRIVIAL;
         type->nullAbi = XL6_IR_NULL_ABI_NONE;
-        if ( snprintf(type->cName, sizeof(type->cName), "xlir_union_t%lu",
-                      (unsigned long)typeIndex) < 0 ) return 0;
+        if ( !xl6IrTypeUnionCName(
+                 type, type->cName, sizeof(type->cName)) ) return 0;
         return xl6IrTypeFinalizeErrorResultCName(pool, type);
     }
     if ( type->kind == XL6_IR_TYPE_TUPLE ) {
@@ -4026,7 +4038,13 @@ static int xl6IrBuildUnionLayoutAppendField(
     item->type = field->storageType;
     item->declaration = declaration;
     item->name = xrtStrDupN(field->text, strlen(field->text));
-    if ( item->name == NULL ) return 0;
+    if ( item->name == NULL ||
+         !xl6OutputEncodeCIdentifier(
+             item->cName, sizeof(item->cName), field->text) ) {
+        xrtFree(item->name);
+        memset(item, 0, sizeof(*item));
+        return 0;
+    }
     module->unionFieldCount += 1;
     module->unionLayouts[layoutIndex].fieldCount += 1;
     return 1;
@@ -17630,11 +17648,18 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool)
                  type->typeValueId != 0 || element == NULL ) return 0;
         } else if ( type->cAbi == XL6_IR_C_ABI_STORAGE_REF_PTR ) return 0;
         if ( type->kind == XL6_IR_TYPE_UNION ) {
+            char expectedUnionCName[sizeof(type->cName)];
             if ( type->cAbi != XL6_IR_C_ABI_UNION ||
                  type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                  type->nullAbi != XL6_IR_NULL_ABI_NONE ||
                  type->nominalSymbol == 0 || type->paramCount != 0 ||
-                 type->returnCount != 0 || type->cName[0] == '\0' ) return 0;
+                 type->returnCount != 0 ||
+                 !xl6IrTypeUnionCName(type, expectedUnionCName,
+                                      sizeof(expectedUnionCName)) ||
+                 strcmp(type->cName, expectedUnionCName) != 0 ) return 0;
+            for ( j = 0; j < i; ++j )
+                if ( pool->items[j].kind == XL6_IR_TYPE_UNION &&
+                     strcmp(pool->items[j].cName, type->cName) == 0 ) return 0;
         } else if ( type->cAbi == XL6_IR_C_ABI_UNION ) return 0;
         if ( type->kind == XL6_IR_TYPE_TUPLE ) {
             int representable = type->paramCount >= 2 && type->returnCount == 0;
@@ -19342,8 +19367,12 @@ static int xl6IrVerifyUnionLayouts(const XL6_IrModule* module)
             const XL6_IrNode* source = xl6IrNodeGet(module, field->declaration);
             const XL6_IrType* fieldType = xl6IrTypeGet(&module->types, field->type);
             size_t priorField;
+            char expectedCName[sizeof(field->cName)];
             if ( field->ownerType != layout->type ||
                  field->name == NULL || field->name[0] == '\0' ||
+                 !xl6OutputEncodeCIdentifier(
+                     expectedCName, sizeof(expectedCName), field->name) ||
+                 strcmp(field->cName, expectedCName) != 0 ||
                  source == NULL || source->kind != XL6_IR_NODE_FIELD_DECL ||
                  source->storageType != field->type ||
                  (source->flags & XL6_AST_FLAG_STATIC) != 0 ||
@@ -19356,7 +19385,9 @@ static int xl6IrVerifyUnionLayouts(const XL6_IrModule* module)
                  fieldType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ) return 0;
             for ( priorField = 0; priorField < fieldOffset; ++priorField )
                 if ( strcmp(field->name,
-                           module->unionFields[layout->firstField + priorField].name) == 0 ) return 0;
+                           module->unionFields[layout->firstField + priorField].name) == 0 ||
+                     strcmp(field->cName,
+                           module->unionFields[layout->firstField + priorField].cName) == 0 ) return 0;
         }
         expectedFirst += layout->fieldCount;
     }
@@ -42504,10 +42535,10 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     for ( i = 0; i < module->unionFieldCount; ++i ) {
         const XL6_IrUnionField* field = &module->unionFields[i];
         xl6OutputPrintf(out,
-            "  union-field uf%lu owner=t%u type=t%u declaration=n%u name=%s\n",
+            "  union-field uf%lu owner=t%u type=t%u declaration=n%u name=%s cname=%s\n",
             (unsigned long)i, (unsigned int)field->ownerType,
             (unsigned int)field->type, (unsigned int)field->declaration,
-            field->name != NULL ? field->name : "");
+            field->name != NULL ? field->name : "", field->cName);
     }
     for ( i = 0; i < module->enumLayoutCount; ++i ) {
         const XL6_IrEnumLayout* layout = &module->enumLayouts[i];
@@ -43771,9 +43802,10 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     for ( i = 0; i < module->unionFieldCount; ++i ) {
         const XL6_IrUnionField* field = &module->unionFields[i];
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"ownerType\":%u,\"type\":%u,\"declaration\":%u}%s\n",
+            "    {\"id\":%lu,\"ownerType\":%u,\"type\":%u,\"declaration\":%u,\"name\":\"%s\",\"cName\":\"%s\"}%s\n",
             (unsigned long)i, (unsigned int)field->ownerType,
             (unsigned int)field->type, (unsigned int)field->declaration,
+            field->name != NULL ? field->name : "", field->cName,
             i + 1 == module->unionFieldCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"enumLayouts\": [\n", out);

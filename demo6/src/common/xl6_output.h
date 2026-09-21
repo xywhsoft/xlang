@@ -7,6 +7,8 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#define XL6_C_SYMBOL_COMPONENT_MAX 48u
+
 typedef enum XL6_OutputKind {
     XL6_OUTPUT_STD_FILE,
     XL6_OUTPUT_BUFFER_FILE,
@@ -38,5 +40,14 @@ int xl6OutputPutc(int ch, XL6_Output* out);
 int xl6OutputPuts(const char* text, XL6_Output* out);
 int xl6OutputVPrintf(XL6_Output* out, const char* format, va_list args);
 int xl6OutputPrintf(XL6_Output* out, const char* format, ...);
+
+/* Stable, collision-resistant encoding for one source-language component in
+ * a public C symbol.  The same routine is shared by typed IR and both C
+ * backends so ABI spelling cannot drift between declarations and definitions. */
+int xl6OutputEncodeSymbolComponent(
+    char* out, size_t capacity, const char* text);
+int xl6OutputIsSimpleCIdentifier(const char* text);
+int xl6OutputEncodeCIdentifier(
+    char* out, size_t capacity, const char* text);
 
 #endif
