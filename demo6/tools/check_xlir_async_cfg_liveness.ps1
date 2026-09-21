@@ -133,17 +133,84 @@ if ( [int]$machines[0].initBitCount -ne 1 -or
      @($frameSlots | Where-Object { $_.firstLiveState -gt $_.lastLiveState }).Count -ne 0 ) {
     throw "XLIR async frame residence/range/initialization-bit ABI is not explicit"
 }
-$actualActionShape = @($frameActions | ForEach-Object { "{0}:{1}" -f $_.kindName,$_.frameSlot })
+$machineFirstAction = [int]$machines[0].firstAction
+$machineActionCount = [int]$machines[0].actionCount
+$machineActions = @($frameActions | Select-Object -Skip $machineFirstAction |
+    Select-Object -First $machineActionCount)
+$prologueActions = @($frameActions | Select-Object -Skip ([int]$machines[0].firstPrologueAction) |
+    Select-Object -First ([int]$machines[0].prologueActionCount))
+$destroyActions = @($frameActions | Select-Object -Skip ([int]$machines[0].firstDestroyAction) |
+    Select-Object -First ([int]$machines[0].destroyActionCount))
+$actualPrologueShape = @($prologueActions | ForEach-Object { "{0}:{1}" -f $_.kindName,$_.frameSlot })
 $expectedActionShape = @(
     "init-parameter:0", "init-parameter:1", "init-parameter:2",
-    "bind-storage:3", "destroy-if-initialized:0"
+    "bind-storage:3"
 )
-if ( [int]$machines[0].actionCount -ne 5 -or
-     [int]$machines[0].prologueActionCount -ne 4 -or
-     [int]$machines[0].destroyActionCount -ne 1 -or
-     @($suspensions | Where-Object { $_.spillActionCount -ne 0 -or $_.resumeActionCount -ne 0 }).Count -ne 0 -or
-     (Compare-Object $expectedActionShape $actualActionShape -SyncWindow 0) ) {
+$expectedDestroySlots = @()
+for ( $offset = [int]$machines[0].frameSlotCount - 1; $offset -ge 0; --$offset ) {
+    $slotIndex = [int]$machines[0].firstFrameSlot + $offset
+    if ( [int]$frameSlots[$slotIndex].hasInitBit -eq 1 ) {
+        $expectedDestroySlots += $slotIndex
+    }
+}
+$actualDestroyShape = @($destroyActions | ForEach-Object { "{0}:{1}" -f $_.kindName,$_.frameSlot })
+$expectedDestroyShape = @($expectedDestroySlots | ForEach-Object { "destroy-if-initialized:$_" })
+if ( $machineActions.Count -ne $machineActionCount -or
+     @($machineActions | Where-Object { $_.machine -ne $machines[0].id }).Count -ne 0 -or
+     [int]$machines[0].prologueActionCount -ne $expectedActionShape.Count -or
+     [int]$machines[0].destroyActionCount -ne $expectedDestroyShape.Count -or
+     [int]$machines[0].transferActionCount -ne 0 -or
+     (Compare-Object $expectedActionShape $actualPrologueShape -SyncWindow 0) -or
+     (Compare-Object $expectedDestroyShape $actualDestroyShape -SyncWindow 0) ) {
     throw "XLIR async machine did not derive ordered storage binding and guarded destroy actions"
+}
+$accountedActionCount = [int]$machines[0].prologueActionCount +
+    [int]$machines[0].transferActionCount + [int]$machines[0].destroyActionCount
+for ( $actionOffset = 0; $actionOffset -lt $machineActions.Count; ++$actionOffset ) {
+    if ( [int]$machineActions[$actionOffset].id -ne $machineFirstAction + $actionOffset ) {
+        throw "XLIR async machine action arena is not one contiguous machine-owned slice"
+    }
+}
+foreach ( $state in $suspensions ) {
+    if ( [int]$state.spillActionCount -ne 0 -or [int]$state.resumeActionCount -ne 0 ) {
+        throw "Storage-backed async liveness unexpectedly emitted SSA spill/resume actions"
+    }
+    $stateLiveSlots = @($liveSlots | Select-Object -Skip ([int]$state.firstLiveSlot) |
+        Select-Object -First ([int]$state.liveSlotCount) |
+        ForEach-Object { [int]$_.frameSlot } | Sort-Object -Unique)
+    $expectedHandoffSlots = @()
+    for ( $offset = 0; $offset -lt [int]$machines[0].frameSlotCount; ++$offset ) {
+        $slotIndex = [int]$machines[0].firstFrameSlot + $offset
+        if ( [int]$frameSlots[$slotIndex].hasInitBit -eq 1 -or
+             $stateLiveSlots -contains $slotIndex ) {
+            $expectedHandoffSlots += $slotIndex
+        }
+    }
+    $handoff = @($frameActions | Select-Object -Skip ([int]$state.firstHandoffAction) |
+        Select-Object -First ([int]$state.handoffActionCount))
+    $rollback = @($frameActions | Select-Object -Skip ([int]$state.firstRollbackAction) |
+        Select-Object -First ([int]$state.rollbackActionCount))
+    if ( $handoff.Count -ne $expectedHandoffSlots.Count -or
+         $rollback.Count -ne $expectedHandoffSlots.Count ) {
+        throw "XLIR async suspension handoff/rollback action count does not match resident ownership"
+    }
+    for ( $actionOffset = 0; $actionOffset -lt $expectedHandoffSlots.Count; ++$actionOffset ) {
+        $forward = $handoff[$actionOffset]
+        $reverse = $rollback[$expectedHandoffSlots.Count - 1 - $actionOffset]
+        $expectedSlot = $expectedHandoffSlots[$actionOffset]
+        if ( $forward.kindName -ne "handoff-resident" -or
+             $forward.machine -ne $machines[0].id -or $forward.suspension -ne $state.id -or
+             [int]$forward.frameSlot -ne $expectedSlot -or
+             $reverse.kindName -ne "rollback-handoff-resident" -or
+             $reverse.machine -ne $machines[0].id -or $reverse.suspension -ne $state.id -or
+             [int]$reverse.frameSlot -ne $expectedSlot ) {
+            throw "XLIR async suspension did not derive a forward handoff and exact reverse rollback"
+        }
+    }
+    $accountedActionCount += $handoff.Count + $rollback.Count
+}
+if ( $accountedActionCount -ne $machineActionCount ) {
+    throw "XLIR async machine action slice contains an unclassified ownership action"
 }
 foreach ( $state in $suspensions ) {
     $awaitInstruction = $ir.instructions[[int]$state.awaitInstruction]
@@ -158,20 +225,79 @@ foreach ( $state in $suspensions ) {
     }
 }
 $text = [IO.File]::ReadAllText($textPath, [Text.Encoding]::UTF8)
-foreach ( $required in @("async-machine", "machine-entry", "kind=launch", "kind=resume-success", "kind=resume-failure", "kind=resume-cancelled", "kind=resume-closed", "machine-block", "kind=suspend", "kind=execute", "instructions=", "init-bits=1", "machine-frame", "residence=launch-parameter", "initBit=0", "suspension", "scope=1 region=5", "cleanupPlan=", "cleanupTarget=0/0", "live", "frame-action", "kind=init-parameter", "kind=bind-storage", "kind=destroy-if-initialized", "source=storage", "transfer=retain-future", "destroy=destroy-future") ) {
+foreach ( $required in @("async-machine", "machine-entry", "kind=launch", "kind=resume-success", "kind=resume-failure", "kind=resume-cancelled", "kind=resume-closed", "machine-block", "kind=suspend", "kind=execute", "instructions=", "init-bits=1", "machine-frame", "residence=launch-parameter", "initBit=0", "suspension", "scope=1 region=5", "cleanupPlan=", "live", "frame-action", "kind=init-parameter", "kind=bind-storage", "kind=handoff-resident", "kind=rollback-handoff-resident", "kind=destroy-if-initialized", "source=storage", "transfer=retain-future", "destroy=destroy-future") ) {
     if ( ! $text.Contains($required) ) { throw "XLIR async CFG text dump is missing: $required" }
+}
+foreach ( $state in $suspensions ) {
+    $cleanupTarget = "cleanupTarget=$($state.cleanupTargetScopeDepth)/$($state.cleanupTargetRegion)"
+    if ( ! $text.Contains($cleanupTarget) ) {
+        throw "XLIR async CFG text dump does not preserve the verified cleanup target: $cleanupTarget"
+    }
 }
 $c = [IO.File]::ReadAllText($cPath, [Text.Encoding]::UTF8)
 if ( -not $c.Contains("xlir_async_machine_frame_2") -or
      -not $c.Contains("xlir_async_machine_resume_2_0") -or
      -not $c.Contains("xlir_async_machine_resume_2_1") -or
      -not [regex]::IsMatch($c, 'if \(v\d+\) goto ap\d+; else goto ap\d+;') -or
-     -not $c.Contains("next->outer = frame->outer; frame->outer = NULL") -or
-     -not $c.Contains("next->cancelObserved = frame->cancelObserved") -or
-     -not $c.Contains("xrtFutureWatchAdd(source, &frame->watch)") -or
+     -not $c.Contains("XL6_ContinuationTicket ticket") -or
+     -not $c.Contains("xl6ContinuationReserveSuccessor(predecessor, &frame->ticket") -or
+     -not $c.Contains("xl6ContinuationFrameRuntimeV3Get()->Bind(frame)") -or
+     -not $c.Contains("xl6ContinuationWatchRegister(&frame->ticket, &frame->watch, source)") -or
+     -not $c.Contains("xl6ContinuationFrameRuntimeV4Get()->Observe(frame, &input)") -or
+     -not $c.Contains("{ &(next->outer), &(frame->outer), sizeof(next->outer) },") -or
+     -not $c.Contains("{ &(frame->outer), &(next->outer), sizeof(frame->outer) },") -or
      $c.Contains("xlir_async_chain_frame_") -or
      $c.Contains("xlir_async_capture_chain_frame_") ) {
     throw "XLIR async CFG branch target was not emitted directly from its verified machine"
+}
+$transitionStart = $c.IndexOf("xlir_async_frame_allocate(sizeof(*next)", [StringComparison]::Ordinal)
+$transitionEnd = if ( $transitionStart -ge 0 ) {
+    $c.IndexOf("xlir_async_frame_dispose(next)", $transitionStart, [StringComparison]::Ordinal)
+} else { -1 }
+if ( $transitionStart -lt 0 -or $transitionEnd -le $transitionStart ) {
+    throw "XLIR async CFG did not emit one inspectable continuation handoff transaction"
+}
+$handoffState = $suspensions[1]
+$handoffActions = @($frameActions | Select-Object -Skip ([int]$handoffState.firstHandoffAction) |
+    Select-Object -First ([int]$handoffState.handoffActionCount))
+$rollbackActions = @($frameActions | Select-Object -Skip ([int]$handoffState.firstRollbackAction) |
+    Select-Object -First ([int]$handoffState.rollbackActionCount))
+$cursor = $transitionStart
+foreach ( $action in $handoffActions ) {
+    $field = "f$($action.frameSlot)"
+    $pattern = "{ &(next->$field), &(frame->$field), sizeof(next->$field) },"
+    $position = $c.IndexOf($pattern, $cursor, [StringComparison]::Ordinal)
+    if ( $position -lt 0 -or $position -ge $transitionEnd ) {
+        throw "XLIR async Cgen omitted or reordered a verified resident handoff: $field"
+    }
+    $slot = $frameSlots[[int]$action.frameSlot]
+    if ( [int]$slot.hasInitBit -eq 1 ) {
+        $initField = "i$($slot.initBit)"
+        $initPattern = "{ &(next->$initField), &(frame->$initField), sizeof(next->$initField) },"
+        $initPosition = $c.IndexOf($initPattern, $position, [StringComparison]::Ordinal)
+        if ( $initPosition -lt 0 -or $initPosition -ge $transitionEnd ) {
+            throw "XLIR async Cgen omitted the resident handoff initialization bit: $initField"
+        }
+    }
+    $cursor = $position + $pattern.Length
+}
+foreach ( $action in $rollbackActions ) {
+    $field = "f$($action.frameSlot)"
+    $pattern = "{ &(frame->$field), &(next->$field), sizeof(frame->$field) },"
+    $position = $c.IndexOf($pattern, $cursor, [StringComparison]::Ordinal)
+    if ( $position -lt 0 -or $position -ge $transitionEnd ) {
+        throw "XLIR async Cgen omitted or reordered a verified resident rollback: $field"
+    }
+    $slot = $frameSlots[[int]$action.frameSlot]
+    if ( [int]$slot.hasInitBit -eq 1 ) {
+        $initField = "i$($slot.initBit)"
+        $initPattern = "{ &(frame->$initField), &(next->$initField), sizeof(frame->$initField) },"
+        $initPosition = $c.IndexOf($initPattern, $position, [StringComparison]::Ordinal)
+        if ( $initPosition -lt 0 -or $initPosition -ge $transitionEnd ) {
+            throw "XLIR async Cgen omitted the resident rollback initialization bit: $initField"
+        }
+    }
+    $cursor = $position + $pattern.Length
 }
 
 $command = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include build\tmp\xlir_async_cfg_liveness.c test\cases\xlir_default_class_layout_host.c !XL6_CGEN_LINKS! -o build\tmp\xlir_async_cfg_liveness.exe && build\tmp\xlir_async_cfg_liveness.exe'

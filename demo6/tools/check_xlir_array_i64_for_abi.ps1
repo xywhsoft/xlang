@@ -92,7 +92,9 @@ foreach ( $block in @($lowered.blocks) ) {
     }
 }
 $snapshotReleaseCounts = @()
-$nonCanonicalReleaseSuccessors = @()
+$transactionSuccessors = @()
+$transactionFailureSuccessors = @()
+$errorUnwindSuccessors = @()
 foreach ( $loopId in $loopIds ) {
     $typedLoop = @($arrayLoops | Where-Object { $_.id -eq $loopId })[0]
     $instructions = @($loopInstructions | Where-Object { $_.origin -eq $loopId })
@@ -142,39 +144,91 @@ foreach ( $loopId in $loopIds ) {
     if ( $canonicalReleases.Count -ne 1 -or $releases.Count -lt 1 ) {
         throw "Lowered XLIR array loop has no unique canonical exit release: n$loopId"
     }
-    foreach ( $release in @($releases | Where-Object {
-            $instructionBlock[[string]$_.id] -ne $exitBlock
-        }) ) {
+    foreach ( $release in $releases ) {
         $releaseBlock = $instructionBlock[[string]$release.id]
-        $releaseIndex = [long]$instructionIndex[[string]$release.id]
-        $successor = $null
-        for ( $candidateIndex = $releaseIndex + 1;
-              $candidateIndex -lt $lowered.instructions.Count;
-              ++$candidateIndex ) {
-            $candidate = $lowered.instructions[$candidateIndex]
-            if ( $instructionBlock[[string]$candidate.id] -ne $releaseBlock ) {
-                break
-            }
-            if ( $candidate.kindName -in @("return", "throw", "jump") ) {
-                $successor = $candidate
-                break
-            }
-            if ( $candidate.kindName -ne "release" ) {
-                break
-            }
+        $block = @($lowered.blocks | Where-Object { $_.id -eq $releaseBlock })
+        if ( $block.Count -ne 1 ) {
+            throw "Lowered XLIR array loop release does not belong to one block: n$loopId"
         }
-        if ( $null -eq $successor ) {
-            throw "Lowered XLIR array loop escape cleanup sequence does not terminate in its CFG transfer: n$loopId"
+        $blockInstructions = @($lowered.instructions |
+            Select-Object -Skip ([int]$block[0].firstInstruction) |
+            Select-Object -First ([int]$block[0].instructionCount))
+        $releaseOffset = [int]$instructionIndex[[string]$release.id] -
+            [int]$block[0].firstInstruction
+        $terminal = $blockInstructions[-1]
+        if ( $terminal.kindName -eq "error-test" ) {
+            $beginOffset = -1
+            for ( $offset = 0; $offset -lt $releaseOffset; ++$offset ) {
+                if ( $blockInstructions[$offset].kindName -eq "cleanup-begin" ) {
+                    $beginOffset = $offset
+                }
+            }
+            $captureOffset = $releaseOffset + 1
+            while ( $captureOffset -lt $blockInstructions.Count -and
+                    $blockInstructions[$captureOffset].kindName -eq "release" ) {
+                ++$captureOffset
+            }
+            if ( $beginOffset -lt 0 -or $captureOffset + 2 -ne $blockInstructions.Count - 1 -or
+                 $blockInstructions[$captureOffset].kindName -ne "cleanup-capture" -or
+                 $blockInstructions[$captureOffset + 1].kindName -ne "cleanup-end" -or
+                 $terminal.trueTarget -eq 0 -or $terminal.falseTarget -eq 0 ) {
+                throw "Lowered XLIR array loop release is not enclosed by one complete cleanup transaction: n$loopId"
+            }
+            for ( $offset = $beginOffset + 1; $offset -lt $captureOffset; ++$offset ) {
+                if ( $blockInstructions[$offset].kindName -ne "release" ) {
+                    throw "Lowered XLIR array loop cleanup transaction contains a non-release action: n$loopId"
+                }
+            }
+            $successBlock = @($lowered.blocks | Where-Object { $_.id -eq $terminal.trueTarget })
+            $failureBlock = @($lowered.blocks | Where-Object { $_.id -eq $terminal.falseTarget })
+            if ( $successBlock.Count -ne 1 -or $failureBlock.Count -ne 1 ) {
+                throw "Lowered XLIR array loop cleanup transaction has an unresolved CFG successor: n$loopId"
+            }
+            $successTerminal = $lowered.instructions[
+                [int]$successBlock[0].firstInstruction + [int]$successBlock[0].instructionCount - 1]
+            $failureTerminal = $lowered.instructions[
+                [int]$failureBlock[0].firstInstruction + [int]$failureBlock[0].instructionCount - 1]
+            if ( $successTerminal.kindName -notin @("return", "throw", "jump") -or
+                 $failureTerminal.kindName -notin @("return", "throw", "jump") ) {
+                throw "Lowered XLIR array loop cleanup transaction does not rejoin an explicit CFG transfer: n$loopId"
+            }
+            $transactionSuccessors += $successTerminal.kindName
+            $transactionFailureSuccessors += $failureTerminal.kindName
         }
-        $nonCanonicalReleaseSuccessors += $successor.kindName
+        elseif ( $terminal.kindName -in @("return", "throw", "jump") ) {
+            if ( $blockInstructions.Count -lt 4 -or
+                 $blockInstructions[$blockInstructions.Count - 2].kindName -ne "error-unwind-end" ) {
+                throw "Lowered XLIR array loop release does not terminate a complete error unwind: n$loopId"
+            }
+            $endOffset = $blockInstructions.Count - 2
+            $beginOffset = -1
+            for ( $offset = 0; $offset -lt $releaseOffset; ++$offset ) {
+                if ( $blockInstructions[$offset].kindName -eq "error-unwind-begin" ) {
+                    $beginOffset = $offset
+                }
+            }
+            if ( $beginOffset -lt 0 ) {
+                throw "Lowered XLIR array loop error release has no unwind begin marker: n$loopId"
+            }
+            for ( $offset = $beginOffset + 1; $offset -lt $endOffset; ++$offset ) {
+                if ( $blockInstructions[$offset].kindName -ne "release" ) {
+                    throw "Lowered XLIR array loop error unwind contains a non-release action: n$loopId"
+                }
+            }
+            $errorUnwindSuccessors += $terminal.kindName
+        }
+        else {
+            throw "Lowered XLIR array loop release has no verified cleanup/unwind protocol: n$loopId"
+        }
     }
     $snapshotReleaseCounts += $releases.Count
 }
-if ( @($snapshotReleaseCounts | Where-Object { $_ -eq 1 }).Count -ne 6 -or
-     @($snapshotReleaseCounts | Where-Object { $_ -eq 2 }).Count -ne 5 -or
-     @($nonCanonicalReleaseSuccessors | Where-Object { $_ -eq "return" }).Count -ne 2 -or
-     @($nonCanonicalReleaseSuccessors | Where-Object { $_ -eq "throw" }).Count -ne 1 -or
-     @($nonCanonicalReleaseSuccessors | Where-Object { $_ -eq "jump" }).Count -ne 2 ) {
+if ( @($snapshotReleaseCounts | Where-Object { $_ -lt 1 }).Count -ne 0 -or
+     @($transactionSuccessors | Where-Object { $_ -eq "return" }).Count -ne 2 -or
+     @($transactionFailureSuccessors | Where-Object { $_ -eq "throw" }).Count -lt 1 -or
+     @($transactionFailureSuccessors | Where-Object { $_ -eq "jump" }).Count -lt 1 -or
+     @($errorUnwindSuccessors | Where-Object { $_ -eq "throw" }).Count -lt 1 -or
+     @($errorUnwindSuccessors | Where-Object { $_ -eq "jump" }).Count -ne 2 ) {
     throw "Lowered XLIR array-loop resource exits do not cover return, exception and finally routes exactly"
 }
 
@@ -229,11 +283,15 @@ foreach ( $loopId in $loopIds ) {
         $_.origin -eq $loopId -and $_.kindName -eq "release" -and
         $_.targetSymbol -eq $snapshotStore.targetSymbol
     }).Count
-    $renderedReleaseCount = ([regex]::Matches(
-        $generated,
-        "xrtValueRelease\(s$($snapshotStore.targetSymbol)\);\s*s$($snapshotStore.targetSymbol) = NULL;"
-    )).Count
-    if ( $renderedReleaseCount -ne $releaseCount ) {
+    $symbol = $snapshotStore.targetSymbol
+    $renderedReleasePattern =
+        [regex]::Escape("{ &(xlir_released), &(s$symbol), sizeof(xlir_released) },") +
+        "\s*" +
+        [regex]::Escape("{ &(s$symbol), &(xvalue*){0}, sizeof(s$symbol) },") +
+        "[\s\S]{0,256}?" + [regex]::Escape("xrtValueRelease(xlir_released);")
+    $renderedReleaseCount = ([regex]::Matches($generated, $renderedReleasePattern)).Count
+    if ( $renderedReleaseCount -ne $releaseCount -or
+         $generated.Contains("xrtValueRelease(s$symbol);") ) {
         throw "Generated C does not mechanically preserve every array-loop resource exit: n$loopId"
     }
 }
