@@ -23,7 +23,7 @@ struct XL6_ContinuationExecutor {
     size_t workerCount, blockedCount, maxWorkers;
     size_t references, entries;
     const void* claim;
-    bool closed, guaranteed, initialized, joining, joined, destroying, retired, cleared;
+    bool closed, guaranteed, initialized, entrySealed, joining, joined, destroying, retired, cleared;
 };
 static void executor_lock(XL6_ContinuationExecutor* executor)
 { if (!xrtMutexLock(executor->gate)) abort(); }
@@ -33,11 +33,13 @@ static void executor_begin(XL6_ContinuationExecutor* executor,xrtownershipscope*
 {if(!xrtOwnershipMutationBegin(mutation))abort();executor_lock(executor);}
 static void executor_end(XL6_ContinuationExecutor* executor,xrtownershipscope* mutation)
 {executor_unlock(executor);if(!xrtOwnershipScopeEnd(mutation))abort();}
-static void executor_enter(XL6_ContinuationExecutor* executor)
+static bool executor_enter(XL6_ContinuationExecutor* executor)
 {
     xrtownershipscope mutation={0};executor_begin(executor,&mutation);
     if(!executor->references||executor->references==SIZE_MAX||executor->entries==SIZE_MAX)abort();
-    ++executor->references;++executor->entries;executor_end(executor,&mutation);
+    bool entered=!executor->entrySealed&&!executor->joining&&!executor->destroying&&!executor->cleared;
+    if(entered){++executor->references;++executor->entries;}
+    executor_end(executor,&mutation);return entered;
 }
 static void executor_drop_locked(XL6_ContinuationExecutor* executor,xrtownershipscope* mutation)
 {
@@ -122,7 +124,8 @@ XL6_ContinuationExecutor* xl6ContinuationExecutorCreate(size_t capacity, size_t 
 bool xl6ContinuationExecutorIsIdle(XL6_ContinuationExecutor* executor)
 {
     if(!executor)return true;
-    executor_enter(executor);bool idle=xl6ContinuationQueueIsIdle(executor->queue);executor_leave(executor);return idle;
+    if(!executor_enter(executor))return true;
+    bool idle=xl6ContinuationQueueIsIdle(executor->queue);executor_leave(executor);return idle;
 }
 XL6_ContinuationExecutor* xl6ContinuationExecutorCreateGuaranteed(size_t capacity, size_t initialWorkers)
 {
@@ -138,7 +141,7 @@ XL6_ContinuationAdmission xl6ContinuationExecutorReserveOwned(
     bool provisioned = true;
     xerror* prior;
     if (executor == NULL) return XL6_CONTINUATION_INVALID;
-    executor_enter(executor);
+    if (!executor_enter(executor)) return XL6_CONTINUATION_CLOSED;
     prior = xrtTakeError();
     /* Host acquire/drop must never run under the executor gate: module
      * retirement can reenter Close/Destroy with the API lock held. */
@@ -181,8 +184,8 @@ XL6_ContinuationBlockingAdmission xl6ContinuationBlockingEnter(XL6_ContinuationE
 {
     XL6_ContinuationWorker* worker;
     XL6_ContinuationBlockingAdmission result = XL6_CONTINUATION_BLOCKING_ADMITTED;
-    if (executor == NULL) return XL6_CONTINUATION_BLOCKING_RESOURCE_FAILURE;
-    executor_enter(executor);xrtownershipscope mutation={0};executor_begin(executor,&mutation);
+    if (executor == NULL || !executor_enter(executor)) return XL6_CONTINUATION_BLOCKING_RESOURCE_FAILURE;
+    xrtownershipscope mutation={0};executor_begin(executor,&mutation);
     worker = executor_current_worker(executor);
     if (worker != NULL) {
         if (!executor->guaranteed && worker->blockingDepth == 0 && executor->workerCount - executor->blockedCount == 1) {
@@ -199,8 +202,8 @@ XL6_ContinuationBlockingAdmission xl6ContinuationBlockingEnter(XL6_ContinuationE
 void xl6ContinuationBlockingLeave(XL6_ContinuationExecutor* executor)
 {
     XL6_ContinuationWorker* worker;
-    if (executor == NULL) abort();
-    executor_enter(executor);xrtownershipscope mutation={0};executor_begin(executor,&mutation);
+    if (executor == NULL || !executor_enter(executor)) abort();
+    xrtownershipscope mutation={0};executor_begin(executor,&mutation);
     worker = executor_current_worker(executor);
     if (worker != NULL) {
         if (worker->blockingDepth == 0) abort();
@@ -211,7 +214,8 @@ void xl6ContinuationBlockingLeave(XL6_ContinuationExecutor* executor)
 void xl6ContinuationExecutorClose(XL6_ContinuationExecutor* executor)
 {
     if (executor == NULL) return;
-    executor_enter(executor);xrtownershipscope mutation={0};executor_begin(executor,&mutation);
+    if(!executor_enter(executor))return;
+    xrtownershipscope mutation={0};executor_begin(executor,&mutation);
     executor->closed=true;executor_end(executor,&mutation);
     xl6ContinuationQueueClose(executor->queue);
     executor_leave(executor);
@@ -240,19 +244,23 @@ static bool executor_destroy_entered(XL6_ContinuationExecutor* executor,bool com
     xrtownershipscope mutation={0};executor_begin(executor,&mutation);
     /* This Destroy owns one entry. A reentrant host acquire/drop or another
      * live API call still uses the queue/worker resources, not just the shell. */
-    bool ready=(completed||executor->entries==1)&&executor->closed&&!executor->joining&&!executor->destroying&&
+    bool ready=(completed||executor->entries==1)&&executor->closed&&!executor->entrySealed&&
+        !executor->joining&&!executor->destroying&&
         (!executor->claim||executor->cleared)&&executor_current_worker(executor)==NULL;
     bool retired=executor->retired;XL6_ContinuationQueue* queue=executor->queue;executor_end(executor,&mutation);
     if(!ready||(!retired&&!(completed?xl6ContinuationQueueWaitCompleted(queue):xl6ContinuationQueueIsIdle(queue))))return false;
-    if(completed){
-        executor_begin(executor,&mutation);
-        ready=executor->entries==1&&!executor->joining&&!executor->destroying&&
-            (!executor->claim||executor->cleared);
-        executor_end(executor,&mutation);
-        if(!ready)return false;
-    }
+    /* Seal API admission in the SAME gate transaction as the final entry
+     * check. No IsIdle/Reserve/Close call can enter between this decision and
+     * queue retirement. Existing entries make the transition fail closed. */
+    executor_begin(executor,&mutation);
+    retired=executor->retired;
+    ready=executor->entries==1&&executor->closed&&!executor->entrySealed&&
+        !executor->joining&&!executor->destroying&&(!executor->claim||executor->cleared)&&
+        executor_current_worker(executor)==NULL&&(retired||executor->queue==queue);
+    if(ready){executor->entrySealed=true;if(!retired)executor->joining=true;}
+    executor_end(executor,&mutation);
+    if(!ready)return false;
     if(!retired){
-        executor_begin(executor,&mutation);executor->joining=true;executor_end(executor,&mutation);
         for(XL6_ContinuationWorker* worker=executor->workers;worker;worker=worker->next)
             if(xrtThreadWait(worker->thread)!=XWAIT_OK)abort();
         executor_begin(executor,&mutation);executor->joining=false;executor->joined=true;executor_end(executor,&mutation);
@@ -264,12 +272,14 @@ static bool executor_destroy_entered(XL6_ContinuationExecutor* executor,bool com
 bool xl6ContinuationExecutorDestroy(XL6_ContinuationExecutor* executor)
 {
     if(!executor)return true;
-    executor_enter(executor);bool destroyed=executor_destroy_entered(executor,false);executor_leave(executor);return destroyed;
+    if(!executor_enter(executor))return false;
+    bool destroyed=executor_destroy_entered(executor,false);executor_leave(executor);return destroyed;
 }
 bool xl6ContinuationExecutorDestroyCompleted(XL6_ContinuationExecutor* executor)
 {
     if(!executor)return true;
-    executor_enter(executor);bool destroyed=executor_destroy_entered(executor,true);executor_leave(executor);return destroyed;
+    if(!executor_enter(executor))return false;
+    bool destroyed=executor_destroy_entered(executor,true);executor_leave(executor);return destroyed;
 }
 static bool executor_count(const void* data,size_t* count)
 {

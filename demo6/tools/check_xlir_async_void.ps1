@@ -45,7 +45,9 @@ $c = [System.IO.File]::ReadAllText($generatedC, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
     "unsigned char reserved;",
     "result->Value = NULL; result->Destroy = NULL; result->DestroyData = NULL;",
-    "static void xlir_future_await_void(xfuture* future)",
+    "static bool xlir_future_wait_checked(xfuture* future, int32_t line, int32_t column)",
+    'xrtSetErrorTake(xlir_error_create_at("StateError", "await on null future", line, column));',
+    "return xl6PayloadObserveOutcome(xrtFutureState(future), xrtFutureError(future));",
     "outcome.ok = worker.ok;",
     "outcome = xlir_async_frame_retire_",
     "if (!outcome.ok) {"
@@ -53,6 +55,10 @@ foreach ( $required in @(
     if ( ! $c.Contains($required) ) {
         throw "XLIR async-void generated C is missing: $required"
     }
+}
+if ( ([regex]::Matches($c, 'xlir_future_wait_checked\(v[0-9]+,\s*[1-9][0-9]*,\s*[1-9][0-9]*\)')).Count -ne $voidAwaits.Count -or
+     $c.Contains("static void xlir_future_await_void") ) {
+    throw "XLIR async-void awaits did not use the shared payload-free outcome oracle exactly once"
 }
 
 $command = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\tmp\xlir_async_void.c test\cases\xlir_generated_module_host.c !XL6_CGEN_LINKS! -o build\tmp\xlir_async_void.exe && build\tmp\xlir_async_void.exe'

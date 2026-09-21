@@ -578,10 +578,11 @@ if (!$header.Contains('XL6_IR_ASYNC_CANCELLATION_RESIDENT_AWAIT_ONCE_V2') -or
     throw 'Async machines must own cancellation delivery and all resident owners through the verified Watch handoff'
 }
 $asyncMachineEmitter = Read-Utf8 'src/cgen/xl6_ir_cgen_async_machine.c'
-if (!$header.Contains('XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC') -or
+if (!$header.Contains('XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR') -or
     !$source.Contains('XLIR instruction has an ambiguous await status/diagnostic ABI') -or
-    !$lower.Contains('awaitOutcomeAbi = XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC') -or
+    !$lower.Contains('XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR') -or
     !$asyncMachineEmitter.Contains('await_ok_%u = observed.ok') -or
+    !$asyncMachineEmitter.Contains('\"await on null future\"') -or
     !(Read-Utf8 'src/cgen/xl6_ir_cgen_future_contract.c').Contains('xl6IrCgenEmitAwaitPayload') -or
     (Read-Utf8 'src/cgen/xl6_ir_cgen_emit_prelude.c').Contains('xlir_future_await_')) {
     throw 'Await needs one verified status/diagnostic acquisition contract, including source cleanup, without ambiguous per-type wrappers'
@@ -3444,10 +3445,11 @@ foreach ( $required in @(
     "xlir_async_future_three_strings",
     "direct scalar/managed two/three-await machine CFG",
     "canonical single-layout activation handoff",
-    "per-suspension live-set transfer",
-    "exact managed operand owners and borrowed spill copies with success/failure cleanup",
+    "forward/reverse transactional resident transfer",
+    "exact managed operand owners and anchored borrow-storage observations with success/failure cleanup",
     "Multi-await borrowed spill does not name its exact operand owner",
-    "Multi-await success/failure lost its managed operand cleanup",
+    "Multi-await failure lost its managed operand cleanup",
+    "Multi-await managed consumer success/failure lost its owner cleanup",
     "legacy async-chain renderer forbidden",
     "SequenceEqual", "-Werror", "runtime terminal-state propagation"
 ) ) {
@@ -4630,7 +4632,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "XL6_IR_INSTR_AWAIT",
     "xl6IrCgenEmitAwaitPayload",
-    "XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC",
+    "XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR",
     "await_ok_%u",
     "xl6IrCgenBlockingAwaitAbi",
     "xlir_future_wait_checked",

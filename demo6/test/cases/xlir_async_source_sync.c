@@ -25,7 +25,7 @@ static void release(void* context)
      * it on that worker after frame disposal, before publishing retirement. */
     if (xrtMemDebugFailTriggered()) atomic_store(&worker_fault, true);
     xrtMemDebugFailClear();
-    assert(atomic_fetch_sub_explicit(&leases, 1, memory_order_acq_rel) == 1);
+    assert(atomic_fetch_sub_explicit(&leases, 1, memory_order_acq_rel) > 0);
 }
 const XL6_CodeOwner* xlir_async_test_code_owner(void)
 {
@@ -35,7 +35,11 @@ const XL6_CodeOwner* xlir_async_test_code_owner(void)
 void xlir_async_test_wait_retired(void)
 {
     unsigned long long started = 0;
-    while (atomic_load_explicit(&leases, memory_order_acquire)) xlir_async_test_pause(&started);
+    /* A module code-owner lease is also held by live classes, closures and
+     * returned payloads. It is therefore not a continuation-retirement
+     * counter. Queue idleness becomes true only after the worker has run the
+     * frame release tail and dropped its execution credit. */
+    while (!xlir_async_test_execution_idle()) xlir_async_test_pause(&started);
 }
 void xlir_async_test_begin(void)
 {
@@ -48,6 +52,10 @@ bool xlir_async_test_take_fault(void)
     xlir_async_test_wait_retired();
     detected = atomic_exchange(&worker_fault, false) || xrtMemDebugFailTriggered();
     xrtMemDebugFailClear(); return detected;
+}
+void xlir_async_test_assert_owner_released(void)
+{
+    assert(atomic_load_explicit(&leases, memory_order_acquire) == 0);
 }
 xfuturewatchresult xlir_async_test_watch_add(xfuture* future, xfuturewatch* watch)
 {

@@ -159,7 +159,8 @@ $stringMachineFrames = @($machineFrameSlots |
     Select-Object -First ([int]$stringMachine[0].frameSlotCount))
 $borrowedStringFrames = @($stringMachineFrames | Where-Object {
     $_.sourceName -eq "value" -and $_.residenceName -eq "ssa-spill" -and
-    $_.transferAbiName -eq "copy-string" -and $_.destroyAbiName -eq "free-string"
+    $_.transferAbiName -eq "borrow-storage" -and $_.destroyAbiName -eq "none" -and
+    $_.hasInitBit -eq 0
 })
 $anchoredStringFrames = @($stringMachineFrames | Where-Object {
     $_.sourceName -eq "storage" -and $_.residenceName -eq "frame-storage" -and
@@ -171,6 +172,7 @@ $copiedStringParameters = @($stringMachineFrames | Where-Object {
 })
 if ( $borrowedStringFrames.Count -ne 1 -or $copiedStringParameters.Count -ne 1 -or
      $anchoredStringFrames.Count -ne 1 -or
+     $borrowedStringFrames[0].borrowFrameSlot -ne $anchoredStringFrames[0].id -or
      @($ir.asyncFrameActions | Where-Object {
          $_.frameSlot -eq $borrowedStringFrames[0].id -and $_.kindName -like 'transfer-*'
      }).Count -ne 0 ) {
@@ -182,20 +184,51 @@ $observation = @($ir.instructions | Where-Object { $_.result -eq $borrowedString
 $stringState = @($suspensions | Where-Object { $_.machine -eq $stringMachine[0].id })[0]
 if ( $anchorStorage.Count -ne 1 -or $anchorStorage[0].kindName -ne "temporary" -or
      $anchorStorage[0].type -ne $anchorFrame.type -or $anchorFrame.hasInitBit -ne 1 -or
+     $borrowedStringFrames[0].type -ne $anchorFrame.type -or
      $observation.Count -ne 1 -or $observation[0].kindName -ne "load" -or
      $observation[0].targetSymbol -ne $anchorFrame.storageSymbol -or
      $observation[0].index -ge $stringState.awaitInstruction -or
      $observation[0].type -ne $borrowedStringFrames[0].type ) {
     throw "The cross-await borrowed string must observe the exact live operand owner"
 }
-foreach ( $blockId in @($stringState.successBlock, $stringState.failureBlock) ) {
+$failureBlock = @($ir.blocks | Where-Object { $_.id -eq $stringState.failureBlock })[0]
+$failureCleanup = @($ir.instructions | Where-Object {
+    $_.index -ge $failureBlock.firstInstruction -and
+    $_.index -lt $failureBlock.firstInstruction + $failureBlock.instructionCount -and
+    $_.kindName -eq "release" -and $_.targetSymbol -eq $anchorFrame.storageSymbol -and
+    $_.type -eq $anchorFrame.type
+})
+if ( $failureCleanup.Count -ne 1 ) {
+    throw "Await failure lost the binary operand owner's exact cleanup"
+}
+$successBlock = @($ir.blocks | Where-Object { $_.id -eq $stringState.successBlock })[0]
+$borrowConsumers = @($ir.instructions | Where-Object {
+    $_.index -ge $successBlock.firstInstruction -and
+    $_.index -lt $successBlock.firstInstruction + $successBlock.instructionCount -and
+    $_.runtimeOpName -eq "string-concat" -and
+    @($_.operands) -contains $observation[0].result
+})
+if ( $borrowConsumers.Count -ne 1 ) {
+    throw "Await success did not consume the exact anchored string observation"
+}
+$borrowConsumerTest = @($ir.instructions | Where-Object {
+    $_.index -eq (1 + [int64]$borrowConsumers[0].index) -and
+    $_.kindName -eq "error-test" -and @($_.operands) -contains $borrowConsumers[0].result
+})
+if ( $borrowConsumerTest.Count -ne 1 ) {
+    throw "Anchored string observation has no explicit success/failure CFG boundary"
+}
+foreach ( $blockId in @($borrowConsumerTest[0].trueTarget, $borrowConsumerTest[0].falseTarget) ) {
     $block = @($ir.blocks | Where-Object { $_.id -eq $blockId })[0]
     $cleanup = @($ir.instructions | Where-Object {
-        $_.index -ge $block.firstInstruction -and $_.index -lt $block.firstInstruction + $block.instructionCount -and
+        $_.index -ge $block.firstInstruction -and
+        $_.index -lt $block.firstInstruction + $block.instructionCount -and
         $_.kindName -eq "release" -and $_.targetSymbol -eq $anchorFrame.storageSymbol -and
         $_.type -eq $anchorFrame.type
     })
-    if ( $cleanup.Count -ne 1 ) { throw "Await success/failure lost the binary operand owner's exact cleanup" }
+    if ( $cleanup.Count -ne 1 ) {
+        throw "Borrowed string consumer success/failure lost its anchored owner cleanup"
+    }
 }
 foreach ( $state in $suspensions ) {
     $awaitInstruction = $ir.instructions[[int]$state.awaitInstruction]
@@ -286,36 +319,63 @@ foreach ( $cfg in $asyncWorkers ) {
 foreach ( $required in @(
     "typedef struct xlir_async_machine_frame_3",
     "xlir_async_machine_resume_3_0",
-    "frame->f0 = v26;",
-    "v26 = frame->f0;",
-    "v30 = v28 + v29;",
-    "v31 = v26 - v30;",
     "typedef struct xlir_async_machine_frame_4",
-    "v33 = xlir_make_i64_future();",
-    "frame->f1 = v33;",
-    "frame->i0 = 1;",
-    "if (frame->i0) { xrtFutureDestroy(frame->f1); frame->f1 = NULL; frame->i0 = 0; }",
-    "v37 = v35 + v36;",
-    "v38 = v32 - v37;",
     "typedef struct xlir_async_machine_frame_5",
     "xlir_async_machine_resume_5_0",
-    "const char* source = *(const char* const*)input->Value;",
-    "frame->f0 = NULL; frame->i0 = 0;",
-    "frame->f1 = a1 != NULL ? xrtStrDup(a1) : NULL;",
-    'v39 = xrtStrDup("<");',
-    "if (frame->i1) xrtFree(frame->f1);",
-    "if (frame->i0) xrtFree(frame->f0);"
+    "XL6_ContinuationFrameLayoutV2",
+    "xl6ContinuationExecutorReserveOwned(",
+    "xl6ContinuationReserveSuccessor(",
+    "xl6ContinuationWatchRegister(",
+    "xl6ContinuationComplete(",
+    "xl6ContinuationFrameRuntimeV2Get()->Cleanup(",
+    "xl6PayloadResolveOwned(",
+    "{ const XL6_SlotWrite xlir_writes[] = {"
 ) ) {
     if ( ! $c.Contains($required) ) {
         throw "XLIR generic async machine Cgen is missing verified CFG emission: $required"
     }
 }
-$resultCopy = "v$($stringState.resultValue) = source != NULL ? xrtStrDup(source) : NULL;"
+$operators = @{ add = "+"; sub = "-" }
+foreach ( $worker in $asyncWorkers ) {
+    $binaryInstructions = @($ir.instructions | Where-Object {
+        $_.index -ge $worker.firstInstruction -and
+        $_.index -lt ($worker.firstInstruction + $worker.instructionCount) -and
+        $_.kindName -eq "binary"
+    })
+    foreach ( $binary in $binaryInstructions ) {
+        $operator = $operators[$binary.opcodeName]
+        if ( $null -eq $operator ) { throw "Unexpected generic async binary opcode: $($binary.opcodeName)" }
+        $rendering = "v$($binary.result) = v$($binary.operands[0]) $operator v$($binary.operands[1]);"
+        if ( !$c.Contains($rendering) ) {
+            throw "Async Cgen did not render the verified binary operands: $rendering"
+        }
+    }
+}
+foreach ( $machine in $machines ) {
+    $machineActions = @($frameActions | Select-Object -Skip ([int]$machine.firstAction) |
+        Select-Object -First ([int]$machine.actionCount))
+    foreach ( $project in @($machineActions | Where-Object { $_.kindName -eq "project-value" }) ) {
+        $frameLocal = [int64]$project.frameSlot - [int64]$machine.firstFrameSlot
+        $rendering = "v$($project.value) = frame->f$frameLocal;"
+        if ( !$c.Contains($rendering) ) {
+            throw "Async Cgen did not project the verified frame resident: $rendering"
+        }
+    }
+    foreach ( $spill in @($machineActions | Where-Object { $_.kindName -eq "spill-value" }) ) {
+        $frameLocal = [int64]$spill.frameSlot - [int64]$machine.firstFrameSlot
+        $rendering = "{ &(frame->f$frameLocal), &(xlir_committed), sizeof(frame->f$frameLocal) },"
+        if ( !$c.Contains($rendering) ) {
+            throw "Async Cgen did not atomically commit the verified frame spill: $rendering"
+        }
+    }
+}
+$resultCopy = "v$($stringState.resultValue) = *payload != NULL ? xrtStrDup(*payload) : NULL;"
 $observedValue = $borrowedStringFrames[0].value
 $spillIndex = $borrowedStringFrames[0].id - $stringMachine[0].firstFrameSlot
 $spillCopy = "frame->f$spillIndex = v$observedValue != NULL ? xrtStrDup(v$observedValue) : NULL;"
-if ( !$c.Contains($resultCopy) -or !$c.Contains($spillCopy) ) {
-    throw "Async generated C must copy the exact await result and borrowed spill values"
+$spillCommit = "{ &(frame->f$spillIndex), &(xlir_committed), sizeof(frame->f$spillIndex) },"
+if ( !$c.Contains($resultCopy) -or !$c.Contains($spillCommit) -or $c.Contains($spillCopy) ) {
+    throw "Async generated C must acquire the await result and preserve the verified borrow-storage spill without copying it"
 }
 $worker = $ir.functions[$stringMachine[0].function]
 $concats = @($ir.instructions | Where-Object {

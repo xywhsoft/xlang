@@ -42,7 +42,10 @@ void xl6ContinuationBlockingLeave(XL6_ContinuationExecutor*);
 /* Close refuses NEW reservations; already reserved Future outcomes still run.
  * This is not cancellation. Destroy is a non-destructive busy check followed
  * by worker join, and never succeeds while run/release/pending leases exist.
- * External lifecycle serialization is required for Create/Close/Destroy. */
+ * External lifecycle serialization is required for Create/Close/Destroy.
+ * A successful Destroy atomically seals new API entries before joining; calls
+ * that race the sealed retirement receive their API's closed/neutral result.
+ * The pointer itself must still be protected by a real owner until entry. */
 XL6_CONTINUATION_API void xl6ContinuationExecutorClose(XL6_ContinuationExecutor*);
 /* Snapshot of accepted work, including physical release/code-owner tails.
  * Does not close admission or stop workers. Callers must serialize producers

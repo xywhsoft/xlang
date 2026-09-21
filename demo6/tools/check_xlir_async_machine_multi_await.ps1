@@ -144,6 +144,31 @@ foreach ( $case in $cases ) {
                 throw "XLIR multi-await suspension live-set escapes its canonical frame: $($case.Name) state $state"
             }
         }
+        $handoff = @($ir.asyncFrameActions |
+            Select-Object -Skip ([int]$suspension.firstHandoffAction) |
+            Select-Object -First ([int]$suspension.handoffActionCount))
+        $rollback = @($ir.asyncFrameActions |
+            Select-Object -Skip ([int]$suspension.firstRollbackAction) |
+            Select-Object -First ([int]$suspension.rollbackActionCount))
+        if ( $handoff.Count -eq 0 -or $handoff.Count -ne $rollback.Count -or
+             @($handoff | Where-Object {
+                 $_.kindName -ne "handoff-resident" -or $_.machine -ne $machine.id -or
+                 $_.suspension -ne $suspension.id
+             }).Count -ne 0 -or
+             @($rollback | Where-Object {
+                 $_.kindName -ne "rollback-handoff-resident" -or $_.machine -ne $machine.id -or
+                 $_.suspension -ne $suspension.id
+             }).Count -ne 0 ) {
+            throw "XLIR multi-await suspension has no exact handoff/rollback transaction: $($case.Name) state $state"
+        }
+        for ( $handoffIndex = 0; $handoffIndex -lt $handoff.Count; ++$handoffIndex ) {
+            if ( ($handoffIndex -gt 0 -and
+                  [int64]$handoff[$handoffIndex - 1].frameSlot -ge [int64]$handoff[$handoffIndex].frameSlot) -or
+                 [int64]$rollback[$handoffIndex].frameSlot -ne
+                    [int64]$handoff[$handoff.Count - 1 - $handoffIndex].frameSlot ) {
+                throw "XLIR multi-await handoff must move residents forward and roll them back in reverse order: $($case.Name) state $state"
+            }
+        }
     }
 
     $futureFrames = @($frames | Where-Object {
@@ -158,8 +183,8 @@ foreach ( $case in $cases ) {
     })
     $managedSpills = @($frames | Where-Object {
         $_.residenceName -eq "ssa-spill" -and
-        $_.transferAbiName -eq "copy-string" -and
-        $_.destroyAbiName -eq "free-string" -and $_.hasInitBit -eq 1
+        $_.transferAbiName -eq "borrow-storage" -and
+        $_.destroyAbiName -eq "none" -and $_.hasInitBit -eq 0
     })
     if ( $futureFrames.Count -ne [int]$case.FutureFrames -or
          $scalarSpills.Count -ne [int]$case.ScalarSpills -or
@@ -181,10 +206,10 @@ foreach ( $case in $cases ) {
     }
     foreach ( $spill in $managedSpills ) {
         $load = @($ir.instructions | Where-Object { $_.result -eq $spill.value })[0]
-        $owner = @($operandFrames | Where-Object {
-            $_.storageSymbol -eq $load.targetSymbol -and $_.type -eq $load.type
-        })
-        if ( $load.kindName -ne "load" -or $owner.Count -ne 1 -or $spill.type -ne $load.type -or
+        $owner = @($operandFrames | Where-Object { $_.id -eq $spill.borrowFrameSlot })
+        if ( $load.kindName -ne "load" -or $owner.Count -ne 1 -or
+             $owner[0].storageSymbol -ne $load.targetSymbol -or $owner[0].type -ne $load.type -or
+             $spill.type -ne $load.type -or
              @($ir.asyncFrameActions | Where-Object {
                  $_.frameSlot -eq $spill.id -and $_.kindName -like 'transfer-*'
              }).Count -ne 0 ) {
@@ -193,7 +218,32 @@ foreach ( $case in $cases ) {
         foreach ( $state in @($suspensions | Where-Object {
             $_.stateId -ge $spill.firstLiveState -and $_.stateId -le $spill.lastLiveState
         }) ) {
-            foreach ( $blockId in @($state.successBlock, $state.failureBlock) ) {
+            $failureBlock = @($ir.blocks | Where-Object { $_.id -eq $state.failureBlock })[0]
+            $failureReleases = @($ir.instructions | Where-Object {
+                $_.index -ge $failureBlock.firstInstruction -and
+                $_.index -lt $failureBlock.firstInstruction + $failureBlock.instructionCount -and
+                $_.kindName -eq "release" -and $_.targetSymbol -eq $owner[0].storageSymbol -and
+                $_.type -eq $owner[0].type
+            })
+            if ( $failureReleases.Count -ne 1 ) {
+                throw "Multi-await failure lost its managed operand cleanup"
+            }
+            $successBlock = @($ir.blocks | Where-Object { $_.id -eq $state.successBlock })[0]
+            $consumers = @($ir.instructions | Where-Object {
+                $_.index -ge $successBlock.firstInstruction -and
+                $_.index -lt $successBlock.firstInstruction + $successBlock.instructionCount -and
+                $_.runtimeOpName -eq "string-concat" -and @($_.operands) -contains $load.result
+            })
+            $consumerTest = @(if ( $consumers.Count -eq 1 ) {
+                $ir.instructions | Where-Object {
+                    $_.index -eq (1 + [int64]$consumers[0].index) -and $_.kindName -eq "error-test" -and
+                    @($_.operands) -contains $consumers[0].result
+                }
+            })
+            if ( $consumers.Count -ne 1 -or $consumerTest.Count -ne 1 ) {
+                throw "Multi-await success did not consume its exact anchored managed observation"
+            }
+            foreach ( $blockId in @($consumerTest[0].trueTarget, $consumerTest[0].falseTarget) ) {
                 $block = @($ir.blocks | Where-Object { $_.id -eq $blockId })[0]
                 $releases = @($ir.instructions | Where-Object {
                     $_.index -ge $block.firstInstruction -and
@@ -201,7 +251,9 @@ foreach ( $case in $cases ) {
                     $_.kindName -eq "release" -and $_.targetSymbol -eq $owner[0].storageSymbol -and
                     $_.type -eq $owner[0].type
                 })
-                if ( $releases.Count -ne 1 ) { throw "Multi-await success/failure lost its managed operand cleanup" }
+                if ( $releases.Count -ne 1 ) {
+                    throw "Multi-await managed consumer success/failure lost its owner cleanup"
+                }
             }
         }
     }
@@ -210,12 +262,39 @@ foreach ( $case in $cases ) {
     $c = [System.IO.File]::ReadAllText($cPath, [System.Text.Encoding]::UTF8)
     $callbackDefinitions = [regex]::Matches(
         $c, 'static void xlir_async_machine_resume_\d+_\d+\(const xfutureresult\* input').Count
+    $watchDefinitions = [regex]::Matches(
+        $c, 'static int xlir_async_machine_watch_\d+_\d+\([^;]+\)\s*\{').Count
+    $frameDefinitions = [regex]::Matches(
+        $c, 'typedef struct xlir_async_machine_frame_\d+\s*\{').Count
+    $watchRegistrations = [regex]::Matches(
+        $c, [regex]::Escape('xl6ContinuationWatchRegister(&frame->ticket, &frame->watch, source)')).Count
+    $successorReservations = [regex]::Matches(
+        $c, [regex]::Escape('xl6ContinuationReserveSuccessor(predecessor, &frame->ticket, run, release, frame)')).Count
+    $successorFrames = [regex]::Matches(
+        $c, 'xlir_async_machine_frame_\d+\* next = .*xlir_async_frame_allocate').Count
+    $successorWatches = [regex]::Matches(
+        $c, 'xlir_async_machine_watch_\d+_[1-9]\d*\(next, [^,]+, &frame->ticket\)').Count
+    $successorCommits = [regex]::Matches(
+        $c, [regex]::Escape('xl6ContinuationCommit(&next->ticket)')).Count
     if ( -not $text.Contains("async-machine") -or
          $callbackDefinitions -ne [int]$case.Suspensions -or
-         -not $c.Contains("xlir_async_machine_frame_") -or
-         -not $c.Contains("xrtFutureWatchAdd(source, &frame->watch)") -or
-         -not $c.Contains("next->outer = frame->outer; frame->outer = NULL") -or
-         -not $c.Contains("next->cancelObserved = frame->cancelObserved") -or
+         $watchDefinitions -ne [int]$case.Suspensions -or
+         $frameDefinitions -ne 1 -or
+         $watchRegistrations -ne [int]$case.Suspensions -or
+         $successorReservations -ne [int]$case.Suspensions -or
+         $successorFrames -lt ([int]$case.Suspensions - 1) -or
+         $successorWatches -ne $successorFrames -or
+         $successorCommits -ne $successorFrames -or
+         -not $c.Contains("XL6_ContinuationFrameLayoutV2") -or
+         -not $c.Contains("xl6ContinuationFrameRuntimeV2Get()->Cleanup(frame, outcome)") -or
+         -not $c.Contains("xl6ContinuationCommit(&next->ticket)") -or
+         -not $c.Contains("xl6ContinuationAbort(&frame->ticket)") -or
+         -not $c.Contains("{ &(next->outer), &(frame->outer), sizeof(next->outer) },") -or
+         -not $c.Contains("{ &(frame->outer), &(next->outer), sizeof(frame->outer) },") -or
+         -not $c.Contains("(xl6SlotRuntimeV1Get()->Apply)(xlir_writes") -or
+         $c.Contains("next->outer = frame->outer") -or
+         $c.Contains("cancelObserved") -or
+         $c.Contains("xrtFutureWatchAdd(source, &frame->watch)") -or
          $c.Contains("xlir_async_chain_frame_") -or
          $c.Contains("xlir_async_capture_chain_frame_") -or
          $c.Contains("xrtTaskSubmit(") ) {
@@ -246,4 +325,4 @@ try {
     Pop-Location
 }
 
-Write-Host "XLIR async multi-await machine gate ok: direct scalar/managed two/three-await machine CFG, canonical single-layout activation handoff, per-suspension live-set transfer, exact managed operand owners and borrowed spill copies with success/failure cleanup, legacy async-chain renderer forbidden, deterministic C, -Werror and runtime terminal-state propagation."
+Write-Host "XLIR async multi-await machine gate ok: direct scalar/managed two/three-await machine CFG, canonical single-layout activation handoff, forward/reverse transactional resident transfer, exact managed operand owners and anchored borrow-storage observations with success/failure cleanup, legacy async-chain renderer forbidden, deterministic C, -Werror and runtime terminal-state propagation."

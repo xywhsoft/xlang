@@ -3,12 +3,6 @@
 #include <stdint.h>
 #include "../../build/test/xlir_async_generic_expression_planner_generated.c"
 
-typedef struct xpromise xpromise;
-
-extern xpromise* xrtPromiseCreate(xfuture**, void*);
-extern bool xrtPromiseResolve(xpromise*, void*);
-extern void xrtPromiseDestroy(xpromise*);
-
 static int64_t xlir_async_generic_scalar_value = 41;
 static const char* xlir_async_generic_string_value = "hello";
 

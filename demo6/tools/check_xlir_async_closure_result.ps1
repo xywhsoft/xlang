@@ -47,16 +47,22 @@ if ( $awaits.Count -ne 5 -or
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR async-closure C generation failed" }
 $c = [System.IO.File]::ReadAllText($generatedC, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "static void xlir_async_closure_free(void* value, void* data)",
-    "xlir_closure_release(*(xlir_closure**)value);",
-    "static xlir_closure* xlir_future_await_closure(xfuture* future)",
-    "xlir_closure_retain(*value)",
-    "xrtPromiseResolveOwned(promise, value, xlir_async_closure_free, NULL)",
-    "result->Destroy = xlir_async_closure_free;"
+    "#include <__xl_runtime/xl6_future_payload.h>",
+    "return xl6PayloadObserveOutcome(xrtFutureState(future), xrtFutureError(future));",
+    "xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_CLOSURE)",
+    "xl6PayloadResolveOwned(promise, value, XL6_FUTURE_PAYLOAD_CLOSURE)",
+    "result->Destroy = xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_CLOSURE);",
+    "xlir_closure* const* payload =",
+    "xlir_closure_retain(*payload)"
 ) ) {
     if ( ! $c.Contains($required) ) {
         throw "XLIR async-closure generated C is missing: $required"
     }
+}
+if ( $c.Contains("static void xlir_async_closure_free") -or
+     $c.Contains("static xlir_closure* xlir_future_await_closure") -or
+     $c.Contains("xrtPromiseResolveOwned(") ) {
+    throw "XLIR async-closure C regressed to a private payload helper instead of the verified registry ABI"
 }
 
 $command = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\tmp\xlir_async_closure_result.c test\cases\xlir_generated_module_host.c !XL6_CGEN_LINKS! -o build\tmp\xlir_async_closure_result.exe && build\tmp\xlir_async_closure_result.exe'

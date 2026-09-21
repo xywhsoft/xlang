@@ -50,12 +50,17 @@ foreach ( $required in @(
     "class-field f0 owner=t4 type=t3 declaration=n5 initializer=n7 destroy=s0 name=value",
     "kind=temporary",
     "async-start opcode=none runtime=none",
-    "type=6 target=3",
-    "fn4 kind=async-worker decl=n17 symbol=3 errors=no-raise"
+    "type=6 target=3"
 ) ) {
     if ( ! $irText.Contains($required) ) {
         throw "XLIR async class-method lowered ABI is incomplete: $required"
     }
+}
+if ( ([regex]::Matches($irText,
+        'fn[0-9]+ kind=async-worker decl=n17 symbol=3 errors=may-raise')).Count -ne 1 -or
+     ([regex]::Matches($irText,
+        'call-target c[0-9]+ kind=4 .*symbol=3 declaration=n17 .*errors=may-raise/result-carrier .*async-result=copy-i64 worker=t3 worker-errors=may-raise dispatch=1 .*completion=retire-before-publish')).Count -ne 1 ) {
+    throw "XLIR async class-method worker/effect/result-carrier ABI is incomplete"
 }
 
 Remove-Item -LiteralPath $generatedC -Force -ErrorAction SilentlyContinue
@@ -67,10 +72,13 @@ $cText = [System.IO.File]::ReadAllText($generatedC, [System.Text.Encoding]::UTF8
 foreach ( $required in @(
     "typedef struct xlir_async_frame_3",
     "xvalue* p0;",
-    "xrtValueRelease(frame->p0);",
-    "frame->p0 = a0 != NULL ? xrtValueRetain(a0) : NULL;",
-    "*value = xlir_fn_3(frame->p0);",
-    "future = xrtTaskSubmit(xlir_async_pool, xlir_async_task_3, frame, &args);"
+    "XL6_CAPTURE_XVALUE",
+    "xlir_result_i64 worker;",
+    "worker = xlir_fn_3(frame->p0);",
+    "xlir_task_allocate(sizeof(*frame), xlir_async_task_3, &xlir_async_layout_3)",
+    "xvalue* xlir_acquired = a0 != NULL ? xrtValueRetain(a0) : NULL;",
+    "{ &(frame->p0), &(xlir_committed), sizeof(frame->p0) },",
+    "xlir_async_pool_submit_language(frame, NULL, XL6_FUTURE_PAYLOAD_VALUE)"
 ) ) {
     if ( ! $cText.Contains($required) ) {
         throw "XLIR async class-method generated C has no retained receiver frame ABI: $required"
@@ -114,10 +122,13 @@ if ( $LASTEXITCODE -ne 0 -or ! (Test-Path -LiteralPath $genericGeneratedC -PathT
 $genericCText = [System.IO.File]::ReadAllText($genericGeneratedC, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
     "typedef struct xlir_async_frame_4294967292",
-    "xrtValueRelease(frame->p0);",
-    "frame->p0 = a0 != NULL ? xrtValueRetain(a0) : NULL;",
-    "*value = xlir_fn_4294967292(frame->p0);",
-    "xrtTaskSubmit(xlir_async_pool, xlir_async_task_4294967292, frame, &args)"
+    "XL6_CAPTURE_XVALUE",
+    "xlir_result_i64 worker;",
+    "worker = xlir_fn_4294967292(frame->p0);",
+    "xlir_task_allocate(sizeof(*frame), xlir_async_task_4294967292, &xlir_async_layout_4294967292)",
+    "xvalue* xlir_acquired = a0 != NULL ? xrtValueRetain(a0) : NULL;",
+    "{ &(frame->p0), &(xlir_committed), sizeof(frame->p0) },",
+    "xlir_async_pool_submit_language(frame, NULL, XL6_FUTURE_PAYLOAD_VALUE)"
 ) ) {
     if ( ! $genericCText.Contains($required) ) {
         throw "XLIR generic async class-method generated C has no monomorphic receiver frame ABI: $required"
@@ -178,8 +189,11 @@ if ( $LASTEXITCODE -ne 0 -or ! (Test-Path -LiteralPath $lifetimeGeneratedC -Path
 $lifetimeCText = [System.IO.File]::ReadAllText($lifetimeGeneratedC, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
     "typedef struct xlir_result_future { bool ok; struct xfuture* value; } xlir_result_future;",
-    "xrtValueRelease(frame->p0);",
-    "frame->p0 = a0 != NULL ? xrtValueRetain(a0) : NULL;",
+    "XL6_CAPTURE_XVALUE",
+    "(xl6TaskRuntimeV2Get()->Cleanup)(frame);",
+    "xvalue* xlir_acquired = a0 != NULL ? xrtValueRetain(a0) : NULL;",
+    "{ &(frame->p0), &(xlir_committed), sizeof(frame->p0) },",
+    "worker = xlir_fn_3(frame->p0, frame->p1);",
     "return (xlir_result_future){ false };"
 ) ) {
     if ( ! $lifetimeCText.Contains($required) ) {
@@ -219,8 +233,10 @@ if ( $LASTEXITCODE -ne 0 -or ! (Test-Path -LiteralPath $conditionalGeneratedC -P
 $conditionalCText = [System.IO.File]::ReadAllText($conditionalGeneratedC, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
     "!= NULL ? xrtFutureRef(",
-    "xrtFutureDestroy(s4294967295);",
-    'xlir_error_create("AsyncError", "await on null future")'
+    "{ &(xlir_released), &(s4294967295), sizeof(xlir_released) },",
+    "xrtFutureDestroy(xlir_released);",
+    '"await on null future"',
+    'xlir_error_create_at("StateError"'
 ) ) {
     if ( ! $conditionalCText.Contains($required) ) {
         throw "XLIR conditional future await generated C is missing its nullable ownership/error ABI: $required"
@@ -286,19 +302,39 @@ foreach ( $required in @(
     "xlir_closure* p2;",
     "xlir_xvalue_to_string(",
     "xlir_i64_to_string(",
-    "xrtValueRelease(frame->p0);",
-    "xrtValueRelease(frame->p1);",
-    "xlir_closure_release(frame->p2);",
-    "xrtValueRelease(frame->p3);",
-    "frame->p2 = xlir_closure_retain(a2);",
+    "{XL6_CAPTURE_XVALUE, offsetof(xlir_async_frame_5, p0)",
+    "{XL6_CAPTURE_XVALUE, offsetof(xlir_async_frame_5, p1)",
+    "{XL6_CAPTURE_CLOSURE, offsetof(xlir_async_frame_5, p2)",
+    "{XL6_CAPTURE_XVALUE, offsetof(xlir_async_frame_5, p3)",
+    "static const XL6_CaptureLayoutV1 xlir_async_layout_5",
+    "(xl6TaskRuntimeV2Get()->Cleanup)(frame);",
+    "xlir_task_allocate(sizeof(*frame), xlir_async_task_5, &xlir_async_layout_5)",
+    "xvalue* xlir_acquired = a0 != NULL ? xrtValueRetain(a0) : NULL;",
+    "xlir_closure* xlir_acquired = a2 != NULL ? xlir_closure_retain(a2) : NULL;",
+    "{ &(frame->p0), &(xlir_committed), sizeof(frame->p0) },",
+    "{ &(frame->p1), &(xlir_committed), sizeof(frame->p1) },",
+    "{ &(frame->p2), &(xlir_committed), sizeof(frame->p2) },",
+    "{ &(frame->p3), &(xlir_committed), sizeof(frame->p3) },",
     "xlir_result_string worker;",
     "worker = xlir_fn_5(frame->p0, frame->p1, frame->p2, frame->p3);",
     "outcome.ok = worker.ok;",
     "outcome = xlir_async_frame_retire_",
-    "*value = worker.value;"
+    "if (worker.ok) *value = worker.value;",
+    "xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_STRING)(value, NULL);",
+    "result->Destroy = xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_STRING);",
+    "xlir_async_pool_submit_language(frame, NULL, XL6_FUTURE_PAYLOAD_STRING)"
 ) ) {
     if ( ! $parameterCText.Contains($required) ) {
         throw "XLIR async parameter generated C is missing an explicit frame/conversion ownership ABI: $required"
+    }
+}
+foreach ( $forbidden in @(
+    "xrtValueRelease(frame->p",
+    "xlir_closure_release(frame->p",
+    "frame->p2 = xlir_closure_retain(a2);"
+) ) {
+    if ( $parameterCText.Contains($forbidden) ) {
+        throw "XLIR async parameter generated C bypasses the verified capture runtime: $forbidden"
     }
 }
 $parameterCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include build\tmp\xlir_async_param_ownership.c test\cases\xlir_default_class_layout_host.c !XL6_CGEN_LINKS! -o build\tmp\xlir_async_param_ownership.exe && build\tmp\xlir_async_param_ownership.exe'
@@ -325,15 +361,40 @@ if ( $LASTEXITCODE -ne 0 -or ! (Test-Path -LiteralPath $stringOwnershipGenerated
 }
 $stringOwnershipCText = [System.IO.File]::ReadAllText($stringOwnershipGeneratedC, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "frame->p0 = a0 != NULL ? xrtStrDup(a0) : NULL;",
-    "frame->p0 = a0 != NULL ? xrtValueRetain(a0) : NULL;",
-    "xrtFree(frame->p0);",
-    "xrtValueRelease(frame->p0);",
+    "{XL6_CAPTURE_STRING, offsetof(xlir_async_frame_1, p0)",
+    "{XL6_CAPTURE_XVALUE, offsetof(xlir_async_frame_2, p0)",
+    "static const XL6_CaptureLayoutV1 xlir_async_layout_1",
+    "static const XL6_CaptureLayoutV1 xlir_async_layout_2",
+    "xlir_task_allocate(sizeof(*frame), xlir_async_task_1, &xlir_async_layout_1)",
+    "xlir_task_allocate(sizeof(*frame), xlir_async_task_2, &xlir_async_layout_2)",
+    "char* xlir_acquired = a0 != NULL ? xrtStrDup(a0) : NULL;",
+    "xvalue* xlir_acquired = a0 != NULL ? xrtValueRetain(a0) : NULL;",
+    "{ &(frame->p0), &(xlir_committed), sizeof(frame->p0) },",
+    "outcome = xlir_async_frame_retire_1(frame, outcome);",
+    "outcome = xlir_async_frame_retire_2(frame, outcome);",
+    "result->Destroy = xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_STRING);",
+    "xlir_async_pool_submit_language(frame, NULL, XL6_FUTURE_PAYLOAD_STRING)",
     "xlir_xvalue_to_string(",
     "xrtStrConcat(xrtStrView("
 ) ) {
     if ( ! $stringOwnershipCText.Contains($required) ) {
         throw "XLIR async string ownership generated C is missing a conversion/frame ABI: $required"
+    }
+}
+if ( ([regex]::Matches($stringOwnershipCText,
+        [regex]::Escape("(xl6TaskRuntimeV2Get()->Cleanup)(frame);"))).Count -ne 2 -or
+     ([regex]::Matches($stringOwnershipCText,
+        [regex]::Escape("xlir_async_pool_submit_language(frame, NULL, XL6_FUTURE_PAYLOAD_STRING)"))).Count -ne 2 ) {
+    throw "XLIR async string ownership must use one verified capture cleanup and payload submission per worker"
+}
+foreach ( $forbidden in @(
+    "frame->p0 = a0 != NULL ?",
+    "xrtFree(frame->p0);",
+    "xrtValueRelease(frame->p0);",
+    "xrtTaskSubmit(xlir_async_pool"
+) ) {
+    if ( $stringOwnershipCText.Contains($forbidden) ) {
+        throw "XLIR async string ownership bypasses the verified capture/payload runtime: $forbidden"
     }
 }
 $stringOwnershipCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -include build\tmp\xlir_async_string_ownership.c test\cases\xlir_default_class_layout_host.c !XL6_CGEN_LINKS! -o build\tmp\xlir_async_string_ownership.exe && build\tmp\xlir_async_string_ownership.exe'

@@ -4,10 +4,8 @@
 #include <stdio.h>
 typedef struct xthread xthread;
 extern xthread* xrtThreadCreate(int32_t (*)(void*), void*, size_t);
-extern int xrtThreadWait(xthread*);
 extern void xrtThreadDestroy(xthread*);
 extern uint64_t xrtThreadCurrentId(void);
-extern int xrtFutureWaitFor(xfuture*, uint64_t);
 extern bool xrtFutureDone(const xfuture*);
 extern bool xrtPromiseResolve(xpromise*, void*);
 extern uint64_t xrtDeadlineAfter(uint64_t);
