@@ -159,7 +159,19 @@ static void transact(void)
         }
         if(returned){
             assert(!atomic_load(&deleted)&&!module->retirementFailed&&!internal_drops);
-            if(PREPARE_VERSION==2)assert(!module->retirementPrepared&&xl6TaskRuntimeV1Get()->PoolIsClosing(pool));
+            if(PREPARE_VERSION==2){
+                /* Destroy is nonblocking and whole-graph freeze admission may
+                 * defer the first preparation attempt. Drive that retry to the
+                 * observable V2 close boundary before testing the active-job
+                 * BUSY result; never mistake admission deferral for no drain. */
+                ULONGLONG deadline=GetTickCount64()+5000;
+                while(!xl6TaskRuntimeV1Get()->PoolIsClosing(pool)){
+                    assert(!module->retirementPrepared&&!atomic_load(&deleted)&&
+                        !module->retirementFailed&&!internal_drops&&GetTickCount64()<deadline);
+                    collect();xrtThreadYield();
+                }
+                assert(!module->retirementPrepared);
+            }
             else if(choice==16)assert(!xl6TaskRuntimeV1Get()->PoolIsClosing(pool));
         }
         assert(SetEvent(producer_release));

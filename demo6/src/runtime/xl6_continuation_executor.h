@@ -50,6 +50,13 @@ XL6_CONTINUATION_API void xl6ContinuationExecutorClose(XL6_ContinuationExecutor*
  * permission to destroy an executor or unload a module. NULL is idle. */
 XL6_CONTINUATION_API bool xl6ContinuationExecutorIsIdle(XL6_ContinuationExecutor*);
 XL6_CONTINUATION_API bool xl6ContinuationExecutorDestroy(XL6_ContinuationExecutor*);
+/* Checked teardown counterpart. It returns false immediately while any
+ * accepted logical activation is still waiting for a source. Once every
+ * activation has committed its terminal completion barrier, it waits only for
+ * physical release/code-owner tails, joins workers and consumes the creator
+ * owner. Thus a completed Future cannot race module unload, while Close never
+ * turns an unresolved external Future into an unbounded teardown wait. */
+XL6_CONTINUATION_API bool xl6ContinuationExecutorDestroyCompleted(XL6_ContinuationExecutor*);
 /* Frozen owning view of the actual executor allocation. Create supplies one
  * owner reference; successful Destroy consumes that slot after joining the
  * workers. Plan/native holds keep the same terminal allocation alive. Each

@@ -64,7 +64,7 @@ int main(void)
         for (mode = 0; mode < 7; ++mode)
             if (mode != 3) assert(xrtFutureWait(xrtValueGetFuture(roots[mode])) == XWAIT_OK);
         { DWORD started = GetTickCount();
-          while (!xlir_continuation_quiesce()) { assert(GetTickCount() - started < 15000); Sleep(1); } }
+          while (!xlir_continuation_quiesce(false)) { assert(GetTickCount() - started < 15000); Sleep(1); } }
         xrtFutureDestroy(source); source = NULL;
         xlir_module_fini(); assert(!xrtGetError());
         for (mode = 0; mode < 7; ++mode) {

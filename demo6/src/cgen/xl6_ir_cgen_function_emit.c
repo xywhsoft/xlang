@@ -40,19 +40,19 @@ static int xl6IrCgenEmitFunction(
                 "  xlir_module_initializing = 0; return ok; }\n", out);
         /* V3 preflight leaves graph-owned services to their exact adapters.
          * Checked teardown still joins them before the IR global finalizer. */
-        xl6OutputPuts("static inline XL6_ModulePrepareResult xlir_module_prepare_resources(bool teardown)\n{\n"
-            "    (void)teardown;\n", out);
+        xl6OutputPuts("static inline XL6_ModulePrepareResult xlir_module_prepare_resources(bool teardown, bool wait)\n{\n"
+            "    (void)teardown; (void)wait;\n", out);
         if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
             xl6OutputPuts("    if (xlir_module_initializing) return XL6_MODULE_PREPARE_BUSY;\n", out);
         xl6OutputPuts("    if (xlir_module_initialized == 0) return XL6_MODULE_PREPARE_READY;\n"
             "    if (xlir_module_initialized != 1 && xlir_module_initialized != 2) return XL6_MODULE_PREPARE_BUSY;\n", out);
         if (module->abi.executorOwnershipAbi == XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1)
-            xl6OutputPuts("    if (teardown && !xlir_continuation_quiesce()) return XL6_MODULE_PREPARE_BUSY;\n", out);
+            xl6OutputPuts("    if (teardown && !xlir_continuation_quiesce(wait)) return XL6_MODULE_PREPARE_BUSY;\n", out);
         if (module->abi.taskPoolOwnershipAbi == XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JOIN_V1)
             xl6OutputPuts("    if (teardown && !xlir_async_pool_quiesce()) return XL6_MODULE_PREPARE_FAILED;\n", out);
         xl6OutputPuts("    return XL6_MODULE_PREPARE_READY;\n}\n"
             "static inline XL6_ModulePrepareResult xlir_module_prepare_retirement(void)\n"
-            "{ return xlir_module_prepare_resources(false); }\n", out);
+            "{ return xlir_module_prepare_resources(false, false); }\n", out);
         xl6OutputPuts(module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE
             ? "static int xlir_module_init_body(void)\n{\n"
             : "static int xlir_module_init(void)\n{\n", out);
@@ -71,14 +71,14 @@ static int xl6IrCgenEmitFunction(
         if (module->abi.taskPoolAbi != XL6_IR_MODULE_TASK_POOL_NONE) {
             xl6OutputPuts("    if (!xlir_async_pool_activate()) {\n", out);
             if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
-                xl6OutputPuts("        xerror* pending = xrtTakeError(); if (!xlir_continuation_quiesce()) abort(); xrtSetErrorTake(pending);\n", out);
+                xl6OutputPuts("        xerror* pending = xrtTakeError(); if (!xlir_continuation_quiesce(true)) abort(); xrtSetErrorTake(pending);\n", out);
             xl6OutputPuts("        return 0; }\n", out);
         }
         if ( initializeNet ) {
             xl6OutputPuts("    if (!xl6_net_runtime_init()) { xerror* pending = xrtTakeError();\n", out);
             if (module->abi.taskPoolAbi != XL6_IR_MODULE_TASK_POOL_NONE) xl6OutputPuts("        xlir_async_pool_release();\n", out);
             if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
-                xl6OutputPuts("        if (!xlir_continuation_quiesce()) abort();\n", out);
+                xl6OutputPuts("        if (!xlir_continuation_quiesce(true)) abort();\n", out);
             xl6OutputPuts("        xrtSetErrorTake(pending); return 0; }\n", out);
         }
         if ( module->abi.finalizerFunction != 0 )
@@ -95,7 +95,7 @@ static int xl6IrCgenEmitFunction(
             else xl6OutputPuts("return;\n", out);
             if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE ||
                 module->abi.taskPoolAbi != XL6_IR_MODULE_TASK_POOL_NONE)
-                xl6OutputPrintf(out, "    if (xlir_module_prepare_resources(true) != XL6_MODULE_PREPARE_READY) return (%s){ false };\n",
+                xl6OutputPrintf(out, "    if (xlir_module_prepare_resources(true, true) != XL6_MODULE_PREPARE_READY) return (%s){ false };\n",
                     xl6IrCgenErrorResultType(module, XL6_IR_TYPE_INVALID));
             xl6OutputPuts("    xlir_module_initialized = 3;\n", out);
         }

@@ -133,8 +133,10 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
         !xlApiAddTccSymbol(s, "xl6ContinuationExecutorReserveOwned", (const void*)xl6ContinuationExecutorReserveOwned) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationExecutorClose", (const void*)xl6ContinuationExecutorClose) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationExecutorDestroy", (const void*)xl6ContinuationExecutorDestroy) ||
+        !xlApiAddTccSymbol(s, "xl6ContinuationExecutorDestroyCompleted", (const void*)xl6ContinuationExecutorDestroyCompleted) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationReserveSuccessor", (const void*)xl6ContinuationReserveSuccessor) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationCommit", (const void*)xl6ContinuationCommit) ||
+        !xlApiAddTccSymbol(s, "xl6ContinuationComplete", (const void*)xl6ContinuationComplete) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationAbort", (const void*)xl6ContinuationAbort) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationTraceBind", (const void*)xl6ContinuationTraceBind) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationOwnership", (const void*)xl6ContinuationOwnership) ||

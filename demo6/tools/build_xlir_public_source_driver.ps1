@@ -42,7 +42,7 @@ New-Item -ItemType Directory -Force -Path $batchPath | Out-Null
 Copy-Item -LiteralPath release/xl.dll -Destination (Join-Path $batchPath 'xl.dll') -Force
 $headers = @()
 # Stage the declared package layout, not a generated VFS or a release update.
-foreach ($entry in (Get-Content tools/tcc_vfs_manifest_win64_xlc.txt)) {
+foreach ($entry in (Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt -Encoding UTF8)) {
     if (!$entry.StartsWith('file|include/__xl_runtime/')) { continue }
     $parts = $entry.Split('|'); $source = $parts[2].Replace('%XL6_ROOT%', $rootPath)
     $target = Join-Path $batchPath $parts[1]

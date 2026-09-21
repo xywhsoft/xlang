@@ -134,7 +134,12 @@ async func run() as int
     )
     require("udp_result_data", receiver.recv(8000).text() == "result")
     require("udp_writable", sender.waitWritable(c_size(8), 1000))
-    require("udp_queue_state", sender.pendingSend() >= 0 and sender.queuedPackets() >= 0 and sender.queuedBytes() >= 0)
+    int drainRounds = 0
+    while sender.pendingSend() > 0 and drainRounds < 2500
+        time.sleep(2)
+        drainRounds += 1
+    end
+    require("udp_queue_state", sender.pendingSend() == 0 and sender.queuedPackets() >= 0 and sender.queuedBytes() >= 0)
     UdpStats senderStats = sender.stats()
     UdpStats receiverStats = receiver.stats()
     require("udp_stats_sent", senderStats.sentPackets >= 6 and senderStats.sendErrors == 0)

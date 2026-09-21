@@ -597,6 +597,7 @@ foreach ($required in @('machine->executionAbi','xl6ContinuationExecutorReserveO
 }
 if ($asyncMachineEmitter.Contains('xrtFutureWatchAdd') -or $asyncMachineEmitter.Contains('xrtFutureWatchInit') -or
     !(Read-Utf8 'src/cgen/xl6_ir_cgen_async_instruction.c').Contains('xl6ContinuationCommit') -or
+    !(Read-Utf8 'src/cgen/xl6_ir_cgen_async_instruction.c').Contains('xl6ContinuationComplete(&frame->ticket)') -or
     !(Read-Utf8 'src/cgen/xl6_ir_cgen_function_emit.c').Contains('xl6ContinuationExecutorCreateGuaranteed') -or
     !(Read-Utf8 'src/cgen/xl6_ir_cgen_module_emit.c').Contains('xl6ContinuationExecutorDestroy')) {
     throw 'Generated async must use resident ticket transport and a fallible module-owned executor, never inline Future callbacks'
@@ -4517,8 +4518,9 @@ if (!$header.Contains('XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2') -or
     !$cEmitter.Contains('xl_script_module_retirement_v2(void)') -or
     !$cEmitter.Contains('xlir_module_prepare_resources') -or
     !$cEmitter.Contains('if (teardown && !xlir_async_pool_quiesce())') -or
-    !$cEmitter.Contains('xlir_module_prepare_resources(false)') -or
-    !$cEmitter.Contains('xlir_module_prepare_resources(true)')) {
+    !$cEmitter.Contains('xlir_module_prepare_resources(false, false)') -or
+    !$cEmitter.Contains('xlir_module_prepare_resources(true, wait)') -or
+    !$cEmitter.Contains('xlir_module_prepare_resources(true, true)')) {
     throw 'Module retirement preparation must be verified, shared with teardown, and precede graph admission'
 }
 if (!$header.Contains('XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1') -or
@@ -4528,7 +4530,8 @@ if (!$header.Contains('XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN
     !$source.Contains('xl_script_module_retirement_v3') -or
     !$cEmitter.Contains('xl_script_module_retirement_v3(void)') -or
     !$cEmitter.Contains('visit(xl6ContinuationExecutorOwnership(xlir_continuation_executor), context)') -or
-    !$cEmitter.Contains('if (teardown && !xlir_continuation_quiesce())') -or
+    !$cEmitter.Contains('if (teardown && !xlir_continuation_quiesce(wait))') -or
+    !$cEmitter.Contains('xl6ContinuationExecutorDestroyCompleted(xlir_continuation_executor)') -or
     $cEmitter.Contains('if (!teardown && !xl6ContinuationExecutorIsIdle(xlir_continuation_executor))') -or
     $cEmitter.Contains('if (xlir_continuation_executor != NULL) return false;') -or
     !$api.Contains('((getV2 != NULL) + (getV3 != NULL) + (getV4 != NULL) <= 1)') -or

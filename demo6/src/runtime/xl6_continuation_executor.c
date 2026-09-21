@@ -235,16 +235,22 @@ static void executor_retire(XL6_ContinuationExecutor* executor)
     if(!xl6ContinuationQueueDestroy(queue))abort();
     executor_begin(executor,&mutation);executor->retired=true;executor->destroying=false;executor_end(executor,&mutation);
 }
-bool xl6ContinuationExecutorDestroy(XL6_ContinuationExecutor* executor)
+static bool executor_destroy_entered(XL6_ContinuationExecutor* executor,bool completed)
 {
-    if(!executor)return true;
-    executor_enter(executor);xrtownershipscope mutation={0};executor_begin(executor,&mutation);
+    xrtownershipscope mutation={0};executor_begin(executor,&mutation);
     /* This Destroy owns one entry. A reentrant host acquire/drop or another
      * live API call still uses the queue/worker resources, not just the shell. */
-    bool ready=executor->entries==1&&executor->closed&&!executor->joining&&!executor->destroying&&
+    bool ready=(completed||executor->entries==1)&&executor->closed&&!executor->joining&&!executor->destroying&&
         (!executor->claim||executor->cleared)&&executor_current_worker(executor)==NULL;
-    bool retired=executor->retired;executor_end(executor,&mutation);
-    if(!ready||(!retired&&!xl6ContinuationQueueIsIdle(executor->queue))){executor_leave(executor);return false;}
+    bool retired=executor->retired;XL6_ContinuationQueue* queue=executor->queue;executor_end(executor,&mutation);
+    if(!ready||(!retired&&!(completed?xl6ContinuationQueueWaitCompleted(queue):xl6ContinuationQueueIsIdle(queue))))return false;
+    if(completed){
+        executor_begin(executor,&mutation);
+        ready=executor->entries==1&&!executor->joining&&!executor->destroying&&
+            (!executor->claim||executor->cleared);
+        executor_end(executor,&mutation);
+        if(!ready)return false;
+    }
     if(!retired){
         executor_begin(executor,&mutation);executor->joining=true;executor_end(executor,&mutation);
         for(XL6_ContinuationWorker* worker=executor->workers;worker;worker=worker->next)
@@ -253,8 +259,17 @@ bool xl6ContinuationExecutorDestroy(XL6_ContinuationExecutor* executor)
         executor_retire(executor);
     }
     executor_drop(executor); /* consume the caller's actual owner slot */
-    executor_leave(executor);
     return true;
+}
+bool xl6ContinuationExecutorDestroy(XL6_ContinuationExecutor* executor)
+{
+    if(!executor)return true;
+    executor_enter(executor);bool destroyed=executor_destroy_entered(executor,false);executor_leave(executor);return destroyed;
+}
+bool xl6ContinuationExecutorDestroyCompleted(XL6_ContinuationExecutor* executor)
+{
+    if(!executor)return true;
+    executor_enter(executor);bool destroyed=executor_destroy_entered(executor,true);executor_leave(executor);return destroyed;
 }
 static bool executor_count(const void* data,size_t* count)
 {

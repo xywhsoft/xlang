@@ -19,10 +19,11 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
             "/* Deployment resource policy, not a language type/effect inference. */\n"
             "#ifndef XLIR_CONTINUATION_CAPACITY\n#define XLIR_CONTINUATION_CAPACITY 256\n#endif\n"
             "static XL6_ContinuationExecutor* xlir_continuation_executor;\n"
-            "static int xlir_continuation_quiesce(void)\n"
+            "static int xlir_continuation_quiesce(bool wait)\n"
             "{\n"
             "    xl6ContinuationExecutorClose(xlir_continuation_executor);\n"
-            "    if (!xl6ContinuationExecutorDestroy(xlir_continuation_executor)) return 0;\n"
+            "    if (!(wait ? xl6ContinuationExecutorDestroyCompleted(xlir_continuation_executor)\n"
+            "               : xl6ContinuationExecutorDestroy(xlir_continuation_executor))) return 0;\n"
             "    xlir_continuation_executor = NULL; return 1;\n"
             "}\n", out);
     if ( !xl6IrCgenNeedsXrtDeclarations(&needs) &&

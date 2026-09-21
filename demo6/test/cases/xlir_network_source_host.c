@@ -9,7 +9,7 @@ int main(void)
         const xerror* error = xrtGetError();
         fprintf(stderr, "network source init failed: %s\n", error ? xrtErrorMessage(error) : "without diagnostic");
     }
-    while (!xlir_continuation_quiesce()) {
+    while (!xlir_continuation_quiesce(false)) {
         if (xrtClock() - start > 5000000) { fprintf(stderr, "network source did not retire within 5 seconds\n"); return 2; }
         xrtThreadYield();
     }

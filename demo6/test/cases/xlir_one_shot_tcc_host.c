@@ -79,11 +79,13 @@ static void load_artifact(void)
     BIND(xl6ContinuationExecutorReserveOwned);
     BIND(xl6ContinuationExecutorClose);
     BIND(xl6ContinuationExecutorDestroy);
+    BIND(xl6ContinuationExecutorDestroyCompleted);
     BIND(xl6ContinuationExecutorOwnership);
     BIND(xl6ContinuationExecutorIsIdle);
     BIND(xl6ContinuationReserveSuccessor);
     BIND(xl6ContinuationAbort);
     BIND(xl6ContinuationCommit);
+    BIND(xl6ContinuationComplete);
     BIND(xl6ContinuationWatchRegister);
     BIND(xl6ContinuationTraceBind);
     BIND(xl6ContinuationOwnership);

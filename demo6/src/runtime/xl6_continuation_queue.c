@@ -1,19 +1,21 @@
 #define XRT_MODULE_MEMORY
 #define XRT_MODULE_MUTEX
 #define XRT_MODULE_COND
+#define XRT_MODULE_ERROR
 #include "lib/xrt/xrt.h"
 #include "xl6_continuation_queue.h"
 #include "xl6_ownership_scope.h"
 #include <stdlib.h>
 
 enum { COMMITTED = XL6_CONTINUATION_COMMITTED, READY = XL6_CONTINUATION_READY,
-    TRANSPORT_RELEASED = XL6_CONTINUATION_TRANSPORT_RELEASED, RUNNING = XL6_CONTINUATION_RUNNING };
+    TRANSPORT_RELEASED = XL6_CONTINUATION_TRANSPORT_RELEASED, RUNNING = XL6_CONTINUATION_RUNNING,
+    COMPLETED = XL6_CONTINUATION_COMPLETED };
 struct XL6_ContinuationQueue {
     xmutex* lock;
     xcond* ready;
     XL6_ContinuationTicket *head, *tail;
     XL6_ContinuationTicket* owned;
-    size_t capacity, active, live;
+    size_t capacity, active, completed, live;
     size_t references, ownedCount, readers, parked;
     const void* claim;
     bool closed, shutdownPrepared, cleared;
@@ -41,7 +43,7 @@ static void queue_drop_body(XL6_ContinuationQueue* queue)
 {
     lock_queue(queue);if(!queue->references)abort();
     if(--queue->references){unlock_queue(queue);return;}
-    if(!queue->closed||queue->active||queue->live||queue->owned||queue->ownedCount||queue->readers||queue->parked)abort();
+    if(!queue->closed||queue->active||queue->completed||queue->live||queue->owned||queue->ownedCount||queue->readers||queue->parked)abort();
     unlock_queue(queue);
     if(!xrtCondDestroy(queue->ready)||!xrtMutexDestroy(queue->lock))abort();
     xrtFree(queue);
@@ -183,7 +185,8 @@ static XL6_ContinuationAdmission xl6OwnershipBody_xl6ContinuationReserveSuccesso
         return result;
     queue = predecessor->queue;
     lock_queue(queue);
-    if ((predecessor->flags & RUNNING) != 0 && predecessor->successor == NULL && queue->live != SIZE_MAX) {
+    if ((predecessor->flags & RUNNING) != 0 && (predecessor->flags & COMPLETED) == 0 &&
+        predecessor->successor == NULL && queue->live != SIZE_MAX) {
         successor->queue = queue; successor->next = NULL;
         successor->run = run; successor->release = release; successor->data = data;
         successor->predecessor = predecessor; successor->successor = NULL; successor->flags = 0;
@@ -239,6 +242,24 @@ static void signal_ticket(XL6_ContinuationTicket* ticket, unsigned flag)
 void xl6ContinuationCommit(XL6_ContinuationTicket* ticket) { signal_ticket(ticket, COMMITTED); }
 void xl6ContinuationReady(XL6_ContinuationTicket* ticket) { signal_ticket(ticket, READY); }
 void xl6ContinuationTransportReleased(XL6_ContinuationTicket* ticket) { signal_ticket(ticket, TRANSPORT_RELEASED); }
+static bool xl6OwnershipBody_xl6ContinuationComplete(XL6_ContinuationTicket* ticket)
+{
+    XL6_ContinuationQueue* queue;
+    bool completed = false;
+    if (ticket == NULL || ticket->queue == NULL) return false;
+    queue = ticket->queue;
+    lock_queue(queue);
+    if ((ticket->flags & RUNNING) != 0 && (ticket->flags & COMPLETED) == 0 &&
+        ticket->successor == NULL && queue->completed < queue->active) {
+        ticket->flags |= COMPLETED; ++queue->completed; completed = true;
+    }
+    unlock_queue(queue);
+    return completed;
+}
+bool xl6ContinuationComplete(XL6_ContinuationTicket* ticket)
+{
+    XL6_OWNERSHIP_RETURN(bool, xl6OwnershipBody_xl6ContinuationComplete(ticket));
+}
 static bool xl6OwnershipBody_xl6ContinuationAbort(XL6_ContinuationTicket* ticket)
 {
     XL6_ContinuationQueue* queue;
@@ -319,7 +340,7 @@ static bool run_one(XL6_ContinuationQueue* queue, bool wait, XL6_ContinuationWai
 {
     XL6_ContinuationTicket *ticket, *successor;
     XL6_ContinuationProc run, release;
-    void* data; XL6_CodeLease* lease; XL6_CodeScope scope = {0};
+    void* data; XL6_CodeLease* lease; XL6_CodeScope scope = {0}; bool completed;
     const XL6_ContinuationStorageV2* storage;
     xrtownershipscope retirement = {0};
     if (queue == NULL) return false;
@@ -334,7 +355,8 @@ static bool run_one(XL6_ContinuationQueue* queue, bool wait, XL6_ContinuationWai
      * retiring ticket and an unpublished successor reject inspection. */
     if (!xrtOwnershipMutationBegin(&retirement)) abort();
     /* No producer may access the ticket after the three-event handoff. */
-    successor = ticket->successor;
+    successor = ticket->successor; completed = (ticket->flags & COMPLETED) != 0;
+    if (completed && successor != NULL) abort();
     if (ticket->ownershipRefs != 1) abort();
     ticket->ownershipRefs = 0;
     ticket->queue = NULL;
@@ -357,7 +379,10 @@ static bool run_one(XL6_ContinuationQueue* queue, bool wait, XL6_ContinuationWai
     if (successor != NULL) {
         successor->predecessor = NULL;
         publish_ticket(queue, successor);
-    } else --queue->active;
+    } else {
+        if (completed) { if (!queue->completed) abort(); --queue->completed; }
+        --queue->active;
+    }
     --queue->live;
     if (queue->closed && queue->live == 0 && !xrtCondBroadcast(queue->ready)) abort();
     unlock_queue(queue);
@@ -391,6 +416,16 @@ bool xl6ContinuationQueueIsIdle(XL6_ContinuationQueue* queue)
     lock_queue(queue); idle = queue->live == 0; unlock_queue(queue);
     return idle;
 }
+bool xl6ContinuationQueueWaitCompleted(XL6_ContinuationQueue* queue)
+{
+    if (queue == NULL) return true;
+    lock_queue(queue);
+    if (!queue->closed || queue->active != queue->completed) { unlock_queue(queue); return false; }
+    while (queue->live != 0)
+        if (xrtCondWait(queue->ready, queue->lock) != XWAIT_OK) abort();
+    if (queue->active != 0 || queue->completed != 0) abort();
+    unlock_queue(queue); return true;
+}
 size_t xl6ContinuationQueueActivationCount(XL6_ContinuationQueue* queue)
 {
     size_t active;
@@ -415,7 +450,7 @@ static bool xl6OwnershipBody_xl6ContinuationQueueDestroy(XL6_ContinuationQueue* 
     if (queue == NULL) return true;
     lock_queue(queue);
     ready = queue->closed && queue->live == 0;
-    if (ready && queue->active != 0) abort();
+    if (ready && (queue->active != 0 || queue->completed != 0)) abort();
     unlock_queue(queue);
     if (!ready) return false;
     queue_drop_body(queue);
@@ -429,7 +464,7 @@ bool xl6ContinuationQueueDestroy(XL6_ContinuationQueue* queue)
 static bool queue_count(const void* data,size_t* count)
 {
     const XL6_ContinuationQueue* queue=data;
-    if(!queue||!count||!queue->references||queue->cleared||queue->readers||
+    if(!queue||!count||!queue->references||queue->cleared||queue->readers||queue->completed||
         queue->ownedCount!=queue->live||queue->active!=queue->live)return false;
     size_t owned=0;const XL6_ContinuationTicket* previous=NULL;
     for(const XL6_ContinuationTicket* ticket=queue->owned;ticket;ticket=ticket->ownedNext){
@@ -489,7 +524,7 @@ static xrtownershipprepareresult queue_prepare(const void* data,const void* toke
 static void queue_clear(const void* data,const void* token)
 {
     XL6_ContinuationQueue* queue=(XL6_ContinuationQueue*)data;
-    if(!token||queue->claim!=token||queue->cleared||!queue->shutdownPrepared||queue->live||queue->active||queue->ownedCount||queue->readers||queue->parked)abort();
+    if(!token||queue->claim!=token||queue->cleared||!queue->shutdownPrepared||queue->live||queue->active||queue->completed||queue->ownedCount||queue->readers||queue->parked)abort();
     queue->cleared=true;
 }
 const xrtownershipadapterv1* xl6ContinuationQueueOwnershipAdapterV1(xrtownershipref ref,
