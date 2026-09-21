@@ -1,0 +1,67 @@
+func capturedIntOutput() as int
+    channel<int> values = channel::<int>(2)
+    int target = 7
+
+    auto receive = func() as bool
+        return values.recvInto(target)
+    end
+    auto tryReceive = func() as bool
+        return values.tryRecvInto(target)
+    end
+
+    assert values.send(41), "captured int send failed"
+    assert receive(), "captured int receive failed"
+    assert target == 41, "captured int writeback failed"
+    assert not tryReceive(), "empty captured int try receive must fail"
+    assert target == 41, "failed captured int receive changed target"
+    values.close()
+    return target
+end
+
+func capturedStringOutput() as string
+    channel<string> values = channel::<string>(2)
+    string target = "old"
+
+    auto receive = func() as bool
+        return values.recvInto(target)
+    end
+    auto timeoutReceive = func() as bool
+        return values.recvTimeoutInto(target, 1)
+    end
+
+    assert values.send("new"), "captured string send failed"
+    assert receive(), "captured string receive failed"
+    assert target == "new", "captured string writeback failed"
+    assert values.send("timed"), "captured timed string send failed"
+    assert timeoutReceive(), "captured string timeout receive failed"
+    assert target == "timed", "captured string timeout writeback failed"
+    assert not timeoutReceive(), "empty captured string timeout receive must fail"
+    assert target == "timed", "timed-out captured string receive changed target"
+    values.close()
+    return target
+end
+
+func capturedDynamicOutput() as int
+    channel<var> values = channel::<var>(2)
+    var target = 5
+
+    auto receive = func() as bool
+        return values.recvInto(target)
+    end
+    auto tryReceive = func() as bool
+        return values.tryRecvInto(target)
+    end
+
+    assert values.send("dynamic"), "captured dynamic send failed"
+    assert receive(), "captured dynamic receive failed"
+    assert string(target) == "dynamic", "captured dynamic writeback failed"
+    assert not tryReceive(), "empty captured dynamic try receive must fail"
+    assert string(target) == "dynamic", "failed captured dynamic receive changed target"
+    values.close()
+    return 1
+end
+
+assert capturedIntOutput() == 41, "captured int output result failed"
+assert capturedStringOutput() == "timed", "captured string output result failed"
+assert capturedDynamicOutput() == 1, "captured dynamic output result failed"
+println("xlir channel captured output abi ok")

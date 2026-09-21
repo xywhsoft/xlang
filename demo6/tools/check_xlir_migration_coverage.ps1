@@ -1223,6 +1223,9 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "xlir_channel_resource_abi.xl", 'runtimeResourceAbiName -eq "channel"',
+    "xlir_channel_captured_output_abi.xl", 'abiName -eq "retain-cell"',
+    'kindName -eq "temporary"', "unique boolean commit edge",
+    "take/exchange/failure-release ownership split",
     'runtimeResourceOpName -like "channel-*"',
     'runtimeOpName -like "channel-*"', 'kindName -eq "storage-address"',
     'abiName -ne "retain-xvalue"', "explicit error edges",
