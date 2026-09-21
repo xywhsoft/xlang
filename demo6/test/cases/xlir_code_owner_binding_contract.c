@@ -76,16 +76,19 @@ int main(int argc, char** argv)
         for (size_t i = 0; i < ir.instructionCount; ++i) {
             XL6_IrInstruction* instruction = &ir.instructions[i];
             if (instruction->kind != XL6_IR_INSTR_AWAIT) continue;
-            assert(instruction->awaitOutcomeAbi == XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC);
+            assert(instruction->awaitOutcomeAbi ==
+                XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR);
             instruction->awaitOutcomeAbi = XL6_IR_AWAIT_OUTCOME_INVALID;
             reject(&ir, "missing await status carrier", 0);
             instruction->awaitOutcomeAbi = (XL6_IrAwaitOutcomeAbi)99;
             reject(&ir, "invalid await status carrier", 0);
-            instruction->awaitOutcomeAbi = XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC;
+            instruction->awaitOutcomeAbi =
+                XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR;
             awaitMutations += 2;
         }
         assert(ir.instructions[0].kind != XL6_IR_INSTR_AWAIT);
-        ir.instructions[0].awaitOutcomeAbi = XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC;
+        ir.instructions[0].awaitOutcomeAbi =
+            XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR;
         reject(&ir, "unrelated instruction await status", 0); ++awaitMutations;
         ir.instructions[0].awaitOutcomeAbi = XL6_IR_AWAIT_OUTCOME_INVALID;
         assert(ir.abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT);

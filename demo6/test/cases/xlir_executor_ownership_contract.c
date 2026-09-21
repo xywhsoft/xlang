@@ -110,6 +110,8 @@ static void parked_graph(unsigned workers,bool queueRoot,bool inject)
     }
     reclaim(plan,&context);assert(!xrtGetError());balanced(&before);++graphs;
 }
+static void sealed_entry_unreachable(void* data)
+{(void)data;assert(!"sealed executor entry cannot execute");}
 static void retained_shell(void)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
@@ -119,6 +121,11 @@ static void retained_shell(void)
     const xrtownershipadapterv1* adapter=xl6ContinuationExecutorOwnershipAdapterV1(ref,&preparation);
     assert(adapter&&adapter->Hold(ref.Data));assert(xrtOwnershipScopeEnd(&freeze));
     xl6ContinuationExecutorClose(executor);assert(xl6ContinuationExecutorDestroy(executor));
+    XL6_ContinuationTicket rejected={0};
+    assert(xl6ContinuationExecutorIsIdle(executor));
+    assert(xl6ContinuationExecutorReserve(executor,&rejected,sealed_entry_unreachable,sealed_entry_unreachable,NULL)==XL6_CONTINUATION_CLOSED);
+    assert(xl6ContinuationBlockingEnter(executor)==XL6_CONTINUATION_BLOCKING_RESOURCE_FAILURE);
+    xl6ContinuationExecutorClose(executor);assert(!xl6ContinuationExecutorDestroy(executor));
     quiet_freeze(ref,&freeze);size_t count;Edges edges={0};
     assert(ref.Ops->Count(ref.Data,&count)&&count==1&&ref.Ops->Trace(ref.Data,edge,&edges)&&edges.count==0&&preparation->Ready(ref.Data));
     assert(xrtOwnershipScopeEnd(&freeze));adapter->Drop(ref.Data);balanced(&before);++retainedShells;

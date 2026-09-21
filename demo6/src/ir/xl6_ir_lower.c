@@ -29838,7 +29838,8 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
              * token and is never a language value. */
             ctx->module->instructions[awaitInstruction].asyncResultAbi = resultAbi;
             ctx->module->instructions[awaitInstruction].futureOutcomeAbi = XL6_IR_FUTURE_OUTCOME_XRT_ERROR_KIND;
-            ctx->module->instructions[awaitInstruction].awaitOutcomeAbi = XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC;
+            ctx->module->instructions[awaitInstruction].awaitOutcomeAbi =
+                XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR;
             test = &ctx->module->instructions[ctx->module->instructionCount - 1];
             test->trueTarget = successBlock;
             test->falseTarget = failureBlock;

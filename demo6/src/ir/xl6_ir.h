@@ -2101,10 +2101,13 @@ typedef enum XL6_IrFutureOutcomeAbi {
 /* AWAIT has two physical outputs: its typed payload and an independent status.
  * ERROR_TEST consumes status, never diagnostic presence. Preparation failure
  * sets false before entering the same cleanup CFG; NULL is a valid diagnostic.
+ * A null Future is a language StateError with the canonical diagnostic and the
+ * AWAIT source span.  Encoding that rule here keeps every backend from guessing
+ * whether a null input is a generic runtime failure or a language exception.
  * This applies equally to blocking, generator and resumed-machine execution. */
 typedef enum XL6_IrAwaitOutcomeAbi {
     XL6_IR_AWAIT_OUTCOME_INVALID = 0,
-    XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC
+    XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR
 } XL6_IrAwaitOutcomeAbi;
 
 typedef enum XL6_IrAsyncResultAbi {

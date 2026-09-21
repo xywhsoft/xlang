@@ -82,11 +82,11 @@ $productionRequirements = @{
             "xvalue-weak-lock"
         )
         CMarkers = @(
-            "static char* xlir_pdispatch_1(xvalue* receiver);",
             "xrtValueIntMap()",
             "xrtValueObject()",
             "xlir_xvalue_weak_create"
         )
+        CRegex = @('static xlir_result_string xlir_pdispatch_[0-9]+\(xvalue\* receiver\);')
     }
     "stdlib_net_fast_path" = @{
         Kinds = @("await", "call", "error-test")
@@ -105,8 +105,8 @@ $productionRequirements = @{
         Kinds = @("await", "call", "error-test")
         RuntimeOps = @()
         CMarkers = @(
-            "xlir_future_await_raw_pointer",
-            "*(void* const*)input->Value"
+            "xl6PayloadObserveOutcome(input->State, input->Error)",
+            "void* const* payload = (void* const*)(input->Value);"
         )
     }
     "stdlib_process_extended" = @{
@@ -114,7 +114,11 @@ $productionRequirements = @{
         # async worker; keep it here as a production compile-only ABI probe.
         Kinds = @()
         RuntimeOps = @()
-        CMarkers = @("xlir_future_await_raw_pointer")
+        CMarkers = @(
+            "static bool xlir_future_wait_checked(xfuture* future, int32_t line, int32_t column)",
+            'xlir_error_create_at("StateError", "await on null future", line, column)',
+            "void* const* payload = (void* const*)(xrtFutureValue("
+        )
     }
     "stdlib_tls_server_loopback" = @{
         Kinds = @("await", "null-test", "error-test")
@@ -245,17 +249,24 @@ foreach ( $fixture in $fixtures ) {
                 throw "XLIR production async machine C lost required mechanical emission: $fixture ($marker)"
             }
         }
+        foreach ( $pattern in @($productionRequirements[$fixture].CRegex) ) {
+            if ( ([regex]::Matches($c, $pattern)).Count -lt 1 ) {
+                throw "XLIR production async machine C lost required structural emission: $fixture ($pattern)"
+            }
+        }
     }
     if ( $fixture -eq "xlir_async_raw_pointer_abi" ) {
         foreach ( $marker in @(
-            "xlir_future_await_raw_pointer",
-            "*(void* const*)input->Value"
+            "xl6PayloadObserveOutcome(input->State, input->Error)",
+            "void* const* payload = (void* const*)(input->Value);"
         ) ) {
             if ( -not $c.Contains($marker) ) {
                 throw "XLIR raw-pointer Future C lost explicit payload ABI: $marker"
             }
         }
-        if ( $c.Contains("*(const void**)input->Value") -or
+        if ( ([regex]::Matches($c, 'v[0-9]+\s*=\s*\*payload;')).Count -lt 1 -or
+             $c.Contains("xlir_future_await_raw_pointer") -or
+             $c.Contains("*(const void**)input->Value") -or
              $c.Contains("xrtPromiseReject(xpromise*, const void*)") ) {
             throw "XLIR raw-pointer Future C contains an ambiguous pointer/error ABI"
         }

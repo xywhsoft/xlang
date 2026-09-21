@@ -3,14 +3,6 @@
 #include <stdint.h>
 #include "../../build/test/xlir_async_future_three_awaits_generated.c"
 
-typedef struct xpromise xpromise;
-
-extern xpromise* xrtPromiseCreate(xfuture**, void*);
-extern bool xrtPromiseResolve(xpromise*, void*);
-extern bool xrtPromiseReject(xpromise*, const struct xerror*);
-extern bool xrtPromiseCancel(xpromise*);
-extern void xrtPromiseDestroy(xpromise*);
-
 static int64_t xlir_three_await_value = 41;
 static int xlir_three_await_calls = 0;
 

@@ -3,12 +3,6 @@
 #include <windows.h>
 #include "../../build/test/xlir_async_future_direct_string_capture_generated.c"
 
-typedef struct xpromise xpromise;
-
-extern xpromise* xrtPromiseCreate(xfuture**, void*);
-extern bool xrtPromiseResolve(xpromise*, void*);
-extern void xrtPromiseDestroy(xpromise*);
-
 static const char* xlir_async_direct_string_value = "hello";
 
 static DWORD WINAPI xlir_resolve_string_future(void* data)

@@ -2,14 +2,6 @@
 #include <stdbool.h>
 #include "../../build/test/xlir_async_future_three_strings_generated.c"
 
-typedef struct xpromise xpromise;
-
-extern xpromise* xrtPromiseCreate(xfuture**, void*);
-extern bool xrtPromiseResolve(xpromise*, void*);
-extern bool xrtPromiseReject(xpromise*, const struct xerror*);
-extern bool xrtPromiseCancel(xpromise*);
-extern void xrtPromiseDestroy(xpromise*);
-
 static const char* xlir_future_three_strings_value = "hello";
 static int xlir_future_three_strings_calls = 0;
 

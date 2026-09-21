@@ -5,12 +5,16 @@ if (!$Root) { $Root = Split-Path -Parent $PSScriptRoot }
 Push-Location $Root
 try {
     $names = @('terminal_outcome','frame_completion','result_commit','cancel_watch')
-    if ($BuildContracts) {
+    $manifestPath = Join-Path $ContractDirectory 'build.json'
+    if ($BuildContracts -or !(Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+        if (Test-Path -LiteralPath $ContractDirectory) {
+            throw 'Shared contract directory exists without a reusable manifest; choose a fresh directory'
+        }
         $drivers = @($names | ForEach-Object { "test/cases/xlir_async_$($_)_contract.c" })
         & tools/build_xlir_validation_driver.ps1 -BatchDrivers $drivers -BatchDirectory $ContractDirectory
         if ($LASTEXITCODE -ne 0) { throw 'Shared contract driver build failed' }
     }
-    $manifest = Get-Content (Join-Path $ContractDirectory 'build.json') -Raw | ConvertFrom-Json
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
     if (@(@($manifest.Inputs) + @($manifest.Drivers) | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count -or
         (Get-FileHash release/xl.dll).Hash -ne $manifest.RuntimeSha256) { throw 'Stale shared compiler inputs or drivers; rebuild the contract batch' }
     $batchInputs = @(@(Get-ChildItem src,lib,test/cases,tools -Recurse -File) + @(Get-Item release/xl.dll)) | Sort-Object FullName

@@ -1,7 +1,17 @@
 /* The same public Watch transport used by language Future callbacks delivers
  * every source outcome. It cannot bypass a machine's cleanup on cancellation. */
-static void xl6IrCgenEmitAsyncMachineWatch(XL6_Output* out, XL6_SymbolId symbol, size_t state)
+static int xl6IrCgenEmitAsyncMachineWatch(
+    XL6_Output* out, const XL6_IrModule* module,
+    const XL6_IrAsyncSuspension* suspension,
+    XL6_SymbolId symbol, size_t state)
 {
+    const XL6_IrInstruction* await;
+    if (out == NULL || module == NULL || suspension == NULL ||
+        suspension->awaitInstruction >= module->instructionCount) return 0;
+    await = &module->instructions[suspension->awaitInstruction];
+    if (await->kind != XL6_IR_INSTR_AWAIT ||
+        await->awaitOutcomeAbi !=
+            XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR) return 0;
     xl6OutputPrintf(out,
         "static void xlir_async_machine_notify_%u_%lu(void* data)\n"
         "{\n"
@@ -21,8 +31,9 @@ static void xl6IrCgenEmitAsyncMachineWatch(XL6_Output* out, XL6_SymbolId symbol,
         "    XL6_ContinuationProc release = xl6ContinuationFrameRuntimeV2Get()->Retire;\n",
         (unsigned int)symbol, (unsigned long)state, (unsigned int)symbol,
         (unsigned int)symbol, (unsigned long)state);
-    xl6OutputPuts(
-        "    if (source == NULL) { xrtSetErrorKind(XERR_ARGUMENT); return 0; }\n",out);
+    xl6OutputPrintf(out,
+        "    if (source == NULL) { xrtSetErrorTake(xlir_error_create_at(\"StateError\", \"await on null future\", %d, %d)); return 0; }\n",
+        await->sourceSpan.line, await->sourceSpan.column);
     (void)xl6IrCgenEmitSlotCommit(out,"xfuture*","frame->source","xrtFutureRef(source)",NULL);
     xl6OutputPuts(
         "    if (frame->source == NULL) return 0;\n"
@@ -42,6 +53,7 @@ static void xl6IrCgenEmitAsyncMachineWatch(XL6_Output* out, XL6_SymbolId symbol,
     xl6OutputPuts("      xrtSetErrorTake(primary); }\n"
         "    return 0;\n"
         "}\n", out);
+    return !xl6OutputHasFailed(out);
 }
 
 /* Finish observation before entering the source CFG. The temporary Watch
@@ -267,7 +279,8 @@ static int xl6IrCgenEmitAsyncMachine(
                         &module->instructions[instructionIndex], state, diags) ) goto done;
         }
         xl6OutputPuts("}\n", out);
-        xl6IrCgenEmitAsyncMachineWatch(out, target->symbol, state);
+        if (!xl6IrCgenEmitAsyncMachineWatch(
+                out, module, suspension, target->symbol, state)) goto done;
     }
 
     xl6OutputPrintf(out, "static xfuture* xlir_async_start_raw_%u(",

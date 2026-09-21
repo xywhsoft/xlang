@@ -194,7 +194,8 @@ static int xl6IrCgenEmitAwaitPayload(
         abi == XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR ? "xlir_generator_retain" :
         abi == XL6_IR_ASYNC_RESULT_OWNED_STRING ? "xrtStrDup" : NULL;
     unsigned int result = (unsigned int)instruction->result;
-    if (instruction->awaitOutcomeAbi != XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC) return 0;
+    if (instruction->awaitOutcomeAbi !=
+        XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR) return 0;
     if (abi == XL6_IR_ASYNC_RESULT_VOID) return 1;
     if (type == NULL) return 0;
     xl6OutputPrintf(out, "    if (await_ok_%u) {\n"
@@ -218,11 +219,14 @@ static int xl6IrCgenEmitBlockingAwaitInstruction(
     char payload[80];
     unsigned int future;
     if (!xl6IrCgenBlockingAwaitAbi(module, instruction) ||
-        instruction->awaitOutcomeAbi != XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC)
+        instruction->awaitOutcomeAbi !=
+            XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR)
         return xl6IrCgenDiag(diags, module, instruction->origin, unresolvedMessage);
     future = (unsigned int)module->operands[instruction->firstOperand];
-    xl6OutputPrintf(out, "    bool await_ok_%u = xlir_future_wait_checked(v%u);\n",
-        (unsigned int)instruction->result, future);
+    xl6OutputPrintf(out,
+        "    bool await_ok_%u = xlir_future_wait_checked(v%u, %d, %d);\n",
+        (unsigned int)instruction->result, future,
+        instruction->sourceSpan.line, instruction->sourceSpan.column);
     snprintf(payload, sizeof(payload), "xrtFutureValue(v%u)", future);
     return xl6IrCgenEmitAwaitPayload(out, module, instruction, payload);
 }

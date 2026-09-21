@@ -2,12 +2,6 @@
 #include <stdbool.h>
 #include "../../build/test/xlir_async_raw_pointer_abi_generated.c"
 
-typedef struct xpromise xpromise;
-
-extern xpromise* xrtPromiseCreate(xfuture**, void*);
-extern bool xrtPromiseResolve(xpromise*, void*);
-extern void xrtPromiseDestroy(xpromise*);
-
 static int xlir_raw_pointer_marker;
 static void* xlir_raw_pointer_slot = &xlir_raw_pointer_marker;
 

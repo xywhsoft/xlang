@@ -2,12 +2,6 @@
 #include <stdbool.h>
 #include "../../build/test/xlir_async_future_direct_call_catch_generated.c"
 
-typedef struct xpromise xpromise;
-
-extern xpromise* xrtPromiseCreate(xfuture**, void*);
-extern bool xrtPromiseReject(xpromise*, const struct xerror*);
-extern void xrtPromiseDestroy(xpromise*);
-
 xfuture* xlir_make_i64_future(void)
 {
     xfuture* future = NULL;

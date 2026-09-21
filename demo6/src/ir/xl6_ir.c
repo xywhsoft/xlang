@@ -33272,7 +33272,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         ? XL6_IR_FUTURE_OUTCOME_XRT_ERROR_KIND : XL6_IR_FUTURE_OUTCOME_INVALID))
                     return xl6IrDiag(diags, NULL, "XLIR instruction has an ambiguous Future outcome ABI");
                 if (instruction->awaitOutcomeAbi != (instruction->kind == XL6_IR_INSTR_AWAIT
-                        ? XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC : XL6_IR_AWAIT_OUTCOME_INVALID))
+                        ? XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR
+                        : XL6_IR_AWAIT_OUTCOME_INVALID))
                     return xl6IrDiag(diags, NULL, "XLIR instruction has an ambiguous await status/diagnostic ABI");
                 if ((instruction->kind != XL6_IR_INSTR_YIELD && instruction->kind != XL6_IR_INSTR_GENERATOR_CLOSE_TEST &&
                      instruction->generatorClosePointAbi != XL6_IR_GENERATOR_CLOSE_POINT_INVALID) ||

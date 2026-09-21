@@ -6,9 +6,15 @@ void xlir_async_test_begin(void);
 void xlir_async_test_wait_retired(void);
 void xlir_async_test_wait_watches(unsigned count);
 bool xlir_async_test_take_fault(void);
+bool xlir_async_test_execution_idle(void);
+void xlir_async_test_assert_owner_released(void);
 #ifdef XLIR_ASYNC_SOURCE_HOST
 extern const XL6_CodeOwner* xlir_async_test_code_owner(void);
 extern void xlir_async_test_pause(unsigned long long* started);
+bool xlir_async_test_execution_idle(void)
+{
+    return xl6ContinuationExecutorIsIdle(xlir_continuation_executor);
+}
 static void xlir_async_test_bind(void)
 {
     static int bound;
@@ -22,6 +28,7 @@ static void xlir_async_test_fini(void)
      * Honor that small busy window before trying the generated cleanup. */
     while (!xlir_continuation_quiesce(false)) xlir_async_test_pause(&started);
     xlir_module_fini(); assert(!xrtGetError());
+    xlir_async_test_assert_owner_released();
 }
 #endif
 #endif
