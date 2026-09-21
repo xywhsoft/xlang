@@ -11,7 +11,7 @@ if ( $Root -eq "" ) {
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_async_error_abi.xl"
 $raceSource = Join-Path $Root "test\cases\xlir_async_error_race_abi.xl"
-$allRejectedSource = Join-Path $Root "test\cases\sem_task_all_error_payload_xlir_rejected.xl"
+$allSource = Join-Path $Root "test\cases\xlir_task_all_error_abi.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_generated_module_host.c"
 $diagnosticHostSource = Join-Path $Root "test\cases\xlir_generated_module_diagnostic_host.c"
 $outputDir = Join-Path $Root "build\tmp"
@@ -22,11 +22,14 @@ $executable = Join-Path $outputDir "xlir_async_error_abi.gate.exe"
 $raceLoweredJson = Join-Path $outputDir "xlir_async_error_race_abi.gate.lowered.json"
 $raceGeneratedC = Join-Path $outputDir "xlir_async_error_race_abi.gate.c"
 $raceExecutable = Join-Path $Root "build\test\xlir_async_error_race_abi.gate.exe"
-$allRejectedJson = Join-Path $outputDir "xlir_async_error_all_rejected.gate.lowered.json"
-$allRejectedLog = Join-Path $outputDir "xlir_async_error_all_rejected.gate.log"
+$allTypedJson = Join-Path $outputDir "xlir_task_all_error_abi.gate.typed.json"
+$allLoweredJson = Join-Path $outputDir "xlir_task_all_error_abi.gate.lowered.json"
+$allGeneratedC = Join-Path $outputDir "xlir_task_all_error_abi.gate.c"
+$allGeneratedRepeat = Join-Path $outputDir "xlir_task_all_error_abi.gate.repeat.c"
+$allExecutable = Join-Path $Root "build\test\xlir_task_all_error_abi.gate.exe"
 
 foreach ( $path in @(
-    $xl, $source, $raceSource, $allRejectedSource,
+    $xl, $source, $raceSource, $allSource,
     $hostSource, $diagnosticHostSource
 ) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
@@ -61,33 +64,48 @@ if ( $awaits.Count -ne 3 -or
     throw "XLIR async-error repeated AWAIT does not carry retained-error ABI"
 }
 
-# Catch owns the synthetic canonical error TypeId while the callable signature
-# may use the frontend registry peer.  Equal TypeValueId plus representation is
-# made explicit by VALUE; ASYNC_START must never rely on a C pointer coincidence.
+# The catch and callable signature normally share the canonical error type.  A
+# frontend-registry peer remains legal only through an explicit VALUE rebind
+# whose representation and TypeValueId are identical; ASYNC_START must never
+# rely on a C pointer coincidence.
 $parameterType = [int]$targets[0].parameterTypes[0]
-$rebinds = @($ir.instructions | Where-Object {
-    $_.kindName -eq "value" -and $_.type -eq $parameterType
+$targetType = $ir.types | Where-Object { $_.id -eq $parameterType } |
+    Select-Object -First 1
+$starts = @($ir.instructions | Where-Object {
+    $_.kindName -eq "async-start" -and $_.targetSymbol -eq $targets[0].symbol
 })
-$explicitRebinds = 0
-foreach ( $rebind in $rebinds ) {
-    if ( @($rebind.operands).Count -ne 1 ) { continue }
-    $sourceValue = [int]$rebind.operands[0]
-    $definition = $ir.instructions | Where-Object { $_.result -eq $sourceValue } |
+$canonicalBindings = 0
+foreach ( $start in $starts ) {
+    if ( @($start.operands).Count -ne 1 ) { continue }
+    $argumentValue = [int]$start.operands[0]
+    $definition = $ir.instructions | Where-Object { $_.result -eq $argumentValue } |
         Select-Object -First 1
-    if ( $null -eq $definition -or $definition.type -eq $parameterType ) { continue }
-    $sourceType = $ir.types | Where-Object { $_.id -eq $definition.type } |
-        Select-Object -First 1
-    $targetType = $ir.types | Where-Object { $_.id -eq $parameterType } |
-        Select-Object -First 1
+    if ( $null -eq $definition ) { continue }
+    if ( $definition.type -eq $parameterType ) {
+        ++$canonicalBindings
+        continue
+    }
+    if ( $definition.kindName -ne "value" -or
+         @($definition.operands).Count -ne 1 ) { continue }
+    $sourceValue = [int]$definition.operands[0]
+    $sourceDefinition = $ir.instructions |
+        Where-Object { $_.result -eq $sourceValue } | Select-Object -First 1
+    $sourceType = if ( $null -ne $sourceDefinition ) {
+        $ir.types | Where-Object { $_.id -eq $sourceDefinition.type } |
+            Select-Object -First 1
+    } else { $null }
     if ( $null -ne $sourceType -and $null -ne $targetType -and
          $sourceType.cAbi -eq $targetType.cAbi -and
          $sourceType.ownershipAbi -eq $targetType.ownershipAbi -and
          $sourceType.typeValueId -eq $targetType.typeValueId ) {
-        ++$explicitRebinds
+        ++$canonicalBindings
     }
 }
-if ( $explicitRebinds -lt 2 ) {
-    throw "XLIR async-error catch/signature boundary has no explicit TypeValueId rebind"
+if ( $null -eq $targetType -or $targetType.cAbi -ne 29 -or
+     $targetType.ownershipAbi -ne 2 -or $targetType.nullAbi -ne 1 -or
+     $targetType.typeValueId -eq "0x0000000000000000" -or
+     $starts.Count -ne 2 -or $canonicalBindings -ne $starts.Count ) {
+    throw "XLIR async-error catch/signature boundary has no canonical TypeValueId binding"
 }
 
 & $xl cgen $source --backend xlir --emit $generatedC
@@ -102,14 +120,15 @@ if ( ! [System.Linq.Enumerable]::SequenceEqual([byte[]]$left, [byte[]]$right) ) 
 
 $c = [System.IO.File]::ReadAllText($generatedC, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "static void xlir_async_error_free(void* value, void* data)",
-    "xrtErrorFree(*(xerror**)value);",
-    "static xerror* xlir_future_await_error(xfuture* future)",
-    "return value != NULL && *value != NULL ? xrtErrorRef(*value) : NULL;",
-    "frame->p0 = a0 != NULL ? xrtErrorRef(a0) : NULL;",
-    "xrtErrorFree(frame->p0);",
-    "result->Destroy = xlir_async_error_free;",
-    "xlir_future_await_error("
+    "#include <__xl_runtime/xl6_future_payload.h>",
+    "{XL6_CAPTURE_ERROR, offsetof(xlir_async_frame_1, p0)",
+    "(xl6TaskRuntimeV2Get()->Cleanup)(frame);",
+    "xerror* xlir_acquired = a0 != NULL ? xrtErrorRef(a0) : NULL;",
+    "{ &(frame->p0), &(xlir_committed), sizeof(frame->p0) }",
+    "result->Destroy = xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_ERROR);",
+    "xerror* const* payload = (xerror* const*)(xrtFutureValue(",
+    "*payload != NULL ? xrtErrorRef(*payload) : NULL;",
+    "xrtErrorFree(xlir_released);"
 ) ) {
     if ( ! $c.Contains($required) ) {
         throw "XLIR async-error generated C is missing: $required"
@@ -149,8 +168,9 @@ $raceC = [System.IO.File]::ReadAllText(
     $raceGeneratedC, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
     "(xl6FutureAggregateRuntimeV1Get()->Race)(",
-    "static xerror* xlir_future_await_error(xfuture* future)",
-    "result->Destroy = xlir_async_error_free;"
+    "xerror* const* payload = (xerror* const*)(xrtFutureValue(",
+    "*payload != NULL ? xrtErrorRef(*payload) : NULL;",
+    "result->Destroy = xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_ERROR);"
 ) ) {
     if ( ! $raceC.Contains($required) ) {
         throw "XLIR async-error race generated C is missing: $required"
@@ -166,26 +186,115 @@ if ( $LASTEXITCODE -ne 0 ) {
     throw "XLIR async-error task.race strict-C/runtime gate failed"
 }
 
-Remove-Item -LiteralPath $allRejectedJson,$allRejectedLog `
-    -Force -ErrorAction SilentlyContinue
-# Windows PowerShell promotes redirected native stderr to ErrorRecord under
-# Stop.  Execute the expected-negative probe through cmd so its diagnostic is
-# ordinary captured data and the gate can assert the compiler exit contract.
-$allRejectedCommand = ('"{0}" ir "{1}" --lowered --format json --emit "{2}" > "{3}" 2>&1' -f
-    $xl, $allRejectedSource, $allRejectedJson, $allRejectedLog)
-& $env:ComSpec /d /c $allRejectedCommand
-$allRejectedExit = $LASTEXITCODE
-$allRejectedOutput = if ( Test-Path -LiteralPath $allRejectedLog -PathType Leaf ) {
-    [System.IO.File]::ReadAllText($allRejectedLog, [System.Text.Encoding]::UTF8)
-} else {
-    ""
+& $xl ir $allSource --typed --format json --emit $allTypedJson
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR task.all retained-error Typed IR failed" }
+$allTyped = [System.IO.File]::ReadAllText(
+    $allTypedJson, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+$allCalls = @($allTyped.intrinsicCalls | Where-Object {
+    $_.kindName -eq "task-all" -and $_.admissionName -eq "verified" -and
+    $_.payloadAbiName -eq "retained-error" -and $_.payloadType -ne 0
+})
+if ( $allCalls.Count -ne 1 -or $allCalls[0].operandCount -ne 3 ) {
+    throw "Typed XLIR task.all has no unique verified retained-error contract"
 }
-if ( $allRejectedExit -eq 0 -or
-     (Test-Path -LiteralPath $allRejectedJson -PathType Leaf) -or
-     !($allRejectedOutput.Contains(
-          "XLIR task.all payload has no canonical xvalue boxing ABI")) ) {
-    throw "XLIR task.all unexpectedly admitted retained-error without a canonical xvalue boxing ABI"
+$allCall = $allCalls[0]
+$allPayload = $allTyped.types | Where-Object { $_.id -eq $allCall.payloadType } |
+    Select-Object -First 1
+$allResultFuture = $allTyped.types | Where-Object { $_.id -eq $allCall.resultType } |
+    Select-Object -First 1
+$allResultArray = if ( $null -ne $allResultFuture -and
+                       @($allResultFuture.params).Count -eq 1 ) {
+    $allTyped.types | Where-Object { $_.id -eq $allResultFuture.params[0] } |
+        Select-Object -First 1
+} else { $null }
+$allOperands = @($allTyped.intrinsicOperands | Select-Object `
+    -Skip $allCall.firstOperand -First $allCall.operandCount)
+$allOperandTypes = @($allOperands | ForEach-Object {
+    $operand = $_
+    $allTyped.types | Where-Object { $_.id -eq $operand.type } |
+        Select-Object -First 1
+})
+if ( $null -eq $allPayload -or $allPayload.name -ne "error" -or
+     $allPayload.cAbi -ne 29 -or $allPayload.ownershipAbi -ne 2 -or
+     $allPayload.nullAbi -ne 1 -or
+     $allPayload.typeValueId -eq "0x0000000000000000" -or
+     $null -eq $allResultFuture -or $allResultFuture.cAbi -ne 30 -or
+     $null -eq $allResultArray -or
+     $allResultArray.collectionAbiName -ne "array" -or
+     @($allResultArray.params).Count -ne 1 -or
+     $allResultArray.params[0] -ne $allCall.payloadType -or
+     $allOperands.Count -ne 3 -or
+     @($allOperands | Where-Object { $_.abiName -ne "borrow" }).Count -ne 0 -or
+     $allOperandTypes.Count -ne 3 -or
+     @($allOperandTypes | Where-Object {
+         $null -eq $_ -or $_.cAbi -ne 30 -or @($_.params).Count -ne 1 -or
+         $_.params[0] -ne $allCall.payloadType
+     }).Count -ne 0 ) {
+    throw "Typed XLIR task.all retained-error payload/result/operand ABI is incomplete"
 }
-$global:LASTEXITCODE = 0
 
-Write-Output "XLIR retained-error result/frame/repeated-await ABI, direct task.race winner propagation and loser cancellation, and task.all xvalue-box admission boundary gate passed."
+& $xl ir $allSource --lowered --format json --emit $allLoweredJson
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR task.all retained-error lowering failed" }
+$allIr = [System.IO.File]::ReadAllText(
+    $allLoweredJson, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+$allAggregates = @($allIr.instructions | Where-Object {
+    $_.kindName -eq "runtime-call" -and
+    $_.runtimeOpName -eq "future-all-xvalues" -and
+    $_.asyncResultAbiName -eq "retained-error" -and
+    $_.payloadType -ne 0 -and @($_.operands).Count -eq 3
+})
+$allErrorProjects = @($allIr.instructions | Where-Object {
+    $_.kindName -eq "runtime-call" -and
+    $_.runtimeOpName -eq "xvalue-project-error-ref" -and
+    $_.type -eq $allCall.payloadType
+})
+$allErrorAwaits = @($allIr.instructions | Where-Object {
+    $_.kindName -eq "await" -and $_.asyncResultAbiName -eq "retained-error" -and
+    $_.type -eq $allCall.payloadType
+})
+if ( $allAggregates.Count -ne 1 -or $allErrorProjects.Count -ne 3 -or
+     $allErrorAwaits.Count -ne 2 ) {
+    throw "Lowered XLIR task.all did not preserve aggregate boxing, owned error projection and source re-await ABI"
+}
+
+& $xl cgen $allSource --backend xlir --emit $allGeneratedC
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR task.all retained-error C generation failed" }
+& $xl cgen $allSource --backend xlir --emit $allGeneratedRepeat
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR task.all retained-error repeat C generation failed" }
+$allLeft = [System.IO.File]::ReadAllBytes($allGeneratedC)
+$allRight = [System.IO.File]::ReadAllBytes($allGeneratedRepeat)
+if ( ! [System.Linq.Enumerable]::SequenceEqual(
+        [byte[]]$allLeft, [byte[]]$allRight) ) {
+    throw "XLIR task.all retained-error C generation is not byte-for-byte deterministic"
+}
+$allC = [System.IO.File]::ReadAllText(
+    $allGeneratedC, [System.Text.Encoding]::UTF8)
+$allBox = "return xlir_xvalue_error_ref(*(xerror* const*)payload, $($allPayload.typeValueId)ULL);"
+foreach ( $required in @(
+    "static xvalue* xlir_future_payload_box_t",
+    $allBox,
+    "static bool xlir_error_value_handle_clone(void* handle, void** clone, void* user)",
+    "static void xlir_error_value_handle_drop(void* handle, void* user)",
+    "static xvalue* xlir_xvalue_error_ref(const xerror* error, uint64_t typeId)",
+    "static xerror* xlir_xvalue_project_error_ref(const xvalue* value, uint64_t typeId)",
+    "if (xrtValueType(value) == 0) return NULL;",
+    "(xl6FutureAggregateRuntimeV1Get()->All)(",
+    "xerror* const* payload = (xerror* const*)(xrtFutureValue("
+) ) {
+    if ( ! $allC.Contains($required) ) {
+        throw "XLIR task.all retained-error generated C is missing: $required"
+    }
+}
+foreach ( $forbidden in @("XL6_Function", "xl6Cgen", "xl6Lower") ) {
+    if ( $allC.Contains($forbidden) ) {
+        throw "XLIR task.all retained-error Cgen leaked legacy/compiler machinery: $forbidden"
+    }
+}
+
+$allCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\tmp\xlir_task_all_error_abi.gate.c test\cases\xlir_generated_module_diagnostic_host.c !XL6_CGEN_XLANG_LINKS! -o build\test\xlir_task_all_error_abi.gate.exe && build\test\xlir_task_all_error_abi.gate.exe'
+& $env:ComSpec /d /v:on /c $allCommand
+if ( $LASTEXITCODE -ne 0 ) {
+    throw "XLIR task.all retained-error strict-C/runtime ownership gate failed"
+}
+
+Write-Output "XLIR retained-error result/frame/repeated-await ABI, direct task.race propagation, and task.all exact-TypeId xvalue boxing/projection ownership gate passed."

@@ -1,0 +1,35 @@
+async func aggregateAsyncError(error value) as error
+    return value
+end
+
+async func aggregateNullError() as error
+    return null
+end
+
+try
+    throw ValueError "async error all payload"
+catch captured
+    future<error> left = aggregateAsyncError(captured)
+    future<error> right = aggregateAsyncError(captured)
+    future<error> empty = aggregateNullError()
+    future<array<error>> combined = task.all([left, right, empty])
+    array<error> values = await combined
+    assert values.length == 3
+
+    error first = values[0]
+    error second = values[1]
+    error third = values[2]
+    assert first.kind == "ValueError"
+    assert first.message == "async error all payload"
+    assert second.kind == "ValueError"
+    assert second.message == "async error all payload"
+    assert third == null
+
+    // task.all borrows the source payloads while independently retaining each
+    // array element; neither the aggregate nor projection may steal them.
+    error sourceAgain = await left
+    assert sourceAgain.kind == "ValueError"
+    assert sourceAgain.message == "async error all payload"
+    error emptyAgain = await empty
+    assert emptyAgain == null
+end

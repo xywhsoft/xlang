@@ -49,7 +49,6 @@ $expectedXlirRejections = @(
     'bad_xlir_text_output_wrong_result',
     'bad_xlir_text_output_missing_input',
     'bad_xlir_text_output_extra_input',
-    'sem_task_all_error_payload_xlir_rejected',
     'cgen_xlir_set_i64_key_reject',
     'cgen_xlir_set_u64_iterator_reject',
     'bad_xlir_borrowed_managed_expression_discard',

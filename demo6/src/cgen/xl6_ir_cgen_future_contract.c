@@ -134,7 +134,10 @@ static int xl6IrCgenAsyncPayloadAbiMatches(
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:
         return payload->cAbi == XL6_IR_C_ABI_CLOSURE_PTR;
     case XL6_IR_ASYNC_RESULT_RETAINED_ERROR:
-        return payload->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR;
+        return payload->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR &&
+               payload->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+               payload->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+               payload->typeValueId != 0;
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:
         return payload->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR;
     case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:
@@ -236,6 +239,7 @@ static int xl6IrCgenFuturePayloadBoxerAbiSupported(
     case XL6_IR_ASYNC_RESULT_OWNED_STRING:
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:
+    case XL6_IR_ASYNC_RESULT_RETAINED_ERROR:
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:
         return 1;
     default:

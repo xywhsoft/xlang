@@ -5281,6 +5281,20 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
         return xl6IrLowerOwnBorrowedIndexResult(
             ctx, origin, node, borrowed, NULL, NULL, 0);
     }
+    if ( resultType->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR &&
+         resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+         resultType->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+         receiverType->paramCount == 1 && receiverType->params != NULL &&
+         receiverType->params[0] == node->storageType ) {
+        XL6_IrValueId borrowed;
+        dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
+        borrowed = dynamicType == XL6_IR_TYPE_INVALID
+            ? XL6_IR_VALUE_INVALID
+            : xl6IrLowerEmitRuntimeCall(
+                ctx, origin, dynamicType, dynamicOp, operands, 2);
+        return xl6IrLowerProjectBorrowedXValueAsError(
+            ctx, origin, borrowed, node->storageType);
+    }
     if ( resultType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
          resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
          resultType->paramCount == 1 && resultType->params != NULL &&
@@ -11289,7 +11303,10 @@ static int xl6IrLowerTaskAllPayloadBoxerSupported(
     const XL6_IrModule* module, XL6_IrTypeId typeId,
     XL6_IrAsyncResultAbi abi)
 {
-    if ( abi != xl6IrLowerAsyncResultAbi(module, typeId) ) return 0;
+    const XL6_IrType* type = module != NULL
+        ? xl6IrTypeGet(&module->types, typeId) : NULL;
+    if ( type == NULL || abi != xl6IrLowerAsyncResultAbi(module, typeId) )
+        return 0;
     switch ( abi ) {
     case XL6_IR_ASYNC_RESULT_COPY_BOOL:
     case XL6_IR_ASYNC_RESULT_COPY_I64:
@@ -11300,6 +11317,10 @@ static int xl6IrLowerTaskAllPayloadBoxerSupported(
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:
         return 1;
+    case XL6_IR_ASYNC_RESULT_RETAINED_ERROR:
+        return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+               type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+               type->typeValueId != 0;
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:
         return xl6IrLowerRuntimeCallableSignatureSupported(module, typeId);
     default:

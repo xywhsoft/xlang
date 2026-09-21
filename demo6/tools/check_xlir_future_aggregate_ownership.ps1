@@ -13,7 +13,7 @@ $caseNames=@('xlir_task_when_any_literal_abi','xlir_task_when_any_array_abi',
     'xlir_task_aggregate_array_abi','cgen_task_aggregate_type_closure','xlir_task_all_void_outcome')
 $files=@(Get-Item $PSCommandPath,$ContractDriver,$manifest.Driver,
     test/cases/xlir_future_aggregate_ownership.xl,test/cases/xlir_future_aggregate_ownership_host.c,
-    test/cases/xlir_future_aggregate_ownership_contract.c)
+    test/cases/xlir_future_aggregate_ownership_contract.c,test/cases/xlir_task_all_error_abi.xl)
 $files+=@($caseNames|ForEach-Object {Get-Item -LiteralPath "test/cases/$_.xl"})
 $records=@($manifest.Inputs)+@($manifest.Headers)+@($runtimeObject)+
     @($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
@@ -29,8 +29,8 @@ foreach ($suffix in @('c','h','json')) {
     if ((Get-FileHash -LiteralPath "$prefix.$suffix").Hash -ne (Get-FileHash -LiteralPath "$prefix.repeat.$suffix").Hash) { throw 'Nondeterministic aggregate emission' }
 }
 & $ContractDriver *> "$outputPath/contract.log"; $contractExit=$LASTEXITCODE
-$contractComplete=[bool](Select-String -LiteralPath "$outputPath/contract.log" -SimpleMatch '9 operations, 36 C/header-gated mutations' -Quiet)
-$contractComplete=$contractComplete -and [bool](Select-String -LiteralPath "$outputPath/contract.log" -SimpleMatch 'Aggregate module ABI: 9 additional C/header-gated mutations, all 6 operations independently derived' -Quiet)
+$contractComplete=[bool](Select-String -LiteralPath "$outputPath/contract.log" -SimpleMatch '10 operations, 43 C/header-gated mutations' -Quiet)
+$contractComplete=$contractComplete -and [bool](Select-String -LiteralPath "$outputPath/contract.log" -SimpleMatch 'Aggregate module ABI: 13 additional C/header-gated mutations, all 6 operations independently derived' -Quiet)
 $includePath=[IO.Path]::GetFullPath((Join-Path $PublicDirectory 'include'))
 $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
     '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation')
@@ -85,7 +85,7 @@ foreach ($name in $caseNames) {
 }
 $unchanged=@($records|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count -eq 0
 $report=[pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Inputs=$records;InputsUnchanged=$unchanged;
-    ContractExit=$contractExit;ContractComplete=$contractComplete;IrMutations=36;AdditionalModuleAbiMutations=9;Deterministic=$true;
+    ContractExit=$contractExit;ContractComplete=$contractComplete;IrMutations=43;AdditionalModuleAbiMutations=13;Deterministic=$true;
     Lanes=$lanes;TransactionsPerLane=3500;BridgeLaunchProbesPerLane=192;Public=$public;
     Scope='Generated literal/array All/Race/WhenAny and callable payload graphs, exact pending/terminal ownership, original error identity, producer/output cancellation, closed sources, OOM before and after acceptance, and actual void-All error propagation. Code stays resident; generic suspended-frame/module lifetime remains open.'}
 [IO.File]::WriteAllText("$outputPath/results.json",($report|ConvertTo-Json -Depth 7),[Text.UTF8Encoding]::new($false))
