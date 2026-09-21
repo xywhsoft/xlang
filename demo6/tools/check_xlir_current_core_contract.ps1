@@ -137,10 +137,58 @@ foreach ( $globalStorage in $globals ) {
 }
 $send = @($case.Ir.instructions | Where-Object { $_.runtimeOpName -eq "channel-send" })
 if ( $send.Count -ne 1 ) { throw "Global channel receiver has no unique send" }
-$receiver = @($case.Ir.instructions | Where-Object { $_.result -eq $send[0].operands[0] })
-if ( $receiver.Count -ne 1 -or $receiver[0].kindName -ne "load" -or
-     $receiver[0].targetSymbol -notin @($globals.symbol) ) {
-    throw "Global channel call lost its explicitly bound global receiver"
+$receiverLoads = @($case.Ir.instructions | Where-Object {
+    $_.kindName -eq "load" -and $_.result -eq $send[0].operands[0]
+})
+$receiverStorage = @()
+$receiverStores = @()
+$retains = @()
+$globalLoads = @()
+$receiverReleases = @()
+if ( $receiverLoads.Count -eq 1 ) {
+    $receiverStorage = @($case.Ir.storages | Where-Object {
+        $_.symbol -eq $receiverLoads[0].targetSymbol
+    })
+    $receiverStores = @($case.Ir.instructions | Where-Object {
+        $_.kindName -eq "store" -and
+        $_.targetSymbol -eq $receiverLoads[0].targetSymbol -and
+        $_.operandCount -eq 1
+    })
+    if ( $receiverStores.Count -eq 1 ) {
+        $retains = @($case.Ir.instructions | Where-Object {
+            $_.runtimeOpName -eq "xvalue-retain" -and
+            $_.result -eq $receiverStores[0].operands[0] -and
+            $_.operandCount -eq 1
+        })
+    }
+    if ( $retains.Count -eq 1 ) {
+        $globalLoads = @($case.Ir.instructions | Where-Object {
+            $_.kindName -eq "load" -and $_.result -eq $retains[0].operands[0] -and
+            $_.targetSymbol -in @($globals.symbol)
+        })
+    }
+    $receiverReleases = @($case.Ir.instructions | Where-Object {
+        $_.kindName -eq "release" -and
+        $_.targetSymbol -eq $receiverLoads[0].targetSymbol
+    })
+}
+$validReceiver = $receiverLoads.Count -eq 1 -and $receiverStorage.Count -eq 1 -and
+    $receiverStorage[0].kindName -eq "temporary" -and
+    $receiverStorage[0].type -eq $receiverLoads[0].type -and
+    $receiverStores.Count -eq 1 -and $retains.Count -eq 1 -and
+    $retains[0].resultOwnershipName -eq "move" -and
+    $globalLoads.Count -eq 1 -and $globalLoads[0].resultOwnershipName -eq "borrow" -and
+    $globalLoads[0].type -eq $receiverLoads[0].type -and
+    $globalLoads[0].id -lt $retains[0].id -and
+    $retains[0].id -lt $receiverStores[0].id -and
+    $receiverStores[0].id -lt $receiverLoads[0].id -and
+    $receiverLoads[0].id -lt $send[0].id -and
+    $receiverReleases.Count -ge 1 -and
+    @($receiverReleases | Where-Object {
+        $_.id -le $send[0].id -or $_.type -ne $receiverLoads[0].type
+    }).Count -eq 0
+if ( ! $validReceiver ) {
+    throw "Global channel call lost its retain/store/borrow/release receiver lifetime"
 }
 
 $case = Read-Case "cgen_function_direct_owned_args"
